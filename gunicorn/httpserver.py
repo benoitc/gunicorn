@@ -74,7 +74,7 @@ class HTTPServer(object):
         tries = self.opts.get('tries', 5)
         delay = self.opts.get('delay', 0.5)
         
-        for i in range(5):
+        for i in range(tries):
             try:
                 sock = socketserver.TCPServer(addr, **opts)
                 self.LISTENERS.append(sock)
