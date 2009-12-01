@@ -15,4 +15,10 @@
 #  limitations under the License.
 
 
-__version__ = "0.1"
+
+class RequestError(Exception):
+    
+    def __init__(self, status_code, reason):
+        self.status_code = status_code
+        self.reason = reason
+        Exception.__init__(self, (status_code, reason))

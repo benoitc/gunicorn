@@ -21,9 +21,11 @@ import os
 import select
 import signal
 import socket
+import sys
 import tempfile
 import time
 
+from gunicorn.httprequest import HTTPRequest
 from gunicorn import socketserver
 from gunicorn.util import NullHandler
 
@@ -93,7 +95,7 @@ class HTTPServer(object):
              os.waitpid(-1, 0)
              
         except KeyboardInterrupt:
-            kill_workers(signal.SIGQUIT)
+            self.kill_workers(signal.SIGQUIT)
             sys.exit()
         
     def init_worker_process(self, worker):
@@ -102,12 +104,12 @@ class HTTPServer(object):
 
     def process_client(self, conn, addr):
         """ do nothing just echo message"""
-        flo = conn.makefile()
-        flo.flush()
-        message = flo.readline()
-        flo.write(message)
-        conn.close()
         
+        req = HTTPRequest(conn, addr)
+        environ = req.read()
+        
+        req.write(str(environ))
+        req.close()
         
     def worker_loop(self, worker):
         pid = os.fork()
@@ -144,7 +146,8 @@ class HTTPServer(object):
                                 break
                         except errno.EINTR:
                             ready = self.LISTENERS
-                        except:
+                        except Exception, e:
+                            print str(e)
                             pass
                     
                 except KeyboardInterrupt:
