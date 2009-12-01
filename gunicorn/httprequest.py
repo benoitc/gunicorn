@@ -33,9 +33,10 @@ class HTTPRequest(object):
     SERVER_VERSION = "gunicorn/%s" % __version__
     CHUNK_SIZE = 4096
     
-    def __init__(self, socket, address):
+    def __init__(self, socket, client_address, server_address):
         self.socket = socket
-        self.address = address
+        self.client_address = client_address
+        self.server_address = server_address
         self.version = None
         self.method = None
         self.path = None
@@ -80,7 +81,12 @@ class HTTPRequest(object):
             "QUERY_STRING": query,
             "RAW_URI": self.path,
             "CONTENT_TYPE": self.headers.get('content-type', ''),
-            "CONTENT_LENGTH": length
+            "CONTENT_LENGTH": length,
+            "REMOTE_ADDR": self.client_address[0],
+            "REMOTE_PORT": self.client_address[1],
+            "SERVER_NAME": self.server_address[0],
+            "SERVER_PORT": self.server_address[1],
+            "SERVER_PROTOCOL": self.version
         }
         
         for key, value in self.headers.items():
@@ -88,6 +94,7 @@ class HTTPRequest(object):
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
 
+        print environ
         return environ
         
     def read_headers(self):

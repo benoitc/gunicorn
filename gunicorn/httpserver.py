@@ -102,10 +102,9 @@ class HTTPServer(object):
         pass
 
 
-    def process_client(self, conn, addr):
+    def process_client(self, listener, conn, addr):
         """ do nothing just echo message"""
-        
-        req = HTTPRequest(conn, addr)
+        req = HTTPRequest(conn, addr, listener.getsockname())
         environ = req.read()
         
         req.write(str(environ))
@@ -128,7 +127,7 @@ class HTTPServer(object):
                 try:
                     for sock in ready:
                         try:
-                            self.process_client(*sock.accept_nonblock())
+                            self.process_client(sock, *sock.accept_nonblock())
                         except errno.EAGAIN, errno.ECONNABORTED:
                             pass
                             
