@@ -16,6 +16,7 @@
 
 import re
 import StringIO
+import sys
 from urllib import unquote
 
 from gunicorn import __version__
@@ -56,7 +57,6 @@ class HTTPRequest(object):
             query = ""
             
         length = self.body_length()
-        print length
         if not length:
             wsgi_input = StringIO.StringIO()
         elif length == "chunked":
@@ -67,6 +67,8 @@ class HTTPRequest(object):
                 
         environ = {
             "wsgi.url_scheme": 'http',
+            "wsgi.input": wsgi_input,
+            "wsgi.errors": sys.stderr,
             "wsgi.version": (1, 0),
             "wsgi.multithread": False,
             "wsgi.multiprocess": True,
@@ -248,7 +250,7 @@ class InputFile(object):
         
     def next(self):
         if self.eof:
-            raise StopIteration
+            raise StopIteration()
         return self.readline()
         
         
