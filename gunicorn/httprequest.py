@@ -153,11 +153,11 @@ class HTTPRequest(object):
         return data, str(length) or ""
         
     def write(self, data):
-        self.f.write(data)
+        self.fp.write(data)
         
-    def close(self, data):
+    def close(self):
         self.fp.close()
-        self.conn.close()
+        self.socket.close()
 
     def first_line(self, line):
         method, path, version = line.split(" ")
@@ -173,7 +173,7 @@ class HTTPRequest(object):
         
         
         
-class InputFile(object):
+class FileInput(object):
     
     def __init__(self, req):
         self.length = req.body_length()
@@ -244,9 +244,9 @@ class InputFile(object):
         """
         s = []
         while amt > 0:
-            chunk = self.fp.read(min(amt, MAXAMOUNT))
+            chunk = self.fp.read(amt)
             if not chunk:
-                raise IncompleteRead(s)
+                raise RequestError(500, "Incomplete read %s" % s)
             s.append(chunk)
             amt -= len(chunk)
         return ''.join(s)

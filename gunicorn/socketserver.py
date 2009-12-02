@@ -16,7 +16,13 @@
 
 import socket
 
-class TCPServer(socket.socket):
+class Socket(socket.socket):
+    def accept_nonblock(self):
+        self.setblocking(0)
+        return self.accept()
+
+
+class TCPServer(Socket):
     """class for server-side TCP sockets. 
     This is wrapper around socket.socket class"""
     
@@ -46,10 +52,3 @@ class TCPServer(socket.socket):
         
     def listen(self):
         super(TCPServer, self).listen(self.backlog)
-       
-    def accept(self):
-        return super(TCPServer, self).accept()
-        
-    def accept_nonblock(self):
-        self.setblocking(0)
-        return self.accept()
