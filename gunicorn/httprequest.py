@@ -41,6 +41,9 @@ class HTTPRequest(object):
         self.method = None
         self.path = None
         self.headers = {}
+        self.response_status = None
+        self.response_headers = {}
+        self._version = 11
         self.fp = socket.makefile("rw", self.CHUNK_SIZE)
         
 
@@ -93,8 +96,6 @@ class HTTPRequest(object):
             key = 'HTTP_' + key.replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
-
-        print environ
         return environ
         
     def read_headers(self):
@@ -152,6 +153,16 @@ class HTTPRequest(object):
         data.seek(0)
         return data, str(length) or ""
         
+    def start_response(self, status, response_headers):
+        resp_head = []
+        self.response_status = status
+        self.response_headers = {}
+        resp_head.append("%s %s" % (self.version, status))
+        for name, value in response_headers:
+            resp_head.append("%s: %s" % (name, value))
+            self.response_headers[name.lower()] = value
+        self.fp.write("%s\r\n\r\n" % "\r\n".join(resp_head))
+        
     def write(self, data):
         self.fp.write(data)
         
@@ -161,7 +172,7 @@ class HTTPRequest(object):
 
     def first_line(self, line):
         method, path, version = line.split(" ")
-        self.version = version
+        self.version = version.strip()
         self.method = method.upper()
         self.path = path
         
@@ -201,7 +212,6 @@ class FileInput(object):
         if not self.length:
             self.close()
         return s
-
 
     def readline(self, size=None):
         if self.fp is None or self.eof:

@@ -25,6 +25,7 @@ import sys
 import time
 
 from gunicorn.httprequest import HTTPRequest
+from gunicorn.httpresponse import HTTPResponse
 from gunicorn import socketserver
 from gunicorn.util import NullHandler
 
@@ -149,8 +150,12 @@ class HTTPServer(object):
     def process_client(self, listener, conn, addr):
         """ do nothing just echo message"""
         req = HTTPRequest(conn, addr, listener.getsockname())
-        environ = req.read()
-        req.write(str(environ))
+        try:
+            result = self.app(req.read(), req.start_response)
+            response = HTTPResponse(req, result) 
+            response.send()
+        except Exception, e:
+            print >>sys.stderr, str(e)
         req.close()
         
     def worker_loop(self, worker_pid, worker):
