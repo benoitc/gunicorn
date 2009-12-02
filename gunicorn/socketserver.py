@@ -22,7 +22,7 @@ class TCPServer(socket.socket):
     
     def __init__(self, address, **opts):
         self.address = address
-        self.backlog = opts.get('timeout', 1024)
+        self.backlog = opts.get('backlog', 1024)
         self.timeout = opts.get('timeout', 300)
         self.reuseaddr = opts.get('reuseaddr', True)
         self.nodelay = opts.get('nodelay', True)

@@ -82,7 +82,7 @@ class HTTPServer(object):
                 self.LISTENERS.append(sock)
             except socket.error, e:
                 if e[0] == errno.EADDRINUSE:
-                    self.logger.error("adding listener failed address: %s" % addr)
+                    self.logger.error("adding listener failed address: %s" % str(addr))
                 if i < tries:
                     self.logger.error("retrying in %s seconds." % str(delay))
                 time.sleep(delay)
@@ -90,16 +90,44 @@ class HTTPServer(object):
             
     def join(self):
         # this pipe will be used to wake up the master when signal occurs
-        self.init_pipe()  
+        self.init_pipe()
+        respawn = True
+        while True:
+            try:
+                #if respawn:
+                    #self.maintain_worker_count()
+                os.waitpid(-1, os.WNOHANG)
+                self.master_sleep()
+            except Exception, e:
+                self.logger.error("Unhandled exception [%s]" % str(e))
+            except KeyboardInterrupt:
+                self.kill_workers(signal.SIGQUIT)
+                sys.exit()
+
+            
+            
+    def master_sleep(self):
+        while True:
+            ready = select.select([self.PIPE[0]], [], [], 1)
+            if ready and ready[0]: break
         try:
-             os.waitpid(-1, 0)
-             
-        except KeyboardInterrupt:
-            self.kill_workers(signal.SIGQUIT)
-            sys.exit()
-        
+            while True:
+                data = os.read(self.PIPE[0], 4096)
+                if len(data) < 4096: return
+        except errno.EAGAIN, errno.EINTR:
+            pass
+
     def init_worker_process(self, worker):
-        pass
+        for w in self.WORKERS:
+            if w != worker:
+                try:
+                    w.tmp.close()
+                except:
+                    continue
+            else:
+                continue
+        [fcntl.fcntl(sock.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC) for sock in self.LISTENERS]
+        fcntl.fcntl(worker.tmp.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
 
 
     def process_client(self, listener, conn, addr):
@@ -114,17 +142,17 @@ class HTTPServer(object):
         pid = os.fork()
 
         if pid == 0:
-            worker_pid =   os.getpid()
+            worker_pid = os.getpid()
             yield worker_pid
             self.init_worker_process(worker)
             alive = worker.tmp.fileno()
             m = 0
             ready = self.LISTENERS
-            
-            while alive:
-                m = 0 if m == 1 else 1
-                os.fchmod(alive, m)
-                try:
+            try:
+                while alive:
+                    m = 0 if m == 1 else 1
+                    os.fchmod(alive, m)
+                
                     for sock in ready:
                         try:
                             self.process_client(sock, *sock.accept_nonblock())
@@ -136,23 +164,23 @@ class HTTPServer(object):
                     
                     m = 0 if m == 1 else 1   
                     os.fchmod(alive, m)
-                    
+
                     while True:
                         try:
-                            fd_sets = select.select([self.LISTENERS], [], self.PIPE, self.timeout)
-                            if fd_sets:
+                            fd_sets = select.select(self.LISTENERS, [], self.PIPE, self.timeout)
+                            if fd_sets and fd_sets[0]:
                                 ready = [fd_sets[0]]
                                 break
                         except errno.EINTR:
                             ready = self.LISTENERS
                         except Exception, e:
-                            print str(e)
+                            self.logger.error("Unhandled exception in worker %s [%s]" % (worker_pid, e))
                             pass
                     
-                except KeyboardInterrupt:
-                    sys.exit()
-                except Exception, e:
-                    self.logger.error("Unhandled exception in worker %s [%s]" % (worker_pid, e))
+            except KeyboardInterrupt:
+                sys.exit()
+            except Exception, e:
+                self.logger.error("Unhandled exception in worker %s [%s]" % (worker_pid, e))
     
     def kill_workers(self, sig):
         """kill all workers with signal sig """
@@ -165,7 +193,7 @@ class HTTPServer(object):
         try:
             os.kill(pid, sig) 
         finally:
-            worker.fd.close()
+            worker.tmp.close()
             del self.WORKERS[pid]
         
         
@@ -184,8 +212,7 @@ class HTTPServer(object):
             
         for pid, w in self.WORKERS.items():
             if w.nr >= self.worker_processes:
-                self.kill_worker(pid, signal.SIGQUIT)
-                
+                self.kill_worker(pid, signal.SIGQUIT)   
 
     def init_pipe(self):
         if self.PIPE:
