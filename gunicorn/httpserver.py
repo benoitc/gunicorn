@@ -149,13 +149,11 @@ class HTTPServer(object):
 
     def process_client(self, listener, conn, addr):
         """ do nothing just echo message"""
+        fcntl.fcntl(conn.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
         req = HTTPRequest(conn, addr, listener.getsockname())
-        try:
-            result = self.app(req.read(), req.start_response)
-            response = HTTPResponse(req, result) 
-            response.send()
-        except Exception, e:
-            print >>sys.stderr, str(e)
+        result = self.app(req.read(), req.start_response)
+        response = HTTPResponse(req, result) 
+        response.send()
         req.close()
         
     def worker_loop(self, worker_pid, worker):
@@ -173,11 +171,13 @@ class HTTPServer(object):
                     sock = self.LISTENERS[fileno]
                     try:
                         self.process_client(sock, *sock.accept())
+                        m = 0 if m == 1 else 1
+                        os.fchmod(alive, m)
                     except errno.EAGAIN, errno.ECONNABORTED:
                         pass
-                        
-                    m = 0 if m == 1 else 1
-                    os.fchmod(alive, m)
+                    except Exception, e:
+                        print >>sys.stderr, str(e)                        
+                   
 
                 if ppid != os.getppid(): return
                 m = 0 if m == 1 else 1   
