@@ -1,4 +1,5 @@
 
+import BaseHTTPServer
 import logging
 import os
 import select
@@ -7,6 +8,25 @@ import signal
 import util
 
 log = logging.getLogger(__name__)
+
+class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
+    
+    protocol = 'HTTP/1.1'
+    worker = None
+    
+    def do_GET(self):
+        self.respond("Hello, World!\n")
+
+    def respond(self, body):
+        log.info("Responding")
+        self.send_response(200, 'OK')
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        log.info("Sending body.")
+        self.wfile.write(body)
+        self.wfile.flush()
+        log.info("Done.")
 
 class Worker(object):
 
@@ -36,24 +56,19 @@ class Worker(object):
             (conn, addr) = self.socket.accept()
             log.info("Client connected: %s:%s" % addr)
             conn.setblocking(1)
-            if not self.handle(conn, addr):
-                log.info("Client requested process recycle.")
-                return
+            try:
+                self.handle(conn, addr)
+            finally:
+                log.info("Client disconnected.")
+                conn.close()
 
     def handle(self, conn, client):
-        fp = conn.makefile()
-        line = fp.readline()
-        while line:
-            log.info("Received: %s" % line.strip())
-            if line.strip().startswith("q"):
-                log.info("Client disconnected.")
-                conn.close()
-                return True
-            elif line.strip().startswith("k"):
-                log.info("Client disconnected.")
-                conn.close()
-                return False
-            else:
-                fp.write(line)
-                fp.flush()
-            line = fp.readline()
+        while True:
+            req = Handler(conn, client, self.socket)
+            req.setup()
+            req.worker = self
+            log.info("Handling request.")
+            req.handle()
+            log.info("Done.")
+            if req.close_connection:
+                return
