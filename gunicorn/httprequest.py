@@ -129,6 +129,11 @@ class HTTPRequest(object):
             return "chunked"
         else:
             return None
+         
+    def should_close(self):
+        return self.version < 10 or self.headers.get('CONNECTION')  == "close" \
+        or (self.version == 10 and self.headers.get('CONNECTION') != "Keep-Alive")
+        
             
     def decode_chunked(self):
         """Decode the 'chunked' transfer coding."""
@@ -168,7 +173,8 @@ class HTTPRequest(object):
         
     def close(self):
         self.fp.close()
-        self.socket.close()
+        if self.should_close():
+            self.socket.close()
 
     def first_line(self, line):
         method, path, version = line.split(" ")

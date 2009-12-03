@@ -10,4 +10,4 @@ def simple_app(environ, start_response):
 
 if __name__ == '__main__':
     server = HTTPServer(simple_app, 4)
-    server.join()
+    server.run()

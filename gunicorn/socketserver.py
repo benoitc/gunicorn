@@ -18,9 +18,9 @@ import socket
 
 class Socket(socket.socket):
     def accept_nonblock(self):
-        sock, addr = self.accept()
-        sock.setblocking(0)
-        return (sock, addr)
+        conn, addr = self.accept()
+        conn.setblocking(0)
+        return (conn, addr)
 
 
 class TCPServer(Socket):
@@ -28,28 +28,21 @@ class TCPServer(Socket):
     This is wrapper around socket.socket class"""
     
     def __init__(self, address, **opts):
-        self.address = address
         self.backlog = opts.get('backlog', 1024)
         self.timeout = opts.get('timeout', 300)
         self.reuseaddr = opts.get('reuseaddr', True)
         self.nodelay = opts.get('nodelay', True)
-        self.recbuf = opts.get('recbuf', 8192)
         
         socket.socket.__init__(self, socket.AF_INET, socket.SOCK_STREAM)
+
+        self.bind(address)
+        self.listen(self.backlog)
         
+        # set options
+        self.settimeout(self.timeout)
+        self.setblocking(0)
         if self.reuseaddr:
             self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
              
         if self.nodelay:
             self.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            
-        if self.recbuf:
-            self.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 
-                                self.recbuf)
-            
-        self.settimeout(self.timeout)
-        self.bind(address)
-        self.listen()
-        
-    def listen(self):
-        super(TCPServer, self).listen(self.backlog)
