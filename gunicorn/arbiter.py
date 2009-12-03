@@ -76,6 +76,8 @@ class Arbiter(object):
         except OSError, e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
+        except KeyboardInterrupt:
+            sys.exit()
     
     def listen(self, addr):
         for i in range(5):

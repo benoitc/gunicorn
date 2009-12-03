@@ -185,7 +185,7 @@ class HTTPRequest(object):
             self.socket.close()
 
     def first_line(self, line):
-        method, path, version = line.split(" ")
+        method, path, version = line.strip().split(" ")
         self.version = version.strip()
         self.method = method.upper()
         self.path = path
