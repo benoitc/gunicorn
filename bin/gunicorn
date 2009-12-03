@@ -1,0 +1,34 @@
+#! /usr/bin/env python
+
+import optparse as op
+import os
+import sys
+
+sys.path.insert(0, os.getcwd())
+
+import gunicorn
+
+__usage__ = "%prog [OPTIONS] APP_MODULE"
+
+def options():
+    return [
+        op.make_option('--host', dest='host', default='127.0.0.1',
+            help='Host to listen on. [%default]'),
+        op.make_option('--port', dest='port', default=8000, type='int',
+            help='Port to listen on. [%default]'),
+        op.make_option('--workers', dest='workers', default=1, type='int',
+            help='Number of workers to spawn. [%default]')
+    ]
+
+def main():
+    parser = op.OptionParser(usage=__usage__, option_list=options())
+    opts, args = parser.parse_args()
+    
+    if len(args) != 1:
+        parser.error("No application module specified.")
+    
+    arbiter = gunicorn.Arbiter((opts.host, opts.port), opts.workers, args[0])
+    arbiter.run()
+    
+if __name__ == '__main__':
+    main()

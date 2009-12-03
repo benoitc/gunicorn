@@ -1,4 +1,7 @@
-from gunicorn.httpserver import HTTPServer
+
+from gunicorn.httpserver import WSGIServer
+
+
 
 
 def simple_app(environ, start_response):
@@ -9,5 +12,5 @@ def simple_app(environ, start_response):
     return ['Hello world!\n']
 
 if __name__ == '__main__':
-    server = HTTPServer(simple_app, 4)
+    server = WSGIServer(("127.0.0.1", 8000), 1, simple_app)
     server.run()
