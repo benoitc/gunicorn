@@ -143,8 +143,9 @@ class HTTPServer(object):
                         time.sleep(0.1)
                         m = 0 if m == 1 else 1
                         os.fchmod(alive, m)
-                    except errno.EAGAIN, errno.ECONNABORTED:
-                        pass
+                    except IOError, e:
+                        if e.errno == errno.EAGAIN or e.errno == errno.ECONNABORTED:
+                            pass
 
                 if ppid != os.getppid(): return
                 m = 0 if m == 1 else 1   
