@@ -1,9 +1,10 @@
 
-import BaseHTTPServer
+import errno
 import logging
 import os
 import select
 import signal
+import socket
 
 import http
 import util
@@ -36,15 +37,23 @@ class Worker(object):
                 if ret[0]:
                     break
 
-            (conn, addr) = self.socket.accept()
-            log.info("Client connected: %s:%s" % addr)
-            conn.setblocking(1)
-            try:
-                self.handle(conn, addr)
-            except:
-                log.exception("Error processing request.")
-            finally:
-                conn.close()
+            # Accept until we hit EAGAIN
+            while True:
+                try:
+                    (conn, addr) = self.socket.accept()
+                except socket.error, e:
+                    if e[0] in [errno.EAGAIN, errno.EINTR]:
+                        continue # Jump back to select
+                    raise # Uh oh!
+
+                #log.info("Client connected: %s:%s" % addr)
+                conn.setblocking(1)
+                try:
+                    self.handle(conn, addr)
+                except:
+                    log.exception("Error processing request.")
+                finally:
+                    conn.close()
 
     def handle(self, conn, client):
         while True:
