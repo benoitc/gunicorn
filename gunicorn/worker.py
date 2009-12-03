@@ -5,28 +5,10 @@ import os
 import select
 import signal
 
+import http
 import util
 
 log = logging.getLogger(__name__)
-
-class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
-    
-    protocol = 'HTTP/1.1'
-    worker = None
-    
-    def do_GET(self):
-        self.respond("Hello, World!\n")
-
-    def respond(self, body):
-        log.info("Responding")
-        self.send_response(200, 'OK')
-        self.send_header("Content-Type", "text/plain")
-        self.send_header("Content-Length", len(body))
-        self.end_headers()
-        log.info("Sending body.")
-        self.wfile.write(body)
-        self.wfile.flush()
-        log.info("Done.")
 
 class Worker(object):
 
@@ -38,8 +20,9 @@ class Worker(object):
     def __init__(self, workerid, socket, module):
         self.id = workerid
         self.socket = socket
+        self.address = socket.getsockname()
         self.tmp = os.tmpfile()
-        self.module = util.import_mod(module)
+        self.app = util.import_app(module)
     
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
@@ -58,17 +41,17 @@ class Worker(object):
             conn.setblocking(1)
             try:
                 self.handle(conn, addr)
+            except:
+                log.exception("Error processing request.")
             finally:
-                log.info("Client disconnected.")
                 conn.close()
 
     def handle(self, conn, client):
         while True:
-            req = Handler(conn, client, self.socket)
-            req.setup()
-            req.worker = self
-            log.info("Handling request.")
-            req.handle()
-            log.info("Done.")
-            if req.close_connection:
+            req = http.HTTPRequest(conn, client, self.address)
+            result = self.app(req.read(), req.start_response)
+            response = http.HTTPResponse(req, result) 
+            response.send()
+            if req.should_close():
+                conn.close()
                 return

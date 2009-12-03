@@ -1,5 +1,5 @@
 
-def import_mod(module):
+def import_app(module):
     parts = module.rsplit(":", 1)
     if len(parts) == 1:
         module, obj = module, "application"
@@ -11,5 +11,10 @@ def import_mod(module):
         mod = getattr(mod, p, None)
         if mod is None:
             raise ImportError("Failed to import: %s" % module)
-    return mod
+    app = getattr(mod, obj, None)
+    if app is None:
+        raise ImportError("Failed to find application object: %r" % obj)
+    if not callable(app):
+        raise TypeError("Application object must be callable.")
+    return app
     
