@@ -43,7 +43,7 @@ class Worker(object):
                     (conn, addr) = self.socket.accept()
                 except socket.error, e:
                     if e[0] in [errno.EAGAIN, errno.EINTR]:
-                        continue # Jump back to select
+                        break # Jump back to select
                     raise # Uh oh!
 
                 #log.info("Client connected: %s:%s" % addr)
