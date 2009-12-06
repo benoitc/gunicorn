@@ -121,8 +121,7 @@ class HTTPRequest(object):
                 except ValueError: 
                     # bad headers
                     pass
-        
-        
+
     def body_length(self):
         transfert_encoding = self.headers.get('TRANSFERT-ENCODING')
         content_length = self.headers.get('CONTENT-LENGTH')
