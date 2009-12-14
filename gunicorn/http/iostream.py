@@ -25,38 +25,17 @@ class IOStream(object):
     
     def __init__(self, sock):
         self.sock = sock
-        
         self.buf = "" 
         
-
     def recv(self, buffer_size):
-        try:
-            data = self.sock.recv(buffer_size)
-            if not data:
-                # we should handle close here
-                return ''
-            return data
-        except socket.error, e:
-            if e.args[0] in (errno.ECONNRESET, errno.ENOTCONN, 
-                            errno.ESHUTDOWN, errno.ECONNABORTED):
-                # we should handle close here
-                return ''
-            raise
-            
+        data = self.sock.recv(buffer_size)
+        if not data:
+            # we should handle close here
+            return ''
+        return data
+           
     def send(self, data):
-        try:
-            rst = self.sock.send(data)
-            return rst
-        except socket.error, e:
-            if e.args[0] == EWOULDBLOCK:
-                return 0
-            elif e.args[0] in (errno.ECONNRESET, errno.ENOTCONN, 
-                            errno.ESHUTDOWN, errno.ECONNABORTED):
-                # we should handle close here
-                
-                return 0
-            else:
-                raise
+        return self.sock.send(data)
 
     def read_until(self, delimiter):
         while True:
