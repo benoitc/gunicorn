@@ -21,13 +21,12 @@ class HTTPResponse(object):
         self.req = req
         self.data = data
         self.headers = self.req.response_headers or {}
-        self.fp = req.fp
+        self.io = req.io
 
     def write(self, data):
-        self.fp.write(data)
+        self.io.send(data)
         
     def send(self):
         if not self.data: return
         for chunk in self.data:
             self.write(chunk)
-        self.fp.flush()
