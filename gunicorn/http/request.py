@@ -51,6 +51,7 @@ class HTTPRequest(object):
         self.response_headers = {}
         self._version = 11
         self.io = IOStream(socket)
+        self.start_response_called = False
         
 
     def read(self):
@@ -169,6 +170,7 @@ class HTTPRequest(object):
             resp_head.append("%s: %s" % (name, value))
             self.response_headers[name.lower()] = value
         self.io.send("%s\r\n\r\n" % "\r\n".join(resp_head))
+        self.start_response_called = True
         
     def write(self, data):
         self.io.write(send)
