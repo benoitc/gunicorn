@@ -15,7 +15,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-
 import re
 import StringIO
 import sys
@@ -23,11 +22,12 @@ from urllib import unquote
 
 from gunicorn import __version__
 from gunicorn.http.iostream import IOStream
+from gunicorn.util import http_date
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 def _normalize_name(name):
-    return ["-".join([w.capitalize() for w in name.split("-")])]
+    return  "-".join([w.lower().capitalize() for w in name.split("-")])
 
 class RequestError(Exception):
     
@@ -55,12 +55,9 @@ class HTTPRequest(object):
         self.io = IOStream(socket)
         self.start_response_called = False
         
-
     def read(self):
-
         # read headers
         self.read_headers(first_line=True)
-        
         if "?" in self.path:
             path_info, query = self.path.split('?', 1)
         else:
@@ -74,7 +71,8 @@ class HTTPRequest(object):
             length, wsgi_input = self.decode_chunked()
         else:
              wsgi_input = FileInput(self)
-
+                 
+                
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
@@ -158,20 +156,26 @@ class HTTPRequest(object):
 
         # Grab any trailer headers
         self.read_headers()
-
         data.seek(0)
         return data, str(length) or ""
         
+    
+        
     def start_response(self, status, response_headers):
-        resp_head = []
-        self.response_status = status
-        self.response_headers = {}
-        resp_head.append("%s %s" % (self.version, status))
-        for name, value in response_headers:
-            resp_head.append("%s: %s" % (name, value))
-            self.response_headers[name.lower()] = value
-        self.io.send("%s\r\n\r\n" % "\r\n".join(resp_head))
         self.start_response_called = True
+        resp_head = []
+        self.response_status = int(status.split(" ")[0])
+        self.response_headers = {}
+        resp_head.append("%s %ss\r\n" % (self.version, status))
+        
+        resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
+        resp_head.append("Date: %s\r\n" % http_date())
+        # broken clients
+        resp_head.append("Status: %s\r\n" % str(self.response_status))
+        for name, value in response_headers:
+            resp_head.append("%s: %s\r\n" % (_normalize_name(name), value.strip()))
+            self.response_headers[name.lower()] = value
+        self.io.send("%s\r\n" % "".join(resp_head))
         
     def write(self, data):
         self.io.write(send)
@@ -191,8 +195,6 @@ class HTTPRequest(object):
         name = name.strip().upper()
         self.headers[name] = value.strip()
         return name
-        
-        
         
 class FileInput(object):
     
@@ -221,6 +223,7 @@ class FileInput(object):
         return s
 
     def readline(self, amt=-1):
+        print "ici"
         i = self._rbuf.find('\n')
         while i < 0 and not (0 < amt <= len(self._rbuf)):
             new = self.io.recv(self.stream_size)

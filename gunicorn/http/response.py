@@ -29,6 +29,9 @@ class HTTPResponse(object):
         self.io.send(data)
         
     def send(self):
-        if not self.data: return
+        if self.req.method == "HEAD":
+            return
         for chunk in self.data:
             self.write(chunk)
+        self.data.close()
+    
