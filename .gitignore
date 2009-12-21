@@ -1,7 +1,6 @@
 *.gem
 *.swp
 *.pyc
-Couchapp.egg-info
 build
 dist
 setuptools-*
@@ -10,4 +9,4 @@ setuptools-*
 *.so
 distribute-0.6.8-py2.6.egg
 distribute-0.6.8.tar.gz
-
+gunicorn.egg-info
