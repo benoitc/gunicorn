@@ -15,7 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-
+from gunicorn.util import http_date
 
 class HTTPResponse(object):
     
@@ -29,9 +29,23 @@ class HTTPResponse(object):
         self.io.send(data)
         
     def send(self):
-        if self.req.method == "HEAD":
-            return
+        # send headers
+        resp_head = []    
+        resp_head.append("%s %ss\r\n" % (self.req.version, self.req.response_status))
+        
+        resp_head.append("Server: %s\r\n" % self.req.SERVER_VERSION)
+        resp_head.append("Date: %s\r\n" % http_date())
+        # broken clients
+        resp_head.append("Status: %s\r\n" % str(self.req.response_status))        
+        for name, value in self.req.response_headers.items():
+            resp_head.append("%s: %s\r\n" % (name, value))
+        self.io.send("%s\r\n" % "".join(resp_head))
+        
+
         for chunk in self.data:
             self.write(chunk)
-        self.data.close()
+        self.req.close()
+        
+        if hasattr(self.data, "close"):
+            self.data.close()
     

@@ -16,6 +16,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import errno
+import fcntl
 import logging
 import os
 import select
@@ -82,13 +83,11 @@ class Worker(object):
                         break # Jump back to select
                     raise # Uh oh!
 
-                conn.setblocking(1)
+                conn.setblocking(0)
                 try:
                     self.handle(conn, addr)
                 except:
                     log.exception("Error processing request.")
-                finally:
-                    conn.close()
 
                 # Update the fd mtime on each client completion
                 # to signal that this worker process is alive.
@@ -96,11 +95,8 @@ class Worker(object):
                 os.fchmod(self.tmp.fileno(), spinner)
 
     def handle(self, conn, client):
-        while True:
-            req = http.HTTPRequest(conn, client, self.address)
-            result = self.app(req.read(), req.start_response)
-            response = http.HTTPResponse(req, result) 
-            response.send()
-            if req.should_close():
-                conn.close()
-                return
+        fcntl.fcntl(conn.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+        req = http.HTTPRequest(conn, client, self.address)
+        result = self.app(req.read(), req.start_response)
+        response = http.HTTPResponse(req, result)
+        response.send()

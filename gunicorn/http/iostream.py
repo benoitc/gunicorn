@@ -22,20 +22,26 @@ from errno import EALREADY, EINPROGRESS, EWOULDBLOCK, ECONNRESET, \
      
 import socket
 
+SOCKET_CLOSED = (ECONNRESET, ENOTCONN, ESHUTDOWN)
+
 class IOStream(object):
     
     chunk_size = 4096
     
     def __init__(self, sock):
-        self.sock = sock
+        self.sock = sock.dup()
+        self.sock.setblocking(0)
         self.buf = "" 
         
     def recv(self, buffer_size):
-        data = self.sock.recv(buffer_size)
-        if not data:
-            # we should handle close here
-            return ''
-        return data
+        try:
+            return self.sock.recv(buffer_size)
+        except socket.error, e:
+            if e[0] == EWOULDBLOCK:
+                return None
+            if e[0] in SOCKET_CLOSED:
+                return ''
+            raise
            
     def send(self, data):
         return self.sock.send(data)

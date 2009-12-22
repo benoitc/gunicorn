@@ -20,9 +20,11 @@ import StringIO
 import sys
 from urllib import unquote
 
+
 from gunicorn import __version__
 from gunicorn.http.iostream import IOStream
-from gunicorn.util import http_date
+
+
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
@@ -54,6 +56,7 @@ class HTTPRequest(object):
         self._version = 11
         self.io = IOStream(socket)
         self.start_response_called = False
+        self._should_close = False
         
     def read(self):
         # read headers
@@ -130,6 +133,8 @@ class HTTPRequest(object):
             return None
          
     def should_close(self):
+        if self._should_close:
+            return True
         if self.headers.get("CONNECTION") == "close":
             return True
         if self.headers.get("CONNECTION") == "Keep-Alive":
@@ -159,30 +164,22 @@ class HTTPRequest(object):
         data.seek(0)
         return data, str(length) or ""
         
-    
-        
     def start_response(self, status, response_headers):
-        self.start_response_called = True
-        resp_head = []
-        self.response_status = int(status.split(" ")[0])
-        self.response_headers = {}
-        resp_head.append("%s %ss\r\n" % (self.version, status))
         
-        resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
-        resp_head.append("Date: %s\r\n" % http_date())
-        # broken clients
-        resp_head.append("Status: %s\r\n" % str(self.response_status))
+        self.response_status = int(status.split(" ")[0])
         for name, value in response_headers:
-            resp_head.append("%s: %s\r\n" % (_normalize_name(name), value.strip()))
-            self.response_headers[name.lower()] = value
-        self.io.send("%s\r\n" % "".join(resp_head))
+            name = _normalize_name(name)
+            self.response_headers[name] = value.strip()
+        
+        self.start_response_called = True
+        print "response called"
+        
         
     def write(self, data):
         self.io.write(send)
         
     def close(self):
-        if self.should_close():
-            self.socket.close()
+        self.socket.close()
 
     def first_line(self, line):
         method, path, version = line.strip().split(" ")
@@ -195,7 +192,7 @@ class HTTPRequest(object):
         name = name.strip().upper()
         self.headers[name] = value.strip()
         return name
-        
+
 class FileInput(object):
     
     stream_size = 4096
@@ -217,13 +214,14 @@ class FileInput(object):
                 s = self._rbuf[:amt]
                 self._rbuf = self._rbuf[amt:]
                 return s
+                 
         data = self.io.recv(amt)
         s = self._rbuf + data
         self._rbuf = ''
+        print "return %s" % s
         return s
 
     def readline(self, amt=-1):
-        print "ici"
         i = self._rbuf.find('\n')
         while i < 0 and not (0 < amt <= len(self._rbuf)):
             new = self.io.recv(self.stream_size)

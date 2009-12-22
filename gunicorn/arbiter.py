@@ -99,6 +99,11 @@ class Arbiter(object):
         sock.setblocking(0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        
+        if hasattr(socket, "TCP_CORK"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
+        elif hasattr(socket, "TCP_NOPUSH"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
         sock.bind(address)
         sock.listen(2048)
         return sock
