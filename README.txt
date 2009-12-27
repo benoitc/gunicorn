@@ -23,7 +23,7 @@ Use gunicorn:
 	  -h, --help         show this help message and exit
 
 
-Eample with test app :
+Example with test app :
 
 	$ cd examples
 	$ gunicorn --workers=2 test:app
