@@ -45,14 +45,14 @@ class Worker(object):
         "QUIT INT TERM TTIN TTOU".split()
     )
 
-    def __init__(self, workerid, ppid, socket, module):
+    def __init__(self, workerid, ppid, socket, app):
         
         self.id = workerid
         self.ppid = ppid
         self.socket = socket
         self.address = socket.getsockname()
         self.tmp = os.tmpfile()
-        self.app = util.import_app(module)
+        self.app = app
         self.alive = self.tmp.fileno()
     
     def init_signals(self):

@@ -32,6 +32,7 @@ import sys
 sys.path.insert(0, os.getcwd())
 
 import gunicorn
+from gunicorn import util
 
 __usage__ = "%prog [OPTIONS] APP_MODULE"
 
@@ -51,8 +52,10 @@ def main():
     
     if len(args) != 1:
         parser.error("No application module specified.")
+        
+    app = util.import_app(args[0])
     
-    arbiter = gunicorn.Arbiter((opts.host, opts.port), opts.workers, args[0])
+    arbiter = gunicorn.Arbiter((opts.host, opts.port), opts.workers, app)
     arbiter.run()
     
 if __name__ == '__main__':
