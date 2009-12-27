@@ -32,7 +32,7 @@ import sys
 import django.core.handlers.wsgi
 import gunicorn
 
-__usage__ = "%prog [OPTIONS] APP_MODULE"
+__usage__ = "%prog [OPTIONS]"
 
 PROJECT_PATH = os.getcwd()
 PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]

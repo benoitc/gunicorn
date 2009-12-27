@@ -27,5 +27,14 @@ Example with test app :
 
 	$ cd examples
 	$ gunicorn --workers=2 test:app
+	
+	
+For django projects use the `gunicorn_django` command.
+
+	$ cd yourdjangoproject
+	$ gunicorn_django --workers=2
+	
+	
+
 
 
