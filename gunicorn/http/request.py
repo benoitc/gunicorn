@@ -3,17 +3,26 @@
 # 2009 (c) Benoit Chesneau <benoitc@e-engura.com> 
 # 2009 (c) Paul J. Davis <paul.joseph.davis@gmail.com>
 #
-# Permission to use, copy, modify, and distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
 #
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
 
 import re
 import StringIO
@@ -61,6 +70,10 @@ class HTTPRequest(object):
     def read(self):
         # read headers
         self.read_headers(first_line=True)
+        
+        if self.headers.get('ACCEPT', '').lower() == "100-continue":
+            self.io.send("100 Continue\n")
+            
         if "?" in self.path:
             path_info, query = self.path.split('?', 1)
         else:
@@ -90,7 +103,7 @@ class HTTPRequest(object):
             "PATH_INFO": unquote(path_info),
             "QUERY_STRING": query,
             "RAW_URI": self.path,
-            "CONTENT_TYPE": self.headers.get('content-type', ''),
+            "CONTENT_TYPE": self.headers.get('CONTENT-TYPE', ''),
             "CONTENT_LENGTH": length,
             "REMOTE_ADDR": self.client_address[0],
             "REMOTE_PORT": self.client_address[1],
@@ -165,15 +178,13 @@ class HTTPRequest(object):
         return data, str(length) or ""
         
     def start_response(self, status, response_headers):
-        
-        self.response_status = int(status.split(" ")[0])
+        self.response_status = status
         for name, value in response_headers:
             name = _normalize_name(name)
-            self.response_headers[name] = value.strip()
-        
+            if not isinstance(value, basestring):
+                value = str(value)
+            self.response_headers[name] = value.strip()        
         self.start_response_called = True
-        print "response called"
-        
         
     def write(self, data):
         self.io.write(send)
@@ -198,27 +209,37 @@ class FileInput(object):
     stream_size = 4096
     
     def __init__(self, req):
-        self.length = req.body_length()
+        self.req = req
+        self.length = int(req.body_length() or 0)
         self.io = req.io
         self._rbuf = ""
+        self.size = 0
         
     def close(self):
         self.eof = False
 
     def read(self, amt=None):
-        if self._rbuf and not amt is None:
+        if self.length and self.size >= self.length:
+            return ''
+
+        if self._rbuf and amt is not None:
             L = len(self._rbuf)
+            print L
             if amt > L:
                 amt -= L
             else:
                 s = self._rbuf[:amt]
                 self._rbuf = self._rbuf[amt:]
+                self.size += len(s)
                 return s
-                 
-        data = self.io.recv(amt)
+                
+        if amt is None:
+            amt = min(self. stream_size, self.length or 0)
+            
+        data = self.req.io.recv(amt)
         s = self._rbuf + data
         self._rbuf = ''
-        print "return %s" % s
+        self.size += len(s)
         return s
 
     def readline(self, amt=-1):
