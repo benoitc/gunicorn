@@ -158,6 +158,7 @@ class Arbiter(object):
         self.stop()
     
     def handle_quit(self):
+        self.stop(False)
         raise StopIteration
     
     def handle_int(self):

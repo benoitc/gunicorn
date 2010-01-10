@@ -53,7 +53,7 @@ class Worker(object):
         self.address = socket.getsockname()
         self.tmp = os.tmpfile()
         self.app = app
-        self.alive = self.tmp.fileno()
+        self.alive = True
     
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
@@ -74,7 +74,7 @@ class Worker(object):
             spinner = (spinner+1) % 2
             os.fchmod(self.alive, spinner)
                 
-            while True:
+            while self.alive:
                 try:
                     ret = select.select([self.socket], [], [], 2.0)
                 except select.error, e:
@@ -87,7 +87,7 @@ class Worker(object):
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
-            while True:
+            while self.alive:
                 try:
                     (conn, addr) = self.socket.accept()
                 except socket.error, e:
