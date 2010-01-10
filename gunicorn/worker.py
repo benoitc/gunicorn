@@ -42,7 +42,7 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "QUIT INT TERM TTIN TTOU".split()
+        "HUP QUIT INT TERM TTIN TTOU".split()
     )
 
     def __init__(self, workerid, ppid, socket, app):

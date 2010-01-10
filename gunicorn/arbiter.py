@@ -49,11 +49,11 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "CHLD QUIT INT TERM TTIN TTOU".split()
+        "CHLD HUP QUIT INT TERM TTIN TTOU".split()
     )
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
-        if name[:3] == "SIG"
+        if name[:3] == "SIG" and name[3] != "_"
     )
     
     def __init__(self, address, num_workers, modname):
@@ -160,6 +160,13 @@ class Arbiter(object):
     def handle_chld(self):
         self.wakeup()
 
+    def handle_hup(self):
+        log.info("Master hang up.")
+        # for now we quit on HUP
+        self.handle_quit()
+        #apply(os.execlp, (sys.argv[0],) + tuple(sys.argv))
+        
+        
     def handle_quit(self):
         self.stop(False)
         raise StopIteration
