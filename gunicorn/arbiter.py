@@ -49,7 +49,7 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "QUIT INT TERM TTIN TTOU".split()
+        "CHLD QUIT INT TERM TTIN TTOU".split()
     )
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
@@ -156,7 +156,10 @@ class Arbiter(object):
 
         log.info("Master is shutting down.")
         self.stop()
-    
+        
+    def handle_chld(self):
+        self.wakeup()
+
     def handle_quit(self):
         self.stop(False)
         raise StopIteration
@@ -176,6 +179,15 @@ class Arbiter(object):
         if self.num_workers > 0:
             self.num_workers -= 1
     
+    def wakeup(self):
+        while True:
+            try:
+                os.write(self.PIPE[1], ".")
+                return
+            except OSError, e:
+                if e[0] not in [errno.EAGAIN, errno.EINTR]:
+                    raise
+                    
     def sleep(self):
         try:
             ready = select.select([self.PIPE[0]], [], [], 1)
@@ -205,8 +217,7 @@ class Arbiter(object):
         self.kill_workers(signal.SIGKILL)
     
     def murder_workers(self):
-        running_workers = tuple(self.WORKERS.iteritems())
-        for (pid, worker) in running_workers:
+        for (pid, worker) in list(self.WORKERS.items()):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_mtime
             if diff < self.timeout:
                 continue
