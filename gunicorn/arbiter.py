@@ -61,6 +61,7 @@ class Arbiter(object):
         self.num_workers = num_workers
         self.modname = modname
         self.timeout = 30
+        self.reexec_pid = 0
         self.pid = os.getpid()
         self.init_signals()
         self.listen(self.address)
@@ -81,16 +82,27 @@ class Arbiter(object):
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
             self.SIG_QUEUE.append(sig)
+            
         else:
             log.warn("Ignoring rapid signaling: %s" % sig)
-        # Wake up the arbiter
-        try:
-            os.write(self.PIPE[1], '.')
-        except IOError, e:
-            if e.errno not in [errno.EAGAIN, errno.EINTR]:
-                raise
+            
+        self.wakeup()
+        
     
     def listen(self, addr):
+        if 'GUNICORN_FD' in os.environ:
+            fd = int(os.environ['GUNICORN_FD'])
+            del os.environ['GUNICORN_FD']
+            try:
+                sock = self.init_socket_fromfd(fd, addr)
+                self.LISTENER = sock
+                return
+            except socket.error, e:
+                if e[0] == errno.ENOTCONN:
+                    log.error("should be a non GUNICORN environnement")
+                else:
+                    raise
+        
         for i in range(5):
             try:
                 sock = self.init_socket(addr)
@@ -102,21 +114,27 @@ class Arbiter(object):
                 if i < 5:
                     log.error("Retrying in 1 second.")
                 time.sleep(1)
+                
+    def init_socket_fromfd(self, fd, address):
+        sock = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)
+        self.set_sockopts(sock)
+        return sock
 
     def init_socket(self, address):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(0)
+        self.set_sockopts(sock)
+        sock.bind(address)
+        sock.listen(2048)
+        return sock
+        
+    def set_sockopts(self, sock):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        
         if hasattr(socket, "TCP_CORK"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
         elif hasattr(socket, "TCP_NOPUSH"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
-        sock.bind(address)
-        sock.listen(2048)
-        return sock
-
+            
     def run(self):
         self.manage_workers()
         while True:
@@ -153,19 +171,18 @@ class Arbiter(object):
                 log.exception("Unhandled exception in main loop.")
                 self.stop(False)
                 sys.exit(-1)
-
+                
         log.info("Master is shutting down.")
         self.stop()
+        sys.exit(0)
         
     def handle_chld(self):
         self.wakeup()
 
     def handle_hup(self):
         log.info("Master hang up.")
-        # for now we quit on HUP
-        self.handle_quit()
-        #apply(os.execlp, (sys.argv[0],) + tuple(sys.argv))
-        
+        self.reexec()
+        raise StopIteration
         
     def handle_quit(self):
         self.stop(False)
@@ -187,13 +204,12 @@ class Arbiter(object):
             self.num_workers -= 1
     
     def wakeup(self):
-        while True:
-            try:
-                os.write(self.PIPE[1], ".")
-                return
-            except OSError, e:
-                if e[0] not in [errno.EAGAIN, errno.EINTR]:
-                    raise
+        # Wake up the arbiter
+        try:
+            os.write(self.PIPE[1], '.')
+        except IOError, e:
+            if e.errno not in [errno.EAGAIN, errno.EINTR]:
+                raise
                     
     def sleep(self):
         try:
@@ -222,7 +238,14 @@ class Arbiter(object):
             time.sleep(0.1)
             self.reap_workers()
         self.kill_workers(signal.SIGKILL)
-    
+        
+    def reexec(self):
+        self.reexec_pid = os.fork()
+        if self.reexec_pid != 0:
+            os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
+            self.LISTENER.setblocking(1)
+            apply(os.execlp, (sys.argv[0],) + tuple(sys.argv))
+
     def murder_workers(self):
         for (pid, worker) in list(self.WORKERS.items()):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_mtime
@@ -234,12 +257,17 @@ class Arbiter(object):
         try:
             while True:
                 wpid, status = os.waitpid(-1, os.WNOHANG)
-                if not wpid:
-                    break
-                worker = self.WORKERS.pop(wpid, None)
-                if not worker:
-                    continue
-                worker.tmp.close()
+                if not wpid: break
+                if self.reexec_pid == wpid:
+                    log.error("reaped %s" % str(status))
+                    self.reexec_pid = 0
+                else:
+                    worker = self.WORKERS.pop(wpid, None)
+                    if not worker:
+                        continue
+                    worker.tmp.close()
+                    log.info("repead %s \nworker %s" % (str(status), 
+                        str(worker.id)))
         except OSError, e:
             if e.errno == errno.ECHILD:
                 pass
