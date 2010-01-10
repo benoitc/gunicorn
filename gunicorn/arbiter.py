@@ -65,7 +65,7 @@ class Arbiter(object):
         self.init_signals()
         self.listen(self.address)
         log.info("Booted Arbiter: %s" % os.getpid())
-
+                    
     def init_signals(self):
         if self.PIPE:
             map(lambda p: p.close(), self.PIPE)
@@ -246,8 +246,9 @@ class Arbiter(object):
                 continue
             
             # Process Child
+            worker_pid = os.getpid()
             try:
-                log.info("Worker %s booting" % os.getpid())
+                log.info("Worker %s booting" % worker_pid)
                 worker.run()
                 sys.exit(0)
             except SystemExit:
@@ -256,7 +257,8 @@ class Arbiter(object):
                 log.exception("Exception in worker process.")
                 sys.exit(-1)
             finally:
-                log.info("Worker %s exiting." % os.getpid())
+                worker.tmp.close()
+                log.info("Worker %s exiting." % worker_pid)
 
     def kill_workers(self, sig):
         for pid in self.WORKERS.keys():

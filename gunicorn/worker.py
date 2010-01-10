@@ -46,7 +46,6 @@ class Worker(object):
     )
 
     def __init__(self, workerid, ppid, socket, app):
-        
         self.id = workerid
         self.ppid = ppid
         self.socket = socket
@@ -72,7 +71,7 @@ class Worker(object):
         spinner = 0 
         while self.alive:
             spinner = (spinner+1) % 2
-            os.fchmod(self.alive, spinner)
+            os.fchmod(self.tmp.fileno(), spinner)
                 
             while self.alive:
                 try:
@@ -105,7 +104,7 @@ class Worker(object):
                 # Update the fd mtime on each client completion
                 # to signal that this worker process is alive.
                 spinner = (spinner+1) % 2
-                os.fchmod(self.alive, spinner)
+                os.fchmod(self.tmp.fileno(), spinner)
 
     def handle(self, conn, client):
         req = http.HTTPRequest(conn, client, self.address)
