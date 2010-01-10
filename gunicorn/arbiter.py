@@ -49,7 +49,7 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "CHLD HUP QUIT INT TERM TTIN TTOU".split()
+        "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
     )
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
@@ -82,13 +82,10 @@ class Arbiter(object):
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
             self.SIG_QUEUE.append(sig)
-            
         else:
             log.warn("Ignoring rapid signaling: %s" % sig)
-            
         self.wakeup()
-        
-    
+
     def listen(self, addr):
         if 'GUNICORN_FD' in os.environ:
             fd = int(os.environ['GUNICORN_FD'])
@@ -140,7 +137,6 @@ class Arbiter(object):
         while True:
             try:
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
-
                 if sig is None:
                     self.sleep()
                     continue
@@ -154,14 +150,12 @@ class Arbiter(object):
                 if not handler:
                     log.error("Unhandled signal: %s" % signame)
                     continue
-
                 log.info("Handling signal: %s" % signame)
                 handler()
                 
                 self.murder_workers()
                 self.reap_workers()
                 self.manage_workers()
-
             except StopIteration:
                 break
             except KeyboardInterrupt:
@@ -174,18 +168,16 @@ class Arbiter(object):
                 
         log.info("Master is shutting down.")
         self.stop()
-        sys.exit(0)
         
     def handle_chld(self):
         self.wakeup()
-
+        
     def handle_hup(self):
         log.info("Master hang up.")
         self.reexec()
         raise StopIteration
         
     def handle_quit(self):
-        self.stop(False)
         raise StopIteration
     
     def handle_int(self):
@@ -202,6 +194,19 @@ class Arbiter(object):
     def handle_ttou(self):
         if self.num_workers > 0:
             self.num_workers -= 1
+            
+    def handle_usr1(self):
+        self.kill_workers(signal.SIGUSR1)
+    
+    def handle_usr2(self):
+        self.reexec()
+        
+    def handle_winch(self):
+        if os.getppid() == 1 or os.getpgrp() != os.getpid():
+            logger.info("graceful stop of workers")
+            self.kill_workers(True)
+        else:
+            log.info("SIGWINCH ignored. not daemonized")
     
     def wakeup(self):
         # Wake up the arbiter
@@ -228,7 +233,7 @@ class Arbiter(object):
             sys.exit()
     
     def stop(self, graceful=True):
-        self.LISTENER.close()
+        self.LISTENER = None
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
@@ -241,10 +246,9 @@ class Arbiter(object):
         
     def reexec(self):
         self.reexec_pid = os.fork()
-        if self.reexec_pid != 0:
+        if self.reexec_pid == 0:
             os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
-            self.LISTENER.setblocking(1)
-            apply(os.execlp, (sys.argv[0],) + tuple(sys.argv))
+            os.execlp(sys.argv[0], *sys.argv)
 
     def murder_workers(self):
         for (pid, worker) in list(self.WORKERS.items()):

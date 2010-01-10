@@ -42,7 +42,7 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU".split()
+        "HUP QUIT INT TERM TTIN TTOU USR1 USR2".split()
     )
 
     def __init__(self, workerid, ppid, socket, app):
@@ -59,6 +59,8 @@ class Worker(object):
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGUSR1, self.handle_quit)
+        signal.signal(signal.SIGUSR2, self.handle_quit)
 
     def handle_quit(self, sig, frame):
         self.alive = False
