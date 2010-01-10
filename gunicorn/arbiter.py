@@ -205,7 +205,8 @@ class Arbiter(object):
         self.kill_workers(signal.SIGKILL)
     
     def murder_workers(self):
-        for (pid, worker) in self.WORKERS.iteritems():
+        running_workers = tuple(self.WORKERS.iteritems())
+        for (pid, worker) in running_workers:
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_mtime
             if diff < self.timeout:
                 continue
@@ -267,7 +268,10 @@ class Arbiter(object):
     def kill_worker(self, pid, sig):
         worker = self.WORKERS.pop(pid)
         try:
-            os.kill(pid, sig) 
+            os.kill(pid, sig)
+            kpid, stat = os.waitpid(pid, os.WNOHANG)
+            if kpid:
+                log.warning("Problem killing process: %s" % pid)
         except OSError, e:
             if e.errno == errno.ESRCH:
                 pass
