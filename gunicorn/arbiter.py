@@ -259,15 +259,12 @@ class Arbiter(object):
                 wpid, status = os.waitpid(-1, os.WNOHANG)
                 if not wpid: break
                 if self.reexec_pid == wpid:
-                    log.error("reaped %s" % str(status))
                     self.reexec_pid = 0
                 else:
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
                     worker.tmp.close()
-                    log.info("repead %s \nworker %s" % (str(status), 
-                        str(worker.id)))
         except OSError, e:
             if e.errno == errno.ECHILD:
                 pass
