@@ -32,9 +32,11 @@ import select
 import signal
 import socket
 import sys
+import tempfile
 
-import http
-import util
+
+from gunicorn import http
+from gunicorn import util
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +52,9 @@ class Worker(object):
         self.ppid = ppid
         self.socket = socket
         self.address = socket.getsockname()
-        self.tmp = os.tmpfile()
+        fd, tmpname = tempfile.mkstemp()
+        self.tmp = os.fdopen(fd, "r+b")
+        self.tmpname = tmpname
         self.app = app
         self.alive = True
     
@@ -67,13 +71,19 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         sys.exit(-1)
+        
+    def _fchmod(self, mode):
+        if getattr(os, 'fchmod', None):
+            os.fchmod(self.tmp.fileno(), mode)
+        else:
+            os.chmod(self.tmpname, mode)
     
     def run(self):
         self.init_signals()
         spinner = 0 
         while self.alive:
             spinner = (spinner+1) % 2
-            os.fchmod(self.tmp.fileno(), spinner)
+            self._fchmod(spinner)
                 
             while self.alive:
                 try:
@@ -106,7 +116,7 @@ class Worker(object):
                 # Update the fd mtime on each client completion
                 # to signal that this worker process is alive.
                 spinner = (spinner+1) % 2
-                os.fchmod(self.tmp.fileno(), spinner)
+                self._fchmod(spinner)
 
     def handle(self, conn, client):
         req = http.HTTPRequest(conn, client, self.address)
