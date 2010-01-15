@@ -112,7 +112,7 @@ class TeeInput(object):
             length -= self.socket.recv_into(data, length)
             self.remain = length
             if self.parser.filter_body(dst, data):
-                self.tmp.write(dst)
+                self.tmp.write(dst.value)
                 self.tmp.seek(0, os.SEEK_END)
                 return dst
         self._finalize()
