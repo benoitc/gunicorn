@@ -78,13 +78,14 @@ class Arbiter(object):
     def set_non_blocking(self, fd):
         flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
         fcntl.fcntl(fd, fcntl.F_SETFL, flags)
-    
+
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
             self.SIG_QUEUE.append(sig)
+            self.wakeup()
         else:
             log.warn("Ignoring rapid signaling: %s" % sig)
-        self.wakeup()
+        
 
     def listen(self, addr):
         if 'GUNICORN_FD' in os.environ:

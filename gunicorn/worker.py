@@ -33,7 +33,7 @@ import signal
 import socket
 import sys
 import tempfile
-
+import time
 
 from gunicorn import http
 from gunicorn import util
@@ -44,27 +44,36 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU USR1 USR2".split()
+        "HUP QUIT INT TERM TTIN TTOU USR1".split()
     )
 
     def __init__(self, workerid, ppid, socket, app):
         self.id = workerid
         self.ppid = ppid
-        self.socket = socket
-        self.address = socket.getsockname()
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
         self.tmpname = tmpname
+        
+        # prevent inherientence
+        self.close_on_exec(socket)
+        self.close_on_exec(fd)
+        
+        self.socket = socket
+        self.address = socket.getsockname()
+        
         self.app = app
         self.alive = True
     
+    def close_on_exec(self, fd):
+        flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+        
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGUSR1, self.handle_quit)
-        signal.signal(signal.SIGUSR2, self.handle_quit)
 
     def handle_quit(self, sig, frame):
         self.alive = False
@@ -88,38 +97,48 @@ class Worker(object):
             while self.alive:
                 try:
                     ret = select.select([self.socket], [], [], 2.0)
+                    if ret[0]:
+                        break
                 except select.error, e:
-                    if e[0] != errno.EINTR:
-                        raise
-                if ret[0]:
-                    break
+                    if e[0] == errno.EINTR:
+                        break
+                    elif e[0] == errno.EBADF:
+                        return
+                    raise
 
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
             while self.alive:
+                #time.sleep(0.01)            
                 try:
-                    (conn, addr) = self.socket.accept()
-                except socket.error, e:
-                    if e[0] in (errno.EAGAIN, errno.EINTR, 
-                            errno.ECONNABORTED):
-                        break # Jump back to select
-                    raise # Uh oh!
-
-                conn.setblocking(1)
-                try:
+                    conn, addr = self.socket.accept()
+                    conn.setblocking(1)
+                                
+                    # Update the fd mtime on each client completion
+                    # to signal that this worker process is alive.
+                    spinner = (spinner+1) % 2
+                    self._fchmod(spinner)
+                    
+                    # handle connection
                     self.handle(conn, addr)
-                except Exception, e:
-                    log.exception("Error processing request. [%s]" % str(e))
-
-                # Update the fd mtime on each client completion
-                # to signal that this worker process is alive.
-                spinner = (spinner+1) % 2
-                self._fchmod(spinner)
+                except socket.error, e:
+                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
+                        break # Uh oh!
+                    raise
+                
 
     def handle(self, conn, client):
-        req = http.HTTPRequest(conn, client, self.address)
-        result = self.app(req.read(), req.start_response)
-        response = http.HTTPResponse(req, result)
-        response.send()
+        self.close_on_exec(conn)
+        try:
+            req = http.HTTPRequest(conn, client, self.address)
+            result = self.app(req.read(), req.start_response)
+            response = http.HTTPResponse(req, result)
+            response.send()
+        except Exception, e:
+            log.exception("Error processing request. [%s]" % str(e))
+            if e[0] == 32:
+                raise
+            conn.send("HTTP/1.1 500 Internal Server Error\r\n\r\n")
+            conn.close()
