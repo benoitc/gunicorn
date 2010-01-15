@@ -49,7 +49,7 @@ class TeeInput(object):
         if self._len and self._len < MAX_BODY:
             self.tmp = StringIO.StringIO()
         else:
-            self.tmp = new tempfile.TemporaryFile()
+            self.tmp = tempfile.TemporaryFile()
         self.buf2 = create_string_buffer(tmp)
         if len(buf) > 0:
             parser.filter_body(self.buf2, buf)
@@ -59,7 +59,7 @@ class TeeInput(object):
         
     @property
     def len(self):
-        if self._len return self._len
+        if self._len: return self._len
         if self.remain:
             pos = self.tmp.tell() 
             while True:
@@ -76,7 +76,7 @@ class TeeInput(object):
             return self.tmp.read(length)
         
         if not length:
-            r = self.tmp.read() or ||
+            r = self.tmp.read() or ""
             while self._tee(self.remain, self.buf2):
                 r += self.buf2.value
             return r
@@ -84,7 +84,7 @@ class TeeInput(object):
             r = self.buf2
             diff = self._tmp_size() - self.tmp.tell()
             if not diff:
-                return self._ensure_length((self._tee(self.remain, r), self.remain)
+                return self._ensure_length(self._tee(self.remain, r), self.remain)
             else:
                 length = min(diff, self.remain)
                 return self._ensure_length(self._tee(length, r), length)
@@ -132,7 +132,7 @@ class TeeInput(object):
     def _ensure_length(buf, length):
         if not buf or not self._len:
             return buf
-        while len(buf) < length && self.len != self.tmp.pos():
+        while len(buf) < length and self.len != self.tmp.pos():
             buf += self._tee(length - len(buf), self.buf2)
             
         return buf

@@ -27,13 +27,13 @@ from ctypes import *
 class HttpParser(object):
     
     def __init__(self):
-        self.headers = {}
+        self._headers = {}
         self.version = None
-        self.method None
+        self.method = None
         self.path = None
         self._content_len = None        
         
-    def header(self, headers, buf):
+    def headers(self, headers, buf):
         """ take a string buff. It return 
         environ or None if parsing isn't done.
         """
@@ -62,15 +62,15 @@ class HttpParser(object):
         hname = ""
         for line in lines:
             if line == "\t":
-                self.headers[hname] += line.strip()
+                self._headers[hname] += line.strip()
             else:
                 try:
                     hname =self._parse_headerl(line)
                 except ValueError: 
                     # bad headers
                     pass
-        headers = self.headers
-        self._content_len = int(self._headers.get('Content-Length'))
+        headers = self._headers
+        self._content_len = int(self._headers.get('Content-Length') or 0)
         return headers
     
     def _first_line(self, line):
@@ -82,16 +82,16 @@ class HttpParser(object):
     def _parse_headerl(self, line):
         name, value = line.split(": ", 1)
         name = name.strip()
-        self.headers[name] = value.strip()
+        self._headers[name] = value.strip()
         return name
       
     @property
     def should_close(self):
         if self._should_close:
             return True
-        if self.headers.get("Connection") == "close":
+        if self._headers.get("Connection") == "close":
             return True
-        if self.headers.get("Connection") == "Keep-Alive":
+        if self._headers.get("Connection") == "Keep-Alive":
             return False
         if self.version < "HTTP/1.1":
             return True
@@ -117,12 +117,14 @@ class HttpParser(object):
         if self._len_content == 0:
             return True
         return False
-        
+    
     def fetch_body(self, buf, data):
         dlen = len(data)
         resize(buf, sizeof(data))
+        s = data.value
         if self.is_chunked:
             # do chunk
+            pass
         else:
             if self.content_len > 0:
                 nr = min(len(data), self._content_len)

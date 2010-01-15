@@ -81,17 +81,16 @@ class HTTPRequest(object):
         if headers.get('Accept', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
             
-        if "?" in parser.path:
-            path_info, query = parser.path.split('?', 1)
+        if "?" in self.parser.path:
+            path_info, query = self.parser.path.split('?', 1)
         else:
             path_info = self.parser.path
             query = ""
             
-        if not length:
-            if not self.parser.content_length and not self.parser.is_chunked:
-                wsgi_input = StringIO.StringIO()
-            else:
-                wsgi_input = TeeInput(self.socket, parser, buf, remain)
+        if not self.parser.content_length and not self.parser.is_chunked:
+            wsgi_input = StringIO.StringIO()
+        else:
+            wsgi_input = TeeInput(self.socket, parser, buf, remain)
                 
         environ = {
             "wsgi.url_scheme": 'http',
@@ -103,7 +102,7 @@ class HTTPRequest(object):
             "wsgi.run_once": False,
             "SCRIPT_NAME": "",
             "SERVER_SOFTWARE": self.SERVER_VERSION,
-            "REQUEST_METHOD": self.method,
+            "REQUEST_METHOD": self.parser.method,
             "PATH_INFO": unquote(path_info),
             "QUERY_STRING": query,
             "RAW_URI": self.path,
@@ -113,7 +112,7 @@ class HTTPRequest(object):
             "REMOTE_PORT": self.client_address[1],
             "SERVER_NAME": self.server_address[0],
             "SERVER_PORT": self.server_address[1],
-            "SERVER_PROTOCOL": self.version
+            "SERVER_PROTOCOL": self.parser.version
         }
         
         for key, value in self.headers.items():
