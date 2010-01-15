@@ -33,13 +33,10 @@ class HTTPResponse(object):
         self.data = data
         self.headers = self.req.response_headers or {}
 
-    def write(self, data):
-        self.req.socket.send(data)
-        
     def send(self):
         # send headers
         resp_head = []    
-        resp_head.append("%s %ss\r\n" % (self.req.version, self.req.response_status))
+        resp_head.append("%s %ss\r\n" % (self.req.parser.version, self.req.response_status))
         
         resp_head.append("Server: %s\r\n" % self.req.SERVER_VERSION)
         resp_head.append("Date: %s\r\n" % http_date())
@@ -49,13 +46,13 @@ class HTTPResponse(object):
         resp_head.append("Connection: close\r\n")        
         for name, value in self.req.response_headers.items():
             resp_head.append("%s: %s\r\n" % (name, value))
-        self.write("%s\r\n" % "".join(resp_head))
+        self.req.socket.send("%s\r\n" % "".join(resp_head))
 
         for chunk in self.data:
-            self.write(chunk)
-            
-        self.req.close()
+            self.req.socket.send(chunk)
         
+        self.req.socket.close()
+
         if hasattr(self.data, "close"):
             self.data.close()
     

@@ -58,10 +58,6 @@ class HTTPRequest(object):
         self.socket = socket
         self.client_address = client_address
         self.server_address = server_address
-        self.version = None
-        self.method = None
-        self.path = None
-        self.headers = {}
         self.response_status = None
         self.response_headers = {}
         self._version = 11
@@ -91,7 +87,7 @@ class HTTPRequest(object):
             wsgi_input = StringIO.StringIO()
         else:
             wsgi_input = TeeInput(self.socket, parser, buf, remain)
-                
+                            
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
@@ -105,9 +101,9 @@ class HTTPRequest(object):
             "REQUEST_METHOD": self.parser.method,
             "PATH_INFO": unquote(path_info),
             "QUERY_STRING": query,
-            "RAW_URI": self.path,
-            "CONTENT_TYPE": self.headers.get('CONTENT-TYPE', ''),
-            "CONTENT_LENGTH": wsgi_input.len,
+            "RAW_URI": self.parser.path,
+            "CONTENT_TYPE": headers.get('Content-Type', ''),
+            "CONTENT_LENGTH": str(wsgi_input.len),
             "REMOTE_ADDR": self.client_address[0],
             "REMOTE_PORT": self.client_address[1],
             "SERVER_NAME": self.server_address[0],
@@ -115,7 +111,7 @@ class HTTPRequest(object):
             "SERVER_PROTOCOL": self.parser.version
         }
         
-        for key, value in self.headers.items():
+        for key, value in headers.items():
             key = 'HTTP_' + key.upper().replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
@@ -152,9 +148,3 @@ class HTTPRequest(object):
                 value = str(value)
             self.response_headers[name] = value.strip()        
         self.start_response_called = True
-        
-    def write(self, data):
-        self.io.write(send)
-        
-    def close(self):
-        self.socket.close()   
