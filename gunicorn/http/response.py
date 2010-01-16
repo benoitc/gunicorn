@@ -53,11 +53,9 @@ class HTTPResponse(object):
             
         self.sock.send("%s\r\n" % "".join(resp_head))
 
-        
         for chunk in self.data:
             self.sock.send(chunk)
         
-        print "sent"        
         self.sock.close()
 
         if hasattr(self.data, "close"):

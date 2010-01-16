@@ -126,20 +126,24 @@ class Arbiter(object):
         sock.listen(2048)
         return sock
         
-    def set_sockopts(self, sock):        
+    def set_sockopts(self, sock):       
+        
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 0)
         if hasattr(socket, "TCP_CORK"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
         elif hasattr(socket, "TCP_NOPUSH"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
-            
+
     def run(self):
         self.manage_workers()
         while True:
             try:
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
+                    self.murder_workers()
+                    self.reap_workers()
+                    self.manage_workers()
                     self.sleep()
                     continue
                 
@@ -155,9 +159,6 @@ class Arbiter(object):
                 log.info("Handling signal: %s" % signame)
                 handler()
                 
-                self.murder_workers()
-                self.reap_workers()
-                self.manage_workers()
             except StopIteration:
                 break
             except KeyboardInterrupt:

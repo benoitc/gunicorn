@@ -26,7 +26,7 @@
 
 import time
 
-CHUNK_SIZE = 16 * 1024
+CHUNK_SIZE = (16 * 1024)
 
 MAX_BODY = 1024 * (80 + 32)
 

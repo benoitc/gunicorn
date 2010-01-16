@@ -102,24 +102,19 @@ class Worker(object):
                 except select.error, e:
                     if e[0] == errno.EINTR:
                         break
-                    elif e[0] == errno.EBADF:
-                        return
                     raise
 
-           
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
             while self.alive:
                 try:
-
                     conn, addr = self.socket.accept()
                     conn.setblocking(1)
 
                     # handle connection
                     self.handle(conn, addr)
-                    
 
                     # Update the fd mtime on each client completion
                     # to signal that this worker process is alive.
