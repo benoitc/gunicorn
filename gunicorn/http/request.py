@@ -55,7 +55,7 @@ class HTTPRequest(object):
     SERVER_VERSION = "gunicorn/%s" % __version__
     
     def __init__(self, socket, client_address, server_address):
-        self.socket = socket
+        self.socket = socket.dup()
         self.client_address = client_address
         self.server_address = server_address
         self.response_status = None
@@ -69,12 +69,14 @@ class HTTPRequest(object):
         remain = CHUNK_SIZE
         buf = create_string_buffer(remain)
         remain -= self.socket.recv_into(buf, remain)
+        
         while not self.parser.headers(headers, buf):
             data = create_string_buffer(remain)
             remain -= self.socket.recv_into(data, remain)
             buf =  create_string_buffer(data.value + buf.value)
 
-        if headers.get('Accept', '').lower() == "100-continue":
+        print headers
+        if headers.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
             
         if "?" in self.parser.path:

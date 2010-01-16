@@ -37,6 +37,8 @@ class HttpParser(object):
         """ take a string buff. It return 
         environ or None if parsing isn't done.
         """
+        if self._headers:
+            return self._headers
         
         # wee could be smarter here
         # by just reading the array, but converting
@@ -69,7 +71,7 @@ class HttpParser(object):
                 except ValueError: 
                     # bad headers
                     pass
-        headers = self._headers
+        headers.update(self._headers)
         self._content_len = int(self._headers.get('Content-Length') or 0)
         return headers
     

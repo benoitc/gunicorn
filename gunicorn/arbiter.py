@@ -49,7 +49,7 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
+        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
     )
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
@@ -74,6 +74,7 @@ class Arbiter(object):
         map(self.set_non_blocking, pair)
         map(lambda p: fcntl.fcntl(p, fcntl.F_SETFD, fcntl.FD_CLOEXEC), pair)
         map(lambda s: signal.signal(s, self.signal), self.SIGNALS)
+        signal.signal(signal.SIGCHLD, self.handle_chld)
     
     def set_non_blocking(self, fd):
         flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
@@ -125,7 +126,7 @@ class Arbiter(object):
         sock.listen(2048)
         return sock
         
-    def set_sockopts(self, sock):
+    def set_sockopts(self, sock):        
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if hasattr(socket, "TCP_CORK"):
@@ -170,7 +171,7 @@ class Arbiter(object):
         log.info("Master is shutting down.")
         self.stop()
         
-    def handle_chld(self):
+    def handle_chld(self, sig, frame):
         self.wakeup()
         
     def handle_hup(self):

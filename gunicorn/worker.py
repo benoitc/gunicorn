@@ -106,36 +106,36 @@ class Worker(object):
                         return
                     raise
 
+           
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
             while self.alive:
-                #time.sleep(0.01)            
                 try:
+
                     conn, addr = self.socket.accept()
                     conn.setblocking(1)
-                                
+
+                    # handle connection
+                    self.handle(conn, addr)
+                    
+
                     # Update the fd mtime on each client completion
                     # to signal that this worker process is alive.
                     spinner = (spinner+1) % 2
                     self._fchmod(spinner)
-                    
-                    # handle connection
-                    self.handle(conn, addr)
                 except socket.error, e:
                     if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
                         break # Uh oh!
                     raise
-                
 
     def handle(self, conn, client):
         self.close_on_exec(conn)
         try:
             req = http.HTTPRequest(conn, client, self.address)
-            result = self.app(req.read(), req.start_response)
-            response = http.HTTPResponse(req, result)
-            response.send()
+            response = self.app(req.read(), req.start_response)
+            http.HTTPResponse(conn, response, req).send()
         except Exception, e:
             log.exception("Error processing request. [%s]" % str(e))
             if e[0] == 32:

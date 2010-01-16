@@ -24,35 +24,41 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import time
+
 from gunicorn.util import http_date
 
 class HTTPResponse(object):
     
-    def __init__(self, req, data):
-        self.req = req
-        self.data = data
-        self.headers = self.req.response_headers or {}
+    def __init__(self, sock, response, req):
+        self.sock = sock
+        self.data = response
+        self.headers = req.response_headers or {}
+        self.status = req.response_status
+        self.SERVER_VERSION = req.SERVER_VERSION
 
     def send(self):
         # send headers
         resp_head = []    
-        resp_head.append("%s %ss\r\n" % (self.req.parser.version, self.req.response_status))
+        resp_head.append("HTTP/1.1 %s\r\n" % (self.status))
         
-        resp_head.append("Server: %s\r\n" % self.req.SERVER_VERSION)
+        resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
         resp_head.append("Date: %s\r\n" % http_date())
         # broken clients
-        resp_head.append("Status: %s\r\n" % str(self.req.response_status))
+        resp_head.append("Status: %s\r\n" % str(self.status))
         # always close the conenction
         resp_head.append("Connection: close\r\n")        
-        for name, value in self.req.response_headers.items():
+        for name, value in self.headers.items():
             resp_head.append("%s: %s\r\n" % (name, value))
-        self.req.socket.send("%s\r\n" % "".join(resp_head))
+            
+        self.sock.send("%s\r\n" % "".join(resp_head))
 
-        for chunk in self.data:
-            self.req.socket.send(chunk)
         
-        self.req.socket.close()
+        for chunk in self.data:
+            self.sock.send(chunk)
+        
+        print "sent"        
+        self.sock.close()
 
         if hasattr(self.data, "close"):
             self.data.close()
-    
