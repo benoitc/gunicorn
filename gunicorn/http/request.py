@@ -42,7 +42,7 @@ from ..util import CHUNK_SIZE, read_partial
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
-log = logging.getLogger(__name__)
+
 
 def _normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
@@ -54,9 +54,8 @@ class RequestError(Exception):
 class HTTPRequest(object):
     
     SERVER_VERSION = "gunicorn/%s" % __version__
-    
-    def __init__(self, socket, client_address, server_address, wid):
-        self.wid = wid
+
+    def __init__(self, socket, client_address, server_address):
         self.socket = socket
         self.client_address = client_address
         self.server_address = server_address
@@ -65,6 +64,8 @@ class HTTPRequest(object):
         self._version = 11
         self.parser = HttpParser()
         self.start_response_called = False
+        
+        self.log = logging.getLogger(__name__)
         
     def read(self):
         headers = {}
@@ -79,14 +80,15 @@ class HTTPRequest(object):
                 buf += data
                 i = self.parser.headers(headers, buf)
                 if i != -1: break
-           
+        if not buf:
+            self.socket.close()
         if not headers:
-            return
+            return {}
         
         buf = buf[i:]
 
         
-        log.info("worker %s. got headers:\n%s" % (self.wid, headers))
+        self.log.info("Got headers:\n%s" % headers)
         
         if headers.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
@@ -97,10 +99,13 @@ class HTTPRequest(object):
             path_info = self.parser.path
             query = ""
             
-        if not self.parser.content_length and not self.parser.is_chunked:
+        if not self.parser.content_len and not self.parser.is_chunked:
             wsgi_input = StringIO.StringIO()
         else:
-            wsgi_input = TeeInput(self.socket, parser, buf, remain)
+            wsgi_input = TeeInput(self.socket, self.parser, buf)
+            
+        
+        
                             
         environ = {
             "wsgi.url_scheme": 'http',

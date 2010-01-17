@@ -55,14 +55,13 @@ def read_partial(sock, length):
     return data
     
 def write(sock, data):
-    for i in xrange(2):
-        print i
+    for i in range(2):
         try:
             return sock.send(data)
-        except socket.error:
-            if i == 2:
-                print "raise"
-                raise
+        except socket.error, e:
+            if i == 0:
+                continue
+            raise
                 
 def write_nonblock(sock, data):
     while True:
@@ -71,9 +70,10 @@ def write_nonblock(sock, data):
             if ret[1]: break
         except socket.error, e:
             if e[0] == errno.EINTR:
+                time.sleep(1)
                 break
             raise
-    sock.send(data)
+    write(sock, data)
 
 def import_app(module):
     parts = module.rsplit(":", 1)

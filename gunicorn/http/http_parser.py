@@ -103,7 +103,7 @@ class HttpParser(object):
         return (transfert_encoding == "chunked")
         
     @property
-    def content_length(self):
+    def content_len(self):
         transfert_encoding = self._headers.get('Transfer-Encoding')
         content_length = self._headers.get('Content-Length')
         if transfert_encoding is None:
@@ -115,24 +115,33 @@ class HttpParser(object):
             
     def body_eof(self):
         #TODO : add chunk
-        if self._len_content == 0:
+        if self._content_len == 0:
             return True
         return False
-    
-    def fetch_body(self, buf, data):
+        
+    def read_chunk(self, data):
         dlen = len(data)
-        resize(buf, sizeof(data))
-        s = data.value
+        i = data.find("\n")
+        if i  != -1:
+            chunk = data[:i].strip().split(";", 1)
+            chunk_size = int(line.pop(0), 16)
+            if chunk_size <= 0:
+                self._chunk_eof = True
+                return None
+            self.start_offset = i+1
+    
+    def filter_body(self, data):
+        dlen = len(data)
+        chunk = None
         if self.is_chunked:
-            # do chunk
             pass
         else:
-            if self.content_len > 0:
-                nr = min(len(data), self._content_len)
-                # addessof may be not needed here
-                memmove(addressof(buf), addressof(data), nr)
+            if self._content_len > 0:
+                nr = min(dlen, self._content_len)
+                print nr
+                chunk = data[:nr]
                 self._content_len -= nr
-                data.value = None
-                resize(buf, nr)
+                data = None
+                
         self.start_offset = 0
-        return data     
+        return chunk, data

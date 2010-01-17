@@ -38,8 +38,6 @@ import time
 from . import http
 from . import util
 
-log = logging.getLogger(__name__)
-
 class Worker(object):
 
     SIGNALS = map(
@@ -63,6 +61,8 @@ class Worker(object):
         
         self.app = app
         self.alive = True
+        
+        self.log = logging.getLogger(__name__)
     
     def close_on_exec(self, fd):
         flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
@@ -115,7 +115,10 @@ class Worker(object):
             # loop and wait for some lovin.
             while self.alive:
                 try:
-                    client, addr = self.socket.accept()
+                    res = self.socket.accept()
+                    if res is None:
+                        break
+                    client, addr = res
                     client.setblocking(0)
                     
                     # handle connection
@@ -130,18 +133,15 @@ class Worker(object):
                             errno.EWOULDBLOCK]:
                         break # Uh oh!
                     raise
-            
-            
-            
 
     def handle(self, client, addr):
         self.close_on_exec(client)
         try:
-            req = http.HTTPRequest(client, addr, self.address, self.id)
+            req = http.HTTPRequest(client, addr, self.address)
             response = self.app(req.read(), req.start_response)
             http.HTTPResponse(client, response, req).send()
         except Exception, e:
-            log.exception("Error processing request. [%s]" % str(e))
+            self.log.exception("Error processing request. [%s]" % str(e))
             msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
             util.write_nonblock(client, msg)
             client.close()

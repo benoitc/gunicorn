@@ -25,9 +25,10 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import errno
+import socket
 import time
 
-from ..util import http_date, write
+from ..util import http_date, write, read_partial
 
 class HTTPResponse(object):
     
@@ -40,25 +41,24 @@ class HTTPResponse(object):
         self.SERVER_VERSION = req.SERVER_VERSION
 
     def send(self):
-        if self.req.parser.headers:
-            # send headers
-            resp_head = []    
-            resp_head.append("HTTP/1.0 %s\r\n" % (self.status))
+        # send headers
+        resp_head = []    
+        resp_head.append("HTTP/1.0 %s\r\n" % (self.status))
+    
+        resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
+        resp_head.append("Date: %s\r\n" % http_date())
+        # broken clients
+        resp_head.append("Status: %s\r\n" % str(self.status))
+        # always close the conenction
+        #resp_head.append("Connection: close\r\n")        
+        for name, value in self.headers.items():
+            resp_head.append("%s: %s\r\n" % (name, value))
         
-            resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
-            resp_head.append("Date: %s\r\n" % http_date())
-            # broken clients
-            resp_head.append("Status: %s\r\n" % str(self.status))
-            # always close the conenction
-            resp_head.append("Connection: close\r\n")        
-            for name, value in self.headers.items():
-                resp_head.append("%s: %s\r\n" % (name, value))
-            
-            write(self.sock, "%s\r\n" % "".join(resp_head))
+        write(self.sock, "%s\r\n" % "".join(resp_head))
 
-            for chunk in self.data:
-                write(self.sock, chunk)
-        
+        for chunk in self.data:
+            write(self.sock, chunk)
+                    
         self.sock.close()
 
         if hasattr(self.data, "close"):
