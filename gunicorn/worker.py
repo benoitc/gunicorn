@@ -126,7 +126,8 @@ class Worker(object):
                     spinner = (spinner+1) % 2
                     self._fchmod(spinner)
                 except socket.error, e:
-                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
+                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
+                            errno.EWOULDBLOCK]:
                         break # Uh oh!
                     raise
             
