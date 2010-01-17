@@ -25,38 +25,24 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import optparse as op
 import os
 import sys
 
 sys.path.insert(0, os.getcwd())
 
-import gunicorn
-from gunicorn import util
+from gunicorn.main import main
+from gunicorn.util import import_app
 
 __usage__ = "%prog [OPTIONS] APP_MODULE"
 
-def options():
-    return [
-        op.make_option('--host', dest='host', default='127.0.0.1',
-            help='Host to listen on. [%default]'),
-        op.make_option('--port', dest='port', default=8000, type='int',
-            help='Port to listen on. [%default]'),
-        op.make_option('--workers', dest='workers', default=1, type='int',
-            help='Number of workers to spawn. [%default]')
-    ]
-
-def main():
-    parser = op.OptionParser(usage=__usage__, option_list=options())
-    opts, args = parser.parse_args()
-    
+def get_app(parser, opts, args):
     if len(args) != 1:
         parser.error("No application module specified.")
-        
-    app = util.import_app(args[0])
-    
-    arbiter = gunicorn.Arbiter((opts.host, opts.port), opts.workers, app)
-    arbiter.run()
-    
-if __name__ == '__main__':
-    main()
+
+    try:
+        return import_app(args[0])
+    except:
+        parser.error("Failed to import application module.")
+
+main(__usage__, get_app)
+

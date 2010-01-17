@@ -1,6 +1,7 @@
 *.gem
 *.swp
 *.pyc
+*#*
 build
 dist
 setuptools-*

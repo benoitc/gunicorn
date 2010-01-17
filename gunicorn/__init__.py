@@ -25,5 +25,3 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 __version__ = "0.1"
-
-from arbiter import Arbiter
