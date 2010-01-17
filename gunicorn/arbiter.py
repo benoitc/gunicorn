@@ -36,7 +36,6 @@ import time
 
 from worker import Worker
 
-logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
 
 class Arbiter(object):

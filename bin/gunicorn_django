@@ -25,12 +25,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import optparse as op
-import os
-import sys
-
 import django.core.handlers.wsgi
-import gunicorn
+from gunicorn.main import main
 
 __usage__ = "%prog [OPTIONS]"
 
@@ -41,25 +37,8 @@ PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
 sys.path.insert(0,  os.path.join(PROJECT_PATH, ".."))
 os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
 
-# django wsgi app
-app = django.core.handlers.wsgi.WSGIHandler()
+def get_app(parser, opts, args):
+    # django wsgi app
+    return django.core.handlers.wsgi.WSGIHandler()
 
-def options():
-    return [
-        op.make_option('--host', dest='host', default='127.0.0.1',
-            help='Host to listen on. [%default]'),
-        op.make_option('--port', dest='port', default=8000, type='int',
-            help='Port to listen on. [%default]'),
-        op.make_option('--workers', dest='workers', default=1, type='int',
-            help='Number of workers to spawn. [%default]')
-    ]
-
-def main():
-    parser = op.OptionParser(usage=__usage__, option_list=options())
-    opts, args = parser.parse_args()
-    
-    arbiter = gunicorn.Arbiter((opts.host, opts.port), opts.workers,app)
-    arbiter.run()
-    
-if __name__ == '__main__':
-    main()
+main(__usage__, get_app)
