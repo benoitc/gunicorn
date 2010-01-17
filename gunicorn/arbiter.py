@@ -34,7 +34,7 @@ import socket
 import sys
 import time
 
-from worker import Worker
+from .worker import Worker
 
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ class Arbiter(object):
         return sock
         
     def set_sockopts(self, sock):       
-        
+        sock.setblocking(0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 0)
         if hasattr(socket, "TCP_CORK"):
@@ -139,11 +139,9 @@ class Arbiter(object):
         self.manage_workers()
         while True:
             try:
+                
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
-                    self.murder_workers()
-                    self.reap_workers()
-                    self.manage_workers()
                     self.sleep()
                     continue
                 
@@ -159,6 +157,9 @@ class Arbiter(object):
                 log.info("Handling signal: %s" % signame)
                 handler()
                 
+                self.reap_workers()
+                self.murder_workers()
+                self.manage_workers()
             except StopIteration:
                 break
             except KeyboardInterrupt:

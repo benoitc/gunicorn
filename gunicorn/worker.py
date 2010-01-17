@@ -35,8 +35,8 @@ import sys
 import tempfile
 import time
 
-from gunicorn import http
-from gunicorn import util
+from . import http
+from . import util
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ class Worker(object):
         self.alive = False
 
     def handle_exit(self, sig, frame):
-        sys.exit(-1)
+        sys.exit(0)
         
     def _fchmod(self, mode):
         if getattr(os, 'fchmod', None):
@@ -102,20 +102,25 @@ class Worker(object):
                 except select.error, e:
                     if e[0] == errno.EINTR:
                         break
+                    elif e[0] == errno.EBADF:
+                        return
                     raise
-
+                    
+            spinner = (spinner+1) % 2
+            self._fchmod(spinner)
+            
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
             while self.alive:
                 try:
-                    conn, addr = self.socket.accept()
-                    conn.setblocking(1)
-
+                    client, addr = self.socket.accept()
+                    client.setblocking(0)
+                    
                     # handle connection
-                    self.handle(conn, addr)
-
+                    self.handle(client, addr)
+                    
                     # Update the fd mtime on each client completion
                     # to signal that this worker process is alive.
                     spinner = (spinner+1) % 2
@@ -124,16 +129,18 @@ class Worker(object):
                     if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
                         break # Uh oh!
                     raise
+            
+            
+            
 
-    def handle(self, conn, client):
-        self.close_on_exec(conn)
+    def handle(self, client, addr):
+        self.close_on_exec(client)
         try:
-            req = http.HTTPRequest(conn, client, self.address)
+            req = http.HTTPRequest(client, addr, self.address, self.id)
             response = self.app(req.read(), req.start_response)
-            http.HTTPResponse(conn, response, req).send()
+            http.HTTPResponse(client, response, req).send()
         except Exception, e:
             log.exception("Error processing request. [%s]" % str(e))
-            if e[0] == 32:
-                raise
-            conn.send("HTTP/1.1 500 Internal Server Error\r\n\r\n")
-            conn.close()
+            msg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+            util.write_nonblock(client, msg)
+            client.close()

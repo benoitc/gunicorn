@@ -43,19 +43,18 @@ class HttpParser(object):
         # wee could be smarter here
         # by just reading the array, but converting
         # is enough for now
-        cs = "".join(buf)
         ld = len("\r\n\r\n")
-        i = cs.find("\r\n\r\n")
+        i = buf.find("\r\n\r\n")
         if i != -1:
             if i > 0:
-                r = cs[:i]
-            buf = create_string_buffer(cs[i+ ld:])
-            return self.finalize_headers(headers, r)
-        return None
+                r = buf[:i]
+            pos = i+ld
+            return self.finalize_headers(headers, r, pos)
+        return -1
         
-    def finalize_headers(self, headers, headers_str):
+    def finalize_headers(self, headers, headers_str, pos):
         lines = headers_str.split("\r\n")
-        
+                
         # parse first line of headers
         self._first_line(lines.pop(0))
         
@@ -73,7 +72,7 @@ class HttpParser(object):
                     pass
         headers.update(self._headers)
         self._content_len = int(self._headers.get('Content-Length') or 0)
-        return headers
+        return pos
     
     def _first_line(self, line):
         method, path, version = line.strip().split(" ")

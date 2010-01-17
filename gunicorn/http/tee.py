@@ -36,7 +36,7 @@ import StringIO
 import tempfile
 from ctypes import create_string_buffer
 
-from gunicorn.util import MAX_BODY, CHUNK_SIZE
+from ..util import MAX_BODY, CHUNK_SIZE
 
 class TeeInput(object):
     

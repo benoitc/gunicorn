@@ -24,5 +24,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from request import HTTPRequest
+from request import HTTPRequest, RequestError
 from response import HTTPResponse

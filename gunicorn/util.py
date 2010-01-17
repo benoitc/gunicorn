@@ -24,7 +24,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import errno
+import select
+import socket
 import time
+
+timeout_default = object()
 
 CHUNK_SIZE = (16 * 1024)
 
@@ -35,6 +40,40 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  
+  
+def read_partial(sock, length):
+    while True:
+        try:
+            ret = select.select([sock.fileno()], [], [], 2.0)
+            if ret[0]: break
+        except socket.error, e:
+            if e[0] == errno.EINTR:
+                break
+            raise
+    data = sock.recv(length)
+    return data
+    
+def write(sock, data):
+    for i in xrange(2):
+        print i
+        try:
+            return sock.send(data)
+        except socket.error:
+            if i == 2:
+                print "raise"
+                raise
+                
+def write_nonblock(sock, data):
+    while True:
+        try:
+            ret = select.select([], [sock.fileno()], [], 2.0)
+            if ret[1]: break
+        except socket.error, e:
+            if e[0] == errno.EINTR:
+                break
+            raise
+    sock.send(data)
 
 def import_app(module):
     parts = module.rsplit(":", 1)

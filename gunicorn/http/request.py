@@ -24,38 +24,40 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from ctypes import create_string_buffer
+import errno
+from ctypes import *
 import re
 import StringIO
+import socket
 import sys
 from urllib import unquote
-
+import array
+import logging
 
 from gunicorn import __version__
-from gunicorn.http.http_parser import HttpParser
-from gunicorn.http.tee import TeeInput
-from gunicorn.util import CHUNK_SIZE
+from .http_parser import HttpParser
+from .tee import TeeInput
+from ..util import CHUNK_SIZE, read_partial
 
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
+
+log = logging.getLogger(__name__)
 
 def _normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
 
 class RequestError(Exception):
-    
-    def __init__(self, status_code, reason):
-        self.status_code = status_code
-        self.reason = reason
-        Exception.__init__(self, (status_code, reason))
+    """ raised when something wrong happend"""
         
 
 class HTTPRequest(object):
     
     SERVER_VERSION = "gunicorn/%s" % __version__
     
-    def __init__(self, socket, client_address, server_address):
-        self.socket = socket.dup()
+    def __init__(self, socket, client_address, server_address, wid):
+        self.wid = wid
+        self.socket = socket
         self.client_address = client_address
         self.server_address = server_address
         self.response_status = None
@@ -67,13 +69,25 @@ class HTTPRequest(object):
     def read(self):
         headers = {}
         remain = CHUNK_SIZE
-        buf = create_string_buffer(remain)
-        remain -= self.socket.recv_into(buf, remain)
-        while not self.parser.headers(headers, buf):
-            data = create_string_buffer(remain)
-            remain -= self.socket.recv_into(data, remain)
-            buf =  create_string_buffer(data.value + buf.value)
-            
+        buf = ""
+        buf = read_partial(self.socket, CHUNK_SIZE)
+        i = self.parser.headers(headers, buf)
+        if i == -1 and buf:
+            while True:
+                data = read_partial(self.socket, CHUNK_SIZE)
+                if not data: break
+                buf += data
+                i = self.parser.headers(headers, buf)
+                if i != -1: break
+           
+        if not headers:
+            return
+        
+        buf = buf[i:]
+
+        
+        log.info("worker %s. got headers:\n%s" % (self.wid, headers))
+        
         if headers.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
             
