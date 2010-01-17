@@ -141,6 +141,6 @@ class Worker(object):
             http.HTTPResponse(client, response, req).send()
         except Exception, e:
             log.exception("Error processing request. [%s]" % str(e))
-            msg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+            msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
             util.write_nonblock(client, msg)
             client.close()
