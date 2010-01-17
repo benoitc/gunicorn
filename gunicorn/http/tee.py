@@ -43,7 +43,7 @@ class TeeInput(object):
     def __init__(self, socket, parser, buf):
         self.buf = buf
         self.parser = parser
-        self.socket = socket
+        self.socket = socket.dup()
         self._len = parser.content_len
         if self._len and self._len < MAX_BODY:
             self.tmp = StringIO.StringIO()
