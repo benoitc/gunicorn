@@ -73,12 +73,10 @@ class TeeInput(object):
 
     def read(self, length=None):
         """ read """
-        print "la"
         if not self.socket:
             return self.tmp.read(length)
         
         if length is None:
-            print "ici"
             r = self.tmp.read() or ""
             while True:
                 chunk = self._tee(CHUNK_SIZE)
