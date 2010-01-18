@@ -91,10 +91,10 @@ class Worker(object):
         self.init_signals()
         spinner = 0 
         while self.alive:
-            spinner = (spinner+1) % 2
-            self._fchmod(spinner)
                 
             while self.alive:
+                spinner = (spinner+1) % 2
+                self._fchmod(spinner)
                 try:
                     ret = select.select([self.socket], [], [], 2.0)
                     if ret[0]:
@@ -139,5 +139,3 @@ class Worker(object):
             self.log.exception("Error processing request. [%s]" % str(e))
             msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
             util.close(client)
-            
-        del client

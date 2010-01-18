@@ -139,9 +139,12 @@ class Arbiter(object):
         self.manage_workers()
         while True:
             try:
+                self.reap_workers()
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()
+                    self.murder_workers()
+                    self.manage_workers()
                     continue
                 
                 if sig not in self.SIG_NAMES:
@@ -156,9 +159,8 @@ class Arbiter(object):
                 log.info("Handling signal: %s" % signame)
                 handler()
                 
-                self.reap_workers()
-                self.murder_workers()
-                self.manage_workers()
+                
+                
             except StopIteration:
                 break
             except KeyboardInterrupt:
@@ -255,8 +257,8 @@ class Arbiter(object):
 
     def murder_workers(self):
         for (pid, worker) in list(self.WORKERS.items()):
-            diff = time.time() - os.fstat(worker.tmp.fileno()).st_mtime
-            if diff < self.timeout:
+            diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
+            if diff <= self.timeout:
                 continue
             self.kill_worker(pid, signal.SIGKILL)
     
