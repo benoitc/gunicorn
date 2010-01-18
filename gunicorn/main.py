@@ -29,7 +29,7 @@ import optparse as op
 import os
 import sys
 
-from arbiter import Arbiter
+from gunicorn.arbiter import Arbiter
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,

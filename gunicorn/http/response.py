@@ -26,15 +26,17 @@
 
 import errno
 import socket
+import select
 import time
 
-from ..util import http_date, write, read_partial
+import os
+from gunicorn.util import http_date, write, read_partial, close
 
 class HTTPResponse(object):
     
     def __init__(self, sock, response, req):
         self.req = req
-        self.sock = sock
+        self.sock = sock.dup()
         self.data = response
         self.headers = req.response_headers or {}
         self.status = req.response_status
@@ -58,8 +60,9 @@ class HTTPResponse(object):
 
         for chunk in self.data:
             write(self.sock, chunk)
-                    
-        self.sock.close()
+          
+
+        close(self.sock)
 
         if hasattr(self.data, "close"):
             self.data.close()

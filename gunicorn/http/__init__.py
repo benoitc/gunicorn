@@ -24,5 +24,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from request import HTTPRequest, RequestError
-from response import HTTPResponse
+from gunicorn.http.request import HTTPRequest, RequestError
+from gunicorn.http.response import HTTPResponse

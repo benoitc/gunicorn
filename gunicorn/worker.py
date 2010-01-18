@@ -35,8 +35,8 @@ import sys
 import tempfile
 import time
 
-from . import http
-from . import util
+from gunicorn import http
+from gunicorn import util
 
 class Worker(object):
 
@@ -96,7 +96,7 @@ class Worker(object):
                 
             while self.alive:
                 try:
-                    ret = select.select([self.socket], [], [], 2.0)
+                    ret = select.select([self.socket], [], [], 15)
                     if ret[0]:
                         break
                 except select.error, e:
@@ -115,11 +115,7 @@ class Worker(object):
             # loop and wait for some lovin.
             while self.alive:
                 try:
-                    res = self.socket.accept()
-                    if res is None:
-                        break
-                    client, addr = res
-                    client.setblocking(0)
+                    client, addr = self.socket.accept()
                     
                     # handle connection
                     self.handle(client, addr)
@@ -143,5 +139,7 @@ class Worker(object):
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))
             msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-            util.write_nonblock(client, msg)
-            client.close()
+            #util.write_nonblock(client, msg)
+            util.close(client)
+            
+        del client

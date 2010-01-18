@@ -34,9 +34,8 @@ read or restart etc ... It's based on TeeInput from unicorn.
 import os
 import StringIO
 import tempfile
-from ctypes import create_string_buffer
 
-from ..util import MAX_BODY, CHUNK_SIZE
+from gunicorn.util import MAX_BODY, CHUNK_SIZE
 
 class TeeInput(object):
     
@@ -121,8 +120,7 @@ class TeeInput(object):
                 break
             line = self.readline()
         return lines
-        
-
+    
     def next(self):
         r = self.readline()
         if not r:

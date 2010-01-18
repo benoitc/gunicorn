@@ -34,7 +34,7 @@ import socket
 import sys
 import time
 
-from .worker import Worker
+from gunicorn.worker import Worker
 
 log = logging.getLogger(__name__)
 
@@ -122,17 +122,18 @@ class Arbiter(object):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_sockopts(sock)
         sock.bind(address)
-        sock.listen(2048)
+        sock.listen(1024)
         return sock
         
-    def set_sockopts(self, sock):       
+    def set_sockopts(self, sock):
         sock.setblocking(0)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 0)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if hasattr(socket, "TCP_CORK"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
         elif hasattr(socket, "TCP_NOPUSH"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
+        
 
     def run(self):
         self.manage_workers()

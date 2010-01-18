@@ -42,12 +42,22 @@ monthname = [None,
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   
   
+def close(sock):
+    try:
+        sock.shutdown(2)
+    except socket.error:
+        pass
+    try:
+        sock.close()
+    except socket.error:
+        pass
+  
 def read_partial(sock, length):
     while True:
         try:
             ret = select.select([sock.fileno()], [], [], 2.0)
             if ret[0]: break
-        except socket.error, e:
+        except select.error, e:
             if e[0] == errno.EINTR:
                 break
             raise
@@ -70,7 +80,6 @@ def write_nonblock(sock, data):
             if ret[1]: break
         except socket.error, e:
             if e[0] == errno.EINTR:
-                time.sleep(1)
                 break
             raise
     write(sock, data)

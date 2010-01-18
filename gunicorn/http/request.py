@@ -35,9 +35,9 @@ import array
 import logging
 
 from gunicorn import __version__
-from .http_parser import HttpParser
-from .tee import TeeInput
-from ..util import CHUNK_SIZE, read_partial
+from gunicorn.http.http_parser import HttpParser
+from gunicorn.http.tee import TeeInput
+from gunicorn.util import CHUNK_SIZE, read_partial
 
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
@@ -80,8 +80,7 @@ class HTTPRequest(object):
                 buf += data
                 i = self.parser.headers(headers, buf)
                 if i != -1: break
-        if not buf:
-            self.socket.close()
+
         if not headers:
             return {}
         
