@@ -68,11 +68,17 @@ def read_partial(sock, length):
     return data
     
 def write(sock, data):
-    for i in range(2):
+    buf = ""
+    buf += data
+    while buf:
         try:
-            return sock.send(data)
+            bytes = sock.send(buf)
+            buf = buf[bytes:]
+            return bytes
         except socket.error, e:
-            if i == 0:
+            if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+                break
+            elif e[0] in (errno.EPIPE,):
                 continue
             raise
                 

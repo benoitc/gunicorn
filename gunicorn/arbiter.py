@@ -122,7 +122,7 @@ class Arbiter(object):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_sockopts(sock)
         sock.bind(address)
-        sock.listen(1024)
+        sock.listen(2048)
         return sock
         
     def set_sockopts(self, sock):
