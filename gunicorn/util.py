@@ -43,6 +43,9 @@ monthname = [None,
   
   
 def close(sock):
+    """ socket.close() doesn't *really* close if 
+    there's another reference to it in the TCP/IP stack. 
+    (trick from twisted)"""
     try:
         sock.shutdown(2)
     except socket.error:
@@ -55,7 +58,7 @@ def close(sock):
 def read_partial(sock, length):
     while True:
         try:
-            ret = select.select([sock.fileno()], [], [], 2.0)
+            ret = select.select([sock.fileno()], [], [])
             if ret[0]: break
         except select.error, e:
             if e[0] == errno.EINTR:
