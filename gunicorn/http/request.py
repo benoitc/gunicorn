@@ -102,10 +102,7 @@ class HTTPRequest(object):
             wsgi_input = StringIO.StringIO()
         else:
             wsgi_input = TeeInput(self.socket, self.parser, buf)
-            
-        
-        
-                            
+                
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
@@ -134,29 +131,6 @@ class HTTPRequest(object):
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
         return environ
-        
-             
-    def decode_chunked(self):
-        """Decode the 'chunked' transfer coding."""
-        length = 0
-        data = StringIO.StringIO()
-        while True:
-            line = self.io.readuntil("\n").strip().split(";", 1)
-            chunk_size = int(line.pop(0), 16)
-            if chunk_size <= 0:
-                break
-            length += chunk_size
-            data.write(self.io.recv(chunk_size))
-            crlf = self.io.read(2)
-            if crlf != "\r\n":
-                raise RequestError((400, "Bad chunked transfer coding "
-                                         "(expected '\\r\\n', got %r)" % crlf))
-                return
-
-        # Grab any trailer headers
-        self.read_headers()
-        data.seek(0)
-        return data, str(length) or ""
         
     def start_response(self, status, response_headers):
         self.response_status = status

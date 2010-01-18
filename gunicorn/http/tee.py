@@ -69,7 +69,9 @@ class TeeInput(object):
         self._len = self._tmp_size()
         return self._len
 
-
+    def flush(self):
+        self.tmp.flush()
+        
     def read(self, length=None):
         """ read """
         if not self.socket:
@@ -148,6 +150,13 @@ class TeeInput(object):
         """ here we wil fetch final trailers
         if any."""
         if self.parser.body_eof():
+            # handle trailing headers
+            if self.parser.is_chunked:
+                while not self.parser.trailing_header(self.buf):
+                    data = read_partial(self.socket, CHUNK_SIZE)
+                    if not data: break
+                    self.buf += data
+            del self.buf
             self.socket = None
             
     def _tmp_size(self):

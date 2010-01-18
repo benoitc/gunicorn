@@ -30,7 +30,10 @@ class HttpParser(object):
         self.version = None
         self.method = None
         self.path = None
-        self._content_len = None        
+        self._content_len = None
+        self.start_offset = 0
+        self.chunk_size = 0
+        self._chunk_eof = False      
         
     def headers(self, headers, buf):
         """ take a string buff. It return 
@@ -121,22 +124,39 @@ class HttpParser(object):
             
     def body_eof(self):
         """do we have all the body ?"""
-        #TODO : add chunk
+        if self.is_chunked and self._chunk_eof:
+            return True
         if self._content_len == 0:
             return True
         return False
         
     def read_chunk(self, data):
         dlen = len(data)
-        i = data.find("\n")
-        if i != -1:
-            chunk = data[:i].strip().split(";", 1)
-            chunk_size = int(line.pop(0), 16)
-            if chunk_size <= 0:
-                self._chunk_eof = True
-                return None
-            self.start_offset = i+1
-    
+        if not self.start_offset:
+            i = data.find("\n")
+            if i != -1:
+                chunk = data[:i].strip().split(";", 1)
+                chunk_size = int(line.pop(0), 16)
+                self.start_offset = i+1
+                self.chunk_size = chunk_size
+        else:
+            buf = self.data[self.start_offset:]
+            
+            end_offset = chunk_size + 2
+            # we wait CRLF else return None
+            if len(buf) == end_offset:
+                if chunk_size <= 0:
+                    self._chunk_eof = True
+                    # we put data 
+                    return None, data[:end_offset]
+                self.chunk_size = 0
+                return buf[chunk_size:], data[:end_offset]
+        return None, data
+        
+    def trailing_header(self, data):
+        i = data.find("\r\n\r\n")
+        return (i != -1)
+        
     def filter_body(self, data):
         """ filter body and return a tuple:
         body_chunk, new_buffer. They could be None.
@@ -146,7 +166,9 @@ class HttpParser(object):
         dlen = len(data)
         chunk = None
         if self.is_chunked:
-            pass
+            chunk, data = self.read_chunk(data)
+            if not chunk:
+                return None, data
         else:
             if self._content_len > 0:
                 nr = min(dlen, self._content_len)
