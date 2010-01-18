@@ -80,9 +80,9 @@ def write(sock, data):
             return dlen
         except socket.error, e:
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
-                raise
-            elif e[0] in (errno.EPIPE,):
                 break
+            elif e[0] in (errno.EPIPE,):
+                continue
             raise
                 
 def write_nonblock(sock, data):
