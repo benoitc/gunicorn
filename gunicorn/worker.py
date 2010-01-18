@@ -96,7 +96,7 @@ class Worker(object):
                 
             while self.alive:
                 try:
-                    ret = select.select([self.socket], [], [], 15)
+                    ret = select.select([self.socket], [], [], 2.0)
                     if ret[0]:
                         break
                 except select.error, e:
@@ -125,8 +125,7 @@ class Worker(object):
                     spinner = (spinner+1) % 2
                     self._fchmod(spinner)
                 except socket.error, e:
-                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
-                            errno.EWOULDBLOCK]:
+                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
                         break # Uh oh!
                     raise
 
