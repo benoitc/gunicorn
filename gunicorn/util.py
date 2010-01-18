@@ -60,7 +60,7 @@ def write(sock, data):
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                 break
             elif e[0] in (errno.EPIPE,):
-                break
+                continue
             raise
                 
 def write_nonblock(sock, data):

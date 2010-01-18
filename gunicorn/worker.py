@@ -25,9 +25,10 @@ class Worker(object):
         "HUP QUIT INT TERM TTIN TTOU USR1".split()
     )
 
-    def __init__(self, workerid, ppid, socket, app):
+    def __init__(self, workerid, ppid, socket, app, timeout):
         self.id = workerid
         self.ppid = ppid
+        self.timeout = timeout
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
         self.tmpname = tmpname
@@ -76,7 +77,8 @@ class Worker(object):
                 spinner = (spinner+1) % 2
                 self._fchmod(spinner)
                 try:
-                    ret = select.select([self.socket], [], [], 2.0)
+                    ret = select.select([self.socket], [], [], 
+                                    self.timeout)
                     if ret[0]:
                         break
                 except select.error, e:
@@ -96,7 +98,8 @@ class Worker(object):
             while self.alive:
                 try:
                     client, addr = self.socket.accept()
-
+                    client.setblocking(0)
+                    
                     # handle connection
                     self.handle(client, addr)
                     
@@ -105,7 +108,8 @@ class Worker(object):
                     spinner = (spinner+1) % 2
                     self._fchmod(spinner)
                 except socket.error, e:
-                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED]:
+                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
+                            errno.EWOULDBLOCK]:
                         break # Uh oh!
                     raise
 
@@ -118,6 +122,6 @@ class Worker(object):
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))
             # try to send something if an error happend
-            msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
+            msg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
             util.write_nonblock(client, msg)
             util.close(client)
