@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn. See the NOTICE file included 
-# with this release for more information.
-
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
 
 import errno
 import select
