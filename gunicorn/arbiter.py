@@ -139,7 +139,6 @@ class Arbiter(object):
         self.manage_workers()
         while True:
             try:
-                
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()

@@ -58,9 +58,10 @@ class HTTPResponse(object):
         
         write(self.sock, "%s\r\n" % "".join(resp_head))
 
-        for chunk in self.data:
+        
+
+        for chunk in list(self.data):
             write(self.sock, chunk)
-          
 
         close(self.sock)
 

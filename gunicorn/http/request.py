@@ -54,6 +54,19 @@ class RequestError(Exception):
 class HTTPRequest(object):
     
     SERVER_VERSION = "gunicorn/%s" % __version__
+    
+    DEFAULTS = {
+        "wsgi.url_scheme": 'http',
+        "wsgi.input": StringIO.StringIO(),
+        "wsgi.errors": sys.stderr,
+        "wsgi.version": (1, 0),
+        "wsgi.multithread": False,
+        "wsgi.multiprocess": True,
+        "wsgi.run_once": False,
+        "SCRIPT_NAME": "",
+        "SERVER_SOFTWARE": "gunicorn/%s" % __version__
+    }
+
 
     def __init__(self, socket, client_address, server_address):
         self.socket = socket
@@ -68,6 +81,7 @@ class HTTPRequest(object):
         self.log = logging.getLogger(__name__)
         
     def read(self):
+        environ = {}
         headers = {}
         remain = CHUNK_SIZE
         buf = ""
@@ -82,7 +96,8 @@ class HTTPRequest(object):
                 if i != -1: break
 
         if not headers:
-            return {}
+            environ.update(self.DEFAULTS)
+            return environ
         
         buf = buf[i:]
 

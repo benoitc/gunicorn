@@ -116,7 +116,7 @@ class Worker(object):
             while self.alive:
                 try:
                     client, addr = self.socket.accept()
-                    
+
                     # handle connection
                     self.handle(client, addr)
                     
@@ -139,7 +139,6 @@ class Worker(object):
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))
             msg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-            #util.write_nonblock(client, msg)
             util.close(client)
             
         del client

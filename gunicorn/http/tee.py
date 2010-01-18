@@ -35,7 +35,7 @@ import os
 import StringIO
 import tempfile
 
-from gunicorn.util import MAX_BODY, CHUNK_SIZE
+from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial
 
 class TeeInput(object):
     
@@ -51,7 +51,6 @@ class TeeInput(object):
             
         if len(buf) > 0:
             chunk, self.buf = parser.filter_body(buf)
-            print chunk
             if chunk:
                 self.tmp.write(chunk)
                 self.tmp.seek(0)
@@ -61,7 +60,7 @@ class TeeInput(object):
     def len(self):
         if self._len: return self._len
         if self.socket:
-            pos = self.tmp.tell() 
+            pos = self.tmp.tell()
             while True:
                 if not self._tee(CHUNK_SIZE):
                     break
@@ -79,10 +78,12 @@ class TeeInput(object):
         
         if length is None:
             r = self.tmp.read() or ""
+            print "avant %s" % str(len(r))
             while True:
                 chunk = self._tee(CHUNK_SIZE)
                 if not chunk: break
                 r += chunk
+            print "apres %s" % str(len(r))
             return r
         else:
             diff = self._tmp_size() - self.tmp.tell()
@@ -139,7 +140,9 @@ class TeeInput(object):
             data = read_partial(self.socket, length)
             self.buf += data
             chunk, self.buf = self.parser.filter_body(self.buf)
+            print self.buf
             if chunk:
+                print chunk
                 self.tmp.write(chunk)
                 self.tmp.seek(0, os.SEEK_END)
                 return chunk
@@ -165,9 +168,9 @@ class TeeInput(object):
         else:
             return int(os.fstat(self.tmp.fileno())[6])
             
-    def _ensure_length(buf, length):
+    def _ensure_length(self, buf, length):
         if not buf or not self._len:
             return buf
-        while len(buf) < length and self.len != self.tmp.pos():
+        while len(buf) < length and self.len != self.tmp.tell():
             buf += self._tee(length - len(buf))
         return buf
