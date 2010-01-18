@@ -76,7 +76,7 @@ def write(sock, data):
             if bytes < len(buf):
                 buf = buf[bytes:]
                 continue
-            return bytes
+            return len(data)
         except socket.error, e:
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                 break
