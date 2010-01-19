@@ -23,7 +23,8 @@ class TeeInput(object):
     def __init__(self, socket, parser, buf):
         self.buf = buf
         self.parser = parser
-        self.socket = socket.dup()
+        self.socket = socket
+        self._is_socket = True
         self._len = parser.content_len
         if self._len and self._len < MAX_BODY:
             self.tmp = StringIO.StringIO()
@@ -40,7 +41,7 @@ class TeeInput(object):
     @property
     def len(self):
         if self._len: return self._len
-        if self.socket:
+        if self._is_socket:
             pos = self.tmp.tell()
             while True:
                 if not self._tee(CHUNK_SIZE):
@@ -54,7 +55,7 @@ class TeeInput(object):
         
     def read(self, length=None):
         """ read """
-        if not self.socket:
+        if not self._is_socket:
             return self.tmp.read(length)
         
         if length is None:
@@ -75,7 +76,7 @@ class TeeInput(object):
                 return self._ensure_length(self.tmp.read(l), length)
                 
     def readline(self, size=-1):
-        if not self.socket:
+        if not self._is_socket:
             return self.tmp.readline(size)
         
         orig_size = self._tmp_size()
@@ -141,7 +142,7 @@ class TeeInput(object):
                     if not data: break
                     self.buf += data
             del self.buf
-            self.socket = None
+            self._is_socket = False
             
     def _tmp_size(self):
         if isinstance(self.tmp, StringIO.StringIO):
