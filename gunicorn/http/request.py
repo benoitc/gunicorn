@@ -81,7 +81,6 @@ class HTTPRequest(object):
         
         buf = buf[i:]
 
-        
         self.log.info("Got headers:\n%s" % headers)
         
         if headers.get('Except', '').lower() == "100-continue":

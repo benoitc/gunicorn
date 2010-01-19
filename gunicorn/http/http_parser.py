@@ -17,16 +17,14 @@ class HttpParser(object):
         self._chunk_eof = False      
         
     def headers(self, headers, buf):
-        """ take a string buff. It return 
-        new position or -1 if parsing isn't done.
-        headers dict is updated.
+        """ take a string as buffer and an header dict 
+        (empty or not). It return new position or -1 
+        if parsing isn't done. headers dict is updated
+        with new headers.
         """
         if self._headers:
             return self._headers
         
-        # wee could be smarter here
-        # by just reading the array, but converting
-        # is enough for now
         ld = len("\r\n\r\n")
         i = buf.find("\r\n\r\n")
         if i != -1:

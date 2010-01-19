@@ -37,8 +37,6 @@ class HTTPResponse(object):
         
         write(self.sock, "%s\r\n" % "".join(resp_head))
 
-        
-
         for chunk in list(self.data):
             write(self.sock, chunk)
 
