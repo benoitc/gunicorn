@@ -50,7 +50,6 @@ class Worker(object):
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
-        
 
     def close_on_exec(self, fd):
         flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC

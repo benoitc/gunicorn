@@ -37,11 +37,12 @@ class request(object):
         
 class FakeSocket(object):
     
-    def __init__(self, data):
+    def __init__(self, data=""):
         self.tmp = tempfile.TemporaryFile()
-        self.tmp.write(data)
-        self.tmp.flush()
-        self.tmp.seek(0)
+        if data:
+            self.tmp.write(data)
+            self.tmp.flush()
+            self.tmp.seek(0)
 
     def fileno(self):
         return self.tmp.fileno()
@@ -51,6 +52,10 @@ class FakeSocket(object):
         
     def recv(self, length=None):
         return self.tmp.read()
+        
+    def send(self, data):
+        self.tmp.write(data)
+        self.tmp.flush()
         
     def seek(self, offset, whence=0):
         self.tmp.seek(offset, whence)
@@ -63,8 +68,6 @@ class http_request(object):
     def __call__(self, func):
         def run():
             fsock = FakeSocket(data_source(self.fname))
-
-
             req = HttpRequest(fsock, ('127.0.0.1', 6000), 
                                         ('127.0.0.1', 8000))
             func(req)
