@@ -1,0 +1,2 @@
+GET /with_"stupid"_quotes?foo="bar" HTTP/1.1
+

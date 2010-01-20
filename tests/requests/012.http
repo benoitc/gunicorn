@@ -1,0 +1,10 @@
+POST /chunked_w_trailing_headers HTTP/1.1
+Transfer-Encoding: chunked
+
+5
+hello
+6
+ world
+0
+Vary: *
+Content-Type: text/plain
