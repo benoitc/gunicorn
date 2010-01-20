@@ -15,7 +15,7 @@ import time
 
 from gunicorn.worker import Worker
 
-log = logging.getLogger(__name__)
+
 
 class Arbiter(object):
     
@@ -43,7 +43,10 @@ class Arbiter(object):
         self.pid = os.getpid()
         self.init_signals()
         self.listen(self.address)
-        log.info("Booted Arbiter: %s" % os.getpid())
+        self.log = logging.getLogger(__name__)
+        
+        self.log.info("Booted Arbiter: %s" % os.getpid())
+        
                     
     def init_signals(self):
         if self.PIPE:
@@ -63,7 +66,7 @@ class Arbiter(object):
             self.SIG_QUEUE.append(sig)
             self.wakeup()
         else:
-            log.warn("Ignoring rapid signaling: %s" % sig)
+            self.log.warn("Ignoring rapid signaling: %s" % sig)
         
 
     def listen(self, addr):
@@ -76,7 +79,7 @@ class Arbiter(object):
                 return
             except socket.error, e:
                 if e[0] == errno.ENOTCONN:
-                    log.error("should be a non GUNICORN environnement")
+                    self.log.error("should be a non GUNICORN environnement")
                 else:
                     raise
         
@@ -87,9 +90,9 @@ class Arbiter(object):
                 break
             except socket.error, e:
                 if e[0] == errno.EADDRINUSE:
-                    log.error("Connection in use: %s" % str(addr))
+                    self.log.error("Connection in use: %s" % str(addr))
                 if i < 5:
-                    log.error("Retrying in 1 second.")
+                    self.log.error("Retrying in 1 second.")
                 time.sleep(1)
                 
     def init_socket_fromfd(self, fd, address):
@@ -126,15 +129,15 @@ class Arbiter(object):
                     continue
                 
                 if sig not in self.SIG_NAMES:
-                    log.info("Ignoring unknown signal: %s" % sig)
+                    self.log.info("Ignoring unknown signal: %s" % sig)
                     continue
                 
                 signame = self.SIG_NAMES.get(sig)
                 handler = getattr(self, "handle_%s" % signame, None)
                 if not handler:
-                    log.error("Unhandled signal: %s" % signame)
+                    self.log.error("Unhandled signal: %s" % signame)
                     continue
-                log.info("Handling signal: %s" % signame)
+                self.log.info("Handling signal: %s" % signame)
                 handler()  
                 self.wakeup()   
             except StopIteration:
@@ -143,18 +146,18 @@ class Arbiter(object):
                 self.stop(False)
                 sys.exit(-1)
             except Exception, e:
-                log.exception("Unhandled exception in main loop.")
+                self.log.exception("Unhandled exception in main loop.")
                 self.stop(False)
                 sys.exit(-1)
                 
-        log.info("Master is shutting down.")
+        self.log.info("Master is shutting down.")
         self.stop()
         
     def handle_chld(self, sig, frame):
         self.wakeup()
         
     def handle_hup(self):
-        log.info("Master hang up.")
+        self.log.info("Master hang up.")
         self.reexec()
         raise StopIteration
         
@@ -184,10 +187,10 @@ class Arbiter(object):
         
     def handle_winch(self):
         if os.getppid() == 1 or os.getpgrp() != os.getpid():
-            logger.info("graceful stop of workers")
+            self.logger.info("graceful stop of workers")
             self.kill_workers(True)
         else:
-            log.info("SIGWINCH ignored. not daemonized")
+            self.log.info("SIGWINCH ignored. not daemonized")
     
     def wakeup(self):
         # Wake up the arbiter
@@ -278,17 +281,17 @@ class Arbiter(object):
             # Process Child
             worker_pid = os.getpid()
             try:
-                log.info("Worker %s booting" % worker_pid)
+                self.log.info("Worker %s booting" % worker_pid)
                 worker.run()
                 sys.exit(0)
             except SystemExit:
                 raise
             except:
-                log.exception("Exception in worker process.")
+                self.log.exception("Exception in worker process.")
                 sys.exit(-1)
             finally:
                 worker.tmp.close()
-                log.info("Worker %s exiting." % worker_pid)
+                self.log.info("Worker %s exiting." % worker_pid)
 
     def kill_workers(self, sig):
         for pid in self.WORKERS.keys():
@@ -300,7 +303,7 @@ class Arbiter(object):
             os.kill(pid, sig)
             kpid, stat = os.waitpid(pid, os.WNOHANG)
             if kpid:
-                log.warning("Problem killing process: %s" % pid)
+                self.log.warning("Problem killing process: %s" % pid)
         except OSError, e:
             if e.errno == errno.ESRCH:
                 pass

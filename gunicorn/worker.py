@@ -18,7 +18,7 @@ import time
 from gunicorn import http
 from gunicorn import util
 
-log = logging.getLogger(__name__)
+
 
 class Worker(object):
 
@@ -50,6 +50,7 @@ class Worker(object):
         
         self.app = app
         self.alive = True
+        self.log = logging.getLogger(__name__)
         
 
     def close_on_exec(self, fd):
@@ -87,8 +88,7 @@ class Worker(object):
             # loop and wait for some lovin.
             while self.alive:
                 try:
-                    client, addr = self.socket.accept()
-                    
+                    client, addr = self.socket.accept() 
                     
                     # handle connection
                     self.handle(client, addr)
@@ -130,8 +130,7 @@ class Worker(object):
             response = self.app(req.read(), req.start_response)
             http.HTTPResponse(client, response, req).send()
         except Exception, e:
-            log.exception("Error processing request. [%s]" % str(e))
+            # TODO: try to send something if an error happend
+            self.log.exception("Error processing request. [%s]" % str(e))
             # try to send something if an error happend
-            msg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
-            util.write_nonblock(client, msg)
             util.close(client)

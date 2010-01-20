@@ -20,8 +20,7 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  
-  
+
 def close(sock):
     """ socket.close() doesn't *really* close if 
     there's another reference to it in the TCP/IP stack. 
@@ -34,6 +33,8 @@ def close(sock):
         sock.close()
     except socket.error:
         pass
+
+    del sock
   
 def read_partial(sock, length):
     while True:
@@ -63,6 +64,7 @@ def write(sock, data):
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                 break
             elif e[0] in (errno.EPIPE,):
+                break
                 if i == 0:
                     continue
             raise

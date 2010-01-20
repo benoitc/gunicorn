@@ -24,7 +24,6 @@ normalize_name
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 
-log = logging.getLogger(__name__)
 
 
 class RequestError(Exception):
@@ -57,7 +56,7 @@ class HTTPRequest(object):
         self._version = 11
         self.parser = HttpParser()
         self.start_response_called = False
-        
+        self.log = logging.getLogger(__name__)
         
         
     def read(self):
@@ -79,9 +78,9 @@ class HTTPRequest(object):
             environ.update(self.DEFAULTS)
             return environ
 
-        log.info("%s", self.parser.status)
+        self.log.info("%s", self.parser.status)
 
-        log.info("Got headers:\n%s" % headers)
+        self.log.info("Got headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
