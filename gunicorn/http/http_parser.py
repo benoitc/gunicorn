@@ -131,33 +131,34 @@ class HttpParser(object):
             
     def body_eof(self):
         """do we have all the body ?"""
-        if self.is_chunked and self._chunk_eof:
-            return True
-        if self._content_len == 0:
-            return True
+        import sys
+        if self.is_chunked:
+            if self._chunk_eof:
+                return True
+        elif self._content_len == 0:
+                return True
         return False
         
     def read_chunk(self, data):
         dlen = len(data)
         if not self.start_offset:
-            i = data.find("\n")
+            i = data.find("\r\n")
             if i != -1:
                 chunk = data[:i].strip().split(";", 1)
-                chunk_size = int(line.pop(0), 16)
-                self.start_offset = i+1
+                chunk_size = int(chunk.pop(0), 16)
+                self.start_offset = i+2
                 self.chunk_size = chunk_size
-        else:
-            buf = self.data[self.start_offset:]
-            
-            end_offset = chunk_size + 2
-            # we wait CRLF else return None
-            if len(buf) == end_offset:
-                if chunk_size <= 0:
+                if self.chunk_size == 0:
                     self._chunk_eof = True
-                    # we put data 
-                    return '', data[:end_offset]
+                    return '', data[:self.start_offset]
+        else:
+            buf = data[self.start_offset:self.start_offset+self.chunk_size]
+            end_offset = self.start_offset + self.chunk_size + 2
+            # we wait CRLF else return None
+            if len(data) >= end_offset:
+                ret = buf, data[end_offset:]
                 self.chunk_size = 0
-                return buf[chunk_size:], data[:end_offset]
+                return ret
         return '', data
         
     def trailing_header(self, data):
@@ -173,7 +174,9 @@ class HttpParser(object):
         dlen = len(data)
         chunk = ''
         if self.is_chunked:
+
             chunk, data = self.read_chunk(data)
+            
             if not chunk:
                 return '', data
         else:

@@ -16,10 +16,8 @@ def data_source(fname, eol):
     with open(fname) as handle:
         lines = []
         for line in handle:
-            next = line.rstrip("\r\n") + eol
-            if next == "\r\n":
-                eol = ""
-            lines.append(next)
+            line = line.rstrip("\n").replace("\\r\\n", "\r\n")
+            lines.append(line)
         return "".join(lines)
 
 class request(object):

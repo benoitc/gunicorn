@@ -1,4 +1,4 @@
-GET /get_funky_content_length_body_hello HTTP/1.0
-conTENT-Length: 5
-
+GET /get_funky_content_length_body_hello HTTP/1.0\r\n
+conTENT-Length: 5\r\n
+\r\n
 HELLO

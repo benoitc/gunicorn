@@ -156,10 +156,33 @@ def test_010(buf, p):
     t.eq(p.path, "/post_chunked_all_your_base")
     t.eq(p.headers, [('Transfer-Encoding', 'chunked')])
     t.eq(p.is_chunked, True)
+    t.eq(p._chunk_eof, False)
+    t.ne(p.body_eof(), True)
     body = ""
     buf = buf[i:]
-    print buf
     while not p.body_eof():
         chunk, buf = p.filter_body(buf)
-        body += chunk
+        print chunk
+        if chunk:
+            body += chunk
     t.eq(body, "all your base are belong to us")
+    
+@t.request("011.http")
+def test_011(buf, p):
+    headers = []
+    i = p.filter_headers(headers, buf)
+    t.ne(i, -1)
+    t.eq(p.method, "POST")
+    t.eq(p.version, (1, 1))
+    t.eq(p.path, "/two_chunks_mult_zero_end")
+    t.eq(p.headers, [('Transfer-Encoding', 'chunked')])
+    t.eq(p.is_chunked, True)
+    t.eq(p._chunk_eof, False)
+    t.ne(p.body_eof(), True)
+    body = ""
+    buf = buf[i:]
+    while not p.body_eof():
+        chunk, buf = p.filter_body(buf)
+        if chunk:
+            body += chunk
+    t.eq(body, "hello world")
