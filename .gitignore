@@ -11,3 +11,4 @@ setuptools-*
 distribute-0.6.8-py2.6.egg
 distribute-0.6.8.tar.gz
 gunicorn.egg-info
+nohup.out
