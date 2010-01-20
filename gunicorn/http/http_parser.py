@@ -3,27 +3,39 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import urlparse
+
+from gunicorn.util import normalize_name
+
+class HttpParserError(Exception):
+    """ error raised when parsing fail"""
 
 class HttpParser(object):
     
     def __init__(self):
-        self._headers = {}
+        self.status = ""
+        self.headers = []
+        self.headers_dict = {}
+        self.raw_version = ""
+        self.raw_path = ""
         self.version = None
-        self.method = None
-        self.path = None
+        self.method = ""
+        self.path = ""
+        self.query_string = ""
+        self.fragment = ""
         self._content_len = None
         self.start_offset = 0
         self.chunk_size = 0
         self._chunk_eof = False      
         
-    def headers(self, headers, buf):
+    def filter_headers(self, headers, buf):
         """ take a string as buffer and an header dict 
         (empty or not). It return new position or -1 
         if parsing isn't done. headers dict is updated
         with new headers.
         """
-        if self._headers:
-            return self._headers
+        if self.headers:
+            return self.headers
         
         ld = len("\r\n\r\n")
         i = buf.find("\r\n\r\n")
@@ -43,57 +55,73 @@ class HttpParser(object):
         
         # parse headers. We silently ignore 
         # bad headers' lines
+        
+        _headers = {}
         hname = ""
         for line in lines:
             if line == "\t":
-                self._headers[hname] += line.strip()
+                headers[hname] += line.strip()
             else:
                 try:
-                    hname =self._parse_headerl(line)
+                    hname =self._parse_headerl(_headers, line)
                 except ValueError: 
                     # bad headers
                     pass
-        headers.update(self._headers)
-        self._content_len = int(self._headers.get('Content-Length') or 0)
+        self.headers_dict = _headers
+        headers.extend(list(_headers.items()))
+        self.headers = headers
+        self._content_len = int(_headers.get('Content-Length') or 0)
+        
+        (_, _, self.path, self.query_string, self.fragment) = urlparse.urlsplit(self.raw_path)
         return pos
     
     def _first_line(self, line):
         """ parse first line """
-        method, path, version = line.strip().split(" ")
-        self.version = version.strip()
-        self.method = method.upper()
-        self.path = path
+        self.status = status = line.strip()
         
-    def _parse_headerl(self, line):
+        method, path, version = status.split(" ")
+        version = version.strip()
+        self.raw_version = version
+        try:
+            major, minor = version.split("HTTP/")[1].split(".")
+            version = (int(major), int(minor))
+        except IndexError:
+            version = (1, 0)
+
+        self.version = version
+        self.method = method.upper()
+        self.raw_path = path
+        
+    def _parse_headerl(self, hdrs, line):
         """ parse header line"""
-        name, value = line.split(": ", 1)
-        name = name.strip()
-        self._headers[name] = value.strip()
+        name, value = line.split(":", 1)
+        name = normalize_name(name.strip())
+        hdrs[name] = value.rsplit("\r\n",1)[0].strip()
         return name
       
     @property
     def should_close(self):
         if self._should_close:
             return True
-        if self._headers.get("Connection") == "close":
+        if self.headers_dict.get("Connection") == "close":
             return True
-        if self._headers.get("Connection") == "Keep-Alive":
+        if self.headers_dict.get("Connection") == "Keep-Alive":
             return False
-        if self.version < "HTTP/1.1":
+        if int("%s%s" % self.version) < 11:
             return True
         
     @property
     def is_chunked(self):
         """ is TE: chunked ?"""
-        transfert_encoding = self._headers.get('Transfer-Encoding', False)
+        transfert_encoding = self.headers_dict.get('Transfer-Encoding', False)
         return (transfert_encoding == "chunked")
         
     @property
     def content_len(self):
         """ return content length as integer or
         None."""
-        transfert_encoding = self._headers.get('Transfer-Encoding')
-        content_length = self._headers.get('Content-Length')
+        transfert_encoding = self.headers_dict.get('Transfer-Encoding')
+        content_length = self.headers_dict.get('Content-Length')
         if transfert_encoding is None:
             if content_length is None:
                 return 0

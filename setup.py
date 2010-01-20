@@ -39,6 +39,8 @@ setup(
     packages = find_packages(),
     include_package_data = True,
     scripts = ['bin/gunicorn', 'bin/gunicorn_django'],
+    
+    test_suite = 'nose.collector',
 
 )
 

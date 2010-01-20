@@ -15,7 +15,7 @@ class HTTPResponse(object):
     
     def __init__(self, sock, response, req):
         self.req = req
-        self.sock = sock.dup()
+        self.sock = sock
         self.data = response
         self.headers = req.response_headers or {}
         self.status = req.response_status

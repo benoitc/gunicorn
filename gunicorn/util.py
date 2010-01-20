@@ -73,10 +73,14 @@ def write_nonblock(sock, data):
             if ret[1]: break
         except socket.error, e:
             if e[0] == errno.EINTR:
-                break
+                continue
             raise
     write(sock, data)
 
+
+def normalize_name(name):
+    return  "-".join([w.lower().capitalize() for w in name.split("-")])
+    
 def import_app(module):
     parts = module.rsplit(":", 1)
     if len(parts) == 1:

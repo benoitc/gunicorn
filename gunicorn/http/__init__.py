@@ -3,6 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-
+from gunicorn.http.http_parser import HttpParser
 from gunicorn.http.request import HTTPRequest, RequestError
 from gunicorn.http.response import HTTPResponse
