@@ -22,7 +22,7 @@ def test_001(buf, p):
     ])
     body, tr = p.filter_body(buf[i:])    
     t.eq(body, '{"nom": "nom"}')
-    print t.eq(p.body_eof(), True)
+    t.eq(p.body_eof(), True)
 
 @t.request("002.http")
 def test_002(buf, p):

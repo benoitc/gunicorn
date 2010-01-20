@@ -4,5 +4,5 @@
 # See the NOTICE for more information.
 
 from gunicorn.http.http_parser import HttpParser
-from gunicorn.http.request import HTTPRequest, RequestError
-from gunicorn.http.response import HTTPResponse
+from gunicorn.http.request import HttpRequest, RequestError
+from gunicorn.http.response import HttpResponse

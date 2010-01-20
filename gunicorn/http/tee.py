@@ -43,6 +43,7 @@ class TeeInput(object):
         if self._len: return self._len
         if self._is_socket:
             pos = self.tmp.tell()
+            print pos
             while True:
                 if not self._tee(CHUNK_SIZE):
                     break
@@ -53,14 +54,13 @@ class TeeInput(object):
     def flush(self):
         self.tmp.flush()
         
-    def read(self, length=None):
+    def read(self, length=-1):
         """ read """
         if not self._is_socket:
             return self.tmp.read(length)
         
-        if length is None:
+        if length < 0:
             r = self.tmp.read() or ""
-            print "avant %s" % str(len(r))
             while True:
                 chunk = self._tee(CHUNK_SIZE)
                 if not chunk: break
@@ -125,10 +125,7 @@ class TeeInput(object):
             if chunk:
                 self.tmp.write(chunk)
                 self.tmp.seek(0, os.SEEK_END)
-                return chunk
-            if not data: 
-                self._is_socket = False
-                break
+                return chunk        
         self._finalize()
         return ""
         

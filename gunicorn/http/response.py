@@ -11,7 +11,7 @@ import time
 import os
 from gunicorn.util import http_date, write, read_partial, close
 
-class HTTPResponse(object):
+class HttpResponse(object):
     
     def __init__(self, sock, response, req):
         self.req = req

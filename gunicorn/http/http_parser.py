@@ -16,9 +16,9 @@ class HttpParser(object):
         self.status = ""
         self.headers = []
         self.headers_dict = {}
-        self.raw_version = ""
+        self.raw_version = "HTTP/1.0"
         self.raw_path = ""
-        self.version = None
+        self.version = (1,0)
         self.method = ""
         self.path = ""
         self.query_string = ""
@@ -70,8 +70,7 @@ class HttpParser(object):
         self.headers_dict = _headers
         headers.extend(list(_headers.items()))
         self.headers = headers
-        self._content_len = int(_headers.get('Content-Length') or 0)
-        
+        self._content_len = int(_headers.get('Content-Length',0))
         (_, _, self.path, self.query_string, self.fragment) = urlparse.urlsplit(self.raw_path)
         return pos
     
@@ -122,7 +121,7 @@ class HttpParser(object):
         None."""
         transfert_encoding = self.headers_dict.get('Transfer-Encoding')
         content_length = self.headers_dict.get('Content-Length')
-        if transfert_encoding is None:
+        if transfert_encoding != "chunked":
             if content_length is None:
                 return 0
             return int(content_length)

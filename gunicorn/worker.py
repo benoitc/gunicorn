@@ -19,7 +19,6 @@ from gunicorn import http
 from gunicorn import util
 
 
-
 class Worker(object):
 
     SIGNALS = map(
@@ -126,9 +125,9 @@ class Worker(object):
     def handle(self, client, addr):
         self.close_on_exec(client)
         try:
-            req = http.HTTPRequest(client, addr, self.address)
+            req = http.HttpRequest(client, addr, self.address)
             response = self.app(req.read(), req.start_response)
-            http.HTTPResponse(client, response, req).send()
+            http.HttpResponse(client, response, req).send()
         except Exception, e:
             # TODO: try to send something if an error happend
             self.log.exception("Error processing request. [%s]" % str(e))

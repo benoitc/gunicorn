@@ -30,7 +30,7 @@ class RequestError(Exception):
     """ raised when something wrong happend"""
         
 
-class HTTPRequest(object):
+class HttpRequest(object):
     
     SERVER_VERSION = "gunicorn/%s" % __version__
     
@@ -74,9 +74,6 @@ class HTTPRequest(object):
                 i = self.parser.filter_headers(headers, buf)
                 if i != -1: break
 
-        if not headers:
-            environ.update(self.DEFAULTS)
-            return environ
 
         self.log.info("%s", self.parser.status)
 
