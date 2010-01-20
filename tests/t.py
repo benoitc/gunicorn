@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -
 # Copyright 2009 Paul J. Davis <paul.joseph.davis@gmail.com>
 #
-# This file is part of the pywebmachine package released
-# under the MIT license.
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
+
 import inspect
 import os
 import re
