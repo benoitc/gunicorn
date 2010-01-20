@@ -135,7 +135,8 @@ class Arbiter(object):
                     log.error("Unhandled signal: %s" % signame)
                     continue
                 log.info("Handling signal: %s" % signame)
-                handler()     
+                handler()  
+                self.wakeup()   
             except StopIteration:
                 break
             except KeyboardInterrupt:

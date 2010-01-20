@@ -18,6 +18,8 @@ import time
 from gunicorn import http
 from gunicorn import util
 
+log = logging.getLogger(__name__)
+
 class Worker(object):
 
     SIGNALS = map(
@@ -37,14 +39,19 @@ class Worker(object):
         self.close_on_exec(socket)
         self.close_on_exec(fd)
         
+        
+        # Set blocking to 0 back since we 
+        # prevented inheritence of the socket
+        # the socket.
+        socket.setblocking(0)
+
         self.socket = socket
         self.address = socket.getsockname()
         
         self.app = app
         self.alive = True
         
-        self.log = logging.getLogger(__name__)
-    
+
     def close_on_exec(self, fd):
         flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
         fcntl.fcntl(fd, fcntl.F_SETFL, flags)
@@ -72,6 +79,31 @@ class Worker(object):
         self.init_signals()
         spinner = 0 
         while self.alive:
+            
+            nr = 0
+            # Accept until we hit EAGAIN. We're betting that when we're
+            # processing clients that more clients are waiting. When
+            # there's no more clients waiting we go back to the select()
+            # loop and wait for some lovin.
+            while self.alive:
+                try:
+                    client, addr = self.socket.accept()
+                    
+                    
+                    # handle connection
+                    self.handle(client, addr)
+                    
+                    # Update the fd mtime on each client completion
+                    # to signal that this worker process is alive.
+                    spinner = (spinner+1) % 2
+                    self._fchmod(spinner)
+                    nr += 1
+                except socket.error, e:
+                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
+                            errno.EWOULDBLOCK]:
+                        break # Uh oh!
+                    raise
+                if nr == 0: break
                 
             while self.alive:
                 spinner = (spinner+1) % 2
@@ -90,28 +122,6 @@ class Worker(object):
                     
             spinner = (spinner+1) % 2
             self._fchmod(spinner)
-            
-            # Accept until we hit EAGAIN. We're betting that when we're
-            # processing clients that more clients are waiting. When
-            # there's no more clients waiting we go back to the select()
-            # loop and wait for some lovin.
-            while self.alive:
-                try:
-                    client, addr = self.socket.accept()
-                    client.setblocking(0)
-                    
-                    # handle connection
-                    self.handle(client, addr)
-                    
-                    # Update the fd mtime on each client completion
-                    # to signal that this worker process is alive.
-                    spinner = (spinner+1) % 2
-                    self._fchmod(spinner)
-                except socket.error, e:
-                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
-                            errno.EWOULDBLOCK]:
-                        break # Uh oh!
-                    raise
 
     def handle(self, client, addr):
         self.close_on_exec(client)
@@ -120,7 +130,7 @@ class Worker(object):
             response = self.app(req.read(), req.start_response)
             http.HTTPResponse(client, response, req).send()
         except Exception, e:
-            self.log.exception("Error processing request. [%s]" % str(e))
+            log.exception("Error processing request. [%s]" % str(e))
             # try to send something if an error happend
             msg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
             util.write_nonblock(client, msg)

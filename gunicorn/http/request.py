@@ -17,13 +17,14 @@ import logging
 from gunicorn import __version__
 from gunicorn.http.http_parser import HttpParser
 from gunicorn.http.tee import TeeInput
-from gunicorn.util import CHUNK_SIZE, read_partial, normalize_name
+from gunicorn.util import CHUNK_SIZE, read_partial, \
+normalize_name
 
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 
-
+log = logging.getLogger(__name__)
 
 
 class RequestError(Exception):
@@ -57,7 +58,7 @@ class HTTPRequest(object):
         self.parser = HttpParser()
         self.start_response_called = False
         
-        self.log = logging.getLogger(__name__)
+        
         
     def read(self):
         environ = {}
@@ -75,13 +76,12 @@ class HTTPRequest(object):
                 if i != -1: break
 
         if not headers:
-            print "ici :()"
             environ.update(self.DEFAULTS)
             return environ
 
-        self.log.info("%s", self.parser.status)
+        log.info("%s", self.parser.status)
 
-        self.log.info("Got headers:\n%s" % headers)
+        log.info("Got headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")

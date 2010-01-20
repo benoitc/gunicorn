@@ -8,6 +8,7 @@ import select
 import socket
 import time
 
+
 timeout_default = object()
 
 CHUNK_SIZE = (16 * 1024)
@@ -37,14 +38,15 @@ def close(sock):
 def read_partial(sock, length):
     while True:
         try:
-            ret = select.select([sock.fileno()], [], [])
+            ret = select.select([sock.fileno()], [], [], 0)
             if ret[0]: break
         except select.error, e:
             if e[0] == errno.EINTR:
-                break
+                continue
             raise
     data = sock.recv(length)
     return data
+
     
 def write(sock, data):
     buf = ""
