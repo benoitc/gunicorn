@@ -12,7 +12,6 @@ import signal
 import socket
 import sys
 import tempfile
-import time
 
 from gunicorn import http
 from gunicorn import util

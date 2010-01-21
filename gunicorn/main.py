@@ -6,8 +6,6 @@
 
 import logging
 import optparse as op
-import os
-import sys
 
 from gunicorn.arbiter import Arbiter
 

@@ -3,13 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import errno
-import socket
-import select
-import time
-
-import os
-from gunicorn.util import http_date, write, read_partial, close
+from gunicorn.util import http_date, write, close
 
 class HttpResponse(object):
     

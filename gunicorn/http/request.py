@@ -4,14 +4,10 @@
 # See the NOTICE for more information.
 
 
-import errno
-from ctypes import *
 import re
 import StringIO
-import socket
 import sys
 from urllib import unquote
-import array
 import logging
 
 from gunicorn import __version__

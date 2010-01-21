@@ -4,11 +4,8 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import inspect
 import os
-import re
 import tempfile
-import unittest
 
 dirname = os.path.dirname(__file__)
 

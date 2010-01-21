@@ -6,3 +6,6 @@
 from gunicorn.http.parser import HttpParser
 from gunicorn.http.request import HttpRequest, RequestError
 from gunicorn.http.response import HttpResponse
+
+def __exported_functionality__():
+    return [HttpParser, HttpRequest, RequestError, HttpResponse]

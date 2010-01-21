@@ -5,7 +5,6 @@
 
 import errno
 import fcntl
-import os
 import select
 import socket
 import time
