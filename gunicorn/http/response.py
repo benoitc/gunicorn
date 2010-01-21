@@ -30,7 +30,7 @@ class HttpResponse(object):
         resp_head.append("Date: %s\r\n" % http_date())
         # broken clients
         resp_head.append("Status: %s\r\n" % str(self.status))
-        # always close the conenction
+        # always close the connection
         resp_head.append("Connection: close\r\n")        
         for name, value in self.headers.items():
             resp_head.append("%s: %s\r\n" % (name, value))

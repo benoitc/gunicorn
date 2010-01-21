@@ -28,7 +28,7 @@ class Worker(object):
     def __init__(self, workerid, ppid, socket, app, timeout):
         self.id = workerid
         self.ppid = ppid
-        self.timeout = timeout
+        self.timeout = timeout / 2.0
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
         self.tmpname = tmpname
@@ -53,7 +53,7 @@ class Worker(object):
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGUSR1, self.handle_quit)
-
+    
     def handle_quit(self, sig, frame):
         self.alive = False
 
@@ -80,9 +80,11 @@ class Worker(object):
                 try:
                     client, addr = self.socket.accept() 
                     
+                    self.client = client
+                    
                     # handle connection
                     self.handle(client, addr)
-                    
+
                     # Update the fd mtime on each client completion
                     # to signal that this worker process is alive.
                     spinner = (spinner+1) % 2
@@ -118,6 +120,7 @@ class Worker(object):
                     
             spinner = (spinner+1) % 2
             self._fchmod(spinner)
+            
 
     def handle(self, client, addr):
         util.close_on_exec(client)
@@ -126,7 +129,6 @@ class Worker(object):
             response = self.app(req.read(), req.start_response)
             http.HttpResponse(client, response, req).send()
         except Exception, e:
-            # TODO: try to send something if an error happend
-            self.log.exception("Error processing request. [%s]" % str(e))
-            # try to send something if an error happend
+            self.log.exception("Error processing request. [%s]" % str(e))    
             util.close(client)
+            

@@ -22,7 +22,6 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-             
 
 def close_on_exec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
@@ -62,21 +61,9 @@ def write(sock, data):
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                 break
             elif e[0] in (errno.EPIPE,):
-                if i == 0:
-                    continue
+                break
             raise
         i += 1
-          
-def write_nonblock(sock, data):
-    while True:
-        try:
-            ret = select.select([], [sock.fileno()], [], 2.0)
-            if ret[1]: break
-        except socket.error, e:
-            if e[0] == errno.EINTR:
-                continue
-            raise
-    write(sock, data)
 
 
 def normalize_name(name):

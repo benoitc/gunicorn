@@ -39,10 +39,9 @@ class Arbiter(object):
         self.timeout = 30
         self.reexec_pid = 0
         self.pid = os.getpid()
+        self.log = logging.getLogger(__name__)
         self.init_signals()
         self.listen(self.address)
-        self.log = logging.getLogger(__name__)
-        
         self.log.info("Booted Arbiter: %s" % os.getpid())
         
                     
@@ -200,7 +199,7 @@ class Arbiter(object):
                     
     def sleep(self):
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1)
+            ready = select.select([self.PIPE[0]], [], [], 1.0)
             if not ready[0]:
                 return
             while os.read(self.PIPE[0], 1):
@@ -237,6 +236,7 @@ class Arbiter(object):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
             if diff <= self.timeout:
                 continue
+            self.log.error("worker %s PID %s timeout killing." % (str(worker.id), pid))
             self.kill_worker(pid, signal.SIGKILL)
     
     def reap_workers(self):
@@ -270,7 +270,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout / 2.0)
+                        self.timeout)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
@@ -283,6 +283,7 @@ class Arbiter(object):
                 worker.run()
                 sys.exit(0)
             except SystemExit:
+                
                 raise
             except:
                 self.log.exception("Exception in worker process.")
@@ -304,7 +305,8 @@ class Arbiter(object):
                 self.log.warning("Problem killing process: %s" % pid)
         except OSError, e:
             if e.errno == errno.ESRCH:
-                pass
-        finally:
-            worker.tmp.close()
+                try:
+                    worker.tmp.close()
+                except:
+                    pass
 
