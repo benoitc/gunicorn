@@ -23,20 +23,14 @@ def test_001(req):
     t.eq(body, '{"nom": "nom"}')
 
 @t.http_request("002.http")
-def http_request(req):
+def test_002(req):
     e = req.read()
-
     t.eq(e['REQUEST_METHOD'], 'GET')
     t.eq(e['PATH_INFO'], "/test")
     t.eq(e['QUERY_STRING'], "")
-    t.eq(sorted(p.headers), [
-        ("Accept", "*/*"),
-        ("Host", "0.0.0.0=5000"),
-        ("User-Agent", "curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1")
-    ])
     t.eq(e['HTTP_ACCEPT'], "*/*")
     t.eq(e['HTTP_HOST'], "0.0.0.0=5000")
-    t.eq(e['HTTP_USER_AGENT', "curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1"])
+    t.eq(e['HTTP_USER_AGENT'], "curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1")
     body = e['wsgi.input'].read()
     t.eq(body, '')
 
