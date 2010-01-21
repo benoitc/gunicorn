@@ -33,17 +33,11 @@ def close(sock):
     there's another reference to it in the TCP/IP stack. 
     (trick from twisted)"""
     try:
-        sock.shutdown(2)
-    except socket.error:
-        pass
-    try:
         sock.close()
     except socket.error:
         pass
-
-    del sock
   
-def read_partial(sock, length):    
+def read_partial(sock, length):
     while True:
         try:
             ret = select.select([sock.fileno()], [], [], 0)

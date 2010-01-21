@@ -75,9 +75,9 @@ class HttpRequest(object):
                 if i != -1: break
 
 
-        self.log.info("%s", self.parser.status)
+        self.log.debug("%s", self.parser.status)
 
-        self.log.info("Got headers:\n%s" % headers)
+        self.log.debug("Got headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Except', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
