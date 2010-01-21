@@ -130,7 +130,6 @@ class HttpParser(object):
             
     def body_eof(self):
         """do we have all the body ?"""
-        import sys
         if self.is_chunked:
             if self._chunk_eof:
                 return True

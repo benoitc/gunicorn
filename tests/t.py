@@ -12,7 +12,7 @@ import unittest
 
 dirname = os.path.dirname(__file__)
 
-from gunicorn.http.http_parser import HttpParser
+from gunicorn.http.parser import HttpParser
 from gunicorn.http.request import HttpRequest
 
 def data_source(fname):

@@ -15,7 +15,7 @@ import array
 import logging
 
 from gunicorn import __version__
-from gunicorn.http.http_parser import HttpParser
+from gunicorn.http.parser import HttpParser
 from gunicorn.http.tee import TeeInput
 from gunicorn.util import CHUNK_SIZE, read_partial, \
 normalize_name
