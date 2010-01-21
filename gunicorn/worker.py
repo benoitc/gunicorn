@@ -5,7 +5,6 @@
 
 
 import errno
-import fcntl
 import logging
 import os
 import select
@@ -35,25 +34,20 @@ class Worker(object):
         self.tmpname = tmpname
         
         # prevent inherientence
-        self.close_on_exec(socket)
-        self.close_on_exec(fd)
-        
-        
-        # Set blocking to 0 back since we 
-        # prevented inheritence of the socket
-        # the socket.
-        socket.setblocking(0)
-
         self.socket = socket
-        self.address = socket.getsockname()
+        util.close_on_exec(self.socket)
+        self.socket.setblocking(0)
+        
+        
+        util.close_on_exec(fd)
+
+        
+        self.address = self.socket.getsockname()
         
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
-
-    def close_on_exec(self, fd):
-        flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    
         
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
@@ -97,9 +91,17 @@ class Worker(object):
                     self._fchmod(spinner)
                     nr += 1
                 except socket.error, e:
-                    if e[0] in [errno.EAGAIN, errno.ECONNABORTED,
-                            errno.EWOULDBLOCK]:
+                    if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, 
+                            errno.ECONNABORTED):
                         break # Uh oh!
+                    elif e[0] in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE, 
+                        errno.ENOMEM):
+                        """
+                        linux gave EMFILE when a process is not allowed to
+                        allocate more fs or ENOMEM when there is not enough 
+                        memory to allocate. BSD return ENOBUFS.
+                        """
+                        log.info("Could not accept new connection (%s)" % str(e))
                     raise
                 if nr == 0: break
                 
@@ -122,7 +124,7 @@ class Worker(object):
             self._fchmod(spinner)
 
     def handle(self, client, addr):
-        self.close_on_exec(client)
+        #util.close_on_exec(client)
         try:
             req = http.HttpRequest(client, addr, self.address)
             response = self.app(req.read(), req.start_response)

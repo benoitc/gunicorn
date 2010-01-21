@@ -15,8 +15,6 @@ import time
 
 from gunicorn.worker import Worker
 
-
-
 class Arbiter(object):
     
     LISTENER = None

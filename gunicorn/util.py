@@ -4,6 +4,8 @@
 # See the NOTICE for more information.
 
 import errno
+import fcntl
+import os
 import select
 import socket
 import time
@@ -20,6 +22,11 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+             
+
+def close_on_exec(fd):
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
 def close(sock):
     """ socket.close() doesn't *really* close if 
@@ -36,7 +43,7 @@ def close(sock):
 
     del sock
   
-def read_partial(sock, length):
+def read_partial(sock, length):    
     while True:
         try:
             ret = select.select([sock.fileno()], [], [], 0)
