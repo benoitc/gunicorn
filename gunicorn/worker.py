@@ -37,11 +37,9 @@ class Worker(object):
         self.socket = socket
         util.close_on_exec(self.socket)
         self.socket.setblocking(0)
-        
-        
+                
         util.close_on_exec(fd)
 
-        
         self.address = self.socket.getsockname()
         
         self.app = app
@@ -101,7 +99,7 @@ class Worker(object):
                         allocate more fs or ENOMEM when there is not enough 
                         memory to allocate. BSD return ENOBUFS.
                         """
-                        log.info("Could not accept new connection (%s)" % str(e))
+                        log.warning("Could not accept new connection (%s)" % str(e))
                     raise
                 if nr == 0: break
                 
@@ -116,8 +114,6 @@ class Worker(object):
                 except select.error, e:
                     if e[0] == errno.EINTR:
                         break
-                    elif e[0] == errno.EBADF:
-                        return
                     raise
                     
             spinner = (spinner+1) % 2
