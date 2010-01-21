@@ -29,9 +29,6 @@ def close_on_exec(fd):
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
 def close(sock):
-    """ socket.close() doesn't *really* close if 
-    there's another reference to it in the TCP/IP stack. 
-    (trick from twisted)"""
     try:
         sock.close()
     except socket.error:
