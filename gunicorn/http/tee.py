@@ -43,7 +43,6 @@ class TeeInput(object):
         if self._len: return self._len
         if self._is_socket:
             pos = self.tmp.tell()
-            print pos
             while True:
                 if not self._tee(CHUNK_SIZE):
                     break
@@ -65,7 +64,6 @@ class TeeInput(object):
                 chunk = self._tee(CHUNK_SIZE)
                 if not chunk: break
                 r += chunk
-            print "apres %s" % str(len(r))
             return r
         else:
             diff = self._tmp_size() - self.tmp.tell()
