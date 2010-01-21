@@ -18,7 +18,6 @@ CHUNK_SIZE = (16 * 1024)
 MAX_BODY = 1024 * (80 + 32)
 
 weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -59,8 +58,6 @@ def write(sock, data):
             return len(data)
         except socket.error, e:
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
-                break
-            elif e[0] in (errno.EPIPE,):
                 break
             raise
         i += 1

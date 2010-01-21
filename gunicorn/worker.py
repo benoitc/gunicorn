@@ -80,8 +80,6 @@ class Worker(object):
                 try:
                     client, addr = self.socket.accept() 
                     
-                    self.client = client
-                    
                     # handle connection
                     self.handle(client, addr)
 
@@ -91,17 +89,9 @@ class Worker(object):
                     self._fchmod(spinner)
                     nr += 1
                 except socket.error, e:
-                    if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, 
-                            errno.ECONNABORTED):
+                    if e[0] in (errno.EAGAIN, errno.ECONNABORTED):
                         break # Uh oh!
-                    elif e[0] in (errno.EMFILE, errno.ENOBUFS, errno.ENFILE, 
-                        errno.ENOMEM):
-                        """
-                        linux gave EMFILE when a process is not allowed to
-                        allocate more fs or ENOMEM when there is not enough 
-                        memory to allocate. BSD return ENOBUFS.
-                        """
-                        log.warning("Could not accept new connection (%s)" % str(e))
+                    
                     raise
                 if nr == 0: break
                 
@@ -130,5 +120,6 @@ class Worker(object):
             http.HttpResponse(client, response, req).send()
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))    
+        finally:    
             util.close(client)
             
