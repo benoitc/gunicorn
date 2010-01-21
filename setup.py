@@ -31,7 +31,7 @@ setup(
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
         'Programming Language :: Python',
-        'Topic :: Internet,'
+        'Topic :: Internet',
         'Topic :: Utilities',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
