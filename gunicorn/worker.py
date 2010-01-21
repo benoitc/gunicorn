@@ -124,7 +124,7 @@ class Worker(object):
             self._fchmod(spinner)
 
     def handle(self, client, addr):
-        #util.close_on_exec(client)
+        util.close_on_exec(client)
         try:
             req = http.HttpRequest(client, addr, self.address)
             response = self.app(req.read(), req.start_response)
