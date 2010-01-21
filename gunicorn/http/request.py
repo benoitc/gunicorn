@@ -58,7 +58,6 @@ class HttpRequest(object):
     def read(self):
         environ = {}
         headers = []
-        remain = CHUNK_SIZE
         buf = ""
         buf = read_partial(self.socket, CHUNK_SIZE)
         i = self.parser.filter_headers(headers, buf)

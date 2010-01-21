@@ -138,7 +138,6 @@ class HttpParser(object):
         return False
         
     def read_chunk(self, data):
-        dlen = len(data)
         if not self.start_offset:
             i = data.find("\r\n")
             if i != -1:

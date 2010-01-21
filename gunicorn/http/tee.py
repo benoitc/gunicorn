@@ -93,7 +93,8 @@ class TeeInput(object):
                     return self.temp.readline(size)
         return line
        
-    def readlines(self, sizehints=0):
+    def readlines(self, sizehint=0):
+        total = 0
         lines = []
         line = self.readline()
         while line:

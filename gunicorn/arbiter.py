@@ -142,7 +142,7 @@ class Arbiter(object):
             except KeyboardInterrupt:
                 self.stop(False)
                 sys.exit(-1)
-            except Exception, e:
+            except Exception:
                 self.log.exception("Unhandled exception in main loop.")
                 self.stop(False)
                 sys.exit(-1)
