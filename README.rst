@@ -3,7 +3,7 @@ About
 
 gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and nothing else. 
 
-This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python.
+This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `freenode`_.
 
 Installation
 ------------
@@ -73,7 +73,7 @@ If you get the following error :
 
 	AssertionError: The EvalException middleware is not usable in a multi-process environment
 	
-you have to set the debug option n your paste configuration file to False.
+you have to set the debug option in your paste configuration file to False.
 
     
 Kernel Parameters
@@ -115,3 +115,4 @@ This setting is generally only required on machines that are being used to test 
 Check `this article`_ for more information on ephemeral ports.
 
 .. _this article: http://www.ncftp.com/ncftpd/doc/misc/ephemeral_ports.html
+.. _freenode: http://freenode.net

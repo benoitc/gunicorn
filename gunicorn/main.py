@@ -55,8 +55,6 @@ def main(usage, get_app):
     arbiter = Arbiter((opts.host, opts.port), opts.workers, app)
     arbiter.run()
     
-    
-    
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
     if not port:
