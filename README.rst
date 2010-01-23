@@ -8,11 +8,11 @@ This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python.
 Installation
 ------------
 
-Install from sources :
+Install from sources::
 
     $ python setup.py install
 
-Or from Pypi :
+Or from Pypi::
 
 	$ easy_install -U gunicorn
 
@@ -42,12 +42,13 @@ For django projects use the `gunicorn_django` command::
     $ cd yourdjangoproject
     $ gunicorn_django --workers=2
 
-For paste-compatible projects (like Pylons) use the `gunicorn_paste` command:
+For paste-compatible projects (like Pylons) use the `gunicorn_paste` command::
 
 	$ cd your pasteproject
 	$ gunicorn_paste --workers=2 development.ini
+
 	
-**WARNING**
+**WARNING:**
 
 If you get the following error :
 
