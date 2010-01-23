@@ -56,7 +56,7 @@ For paste-compatible projects (like Pylons) use the `gunicorn_paste` command::
 or usual paster command::
 
 	$ cd your pasteproject
-	$ paster server development workers=2
+	$ paster server development.ini workers=2
 	
 In last case don't forget to add a server section for gunicorn. Here is an example that use
 gunicorn as main server::
