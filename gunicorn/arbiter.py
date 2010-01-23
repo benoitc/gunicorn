@@ -32,13 +32,14 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
     
-    def __init__(self, address, num_workers, modname):
+    def __init__(self, address, num_workers, modname, debug=False):
         self.address = address
         self.num_workers = num_workers
         self.modname = modname
         self.timeout = 30
         self.reexec_pid = 0
         self.pid = os.getpid()
+        self.debug = debug
         self.log = logging.getLogger(__name__)
         self.init_signals()
         self.listen(self.address)
@@ -270,7 +271,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout)
+                        self.timeout, self.debug)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker

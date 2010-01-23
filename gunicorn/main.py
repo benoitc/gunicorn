@@ -28,7 +28,9 @@ def options():
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
-            help='Log to a file. - is stdout. [%default]')
+            help='Log to a file. - is stdout. [%default]'),
+        op.make_option('-d', '--debug', dest='debug', action="store_true",
+            default=False, help='Debug mode. only 1 worker.')
     ]
 
 def configure_logging(opts):
@@ -52,7 +54,12 @@ def main(usage, get_app):
     configure_logging(opts)
 
     app = get_app(parser, opts, args)
-    arbiter = Arbiter((opts.host, opts.port), opts.workers, app)
+    workers = opts.workers
+    if opts.debug:
+        workers = 1
+    
+    arbiter = Arbiter((opts.host, opts.port), workers, app, 
+                    opts.debug)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
@@ -69,5 +76,11 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     else:
         workers = int(global_conf.get('workers', 1))
     
-    arbiter = Arbiter(bind_addr, workers, app)
+    debug = global_conf.get('debug') == "true"
+    if debug:
+        # we force to one worker in debug mode.
+        workers = 1
+    
+    arbiter = Arbiter(bind_addr, workers, app, 
+                    debug)
     arbiter.run()

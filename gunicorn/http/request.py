@@ -43,7 +43,9 @@ class HttpRequest(object):
     }
 
 
-    def __init__(self, socket, client_address, server_address):
+    def __init__(self, socket, client_address, server_address, 
+            debug=False):
+        self.debug = debug
         self.socket = socket
         self.client_address = client_address
         self.server_address = server_address
@@ -82,13 +84,24 @@ class HttpRequest(object):
         else:
             wsgi_input = TeeInput(self.socket, self.parser, buf[i:])
                 
+                
+        if self.debug:
+            # according to the doc 
+            # This value should evaluate true if an equivalent application object
+            # may be simultaneously invoked by another process, and should evaluate
+            # false otherwise. In debug mode we fall to one worker
+            # so we comply to pylons and other paster app.
+            wsgi_multiprocess = False
+        else:
+            wsgi_multiprocess = True
+            
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
             "wsgi.errors": sys.stderr,
             "wsgi.version": (1, 0),
             "wsgi.multithread": False,
-            "wsgi.multiprocess": True,
+            "wsgi.multiprocess": wsgi_multiprocess,
             "wsgi.run_once": False,
             "SCRIPT_NAME": "",
             "SERVER_SOFTWARE": self.SERVER_VERSION,

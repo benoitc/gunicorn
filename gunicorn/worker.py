@@ -25,9 +25,11 @@ class Worker(object):
         "HUP QUIT INT TERM TTIN TTOU USR1".split()
     )
 
-    def __init__(self, workerid, ppid, socket, app, timeout):
+    def __init__(self, workerid, ppid, socket, app, timeout,
+            debug=False):
         self.id = workerid
         self.ppid = ppid
+        self.debug = debug
         self.timeout = timeout / 2.0
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
@@ -115,7 +117,7 @@ class Worker(object):
     def handle(self, client, addr):
         util.close_on_exec(client)
         try:
-            req = http.HttpRequest(client, addr, self.address)
+            req = http.HttpRequest(client, addr, self.address, self.debug)
             try:
                 response = self.app(req.read(), req.start_response)
             except Exception, e:
