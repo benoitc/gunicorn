@@ -1,0 +1,19 @@
+pylonstest
+++++++++++
+
+This is the main index page of your documentation. It should be written in
+`reStructuredText format <http://docutils.sourceforge.net/rst.html>`_.
+
+You can generate your documentation in HTML format by running this command::
+
+    setup.py pudge
+
+For this to work you will need to download and install `buildutils`_,
+`pudge`_, and `pygments`_.  The ``pudge`` command is disabled by
+default; to ativate it in your project, run::
+
+    setup.py addcommand -p buildutils.pudge_command
+
+.. _buildutils: http://pypi.python.org/pypi/buildutils
+.. _pudge: http://pudge.lesscode.org/
+.. _pygments: http://pygments.org/

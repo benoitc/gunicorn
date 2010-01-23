@@ -112,7 +112,13 @@ class HttpRequest(object):
 
         return environ
         
-    def start_response(self, status, response_headers):
+    def start_response(self, status, response_headers, exc_info=None):
+        if exc_info:
+            exc_info = None
+        elif self.start_response_called:
+            raise AssertionError("Response headers already set!")
+            
+        
         self.response_status = status
         for name, value in response_headers:
             name = normalize_name(name)

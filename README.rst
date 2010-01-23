@@ -8,9 +8,13 @@ This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python.
 Installation
 ------------
 
-::
+Install from sources :
 
     $ python setup.py install
+
+Or from Pypi :
+
+	$ easy_install -U gunicorn
 
 Usage
 -----
@@ -37,6 +41,20 @@ For django projects use the `gunicorn_django` command::
 
     $ cd yourdjangoproject
     $ gunicorn_django --workers=2
+
+For paste-compatible projects (like Pylons) use the `gunicorn_paste` command:
+
+	$ cd your pasteproject
+	$ gunicorn_paste --workers=2 development.ini
+	
+**WARNING**
+
+If you get the following error :
+
+	AssertionError: The EvalException middleware is not usable in a multi-process environment
+	
+you have to set the debug option n your paste configuration file to False.
+
     
 Kernel Parameters
 -----------------

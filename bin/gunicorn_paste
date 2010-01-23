@@ -1,0 +1,61 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -
+#
+# 2009 (c) Benoit Chesneau <benoitc@e-engura.com> 
+# 2009 (c) Paul J. Davis <paul.joseph.davis@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+
+import os
+import pkg_resources
+import re
+import sys
+from paste.deploy import loadapp
+from gunicorn.main import main
+
+__usage__ = "%prog [OPTIONS] APP_MODULE"
+
+_scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
+
+
+def get_app(parser, opts, args):
+    if len(args) != 1:
+        parser.error("No applicantion name specified.")
+        
+    config_file = os.path.abspath(os.path.normpath(
+                        os.path.join(os.getcwd(), args[0])))
+                        
+    if not os.path.exists(config_file):
+        parser.error("Config file not found.")
+    
+    config_url = 'config:%s' % config_file
+    relative_to = os.path.dirname(config_file)
+    
+    # load module in sys path
+    sys.path.insert(0, relative_to)
+
+    # add to eggs
+    pkg_resources.working_set.add_entry(relative_to)
+    app = loadapp(config_url, relative_to=relative_to)
+    return app
+    
+main(__usage__, get_app)

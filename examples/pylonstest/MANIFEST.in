@@ -1,0 +1,3 @@
+include pylonstest/config/deployment.ini_tmpl
+recursive-include pylonstest/public *
+recursive-include pylonstest/templates *

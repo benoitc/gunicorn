@@ -11,7 +11,6 @@ read or restart etc ... It's based on TeeInput from unicorn.
 
 """
 
-
 import os
 import StringIO
 import tempfile

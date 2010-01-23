@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'gunicorn',
-    version = '0.2',
+    version = '0.3',
 
     description = 'WSGI HTTP Server for UNIX',
     long_description = file(
@@ -38,7 +38,7 @@ setup(
     
     packages = find_packages(),
     include_package_data = True,
-    scripts = ['bin/gunicorn', 'bin/gunicorn_django'],
+    scripts = ['bin/gunicorn', 'bin/gunicorn_django', 'bin/gunicorn_paste'],
     
     test_suite = 'nose.collector',
 

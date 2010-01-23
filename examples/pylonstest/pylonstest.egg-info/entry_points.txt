@@ -1,0 +1,7 @@
+
+    [paste.app_factory]
+    main = pylonstest.config.middleware:make_app
+
+    [paste.app_install]
+    main = pylons.util:PylonsInstaller
+    
