@@ -18,7 +18,7 @@ class HttpResponse(object):
     def send(self):
         # send headers
         resp_head = []    
-        resp_head.append("HTTP/1.1 %s\r\n" % (self.status))
+        resp_head.append("HTTP/1.0 %s\r\n" % (self.status))
     
         resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
         resp_head.append("Date: %s\r\n" % http_date())

@@ -12,6 +12,7 @@ import signal
 import socket
 import sys
 import tempfile
+import traceback
 
 from gunicorn import http
 from gunicorn import util
@@ -115,7 +116,19 @@ class Worker(object):
         util.close_on_exec(client)
         try:
             req = http.HttpRequest(client, addr, self.address)
-            response = self.app(req.read(), req.start_response)
+            try:
+                response = self.app(req.read(), req.start_response)
+            except Exception, e:
+                exc = ''.join(traceback.format_exception(*sys.exc_info()))
+                msg = "<h1>Internal Server Error</h1><h2>wsgi error:</h2><pre>%s</pre>" % exc
+                util.writelines(client, 
+                ["HTTP/1.0 500 Internal Server Error\r\n",
+                "Connection: close\r\n",
+                "Content-type: text/html\r\n",
+                "Content-length: %s\r\n" % str(len(msg)),
+                "\r\n",
+                msg])
+                return 
             http.HttpResponse(client, response, req).send()
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))    

@@ -61,7 +61,10 @@ def write(sock, data):
             raise
         i += 1
 
-
+def writelines(sock, lines):
+    for line in list(lines):
+        write(sock, line)
+        
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
     
