@@ -114,7 +114,11 @@ class HttpRequest(object):
         
     def start_response(self, status, response_headers, exc_info=None):
         if exc_info:
-            exc_info = None
+            try:
+                if self.start_response_called:
+                    raise exc_info[0], exc_info[1], exc_info[2]
+            finally:
+                exc_info = None
         elif self.start_response_called:
             raise AssertionError("Response headers already set!")
             
