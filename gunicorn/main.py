@@ -57,7 +57,8 @@ def main(usage, get_app):
     
     
     
-def paste_server(app, global_conf=None, host="127.0.0.1", port=None, *args, **kw):
+def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
+            *args, **kwargs):
     if not port:
         if ':' in host:
             host, port = host.split(':', 1)
@@ -72,7 +73,3 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None, *args, **kw
     
     arbiter = Arbiter(bind_addr, workers, app)
     arbiter.run()
-        
-    
-    
-
