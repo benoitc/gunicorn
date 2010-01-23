@@ -40,7 +40,10 @@ setup(
     include_package_data = True,
     scripts = ['bin/gunicorn', 'bin/gunicorn_django', 'bin/gunicorn_paste'],
     
+    entry_points="""
+    [paste.server_runner]
+    main=gunicorn.main:paste_server
+    """,
     test_suite = 'nose.collector',
-
 )
 

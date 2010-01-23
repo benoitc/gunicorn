@@ -54,4 +54,25 @@ def main(usage, get_app):
     app = get_app(parser, opts, args)
     arbiter = Arbiter((opts.host, opts.port), opts.workers, app)
     arbiter.run()
+    
+    
+    
+def paste_server(app, global_conf=None, host="127.0.0.1", port=None, *args, **kw):
+    if not port:
+        if ':' in host:
+            host, port = host.split(':', 1)
+        else:
+            port = 8000
+    bind_addr = (host, int(port))
+    
+    if not global_conf:
+        workers=1
+    else:
+        workers = int(global_conf.get('workers', 1))
+    
+    arbiter = Arbiter(bind_addr, workers, app)
+    arbiter.run()
+        
+    
+    
 

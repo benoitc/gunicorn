@@ -37,16 +37,35 @@ Example with test app::
     $ gunicorn --workers=2 test:app
     
     
+Django projects
++++++++++++++++
+
 For django projects use the `gunicorn_django` command::
 
     $ cd yourdjangoproject
     $ gunicorn_django --workers=2
+
+Paste-compatible projects
++++++++++++++++++++++++++
 
 For paste-compatible projects (like Pylons) use the `gunicorn_paste` command::
 
 	$ cd your pasteproject
 	$ gunicorn_paste --workers=2 development.ini
 
+or usual paster command::
+
+	$ cd your pasteproject
+	$ paster server development workers=2
+	
+In last case don't forget to add a server section for gunicorn. Here is an example that use
+gunicorn as main server::
+
+	[server:main]
+	use = egg:gunicorn#main
+	host = 127.0.0.1
+	port = 5000
+ 
 	
 **WARNING:**
 
