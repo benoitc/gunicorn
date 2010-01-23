@@ -3,7 +3,7 @@ About
 
 gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and nothing else. 
 
-This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `freenode`_.
+This is a  port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `Freenode`_.
 
 Installation
 ------------
