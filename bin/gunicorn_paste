@@ -29,7 +29,7 @@ import os
 import pkg_resources
 import re
 import sys
-from paste.deploy import loadapp
+from paste.deploy import loadapp, loadwsgi
 from gunicorn.main import main
 
 __usage__ = "%prog [OPTIONS] APP_MODULE"
@@ -55,6 +55,13 @@ def get_app(parser, opts, args):
 
     # add to eggs
     pkg_resources.working_set.add_entry(relative_to)
+    ctx = loadwsgi.loadcontext(loadwsgi.SERVER, config_url,
+                            relative_to=relative_to)
+    debug = ctx.global_conf.get('debug') == "true"
+    if debug:
+        # we force to one worker in debug mode.
+        opts.workers = 1
+
     app = loadapp(config_url, relative_to=relative_to)
     return app
     
