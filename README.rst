@@ -65,16 +65,6 @@ gunicorn as main server::
 	use = egg:gunicorn#main
 	host = 127.0.0.1
 	port = 5000
- 
-	
-**WARNING:**
-
-If you get the following error :
-
-	AssertionError: The EvalException middleware is not usable in a multi-process environment
-	
-you have to set the debug option in your paste configuration file to False.
-
     
 Kernel Parameters
 -----------------
