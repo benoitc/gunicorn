@@ -80,7 +80,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if debug:
         # we force to one worker in debug mode.
         workers = 1
-    
+
     arbiter = Arbiter(bind_addr, workers, app, 
                     debug)
     arbiter.run()
