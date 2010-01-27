@@ -57,11 +57,18 @@ def get_app(parser, opts, args):
     pkg_resources.working_set.add_entry(relative_to)
     ctx = loadwsgi.loadcontext(loadwsgi.SERVER, config_url,
                             relative_to=relative_to)
+
+    if opts.workers:
+        workers = opts.workers
+    else:
+        workers = int(ctx.local_conf.get('workers', 1))
+        
     debug = ctx.global_conf.get('debug') == "true"
     if debug:
         # we force to one worker in debug mode.
-        opts.workers = 1
+        workers = 1
 
+    opts.workers=workers
     app = loadapp(config_url, relative_to=relative_to)
     return app
     

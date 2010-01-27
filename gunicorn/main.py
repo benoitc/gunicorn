@@ -23,7 +23,7 @@ def options():
             help='Host to listen on. [%default]'),
         op.make_option('--port', dest='port', default=8000, type='int',
             help='Port to listen on. [%default]'),
-        op.make_option('--workers', dest='workers', default=1, type='int',
+        op.make_option('--workers', dest='workers', type='int',
             help='Number of workers to spawn. [%default]'),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
@@ -54,7 +54,7 @@ def main(usage, get_app):
     configure_logging(opts)
 
     app = get_app(parser, opts, args)
-    workers = opts.workers
+    workers = opts.workers or 1
     if opts.debug:
         workers = 1
     
@@ -71,11 +71,10 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
             port = 8000
     bind_addr = (host, int(port))
     
-    if not global_conf:
-        workers=1
-    else:
-        workers = int(global_conf.get('workers', 1))
-    
+    workers = kwargs.get("workers", 1)
+    if global_conf:
+        workers = int(global_conf.get('workers', workers))
+        
     debug = global_conf.get('debug') == "true"
     if debug:
         # we force to one worker in debug mode.
