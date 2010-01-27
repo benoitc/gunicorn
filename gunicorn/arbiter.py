@@ -92,6 +92,8 @@ class Arbiter(object):
                 if i < 5:
                     self.log.error("Retrying in 1 second.")
                 time.sleep(1)
+        if self.LISTENER: 
+            self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
                 
     def init_socket_fromfd(self, fd, address):
         sock = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)

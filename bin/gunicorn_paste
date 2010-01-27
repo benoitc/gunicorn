@@ -63,12 +63,16 @@ def get_app(parser, opts, args):
     else:
         workers = int(ctx.local_conf.get('workers', 1))
         
+    opts.host = opts.host or ctx.local_conf.get('host', '127.0.0.1')
+    opts.port = opts.port or int(ctx.local_conf.get('port', 8000))
+        
     debug = ctx.global_conf.get('debug') == "true"
     if debug:
         # we force to one worker in debug mode.
         workers = 1
 
     opts.workers=workers
+    
     app = loadapp(config_url, relative_to=relative_to)
     return app
     

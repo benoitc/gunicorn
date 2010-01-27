@@ -19,9 +19,9 @@ LOG_LEVELS = {
 
 def options():
     return [
-        op.make_option('--host', dest='host', default='127.0.0.1',
+        op.make_option('--host', dest='host',
             help='Host to listen on. [%default]'),
-        op.make_option('--port', dest='port', default=8000, type='int',
+        op.make_option('--port', dest='port', type='int',
             help='Port to listen on. [%default]'),
         op.make_option('--workers', dest='workers', type='int',
             help='Number of workers to spawn. [%default]'),
@@ -57,8 +57,17 @@ def main(usage, get_app):
     workers = opts.workers or 1
     if opts.debug:
         workers = 1
+        
+    host = opts.host or '127.0.0.1'
+    port = opts.port
+    if port is None:
+        if ':' in host:
+            host, port = host.split(':', 1)
+            port = int(port)
+        else:
+            port = 8000
     
-    arbiter = Arbiter((opts.host, opts.port), workers, app, 
+    arbiter = Arbiter((host,port), workers, app, 
                     opts.debug)
     arbiter.run()
     
