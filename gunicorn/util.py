@@ -60,7 +60,17 @@ def write(sock, data):
                 break
             raise
         i += 1
-
+        
+def write_nonblock(sock, data):
+    timeout = sock.gettimeout()
+    if timeout != "0.0":
+        sock.setblockin(0)
+        ret = write(sock, data)
+        sock.setblocking(1)
+        return ret
+    else:
+        return write(sock, data)
+    
 def writelines(sock, lines):
     for line in list(lines):
         write(sock, line)

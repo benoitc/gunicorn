@@ -133,7 +133,14 @@ class Worker(object):
                 return 
             http.HttpResponse(client, response, req).send()
         except Exception, e:
-            self.log.exception("Error processing request. [%s]" % str(e))    
+            self.log.exception("Error processing request. [%s]" % str(e))
+            
+            # try to send a response even if something happend    
+            try:
+                write_nonblock(sock, 
+                    "HTTP/1.0 500 Internal Server Error\r\n\r\n")
+            except:
+                pass
         finally:    
             util.close(client)
             
