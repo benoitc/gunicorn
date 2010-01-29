@@ -17,6 +17,7 @@ import tempfile
 import time
 
 from gunicorn.worker import Worker
+from gunicorn import util
 
 class Arbiter(object):
     
@@ -34,9 +35,7 @@ class Arbiter(object):
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
     )
-    
-    
-    
+
     def __init__(self, address, num_workers, modname, 
             **kwargs):
         self.address = address
@@ -96,8 +95,11 @@ class Arbiter(object):
     def valid_pidfile(self, path):
         try:
             with open(path, "r") as f:
-                pid = int(f.read() or 0)
-                if pid <= 0: return
+                try:
+                    pid = int(f.read())
+                except:
+                    return None
+                if pid <= 0: return None
      
                 try:
                     os.kill(pid, 0)
@@ -116,14 +118,10 @@ class Arbiter(object):
         if self.PIPE:
             map(lambda p: p.close(), self.PIPE)
         self.PIPE = pair = os.pipe()
-        map(self.set_non_blocking, pair)
-        map(lambda p: fcntl.fcntl(p, fcntl.F_SETFD, fcntl.FD_CLOEXEC), pair)
+        map(util.set_non_blocking, pair)
+        map(util.close_on_exec, pair)
         map(lambda s: signal.signal(s, self.signal), self.SIGNALS)
         signal.signal(signal.SIGCHLD, self.handle_chld)
-    
-    def set_non_blocking(self, fd):
-        flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -146,6 +144,7 @@ class Arbiter(object):
                     self.log.error("should be a non GUNICORN environnement")
                 else:
                     raise
+                    
         
         for i in range(5):
             try:
@@ -292,7 +291,7 @@ class Arbiter(object):
         if not graceful:
             sig = signal.SIGTERM
         limit = time.time() + self.timeout
-        while len(self.WORKERS) and time.time() < limit:
+        while self.WORKERS or time.time() > limit:
             self.kill_workers(sig)
             time.sleep(0.1)
             self.reap_workers()
@@ -343,12 +342,12 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout, self.debug)
+                        self.timeout, self.PIPE, self.debug)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
                 continue
-            
+
             # Process Child
             worker_pid = os.getpid()
             try:
@@ -356,7 +355,6 @@ class Arbiter(object):
                 worker.run()
                 sys.exit(0)
             except SystemExit:
-                
                 raise
             except:
                 self.log.exception("Exception in worker process.")
@@ -364,22 +362,21 @@ class Arbiter(object):
             finally:
                 worker.tmp.close()
                 self.log.info("Worker %s exiting." % worker_pid)
+                os._exit(127)
 
     def kill_workers(self, sig):
         for pid in self.WORKERS.keys():
             self.kill_worker(pid, sig)
         
     def kill_worker(self, pid, sig):
-        worker = self.WORKERS.pop(pid)
+        
         try:
             os.kill(pid, sig)
-            kpid, stat = os.waitpid(pid, os.WNOHANG)
-            if kpid:
-                self.log.warning("Problem killing process: %s" % pid)
         except OSError, e:
             if e.errno == errno.ESRCH:
+                worker = self.WORKERS.pop(pid)
                 try:
                     worker.tmp.close()
                 except:
                     pass
-
+            raise

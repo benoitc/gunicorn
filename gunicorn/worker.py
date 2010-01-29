@@ -24,39 +24,52 @@ class Worker(object):
         lambda x: getattr(signal, "SIG%s" % x),
         "HUP QUIT INT TERM TTIN TTOU USR1".split()
     )
+    
+    PIPE = []
 
     def __init__(self, workerid, ppid, socket, app, timeout,
-            debug=False):
+            pipe, debug=False):
+        self.nr = 0
         self.id = workerid
         self.ppid = ppid
         self.debug = debug
+        self.socket = socket
         self.timeout = timeout / 2.0
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
         self.tmpname = tmpname
-        
-        # prevent inherientence
-        self.socket = socket
-        util.close_on_exec(self.socket)
-        self.socket.setblocking(0)
-                
-        util.close_on_exec(fd)
-
-        self.address = self.socket.getsockname()
-        
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
-    
         
+        
+        # init pipe
+        self.PIPE = pipe
+        map(util.set_non_blocking, pipe)
+        map(util.close_on_exec, pipe)
+        
+        # prevent inherientence
+        util.close_on_exec(self.socket)
+        self.socket.setblocking(0)
+        util.close_on_exec(fd)
+        
+        self.address = self.socket.getsockname()
+
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
         signal.signal(signal.SIGQUIT, self.handle_quit)
+        signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
-        signal.signal(signal.SIGUSR1, self.handle_quit)
-    
-    def handle_quit(self, sig, frame):
+        
+    def handle_usr1(self, *args):
+        self.nr = -65536; 
+        try:
+            map(lambda p: p.close(), self.PIPE)
+        except:
+            pass
+            
+    def handle_quit(self, *args):
         self.alive = False
 
     def handle_exit(self, sig, frame):
@@ -71,14 +84,16 @@ class Worker(object):
     def run(self):
         self.init_signals()
         spinner = 0 
+        self.nr = 0
         while self.alive:
             
-            nr = 0
+            self.nr = 0
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
             while self.alive:
+                self.nr = 0
                 try:
                     client, addr = self.socket.accept() 
                     
@@ -89,19 +104,21 @@ class Worker(object):
                     # to signal that this worker process is alive.
                     spinner = (spinner+1) % 2
                     self._fchmod(spinner)
-                    nr += 1
+                    self.nr += 1
                 except socket.error, e:
                     if e[0] in (errno.EAGAIN, errno.ECONNABORTED):
                         break # Uh oh!
-                    
                     raise
-                if nr == 0: break
+                if self.nr == 0: break
+                
+            if self.ppid != os.getppid():
+                break
                 
             while self.alive:
                 spinner = (spinner+1) % 2
                 self._fchmod(spinner)
                 try:
-                    ret = select.select([self.socket], [], [], 
+                    ret = select.select([self.socket], [], self.PIPE, 
                                     self.timeout)
                     if ret[0]:
                         break

@@ -5,9 +5,18 @@
 
 import errno
 import fcntl
+import os
+import resource
 import select
 import socket
 import time
+
+MAXFD = 1024
+if (hasattr(os, "devnull")):
+   REDIRECT_TO = os.devnull
+else:
+   REDIRECT_TO = "/dev/null"
+
 
 
 timeout_default = object()
@@ -20,9 +29,19 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+             
+def get_maxfd():
+    maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+    if (maxfd == resource.RLIM_INFINITY):
+        maxfd = MAXFD
+    return maxfd
 
 def close_on_exec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    
+def set_non_blocking(fd):
+    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
 def close(sock):
