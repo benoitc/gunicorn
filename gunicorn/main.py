@@ -57,14 +57,10 @@ def configure_logging(opts):
         
 def daemonize(logger):
     if not 'GUNICORN_FD' in os.environ:
-        pid = os.fork()
-        if pid != 0:
-            # Parent
-            logger.debug("arbiter daemonized; parent exiting")
-            os._exit(0)
-        os.close(0)
-        sys.stdin = sys.__stdin__ = open("/dev/null")
+        if os.fork(): os._exit(0)
         os.setsid()
+        if os.fork(): os._exit(0)
+        sys.stdin = sys.__stdin__ = open("/dev/null")
         
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options())
