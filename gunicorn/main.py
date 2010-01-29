@@ -7,6 +7,7 @@
 import logging
 import optparse as op
 import os
+import resource
 import sys
 
 from gunicorn.arbiter import Arbiter
@@ -18,6 +19,14 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG
 }
+
+UMASK = 0
+MAXFD = 1024
+if (hasattr(os, "devnull")):
+   REDIRECT_TO = os.devnull
+else:
+   REDIRECT_TO = "/dev/null"
+
 
 def options():
     return [
@@ -57,10 +66,32 @@ def configure_logging(opts):
         
 def daemonize(logger):
     if not 'GUNICORN_FD' in os.environ:
-        if os.fork(): os._exit(0)
-        os.setsid()
-        if os.fork(): os._exit(0)
-        sys.stdin = sys.__stdin__ = open("/dev/null")
+        if os.fork() == 0: 
+            os.setsid()
+            if os.fork() == 0:
+                os.umask(UMASK)
+            else:
+                os._exit(0)
+        else:
+            os._exit(0)
+
+        import resource		# Resource usage information.
+        
+        maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+        if (maxfd == resource.RLIM_INFINITY):
+            maxfd = 1024
+            
+        # Iterate through and close all file descriptors.
+        for fd in range(0, maxfd):
+            try:
+                os.close(fd)
+            except OSError:	# ERROR, fd wasn't open to begin with (ignored)
+                pass
+        
+        
+        os.open(REDIRECT_TO, os.O_RDWR)
+        os.dup2(0, 1)
+        os.dup2(0, 2)
         
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options())
