@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+from __future__ import with_statement
+
 import errno
 import fcntl
 import logging
@@ -11,11 +13,13 @@ import select
 import signal
 import socket
 import sys
+import tempfile
 import time
 
 from gunicorn.worker import Worker
 
 class Arbiter(object):
+    
     
     LISTENER = None
     WORKERS = {}    
@@ -32,19 +36,78 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
     
-    def __init__(self, address, num_workers, modname, debug=False):
+    _pidfile = None
+    
+    def __init__(self, address, num_workers, modname, 
+            **kwargs):
         self.address = address
         self.num_workers = num_workers
         self.modname = modname
         self.timeout = 30
         self.reexec_pid = 0
         self.pid = os.getpid()
-        self.debug = debug
+        self.debug = kwargs.get("debug", False)
         self.log = logging.getLogger(__name__)
         self.init_signals()
         self.listen(self.address)
+        self.pidfile = kwargs.get("pidfile")
         self.log.info("Booted Arbiter: %s" % os.getpid())
         
+    
+    def _del_pidfile(self):
+        self._pidfile = None
+        
+    def _get_pidfile(self):
+        return self._pidfile
+        
+    def _set_pidfile(self, path):
+        if not path:
+            return
+            
+        pid = self.valid_pidfile(path)
+        if pid:
+            if self.pidfile and path == self.pidfile and pid == os.getpid():
+                return path
+            raise RuntimeError("Already running on PID %s " \
+                        "(or pid file '%s' is stale)" % (os.getpid(), path))
+        if self.pidfile:    
+            self.unlink_pidfile(self.pidfile)
+
+        # write pidfile
+        fd, fname = tempfile.mkstemp()
+        os.write(fd, "%s\n" % self.pid)
+        os.rename(fname, path)
+        os.close(fd)
+        self._pidfile = path
+    pidfile = property(_get_pidfile, _set_pidfile, _del_pidfile)
+    
+         
+    def unlink_pidfile(self, path):
+        try:
+            with open(path, "r") as f:
+                if int(f.read() or 0) == self.pid:
+                    os.unlink(f)
+        except:
+            pass
+        
+    def valid_pidfile(self, path):
+        try:
+            with open(path, "r") as f:
+                pid = int(f.read() or 0)
+                if pid <= 0: return
+     
+                try:
+                    os.kill(pid, 0)
+                    return pid
+                except OSError, e:
+                    if e[0] == errno.ESRCH:
+                        return
+                    raise
+        except IOError, e:
+            if e[0] == errno.ENOENT:
+                return
+            raise
+             
                     
     def init_signals(self):
         if self.PIPE:
@@ -150,8 +213,10 @@ class Arbiter(object):
                 self.stop(False)
                 sys.exit(-1)
                 
-        self.log.info("Master is shutting down.")
         self.stop()
+        self.log.info("Master is shutting down.")
+        if self.pidfile:
+            self.unlink_pidfile(self.pidfile)
         
     def handle_chld(self, sig, frame):
         self.wakeup()

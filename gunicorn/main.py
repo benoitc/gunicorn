@@ -25,6 +25,8 @@ def options():
             help='Port to listen on. [%default]'),
         op.make_option('--workers', dest='workers', type='int',
             help='Number of workers to spawn. [%default]'),
+        op.make_option('-p','--pid', dest='pidfile',
+            help='set the background PID FILE'),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
@@ -66,9 +68,14 @@ def main(usage, get_app):
             port = int(port)
         else:
             port = 8000
+            
+    kwargs = dict(
+        debug=opts.debug,
+        pidfile=opts.pidfile
+    )
     
     arbiter = Arbiter((host,port), workers, app, 
-                    opts.debug)
+                    **kwargs)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
@@ -88,7 +95,15 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if debug:
         # we force to one worker in debug mode.
         workers = 1
+        
+    pid = kwargs.get("pid")
+    if global_conf:
+        pid = global_conf.get('pid', pid)
+        
+    kwargs = dict(
+        debug=debug,
+        pidfile=pid
+    )
 
-    arbiter = Arbiter(bind_addr, workers, app, 
-                    debug)
+    arbiter = Arbiter(bind_addr, workers, app, **kwargs)
     arbiter.run()
