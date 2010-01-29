@@ -74,8 +74,6 @@ def daemonize(logger):
                 os._exit(0)
         else:
             os._exit(0)
-
-        import resource		# Resource usage information.
         
         maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
         if (maxfd == resource.RLIM_INFINITY):
