@@ -56,7 +56,6 @@ def configure_logging(opts):
     for h in handlers:
         h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
         logger.addHandler(h)
-    return logger
         
 def daemonize(logger):
     if not 'GUNICORN_FD' in os.environ:
@@ -85,7 +84,7 @@ def daemonize(logger):
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options())
     opts, args = parser.parse_args()
-    logger = configure_logging(opts)
+    configure_logging(opts)
 
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
@@ -110,12 +109,14 @@ def main(usage, get_app):
     arbiter = Arbiter((host,port), workers, app, 
                     **kwargs)
     if opts.daemon:
-        daemonize(logger)
+        daemonize()
+    else:
+        os.setpgrp()
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
-    logger = configure_logging(opts)
+    configure_logging(opts)
     if not port:
         if ':' in host:
             host, port = host.split(':', 1)
@@ -147,5 +148,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
 
     arbiter = Arbiter(bind_addr, workers, app, **kwargs)
     if daemon == "true":
-           daemonize(logger)
+        daemonize()
+    else:
+        os.setpgrp()
     arbiter.run()

@@ -95,15 +95,13 @@ class Arbiter(object):
     def valid_pidfile(self, path):
         try:
             with open(path, "r") as f:
-                try:
-                    pid = int(f.read())
-                except:
-                    return None
-                if pid <= 0: return None
+                wpid = int(f.read() or 0)
+
+                if wpid <= 0: return None
      
                 try:
-                    os.kill(pid, 0)
-                    return pid
+                    os.kill(wpid, 0)
+                    return wpid
                 except OSError, e:
                     if e[0] == errno.ESRCH:
                         return
@@ -144,8 +142,7 @@ class Arbiter(object):
                     self.log.error("should be a non GUNICORN environnement")
                 else:
                     raise
-                    
-        
+
         for i in range(5):
             try:
                 sock = self.init_socket(addr)
@@ -224,6 +221,7 @@ class Arbiter(object):
         
     def handle_chld(self, sig, frame):
         self.wakeup()
+        self.reap_workers()
         
     def handle_hup(self):
         self.log.info("Master hang up.")
@@ -297,6 +295,7 @@ class Arbiter(object):
             self.reap_workers()
         self.kill_workers(signal.SIGKILL)
         
+        
     def reexec(self):
         self.reexec_pid = os.fork()
         if self.reexec_pid == 0:
@@ -360,16 +359,14 @@ class Arbiter(object):
                 self.log.exception("Exception in worker process.")
                 sys.exit(-1)
             finally:
-                worker.tmp.close()
                 self.log.info("Worker %s exiting." % worker_pid)
-                os._exit(127)
 
     def kill_workers(self, sig):
         for pid in self.WORKERS.keys():
             self.kill_worker(pid, sig)
         
     def kill_worker(self, pid, sig):
-        
+        self.log.info("ici")
         try:
             os.kill(pid, sig)
         except OSError, e:

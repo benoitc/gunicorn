@@ -22,7 +22,7 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU USR1".split()
+        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
     )
     
     PIPE = []
@@ -50,7 +50,6 @@ class Worker(object):
         
         # prevent inherientence
         util.close_on_exec(self.socket)
-        self.socket.setblocking(0)
         util.close_on_exec(fd)
         
         self.address = self.socket.getsockname()
@@ -62,18 +61,18 @@ class Worker(object):
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         
-    def handle_usr1(self, *args):
+    def handle_usr1(self, sig, frame):
         self.nr = -65536; 
         try:
             map(lambda p: p.close(), self.PIPE)
         except:
             pass
             
-    def handle_quit(self, *args):
+    def handle_quit(self, sig, frame):
         self.alive = False
 
     def handle_exit(self, sig, frame):
-        os._exit(0)
+        sys.exit(0)
         
     def _fchmod(self, mode):
         if getattr(os, 'fchmod', None):
@@ -112,7 +111,7 @@ class Worker(object):
                 if self.nr == 0: break
                 
             if self.ppid != os.getppid():
-                break
+                return
                 
             while self.alive:
                 spinner = (spinner+1) % 2
@@ -120,16 +119,18 @@ class Worker(object):
                 try:
                     ret = select.select([self.socket], [], self.PIPE, 
                                     self.timeout)
-                    if ret[0]:
-                        break
+                    if ret[0]: break
                 except select.error, e:
                     if e[0] == errno.EINTR:
                         break
+                    if e[0] == errno.EBADF:
+                        if nr >= 0:
+                            return
                     raise
                     
             spinner = (spinner+1) % 2
-            self._fchmod(spinner)
-            
+            self._fchmod(spinner) 
+        sys.exit(0)   
 
     def handle(self, client, addr):
         util.close_on_exec(client)
