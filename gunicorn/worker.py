@@ -60,7 +60,7 @@ class Worker(object):
         self.alive = False
 
     def handle_exit(self, sig, frame):
-        sys.exit(0)
+        os._exit(0)
         
     def _fchmod(self, mode):
         if getattr(os, 'fchmod', None):

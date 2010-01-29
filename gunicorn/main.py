@@ -6,6 +6,8 @@
 
 import logging
 import optparse as op
+import os
+import sys
 
 from gunicorn.arbiter import Arbiter
 
@@ -27,6 +29,8 @@ def options():
             help='Number of workers to spawn. [%default]'),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
+        op.make_option('-D', '--daemon', dest='daemon',
+            help='Run daemonized in the background.'),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
@@ -49,11 +53,23 @@ def configure_logging(opts):
     for h in handlers:
         h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
         logger.addHandler(h)
-
+    return logger
+        
+def daemonize(logger):
+    if not 'GUNICORN_FD' in os.environ:
+        pid = os.fork()
+        if pid != 0:
+            # Parent
+            logger.debug("arbiter daemonized; parent exiting")
+            os._exit(0)
+        os.close(0)
+        sys.stdin = sys.__stdin__ = open("/dev/null")
+        os.setsid()
+        
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options())
     opts, args = parser.parse_args()
-    configure_logging(opts)
+    logger = configure_logging(opts)
 
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
@@ -74,12 +90,16 @@ def main(usage, get_app):
         pidfile=opts.pidfile
     )
     
+
     arbiter = Arbiter((host,port), workers, app, 
                     **kwargs)
+    if opts.daemon:
+        daemonize(logger)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
+    logger = configure_logging(opts)
     if not port:
         if ':' in host:
             host, port = host.split(':', 1)
@@ -100,10 +120,16 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if global_conf:
         pid = global_conf.get('pid', pid)
         
+    daemon = kwargs.get("daemon")
+    if global_conf:
+        daemon = global_conf.get('daemon', daemonize)
+   
     kwargs = dict(
         debug=debug,
         pidfile=pid
     )
 
     arbiter = Arbiter(bind_addr, workers, app, **kwargs)
+    if daemon == "true":
+           daemonize(logger)
     arbiter.run()

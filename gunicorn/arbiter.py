@@ -20,7 +20,6 @@ from gunicorn.worker import Worker
 
 class Arbiter(object):
     
-    
     LISTENER = None
     WORKERS = {}    
     PIPE = []
@@ -36,7 +35,7 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
     
-    _pidfile = None
+    
     
     def __init__(self, address, num_workers, modname, 
             **kwargs):
@@ -45,15 +44,19 @@ class Arbiter(object):
         self.modname = modname
         self.timeout = 30
         self.reexec_pid = 0
-        self.pid = os.getpid()
         self.debug = kwargs.get("debug", False)
         self.log = logging.getLogger(__name__)
+        self.opts = kwargs
+        self._pidfile = None
+        
+        
+    def start(self):
+        self.pid = os.getpid()
         self.init_signals()
         self.listen(self.address)
-        self.pidfile = kwargs.get("pidfile")
+        self.pidfile = self.opts.get("pidfile")
         self.log.info("Booted Arbiter: %s" % os.getpid())
         
-    
     def _del_pidfile(self):
         self._pidfile = None
         
@@ -180,6 +183,7 @@ class Arbiter(object):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
 
     def run(self):
+        self.start()
         self.manage_workers()
         while True:
             try:
@@ -217,6 +221,7 @@ class Arbiter(object):
         self.log.info("Master is shutting down.")
         if self.pidfile:
             self.unlink_pidfile(self.pidfile)
+        sys.exit(0)
         
     def handle_chld(self, sig, frame):
         self.wakeup()
