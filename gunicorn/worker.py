@@ -125,12 +125,11 @@ class Worker(object):
                         break
                     if e[0] == errno.EBADF:
                         if nr >= 0:
-                            return
+                            break
                     raise
                     
             spinner = (spinner+1) % 2
             self._fchmod(spinner) 
-        sys.exit(0)   
 
     def handle(self, client, addr):
         util.close_on_exec(client)

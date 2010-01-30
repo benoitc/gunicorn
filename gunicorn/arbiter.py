@@ -206,13 +206,13 @@ class Arbiter(object):
             except StopIteration:
                 break
             except KeyboardInterrupt:
-                self.stop(False)
+                self.stop()
                 sys.exit(-1)
             except Exception:
-                self.log.exception("Unhandled exception in main loop.")
+                self.log.info("Unhandled exception in main loop.")
                 self.stop(False)
                 sys.exit(-1)
-                
+
         self.stop()
         self.log.info("Master is shutting down.")
         if self.pidfile:

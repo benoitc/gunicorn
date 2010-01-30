@@ -32,7 +32,7 @@ def options():
             help='Number of workers to spawn. [%default]'),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
-        op.make_option('-D', '--daemon', dest='daemon',
+        op.make_option('-D', '--daemon', dest='daemon', action="store_true",
             help='Run daemonized in the background.'),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
@@ -57,7 +57,7 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
         logger.addHandler(h)
         
-def daemonize(logger):
+def daemonize():
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
@@ -105,7 +105,6 @@ def main(usage, get_app):
         pidfile=opts.pidfile
     )
     
-
     arbiter = Arbiter((host,port), workers, app, 
                     **kwargs)
     if opts.daemon:
