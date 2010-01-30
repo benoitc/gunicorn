@@ -23,12 +23,18 @@ Usage
 
     $ gunicorn --help
     Usage: gunicorn [OPTIONS] APP_MODULE
-    
-    Options:
-      --host=HOST        Host to listen on. [127.0.0.1]
-      --port=PORT        Port to listen on. [8000]
-      --workers=WORKERS  Number of workers to spawn. [1]
-      -h, --help         show this help message and exit
+
+	Options:
+	  --host=HOST           Host to listen on. [none]
+	  --port=PORT           Port to listen on. [none]
+	  --workers=WORKERS     Number of workers to spawn. [none]
+	  -p PIDFILE, --pid=PIDFILE
+	                        set the background PID FILE
+	  -D, --daemon          Run daemonized in the background.
+	  --log-level=LOGLEVEL  Log level below which to silence messages. [info]
+	  --log-file=LOGFILE    Log to a file. - is stdout. [-]
+	  -d, --debug           Debug mode. only 1 worker.
+	  -h, --help            show this help message and exit
 
 
 Example with test app::
