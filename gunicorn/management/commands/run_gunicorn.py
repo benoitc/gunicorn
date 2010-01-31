@@ -10,6 +10,7 @@ from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
+from gunicorn.main import daemonize
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -19,6 +20,8 @@ class Command(BaseCommand):
             help='Specifies the number of worker processes to use.'),
         make_option('--pid', dest='pidfile', default='',
             help='set the background PID file'),
+        make_option( '--daemon', dest='daemon', action="store_true",
+            help='Run daemonized in the background.'),
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port]'
@@ -45,6 +48,7 @@ class Command(BaseCommand):
  
         admin_media_path = options.get('admin_media_path', '')
         workers = int(options.get('workers', '1'))
+        daemon = options.get('daemon')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
         pidfile = options.get('pidfile') or None
  
@@ -61,6 +65,8 @@ class Command(BaseCommand):
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
             arbiter = Arbiter((addr, int(port)), workers, handler,
                 pidfile=pidfile)
+            if daemon:
+                daemonize()
             arbiter.run()
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.
