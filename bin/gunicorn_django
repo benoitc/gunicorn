@@ -28,8 +28,9 @@
 import os
 import sys
 
-import django.core.handlers.wsgi
+from django.core.handlers.wsgi import WSGIHandler()
 from gunicorn.main import main
+
 
 __usage__ = "%prog [OPTIONS]"
 
@@ -37,8 +38,10 @@ PROJECT_PATH = os.getcwd()
 PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
 
 # set environ
-sys.path.insert(0,  os.path.join(PROJECT_PATH, ".."))
+sys.path.insert(0,  os.path.join(PROJECT_PATH, os.pardir))
+
 os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
+
 
 def get_app(parser, opts, args):
     # django wsgi app

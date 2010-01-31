@@ -366,7 +366,6 @@ class Arbiter(object):
             self.kill_worker(pid, sig)
         
     def kill_worker(self, pid, sig):
-        self.log.info("ici")
         try:
             os.kill(pid, sig)
         except OSError, e:

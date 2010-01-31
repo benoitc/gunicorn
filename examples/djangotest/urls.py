@@ -1,8 +1,6 @@
-from django.conf.urls.defaults import patterns, url, handler404, handler500
+
+from django.conf.urls.defaults import patterns,include
 
 urlpatterns = patterns('',
-    url(r'^$', 'djangotest.testing.views.home'),
+    ('^$', include("testing.urls")),
 )
-
-def __exported_functionality__():
-    return [handler404, handler500]
