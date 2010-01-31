@@ -51,6 +51,19 @@ For django projects use the `gunicorn_django` command::
     $ cd yourdjangoproject
     $ gunicorn_django --workers=2
 
+or use `run_gunicorn` command.
+
+add `gunicorn` to INSTALLED_APPS in the settings file::
+
+	INSTALLED_APPS = (
+		...
+		"gunicorn",
+	)
+	
+Then run::
+
+	python manage.py run_gunicorn
+
 Paste-compatible projects
 +++++++++++++++++++++++++
 
