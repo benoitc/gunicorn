@@ -110,8 +110,7 @@ class Arbiter(object):
             if e[0] == errno.ENOENT:
                 return
             raise
-             
-                    
+    
     def init_signals(self):
         if self.PIPE:
             map(lambda p: p.close(), self.PIPE)
@@ -127,7 +126,6 @@ class Arbiter(object):
             self.wakeup()
         else:
             self.log.warn("Ignoring rapid signaling: %s" % sig)
-        
 
     def listen(self, addr):
         if 'GUNICORN_FD' in os.environ:
@@ -294,8 +292,7 @@ class Arbiter(object):
             time.sleep(0.1)
             self.reap_workers()
         self.kill_workers(signal.SIGKILL)
-        
-        
+
     def reexec(self):
         self.reexec_pid = os.fork()
         if self.reexec_pid == 0:
@@ -307,7 +304,7 @@ class Arbiter(object):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
             if diff <= self.timeout:
                 continue
-            self.log.error("worker %s PID %s timeout killing." % (str(worker.id), pid))
+            self.log.error("%s (pid:%s) timed out." % (worker, pid))
             self.kill_worker(pid, signal.SIGKILL)
     
     def reap_workers(self):
@@ -341,7 +338,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout, self.PIPE, self.debug)
+                        self.timeout/2, self.PIPE, self.debug)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker

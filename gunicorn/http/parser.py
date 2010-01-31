@@ -7,10 +7,10 @@ import urlparse
 
 from gunicorn.util import normalize_name
 
-class HttpParserError(Exception):
-    """ error raised when parsing fail"""
+class ParserError(Exception):
+    pass
 
-class HttpParser(object):
+class Parser(object):
     
     def __init__(self):
         self.status = ""
@@ -71,7 +71,8 @@ class HttpParser(object):
         headers.extend(list(_headers.items()))
         self.headers = headers
         self._content_len = int(_headers.get('Content-Length',0))
-        (_, _, self.path, self.query_string, self.fragment) = urlparse.urlsplit(self.raw_path)
+        (_, _, self.path, self.query_string, self.fragment) = \
+                urlparse.urlsplit(self.raw_path)
         return pos
     
     def _first_line(self, line):
@@ -163,10 +164,9 @@ class HttpParser(object):
         return (i != -1)
         
     def filter_body(self, data):
-        """ filter body and return a tuple:
-        body_chunk, new_buffer. They could be None.
-        new_fubber is always None if it's empty.
-        
+        """\
+        Filter body and return a tuple: (body_chunk, new_buffer)
+        Both can be None, and new_buffer is always None if its empty.
         """
         dlen = len(data)
         chunk = ''

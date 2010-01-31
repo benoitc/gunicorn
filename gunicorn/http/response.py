@@ -5,7 +5,7 @@
 
 from gunicorn.util import http_date, write, close
 
-class HttpResponse(object):
+class Response(object):
     
     def __init__(self, sock, response, req):
         self.req = req

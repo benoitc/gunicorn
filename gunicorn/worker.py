@@ -27,22 +27,22 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, ppid, socket, app, timeout,
-            pipe, debug=False):
+    def __init__(self, workerid, ppid, socket, app,
+                    timeout, pipe, debug=False):
         self.nr = 0
         self.id = workerid
         self.ppid = ppid
         self.debug = debug
         self.socket = socket
-        self.timeout = timeout / 2.0
+        self.timeout = timeout
         fd, tmpname = tempfile.mkstemp()
         self.tmp = os.fdopen(fd, "r+b")
         self.tmpname = tmpname
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
-        
-        
+        self.spinner = 0
+
         # init pipe
         self.PIPE = pipe
         map(util.set_non_blocking, pipe)
@@ -53,6 +53,9 @@ class Worker(object):
         util.close_on_exec(fd)
         
         self.address = self.socket.getsockname()
+
+    def __str__(self):
+        return "<Worker %s>" % self.id
 
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
@@ -74,88 +77,77 @@ class Worker(object):
     def handle_exit(self, sig, frame):
         sys.exit(0)
         
-    def _fchmod(self, mode):
+    def notify(self):
+        """\
+        Notify our parent process that we're still alive.
+        """
+        self.spinner = (self.spinner+1) % 2
         if getattr(os, 'fchmod', None):
-            os.fchmod(self.tmp.fileno(), mode)
+            os.fchmod(self.tmp.fileno(), self.spinner)
         else:
-            os.chmod(self.tmpname, mode)
+            os.chmod(self.tmpname, self.spinner)
     
     def run(self):
         self.init_signals()
-        spinner = 0 
         self.nr = 0
+
+        # self.socket appears to lose its blocking status after
+        # we fork in the arbiter. Reset it here.
+        self.socket.setblocking(0)
+
         while self.alive:
-            
             self.nr = 0
+            self.notify()
+            try:
+                client, addr = self.socket.accept()
+                self.handle(client, addr)
+                self.nr += 1
+            except socket.error, e:
+                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
+                    raise
+
             # Accept until we hit EAGAIN. We're betting that when we're
             # processing clients that more clients are waiting. When
             # there's no more clients waiting we go back to the select()
             # loop and wait for some lovin.
-            while self.alive:
-                self.nr = 0
-                try:
-                    client, addr = self.socket.accept() 
-                    
-                    # handle connection
-                    self.handle(client, addr)
-
-                    # Update the fd mtime on each client completion
-                    # to signal that this worker process is alive.
-                    spinner = (spinner+1) % 2
-                    self._fchmod(spinner)
-                    self.nr += 1
-                except socket.error, e:
-                    if e[0] in (errno.EAGAIN, errno.ECONNABORTED):
-                        break # Uh oh!
-                    raise
-                if self.nr == 0: break
-                
+            if self.nr > 0:
+                continue
+            
+            # If our parent changed then we shut down.
             if self.ppid != os.getppid():
+                self.log.info("Parent process changed. Closing %s" % self)
                 return
-                
-            while self.alive:
-                spinner = (spinner+1) % 2
-                self._fchmod(spinner)
-                try:
-                    ret = select.select([self.socket], [], self.PIPE, 
-                                    self.timeout)
-                    if ret[0]: break
-                except select.error, e:
-                    if e[0] == errno.EINTR:
-                        break
-                    if e[0] == errno.EBADF:
-                        if nr >= 0:
-                            break
-                    raise
-                    
-            spinner = (spinner+1) % 2
-            self._fchmod(spinner) 
+            
+            try:
+                self.notify()
+                ret = select.select([self.socket], [], self.PIPE, self.timeout)
+                if ret[0]:
+                    break
+            except select.error, e:
+                if e[0] == errno.EINTR:
+                    break
+                if e[0] == errno.EBADF and self.nr < 0:
+                    break
+                raise
 
     def handle(self, client, addr):
         util.close_on_exec(client)
         try:
-            req = http.HttpRequest(client, addr, self.address, self.debug)
+            req = http.Request(client, addr, self.address, self.debug)
+
             try:
                 response = self.app(req.read(), req.start_response)
             except Exception, e:
-                exc = ''.join(traceback.format_exception(*sys.exc_info()))
-                msg = "<h1>Internal Server Error</h1><h2>wsgi error:</h2><pre>%s</pre>" % exc
-                util.writelines(client, 
-                ["HTTP/1.0 500 Internal Server Error\r\n",
-                "Connection: close\r\n",
-                "Content-type: text/html\r\n",
-                "Content-length: %s\r\n" % str(len(msg)),
-                "\r\n",
-                msg])
+                util.write_error(client, traceback.format_exc())
                 return 
-            http.HttpResponse(client, response, req).send()
+
+            http.Response(client, response, req).send()
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))
-            
-            # try to send a response even if something happend    
-            try:
-                write_nonblock(sock, 
-                    "HTTP/1.0 500 Internal Server Error\r\n\r\n")
+            try:            
+                # Last ditch attempt to notify the client of an error.
+                mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
+                write_nonblock(sock, mesg)
             except:
                 pass
         finally:    

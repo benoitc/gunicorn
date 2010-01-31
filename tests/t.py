@@ -9,8 +9,8 @@ import tempfile
 
 dirname = os.path.dirname(__file__)
 
-from gunicorn.http.parser import HttpParser
-from gunicorn.http.request import HttpRequest
+from gunicorn.http.parser import Parser
+from gunicorn.http.request import Request
 
 def data_source(fname):
     with open(fname) as handle:
@@ -27,7 +27,7 @@ class request(object):
     def __call__(self, func):
         def run():
             src = data_source(self.fname)
-            func(src, HttpParser())
+            func(src, Parser())
         run.func_name = func.func_name
         return run
         
@@ -65,15 +65,10 @@ class http_request(object):
     def __call__(self, func):
         def run():
             fsock = FakeSocket(data_source(self.fname))
-            req = HttpRequest(fsock, ('127.0.0.1', 6000), 
-                            ('127.0.0.1', 8000))
+            req = Request(fsock, ('127.0.0.1', 6000), ('127.0.0.1', 8000))
             func(req)
         run.func_name = func.func_name
         return run
-    
-        
-        
-        
     
 def eq(a, b):
     assert a == b, "%r != %r" % (a, b)

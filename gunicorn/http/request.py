@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-
 import re
 import StringIO
 import sys
@@ -11,22 +10,16 @@ from urllib import unquote
 import logging
 
 from gunicorn import __version__
-from gunicorn.http.parser import HttpParser
+from gunicorn.http.parser import Parser
 from gunicorn.http.tee import TeeInput
-from gunicorn.util import CHUNK_SIZE, read_partial, \
-normalize_name
-
+from gunicorn.util import CHUNK_SIZE, read_partial, normalize_name
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
-
-
-
 class RequestError(Exception):
-    """ raised when something wrong happend"""
+    pass
         
-
-class HttpRequest(object):
+class Request(object):
     
     SERVER_VERSION = "gunicorn/%s" % __version__
     
@@ -42,9 +35,7 @@ class HttpRequest(object):
         "SERVER_SOFTWARE": "gunicorn/%s" % __version__
     }
 
-
-    def __init__(self, socket, client_address, server_address, 
-            debug=False):
+    def __init__(self, socket, client_address, server_address, debug=False):
         self.debug = debug
         self.socket = socket
         self.client_address = client_address
@@ -52,11 +43,10 @@ class HttpRequest(object):
         self.response_status = None
         self.response_headers = {}
         self._version = 11
-        self.parser = HttpParser()
+        self.parser = Parser()
         self.start_response_called = False
         self.log = logging.getLogger(__name__)
-        
-        
+
     def read(self):
         environ = {}
         headers = []
@@ -71,12 +61,10 @@ class HttpRequest(object):
                 i = self.parser.filter_headers(headers, buf)
                 if i != -1: break
 
-
         self.log.debug("%s", self.parser.status)
-
-        self.log.debug("Got headers:\n%s" % headers)
+        self.log.debug("Headers:\n%s" % headers)
         
-        if self.parser.headers_dict.get('Except', '').lower() == "100-continue":
+        if self.parser.headers_dict.get('Expect', '').lower() == "100-continue":
             self.socket.send("100 Continue\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
@@ -86,11 +74,10 @@ class HttpRequest(object):
                 
                 
         if self.debug:
-            # according to the doc 
-            # This value should evaluate true if an equivalent application object
-            # may be simultaneously invoked by another process, and should evaluate
-            # false otherwise. In debug mode we fall to one worker
-            # so we comply to pylons and other paster app.
+            # This value should evaluate true if an equivalent application
+            # object may be simultaneously invoked by another process, and
+            # should evaluate false otherwise. In debug mode we fall to one
+            # worker so we comply to pylons and other paster app.
             wsgi_multiprocess = False
         else:
             wsgi_multiprocess = True
@@ -134,8 +121,7 @@ class HttpRequest(object):
                 exc_info = None
         elif self.start_response_called:
             raise AssertionError("Response headers already set!")
-            
-        
+
         self.response_status = status
         for name, value in response_headers:
             name = normalize_name(name)

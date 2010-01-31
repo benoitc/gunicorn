@@ -9,6 +9,7 @@ import os
 import resource
 import select
 import socket
+import textwrap
 import time
 
 MAXFD = 1024
@@ -16,8 +17,6 @@ if (hasattr(os, "devnull")):
    REDIRECT_TO = os.devnull
 else:
    REDIRECT_TO = "/dev/null"
-
-
 
 timeout_default = object()
 
@@ -62,7 +61,6 @@ def read_partial(sock, length):
     data = sock.recv(length)
     return data
 
-    
 def write(sock, data):
     buf = ""
     buf += data
@@ -82,18 +80,42 @@ def write(sock, data):
         
 def write_nonblock(sock, data):
     timeout = sock.gettimeout()
-    if timeout != "0.0":
-        sock.setblockin(0)
-        ret = write(sock, data)
-        sock.setblocking(1)
-        return ret
+    if sock.gettimeout() > 0.0:
+        try:
+            sock.setblocking(0)
+            return write(sock, data)
+        finally:
+            sock.setblocking(1)
     else:
         return write(sock, data)
     
 def writelines(sock, lines):
     for line in list(lines):
         write(sock, line)
-        
+
+def write_error(sock, mesg):
+    html = textwrap.dedent("""\
+    <html>
+        <head>
+            <title>Internal Server Error</title>
+        </head>
+        <body>
+            <h1>Internal Server Error</h1>
+            <h2>WSGI Error Report:</h2>
+            <pre>%s</pre>
+        </body>
+    </html>
+    """) % mesg
+    http = textwrap.dedent("""\
+    HTTP/1.0 500 Internal Server Error\r
+    Connection: close\r
+    Content-Type: text/html\r
+    Content-Length: %d\r
+    \r
+    %s
+    """) % (len(http), http)
+    write_nonblock(sock, http)
+
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
     
@@ -115,8 +137,7 @@ def import_app(module):
     if not callable(app):
         raise TypeError("Application object must be callable.")
     return app
-    
-    
+
 def http_date(timestamp=None):
     """Return the current date and time formatted for a message header."""
     if timestamp is None:
