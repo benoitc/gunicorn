@@ -122,12 +122,12 @@ class Worker(object):
                 self.notify()
                 ret = select.select([self.socket], [], self.PIPE, self.timeout)
                 if ret[0]:
-                    break
+                    continue
             except select.error, e:
                 if e[0] == errno.EINTR:
-                    break
+                    continue
                 if e[0] == errno.EBADF and self.nr < 0:
-                    break
+                    continue
                 raise
 
     def handle(self, client, addr):
