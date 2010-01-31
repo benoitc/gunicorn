@@ -27,8 +27,7 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, ppid, socket, app,
-                    timeout, pipe, debug=False):
+    def __init__(self, workerid, ppid, socket, app, timeout, debug=False):
         self.nr = 0
         self.id = workerid
         self.ppid = ppid
@@ -44,9 +43,9 @@ class Worker(object):
         self.spinner = 0
 
         # init pipe
-        self.PIPE = pipe
-        map(util.set_non_blocking, pipe)
-        map(util.close_on_exec, pipe)
+        self.PIPE = os.pipe()
+        map(util.set_non_blocking, self.PIPE)
+        map(util.close_on_exec, self.PIPE)
         
         # prevent inherientence
         util.close_on_exec(self.socket)
@@ -65,7 +64,8 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_exit)
         
     def handle_usr1(self, sig, frame):
-        self.nr = -65536; 
+        self.log.info("USR1")
+        self.nr = -65536;
         try:
             map(lambda p: p.close(), self.PIPE)
         except:
@@ -106,10 +106,9 @@ class Worker(object):
                 if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
-            # Accept until we hit EAGAIN. We're betting that when we're
-            # processing clients that more clients are waiting. When
-            # there's no more clients waiting we go back to the select()
-            # loop and wait for some lovin.
+            # Keep processing clients until no one is waiting.
+            # This prevents the need to select() for every
+            # client that we process.
             if self.nr > 0:
                 continue
             

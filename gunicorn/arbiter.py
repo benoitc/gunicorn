@@ -338,7 +338,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout/2, self.PIPE, self.debug)
+                        self.timeout/2, self.debug)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
