@@ -34,6 +34,10 @@ from gunicorn.main import main
 __usage__ = "%prog [OPTIONS]"
 
 PROJECT_PATH = os.getcwd()
+if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
+    print >>sys.stderr, "settings file not found."
+    sys.exit(1)
+
 PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
 
 sys.path.insert(0, PROJECT_PATH)
