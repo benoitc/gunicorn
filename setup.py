@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'gunicorn',
-    version = '0.2.1',
+    version = '0.3',
 
     description = 'WSGI HTTP Server for UNIX',
     long_description = file(
