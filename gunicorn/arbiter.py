@@ -76,7 +76,7 @@ class Arbiter(object):
             self.unlink_pidfile(self.pidfile)
 
         # write pidfile
-        fd, fname = tempfile.mkstemp()
+        fd, fname = tempfile.mkstemp(dir=os.path.dirname(path))
         os.write(fd, "%s\n" % self.pid)
         os.rename(fname, path)
         os.close(fd)
