@@ -36,7 +36,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     
-    packages = find_packages(),
+    packages = ['gunicorn'],
     include_package_data = True,
     scripts = ['bin/gunicorn', 'bin/gunicorn_django', 'bin/gunicorn_paste'],
     
