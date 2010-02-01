@@ -54,7 +54,7 @@ def configure_logging(opts):
     logger = logging.getLogger()
     logger.setLevel(loglevel)
     for h in handlers:
-        h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+        h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
         
 def daemonize():
