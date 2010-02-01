@@ -115,7 +115,6 @@ def main(usage, get_app):
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
-    configure_logging(opts)
     if not port:
         if ':' in host:
             host, port = host.split(':', 1)
