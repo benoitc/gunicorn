@@ -7,10 +7,14 @@
 import logging
 import optparse as op
 import os
+import pkg_resources
+import re
 import sys
 
 from gunicorn.arbiter import Arbiter
 from gunicorn import util
+
+__usage__ = "%prog [OPTIONS]"
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -150,3 +154,93 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     else:
         os.setpgrp()
     arbiter.run()
+    
+def run():
+    sys.path.insert(0, os.getcwd())
+    
+    def get_app(parser, opts, args):
+        if len(args) != 1:
+            parser.error("No application module specified.")
+
+        try:
+            return util.import_app(args[0])
+        except:
+            parser.error("Failed to import application module.")
+
+    main(__usage__, get_app)
+    
+def run_django():
+    from django.core.handlers.wsgi import WSGIHandler
+
+    PROJECT_PATH = os.getcwd()
+    if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
+        print >>sys.stderr, "settings file not found."
+        sys.exit(1)
+
+    PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
+
+    sys.path.insert(0, PROJECT_PATH)
+    sys.path.append(os.path.join(PROJECT_PATH, os.pardir))
+
+    # set environ
+    os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
+
+
+    def get_app(parser, opts, args):
+        # django wsgi app
+        return WSGIHandler()
+
+    main(__usage__, get_app)
+    
+def run_paster():
+    
+    import os
+    
+    from paste.deploy import loadapp, loadwsgi
+
+    __usage__ = "%prog [OPTIONS] APP_MODULE"
+
+    _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
+
+
+    def get_app(parser, opts, args):
+        if len(args) != 1:
+            parser.error("No applicantion name specified.")
+
+        config_file = os.path.abspath(os.path.normpath(
+                            os.path.join(os.getcwd(), args[0])))
+
+        if not os.path.exists(config_file):
+            parser.error("Config file not found.")
+
+        config_url = 'config:%s' % config_file
+        relative_to = os.path.dirname(config_file)
+
+        # load module in sys path
+        sys.path.insert(0, relative_to)
+
+        # add to eggs
+        pkg_resources.working_set.add_entry(relative_to)
+        ctx = loadwsgi.loadcontext(loadwsgi.SERVER, config_url,
+                                relative_to=relative_to)
+
+        if opts.workers:
+            workers = opts.workers
+        else:
+            workers = int(ctx.local_conf.get('workers', 1))
+
+        opts.host = opts.host or ctx.local_conf.get('host', '127.0.0.1')
+        opts.port = opts.port or int(ctx.local_conf.get('port', 8000))
+
+        debug = ctx.global_conf.get('debug') == "true"
+        if debug:
+            # we force to one worker in debug mode.
+            workers = 1
+
+        opts.workers=workers
+
+        app = loadapp(config_url, relative_to=relative_to)
+        return app
+
+    main(__usage__, get_app)
+    

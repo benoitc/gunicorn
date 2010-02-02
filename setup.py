@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'gunicorn',
-    version = '0.3',
+    version = '0.3.1',
 
     description = 'WSGI HTTP Server for UNIX',
     long_description = file(
@@ -38,9 +38,14 @@ setup(
     
     packages = ['gunicorn'],
     include_package_data = True,
-    scripts = ['bin/gunicorn', 'bin/gunicorn_django', 'bin/gunicorn_paste'],
-    
+        
     entry_points="""
+    
+    [console_scripts]
+    gunicorn=gunicorn.main:run
+    gunicorn_django=gunicorn.main:run_django
+    gunicorn_paster=gunicorn.main:run_paster
+    
     [paste.server_runner]
     main=gunicorn.main:paste_server
     """,
