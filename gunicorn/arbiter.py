@@ -204,11 +204,12 @@ class Arbiter(object):
             except StopIteration:
                 break
             except KeyboardInterrupt:
-                self.stop(False)
-                sys.exit(-1)
+                break
             except Exception:
                 self.log.info("Unhandled exception in main loop.")
                 self.stop(False)
+                if self.pidfile:
+                    self.unlink_pidfile(self.pidfile)
                 sys.exit(-1)
 
         self.stop()
@@ -219,7 +220,6 @@ class Arbiter(object):
         
     def handle_chld(self, sig, frame):
         self.wakeup()
-        self.reap_workers()
         
     def handle_hup(self):
         self.log.info("Master hang up.")

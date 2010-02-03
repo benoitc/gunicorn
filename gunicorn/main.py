@@ -170,7 +170,7 @@ def run():
     main(__usage__, get_app)
     
 def run_django():
-    from django.core.handlers.wsgi import WSGIHandler
+    import django.core.handlers.wsgi
 
     PROJECT_PATH = os.getcwd()
     if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
@@ -188,7 +188,7 @@ def run_django():
 
     def get_app(parser, opts, args):
         # django wsgi app
-        return WSGIHandler()
+        return django.core.handlers.wsgi.WSGIHandler()
 
     main(__usage__, get_app)
     

@@ -22,7 +22,7 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
+        "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
     )
     
     PIPE = []
@@ -35,22 +35,15 @@ class Worker(object):
         self.debug = debug
         self.socket = socket
         self.timeout = timeout
-        fd, tmpname = tempfile.mkstemp()
-        self.tmp = os.fdopen(fd, "r+b")
+        self.fd, tmpname = tempfile.mkstemp()
+        self.tmp = os.fdopen(self.fd, "r+b")
         self.tmpname = tmpname
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
         self.spinner = 0
 
-        # init pipe
-        self.PIPE = os.pipe()
-        map(util.set_non_blocking, self.PIPE)
-        map(util.close_on_exec, self.PIPE)
         
-        # prevent inherientence
-        util.close_on_exec(self.socket)
-        util.close_on_exec(fd)
         
         self.address = self.socket.getsockname()
 
@@ -87,9 +80,21 @@ class Worker(object):
             os.fchmod(self.tmp.fileno(), self.spinner)
         else:
             os.chmod(self.tmpname, self.spinner)
+            
+    def init_process(self):
+        # init pipe
+        self.PIPE = os.pipe()
+        map(util.set_non_blocking, self.PIPE)
+        map(util.close_on_exec, self.PIPE)
+        
+        # prevent inherientence
+        util.close_on_exec(self.socket)
+        util.close_on_exec(self.fd)
+        self.init_signals()
+        
     
     def run(self):
-        self.init_signals()
+        self.init_process()
         self.nr = 0
 
         # self.socket appears to lose its blocking status after
@@ -106,11 +111,12 @@ class Worker(object):
             except socket.error, e:
                 if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
+            if self.nr < 0: break
 
             # Keep processing clients until no one is waiting.
             # This prevents the need to select() for every
             # client that we process.
-            if self.nr > 0:
+            if self.nr != 0:
                 continue
             
             # If our parent changed then we shut down.
@@ -118,6 +124,7 @@ class Worker(object):
                 self.log.info("Parent process changed. Closing %s" % self)
                 return
             
+            self.notify()
             try:
                 self.notify()
                 ret = select.select([self.socket], [], self.PIPE, self.timeout)
@@ -126,8 +133,11 @@ class Worker(object):
             except select.error, e:
                 if e[0] == errno.EINTR:
                     continue
-                if e[0] == errno.EBADF and self.nr < 0:
-                    continue
+                if e[0] == errno.EBADF:
+                    if self.nr < 0:
+                        continue
+                    else:
+                        return
                 raise
 
     def handle(self, client, addr):
