@@ -68,7 +68,7 @@ Then run::
 Paste-compatible projects
 +++++++++++++++++++++++++
 
-For paste-compatible projects (like Pylons) use the `gunicorn_paste` command::
+For paste-compatible projects (like Pylons, TurboGears 2, ...) use the `gunicorn_paste` command::
 
 	$ cd your pasteproject
 	$ gunicorn_paste --workers=2 development.ini
