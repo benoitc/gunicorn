@@ -157,6 +157,9 @@ class Arbiter(object):
                 self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
             except TypeError:
                 self.log.info("Listen on %s" % self.LISTENER.getsockname())
+        else:
+            self.log.error("Can't connect to %s" % str(addr))
+            sys.exit(-1)
                 
     def init_socket_fromfd(self, fd, address):
         if isinstance(address, basestring):
@@ -171,7 +174,7 @@ class Arbiter(object):
         if isinstance(address, basestring):
             try:
                 os.remove(address)
-            except OSError:
+            except OSError, e:
                 pass
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         else:
@@ -300,7 +303,7 @@ class Arbiter(object):
             sys.exit()
     
     def stop(self, graceful=True):
-        self.LISTENER = None
+        self.LISTENER.close()
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
