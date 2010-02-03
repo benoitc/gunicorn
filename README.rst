@@ -22,7 +22,7 @@ Usage
 ::
 
     $ gunicorn --help
-    Usage: gunicorn [OPTIONS]
+    Usage: gunicorn [OPTIONS] [APP_MODULE]
 
 	Options:
 	  -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
