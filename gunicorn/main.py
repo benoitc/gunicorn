@@ -232,16 +232,15 @@ def run_paster():
         else:
             workers = int(ctx.local_conf.get('workers', 1))
      
-        host = ctx.local_conf.get('host')
-        port = ctx.local_conf.get('port')
-        if host:
-            if port:
-                bind = "%s:%s" % (host, port)
-            else:
-                bind = host
-            opts.bind = bind
-            
-        
+        if not opts.bind:
+            host = ctx.local_conf.get('host')
+            port = ctx.local_conf.get('port')
+            if host:
+                if port:
+                    bind = "%s:%s" % (host, port)
+                else:
+                    bind = host
+                opts.bind = bind
         
         debug = ctx.global_conf.get('debug') == "true"
         if debug:
