@@ -237,6 +237,7 @@ class Arbiter(object):
         
     def handle_chld(self, sig, frame):
         self.wakeup()
+        self.reap_workers()
         
     def handle_hup(self):
         self.log.info("Master hang up.")
