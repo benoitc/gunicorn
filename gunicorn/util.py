@@ -93,7 +93,7 @@ def writelines(sock, lines):
     for line in list(lines):
         write(sock, line)
 
-def write_error(sock, mesg):
+def write_error(sock, msg):
     html = textwrap.dedent("""\
     <html>
         <head>
@@ -105,7 +105,7 @@ def write_error(sock, mesg):
             <pre>%s</pre>
         </body>
     </html>
-    """) % mesg
+    """) % msg
     http = textwrap.dedent("""\
     HTTP/1.0 500 Internal Server Error\r
     Connection: close\r
@@ -113,7 +113,7 @@ def write_error(sock, mesg):
     Content-Length: %d\r
     \r
     %s
-    """) % (len(http), http)
+    """) % (len(html), html)
     write_nonblock(sock, http)
 
 def normalize_name(name):
