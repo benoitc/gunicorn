@@ -303,7 +303,7 @@ class Arbiter(object):
             sys.exit()
     
     def stop(self, graceful=True):
-        self.LISTENER.close()
+        self.LISTENER = None
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
