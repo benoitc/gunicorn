@@ -231,11 +231,18 @@ def run_paster():
             workers = opts.workers
         else:
             workers = int(ctx.local_conf.get('workers', 1))
-
-        host = opts.host or ctx.local_conf.get('host', '127.0.0.1')
-        port = opts.port or int(ctx.local_conf.get('port', 8000))
-        bind = "%s:%s" % (host, port)
-
+     
+        host = ctx.local_conf.get('host')
+        port = ctx.local_conf.get('port')
+        if host:
+            if port:
+                bind = "%s:%s" % (host, port)
+            else:
+                bind = host
+            opts.bind = bind
+            
+        
+        
         debug = ctx.global_conf.get('debug') == "true"
         if debug:
             # we force to one worker in debug mode.
