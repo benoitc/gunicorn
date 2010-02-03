@@ -22,11 +22,11 @@ Usage
 ::
 
     $ gunicorn --help
-    Usage: gunicorn [OPTIONS] APP_MODULE
+    Usage: gunicorn [OPTIONS]
 
 	Options:
-	  --host=HOST           Host to listen on. [none]
-	  --port=PORT           Port to listen on. [none]
+	  -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
+	                        unix:/tmp/gunicorn.sock
 	  --workers=WORKERS     Number of workers to spawn. [none]
 	  -p PIDFILE, --pid=PIDFILE
 	                        set the background PID FILE
@@ -34,6 +34,7 @@ Usage
 	  --log-level=LOGLEVEL  Log level below which to silence messages. [info]
 	  --log-file=LOGFILE    Log to a file. - is stdout. [-]
 	  -d, --debug           Debug mode. only 1 worker.
+	  --version             show program's version number and exit
 	  -h, --help            show this help message and exit
 
 
