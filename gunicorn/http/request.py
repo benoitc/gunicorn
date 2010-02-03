@@ -38,7 +38,11 @@ class Request(object):
     def __init__(self, socket, client_address, server_address, debug=False):
         self.debug = debug
         self.socket = socket
-        self.client_address = client_address
+        
+        # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+        # may not qualify the remote addr:
+        # http://www.ietf.org/rfc/rfc3875
+        self.client_address = client_address or ('127.0.0.1', '')
         self.server_address = server_address
         self.response_status = None
         self.response_headers = {}
@@ -82,6 +86,25 @@ class Request(object):
         else:
             wsgi_multiprocess = True
             
+            
+        # Try to server address from headers
+        if 'X-Forwarded-For' in self.parser.headers_dict:
+            server_address = self.parser.headers_dict.get('X-Forwarded-For')
+            
+        elif 'Host' in self.parser.headers_dict:
+            server_address = self.parser.headers_dict.get('Host')
+        else:
+            server_address = self.server_address
+            
+        if isinstance(server_address, basestring):
+            if ':' in server_address:
+                server_name, server_port = server_address.split(":")
+            else:
+                server_name = server_address
+                server_port = ''
+        else:
+            server_name, server_port = server_address
+        
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
