@@ -63,7 +63,7 @@ class Command(BaseCommand):
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
         
-        if isinstance(address, basestring):
+        if isinstance(addr, basestring):
             print "Development server is running at unix:/" % addr
         else:
             print "Development server is running at http://%s:%s/" % addr
