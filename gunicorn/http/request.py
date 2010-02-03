@@ -102,7 +102,7 @@ class Request(object):
                     remote_addr, remote_port = forward_adress.split(':')
                 else:
                     remote_addr, remote_port = (forward_adress, '')
-            elif self.client_adress:
+            elif self.client_adress is not None:
                 remote_addr, remote_port = self.client_adress
             else:  
                 remote_addr, remote_port = ('127.0.0.1', '')
