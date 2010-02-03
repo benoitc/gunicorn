@@ -1,5 +1,8 @@
 # Django settings for djangotest project.
 
+import platform
+PRODUCTION_MODE = platform.node().startswith('http')
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 

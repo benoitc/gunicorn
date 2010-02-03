@@ -80,7 +80,7 @@ def write(sock, data):
         
 def write_nonblock(sock, data):
     timeout = sock.gettimeout()
-    if sock.gettimeout() > 0.0:
+    if timeout != 0.0:
         try:
             sock.setblocking(0)
             return write(sock, data)
