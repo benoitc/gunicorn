@@ -42,9 +42,6 @@ class Worker(object):
         self.alive = True
         self.log = logging.getLogger(__name__)
         self.spinner = 0
-
-        
-        
         self.address = self.socket.getsockname()
 
     def __str__(self):
