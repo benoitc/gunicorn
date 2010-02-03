@@ -141,10 +141,10 @@ class Request(object):
             "RAW_URI": self.parser.raw_path,
             "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
             "CONTENT_LENGTH": str(wsgi_input.len),
-            "REMOTE_ADDR": self.client_address[0],
-            "REMOTE_PORT": self.client_address[1],
-            "SERVER_NAME": self.server_address[0],
-            "SERVER_PORT": self.server_address[1],
+            "REMOTE_ADDR": remote_addr,
+            "REMOTE_PORT": remote_port,
+            "SERVER_NAME": server_name,
+            "SERVER_PORT": server_port,
             "SERVER_PROTOCOL": self.parser.raw_version
         }
         
@@ -152,8 +152,6 @@ class Request(object):
             key = 'HTTP_' + key.upper().replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
-
-        self.log.info(environ)
         return environ
         
     def start_response(self, status, response_headers, exc_info=None):
