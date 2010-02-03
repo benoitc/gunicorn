@@ -204,7 +204,7 @@ class Arbiter(object):
             except StopIteration:
                 break
             except KeyboardInterrupt:
-                self.stop()
+                self.stop(False)
                 sys.exit(-1)
             except Exception:
                 self.log.info("Unhandled exception in main loop.")
@@ -338,7 +338,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout/2, self.debug)
+                        self.timeout/2.0, self.debug)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
