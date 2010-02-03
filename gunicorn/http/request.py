@@ -38,11 +38,8 @@ class Request(object):
     def __init__(self, socket, client_address, server_address, debug=False):
         self.debug = debug
         self.socket = socket
-        
-        # authors should be aware that REMOTE_HOST and REMOTE_ADDR
-        # may not qualify the remote addr:
-        # http://www.ietf.org/rfc/rfc3875
-        self.client_address = client_address or ('127.0.0.1', '')
+    
+        self.client_address = client_address
         self.server_address = server_address
         self.response_status = None
         self.response_headers = {}
@@ -87,11 +84,34 @@ class Request(object):
             wsgi_multiprocess = True
             
             
-        # Try to server address from headers
-        if 'X-Forwarded-For' in self.parser.headers_dict:
-            server_address = self.parser.headers_dict.get('X-Forwarded-For')
+
+        
+        # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+        # may not qualify the remote addr:
+        # http://www.ietf.org/rfc/rfc3875
+        try:
+            if 'X-Forwarded-For' in self.parser.headers_dict:
+                forward_adress = self.parser.headers_dict.get('X-Forwarded-For')
+                
+                # we only took the last one
+                # http://en.wikipedia.org/wiki/X-Forwarded-For
+                if "," in forward_adress:
+                    forward_adress = forward_adress.split(",")[-1].strip()
+                
+                if ":" in forward_adress:
+                    remote_addr, remote_port = forward_adress.split(':')
+                else:
+                    remote_addr, remote_port = (forward_adress, '')
+            elif self.client_adress:
+                remote_addr, remote_port = self.client_adress
+            else:  
+                remote_addr, remote_port = ('127.0.0.1', '')
+        except:
+             remote_addr, remote_port = ('127.0.0.1', '')
             
-        elif 'Host' in self.parser.headers_dict:
+        
+        # Try to server address from headers
+        if 'Host' in self.parser.headers_dict:
             server_address = self.parser.headers_dict.get('Host')
         else:
             server_address = self.server_address
@@ -133,6 +153,7 @@ class Request(object):
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
 
+        self.log.info(environ)
         return environ
         
     def start_response(self, status, response_headers, exc_info=None):
