@@ -145,13 +145,14 @@ class Arbiter(object):
             try:
                 sock = self.init_socket(addr)
                 self.LISTENER = sock
-                break
+                break            
             except socket.error, e:
                 if e[0] == errno.EADDRINUSE:
                     self.log.error("Connection in use: %s" % str(addr))
                 if i < 5:
                     self.log.error("Retrying in 1 second.")
-                time.sleep(1)
+                    time.sleep(1)
+          
         if self.LISTENER:
             try:
                 self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
@@ -159,7 +160,7 @@ class Arbiter(object):
                 self.log.info("Listen on %s" % self.LISTENER.getsockname())
         else:
             self.log.error("Can't connect to %s" % str(addr))
-            sys.exit(-1)
+            sys.exit(1)
                 
     def init_socket_fromfd(self, fd, address):
         if isinstance(address, basestring):
