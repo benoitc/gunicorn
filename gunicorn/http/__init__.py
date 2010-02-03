@@ -8,3 +8,5 @@ from gunicorn.http.request import Request, RequestError
 from gunicorn.http.response import Response
 
 __all__ = [Parser, Request, RequestError, Response]
+
+__version__ = '0.4'

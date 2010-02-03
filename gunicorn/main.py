@@ -84,7 +84,8 @@ def daemonize():
         os.dup2(0, 2)
         
 def main(usage, get_app):
-    parser = op.OptionParser(usage=usage, option_list=options())
+    parser = op.OptionParser(usage=usage, option_list=options(),
+                    version="%prog 0.4")
     opts, args = parser.parse_args()
     configure_logging(opts)
 
