@@ -27,8 +27,7 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, ppid, socket, app, timeout, 
-                debug=False):
+    def __init__(self, workerid, ppid, socket, app, timeout, debug=False):
         self.nr = 0
         self.id = workerid
         self.ppid = ppid
@@ -108,12 +107,11 @@ class Worker(object):
             except socket.error, e:
                 if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
-            if self.nr < 0: break
 
             # Keep processing clients until no one is waiting.
             # This prevents the need to select() for every
             # client that we process.
-            if self.nr != 0:
+            if self.nr > 0:
                 continue
             
             # If our parent changed then we shut down.

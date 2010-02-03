@@ -14,7 +14,7 @@ import sys
 from gunicorn.arbiter import Arbiter
 from gunicorn import util
 
-__usage__ = "%prog [OPTIONS]"
+__usage__ = "%prog [OPTIONS] [APP_MODULE]"
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -113,8 +113,7 @@ def main(usage, get_app):
         pidfile=opts.pidfile
     )
     
-    arbiter = Arbiter(addr, workers, app, 
-                    **kwargs)
+    arbiter = Arbiter(addr, workers, app, **kwargs)
     if opts.daemon:
         daemonize()
     else:

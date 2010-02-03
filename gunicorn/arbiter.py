@@ -157,6 +157,7 @@ class Arbiter(object):
                 self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
             except TypeError:
                 self.log.info("Listen on %s" % self.LISTENER.getsockname())
+                
     def init_socket_fromfd(self, fd, address):
         if isinstance(address, basestring):
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
