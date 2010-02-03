@@ -28,10 +28,8 @@ UMASK = 0
 
 def options():
     return [
-        op.make_option('--host', dest='host',
-            help='Host to listen on. [%default]'),
-        op.make_option('--port', dest='port', type='int',
-            help='Port to listen on. [%default]'),
+        op.make_option('-b', '--bind', dest='bind',
+            help='Adress to listen on. Ex. host:port or unix://path/to/socketfile'),
         op.make_option('--workers', dest='workers', type='int',
             help='Number of workers to spawn. [%default]'),
         op.make_option('-p','--pid', dest='pidfile',
@@ -95,21 +93,26 @@ def main(usage, get_app):
     if opts.debug:
         workers = 1
         
-    host = opts.host or '127.0.0.1'
-    port = opts.port
-    if port is None:
-        if ':' in host:
-            host, port = host.split(':', 1)
+    bind = opts.bind or '127.0.0.1'
+    if bind.startswith("unix:"):
+        addr = bind.split("unix:")[1]
+    else:
+        if ':' in bind:
+            host, port = bind.split(':', 1)
+            if not port.isdigit():
+                raise RuntimeError("%r is not a valid port number." % port)
             port = int(port)
         else:
+            host = bind
             port = 8000
+        addr = (host, port)
             
     kwargs = dict(
         debug=opts.debug,
         pidfile=opts.pidfile
     )
     
-    arbiter = Arbiter((host,port), workers, app, 
+    arbiter = Arbiter(addr, workers, app, 
                     **kwargs)
     if opts.daemon:
         daemonize()
@@ -229,8 +232,9 @@ def run_paster():
         else:
             workers = int(ctx.local_conf.get('workers', 1))
 
-        opts.host = opts.host or ctx.local_conf.get('host', '127.0.0.1')
-        opts.port = opts.port or int(ctx.local_conf.get('port', 8000))
+        host = opts.host or ctx.local_conf.get('host', '127.0.0.1')
+        port = opts.port or int(ctx.local_conf.get('port', 8000))
+        bind = "%s:%s" % (host, port)
 
         debug = ctx.global_conf.get('debug') == "true"
         if debug:

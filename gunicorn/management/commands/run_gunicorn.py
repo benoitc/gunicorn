@@ -30,7 +30,7 @@ class Command(BaseCommand):
             help='Run daemonized in the background.'),
     )
     help = "Starts a fully-functional Web server using gunicorn."
-    args = '[optional port number, or ipaddr:port]'
+    args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
  
     # Validation is called explicitly each time the server is reloaded.
     requires_model_validation = False
@@ -38,20 +38,21 @@ class Command(BaseCommand):
     def handle(self, addrport='', *args, **options):
         if args:
             raise CommandError('Usage is runserver %s' % self.args)
-        if not addrport:
-            addr = ''
-            port = '8000'
+            
+        bind = addrport or '127.0.0.1'
+        if bind.startswith("unix:"):
+            addr = bind.split("unix:")[1]
         else:
-            try:
-                addr, port = addrport.split(':')
-            except ValueError:
-                addr, port = '', addrport
-        if not addr:
-            addr = '127.0.0.1'
- 
-        if not port.isdigit():
-            raise CommandError("%r is not a valid port number." % port)
- 
+            if ':' in bind:
+                host, port = host.split(':', 1)
+                if not port.isdigit():
+                    raise CommandError("%r is not a valid port number." % port)
+                port = int(port)
+            else:
+                host = bind
+                port = 8000
+            addr = (host, port)
+
         admin_media_path = options.get('admin_media_path', '')
         workers = int(options.get('workers', '1'))
         daemon = options.get('daemon')
@@ -61,7 +62,11 @@ class Command(BaseCommand):
         print "Validating models..."
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
-        print "Development server is running at http://%s:%s/" % (addr, port)
+        
+        if isinstance(address, basestring):
+            print "Development server is running at unix:/" % addr
+        else:
+            print "Development server is running at http://%s:%s/" % addr
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
@@ -69,7 +74,7 @@ class Command(BaseCommand):
  
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
-            arbiter = Arbiter((addr, int(port)), workers, handler,
+            arbiter = Arbiter(addr, workers, handler,
                 pidfile=pidfile)
             if daemon:
                 daemonize()

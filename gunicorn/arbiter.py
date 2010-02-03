@@ -140,7 +140,7 @@ class Arbiter(object):
                     self.log.error("should be a non GUNICORN environnement")
                 else:
                     raise
-
+                    
         for i in range(5):
             try:
                 sock = self.init_socket(addr)
@@ -152,30 +152,46 @@ class Arbiter(object):
                 if i < 5:
                     self.log.error("Retrying in 1 second.")
                 time.sleep(1)
-        if self.LISTENER: 
-            self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
-                
+        if self.LISTENER:
+            try:
+                self.log.info("Listen on %s:%s" % self.LISTENER.getsockname())
+            except TypeError:
+                self.log.info("Listen on %s" % self.LISTENER.getsockname())
     def init_socket_fromfd(self, fd, address):
-        sock = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)
-        self.set_sockopts(sock)
+        if isinstance(address, basestring):
+            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+        else:
+            sock = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)
+            self.set_tcp_sockopts(sock)
+        self.set_sockopts(sock, address)
         return sock
 
     def init_socket(self, address):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_sockopts(sock)
-        sock.bind(address)
-        sock.listen(2048)
+        if isinstance(address, basestring):
+            try:
+                os.remove(address)
+            except OSError:
+                pass
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        else:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.set_tcp_sockopts(sock)
+        self.set_sockopts(sock, address)
         return sock
         
-    def set_sockopts(self, sock):
-        sock.setblocking(0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    def set_tcp_sockopts(self, sock):
         if hasattr(socket, "TCP_CORK"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
         elif hasattr(socket, "TCP_NOPUSH"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
-
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        
+    def set_sockopts(self, sock, address):
+        sock.setblocking(0)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(address)
+        sock.listen(2048)
+        
     def run(self):
         self.start()
         self.manage_workers()
