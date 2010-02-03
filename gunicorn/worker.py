@@ -124,7 +124,6 @@ class Worker(object):
                 self.log.info("Parent process changed. Closing %s" % self)
                 return
             
-            self.notify()
             try:
                 self.notify()
                 ret = select.select([self.socket], [], self.PIPE, self.timeout)
