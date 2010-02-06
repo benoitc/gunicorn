@@ -223,7 +223,7 @@ def run_paster():
 
     def get_app(parser, opts, args):
         if len(args) != 1:
-            parser.error("No applicantion name specified.")
+            parser.error("No application name specified.")
 
         config_file = os.path.abspath(os.path.normpath(
                             os.path.join(os.getcwd(), args[0])))

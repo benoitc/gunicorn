@@ -29,7 +29,7 @@ class Arbiter(object):
     WORKERS = {}    
     PIPE = []
 
-    # I love dyanmic languages
+    # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
@@ -160,7 +160,7 @@ class Arbiter(object):
                 return
             except socket.error, e:
                 if e[0] == errno.ENOTCONN:
-                    self.log.error("should be a non GUNICORN environnement")
+                    self.log.error("should be a non GUNICORN environment")
                 else:
                     raise
         else:          
