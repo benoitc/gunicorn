@@ -352,9 +352,7 @@ class Arbiter(object):
             
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
-        cmd = (self.START_CTX[0],) + tuple(self.START_CTX['argv'])
-        os.execlp(*cmd)
-        
+        os.execlp(self.START_CTX[0], *self.START_CTX['argv'])
 
     def murder_workers(self):
         for (pid, worker) in list(self.WORKERS.items()):
