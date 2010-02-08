@@ -5,6 +5,7 @@
 
 from __future__ import with_statement
 
+import copy
 import errno
 import fcntl
 import logging
@@ -15,11 +16,14 @@ import socket
 import sys
 import tempfile
 import time
+import traceback
 
 from gunicorn.worker import Worker
 from gunicorn import util
 
 class Arbiter(object):
+    
+    START_CTX = {}
     
     LISTENER = None
     WORKERS = {}    
@@ -47,7 +51,26 @@ class Arbiter(object):
         self.log = logging.getLogger(__name__)
         self.opts = kwargs
         self._pidfile = None
+        self.master_name = "Master"
         
+        # get current path, try to use PWD env first
+        try:
+            a = os.stat(os.environ('PWD'))
+            b = os.stat(os.getcwd())
+            if a.ino == b.ino and a.dev == b.dev:
+                cwd = pwd
+            else:
+                cwd = os.getcwd()
+        except:
+            cwd = os.getcwd()
+            
+        # init start context
+        self.START_CTX = {
+            "argv": copy.copy(sys.argv),
+            "cwd": cwd,
+            0: copy.copy(sys.argv[0])
+        }
+                
         
     def start(self):
         self.pid = os.getpid()
@@ -140,18 +163,18 @@ class Arbiter(object):
                     self.log.error("should be a non GUNICORN environnement")
                 else:
                     raise
-                    
-        for i in range(5):
-            try:
-                sock = self.init_socket(addr)
-                self.LISTENER = sock
-                break            
-            except socket.error, e:
-                if e[0] == errno.EADDRINUSE:
-                    self.log.error("Connection in use: %s" % str(addr))
-                if i < 5:
-                    self.log.error("Retrying in 1 second.")
-                    time.sleep(1)
+        else:          
+            for i in range(5):
+                try:
+                    sock = self.init_socket(addr)
+                    self.LISTENER = sock
+                    break            
+                except socket.error, e:
+                    if e[0] == errno.EADDRINUSE:
+                        self.log.error("Connection in use: %s" % str(addr))
+                    if i < 5:
+                        self.log.error("Retrying in 1 second.")
+                        time.sleep(1)
           
         if self.LISTENER:
             try:
@@ -168,7 +191,9 @@ class Arbiter(object):
         else:
             sock = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)
             self.set_tcp_sockopts(sock)
-        self.set_sockopts(sock, address)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setblocking(0)
+        sock.listen(2048)
         return sock
 
     def init_socket(self, address):
@@ -181,7 +206,10 @@ class Arbiter(object):
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.set_tcp_sockopts(sock)
-        self.set_sockopts(sock, address)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(address)
+        sock.setblocking(0)
+        sock.listen(2048)
         return sock
         
     def set_tcp_sockopts(self, sock):
@@ -190,12 +218,6 @@ class Arbiter(object):
         elif hasattr(socket, "TCP_NOPUSH"):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        
-    def set_sockopts(self, sock, address):
-        sock.setblocking(0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(address)
-        sock.listen(2048)
         
     def run(self):
         self.start()
@@ -227,14 +249,15 @@ class Arbiter(object):
             except KeyboardInterrupt:
                 break
             except Exception:
-                self.log.info("Unhandled exception in main loop.")
+                self.log.info("Unhandled exception in main loop. [%s]" %  
+                            traceback.format_exc())
                 self.stop(False)
                 if self.pidfile:
                     self.unlink_pidfile(self.pidfile)
                 sys.exit(-1)
 
         self.stop()
-        self.log.info("Master is shutting down.")
+        self.log.info("%s is shutting down." % self.master_name)
         if self.pidfile:
             self.unlink_pidfile(self.pidfile)
         sys.exit(0)
@@ -244,7 +267,7 @@ class Arbiter(object):
         self.reap_workers()
         
     def handle_hup(self):
-        self.log.info("Master hang up.")
+        self.log.info("%s hang up." % self.master_name)
         self.reexec()
         raise StopIteration
         
@@ -261,10 +284,12 @@ class Arbiter(object):
 
     def handle_ttin(self):
         self.num_workers += 1
+        self.manage_workers()
     
     def handle_ttou(self):
         if self.num_workers > 0:
             self.num_workers -= 1
+        self.manage_workers()
             
     def handle_usr1(self):
         self.kill_workers(signal.SIGUSR1)
@@ -316,10 +341,20 @@ class Arbiter(object):
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
+        if self.pidfile:
+            old_pidfile = "%s.oldbin" % self.pidfile
+            self.pidfile = old_pidfile
+        
         self.reexec_pid = os.fork()
-        if self.reexec_pid == 0:
-            os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
-            os.execlp(sys.argv[0], *sys.argv)
+        if self.reexec_pid != 0:
+            self.master_name = "Old Master"
+            return
+            
+        os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
+        os.chdir(self.START_CTX['cwd'])
+        cmd = (self.START_CTX[0],) + tuple(self.START_CTX['argv'])
+        os.execlp(*cmd)
+        
 
     def murder_workers(self):
         for (pid, worker) in list(self.WORKERS.items()):
