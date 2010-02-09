@@ -12,7 +12,7 @@ import re
 import sys
 
 from gunicorn.arbiter import Arbiter
-from gunicorn import util
+from gunicorn import util, __version__
 
 __usage__ = "%prog [OPTIONS] [APP_MODULE]"
 
@@ -85,7 +85,7 @@ def daemonize():
         
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
-                    version="%prog 0.4.1")
+                    version="%prog " + __version__)
     opts, args = parser.parse_args()
     configure_logging(opts)
 

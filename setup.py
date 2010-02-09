@@ -7,9 +7,11 @@
 import os
 from setuptools import setup, find_packages
 
+from gunicorn import __version__
+
 setup(
     name = 'gunicorn',
-    version = '0.4.2',
+    version = __version__,
 
     description = 'WSGI HTTP Server for UNIX',
     long_description = file(
