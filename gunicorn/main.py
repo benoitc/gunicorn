@@ -173,14 +173,26 @@ def run():
     main(__usage__, get_app)
     
 def run_django():
+    
+    def settings_notfound(path):
+        error = "Settings file '%s' not found in current folder.\n" % path
+        sys.stderr.write(error)
+        sys.stderr.flush()
+        sys.exit(1)
 
     def get_app(parser, opts, args):
         import django.core.handlers.wsgi
 
         PROJECT_PATH = os.getcwd()
-        if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
-            print >>sys.stderr, "settings file not found."
-            sys.exit(1)
+        settings_path = os.path.join(PROJECT_PATH, "settings.py")
+        if not os.path.isfile(settings_path) and not args:
+            settings_notfound(settings_path)
+        else:
+            settings_path = os.path.abspath(os.path.normpath(args[0]))
+            if not os.path.isfile(settings_path):
+                settings_notfound(settings_path)
+            else:
+                PROJECT_PATH = os.path.dirname(settings_path)
 
         PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
 
@@ -193,7 +205,7 @@ def run_django():
         # django wsgi app
         return django.core.handlers.wsgi.WSGIHandler()
 
-    main(__usage__, get_app)
+    main("%prog [OPTIONS] [SETTINGS_PATH]", get_app)
     
 def run_paster():
     
