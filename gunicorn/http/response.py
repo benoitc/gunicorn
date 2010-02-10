@@ -11,7 +11,7 @@ class Response(object):
         self.req = req
         self.sock = sock
         self.data = response
-        self.headers = req.response_headers or {}
+        self.headers = req.response_headers or []
         self.status = req.response_status
         self.SERVER_VERSION = req.SERVER_VERSION
 
@@ -26,7 +26,7 @@ class Response(object):
         resp_head.append("Status: %s\r\n" % str(self.status))
         # always close the connection
         resp_head.append("Connection: close\r\n")        
-        for name, value in self.headers.items():
+        for name, value in self.headers:
             resp_head.append("%s: %s\r\n" % (name, value))
         
         write(self.sock, "%s\r\n" % "".join(resp_head))

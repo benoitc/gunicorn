@@ -42,7 +42,7 @@ class Request(object):
         self.client_address = client_address
         self.server_address = server_address
         self.response_status = None
-        self.response_headers = {}
+        self.response_headers = []
         self._version = 11
         self.parser = Parser()
         self.start_response_called = False
@@ -169,5 +169,5 @@ class Request(object):
             name = normalize_name(name)
             if not isinstance(value, basestring):
                 value = str(value)
-            self.response_headers[name] = value.strip()        
+            self.response_headers.append((name, value.strip()))     
         self.start_response_called = True
