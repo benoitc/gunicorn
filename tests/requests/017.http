@@ -1,0 +1,4 @@
+GET /stuff/here?foo=bar HTTP/1.0\r\n
+If-Match: bazinga!\r\n
+If-Match: large-sound\r\n
+\r\n

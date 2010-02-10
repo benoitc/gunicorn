@@ -96,7 +96,11 @@ class Parser(object):
         """ parse header line"""
         name, value = line.split(":", 1)
         name = normalize_name(name.strip())
-        hdrs[name] = value.rsplit("\r\n",1)[0].strip()
+        value = value.rsplit("\r\n",1)[0].strip()
+        if name in hdrs:
+            hdrs[name] = "%s, %s" % (hdrs[name], value)
+        else:
+            hdrs[name] = value
         return name
       
     @property

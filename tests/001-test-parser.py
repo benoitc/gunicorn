@@ -192,3 +192,17 @@ def test_011(buf, p):
         if chunk:
             body += chunk
     t.eq(body, "hello world")
+
+@t.request("017.http")
+def test_017(buf, p):
+    headers = []
+    i = p.filter_headers(headers, buf)
+    t.ne(i, -1)
+    t.eq(p.method, "GET")
+    t.eq(p.version, (1, 0))
+    t.eq(p.path, "/stuff/here")
+    t.eq(p.query_string, "foo=bar")
+    t.eq(p.is_chunked, False)
+    t.eq(p._chunk_eof, False)
+    t.eq(p.body_eof(), True)
+    t.eq(p.headers, [("If-Match", "bazinga!, large-sound")])
