@@ -173,23 +173,23 @@ def run():
     main(__usage__, get_app)
     
 def run_django():
-    import django.core.handlers.wsgi
-
-    PROJECT_PATH = os.getcwd()
-    if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
-        print >>sys.stderr, "settings file not found."
-        sys.exit(1)
-
-    PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
-
-    sys.path.insert(0, PROJECT_PATH)
-    sys.path.append(os.path.join(PROJECT_PATH, os.pardir))
-
-    # set environ
-    os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
-
 
     def get_app(parser, opts, args):
+        import django.core.handlers.wsgi
+
+        PROJECT_PATH = os.getcwd()
+        if not os.path.isfile(os.path.join(PROJECT_PATH, "settings.py")):
+            print >>sys.stderr, "settings file not found."
+            sys.exit(1)
+
+        PROJECT_NAME = os.path.split(PROJECT_PATH)[-1]
+
+        sys.path.insert(0, PROJECT_PATH)
+        sys.path.append(os.path.join(PROJECT_PATH, os.pardir))
+
+        # set environ
+        os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
+        
         # django wsgi app
         return django.core.handlers.wsgi.WSGIHandler()
 
