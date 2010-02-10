@@ -14,8 +14,6 @@ import sys
 from gunicorn.arbiter import Arbiter
 from gunicorn import util, __version__
 
-__usage__ = "%prog [OPTIONS] [APP_MODULE]"
-
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
@@ -170,7 +168,7 @@ def run():
         except:
             parser.error("Failed to import application module.")
 
-    main(__usage__, get_app)
+    main("%prog [OPTIONS] APP_MODULE", get_app)
     
 def run_django():
     
@@ -264,5 +262,5 @@ def run_paster():
         app = loadapp(config_url, relative_to=relative_to)
         return app
 
-    main(__usage__, get_app)
+    main("%prog [OPTIONS] pasteconfig.ini", get_app)
     
