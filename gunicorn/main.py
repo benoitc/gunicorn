@@ -69,7 +69,7 @@ def daemonize():
             os._exit(0)
         
         maxfd = util.get_maxfd()
-            
+
         # Iterate through and close all file descriptors.
         for fd in range(0, maxfd):
             try:
@@ -77,6 +77,7 @@ def daemonize():
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
                 pass
         
+
         os.open(util.REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
@@ -85,7 +86,7 @@ def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
     opts, args = parser.parse_args()
-    configure_logging(opts)
+    
 
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
@@ -116,6 +117,7 @@ def main(usage, get_app):
         daemonize()
     else:
         os.setpgrp()
+    configure_logging(opts)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
