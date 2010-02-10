@@ -131,3 +131,10 @@ def test_011(req):
     body = e['wsgi.input'].read()
     t.eq(body, "hello world")
     
+@t.http_request("017.http")
+def test_017(req):
+    e = req.read()
+    t.eq(e['REQUEST_METHOD'], 'GET')
+    t.eq(e['PATH_INFO'], "/stuff/here")
+    t.eq(e["HTTP_IF_MATCH"], "bazinga!, large-sound")
+    t.eq(e["wsgi.input"].read(), "")
