@@ -142,6 +142,9 @@ class Worker(object):
             try:
                 response = self.app(req.read(), req.start_response)
             except Exception, e:
+                # Only send back traceback in HTTP in debug mode.
+                if not self.debug:
+                    raise
                 util.write_error(client, traceback.format_exc())
                 return 
 
