@@ -44,7 +44,7 @@ class Command(BaseCommand):
             addr = bind.split("unix:")[1]
         else:
             if ':' in bind:
-                host, port = host.split(':', 1)
+                host, port = bind.split(':', 1)
                 if not port.isdigit():
                     raise CommandError("%r is not a valid port number." % port)
                 port = int(port)
@@ -64,7 +64,7 @@ class Command(BaseCommand):
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
         
         if isinstance(addr, basestring):
-            print "Development server is running at unix:/" % addr
+            print "Development server is running at unix:/%s" % addr
         else:
             print "Development server is running at http://%s:%s/" % addr
         print "Quit the server with %s." % quit_command
