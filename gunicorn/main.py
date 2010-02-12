@@ -12,6 +12,7 @@ import pwd
 import pkg_resources
 import re
 import sys
+import imp
 
 from gunicorn.arbiter import Arbiter
 from gunicorn import util, __version__
@@ -28,6 +29,8 @@ UMASK = 0
 
 def options():
     return [
+        op.make_option('-c', dest='config', type='string',
+            help='Config file. [gunicorn.conf.py]'),
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers', type='int',
@@ -64,7 +67,35 @@ def configure_logging(opts):
     for h in handlers:
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
-        
+
+def get_config(config):
+    """
+    Returns a dict of stuff found in the config file.
+    Defaults to $PWD/gunicorn.conf.py.
+    """
+    filename = config or os.path.join(os.getcwd(), 'gunicorn.conf.py')
+    if os.path.exists(filename):
+        for (suffix, mode, type_) in imp.get_suffixes():
+            if filename.endswith(suffix):
+                fp = file(filename, mode)
+                desc = (suffix, mode, type_)
+                try:
+                    mod = imp.load_module("<config>", fp, filename, desc)
+                    # create dict of module
+                    d = vars(mod)
+                    d.pop("__builtins__", None)
+                    return d
+                except:
+                    raise sys.exit("Could not load the config file %r" %
+                                  (filename,))
+                finally:
+                    fp.close()
+    # Don't bail if user hasn't defined config and default isn't found
+    elif not config:
+        return False
+    else:
+        sys.exit("Could not find the config file %r" % (filename,))
+
 def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
@@ -107,6 +138,8 @@ def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
     opts, args = parser.parse_args()
+    
+    conf = get_config(opts.config)
 
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
