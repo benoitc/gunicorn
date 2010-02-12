@@ -38,7 +38,7 @@ class TCPSocket(BaseSocket):
     FAMILY = socket.AF_INET
     
     def __str__(self):
-        return "http://%s:%d" % self.address
+        return "http://%s:%d" % self.sock.getsockname()
     
     def set_options(self, sock, bound=False):
         if hasattr(socket, "TCP_CORK"):
