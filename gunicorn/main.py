@@ -30,7 +30,7 @@ UMASK = 0
 def options():
     return [
         op.make_option('-c', dest='config', type='string',
-            help='Config file. [gunicorn.conf.py]'),
+            help='Config file. [%default]'),
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers', type='int',
@@ -45,10 +45,10 @@ def options():
             help="Change worker user"),
         op.make_option('-g', '--group', dest="group", 
             help="Change worker group"),
-        op.make_option('--log-level', dest='loglevel', default='info',
+        op.make_option('--log-level', dest='loglevel',
             help='Log level below which to silence messages. [%default]'),
-        op.make_option('--log-file', dest='logfile', default='-',
-            help='Log to a file. - is stdout. [%default]'),
+        op.make_option('--log-file', dest='logfile',
+            help='Log to a file. - equals stdout. [%default]'),
         op.make_option('-d', '--debug', dest='debug', action="store_true",
             default=False, help='Debug mode. only 1 worker.')
     ]
@@ -68,33 +68,26 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
 
-def get_config(config):
+def get_config(path):
     """
     Returns a dict of stuff found in the config file.
-    Defaults to $PWD/gunicorn.conf.py.
+    Defaults to $PWD/guniconf.py.
     """
-    filename = config or os.path.join(os.getcwd(), 'gunicorn.conf.py')
-    if os.path.exists(filename):
-        for (suffix, mode, type_) in imp.get_suffixes():
-            if filename.endswith(suffix):
-                fp = file(filename, mode)
-                desc = (suffix, mode, type_)
-                try:
-                    mod = imp.load_module("<config>", fp, filename, desc)
-                    # create dict of module
-                    d = vars(mod)
-                    d.pop("__builtins__", None)
-                    return d
-                except:
-                    raise sys.exit("Could not load the config file %r" %
-                                  (filename,))
-                finally:
-                    fp.close()
-    # Don't bail if user hasn't defined config and default isn't found
-    elif not config:
-        return False
-    else:
-        sys.exit("Could not find the config file %r" % (filename,))
+    filename = path or os.path.join(os.getcwd(), 'guniconf.py')
+    if not os.path.exists(filename):
+        if not path:
+            return None
+        else:
+            sys.exit('Could not find config file %r' % (filename,))
+    
+    config = {}
+    try:
+        execfile(filename, config)
+    except:
+        sys.exit("Could not read config file %r" % (filename,))
+    
+    config.pop("__builtins__", None)
+    return config
 
 def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
@@ -135,12 +128,22 @@ def set_owner_process(user,group):
         os.setuid(uid)
         
 def main(usage, get_app):
+    default_options = dict(
+        bind='127.0.0.1:8000',
+        workers=1,
+        daemon=False,
+        loglevel='info',
+        logfile='-',
+        debug=False,
+    )
+    
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
+    parser.set_defaults(**default_options)
     opts, args = parser.parse_args()
     
-    conf = get_config(opts.config)
-
+    conf = get_config(opts.config) or {}
+    
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
     if opts.debug:
