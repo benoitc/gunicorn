@@ -4,9 +4,11 @@
 # See the NOTICE for more information.
 
 
+import grp
 import logging
 import optparse as op
 import os
+import pwd
 import pkg_resources
 import re
 import sys
@@ -36,6 +38,10 @@ def options():
             help='Run daemonized in the background.'),
         op.make_option('-m', '--umask', dest="umask", type='int', 
             help="Define umask of daemon process"),
+        op.make_option('-u', '--user', dest="user", 
+            help="Change user in daemon mode"),
+        op.make_option('-g', '--group', dest="group", 
+            help="Change group in daemon mode"),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
@@ -59,12 +65,24 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
         
-def daemonize(umask):
+def daemonize(umask, user=None, group=None):
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
             if os.fork() == 0:
                 os.umask(umask)
+                if group:
+                    if group.isdigit():
+                        gid = int(group)
+                    else:
+                        gid = grp.getgrnam(group).gr_gid
+                    os.setgid(gid)
+                if user:
+                    if user.isdigit():
+                        uid = int(user)
+                    else:
+                        uid = pwd.getpwnam(user).pw_uid
+                    os.setuid(uid)
             else:
                 os._exit(0)
         else:
@@ -83,6 +101,9 @@ def daemonize(umask):
         os.open(util.REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
+        
+        
+            
         
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
@@ -118,7 +139,7 @@ def main(usage, get_app):
     
     arbiter = Arbiter(addr, workers, app, **kwargs)
     if opts.daemon:
-        daemonize(umask)
+        daemonize(umask, user=opts.user, group=opts.group)
     else:
         os.setpgrp()
     configure_logging(opts)
@@ -132,27 +153,26 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
         else:
             port = 8000
     bind_addr = (host, int(port))
-    
+
+    # set others options
+    debug = kwargs.get('debug')
     workers = kwargs.get("workers", 1)
+    pid = kwargs.get("pid")
+    daemon = kwargs.get("daemon")
+    umask = kwgars.get('umask', UMASK)
+    user = kwgars.get('user')
+    group = kwgars.get('group')
     if global_conf:
         workers = int(global_conf.get('workers', workers))
-        
-    debug = global_conf.get('debug') == "true"
-    if debug:
-        # we force to one worker in debug mode.
-        workers = 1
-        
-    pid = kwargs.get("pid")
-    if global_conf:
+        debug = global_conf.get('debug', debug) == "true"
+        if debug:
+            # we force to one worker in debug mode.
+            workers = 1
         pid = global_conf.get('pid', pid)
-        
-    daemon = kwargs.get("daemon")
-    if global_conf:
         daemon = global_conf.get('daemon', daemonize)
-
-    umask = kwgars.get('umask', UMASK)
-    if global_conf:
         umask = global_conf.get('umask', umask)
+        user = global_conf.get('user', user)
+        group = global_conf.get('group', group)
    
     kwargs = dict(
         debug=debug,
@@ -161,7 +181,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
 
     arbiter = Arbiter(bind_addr, workers, app, **kwargs)
     if daemon == "true":
-        daemonize(umask)
+        daemonize(umask, user=user, group=group)
     else:
         os.setpgrp()
     arbiter.run()
@@ -257,6 +277,12 @@ def run_paster():
 
         if not opts.umask:
             opts.umask = int(ctx.local_conf.get('umask', UMASK))
+            
+        if not opts.group:
+            opts.group = ctx.local_conf.get('group')
+        
+        if not opts.user:
+            opts.user = ctx.local_conf.get('user')
      
         if not opts.bind:
             host = ctx.local_conf.get('host')

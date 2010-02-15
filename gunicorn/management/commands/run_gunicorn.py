@@ -30,6 +30,10 @@ class Command(BaseCommand):
             help='Run daemonized in the background.'),
         make_option('--umask', dest='umask', type='int',
             help="Define umask of daemon process"),
+        make_option('-u', '--user', dest="user", 
+            help="Change user in daemon mode"),
+        make_option('-g', '--group', dest="group", 
+            help="Change group in daemon mode"),
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
@@ -61,6 +65,8 @@ class Command(BaseCommand):
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
         pidfile = options.get('pidfile', None)
         umask = options.get('umask', UMASK)
+        uid = options.get('user')
+        gid = options.get('group')
 
         print "Validating models..."
         self.validate(display_num_errors=True)
@@ -80,7 +86,7 @@ class Command(BaseCommand):
             arbiter = Arbiter(addr, workers, handler,
                 pidfile=pidfile)
             if daemon:
-                daemonize(umask)
+                daemonize(umask, user=user, group=group)
             arbiter.run()
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.
