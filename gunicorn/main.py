@@ -102,9 +102,6 @@ def daemonize(umask, user=None, group=None):
         os.dup2(0, 1)
         os.dup2(0, 2)
         
-        
-            
-        
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
