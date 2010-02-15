@@ -59,7 +59,7 @@ def configure_logging(opts):
 
     loglevel = LOG_LEVELS.get(opts.loglevel.lower(), logging.INFO)
 
-    logger = logging.getLogger()
+    logger = logging.getLogger('gunicorn')
     logger.setLevel(loglevel)
     for h in handlers:
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
