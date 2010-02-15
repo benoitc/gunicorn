@@ -12,7 +12,6 @@ import pwd
 import pkg_resources
 import re
 import sys
-import imp
 
 from gunicorn.arbiter import Arbiter
 from gunicorn import util, __version__
@@ -29,7 +28,7 @@ UMASK = 0
 
 def options():
     return [
-        op.make_option('-c', dest='config', type='string',
+        op.make_option('-c', '--config', dest='config', type='string',
             help='Config file. [%default]'),
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
@@ -55,12 +54,12 @@ def options():
 
 def configure_logging(opts):
     handlers = []
-    if opts.logfile != "-":
-        handlers.append(logging.FileHandler(opts.logfile))
+    if opts['logfile'] != "-":
+        handlers.append(logging.FileHandler(opts['logfile']))
     else:
         handlers.append(logging.StreamHandler())
 
-    loglevel = LOG_LEVELS.get(opts.loglevel.lower(), logging.INFO)
+    loglevel = LOG_LEVELS.get(opts['loglevel'].lower(), logging.INFO)
 
     logger = logging.getLogger('gunicorn')
     logger.setLevel(loglevel)
@@ -130,11 +129,12 @@ def set_owner_process(user,group):
 def main(usage, get_app):
     default_options = dict(
         bind='127.0.0.1:8000',
-        workers=1,
         daemon=False,
-        loglevel='info',
-        logfile='-',
         debug=False,
+        logfile='-',
+        loglevel='info',
+        pidfile=None,
+        workers=1,
     )
     
     parser = op.OptionParser(usage=usage, option_list=options(),
@@ -142,31 +142,43 @@ def main(usage, get_app):
     parser.set_defaults(**default_options)
     opts, args = parser.parse_args()
     
-    conf = get_config(opts.config) or {}
+    fileopts = get_config(opts.config) or {}
+    
+    # optparse returns object, we want a dict
+    opts = opts.__dict__
+    
+    # compare default with opts to see what is actually set
+    changes = dict(set(opts.items()).difference(set(default_options.items())))
+    
+    # default_config < config file < config arguments
+    config = default_options.copy()
+    config.update(fileopts.items())
+    config.update(changes.items())
     
     app = get_app(parser, opts, args)
-    workers = opts.workers or 1
-    if opts.debug:
+    
+    workers = config['workers']
+    if config['debug']:
         workers = 1
         
-    bind = opts.bind or '127.0.0.1'
+    bind = config['bind'] or '127.0.0.1'
     addr = util.parse_address(bind)
     
-    umask = int(opts.umask or UMASK)
+    umask = int(config['umask'] or UMASK)
 
     kwargs = dict(
-        debug=opts.debug,
-        pidfile=opts.pidfile
+        debug=config['debug'],
+        pidfile=config['pidfile']
     )
     
-    arbiter = Arbiter(addr, workers, app, **kwargs)
-    if opts.daemon:
+    arbiter = Arbiter(addr, workers, app, args[0], **kwargs)
+    if config['daemon']:
         daemonize(umask)
     else:
         os.setpgrp()
 
     set_owner_process(opts.user, opts.group) 
-    configure_logging(opts)
+    configure_logging(config)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
