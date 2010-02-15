@@ -91,13 +91,13 @@ def daemonize(umask):
 
 def set_owner_process(user,group):
     if group:
-        if group.isdigit():
+        if group.isdigit() or isinstance(group, int):
             gid = int(group)
         else:
             gid = grp.getgrnam(group).gr_gid
             os.setgid(gid)
     if user:
-        if user.isdigit():
+        if user.isdigit() or isinstance(user, int):
             uid = int(user)
         else:
             uid = pwd.getpwnam(user).pw_uid
