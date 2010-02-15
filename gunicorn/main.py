@@ -139,10 +139,10 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     workers = kwargs.get("workers", 1)
     pid = kwargs.get("pid")
     daemon = kwargs.get("daemon")
-    umask = kwgars.get('umask', UMASK)
-    user = kwgars.get('user')
-    group = kwgars.get('group')
-    if global_conf:
+    umask = kwargs.get('umask', UMASK)
+    user = kwargs.get('user')
+    group = kwargs.get('group')
+    if kwargs:
         workers = int(global_conf.get('workers', workers))
         debug = global_conf.get('debug', debug) == "true"
         if debug:
