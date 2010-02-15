@@ -3,10 +3,10 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-
-import sys
- 
 from optparse import make_option
+import sys
+import os
+
  
 import django
 from django.core.management.base import BaseCommand, CommandError
@@ -16,7 +16,7 @@ from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
-from gunicorn.main import daemonize, UMASK
+from gunicorn.main import daemonize, UMASK, set_owner_process
 from gunicorn.util import parse_address
  
 class Command(BaseCommand):
@@ -77,7 +77,7 @@ class Command(BaseCommand):
                 daemonize(umask)
             else:
                 os.setpgrp()
-            set_owner_process(options.user, options.group)
+            set_owner_process(options.get("user"), options.get("group"))
             arbiter.run()
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.
