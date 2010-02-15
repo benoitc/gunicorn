@@ -39,9 +39,9 @@ def options():
         op.make_option('-m', '--umask', dest="umask", type='int', 
             help="Define umask of daemon process"),
         op.make_option('-u', '--user', dest="user", 
-            help="Change user in daemon mode"),
+            help="Change worker user"),
         op.make_option('-g', '--group', dest="group", 
-            help="Change group in daemon mode"),
+            help="Change worker group"),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
@@ -65,24 +65,12 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
         
-def daemonize(umask, user=None, group=None):
+def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
             if os.fork() == 0:
-                os.umask(umask)
-                if group:
-                    if group.isdigit():
-                        gid = int(group)
-                    else:
-                        gid = grp.getgrnam(group).gr_gid
-                    os.setgid(gid)
-                if user:
-                    if user.isdigit():
-                        uid = int(user)
-                    else:
-                        uid = pwd.getpwnam(user).pw_uid
-                    os.setuid(uid)
+                os.umask(umask) 
             else:
                 os._exit(0)
         else:
@@ -100,6 +88,20 @@ def daemonize(umask, user=None, group=None):
         os.open(util.REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
+
+def set_owner_process(user,group):
+    if group:
+        if group.isdigit():
+            gid = int(group)
+        else:
+            gid = grp.getgrnam(group).gr_gid
+            os.setgid(gid)
+    if user:
+        if user.isdigit():
+            uid = int(user)
+        else:
+            uid = pwd.getpwnam(user).pw_uid
+        os.setuid(uid)
         
 def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
@@ -123,9 +125,11 @@ def main(usage, get_app):
     
     arbiter = Arbiter(addr, workers, app, **kwargs)
     if opts.daemon:
-        daemonize(umask, user=opts.user, group=opts.group)
+        daemonize(umask)
     else:
         os.setpgrp()
+
+    set_owner_process(opts.user, opts.group) 
     configure_logging(opts)
     arbiter.run()
     
@@ -161,9 +165,10 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
 
     arbiter = Arbiter(bind_addr, workers, app, **kwargs)
     if daemon == "true":
-        daemonize(umask, user=user, group=group)
+        daemonize(umask)
     else:
         os.setpgrp()
+    set_owner_process(opts.user, opts.group)
     arbiter.run()
     
 def run():
