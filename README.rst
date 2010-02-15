@@ -24,18 +24,24 @@ Usage
     $ gunicorn --help
     Usage: gunicorn [OPTIONS] [APP_MODULE]
 
-  Options:
-    -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
-                          unix:/tmp/gunicorn.sock
-    --workers=WORKERS     Number of workers to spawn. [1]
-    -p PIDFILE, --pid=PIDFILE
-                          set the background PID FILE
-    -D, --daemon          Run daemonized in the background.
-    --log-level=LOGLEVEL  Log level below which to silence messages. [info]
-    --log-file=LOGFILE    Log to a file. - is stdout. [-]
-    -d, --debug           Debug mode. only 1 worker.
-    --version             show program's version number and exit
-    -h, --help            show this help message and exit
+	Options:
+        -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
+		                        unix:/tmp/gunicorn.sock
+	    -w, --workers=WORKERS     Number of workers to spawn. [none]
+		-p PIDFILE, --pid=PIDFILE
+		                        set the background PID FILE
+		-D, --daemon          Run daemonized in the background.
+		-m UMASK, --umask=UMASK
+		                        Define umask of daemon process
+		-u USER, --user=USER  Change worker user
+		-g GROUP, --group=GROUP
+		                        Change worker group
+		--log-level=LOGLEVEL  Log level below which to silence messages. [info]
+		--log-file=LOGFILE    Log to a file. - is stdout. [-]
+		-d, --debug           Debug mode. only 1 worker.
+		--version             show program's version number and exit
+		-h, --help            show this help message and exit
+
 
 
 Example with test app::

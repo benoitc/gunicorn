@@ -30,7 +30,7 @@ def options():
     return [
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
-        op.make_option('--workers', dest='workers', type='int',
+        op.make_option('-w', '--workers', dest='workers', type='int',
             help='Number of workers to spawn. [%default]'),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),

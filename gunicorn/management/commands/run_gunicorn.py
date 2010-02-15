@@ -23,7 +23,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--adminmedia', dest='admin_media_path', default='',
             help='Specifies the directory from which to serve admin media.'),
-        make_option('--workers', dest='workers', default='1',
+        make_option('-w', '--workers', dest='workers', default='1',
             help='Specifies the number of worker processes to use.'),
         make_option('--pid', dest='pidfile', default='',
             help='set the background PID file'),
