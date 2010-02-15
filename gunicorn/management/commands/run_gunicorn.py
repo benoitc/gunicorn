@@ -16,7 +16,7 @@ from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
-from gunicorn.main import daemonize
+from gunicorn.main import daemonize, UMASK
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -28,6 +28,8 @@ class Command(BaseCommand):
             help='set the background PID file'),
         make_option( '--daemon', dest='daemon', action="store_true",
             help='Run daemonized in the background.'),
+        make_option('--umask', dest='umask', type='int',
+            help="Define umask of daemon process"),
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
@@ -57,8 +59,9 @@ class Command(BaseCommand):
         workers = int(options.get('workers', '1'))
         daemon = options.get('daemon')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
-        pidfile = options.get('pidfile') or None
- 
+        pidfile = options.get('pidfile', None)
+        umask = options.get('umask', UMASK)
+
         print "Validating models..."
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
@@ -77,7 +80,7 @@ class Command(BaseCommand):
             arbiter = Arbiter(addr, workers, handler,
                 pidfile=pidfile)
             if daemon:
-                daemonize()
+                daemonize(umask)
             arbiter.run()
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.

@@ -34,6 +34,8 @@ def options():
             help='set the background PID FILE'),
         op.make_option('-D', '--daemon', dest='daemon', action="store_true",
             help='Run daemonized in the background.'),
+        op.make_option('-m', '--umask', dest="umask", type='int', 
+            help="Define umask of daemon process"),
         op.make_option('--log-level', dest='loglevel', default='info',
             help='Log level below which to silence messages. [%default]'),
         op.make_option('--log-file', dest='logfile', default='-',
@@ -57,12 +59,12 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
         
-def daemonize():
+def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
             if os.fork() == 0:
-                os.umask(UMASK)
+                os.umask(umask)
             else:
                 os._exit(0)
         else:
@@ -106,7 +108,9 @@ def main(usage, get_app):
             host = bind
             port = 8000
         addr = (host, port)
-            
+    
+    umask = int(opts.umask or UMASK)
+
     kwargs = dict(
         debug=opts.debug,
         pidfile=opts.pidfile
@@ -114,7 +118,7 @@ def main(usage, get_app):
     
     arbiter = Arbiter(addr, workers, app, **kwargs)
     if opts.daemon:
-        daemonize()
+        daemonize(umask)
     else:
         os.setpgrp()
     configure_logging(opts)
@@ -145,6 +149,10 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     daemon = kwargs.get("daemon")
     if global_conf:
         daemon = global_conf.get('daemon', daemonize)
+
+    umask = kwgars.get('umask', UMASK)
+    if global_conf:
+        umask = global_conf.get('umask', umask)
    
     kwargs = dict(
         debug=debug,
@@ -153,7 +161,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
 
     arbiter = Arbiter(bind_addr, workers, app, **kwargs)
     if daemon == "true":
-        daemonize()
+        daemonize(umask)
     else:
         os.setpgrp()
     arbiter.run()
@@ -246,6 +254,9 @@ def run_paster():
             workers = opts.workers
         else:
             workers = int(ctx.local_conf.get('workers', 1))
+
+        if not opts.umask:
+            opts.umask = int(ctx.local_conf.get('umask', UMASK))
      
         if not opts.bind:
             host = ctx.local_conf.get('host')
