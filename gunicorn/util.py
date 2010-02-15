@@ -30,6 +30,17 @@ monthname = [None,
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
              
 
+def parse_address(host, port=None, default_port=8000):
+    if not port:
+        if ':' in host:
+            host, port = host.split(':', 1)
+            if not port.isdigit():
+                raise RuntimeError("%r is not a valid port number." % port)
+            port = int(port)
+        else:
+            port = default_port
+    return (host, int(port))
+    
 def get_maxfd():
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
     if (maxfd == resource.RLIM_INFINITY):

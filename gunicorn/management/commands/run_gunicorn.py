@@ -17,6 +17,7 @@ from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
 from gunicorn.main import daemonize, UMASK
+from gunicorn.util import parse_address
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -49,15 +50,7 @@ class Command(BaseCommand):
         if bind.startswith("unix:"):
             addr = bind.split("unix:")[1]
         else:
-            if ':' in bind:
-                host, port = bind.split(':', 1)
-                if not port.isdigit():
-                    raise CommandError("%r is not a valid port number." % port)
-                port = int(port)
-            else:
-                host = bind
-                port = 8000
-            addr = (host, port)
+            addr = parse_address(bind)
 
         admin_media_path = options.get('admin_media_path', '')
         workers = int(options.get('workers', '1'))

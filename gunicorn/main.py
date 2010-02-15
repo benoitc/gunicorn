@@ -97,7 +97,6 @@ def daemonize(umask, user=None, group=None):
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
                 pass
         
-
         os.open(util.REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
@@ -106,7 +105,6 @@ def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
     opts, args = parser.parse_args()
-    
 
     app = get_app(parser, opts, args)
     workers = opts.workers or 1
@@ -117,15 +115,7 @@ def main(usage, get_app):
     if bind.startswith("unix:"):
         addr = bind.split("unix:")[1]
     else:
-        if ':' in bind:
-            host, port = bind.split(':', 1)
-            if not port.isdigit():
-                raise RuntimeError("%r is not a valid port number." % port)
-            port = int(port)
-        else:
-            host = bind
-            port = 8000
-        addr = (host, port)
+        addr = util.parse_address(bind)
     
     umask = int(opts.umask or UMASK)
 
@@ -144,12 +134,8 @@ def main(usage, get_app):
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
-    if not port:
-        if ':' in host:
-            host, port = host.split(':', 1)
-        else:
-            port = 8000
-    bind_addr = (host, int(port))
+    
+    bind_addr = util.parse_address(host, port)
 
     # set others options
     debug = kwargs.get('debug')
@@ -236,12 +222,7 @@ def run_django():
     main("%prog [OPTIONS] [SETTINGS_PATH]", get_app)
     
 def run_paster():
-    
-    import os
-    
     from paste.deploy import loadapp, loadwsgi
-
-    __usage__ = "%prog [OPTIONS] APP_MODULE"
 
     _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
 
