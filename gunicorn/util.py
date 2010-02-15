@@ -31,6 +31,9 @@ monthname = [None,
              
 
 def parse_address(host, port=None, default_port=8000):
+    if host.startswith("unix:"):
+        return host.split("unix:")[1]
+        
     if not port:
         if ':' in host:
             host, port = host.split(':', 1)

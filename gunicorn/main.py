@@ -112,10 +112,7 @@ def main(usage, get_app):
         workers = 1
         
     bind = opts.bind or '127.0.0.1'
-    if bind.startswith("unix:"):
-        addr = bind.split("unix:")[1]
-    else:
-        addr = util.parse_address(bind)
+    addr = util.parse_address(bind)
     
     umask = int(opts.umask or UMASK)
 

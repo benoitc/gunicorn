@@ -47,10 +47,7 @@ class Command(BaseCommand):
             raise CommandError('Usage is runserver %s' % self.args)
             
         bind = addrport or '127.0.0.1'
-        if bind.startswith("unix:"):
-            addr = bind.split("unix:")[1]
-        else:
-            addr = parse_address(bind)
+        addr = parse_address(bind)
 
         admin_media_path = options.get('admin_media_path', '')
         workers = int(options.get('workers', '1'))
