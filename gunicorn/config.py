@@ -22,10 +22,10 @@ class Config(object):
         user=None,
         group=None,
         
-        after_fork= lambda server, worker: server.logger.info(
-                        "worker=%s spawned pid=%s}" % (worker.id, worker.pid)),
+        after_fork= lambda server, worker: server.log.info(
+                        "worker=%s spawned pid=%s}" % (worker.id, str(worker.pid))),
         
-        before_fork= lambda server, worker: server.logger.info(
+        before_fork= lambda server, worker: server.log.info(
                         "worker=%s spawning" % worker.id)
     )
     
@@ -110,7 +110,7 @@ class Config(object):
     def before_fork(self, *args):
         if not callable(self.conf['before_fork']):
             raise RuntimeError("before_fork hook isn't a callable")
-        return self.conf['after_fork'](*args)
+        return self.conf['before_fork'](*args)
         
         
         

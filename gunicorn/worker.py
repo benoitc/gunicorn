@@ -42,9 +42,13 @@ class Worker(object):
         self.log = logging.getLogger(__name__)
         self.spinner = 0
         self.address = self.socket.getsockname()
-
+        
     def __str__(self):
         return "<Worker %s>" % self.id
+        
+    @property
+    def pid(self):
+        return os.getpid()
 
     def init_signals(self):
         map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)

@@ -50,6 +50,7 @@ class Arbiter(object):
         self.debug = kwargs.get("debug", False)
         self.log = logging.getLogger(__name__)
         self.opts = kwargs
+        self.conf = kwargs.get("config", {})
         self._pidfile = None
         self.master_name = "Master"
         
@@ -324,6 +325,7 @@ class Arbiter(object):
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
                         self.timeout/2.0, self.debug)
+            self.conf.before_fork(self, worker)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
@@ -333,6 +335,7 @@ class Arbiter(object):
             worker_pid = os.getpid()
             try:
                 self.log.info("Worker %s booting" % worker_pid)
+                self.conf.after_fork(self, worker)
                 worker.run()
                 sys.exit(0)
             except SystemExit:
