@@ -65,7 +65,7 @@ class UnixSocket(BaseSocket):
         super(UnixSocket, self).__init__(addr, fd=fd)
     
     def __str__(self):
-        return "unix://%s" % self.address
+        return "unix:%s" % self.address
 
 def create_socket(addr):
     """\

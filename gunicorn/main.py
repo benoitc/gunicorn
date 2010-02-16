@@ -14,6 +14,7 @@ import re
 import sys
 
 from gunicorn.arbiter import Arbiter
+from gunicorn.config import Config
 from gunicorn import util, __version__
 
 LOG_LEVELS = {
@@ -32,7 +33,7 @@ def options():
             help='Config file. [%default]'),
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
-        op.make_option('-w', '--workers', dest='workers', type='int',
+        op.make_option('-w', '--workers', dest='workers',
             help='Number of workers to spawn. [%default]'),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
@@ -66,27 +67,6 @@ def configure_logging(opts):
     for h in handlers:
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
-
-def get_config(path):
-    """
-    Returns a dict of stuff found in the config file.
-    Defaults to $PWD/guniconf.py.
-    """
-    filename = path or os.path.join(os.getcwd(), 'guniconf.py')
-    if not os.path.exists(filename):
-        if not path:
-            return None
-        else:
-            sys.exit('Could not find config file %r' % (filename,))
-    
-    config = {}
-    try:
-        execfile(filename, config)
-    except:
-        sys.exit("Could not read config file %r" % (filename,))
-    
-    config.pop("__builtins__", None)
-    return config
 
 def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
@@ -127,67 +107,30 @@ def set_owner_process(user,group):
         os.setuid(uid)
         
 def main(usage, get_app):
-    default_options = dict(
-        bind='127.0.0.1:8000',
-        daemon=False,
-        debug=False,
-        logfile='-',
-        loglevel='info',
-        pidfile=None,
-        workers=1,
-    )
-    
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
-    parser.set_defaults(**default_options)
     opts, args = parser.parse_args()
     
-    
-    if opts.config:
-        conf_file = opts.config
-    else:
-        conf_file = os.path.join(os.getcwd(), "gunicorn.conf.py")
-    
-    if os.path.isfile(conf_file):
-        fileopts = get_config(conf_file) or {}
-    else:
-        fileopts = {}
-        
-    # optparse returns object, we want a dict
-    opts = opts.__dict__
-    
-    # compare default with opts to see what is actually set
-    changes = dict(set(opts.items()).difference(set(default_options.items())))
-    
-    # default_config < config file < config arguments
-    config = default_options.copy()
-    config.update(fileopts.items())
-    config.update(changes.items())
-    
+    conf = Config(opts.__dict__)
     app = get_app(parser, opts, args)
     
-    workers = config['workers']
-    if config['debug']:
-        workers = 1
-        
-    bind = config['bind'] or '127.0.0.1'
-    addr = util.parse_address(bind)
+    workers = conf['workers']
+    addr = conf['address']
     
-    umask = int(config['umask'] or UMASK)
-
     kwargs = dict(
-        debug=config['debug'],
-        pidfile=config['pidfile']
+        config=conf,
+        debug=conf['debug'],
+        pidfile=conf['pidfile']
     )
     
     arbiter = Arbiter(addr, workers, app, **kwargs)
-    if config['daemon']:
-        daemonize(umask)
+    if conf['daemon']:
+        daemonize(conf['umask'])
     else:
         os.setpgrp()
 
-    set_owner_process(config['user'], config['group']) 
-    configure_logging(config)
+    set_owner_process(conf['user'], conf['group']) 
+    configure_logging(conf)
     arbiter.run()
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
