@@ -27,6 +27,7 @@ LOG_LEVELS = {
 UMASK = 0
 
 def options():
+    """ build command lines options passed to OptParse object """
     return [
         op.make_option('-c', '--config', dest='config', type='string',
             help='Config file. [%default]'),
@@ -53,6 +54,9 @@ def options():
     ]
 
 def configure_logging(opts):
+    """
+    Set level of logging, and choose where to display/save logs (file or standard output).
+    """
     handlers = []
     if opts['logfile'] != "-":
         handlers.append(logging.FileHandler(opts['logfile']))
@@ -68,6 +72,10 @@ def configure_logging(opts):
         logger.addHandler(h)
 
 def daemonize(umask):
+    """ if daemon option is set, this function will daemonize the master.
+    It's based on this activestate recipe :
+    http://code.activestate.com/recipes/278731/
+    """
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
@@ -92,6 +100,7 @@ def daemonize(umask):
         os.dup2(0, 2)
 
 def set_owner_process(user,group):
+    """ set user and group of workers processes """
     if group:
         if group.isdigit() or isinstance(group, int):
             gid = int(group)
@@ -106,6 +115,9 @@ def set_owner_process(user,group):
         os.setuid(uid)
         
 def main(usage, get_app):
+    """ function used by different runners to setup options 
+    ans launch the arbiter. """
+    
     parser = op.OptionParser(usage=usage, option_list=options(),
                     version="%prog " + __version__)
     opts, args = parser.parse_args()
@@ -134,6 +146,14 @@ def main(usage, get_app):
     
 def paste_server(app, global_conf=None, host="127.0.0.1", port=None, 
             *args, **kwargs):
+    """ Paster server entrypoint to add to your paster ini file:
+    
+        [server:main]
+        use = egg:gunicorn#main
+        host = 127.0.0.1
+        port = 5000
+    
+    """
     
     bind_addr = util.parse_address(host, port)
 
@@ -171,6 +191,8 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     arbiter.run()
     
 def run():
+    """ main runner used for gunicorn command to launch generic wsgi application """
+    
     sys.path.insert(0, os.getcwd())
     
     def get_app(parser, opts, args):
@@ -185,6 +207,7 @@ def run():
     main("%prog [OPTIONS] APP_MODULE", get_app)
     
 def run_django():
+    """ django runner for gunicorn_django command used to launch django applications """
     
     def settings_notfound(path):
         error = "Settings file '%s' not found in current folder.\n" % path
@@ -222,6 +245,8 @@ def run_django():
     main("%prog [OPTIONS] [SETTINGS_PATH]", get_app)
     
 def run_paster():
+    """ runner used for gunicorn_paster command to launch paster compatible applications 
+    (pylons, turbogears2, ...) """
     from paste.deploy import loadapp, loadwsgi
 
     def get_app(parser, opts, args):
