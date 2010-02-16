@@ -33,7 +33,7 @@ def options():
         op.make_option('-b', '--bind', dest='bind',
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers',
-            help='Number of workers to spawn. [%default]'),
+            help='Number of workers to spawn. [1]'),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
         op.make_option('-D', '--daemon', dest='daemon', action="store_true",
@@ -45,9 +45,9 @@ def options():
         op.make_option('-g', '--group', dest="group", 
             help="Change worker group"),
         op.make_option('--log-level', dest='loglevel',
-            help='Log level below which to silence messages. [%default]'),
+            help='Log level below which to silence messages. [info]'),
         op.make_option('--log-file', dest='logfile',
-            help='Log to a file. - equals stdout. [%default]'),
+            help='Log to a file. - equals stdout. [-]'),
         op.make_option('-d', '--debug', dest='debug', action="store_true",
             default=False, help='Debug mode. only 1 worker.')
     ]
