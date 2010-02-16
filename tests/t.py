@@ -97,7 +97,7 @@ def hasnot(a, b):
 def raises(exctype, func, *args, **kwargs):
     try:
         func(*args, **kwargs)
-    except exctype, inst:
+    except exctype:
         pass
     else:
         func_name = getattr(func, "func_name", "<builtin_function>")

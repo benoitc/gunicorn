@@ -7,12 +7,10 @@ from __future__ import with_statement
 
 import copy
 import errno
-import fcntl
 import logging
 import os
 import select
 import signal
-import socket
 import sys
 import tempfile
 import time
@@ -59,7 +57,7 @@ class Arbiter(object):
             a = os.stat(os.environ('PWD'))
             b = os.stat(os.getcwd())
             if a.ino == b.ino and a.dev == b.dev:
-                cwd = pwd
+                cwd = os.environ('PWD')
             else:
                 cwd = os.getcwd()
         except:

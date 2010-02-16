@@ -158,7 +158,7 @@ class Worker(object):
             try:            
                 # Last ditch attempt to notify the client of an error.
                 mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-                write_nonblock(sock, mesg)
+                util.write_nonblock(client, mesg)
             except:
                 pass
         finally:    

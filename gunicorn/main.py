@@ -10,7 +10,6 @@ import optparse as op
 import os
 import pwd
 import pkg_resources
-import re
 import sys
 
 from gunicorn.arbiter import Arbiter
@@ -168,7 +167,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
         daemonize(umask)
     else:
         os.setpgrp()
-    set_owner_process(opts.user, opts.group)
+    set_owner_process(user, group)
     arbiter.run()
     
 def run():
@@ -224,9 +223,6 @@ def run_django():
     
 def run_paster():
     from paste.deploy import loadapp, loadwsgi
-
-    _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
-
 
     def get_app(parser, opts, args):
         if len(args) != 1:
