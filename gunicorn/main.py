@@ -208,8 +208,7 @@ def run_django():
              settings_path = os.path.join(project_path, "settings.py")
              if not os.path.isfile(settings_path):
                  settings_notfound(settings_path)
-            
-
+        
         project_name = os.path.split(project_path)[-1]
 
         sys.path.insert(0, project_path)

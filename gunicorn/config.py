@@ -43,7 +43,7 @@ class Config(object):
     def _load_file(self):
         """
         Returns a dict of stuff found in the config file.
-        Defaults to $PWD/guniconf.py.
+        Defaults to $PWD/gunicorn.conf.py.
         """
         if not os.path.exists(self.config_file):
             return {}
@@ -62,7 +62,6 @@ class Config(object):
         self.conf.update(self._load_file())
         for key, value in list(self.cmdopts.items()):
             if value and value is not None:
-                print "%s = %s" % (key, value)
                 self.conf[key] = value
            
     def __getitem__(self, key):
@@ -123,11 +122,4 @@ class Config(object):
         if not callable(before_exec):
             raise RuntimeError("before_exec hook isn't a callable")
         return before_exec(*args)
-        
-        
-            
-    
-        
-        
-    
-        
+          
