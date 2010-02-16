@@ -22,11 +22,13 @@ class Config(object):
         user=None,
         group=None,
         
-        after_fork= lambda server, worker: server.log.info(
+        after_fork=lambda server, worker: server.log.info(
                         "worker=%s spawned pid=%s" % (worker.id, str(worker.pid))),
         
-        before_fork= lambda server, worker: server.log.info(
-                        "worker=%s spawning" % worker.id)
+        before_fork=lambda server, worker: server.log.info(
+                        "worker=%s spawning" % worker.id),
+                        
+        before_exec=lambda server: server.log.info("forked child, reexecuting")
     )
     
     def __init__(self, cmdopts, path=None):
@@ -59,7 +61,6 @@ class Config(object):
         self.conf = self.DEFAULTS.copy()
         self.conf.update(self._load_file())
         for key, value in list(self.cmdopts.items()):
-            
             if value and value is not None:
                 print "%s = %s" % (key, value)
                 self.conf[key] = value
@@ -103,17 +104,25 @@ class Config(object):
         return util.parse_address(self.conf['bind'])
         
     def after_fork(self, *args):
-        if not callable(self.conf['after_fork']):
+        after_fork = self.conf.get("after_fork")
+        if not after_fork: return
+        if not callable(after_fork):
             raise RuntimeError("after_fork hook isn't a callable")
-        return self.conf['after_fork'](*args)
+        return after_fork(*args)
         
     def before_fork(self, *args):
-        if not callable(self.conf['before_fork']):
+        before_fork = self.conf.get("before_fork")
+        if not before_fork: return
+        if not callable(before_fork):
             raise RuntimeError("before_fork hook isn't a callable")
-        return self.conf['before_fork'](*args)
+        return before_fork(*args)
         
-        
-        
+    def before_exec(self, *args):
+        before_exec = self.conf.get("before_exec")
+        if not before_exec: return
+        if not callable(before_exec):
+            raise RuntimeError("before_exec hook isn't a callable")
+        return before_exec(*args)
         
         
             
