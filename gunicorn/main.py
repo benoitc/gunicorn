@@ -237,7 +237,9 @@ def run_django():
         sys.path.append(os.path.join(project_path, os.pardir))
 
         # set environ
-        os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % project_name
+        settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
+        
+        os.environ['DJANGO_SETTINGS_MODULE'] = '%s.%s' % (project_name, settings_name)
         
         # django wsgi app
         return django.core.handlers.wsgi.WSGIHandler()
