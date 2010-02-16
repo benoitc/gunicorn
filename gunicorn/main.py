@@ -199,13 +199,13 @@ def run_django():
         
         if args:
             settings_path = os.path.abspath(os.path.normpath(args[0]))
-            if not os.path.isfile(settings_path):
+            if not os.path.exists(settings_path):
                 settings_notfound(settings_path)
             else:
                 project_path = os.path.dirname(settings_path)
         else:
              settings_path = os.path.join(project_path, "settings.py")
-             if not os.path.isfile(settings_path):
+             if not os.path.exists(settings_path):
                  settings_notfound(settings_path)
         
         project_name = os.path.split(project_path)[-1]
