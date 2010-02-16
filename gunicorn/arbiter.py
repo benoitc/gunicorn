@@ -354,8 +354,9 @@ class Arbiter(object):
         except OSError, e:
             if e.errno == errno.ESRCH:
                 worker = self.WORKERS.pop(pid)
-                try:
-                    worker.tmp.close()
-                except:
-                    pass
             raise
+        finally:
+            try:
+                worker.tmp.close()
+            except:
+                pass
