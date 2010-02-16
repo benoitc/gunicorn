@@ -23,7 +23,7 @@ class Config(object):
         group=None,
         
         after_fork= lambda server, worker: server.log.info(
-                        "worker=%s spawned pid=%s}" % (worker.id, str(worker.pid))),
+                        "worker=%s spawned pid=%s" % (worker.id, str(worker.pid))),
         
         before_fork= lambda server, worker: server.log.info(
                         "worker=%s spawning" % worker.id)
