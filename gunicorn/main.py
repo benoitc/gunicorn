@@ -145,7 +145,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     umask = kwargs.get('umask', UMASK)
     user = kwargs.get('user')
     group = kwargs.get('group')
-    if kwargs:
+    if global_conf:
         workers = int(global_conf.get('workers', workers))
         debug = global_conf.get('debug', debug) == "true"
         if debug:
