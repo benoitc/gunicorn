@@ -102,24 +102,21 @@ class Config(object):
             raise RuntimeError("Listener address is not set")   
         return util.parse_address(self.conf['bind'])
         
+    def _hook(self, hookname, *args):
+        hook = self.conf.get(hookname)
+        if not hook: return
+        if not callable(hook):
+            raise RuntimeError("%s hook isn't a callable" % hookname)
+        return hook(*args)
+        
     def after_fork(self, *args):
-        after_fork = self.conf.get("after_fork")
-        if not after_fork: return
-        if not callable(after_fork):
-            raise RuntimeError("after_fork hook isn't a callable")
-        return after_fork(*args)
+        return self._hook("after_fork", *args)
         
     def before_fork(self, *args):
-        before_fork = self.conf.get("before_fork")
-        if not before_fork: return
-        if not callable(before_fork):
-            raise RuntimeError("before_fork hook isn't a callable")
-        return before_fork(*args)
+        return self._hook("before_fork", *args)
         
     def before_exec(self, *args):
-        before_exec = self.conf.get("before_exec")
-        if not before_exec: return
-        if not callable(before_exec):
-            raise RuntimeError("before_exec hook isn't a callable")
-        return before_exec(*args)
+        return self._hook("before_exec", *args)
+        
+    
           
