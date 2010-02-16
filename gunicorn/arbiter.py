@@ -77,8 +77,6 @@ class Arbiter(object):
         self.pidfile = self.opts.get("pidfile")
         self.log.info("Booted Arbiter: %s" % os.getpid())
         self.log.info("Listening on socket: %s" % self.LISTENER)
-        if 'GUNICORN_FD' in os.environ:
-            del os.environ['GUNICORN_FD']
         
     def _del_pidfile(self):
         self._pidfile = None
@@ -89,7 +87,6 @@ class Arbiter(object):
     def _set_pidfile(self, path):
         if not path:
             return
-            
         pid = self.valid_pidfile(path)
         if pid:
             if self.pidfile and path == self.pidfile and pid == os.getpid():

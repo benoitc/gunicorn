@@ -99,7 +99,7 @@ class Config(object):
     @property
     def address(self):
         if not self.conf['bind']:
-            raise RuntimeError("Listener address is not set")   
+            raise RuntimeError("Listener address is not set")
         return util.parse_address(self.conf['bind'])
         
     def _hook(self, hookname, *args):

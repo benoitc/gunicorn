@@ -19,7 +19,6 @@ class BaseSocket(object):
         if fd is None:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
         else:
-            print "%r" % fd
             sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
         self.sock = self.set_options(sock, bound=(fd is not None))
     
