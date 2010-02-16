@@ -142,8 +142,17 @@ def main(usage, get_app):
     parser.set_defaults(**default_options)
     opts, args = parser.parse_args()
     
-    fileopts = get_config(opts.config) or {}
     
+    if opts.config:
+        conf_file = opts.config
+    else:
+        conf_file = os.path.join(os.getcwd(), "gunicorn.conf.py")
+    
+    if os.path.isfile(conf_file):
+        fileopts = get_config(conf_file) or {}
+    else:
+        fileopts = {}
+        
     # optparse returns object, we want a dict
     opts = opts.__dict__
     
@@ -171,13 +180,13 @@ def main(usage, get_app):
         pidfile=config['pidfile']
     )
     
-    arbiter = Arbiter(addr, workers, app, args[0], **kwargs)
+    arbiter = Arbiter(addr, workers, app, **kwargs)
     if config['daemon']:
         daemonize(umask)
     else:
         os.setpgrp()
 
-    set_owner_process(opts.user, opts.group) 
+    set_owner_process(config['user'], config['group']) 
     configure_logging(config)
     arbiter.run()
     
