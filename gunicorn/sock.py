@@ -67,7 +67,7 @@ class UnixSocket(BaseSocket):
         return "unix:%s" % self.address
 
 def create_socket(addr):
-    """\
+    """
     Create a new socket for the given address. If the
     address is a tuple, a TCP socket is created. If it
     is a string, a Unix socket is created. Otherwise

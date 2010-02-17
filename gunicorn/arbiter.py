@@ -377,6 +377,10 @@ class Arbiter(object):
                 sys.exit(-1)
             finally:
                 self.log.info("Worker %s exiting." % worker_pid)
+                try:
+                    worker.tmp.close()
+                except:
+                    pass
 
     def kill_workers(self, sig):
         """ kill all workers with signal sig
@@ -384,7 +388,7 @@ class Arbiter(object):
         """
         for pid in self.WORKERS.keys():
             self.kill_worker(pid, sig)
-        
+                    
     def kill_worker(self, pid, sig):
         """ kill a worker
         
@@ -396,9 +400,8 @@ class Arbiter(object):
         except OSError, e:
             if e.errno == errno.ESRCH:
                 worker = self.WORKERS.pop(pid)
-            raise
-        finally:
-            try:
-                worker.tmp.close()
-            except:
-                pass
+                try:
+                    worker.tmp.close()
+                except:
+                    pass
+            raise            
