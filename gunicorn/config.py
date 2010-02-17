@@ -100,7 +100,7 @@ class Config(object):
     def address(self):
         if not self.conf['bind']:
             raise RuntimeError("Listener address is not set")
-        return util.parse_address(self.conf['bind'])
+        return util.parse_address(util.to_bytestring(self.conf['bind']))
         
     def _hook(self, hookname, *args):
         hook = self.conf.get(hookname)

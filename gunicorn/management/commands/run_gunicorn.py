@@ -16,8 +16,9 @@ from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
-from gunicorn.main import daemonize, UMASK, set_owner_process
-from gunicorn.util import parse_address
+from gunicorn.config import Config
+from gunicorn.main import daemonize, UMASK, set_owner_process, configure_logging
+from gunicorn.util import parse_address, to_bytestring
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -46,24 +47,21 @@ class Command(BaseCommand):
         if args:
             raise CommandError('Usage is runserver %s' % self.args)
             
-        bind = addrport or '127.0.0.1'
-        addr = parse_address(bind)
+
+        options['bind'] = addrport or '127.0.0.1'
+        conf = Config(options)
 
         admin_media_path = options.get('admin_media_path', '')
-        workers = int(options.get('workers', '1'))
-        daemon = options.get('daemon')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
-        pidfile = options.get('pidfile', None)
-        umask = options.get('umask', UMASK)
 
         print "Validating models..."
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
         
-        if isinstance(addr, basestring):
-            print "Development server is running at unix:/%s" % addr
+        if isinstance(conf.address, basestring):
+            print "Development server is running at unix:/%s" % conf.address
         else:
-            print "Development server is running at http://%s:%s/" % addr
+            print "Development server is running at http://%s:%s/" % conf.address
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
@@ -71,13 +69,14 @@ class Command(BaseCommand):
  
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
-            arbiter = Arbiter(addr, workers, handler,
-                pidfile=pidfile)
-            if daemon:
-                daemonize(umask)
+            arbiter = Arbiter(conf.address, conf.workers, handler,
+                pidfile=conf['pidfile'], config=conf)
+            if conf['daemon']:
+                daemonize(conf['umask'])
             else:
                 os.setpgrp()
-            set_owner_process(options.get("user"), options.get("group"))
+            set_owner_process(conf["user"], conf["group"])
+            configure_logging(conf)
             arbiter.run()
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.

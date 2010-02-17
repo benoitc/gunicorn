@@ -155,7 +155,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     
     """
     
-    bind_addr = util.parse_address(host, port)
+    bind_addr = util.parse_address(util.to_bytestring(host), port)
 
     # set others options
     debug = kwargs.get('debug')

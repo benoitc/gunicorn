@@ -163,3 +163,12 @@ def http_date(timestamp=None):
             day, monthname[month], year,
             hh, mm, ss)
     return s
+    
+def to_bytestring(s):
+    """ convert to bytestring an unicode """
+    if not isinstance(s, basestring):
+        return s
+    if isinstance(s, unicode):
+        return s.encode('utf-8')
+    else:
+        return s
