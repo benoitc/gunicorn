@@ -154,8 +154,10 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if global_conf:
         for key, value in list(global_conf.items()):
             if value and value is not None:
+                if key == "debug":
+                    value = (value == "true")
                 options[key] = value
-                
+           
     conf = Config(options)
     arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
                     pidfile=conf["pidfile"], config=conf)
