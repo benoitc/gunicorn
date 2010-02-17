@@ -47,7 +47,6 @@ class Command(BaseCommand):
         if args:
             raise CommandError('Usage is runserver %s' % self.args)
             
-
         options['bind'] = addrport or '127.0.0.1'
         conf = Config(options)
 
@@ -57,8 +56,6 @@ class Command(BaseCommand):
         print "Validating models..."
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
-        
-
         print "Development server is running at %s" % str(conf.address)
         print "Quit the server with %s." % quit_command
  

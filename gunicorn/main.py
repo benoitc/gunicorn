@@ -154,40 +154,27 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
         port = 5000
     
     """
+    options = kwargs.copy()
+    if port and not host.startswith("unix:"):
+        bind = "%s:%s" % (host, port)
+    else:
+        bind = host
+    options['bind'] = bind
     
-    bind_addr = util.parse_address(util.to_bytestring(host), port)
-
-    # set others options
-    debug = kwargs.get('debug')
-    workers = kwargs.get("workers", 1)
-    pid = kwargs.get("pid")
-    daemon = kwargs.get("daemon")
-    umask = kwargs.get('umask', UMASK)
-    user = kwargs.get('user')
-    group = kwargs.get('group')
     if global_conf:
-        workers = int(global_conf.get('workers', workers))
-        debug = global_conf.get('debug', debug) == "true"
-        if debug:
-            # we force to one worker in debug mode.
-            workers = 1
-        pid = global_conf.get('pid', pid)
-        daemon = global_conf.get('daemon', daemonize)
-        umask = global_conf.get('umask', umask)
-        user = global_conf.get('user', user)
-        group = global_conf.get('group', group)
-   
-    kwargs = dict(
-        debug=debug,
-        pidfile=pid
-    )
-
-    arbiter = Arbiter(bind_addr, workers, app, **kwargs)
-    if daemon == "true":
-        daemonize(umask)
+        for key, value in list(global_conf.items()):
+            if value and value is not None:
+                options[key] = value
+                
+    conf = Config(options)
+    arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
+                    pidfile=pidfile=conf["pidfile"], config=conf)
+    if conf["daemon"] :
+        daemonize(conf["umask"])
     else:
         os.setpgrp()
-    set_owner_process(user, group)
+    set_owner_process(conf["user"], conf["group"])
+    configure_logging(conf)
     arbiter.run()
     
 def run():
