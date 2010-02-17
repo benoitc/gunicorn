@@ -8,6 +8,8 @@ This is a port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `
 Installation
 ------------
 
+Gunicorn requires Python 2.x superior to 2.5.
+
 Install from sources::
 
     $ python setup.py install
