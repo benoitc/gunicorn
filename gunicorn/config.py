@@ -92,7 +92,7 @@ class Config(object):
         workers = int(self.conf["workers"])
         if not workers:
             raise RuntimeError("number of workers < 1")
-        if self.conf['debug'] == True:
+        if self.conf['debug'] == True: 
             workers = 1
         return workers
         

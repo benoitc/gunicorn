@@ -122,24 +122,14 @@ def main(usage, get_app):
                     version="%prog " + __version__)
     opts, args = parser.parse_args()
     
-    conf = Config(opts.__dict__)
     app = get_app(parser, opts, args)
-    
-    workers = conf['workers']
-    addr = conf['address']
-    
-    kwargs = dict(
-        config=conf,
-        debug=conf['debug'],
-        pidfile=conf['pidfile']
-    )
-    
-    arbiter = Arbiter(addr, workers, app, **kwargs)
+    conf = Config(opts.__dict__)
+    arbiter = Arbiter(conf.address, conf.workers, app, config=conf, 
+                debug=conf['debug'], pidfile=conf['pidfile'])
     if conf['daemon']:
         daemonize(conf['umask'])
     else:
         os.setpgrp()
-
     set_owner_process(conf['user'], conf['group']) 
     configure_logging(conf)
     arbiter.run()
@@ -160,7 +150,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     else:
         bind = host
     options['bind'] = bind
-    
+
     if global_conf:
         for key, value in list(global_conf.items()):
             if value and value is not None:
@@ -168,7 +158,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
                 
     conf = Config(options)
     arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
-                    pidfile=pidfile=conf["pidfile"], config=conf)
+                    pidfile=conf["pidfile"], config=conf)
     if conf["daemon"] :
         daemonize(conf["umask"])
     else:
@@ -259,10 +249,8 @@ def run_paster():
         ctx = loadwsgi.loadcontext(loadwsgi.SERVER, config_url,
                                 relative_to=relative_to)
 
-        if opts.workers:
-            workers = opts.workers
-        else:
-            workers = int(ctx.local_conf.get('workers', 1))
+        if not opts.workers:
+            opts.workers = ctx.local_conf.get('workers', 1)
 
         if not opts.umask:
             opts.umask = int(ctx.local_conf.get('umask', UMASK))
@@ -282,13 +270,9 @@ def run_paster():
                 else:
                     bind = host
                 opts.bind = bind
-        
-        debug = ctx.global_conf.get('debug') == "true"
-        if debug:
-            # we force to one worker in debug mode.
-            workers = 1
 
-        opts.workers=workers
+        if not opts.debug:
+            opts.debug = (ctx.global_conf.get('debug') == "true")
 
         app = loadapp(config_url, relative_to=relative_to)
         return app
