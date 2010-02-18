@@ -3,11 +3,12 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import logging
+import os
 import re
 import StringIO
 import sys
 from urllib import unquote
-import logging
 
 from gunicorn import __version__
 from gunicorn.http.parser import Parser
@@ -102,7 +103,10 @@ class Request(object):
             server_address =  server_address.split(":")
             if len(server_address) == 1:
                 server_address.append('')
-        
+                
+        script_name = self.parser.headers_dict.get("SCRIPT_NAME", 
+                                                os.environ.get("SCRIPT_NAME", ""))
+                                                
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
@@ -111,7 +115,7 @@ class Request(object):
             "wsgi.multithread": False,
             "wsgi.multiprocess": wsgi_multiprocess,
             "wsgi.run_once": False,
-            "SCRIPT_NAME": "",
+            "SCRIPT_NAME": script_name,
             "SERVER_SOFTWARE": self.SERVER_VERSION,
             "REQUEST_METHOD": self.parser.method,
             "PATH_INFO": unquote(self.parser.path),
