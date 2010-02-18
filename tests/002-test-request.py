@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-
+import os
 import t
 
 from gunicorn.http import tee
@@ -138,3 +138,14 @@ def test_017(req):
     t.eq(e['PATH_INFO'], "/stuff/here")
     t.eq(e["HTTP_IF_MATCH"], "bazinga!, large-sound")
     t.eq(e["wsgi.input"].read(), "")
+    
+@t.http_request("017.http")
+def test_018(req):
+    os.environ['SCRIPT_NAME'] = "/stuff"
+    e = req.read()
+    t.eq(e['REQUEST_METHOD'], 'GET')
+    t.eq(e['SCRIPT_NAME'], "/stuff")
+    t.eq(e['PATH_INFO'], "/here")
+    t.eq(e["wsgi.input"].read(), "")
+    
+

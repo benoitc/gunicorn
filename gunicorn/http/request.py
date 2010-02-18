@@ -106,7 +106,10 @@ class Request(object):
                 
         script_name = self.parser.headers_dict.get("SCRIPT_NAME", 
                                                 os.environ.get("SCRIPT_NAME", ""))
-                                                
+        path_info = self.parser.path
+        if script_name:
+            path_info = path_info.split(script_name)[-1]
+
         environ = {
             "wsgi.url_scheme": 'http',
             "wsgi.input": wsgi_input,
@@ -118,7 +121,7 @@ class Request(object):
             "SCRIPT_NAME": script_name,
             "SERVER_SOFTWARE": self.SERVER_VERSION,
             "REQUEST_METHOD": self.parser.method,
-            "PATH_INFO": unquote(self.parser.path),
+            "PATH_INFO": unquote(path_info),
             "QUERY_STRING": self.parser.query_string,
             "RAW_URI": self.parser.raw_path,
             "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
