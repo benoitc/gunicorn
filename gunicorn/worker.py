@@ -34,9 +34,9 @@ class Worker(object):
         self.debug = debug
         self.socket = socket
         self.timeout = timeout
-        self.fd, tmpname = tempfile.mkstemp()
+        self.fd, self.tmpname = tempfile.mkstemp(prefix="wgunicorn-")
         self.tmp = os.fdopen(self.fd, "r+b")
-        self.tmpname = tmpname
+        print self.tmpname
         self.app = app
         self.alive = True
         self.log = logging.getLogger(__name__)
