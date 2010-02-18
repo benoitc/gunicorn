@@ -77,7 +77,7 @@ class Request(object):
         # object may be simultaneously invoked by another process, and
         # should evaluate false otherwise. In debug mode we fall to one
         # worker so we comply to pylons and other paster app.
-        wsgi_multiprocess = (self.debug == True)
+        wsgi_multiprocess = (self.debug == False)
 
         # authors should be aware that REMOTE_HOST and REMOTE_ADDR
         # may not qualify the remote addr:
