@@ -110,7 +110,7 @@ class Request(object):
                                             os.environ.get("SCRIPT_NAME", ""))
         path_info = self.parser.path
         if script_name:
-            path_info = path_info.split(script_name)[-1]
+            path_info = path_info.split(script_name, 1)[-1]
 
         environ = {
             "wsgi.url_scheme": 'http',
