@@ -66,7 +66,7 @@ class Request(object):
         self.log.debug("%s", self.parser.status)
         self.log.debug("Headers:\n%s" % headers)
         
-        if self.parser.headers_dict.get('Expect', '').lower() == "100-continue":
+        if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
             self.socket.send("100 Continue\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
@@ -84,7 +84,8 @@ class Request(object):
         # may not qualify the remote addr:
         # http://www.ietf.org/rfc/rfc3875
         client_address = self.client_address or "127.0.0.1"
-        forward_adress = self.parser.headers_dict.get('X-Forwarded-For', client_address)
+        forward_adress = self.parser.headers_dict.get('X-Forwarded-For', 
+                                                client_address)
         
         if isinstance(forward_adress, basestring):
             # we only took the last one
@@ -98,14 +99,15 @@ class Request(object):
             remote_addr = forward_adress
                 
         # Try to server address from headers
-        server_address = self.parser.headers_dict.get('Host', self.server_address)
+        server_address = self.parser.headers_dict.get('Host', 
+                                                    self.server_address)
         if isinstance(server_address, basestring):
             server_address =  server_address.split(":")
             if len(server_address) == 1:
                 server_address.append('')
                 
         script_name = self.parser.headers_dict.get("SCRIPT_NAME", 
-                                                os.environ.get("SCRIPT_NAME", ""))
+                                            os.environ.get("SCRIPT_NAME", ""))
         path_info = self.parser.path
         if script_name:
             path_info = path_info.split(script_name)[-1]
