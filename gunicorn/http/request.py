@@ -73,57 +73,35 @@ class Request(object):
         else:
             wsgi_input = TeeInput(self.socket, self.parser, buf[i:])
                 
-                
-        if self.debug:
-            # This value should evaluate true if an equivalent application
-            # object may be simultaneously invoked by another process, and
-            # should evaluate false otherwise. In debug mode we fall to one
-            # worker so we comply to pylons and other paster app.
-            wsgi_multiprocess = False
-        else:
-            wsgi_multiprocess = True
-            
-            
+        # This value should evaluate true if an equivalent application
+        # object may be simultaneously invoked by another process, and
+        # should evaluate false otherwise. In debug mode we fall to one
+        # worker so we comply to pylons and other paster app.
+        wsgi_multiprocess = (self.debug == True)
 
-        
         # authors should be aware that REMOTE_HOST and REMOTE_ADDR
         # may not qualify the remote addr:
         # http://www.ietf.org/rfc/rfc3875
-        try:
-            if 'X-Forwarded-For' in self.parser.headers_dict:
-                forward_adress = self.parser.headers_dict.get('X-Forwarded-For')
-                
-                # we only took the last one
-                # http://en.wikipedia.org/wiki/X-Forwarded-For
-                if "," in forward_adress:
-                    forward_adress = forward_adress.split(",")[-1].strip()
-                
-                if ":" in forward_adress:
-                    remote_addr, remote_port = forward_adress.split(':')
-                else:
-                    remote_addr, remote_port = (forward_adress, '')
-            elif self.client_address is not None:
-                remote_addr, remote_port = self.client_address
-            else:  
-                remote_addr, remote_port = ('127.0.0.1', '')
-        except:
-             remote_addr, remote_port = ('127.0.0.1', '')
-            
+        client_address = self.client_address or "127.0.0.1"
+        forward_adress = self.parser.headers_dict.get('X-Forwarded-For', client_address)
         
+        if isinstance(forward_adress, basestring):
+            # we only took the last one
+            # http://en.wikipedia.org/wiki/X-Forwarded-For
+            if "," in forward_adress:
+                forward_adress = forward_adress.split(",")[-1].strip()
+            remote_addr = forward_adress.split(":")
+            if len(remote_addr) == 1:
+                remote_addr.append('')
+        else:
+            remote_addr = forward_adress
+                
         # Try to server address from headers
-        if 'Host' in self.parser.headers_dict:
-            server_address = self.parser.headers_dict.get('Host')
-        else:
-            server_address = self.server_address
-            
+        server_address = self.parser.headers_dict.get('Host', self.server_address)
         if isinstance(server_address, basestring):
-            if ':' in server_address:
-                server_name, server_port = server_address.split(":")
-            else:
-                server_name = server_address
-                server_port = ''
-        else:
-            server_name, server_port = server_address
+            server_address =  server_address.split(":")
+            if len(server_address) == 1:
+                server_address.append('')
         
         environ = {
             "wsgi.url_scheme": 'http',
@@ -141,10 +119,10 @@ class Request(object):
             "RAW_URI": self.parser.raw_path,
             "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
             "CONTENT_LENGTH": str(wsgi_input.len),
-            "REMOTE_ADDR": remote_addr,
-            "REMOTE_PORT": remote_port,
-            "SERVER_NAME": server_name,
-            "SERVER_PORT": server_port,
+            "REMOTE_ADDR": remote_addr[0],
+            "REMOTE_PORT": remote_addr[1],
+            "SERVER_NAME": server_address[0],
+            "SERVER_PORT": server_address[1],
             "SERVER_PROTOCOL": self.parser.raw_version
         }
         
