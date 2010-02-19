@@ -36,11 +36,7 @@ class Site(object):
             self.process(files, curr_path, tgt_path)
 
     def process(self, files, curr_path, tgt_path):
-        files = [f for f in files if os.path.splitext(f)[1] in conf.EXTENSIONS]
         for f in files:
-            if os.path.splitext(f)[1] not in conf.EXTENSIONS:
-                continue
-
             page = Page(self, f, curr_path, tgt_path)
             if not page.needed():
                 continue
@@ -61,7 +57,12 @@ class Page(object):
         self.body = ""
 
         with open(self.source, 'Ur') as handle:
-            headers, body = handle.read().split("\n\n", 1)
+            raw = handle.read()
+        
+        try:
+            headers, body = raw.split("\n\n", 1)
+        except ValueError:
+            headers, body = "", raw
 
         try:
             for line in headers.splitlines():
@@ -104,11 +105,11 @@ class Page(object):
 
     def render(self):
         tmpl_name = self.headers.get('template', conf.DEFAULT_TEMPLATE)
-        
+        if not tmpl_name:
+            return self.body
+
         kwargs = {"conf": conf, "stuff": self.body, "url": self.url()}
         kwargs.update(self.headers)
-        print self.body
-
         return self.site.get_template(tmpl_name).render(kwargs)
 
     def convert_rst(self, body):

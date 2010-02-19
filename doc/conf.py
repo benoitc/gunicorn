@@ -10,7 +10,6 @@ SITE_NAME = "Green Unicorn"
 SITE_URL = "http://www.gunicorn.org"
 SITE_DESCRIPTION = "A Python port of Ruby's Unicorn project."
 
-EXTENSIONS = ['.rst']
 DEFAULT_TEMPLATE = "default.html"
 CONTENT_TYPE = "textile"
 
