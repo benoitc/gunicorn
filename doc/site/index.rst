@@ -1,12 +1,7 @@
 template: index.html
 
+Green Unicorn
+=============
 
-This is some markup
-===================
+It does stuff.
 
-More stuff::
-
-    Hello there.
-    Yes... yes... yes!
-    
-And done.
