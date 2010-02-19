@@ -10,9 +10,6 @@ SITE_NAME = "Green Unicorn"
 SITE_URL = "http://www.gunicorn.org"
 SITE_DESCRIPTION = "A Python port of Ruby's Unicorn project."
 
-DEFAULT_TEMPLATE = "default.html"
-CONTENT_TYPE = "textile"
-
 # paths 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_PATH = os.path.join(DOC_PATH, "templates")

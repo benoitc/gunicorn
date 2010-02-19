@@ -104,7 +104,7 @@ class Page(object):
             tgt.write(contents)
 
     def render(self):
-        tmpl_name = self.headers.get('template', conf.DEFAULT_TEMPLATE)
+        tmpl_name = self.headers.get('template')
         if not tmpl_name:
             return self.body
 
