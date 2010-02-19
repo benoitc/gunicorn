@@ -79,8 +79,8 @@ class Page(object):
         converter = getattr(self, "convert_%s" % oldext, lambda x: x)
         self.body = converter(body)
 
-        newfn = "%s.%s" % (basename, self.headers.get('ext', 'html'))
-        self.target = os.path.join(tgt_path, newfn)
+        newext = self.headers.get('ext', '.html')
+        self.target = os.path.join(tgt_path, "%s%s" % (basename, newext))
                 
     def url(self):
         path = self.target.split(conf.OUTPUT_PATH)[1].lstrip('/')
