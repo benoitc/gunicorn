@@ -29,9 +29,9 @@ class BaseSocket(object):
         return getattr(self.sock, name)
     
     def set_options(self, sock, bound=False):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if not bound:
             sock.bind(self.address)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setblocking(0)
         sock.listen(2048)
         return sock
