@@ -49,13 +49,61 @@
 <p>This manual to setup Gunicorn in production and use the configuration file.</p>
 <div class="section" id="the-configuration-file">
 <h1>The configuration file</h1>
-<p>Since 0.5 it's possible to setup the launch of <a href="#id1"><span class="problematic" id="id2">`Gunicorn`_</span></a> via a configuration file. By default the configuration file name is <cite>gunicorn.conf.py</cite> and should be in the folder of your application.</p>
+<p><a class="reference external" href="http://gunicorn.org">Gunicorn</a> 0.5 introduced the ability to read configuration from a file. Gunicorn will either look for &quot;gunicorn.conf.py&quot; in the current directory or a file referred through the -c flag.</p>
+<p>See <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn.conf.py.sample">github.com/benoitc/gunicorn/blob/master/examples/gunicorn.conf.py.sample</a> for an example of configuration file.</p>
+<p>Default configuration settings are:</p>
+<pre class="literal-block">
+bind='127.0.0.1:8000',
+daemon=False,
+debug=False,
+logfile='-',
+loglevel='info',
+pidfile=None,
+workers=1,
+umask=0,
+user=None,
+group=None,
+
+after_fork=lambda server, worker: server.log.info(
+                &quot;worker=%s spawned pid=%s&quot; % (worker.id, str(worker.pid))),
+
+before_fork=lambda server, worker: server.log.info(
+                &quot;worker=%s spawning&quot; % worker.id),
+
+before_exec=lambda server: server.log.info(&quot;forked child, reexecuting&quot;)
+</pre>
+<dl class="docutils">
+<dt>after_fork:</dt>
+<dd>this function is called by the worker after forking. Arguments are the master and worker instances.</dd>
+<dt>before_fork:</dt>
+<dd>this function is called by the worker before forking. Arguments are the master and worker instances.</dd>
+<dt>before_exec:</dt>
+<dd>this function is called before relaunching the master. This happens when the master receive HUP or USR2 signals.</dd>
+<dt>bind:</dt>
+<dd>address on which workers are listening. It could be a tcp address <cite>IP:PORT</cite> or  a unix address <cite>unix:/path/to/sockfile</cite>.</dd>
+<dt>daemon:</dt>
+<dd>Start in daemonized mode.</dd>
+<dt>debug:</dt>
+<dd>if set to <cite>True</cite>, only one worker will be launch and`the variable <cite>wsgi.multiprocess</cite> will be set to False.</dd>
+<dt>group:</dt>
+<dd>the group on which workers processes will be launched.</dd>
+<dt>logfile:</dt>
+<dd>path to the log file. <cite>-</cite> (stdout) by default.</dd>
+<dt>loglevel:</dt>
+<dd>set debug level: info, debug, error</dd>
+<dt>pidfile:</dt>
+<dd>file where master PID number will be saved</dd>
+<dt>umask:</dt>
+<dd>in daemon mode, fix user mask of master.</dd>
+<dt>user:</dt>
+<dd>the user on which workers processes will be launched.</dd>
+</dl>
 </div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id1">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">&lt;string&gt;</tt>, line 6); <em><a href="#id2">backlink</a></em></p>
-Unknown target name: &quot;gunicorn&quot;.</div>
+<div class="section" id="production-setup">
+<h1>Production setup</h1>
+<p>While some others HTTP proxies can be used we strongly advice you to use <a class="reference external" href="http://www/nginx.org">NGINX</a>. If you choose another proxy server, make sure it can do buffering to handle slow clients.</p>
+<p>An example config file for use with nginx is available at  <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">github.com/benoitc/gunicorn/blob/master/examples/nginx.conf</a>.</p>
+<p>You may want to monitor <a class="reference external" href="http://gunicorn.org">Gunicorn</a> service instead of launching it as daemon. You could for example use <a class="reference external" href="http://smarden.org/runit/">runit</a> for that purpose. An example config file for use with runit is available at  <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc</a>.</p>
 </div>
 </div>
 
@@ -65,6 +113,7 @@ Unknown target name: &quot;gunicorn&quot;.</div>
     	
     <div id="footer">
       <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+      <p>Hosted on <a href="http://github.com/">Github</a></p>
     </div>
 	</div>
   </body>
