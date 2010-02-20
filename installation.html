@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Green Unicorn - Installing Gunicorn</title>
+    <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
+  
+    <!--[if IE]>
+      <script>
+        document.createElement('section');
+        document.createElement('article');
+        document.createElement('aside');
+        document.createElement('footer');
+        document.createElement('header');
+        document.createElement('nav');
+        document.createElement('time');
+      </script>
+
+    <![endif]-->
+
+	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+  </head>
+  <body>
+	<div class="container"> 
+		<div id="header"> 
+	      
+	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
+
+	        <div id="links"> 
+	          get the source in
+	          <a href="http://github.com/benoitc/gunicorn">git</a> then
+	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
+	        </div> 
+	  </div>
+    	
+  
+  <div id="menu">
+    <ul id="actions">
+      <li><a href="installation.html">Installation</a></li>
+      <li><a href="usage.html">Usage</a></li>
+      <li><a href="configuration.html">Configuration</a></li>
+      <li><a href="tune.html">Tune</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+  </div>
+
+  <div class="document">
+<p>This is a manual for installing Gunicorn and its dependencies.</p>
+<div class="section" id="installing-gunicorn">
+<h1>Installing Gunicorn</h1>
+<p>Gunicorn requires <strong>Python 2.x superior to 2.5</strong> to work. Python 3.x will be supported soon.</p>
+<div class="section" id="installing-with-easy-install">
+<h2>Installing with easy_install</h2>
+<p>To install Gunicorn using easy_install you must make sure you have a recent version of setuptools installed (as of this writing, 0.6c6 (0.6a9 on windows) or later):</p>
+<pre class="literal-block">
+$ curl -O http://peak.telecommunity.com/dist/ez_setup.py
+$ sudo python ez_setup.py -U setuptools
+</pre>
+<p>To install or upgrade to the latest released version of Gunicorn:</p>
+<pre class="literal-block">
+$ sudo easy_install -U gunicorn
+</pre>
+<div class="section" id="installing-from-source">
+<h3>Installing from source</h3>
+<p>To install Gunicorn from source, simply use the normal procedure for installing any Python package. Since Gunicorn uses setuptools, all dependencies (including setuptools itself) will be automatically acquired and installed for you as appropriate.</p>
+</div>
+</div>
+<div class="section" id="fetch-sources">
+<h2>Fetch sources</h2>
+<p>You could download latest sources from <a class="reference external" href="http://github.com/benoitc/gunicorn/downloads">Github Downloads</a></p>
+<p>Or fetch them with git. Therefore we have to <a class="reference external" href="http://git-scm.com/">install git</a> and then run:</p>
+<pre class="literal-block">
+$ git clone git://github.com/benoitc/gunicorn.git
+</pre>
+</div>
+<div class="section" id="install-gunicorn">
+<h2>Install Gunicorn</h2>
+<pre class="literal-block">
+$ python setup.py install
+</pre>
+<p>If you're using a git clone, it's recommended to use the setuptools <cite>develop</cite> command, which will simply activate Gunicorn directly from your source directory. This way you can do a hg fetch or make changes to the source code without re-installing every time:</p>
+<pre class="literal-block">
+$ python setup.py develop
+</pre>
+</div>
+</div>
+</div>
+
+  
+
+    	
+    	
+    <div id="footer">
+      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+    </div>
+	</div>
+  </body>
+</html>
