@@ -22,6 +22,7 @@ Features
 - Simple and easy Python DSL for configuration
 - Decode chunked transfers on-the-fly, allowing upload progress notifications or
   stream-based protocols over HTTP.
+- post/pre fork hooks
 
 .. _freenode: http://freenode.net
 .. _Gunicorn: http://gunicorn.org

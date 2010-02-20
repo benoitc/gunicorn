@@ -1,4 +1,5 @@
 template: doc.html
+title: FAQ
 
 FAQ
 ===

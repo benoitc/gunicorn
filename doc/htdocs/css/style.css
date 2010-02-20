@@ -1,7 +1,7 @@
 body {
   font-size: 100%;
-  background: #fff;
-  
+  background: #f9f9f9;
+  color: #2a2a2a;
 }
 
 
@@ -98,7 +98,7 @@ ul#actions li a {
   font-style: bold;
   font-size: 2em;
   text-transform: capitalize;
-  color: #fff;
+  color: #ddd;
   padding: 0.6em;
   text-decoration: none;
 }
@@ -108,3 +108,6 @@ ul#actions li a {
   font-weight: bold;
 }
 
+#the-configuration-file dt {
+  font-weight: bold;
+}
