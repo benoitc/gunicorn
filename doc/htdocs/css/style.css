@@ -1,0 +1,107 @@
+body {
+  font-size: 100%;
+  background: #fff;
+  
+}
+
+
+div.container {
+  display: block;
+  width: 40em;
+  margin: 0 auto;
+}
+
+a { color: #569633; }
+
+pre {
+  font-size: 1em;
+  font-family: 'andale mono', 'lucida console', monospace;
+  white-space:pre;
+  margin: 3px; 
+  padding: 8px 20px;
+  background: #ffd; 
+}
+  
+h1.title {
+  padding: 20px; 
+  text-align: center; 
+  background: #489848;
+  color: #65e565;
+  font-size: 2em;
+}
+  
+h2 { background: #ddd; text-align: center; padding: 4px; }
+div.document {
+  width: 100%;
+  clear: both;
+  padding-top: 1.5em;
+}
+ 
+#green-unicorn p { font-size: 1.3em; color: #444; padding: 1px 10px; }
+ 
+#footer { 
+  clear: both;
+  display: block;
+  width: 100%;
+  padding-top: 3em;
+  text-align: center;
+  font-size: 0.9em;
+}
+#footer a { color: #444; }
+ 
+#bottom { text-align:center; font-size:14px; padding: 10px 30px; background: #fda; }
+ 
+.info, .fork { padding: 10px; }
+.content { font-size: 1.2em; }
+ 
+
+ 
+#links { padding: 10px; }
+#links a { font-weight: bold; }
+ 
+#header #links { text-align:right; font-size: 18px; }
+
+h1.logo { 
+  display: block;
+  z-index: 90;
+  height: 20px;
+  float: left;
+  margin: 0;
+  padding: 0;
+}
+h1.logo a {
+  text-decoration: none;
+}
+ 
+.title { color: #a10; background: #f86; font-size: 1.4em; font-weight:bold; padding: 3px 8px; margin-bottom: 10px; }
+.title a { color: #a10; }
+.section p { padding: 1px 14px; font-size: 1.1em; margin-top: 20px; }
+
+
+ul#actions {
+  list-style: none;
+  clear: both;
+  display: block;
+  width: 100%;
+}
+
+ul#actions li {
+  display: block;
+  float: left;
+  margin-left: 0.6em;
+  margin-top: 0.6em;
+  background: #000;
+  
+}
+
+ul#actions li a {
+  font-style: bold;
+  font-size: 2em;
+  text-transform: capitalize;
+  color: #fff;
+  padding: 0.6em;
+  text-decoration: none;
+}
+
+
+

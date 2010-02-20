@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body %}
+  
+  <div id="menu">
+    <ul id="actions">
+      <li><a href="installation.html">Installation</a></li>
+      <li><a href="usage.html">Usage</a></li>
+      <li><a href="configuration.html">Configuration</a></li>
+      <li><a href="tune.html">Tune</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+  </div>
+
+  {{ stuff }}
+  
+{% endblock %}

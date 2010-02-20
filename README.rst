@@ -54,7 +54,6 @@ Example with test app::
     $ cd examples
     $ gunicorn --workers=2 test:app
     
-    
 Django projects
 +++++++++++++++
 

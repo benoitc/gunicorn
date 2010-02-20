@@ -2,8 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Green Unicorn - Welcome</title>
-    <link rel="stylesheet" href="/css/style.css" type="text/css" />
+    <title>Green Unicorn - {% block title %}Welcome{% endblock %}</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
   
     <!--[if IE]>
@@ -16,9 +15,29 @@
         document.createElement('nav');
         document.createElement('time');
       </script>
+
     <![endif]-->
+
+	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
   </head>
   <body>
-    {% block body %}{% endblock %}
+	<div class="container"> 
+		<div id="header"> 
+	      
+	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
+
+	        <div id="links"> 
+	          get the source in
+	          <a href="http://github.com/benoitc/gunicorn">git</a> then
+	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
+	        </div> 
+	  </div>
+    	{% block body %}{% endblock %}
+    	{% block extra %}{% endblock %}
+    	
+    <div id="footer">
+      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+    </div>
+	</div>
   </body>
 </html>

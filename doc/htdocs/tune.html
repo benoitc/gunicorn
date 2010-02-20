@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Green Unicorn - </title>
+    <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
+  
+    <!--[if IE]>
+      <script>
+        document.createElement('section');
+        document.createElement('article');
+        document.createElement('aside');
+        document.createElement('footer');
+        document.createElement('header');
+        document.createElement('nav');
+        document.createElement('time');
+      </script>
+
+    <![endif]-->
+
+	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+  </head>
+  <body>
+	<div class="container"> 
+		<div id="header"> 
+	      
+	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
+
+	        <div id="links"> 
+	          get the source in
+	          <a href="http://github.com/benoitc/gunicorn">git</a> then
+	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
+	        </div> 
+	  </div>
+    	
+  
+  <div id="menu">
+    <ul id="actions">
+      <li><a href="installation.html">Installation</a></li>
+      <li><a href="usage.html">Usage</a></li>
+      <li><a href="configuration.html">Configuration</a></li>
+      <li><a href="tune.html">Tune</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+  </div>
+
+  <div class="document" id="kernel-parameters">
+<h1 class="title">Kernel Parameters</h1>
+<p>There are various kernel parameters that you might want to tune in order to deal with a large number of simultaneous connections. Generally these should only affect sites with a large number of concurrent requests and apply to any sort of network server you may be running. They're listed here for ease of reference.</p>
+<p>The commands listed are tested under Mac OS X 10.6. Your flavor of Unix may use slightly different flags. Always reference the appropriate man pages if uncertain.</p>
+<div class="section" id="increasing-the-file-descriptor-limit">
+<h1>Increasing the File Descriptor Limit</h1>
+<p>One of the first settings that usually needs to be bumped is the maximum number of open file descriptors for a given process. For the confused out there, remember that Unices treat sockets as files.</p>
+<pre class="literal-block">
+$ sudo ulimit -n 1024
+</pre>
+</div>
+<div class="section" id="increasing-the-listen-queue-size">
+<h1>Increasing the Listen Queue Size</h1>
+<p>Listening sockets have an associated queue of incoming connections that are waiting to be accepted. If you happen to have a stampede of clients that fill up this queue new connections will eventually start getting dropped.</p>
+<pre class="literal-block">
+$ sudo sysctl -w kern.ipc.somaxconn=&quot;1024&quot;
+</pre>
+</div>
+<div class="section" id="widening-the-ephemeral-port-range">
+<h1>Widening the Ephemeral Port Range</h1>
+<p>After a socket is closed it eventually enters the TIME_WAIT state. This can become an issue after a prolonged burst of client activity. Eventually the ephemeral port range is used up which can cause new connections to stall while they wait for a valid port.</p>
+<p>This setting is generally only required on machines that are being used to test a network server.</p>
+<pre class="literal-block">
+$ sudo sysctl -w net.inet.ip.portrange.first=&quot;8048&quot;
+</pre>
+</div>
+</div>
+
+  
+
+    	
+    	
+    <div id="footer">
+      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+    </div>
+	</div>
+  </body>
+</html>
