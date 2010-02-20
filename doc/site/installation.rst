@@ -1,18 +1,20 @@
 template: doc.html
 title: Installing Gunicorn
 
+Installation
+============
 
-This is a manual for installing Gunicorn and its dependencies.
+Requirements
+------------
 
-Installing Gunicorn
-=====================
-
-Gunicorn requires **Python 2.x superior to 2.5** to work. Python 3.x will be supported soon. 
+- **Python 2.5 or newer** (Python 3.x will be supported soon)
+- setuptools >= 0.6c6
+- nosetests (for the test suite only)
 
 Installing with easy_install
-++++++++++++++++++++++++++++
+----------------------------
 
-To install Gunicorn using easy_install you must make sure you have a recent version of setuptools installed (as of this writing, 0.6c6 (0.6a9 on windows) or later)::
+If you don't already have ``easy_install`` available you'll want to download and run the ``ez_setup.py`` script::
 
   $ curl -O http://peak.telecommunity.com/dist/ez_setup.py
   $ sudo python ez_setup.py -U setuptools
@@ -24,24 +26,25 @@ To install or upgrade to the latest released version of Gunicorn::
 Installing from source
 ----------------------
 
-To install Gunicorn from source, simply use the normal procedure for installing any Python package. Since Gunicorn uses setuptools, all dependencies (including setuptools itself) will be automatically acquired and installed for you as appropriate.
+You can install Gunicorn from source as simply as you would install any other Python package. Gunicorn uses setuptools which will automatically fetch all dependencies (including setuptools itself).
 
-Fetch sources
-+++++++++++++
+Get a Copy
+++++++++++
 
-You could download latest sources from `Github Downloads <http://github.com/benoitc/gunicorn/downloads>`_
+You can download a tarball of the latest sources from `GitHub Downloads`_ or fetch them with git_::
 
-Or fetch them with git. Therefore we have to `install git <http://git-scm.com/>`_ and then run::
+    $ git clone git://github.com/benoitc/gunicorn.git
 
-  $ git clone git://github.com/benoitc/gunicorn.git
+.. _`GitHub Downloads`: http://github.com/benoitc/gunicorn/downloads
+.. _git: http://git-scm.com/
 
-Install Gunicorn
+Installation
 ++++++++++++++++
 
 ::
 
   $ python setup.py install
 
-If you're using a git clone, it's recommended to use the setuptools `develop` command, which will simply activate Gunicorn directly from your source directory. This way you can do a hg fetch or make changes to the source code without re-installing every time::
+If you've cloned the git repository, its highly recommended that you use the ``develop`` command which will allow you to use Gunicorn from the source directory. This will allow you to keep up to date with development on GitHub as well as make changes to the source::
 
   $ python setup.py develop

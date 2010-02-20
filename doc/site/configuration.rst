@@ -1,74 +1,70 @@
 template: doc.html
 title: Configuration
 
-This manual to setup Gunicorn in production and use the configuration file.
-
-
-The configuration file
+The Configuration File
 ----------------------
 
-`Gunicorn`_ 0.5 introduced the ability to read configuration from a file. Gunicorn will either look for "gunicorn.conf.py" in the current directory or a file referred through the -c flag.
+Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for ``gunicorn.conf.py`` in the current working directory or what ever path is specified on the command line with the ``-c`` option.
 
-See `github.com/benoitc/gunicorn/blob/master/examples/gunicorn.conf.py.sample <http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn.conf.py.sample>`_ for an example of configuration file. 
+A configuration file with default settings would look like this::
 
-Default configuration settings are:: 
+    bind = "127.0.0.1:8000" # Or "unix:/tmp/gunicorn.sock"
+    daemon = False          # Whether work in the background
+    debug = False           # Some extra logging
+    logfile = "-"           # Name of the log file
+    loglevel = "info"       # The level at which to log
+    pidfile = None          # Path to a PID file
+    workers = 1             # Number of workers to initialize
+    umask = 0               # Umask to set when daemonizing
+    user = None             # Change process owner to user
+    group = None            # Change process group to group
+    
+    def after_fork(server, worker):
+        fmt = "worker=%s spawned pid=%s"
+        server.log.info(fmt % (worker.id, worker.pid))
+    
+    def before_fork(server, worker):
+        fmt = "worker=%s spawning"
+        server.log.info(fmt % worker.id)
+    
+    def before_exec(server):
+        serer.log.info("Forked child, reexecuting.")
 
-  bind='127.0.0.1:8000',
-  daemon=False,
-  debug=False,
-  logfile='-',
-  loglevel='info',
-  pidfile=None,
-  workers=1,
-  umask=0,
-  user=None,
-  group=None,
-
-  after_fork=lambda server, worker: server.log.info(
-                  "worker=%s spawned pid=%s" % (worker.id, str(worker.pid))),
-
-  before_fork=lambda server, worker: server.log.info(
-                  "worker=%s spawning" % worker.id),
-
-  before_exec=lambda server: server.log.info("forked child, reexecuting")
-
-
-
-after_fork:
-  this function is called by the worker after forking. Arguments are the master and worker instances.
+after_fork(server, worker):
+    This is called by the worker after initialization. 
   
-before_fork:
-  this function is called by the worker before forking. Arguments are the master and worker instances.
+before_fork(server, worker):
+    This is called by the worker just before forking.
   
-before_exec:
-  this function is called before relaunching the master. This happens when the master receive HUP or USR2 signals.
+before_exec(server):
+    This function is called before relaunching the master. This happens when the master receives a HUP or USR2 signal.
   
 bind:
-  address on which workers are listening. It could be a tcp address `IP:PORT` or  a unix address `unix:/path/to/sockfile`.
+    The address on which workers are listening. It can be a TCP address with a format of ``IP:PORT`` or a Unix socket address like ``unix:/path/to/socketfile``.
 
 daemon:
-  Start in daemonized mode.
+    Whether or not to detach the server from the controlling terminal.
   
 debug:
-  if set to `True`, only one worker will be launch and`the variable `wsgi.multiprocess` will be set to False.
+    If ``True``, only one worker will be launch and the variable ``wsgi.multiprocess`` will be set to False.
   
 group:
-  the group on which workers processes will be launched.
+    The group in which worker processes will be launched.
   
 logfile:
-  path to the log file. `-` (stdout) by default.
+    The path to the log file ``-`` (stdout) by default.
   
 loglevel:
-  set debug level: info, debug, error
+    The level at which to log. ``info``, ``debug``, or ``error`` for instance. Only log messages of equal or greater severity are logged.
   
 pidfile:
-  file where master PID number will be saved
+    A file to store the master's PID.
   
 umask:
-  in daemon mode, fix user mask of master.
+    Used to set the umask when daemonizing.
 
 user:
-  the user on which workers processes will be launched.
+    The user as which worker processes will by launched.
   
 Production setup
 ----------------

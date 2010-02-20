@@ -1,10 +1,8 @@
 template: doc.html
-title: Command line usage
+title: Command Line Usage
 
-Command line usage
+Command Line Usage
 ==================
-
-`Gunicorn`_ can easily be launched from the command line. This manual will show you how to use it with:
 
 - `WSGI applications`_
 - `Django projects`_
@@ -13,11 +11,16 @@ Command line usage
 WSGI applications
 -----------------
 
-Here is how to launch your application in less than 30 seconds. Here is an example with our `test application <http://github.com/benoitc/gunicorn/blob/master/examples/test.py>`_::
+Thirty seconds to launch the `example application`_ packaged with Gunicorn::
 
-  $ cd examples
-  $ gunicorn --workers=2 test:application
-  
+    $ cd /path/to/gunicorn/examples/
+    $ gunicorn --workers=2 test:application
+
+The module ``test:application`` specifies the complete module name and WSGI callable. You can replace it with anything that is available on your ``PYTHONPATH`` like such::
+
+    $ cd ~/
+    $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
+
 Full command line usage
 +++++++++++++++++++++++
 
@@ -47,52 +50,51 @@ Full command line usage
     --version             show program's version number and exit
     -h, --help            show this help message and exit
 
-Django projects
+Django Projects
 ---------------
 
-`Django`_ projects can be handled easily by `Gunicorn`_ using the `gunicorn_django` command::
+`Django`_ projects can be handled easily by Gunicorn using the ``gunicorn_django`` command::
 
-    $ cd yourdjangoproject
+    $ cd $yourdjangoproject
     $ gunicorn_django --workers=2
 
+But you can also use the ``run_gunicorn`` `admin command`_ like the other ``management.py`` commands.
 
-But you can also use `run_gunicorn` `admin command <http://docs.djangoproject.com/en/dev/howto/custom-management-commands/>`_ like all other commands.
+Add ``"gunicorn"`` to INSTALLED_APPS in your settings file::
 
-add `gunicorn` to INSTALLED_APPS in the settings file::
-
-  INSTALLED_APPS = (
-    ...
-    "gunicorn",
-  )
+    INSTALLED_APPS = (
+        ...
+        "gunicorn",
+    )
   
 Then run::
 
-  python manage.py run_gunicorn
+    python manage.py run_gunicorn
   
 
 Paste-compatible projects
 -------------------------
 
-For `Paste`_ compatible projects (like `Pylons`_, `TurboGears 2`_, ...) use the `gunicorn_paste` command::
+For `Paste`_ compatible projects (`Pylons`_, `TurboGears 2`_, ...) use the ``gunicorn_paste`` command::
 
-  $ cd your pasteproject
-  $ gunicorn_paste --workers=2 development.ini
+    $ cd $yourpasteproject
+    $ gunicorn_paste --workers=2 development.ini
 
-or usual **paster** command::
+To use the ``paster`` command add a sever section for Gunicorn::
 
-  $ cd your pasteproject
-  $ paster serve development.ini workers=2
-  
-In this case don't forget to add a server section for `Gunicorn`_. Here is an example that use gunicorn as main server::
+    [server:main]
+    use = egg:gunicorn#main
+    host = 127.0.0.1
+    port = 5000
 
-  [server:main]
-  use = egg:gunicorn#main
-  host = 127.0.0.1
-  port = 5000
-  
-  
-.. _Gunicorn: http://gunicorn.org
+And then all you need to do is::
+
+    $ cd $yourpasteproject
+    $ paster serve development.ini workers=2
+ 
+.. _`example application`: http://github.com/benoitc/gunicorn/blob/master/examples/test.py
 .. _Django: http://djangoproject.com
+.. _`admin command`: http://docs.djangoproject.com/en/dev/howto/custom-management-commands/
 .. _Paste: http://pythonpaste.org/script/
 .. _Pylons: http://pylonshq.com/
 .. _Turbogears 2: http://turbogears.org/2.0/
