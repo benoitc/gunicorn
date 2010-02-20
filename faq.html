@@ -35,35 +35,39 @@
     	
   
   <div id="menu">
-    <ul id="actions">
-  <li><a href="installation.html">Installation</a></li>
-  <li><a href="usage.html">Usage</a></li>
-  <li><a href="configuration.html">Configuration</a></li>
-  <li><a href="tuning.html">Tuning</a></li>
-  <li><a href="faq.html">FAQ</a></li>
-  <li><a href="news.html">NEWS</a></li>
-</ul>
-  </div>
+  <ul id="actions">
+    <li><a href="installation.html">Installation</a></li>
+    <li><a href="usage.html">Usage</a></li>
+    <li><a href="deployment.html">Deployment</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+    <li><a href="tuning.html">Tuning</a></li>
+    <li><a href="faq.html">FAQ</a></li>
+    <li><a href="news.html">NEWS</a></li>
+  </ul>
+</div>
 
   <div class="document" id="faq">
 <h1 class="title">FAQ</h1>
 <dl class="docutils">
-<dt>How to reload my application in Gunicorn ?</dt>
+<dt>How do I reload my application in Gunicorn?</dt>
 <dd><p class="first">You can gracefully reload by sending HUP signal to gunicorn:</p>
 <pre class="last literal-block">
 $ kill -HUP masterpid
 </pre>
 </dd>
-<dt>How to increase/decrease number of running workers ?</dt>
-<dd><p class="first">send TTIN/TTOUT signals to do it:</p>
+<dt>How do I increase or decrease the number of running workers dynamically?</dt>
+<dd><p class="first">To increase the worker count by one:</p>
 <pre class="literal-block">
-$ kill -TTIN masterpid
+$ kill -TTIN $masterpid
 </pre>
-<p class="last">will increase the number from one worker</p>
+<p>To decrease the worker count by one:</p>
+<pre class="last literal-block">
+$ kill -TTOUT $masterpid
+</pre>
 </dd>
-<dt>How to set SCRIPT_NAME ?</dt>
-<dd>By default SCRIPT_name is an empy string. Value could be changed by passing
-<cite>SCRIPT_NAME</cite> in environment (apache way) or as an HTTP header (nginx way).</dd>
+<dt>How do I set SCRIPT_NAME?</dt>
+<dd>By default <tt class="docutils literal">SCRIPT_NAME</tt> is an empy string. The value could be set by
+setting <tt class="docutils literal">SCRIPT_NAME</tt> in the environment or as an HTTP header.</dd>
 </dl>
 </div>
 

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Green Unicorn - Command line usage</title>
+    <title>Green Unicorn - Command Line Usage</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
   
     <!--[if IE]>
@@ -35,19 +35,19 @@
     	
   
   <div id="menu">
-    <ul id="actions">
-  <li><a href="installation.html">Installation</a></li>
-  <li><a href="usage.html">Usage</a></li>
-  <li><a href="configuration.html">Configuration</a></li>
-  <li><a href="tuning.html">Tuning</a></li>
-  <li><a href="faq.html">FAQ</a></li>
-  <li><a href="news.html">NEWS</a></li>
-</ul>
-  </div>
+  <ul id="actions">
+    <li><a href="installation.html">Installation</a></li>
+    <li><a href="usage.html">Usage</a></li>
+    <li><a href="deployment.html">Deployment</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+    <li><a href="tuning.html">Tuning</a></li>
+    <li><a href="faq.html">FAQ</a></li>
+    <li><a href="news.html">NEWS</a></li>
+  </ul>
+</div>
 
   <div class="document" id="command-line-usage">
-<h1 class="title">Command line usage</h1>
-<p><a class="reference external" href="http://gunicorn.org">Gunicorn</a> can easily be launched from the command line. This manual will show you how to use it with:</p>
+<h1 class="title">Command Line Usage</h1>
 <ul class="simple">
 <li><a class="reference internal" href="#wsgi-applications">WSGI applications</a></li>
 <li><a class="reference internal" href="#django-projects">Django projects</a></li>
@@ -55,10 +55,15 @@
 </ul>
 <div class="section" id="wsgi-applications">
 <h1>WSGI applications</h1>
-<p>Here is how to launch your application in less than 30 seconds. Here is an example with our <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">test application</a>:</p>
+<p>Thirty seconds to launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
 <pre class="literal-block">
-$ cd examples
+$ cd /path/to/gunicorn/examples/
 $ gunicorn --workers=2 test:application
+</pre>
+<p>The module <tt class="docutils literal">test:application</tt> specifies the complete module name and WSGI callable. You can replace it with anything that is available on your <tt class="docutils literal">PYTHONPATH</tt> like such:</p>
+<pre class="literal-block">
+$ cd ~/
+$ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
 </pre>
 <div class="section" id="full-command-line-usage">
 <h2>Full command line usage</h2>
@@ -90,18 +95,18 @@ Options:
 </div>
 </div>
 <div class="section" id="django-projects">
-<h1>Django projects</h1>
-<p><a class="reference external" href="http://djangoproject.com">Django</a> projects can be handled easily by <a class="reference external" href="http://gunicorn.org">Gunicorn</a> using the <cite>gunicorn_django</cite> command:</p>
+<h1>Django Projects</h1>
+<p><a class="reference external" href="http://djangoproject.com">Django</a> projects can be handled easily by Gunicorn using the <tt class="docutils literal">gunicorn_django</tt> command:</p>
 <pre class="literal-block">
-$ cd yourdjangoproject
+$ cd $yourdjangoproject
 $ gunicorn_django --workers=2
 </pre>
-<p>But you can also use <cite>run_gunicorn</cite> <a class="reference external" href="http://docs.djangoproject.com/en/dev/howto/custom-management-commands/">admin command</a> like all other commands.</p>
-<p>add <cite>gunicorn</cite> to INSTALLED_APPS in the settings file:</p>
+<p>But you can also use the <tt class="docutils literal">run_gunicorn</tt> <a class="reference external" href="http://docs.djangoproject.com/en/dev/howto/custom-management-commands/">admin command</a> like the other <tt class="docutils literal">management.py</tt> commands.</p>
+<p>Add <tt class="docutils literal">&quot;gunicorn&quot;</tt> to INSTALLED_APPS in your settings file:</p>
 <pre class="literal-block">
 INSTALLED_APPS = (
-  ...
-  &quot;gunicorn&quot;,
+    ...
+    &quot;gunicorn&quot;,
 )
 </pre>
 <p>Then run:</p>
@@ -111,22 +116,22 @@ python manage.py run_gunicorn
 </div>
 <div class="section" id="paste-compatible-projects">
 <h1>Paste-compatible projects</h1>
-<p>For <a class="reference external" href="http://pythonpaste.org/script/">Paste</a> compatible projects (like <a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...) use the <cite>gunicorn_paste</cite> command:</p>
+<p>For <a class="reference external" href="http://pythonpaste.org/script/">Paste</a> compatible projects (<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...) use the <tt class="docutils literal">gunicorn_paste</tt> command:</p>
 <pre class="literal-block">
-$ cd your pasteproject
+$ cd $yourpasteproject
 $ gunicorn_paste --workers=2 development.ini
 </pre>
-<p>or usual <strong>paster</strong> command:</p>
-<pre class="literal-block">
-$ cd your pasteproject
-$ paster serve development.ini workers=2
-</pre>
-<p>In this case don't forget to add a server section for <a class="reference external" href="http://gunicorn.org">Gunicorn</a>. Here is an example that use gunicorn as main server:</p>
+<p>To use the <tt class="docutils literal">paster</tt> command add a sever section for Gunicorn:</p>
 <pre class="literal-block">
 [server:main]
 use = egg:gunicorn#main
 host = 127.0.0.1
 port = 5000
+</pre>
+<p>And then all you need to do is:</p>
+<pre class="literal-block">
+$ cd $yourpasteproject
+$ paster serve development.ini workers=2
 </pre>
 </div>
 </div>

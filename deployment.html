@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Green Unicorn - Deployment</title>
+    <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
+  
+    <!--[if IE]>
+      <script>
+        document.createElement('section');
+        document.createElement('article');
+        document.createElement('aside');
+        document.createElement('footer');
+        document.createElement('header');
+        document.createElement('nav');
+        document.createElement('time');
+      </script>
+
+    <![endif]-->
+
+	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+  </head>
+  <body>
+	<div class="container"> 
+		<div id="header"> 
+	      
+	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
+
+	        <div id="links"> 
+	          get the source in
+	          <a href="http://github.com/benoitc/gunicorn">git</a> then
+	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
+	        </div> 
+	  </div>
+    	
+  
+  <div id="menu">
+  <ul id="actions">
+    <li><a href="installation.html">Installation</a></li>
+    <li><a href="usage.html">Usage</a></li>
+    <li><a href="deployment.html">Deployment</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+    <li><a href="tuning.html">Tuning</a></li>
+    <li><a href="faq.html">FAQ</a></li>
+    <li><a href="news.html">NEWS</a></li>
+  </ul>
+</div>
+
+  <div class="document" id="production-setup">
+<h1 class="title">Production Setup</h1>
+<p>Although there are many HTTP proxies available, we strongly advise that you use <a class="reference external" href="http://www.nginx.org">Nginx</a>. If you choose another proxy server you need to make sure that it buffers slow clients. Without this buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.</p>
+<div class="section" id="nginx-config">
+<h1>Nginx Config</h1>
+<p>An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">example configuration</a> file for use with <a class="reference external" href="http://www.nginx.org">Nginx</a>:</p>
+<pre class="literal-block">
+worker_processes 1;
+
+user nobody nogroup;
+pid /tmp/nginx.pid;
+error_log /tmp/nginx.error.log;
+
+events {
+    worker_connections 1024;
+    accept_mutex off;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    access_log /tmp/nginx.access.log combined;
+    sendfile on;
+
+    upstream app_server {
+        server unix:/tmp/gunicorn.sock fail_timeout=0;
+        # For a TCP configuration:
+        # server 192.168.0.7:8000 fail_timeout=0;
+    }
+
+    server {
+        listen 80 default;
+        client_max_body_size 4G;
+        server_name _;
+
+        keepalive_timeout 5;
+
+        # path for static files
+        root /path/to/app/current/public;
+
+        location / {
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host $http_host;
+            proxy_redirect off;
+
+            if (!-f $request_filename) {
+                proxy_pass http://app_server;
+                break;
+            }
+        }
+
+        error_page 500 502 503 504 /500.html;
+        location = /500.html {
+            root /path/to/app/current/public;
+        }
+    }
+}
+</pre>
+</div>
+<div class="section" id="daemon-monitoring">
+<h1>Daemon Monitoring</h1>
+<p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>. An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
+<pre class="literal-block">
+#!/bin sh
+
+GUNICORN=/usr/local/bin/gunicorn
+ROOT=/path/to/project
+PID=/var/run/gunicorn.pid
+
+APP=main:application
+
+if [ -f $PID ]; then rm $PID fi
+
+cd $ROOT
+exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
+</pre>
+</div>
+</div>
+
+  
+
+    	
+    	
+    <div id="footer">
+      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+      <p>Hosted on <a href="http://github.com/">Github</a></p>
+    </div>
+	</div>
+  </body>
+</html>

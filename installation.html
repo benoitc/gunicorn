@@ -35,24 +35,30 @@
     	
   
   <div id="menu">
-    <ul id="actions">
-  <li><a href="installation.html">Installation</a></li>
-  <li><a href="usage.html">Usage</a></li>
-  <li><a href="configuration.html">Configuration</a></li>
-  <li><a href="tuning.html">Tuning</a></li>
-  <li><a href="faq.html">FAQ</a></li>
-  <li><a href="news.html">NEWS</a></li>
-</ul>
-  </div>
+  <ul id="actions">
+    <li><a href="installation.html">Installation</a></li>
+    <li><a href="usage.html">Usage</a></li>
+    <li><a href="deployment.html">Deployment</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+    <li><a href="tuning.html">Tuning</a></li>
+    <li><a href="faq.html">FAQ</a></li>
+    <li><a href="news.html">NEWS</a></li>
+  </ul>
+</div>
 
-  <div class="document">
-<p>This is a manual for installing Gunicorn and its dependencies.</p>
-<div class="section" id="installing-gunicorn">
-<h1>Installing Gunicorn</h1>
-<p>Gunicorn requires <strong>Python 2.x superior to 2.5</strong> to work. Python 3.x will be supported soon.</p>
+  <div class="document" id="installation">
+<h1 class="title">Installation</h1>
+<div class="section" id="requirements">
+<h1>Requirements</h1>
+<ul class="simple">
+<li><strong>Python 2.5 or newer</strong> (Python 3.x will be supported soon)</li>
+<li>setuptools &gt;= 0.6c6</li>
+<li>nosetests (for the test suite only)</li>
+</ul>
+</div>
 <div class="section" id="installing-with-easy-install">
-<h2>Installing with easy_install</h2>
-<p>To install Gunicorn using easy_install you must make sure you have a recent version of setuptools installed (as of this writing, 0.6c6 (0.6a9 on windows) or later):</p>
+<h1>Installing with easy_install</h1>
+<p>If you don't already have <tt class="docutils literal">easy_install</tt> available you'll want to download and run the <tt class="docutils literal">ez_setup.py</tt> script:</p>
 <pre class="literal-block">
 $ curl -O http://peak.telecommunity.com/dist/ez_setup.py
 $ sudo python ez_setup.py -U setuptools
@@ -61,25 +67,23 @@ $ sudo python ez_setup.py -U setuptools
 <pre class="literal-block">
 $ sudo easy_install -U gunicorn
 </pre>
+</div>
 <div class="section" id="installing-from-source">
-<h3>Installing from source</h3>
-<p>To install Gunicorn from source, simply use the normal procedure for installing any Python package. Since Gunicorn uses setuptools, all dependencies (including setuptools itself) will be automatically acquired and installed for you as appropriate.</p>
-</div>
-</div>
-<div class="section" id="fetch-sources">
-<h2>Fetch sources</h2>
-<p>You could download latest sources from <a class="reference external" href="http://github.com/benoitc/gunicorn/downloads">Github Downloads</a></p>
-<p>Or fetch them with git. Therefore we have to <a class="reference external" href="http://git-scm.com/">install git</a> and then run:</p>
+<h1>Installing from source</h1>
+<p>You can install Gunicorn from source as simply as you would install any other Python package. Gunicorn uses setuptools which will automatically fetch all dependencies (including setuptools itself).</p>
+<div class="section" id="get-a-copy">
+<h2>Get a Copy</h2>
+<p>You can download a tarball of the latest sources from <a class="reference external" href="http://github.com/benoitc/gunicorn/downloads">GitHub Downloads</a> or fetch them with <a class="reference external" href="http://git-scm.com/">git</a>:</p>
 <pre class="literal-block">
 $ git clone git://github.com/benoitc/gunicorn.git
 </pre>
 </div>
-<div class="section" id="install-gunicorn">
-<h2>Install Gunicorn</h2>
+<div class="section" id="id1">
+<h2>Installation</h2>
 <pre class="literal-block">
 $ python setup.py install
 </pre>
-<p>If you're using a git clone, it's recommended to use the setuptools <cite>develop</cite> command, which will simply activate Gunicorn directly from your source directory. This way you can do a hg fetch or make changes to the source code without re-installing every time:</p>
+<p>If you've cloned the git repository, its highly recommended that you use the <tt class="docutils literal">develop</tt> command which will allow you to use Gunicorn from the source directory. This will allow you to keep up to date with development on GitHub as well as make changes to the source:</p>
 <pre class="literal-block">
 $ python setup.py develop
 </pre>

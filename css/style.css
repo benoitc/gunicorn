@@ -23,10 +23,10 @@ pre {
 }
   
 h1.title {
-  padding: 20px; 
+  padding: 0.3em;
   text-align: center; 
   background: #489848;
-  color: #65e565;
+  color: #fff;
   font-size: 2em;
 }
   
@@ -34,7 +34,8 @@ h2 { background: #ddd; text-align: center; padding: 4px; }
 div.document {
   width: 100%;
   clear: both;
-  padding-top: 1.5em;
+  padding-top: 0.8em;
+  margin-bottom: 0.1em;
 }
  
 #green-unicorn p { font-size: 1.3em; color: #444; padding: 1px 10px; }
@@ -78,29 +79,41 @@ h1.logo a {
 .section p { padding: 1px 14px; font-size: 1.1em; margin-top: 20px; }
 
 
+#menu {
+  width: 100%;
+  padding: 1em 0;
+}
+
 ul#actions {
   list-style: none;
-  clear: both;
   display: block;
   width: 100%;
+  text-indent: 0;
+  margin: 0;
+  padding: 0;
 }
 
 ul#actions li {
   display: block;
   float: left;
-  margin-left: 0.6em;
-  margin-top: 0.6em;
+  margin: 0;
+  padding: 0;
   background: #000;
+  
   
 }
 
 ul#actions li a {
   font-style: bold;
-  font-size: 2em;
+  font-size: 1.8em;
   text-transform: capitalize;
   color: #ddd;
   padding: 0.6em;
   text-decoration: none;
+}
+
+ul#actions li a:hover {
+  color: #fff;
 }
 
 #faq dt {

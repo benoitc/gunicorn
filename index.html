@@ -34,36 +34,39 @@
 	  </div>
     	<div class="document" id="green-unicorn">
 <h1 class="title">Green Unicorn</h1>
-<p>gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and nothing else.</p>
-<p>This is a port of Unicorn (<a class="reference external" href="http://unicorn.bogomips.org/">http://unicorn.bogomips.org/</a>) in Python. Meet us on <a class="reference external" href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn irc channel</a> on <a class="reference external" href="http://freenode.net">Freenode</a>.</p>
-<p>Gunicorn is under MIT License. see <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/LICENSE">LICENSE</a> file for more details.</p>
+<p>Green Unicorn (gunicorn) is an HTTP/WSGI Server for UNIX designed to serve fast clients and nothing else.</p>
+<p>This is a port of <a class="reference external" href="http://unicorn.bogomips.org/">Unicorn</a> in Python. Meet us on the <a class="reference external" href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn IRC channel</a>  on <a class="reference external" href="http://freenode.net">Freenode</a>.</p>
+<p>Gunicorn is released under the MIT License. See the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/LICENSE">LICENSE</a> for more details.</p>
 <div class="section" id="features">
 <h1>Features</h1>
 <ul class="simple">
-<li>Designed for WSGI, Unix and fast clients.</li>
-<li>Compatible with Python 2.x superior to 2.5</li>
-<li>Easy integration with <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications (Pylons, Turbogears 2, ...)</li>
-<li>Process management: <a class="reference external" href="http://gunicorn.org">Gunicorn</a> reap and restart workers that die.</li>
-<li>Load balancing done by the os</li>
-<li>Graceful restart of workers</li>
+<li>Designed for Unix, WSGI, and fast clients</li>
+<li>Compatible with Python 2.x (&gt;= 2.5)</li>
+<li>Easy integration with <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications (Pylons, TurboGears 2, ...)</li>
+<li>Process management: <a class="reference external" href="http://gunicorn.org">Gunicorn</a> reaps and restarts workers that die.</li>
+<li>Load balancing via pre-fork and a shared socket</li>
+<li>Graceful worker process restarts</li>
 <li>Upgrade &quot;àla nginx&quot; without losing connections</li>
-<li>Simple and easy Python DSL for configuration</li>
+<li>Simple and easy Python configuration</li>
 <li>Decode chunked transfers on-the-fly, allowing upload progress notifications or
-stream-based protocols over HTTP.</li>
-<li>post/pre fork hooks</li>
+stream-based protocols over HTTP</li>
+<li>Post- and pre-fork hooks</li>
 </ul>
 </div>
 </div>
 
     	
+  <div id="menu">
   <ul id="actions">
-  <li><a href="installation.html">Installation</a></li>
-  <li><a href="usage.html">Usage</a></li>
-  <li><a href="configuration.html">Configuration</a></li>
-  <li><a href="tuning.html">Tuning</a></li>
-  <li><a href="faq.html">FAQ</a></li>
-  <li><a href="news.html">NEWS</a></li>
-</ul>
+    <li><a href="installation.html">Installation</a></li>
+    <li><a href="usage.html">Usage</a></li>
+    <li><a href="deployment.html">Deployment</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+    <li><a href="tuning.html">Tuning</a></li>
+    <li><a href="faq.html">FAQ</a></li>
+    <li><a href="news.html">NEWS</a></li>
+  </ul>
+</div>
 
     	
     <div id="footer">
