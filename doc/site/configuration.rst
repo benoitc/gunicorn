@@ -1,12 +1,14 @@
 template: doc.html
-title: Configuration
+title: The Configuration File
 
 The Configuration File
-----------------------
+======================
 
 Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for ``gunicorn.conf.py`` in the current working directory or what ever path is specified on the command line with the ``-c`` option.
 
-A configuration file with default settings would look like this::
+Example gunicorn.conf.py
+------------------------
+::
 
     bind = "127.0.0.1:8000" # Or "unix:/tmp/gunicorn.sock"
     daemon = False          # Whether work in the background
@@ -29,6 +31,9 @@ A configuration file with default settings would look like this::
     
     def before_exec(server):
         serer.log.info("Forked child, reexecuting.")
+
+Parameter Descriptions
+----------------------
 
 after_fork(server, worker):
     This is called by the worker after initialization. 
@@ -65,15 +70,3 @@ umask:
 
 user:
     The user as which worker processes will by launched.
-  
-Production setup
-----------------
-
-While some others HTTP proxies can be used we strongly advice you to use `NGINX <http://www/nginx.org>`_. If you choose another proxy server, make sure it can do buffering to handle slow clients.
-
-An example config file for use with nginx is available at  `github.com/benoitc/gunicorn/blob/master/examples/nginx.conf <http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf>`_.
-  
-
-You may want to monitor `Gunicorn`_ service instead of launching it as daemon. You could for example use `runit <http://smarden.org/runit/>`_ for that purpose. An example config file for use with runit is available at  `github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc <http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc>`_. 
-
-.. _Gunicorn: http://gunicorn.org

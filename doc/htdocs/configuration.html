@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Green Unicorn - Configuration</title>
+    <title>Green Unicorn - The Configuration File</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
   
     <!--[if IE]>
@@ -38,6 +38,7 @@
     <ul id="actions">
   <li><a href="installation.html">Installation</a></li>
   <li><a href="usage.html">Usage</a></li>
+  <li><a href="deployment.html">Deployment</a></li>
   <li><a href="configuration.html">Configuration</a></li>
   <li><a href="tuning.html">Tuning</a></li>
   <li><a href="faq.html">FAQ</a></li>
@@ -45,11 +46,11 @@
 </ul>
   </div>
 
-  <div class="document">
-<div class="section" id="the-configuration-file">
-<h1>The Configuration File</h1>
+  <div class="document" id="the-configuration-file">
+<h1 class="title">The Configuration File</h1>
 <p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
-<p>A configuration file with default settings would look like this:</p>
+<div class="section" id="example-gunicorn-conf-py">
+<h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
 bind = &quot;127.0.0.1:8000&quot; # Or &quot;unix:/tmp/gunicorn.sock&quot;
 daemon = False          # Whether work in the background
@@ -73,6 +74,9 @@ def before_fork(server, worker):
 def before_exec(server):
     serer.log.info(&quot;Forked child, reexecuting.&quot;)
 </pre>
+</div>
+<div class="section" id="parameter-descriptions">
+<h1>Parameter Descriptions</h1>
 <dl class="docutils">
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
@@ -99,12 +103,6 @@ def before_exec(server):
 <dt>user:</dt>
 <dd>The user as which worker processes will by launched.</dd>
 </dl>
-</div>
-<div class="section" id="production-setup">
-<h1>Production setup</h1>
-<p>While some others HTTP proxies can be used we strongly advice you to use <a class="reference external" href="http://www/nginx.org">NGINX</a>. If you choose another proxy server, make sure it can do buffering to handle slow clients.</p>
-<p>An example config file for use with nginx is available at  <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">github.com/benoitc/gunicorn/blob/master/examples/nginx.conf</a>.</p>
-<p>You may want to monitor <a class="reference external" href="http://gunicorn.org">Gunicorn</a> service instead of launching it as daemon. You could for example use <a class="reference external" href="http://smarden.org/runit/">runit</a> for that purpose. An example config file for use with runit is available at  <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc</a>.</p>
 </div>
 </div>
 

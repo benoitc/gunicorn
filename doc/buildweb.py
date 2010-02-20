@@ -108,7 +108,7 @@ class Page(object):
         if not tmpl_name:
             return self.body
 
-        kwargs = {"conf": conf, "stuff": self.body, "url": self.url()}
+        kwargs = {"conf": conf, "body": self.body, "url": self.url()}
         kwargs.update(self.headers)
         return self.site.get_template(tmpl_name).render(kwargs)
 
