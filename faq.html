@@ -39,13 +39,28 @@
       <li><a href="installation.html">Installation</a></li>
       <li><a href="usage.html">Usage</a></li>
       <li><a href="configuration.html">Configuration</a></li>
-      <li><a href="tune.html">Tune</a></li>
+      <li><a href="tunning.html">Tunning</a></li>
       <li><a href="faq.html">FAQ</a></li>
     </ul>
   </div>
 
-  <div class="document">
-<p>Coming soon.</p>
+  <div class="document" id="faq">
+<h1 class="title">FAQ</h1>
+<dl class="docutils">
+<dt>How to reload my application in Gunicorn ?</dt>
+<dd><p class="first">You can gracefully reload by sending HUP signal to gunicorn:</p>
+<pre class="last literal-block">
+$ kill -HUP masterpid
+</pre>
+</dd>
+<dt>How to increase/decrease number of running workers ?</dt>
+<dd><p class="first">send TTIN/TTOUT signals to do it:</p>
+<pre class="literal-block">
+$ kill -TTIN masterpid
+</pre>
+<p class="last">will increase the number from one worker</p>
+</dd>
+</dl>
 </div>
 
   

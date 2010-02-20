@@ -103,5 +103,8 @@ ul#actions li a {
   text-decoration: none;
 }
 
-
+#faq dt {
+  font-size: 1.5em;
+  font-weight: bold;
+}
 
