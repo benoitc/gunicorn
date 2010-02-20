@@ -46,8 +46,8 @@
 
   <div class="document">
 <p>Gunicorn performances are good enough for most cases. Most often performances can be improved in your application.</p>
-<div class="section" id="unicorn-configguration">
-<h1>Unicorn configguration</h1>
+<div class="section" id="unicorn-configration">
+<h1>Unicorn configration</h1>
 <p>See <a class="reference external" href="configuration.html">Configuration</a> for more informations.</p>
 <ul class="simple">
 <li>worker_processes should be scaled to the number of processes your backend system(s) can support. DO NOT scale it to the number of external network clients your application expects to be serving. Gunicorn is <strong>NOT</strong> for serving slow clients, that is the job of <a class="reference external" href="http://nginx.org/">nginx</a>.</li>
