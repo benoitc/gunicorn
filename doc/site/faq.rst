@@ -15,4 +15,8 @@ How to increase/decrease number of running workers ?
     $ kill -TTIN masterpid
   
   will increase the number from one worker
+  
+How to set SCRIPT_NAME ?
+  By default SCRIPT_name is an empy string. Value could be changed by passing
+  `SCRIPT_NAME` in environment (apache way) or as an HTTP header (nginx way).
 
