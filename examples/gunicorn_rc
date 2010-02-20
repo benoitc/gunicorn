@@ -1,9 +1,12 @@
 #!/bin sh
 
-if [ -f /var/run/gunicorn.pid ]; then
-  rm /var/run/gunicorn.pid
-fi
+GUNICORN=/usr/local/bin/gunicorn
+ROOT=/path/to/project
+PID=/var/run/gunicorn.pid
 
-cd /path/to/project
-exec /usr/local/bin/gunicorn -C /path/to/project/gunicorn.conf.py \
-  --pidfile=/var/run/gunicorn.pid main:application
+APP=main:application
+
+if [ -f $PID ]; then rm $PID fi
+
+cd $ROOT
+exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
