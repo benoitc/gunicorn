@@ -1,5 +1,5 @@
 template: doc.html
-title: Tunning
+title: Tuning
 
 
 Gunicorn performances are good enough for most cases. Most often performances can be improved in your application.
