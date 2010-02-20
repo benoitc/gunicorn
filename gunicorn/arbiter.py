@@ -366,7 +366,7 @@ class Arbiter(object):
             # Process Child
             worker_pid = os.getpid()
             try:
-                self.log.info("Worker %s booting" % worker_pid)
+                self.log.debug("Worker %s booting" % worker_pid)
                 self.conf.after_fork(self, worker)
                 worker.run()
                 sys.exit(0)

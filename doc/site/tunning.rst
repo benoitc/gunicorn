@@ -1,5 +1,15 @@
 template: doc.html
 
+
+Gunicorn performances are good enough for most cases. Most often performances can be improved in your application.
+
+Unicorn configgration
+----------------------
+
+See `Configuration <configuration.html>`_ for more informations.
+
+- worker_processes should be scaled to the number of processes your backend system(s) can support. DO NOT scale it to the number of external network clients your application expects to be serving. Gunicorn is **NOT** for serving slow clients, that is the job of `nginx <http://nginx.org/>`_.
+
 Kernel Parameters
 -----------------
 
