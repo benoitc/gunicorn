@@ -24,7 +24,7 @@ LOG_LEVELS = {
     "debug": logging.DEBUG
 }
 
-UMASK = 0
+UMASK = "0"
 
 def options():
     """ build command lines options passed to OptParse object """

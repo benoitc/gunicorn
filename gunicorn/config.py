@@ -18,7 +18,7 @@ class Config(object):
         loglevel='info',
         pidfile=None,
         workers=1,
-        umask=0,
+        umask="0",
         user=None,
         group=None,
         
