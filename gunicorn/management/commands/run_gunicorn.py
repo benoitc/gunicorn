@@ -69,7 +69,7 @@ class Command(BaseCommand):
             if conf['daemon']:
                 daemonize(conf['umask'])
             else:
-                os.umask(int(conf['umask'], 0))
+                os.umask(conf['umask'])
                 os.setpgrp()
             set_owner_process(conf["user"], conf["group"])
             configure_logging(conf)

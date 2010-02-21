@@ -80,7 +80,7 @@ def daemonize(umask):
         if os.fork() == 0: 
             os.setsid()
             if os.fork() == 0:
-                os.umask(int(umask, 0)) 
+                os.umask(umask) 
             else:
                 os._exit(0)
         else:
@@ -135,7 +135,7 @@ def main(usage, get_app):
     if conf['daemon']:
         daemonize(conf['umask'])
     else:
-        os.umask(int(conf['umask'], 0))
+        os.umask(conf['umask'])
         os.setpgrp()
     set_owner_process(conf['user'], conf['group']) 
     configure_logging(conf)
@@ -171,7 +171,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if conf["daemon"] :
         daemonize(conf["umask"])
     else:
-        os.umask(int(conf['umask'], 0))
+        os.umask(conf['umask'])
         os.setpgrp()
     set_owner_process(conf["user"], conf["group"])
     configure_logging(conf)

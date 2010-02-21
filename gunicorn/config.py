@@ -102,6 +102,16 @@ class Config(object):
             raise RuntimeError("Listener address is not set")
         return util.parse_address(util.to_bytestring(self.conf['bind']))
         
+    @property
+    def umask(self):
+        if not self.conf['umask']:
+            return 0
+        umask = self.conf['umask']
+        if isinstance(umask, basestring):
+            return int(umask, 0)
+        return umask
+        
+        
     def _hook(self, hookname, *args):
         hook = self.conf.get(hookname)
         if not hook: return
