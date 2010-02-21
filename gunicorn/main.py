@@ -171,6 +171,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     if conf["daemon"] :
         daemonize(conf["umask"])
     else:
+        os.umask(int(conf['umask'], 0))
         os.setpgrp()
     set_owner_process(conf["user"], conf["group"])
     configure_logging(conf)
