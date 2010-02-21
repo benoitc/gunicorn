@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-
+import ctypes
 import grp
 import logging
 import optparse as op
@@ -106,7 +106,13 @@ def set_owner_process(user,group):
             gid = int(group)
         else:
             gid = grp.getgrnam(group).gr_gid
+        
+        try:
             os.setgid(gid)
+        except OverflowError:
+            # versions of python < 2.6.2 don't manage unsigned int for
+            # groups like on osx or fedora
+            os.setgid(-ctypes.c_int(-gid).value)
     if user:
         if user.isdigit() or isinstance(user, int):
             uid = int(user)
