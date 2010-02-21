@@ -39,7 +39,7 @@ def options():
             help='set the background PID FILE'),
         op.make_option('-D', '--daemon', dest='daemon', action="store_true",
             help='Run daemonized in the background.'),
-        op.make_option('-m', '--umask', dest="umask", type='int', 
+        op.make_option('-m', '--umask', dest="umask", type='string', 
             help="Define umask of daemon process"),
         op.make_option('-u', '--user', dest="user", 
             help="Change worker user"),
@@ -80,7 +80,7 @@ def daemonize(umask):
         if os.fork() == 0: 
             os.setsid()
             if os.fork() == 0:
-                os.umask(umask) 
+                os.umask(int(umask, 0)) 
             else:
                 os._exit(0)
         else:
@@ -135,6 +135,7 @@ def main(usage, get_app):
     if conf['daemon']:
         daemonize(conf['umask'])
     else:
+        os.umask(int(conf['umask'], 0))
         os.setpgrp()
     set_owner_process(conf['user'], conf['group']) 
     configure_logging(conf)
