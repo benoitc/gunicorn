@@ -4,11 +4,11 @@ title: News
 News
 ====
 
-0.5.1 / 2010-02-24
+0.5.1 / 2010-02-22
 ------------------
 
 * Added setproctitle
-* Change privilege switch behaviour. We now works like NGINX, master keep the permission, new uid/gid permissions are only set to the workers
+* Change privilege switch behaviour. We now works like NGINX, master keep the permission, new uid/gid permissions are only set to the workers.
 
 0.5.1 / 2010-02-22
 ------------------
