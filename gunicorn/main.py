@@ -43,7 +43,7 @@ def options():
         op.make_option('-g', '--group', dest="group", 
             help="Change worker group"),
         op.make_option('-n', '--name', dest='app_name',
-            help="Processus name"),
+            help="Process name"),
         op.make_option('--log-level', dest='loglevel',
             help='Log level below which to silence messages. [info]'),
         op.make_option('--log-file', dest='logfile',
