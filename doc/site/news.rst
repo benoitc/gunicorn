@@ -4,7 +4,7 @@ title: News
 News
 ====
 
-0.5.2 / 2010-02-22
+0.6 / 2010-02-22
 ------------------
 
 * Added setproctitle
