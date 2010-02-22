@@ -41,6 +41,8 @@ Usage
       -u USER, --user=USER  Change worker user
       -g GROUP, --group=GROUP
                             Change worker group
+      -n APP_NAME, --name=APP_NAME
+                              Application name
       --log-level=LOGLEVEL  Log level below which to silence messages. [info]
       --log-file=LOGFILE    Log to a file. - equals stdout. [-]
       -d, --debug           Debug mode. only 1 worker.
