@@ -80,7 +80,20 @@ A popular method for deploying Gunicorn is to have it monitored by runit_. An `e
     cd $ROOT
     exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 
+Another useful tool to monitor and control Gunicorn is Supervisor_. An 
+`example configuration`_ is::
+
+    [program:gunicorn]
+    command=/usr/local/bin/gunicorn main:application -C /path/to/project/gunicorn.conf.py
+    directory=/path/to/project
+    user=nobody
+    autostart=true
+    autorestart=true
+    redirect_stderr=True
+
 .. _Nginx: http://www.nginx.org
 .. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
 .. _runit: http://smarden.org/runit/
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
+.. _Supervisor: http://supervisord.org
+.. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
