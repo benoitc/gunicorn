@@ -30,8 +30,10 @@ padding:0 0 .5em;
 }
 
 pre {
-font-size:1em;
 font-family:'andale mono', 'lucida console', monospace;
+font:100% monospace;
+*font-size:75%
+
 white-space:pre;
 background:#ffd;
 margin:3px 3px 2em 3px;
