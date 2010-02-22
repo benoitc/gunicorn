@@ -56,7 +56,7 @@ class Arbiter(object):
         self.conf = kwargs.get("config", {})
         self._pidfile = None
         self.master_name = "Master"
-        self.app_name = self.conf['app_name']
+        self.proc_name = self.conf['proc_name']
         
         # get current path, try to use PWD env first
         try:
@@ -162,7 +162,7 @@ class Arbiter(object):
     def run(self):
         """ main master loop. Launch to start the master"""
         self.start()
-        util._setproctitle("master [%s]" % self.app_name)
+        util._setproctitle("master [%s]" % self.proc_name)
         self.manage_workers()
         while True:
             try:
@@ -369,7 +369,7 @@ class Arbiter(object):
             # Process Child
             worker_pid = os.getpid()
             try:
-                util._setproctitle("worker [%s]" % self.app_name)
+                util._setproctitle("worker [%s]" % self.proc_name)
                 self.log.debug("Worker %s booting" % worker_pid)
                 self.conf.after_fork(self, worker)
                 worker.run()

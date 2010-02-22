@@ -25,4 +25,4 @@ How do I set SCRIPT_NAME?
     setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
 
 How to name processes?
-    You need to install the Python package `setproctitle <http://pypi.python.org/pypi/setproctitle>`_. Then you can name your process with `-n` or just let the default.
+    You need to install the Python package `setproctitle <http://pypi.python.org/pypi/setproctitle>`_. Then you can name your process with `-n` or just let the default. If you use a configuration file you can set the process name with the proc_name option.

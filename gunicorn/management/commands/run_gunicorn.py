@@ -36,7 +36,7 @@ class Command(BaseCommand):
             help="Change worker user"),
         make_option('-g', '--group', dest="group", 
             help="Change worker group"),
-        make_option('-n', '--name', dest='app_name',
+        make_option('-n', '--name', dest='proc_name',
             help="Process name"),
     )
     help = "Starts a fully-functional Web server using gunicorn."
@@ -51,8 +51,8 @@ class Command(BaseCommand):
             
         options['bind'] = addrport or '127.0.0.1'
         
-        if not options.get('app_name'):
-            options['app_name'] =settings.SETTINGS_MODULE
+        if not options.get('proc_name'):
+            options['proc_name'] =settings.SETTINGS_MODULE
         conf = Config(options)
 
         admin_media_path = options.get('admin_media_path', '')
