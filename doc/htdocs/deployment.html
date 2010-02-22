@@ -123,7 +123,7 @@ if [ -f $PID ]; then rm $PID fi
 cd $ROOT
 exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 </pre>
-<p>Another useful tool to monitor and control Gunicorn is <a class="reference external" href="http://supervisord.org">Supervisor</a>. An
+<p>Another useful tool to monitor and control Gunicorn is <a class="reference external" href="http://supervisord.org">Supervisor</a>. A
 <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf">simple configuration</a> is:</p>
 <pre class="literal-block">
 [program:gunicorn]
