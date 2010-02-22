@@ -80,7 +80,7 @@ class Arbiter(object):
         """ Really initialize the arbiter. Strat to listen and set pidfile if needed."""
         self.pid = os.getpid()
         self.init_signals()
-        self.LISTENER = create_socket(self.address)
+        self.LISTENER = create_socket(self.conf)
         self.pidfile = self.opts.get("pidfile")
         self.log.info("Booted Arbiter: %s" % os.getpid())
         self.log.info("Listening on socket: %s" % self.LISTENER)

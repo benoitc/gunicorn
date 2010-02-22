@@ -74,9 +74,8 @@ class Command(BaseCommand):
             arbiter = Arbiter(conf.address, conf.workers, handler,
                 pidfile=conf['pidfile'], config=conf)
             if conf['daemon']:
-                daemonize(conf['umask'])
+                daemonize()
             else:
-                os.umask(conf['umask'])
                 os.setpgrp()
             configure_logging(conf)
             arbiter.run()

@@ -70,7 +70,7 @@ def configure_logging(opts):
         h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
         logger.addHandler(h)
 
-def daemonize(umask):
+def daemonize():
     """ if daemon option is set, this function will daemonize the master.
     It's based on this activestate recipe :
     http://code.activestate.com/recipes/278731/
@@ -78,8 +78,8 @@ def daemonize(umask):
     if not 'GUNICORN_FD' in os.environ:
         if os.fork() == 0: 
             os.setsid()
-            if os.fork() == 0:
-                os.umask(umask) 
+            if os.fork() != 0:
+                os.umask(0) 
             else:
                 os._exit(0)
         else:
@@ -113,9 +113,8 @@ def main(usage, get_app):
     arbiter = Arbiter(conf.address, conf.workers, app, config=conf, 
                 debug=conf['debug'], pidfile=conf['pidfile'])
     if conf['daemon']:
-        daemonize(conf['umask'])
+        daemonize()
     else:
-        os.umask(conf['umask'])
         os.setpgrp()
     configure_logging(conf)
     arbiter.run()
@@ -150,9 +149,8 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
                     pidfile=conf["pidfile"], config=conf)
     if conf["daemon"] :
-        daemonize(conf["umask"])
+        daemonize()
     else:
-        os.umask(conf['umask'])
         os.setpgrp()
     configure_logging(conf)
     arbiter.run()

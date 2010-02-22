@@ -10,12 +10,15 @@ import socket
 import sys
 import time
 
+from gunicorn import util
+
 log = logging.getLogger(__name__)
 
 class BaseSocket(object):
     
-    def __init__(self, addr, fd=None):
-        self.address = addr
+    def __init__(self, conf, fd=None):
+        self.conf = conf
+        self.address = conf.address
         if fd is None:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
         else:
@@ -31,10 +34,13 @@ class BaseSocket(object):
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if not bound:
-            sock.bind(self.address)
+            self.bind(sock)
         sock.setblocking(0)
         sock.listen(2048)
         return sock
+        
+    def bind(self, sock):
+        sock.bind(sock)
 
 class TCPSocket(BaseSocket):
     
@@ -55,24 +61,33 @@ class UnixSocket(BaseSocket):
     
     FAMILY = socket.AF_UNIX
     
-    def __init__(self, addr, fd=None):
+    def __init__(self, conf, fd=None):
         if fd is None:
             try:
-                os.remove(addr)
+                os.remove(conf.address)
             except OSError:
                 pass
-        super(UnixSocket, self).__init__(addr, fd=fd)
+        super(UnixSocket, self).__init__(conf, fd=fd)
     
     def __str__(self):
         return "unix:%s" % self.address
+        
+    def bind(self, sock):
+        old_umask = os.umask(self.conf['umask'])
+        sock.bind(self.address)
+        util.chown(self.address, self.conf.uid, self.conf.gid)
+        os.umask(old_umask)
 
-def create_socket(addr):
+def create_socket(conf):
     """
     Create a new socket for the given address. If the
     address is a tuple, a TCP socket is created. If it
     is a string, a Unix socket is created. Otherwise
     a TypeError is raised.
     """
+    # get it only once
+    addr = conf.address
+    
     if isinstance(addr, tuple):
         sock_type = TCPSocket
     elif isinstance(addr, basestring):
@@ -83,7 +98,7 @@ def create_socket(addr):
     if 'GUNICORN_FD' in os.environ:
         fd = int(os.environ.pop('GUNICORN_FD'))
         try:
-            return sock_type(addr, fd=fd)
+            return sock_type(conf, fd=fd)
         except socket.error, e:
             if e[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
@@ -96,7 +111,7 @@ def create_socket(addr):
     
     for i in range(5):
         try:
-            return sock_type(addr)
+            return sock_type(conf)
         except socket.error, e:
             if e[0] == errno.EADDRINUSE:
                 log.error("Connection in use: %s" % str(addr))
