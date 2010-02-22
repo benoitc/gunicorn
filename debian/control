@@ -1,0 +1,21 @@
+Source: gunicorn
+Maintainer: Benoit Chesneau <benoitc@e-engura.com>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), debhelper (>= 7), python-support (>= 0.8.4)
+Standards-Version: 3.7.2
+XS-Python-Version: current
+
+Package: gunicorn
+Architecture: all
+Depends: ${python:Depends}
+XB-Python-Version: ${python:Versions}
+Provides: ${python:Provides}
+Description: WSGI HTTP Server for UNIX
+ About
+ -----
+ .
+ gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and nothing else.
+ .
+ This is a port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `Freenode`_.
+ .

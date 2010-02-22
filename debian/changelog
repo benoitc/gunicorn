@@ -1,0 +1,5 @@
+gunicorn (0.5.1-1) karmic; urgency=low
+
+  * First release. 
+
+ -- Benoit Chesneau <benoitc@e-engura.com>  Mon, 22 Feb 2010 08:44:36 +0100

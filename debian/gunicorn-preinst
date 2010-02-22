@@ -1,0 +1,14 @@
+#! /bin/sh
+
+set -e
+
+# This was added by stdeb to workaround Debian #479852. In a nutshell,
+# pycentral does not remove normally remove its symlinks on an
+# upgrade. Since we're using python-support, however, those symlinks
+# will be broken. This tells python-central to clean up any symlinks.
+if [ -e /var/lib/dpkg/info/gunicorn.list ] && which pycentral >/dev/null 2>&1
+then
+    pycentral pkgremove gunicorn
+fi
+
+#DEBHELPER#
