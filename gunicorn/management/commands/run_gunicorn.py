@@ -71,7 +71,6 @@ class Command(BaseCommand):
             else:
                 os.umask(conf['umask'])
                 os.setpgrp()
-            set_owner_process(conf["user"], conf["group"])
             configure_logging(conf)
             arbiter.run()
         except WSGIServerException, e:

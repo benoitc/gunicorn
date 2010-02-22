@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import ctypes
 import errno
 import fcntl
 import os
@@ -29,7 +30,25 @@ monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
              
-
+def set_owner_process(uid,gid):
+    """ set user and group of workers processes """
+    if gid:
+        try:
+            os.setgid(gid)
+        except OverflowError:
+            # versions of python < 2.6.2 don't manage unsigned int for
+            # groups like on osx or fedora
+            os.setgid(-ctypes.c_int(-gid).value)
+            
+    if uid:
+        os.setuid(uid)
+        
+def chown(path, uid, gid):
+    try:
+        os.chown(path, uid, gid)
+    except OverflowError:
+        os.chown(path, uid, -ctypes.c_int(-gid).value)
+        
 def parse_address(host, port=None, default_port=8000):
     if host.startswith("unix:"):
         return host.split("unix:")[1]

@@ -3,12 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import ctypes
-import grp
 import logging
 import optparse as op
 import os
-import pwd
 import pkg_resources
 import sys
 
@@ -99,26 +96,7 @@ def daemonize(umask):
         os.dup2(0, 1)
         os.dup2(0, 2)
 
-def set_owner_process(user,group):
-    """ set user and group of workers processes """
-    if group:
-        if group.isdigit() or isinstance(group, int):
-            gid = int(group)
-        else:
-            gid = grp.getgrnam(group).gr_gid
-        
-        try:
-            os.setgid(gid)
-        except OverflowError:
-            # versions of python < 2.6.2 don't manage unsigned int for
-            # groups like on osx or fedora
-            os.setgid(-ctypes.c_int(-gid).value)
-    if user:
-        if user.isdigit() or isinstance(user, int):
-            uid = int(user)
-        else:
-            uid = pwd.getpwnam(user).pw_uid
-        os.setuid(uid)
+
         
 def main(usage, get_app):
     """ function used by different runners to setup options 
@@ -137,7 +115,6 @@ def main(usage, get_app):
     else:
         os.umask(conf['umask'])
         os.setpgrp()
-    set_owner_process(conf['user'], conf['group']) 
     configure_logging(conf)
     arbiter.run()
     
@@ -173,7 +150,6 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
     else:
         os.umask(conf['umask'])
         os.setpgrp()
-    set_owner_process(conf["user"], conf["group"])
     configure_logging(conf)
     arbiter.run()
     

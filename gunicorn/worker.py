@@ -27,14 +27,16 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, ppid, socket, app, timeout, debug=False):
+    def __init__(self, workerid, ppid, socket, app, timeout, conf):
         self.nr = 0
         self.id = workerid
         self.ppid = ppid
-        self.debug = debug
+        self.debug = conf['debug']
+        self.conf = conf
         self.socket = socket
         self.timeout = timeout
         self.fd, self.tmpname = tempfile.mkstemp(prefix="wgunicorn-")
+        util.chown(self.tmpname, conf.uid, conf.gid)
         self.tmp = os.fdopen(self.fd, "r+b")
         self.app = app
         self.alive = True
@@ -81,6 +83,8 @@ class Worker(object):
             os.chmod(self.tmpname, self.spinner)
             
     def init_process(self):
+        util.set_owner_process(self.conf.uid, self.conf.gid)
+        
         # init pipe
         self.PIPE = os.pipe()
         map(util.set_non_blocking, self.PIPE)

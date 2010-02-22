@@ -356,7 +356,7 @@ class Arbiter(object):
                 continue
 
             worker = Worker(i, self.pid, self.LISTENER, self.modname,
-                        self.timeout/2.0, self.debug)
+                        self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
             if pid != 0:

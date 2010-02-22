@@ -3,7 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import grp
 import os
+import pwd
 import sys
 
 from gunicorn import util
@@ -104,12 +106,36 @@ class Config(object):
         
     @property
     def umask(self):
-        if not self.conf['umask']:
+        if not self.conf.get('umask'):
             return 0
         umask = self.conf['umask']
         if isinstance(umask, basestring):
             return int(umask, 0)
         return umask
+        
+    @property
+    def uid(self):
+        if not self.conf.get('user'):
+            return os.geteuid()
+        
+        user =  self.conf.get('user')
+        if user.isdigit() or isinstance(user, int):
+            uid = int(user)
+        else:
+            uid = pwd.getpwnam(user).pw_uid
+        return uid
+        
+    @property
+    def gid(self):
+        if not self.conf.get('group'):
+            return os.getegid()
+        group = self.conf.get('group')
+        if group.isdigit() or isinstance(group, int):
+            gid = int(group)
+        else:
+            gid = grp.getgrnam(group).gr_gid
+        
+        return gid
         
         
     def _hook(self, hookname, *args):
