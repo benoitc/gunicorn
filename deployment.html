@@ -32,6 +32,7 @@
 	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
 	        </div> 
 	  </div>
+		
     	
   
   <div id="menu">
@@ -122,13 +123,22 @@ if [ -f $PID ]; then rm $PID fi
 cd $ROOT
 exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 </pre>
+<p>Another useful tool to monitor and control Gunicorn is <a class="reference external" href="http://supervisord.org">Supervisor</a>. A
+<a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf">simple configuration</a> is:</p>
+<pre class="literal-block">
+[program:gunicorn]
+command=/usr/local/bin/gunicorn main:application -C /path/to/project/gunicorn.conf.py
+directory=/path/to/project
+user=nobody
+autostart=true
+autorestart=true
+redirect_stderr=True
+</pre>
 </div>
 </div>
 
   
 
-    	
-    	
     <div id="footer">
       <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
       <p>Hosted on <a href="http://github.com/">Github</a></p>

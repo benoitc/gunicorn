@@ -32,6 +32,7 @@
 	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
 	        </div> 
 	  </div>
+		
     	
   
   <div id="menu">
@@ -86,6 +87,8 @@ Options:
   -u USER, --user=USER  Change worker user
   -g GROUP, --group=GROUP
                         Change worker group
+  -n APP_NAME, --name=APP_NAME
+                          Application name
   --log-level=LOGLEVEL  Log level below which to silence messages. [info]
   --log-file=LOGFILE    Log to a file. - equals stdout. [-]
   -d, --debug           Debug mode. only 1 worker.
@@ -138,8 +141,6 @@ $ paster serve development.ini workers=2
 
   
 
-    	
-    	
     <div id="footer">
       <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
       <p>Hosted on <a href="http://github.com/">Github</a></p>

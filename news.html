@@ -32,6 +32,7 @@
 	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
 	        </div> 
 	  </div>
+		
     	
   
   <div id="menu">
@@ -49,13 +50,20 @@
   <div class="document" id="news">
 <h1 class="title">News</h1>
 <div class="section" id="id1">
+<h1>0.6 / 2010-02-22</h1>
+<ul class="simple">
+<li>Added setproctitle</li>
+<li>Change privilege switch behaviour. We now works like NGINX, master keep the permission, new uid/gid permissions are only set to the workers.</li>
+</ul>
+</div>
+<div class="section" id="id2">
 <h1>0.5.1 / 2010-02-22</h1>
 <ul class="simple">
 <li>Fix umask</li>
 <li>Added debian packaging</li>
 </ul>
 </div>
-<div class="section" id="id2">
+<div class="section" id="id3">
 <h1>0.5 / 2010-02-20</h1>
 <ul class="simple">
 <li>Added <a class="reference external" href="configuration.html">configuration file</a> handler.</li>
@@ -75,8 +83,6 @@
 
   
 
-    	
-    	
     <div id="footer">
       <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
       <p>Hosted on <a href="http://github.com/">Github</a></p>
