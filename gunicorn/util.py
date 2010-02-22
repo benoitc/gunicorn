@@ -30,6 +30,14 @@ monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
              
+try:
+    from setproctitle import setproctitle
+    def _setproctitle(title):
+        setproctitle("gunicorn: %s" % title) 
+except ImportError:
+    def _setproctitle(title):
+        return
+             
 def set_owner_process(uid,gid):
     """ set user and group of workers processes """
     if gid:

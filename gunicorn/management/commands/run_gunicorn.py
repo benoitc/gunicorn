@@ -17,7 +17,7 @@ from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
-from gunicorn.main import daemonize, UMASK, set_owner_process, configure_logging
+from gunicorn.main import daemonize, UMASK, configure_logging
 from gunicorn.util import parse_address, to_bytestring
  
 class Command(BaseCommand):
@@ -36,6 +36,8 @@ class Command(BaseCommand):
             help="Change worker user"),
         make_option('-g', '--group', dest="group", 
             help="Change worker group"),
+        make_option('-n', '--name', dest='app_name',
+            help="Application name"),
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
@@ -48,6 +50,9 @@ class Command(BaseCommand):
             raise CommandError('Usage is runserver %s' % self.args)
             
         options['bind'] = addrport or '127.0.0.1'
+        
+        if not options.get('app_name'):
+            options['app_name'] =settings.SETTINGS_MODULE
         conf = Config(options)
 
         admin_media_path = options.get('admin_media_path', '')
@@ -55,12 +60,14 @@ class Command(BaseCommand):
 
         print "Validating models..."
         self.validate(display_num_errors=True)
-        print "\nDjango version %s, using settings %r" % (django.get_version(), settings.SETTINGS_MODULE)
+        print "\nDjango version %s, using settings %r" % (django.get_version(), 
+                                            settings.SETTINGS_MODULE)
         print "Development server is running at %s" % str(conf.address)
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
         translation.activate(settings.LANGUAGE_CODE)
+ 
  
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)

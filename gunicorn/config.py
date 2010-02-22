@@ -13,6 +13,7 @@ from gunicorn import util
 class Config(object):
     
     DEFAULTS = dict(
+        app_name = os.getcwd(),
         bind='127.0.0.1:8000',
         daemon=False,
         debug=False,

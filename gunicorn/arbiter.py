@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import copy
 import errno
+import inspect
 import logging
 import os
 import select
@@ -43,10 +44,11 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
 
-    def __init__(self, address, num_workers, modname, **kwargs):
+    def __init__(self, address, num_workers, app, **kwargs):
         self.address = address
         self.num_workers = num_workers
-        self.modname = modname
+        self.app = app
+        
         self.timeout = 30
         self.reexec_pid = 0
         self.debug = kwargs.get("debug", False)
@@ -55,6 +57,7 @@ class Arbiter(object):
         self.conf = kwargs.get("config", {})
         self._pidfile = None
         self.master_name = "Master"
+        self.app_name = self.conf['app_name']
         
         # get current path, try to use PWD env first
         try:
@@ -160,6 +163,7 @@ class Arbiter(object):
     def run(self):
         """ main master loop. Launch to start the master"""
         self.start()
+        util._setproctitle("master [%s]" % self.app_name)
         self.manage_workers()
         while True:
             try:
@@ -355,7 +359,7 @@ class Arbiter(object):
             if i in workers:
                 continue
 
-            worker = Worker(i, self.pid, self.LISTENER, self.modname,
+            worker = Worker(i, self.pid, self.LISTENER, self.app,
                         self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
@@ -366,6 +370,7 @@ class Arbiter(object):
             # Process Child
             worker_pid = os.getpid()
             try:
+                util._setproctitle("worker [%s]" % self.app_name)
                 self.log.debug("Worker %s booting" % worker_pid)
                 self.conf.after_fork(self, worker)
                 worker.run()
