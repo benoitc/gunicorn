@@ -37,7 +37,7 @@ class Command(BaseCommand):
         make_option('-g', '--group', dest="group", 
             help="Change worker group"),
         make_option('-n', '--name', dest='app_name',
-            help="Application name"),
+            help="Processus name"),
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
