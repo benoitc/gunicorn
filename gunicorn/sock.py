@@ -40,7 +40,7 @@ class BaseSocket(object):
         return sock
         
     def bind(self, sock):
-        sock.bind(sock)
+        sock.bind(self.address)
 
 class TCPSocket(BaseSocket):
     

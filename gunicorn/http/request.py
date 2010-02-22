@@ -129,9 +129,9 @@ class Request(object):
             "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
             "CONTENT_LENGTH": str(wsgi_input.len),
             "REMOTE_ADDR": remote_addr[0],
-            "REMOTE_PORT": remote_addr[1],
+            "REMOTE_PORT": str(remote_addr[1]),
             "SERVER_NAME": server_address[0],
-            "SERVER_PORT": server_address[1],
+            "SERVER_PORT": str(server_address[1]),
             "SERVER_PROTOCOL": self.parser.raw_version
         }
         
