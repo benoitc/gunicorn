@@ -23,3 +23,6 @@ How do I increase or decrease the number of running workers dynamically?
 How do I set SCRIPT_NAME?
     By default ``SCRIPT_NAME`` is an empy string. The value could be set by
     setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
+
+How to name processes?
+    You need to install the Python package `setproctitle <http://pypi.python.org/pypi/setproctitle>`_. Then you can name your process with `-n` or just let the default.

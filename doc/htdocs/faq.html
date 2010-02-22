@@ -69,6 +69,8 @@ $ kill -TTOUT $masterpid
 <dt>How do I set SCRIPT_NAME?</dt>
 <dd>By default <tt class="docutils literal">SCRIPT_NAME</tt> is an empy string. The value could be set by
 setting <tt class="docutils literal">SCRIPT_NAME</tt> in the environment or as an HTTP header.</dd>
+<dt>How to name processes?</dt>
+<dd>You need to install the Python package <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a>. Then you can name your process with <cite>-n</cite> or just let the default.</dd>
 </dl>
 </div>
 
