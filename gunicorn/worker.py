@@ -22,7 +22,7 @@ class Worker(object):
 
     SIGNALS = map(
         lambda x: getattr(signal, "SIG%s" % x),
-        "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
+        "QUIT INT TERM USR1".split()
     )
     
     PIPE = []
