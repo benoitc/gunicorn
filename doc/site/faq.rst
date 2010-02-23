@@ -17,7 +17,7 @@ How do I increase or decrease the number of running workers dynamically?
     
     To decrease the worker count by one::
 
-        $ kill -TTOUT $masterpid
+        $ kill -TTOU $masterpid
 
   
 How do I set SCRIPT_NAME?
