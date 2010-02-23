@@ -24,13 +24,15 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--adminmedia', dest='admin_media_path', default='',
             help='Specifies the directory from which to serve admin media.'),
-        make_option('-w', '--workers', dest='workers', default='1',
+        make_option('-c', '--config', dest='gconfig', type='string',
+            help='Gunicorn Config file. [%default]'),
+        make_option('-w', '--workers', dest='workers', 
             help='Specifies the number of worker processes to use.'),
-        make_option('--pid', dest='pidfile', default='',
+        make_option('--pid', dest='pidfile',
             help='set the background PID file'),
         make_option( '--daemon', dest='daemon', action="store_true",
             help='Run daemonized in the background.'),
-        make_option('--umask', dest='umask', type='int',
+        make_option('--umask', dest='umask',
             help="Define umask of daemon process"),
         make_option('-u', '--user', dest="user", 
             help="Change worker user"),
@@ -53,7 +55,7 @@ class Command(BaseCommand):
         
         if not options.get('proc_name'):
             options['proc_name'] =settings.SETTINGS_MODULE
-        conf = Config(options)
+        conf = Config(options, options.get('gconfig'))
 
         admin_media_path = options.get('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'

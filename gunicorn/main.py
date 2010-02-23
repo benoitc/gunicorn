@@ -109,7 +109,7 @@ def main(usage, get_app):
     opts, args = parser.parse_args()
     
     app = get_app(parser, opts, args)
-    conf = Config(opts.__dict__)
+    conf = Config(opts.__dict__, opts.config)
     arbiter = Arbiter(conf.address, conf.workers, app, config=conf, 
                 debug=conf['debug'], pidfile=conf['pidfile'])
     if conf['daemon']:
