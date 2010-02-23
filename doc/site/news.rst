@@ -4,6 +4,13 @@ title: News
 News
 ====
 
+0.6.1 / 2010-02-24
+------------------
+
+* Added gunicorn config file support for django admin command
+* Fix gunicorn config file. -c was broken.
+* Removed TTIN/TTOU from workers which blocked other signals.
+
 0.6 / 2010-02-22
 ------------------
 
