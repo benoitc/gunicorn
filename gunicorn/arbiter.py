@@ -317,7 +317,7 @@ class Arbiter(object):
         os.execlp(self.START_CTX[0], *self.START_CTX['argv'])
 
     def murder_workers(self):
-        """ kill unused/iddle workers"""
+        """ kill unused/idle workers"""
         for (pid, worker) in list(self.WORKERS.items()):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
             if diff <= self.timeout:
@@ -352,7 +352,7 @@ class Arbiter(object):
                 self.kill_worker(pid, signal.SIGQUIT)
 
     def spawn_workers(self):
-        """ span new workers """
+        """ spawn new workers """
         workers = set(w.id for w in self.WORKERS.values())
         for i in range(self.num_workers):
             if i in workers:
