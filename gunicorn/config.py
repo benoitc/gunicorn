@@ -13,7 +13,8 @@ from gunicorn import util
 class Config(object):
     
     DEFAULTS = dict(
-        proc_name = os.getcwd(),
+        proc_name = None,
+        default_proc_name = os.getcwd(),
         bind='127.0.0.1:8000',
         daemon=False,
         debug=False,
@@ -138,6 +139,11 @@ class Config(object):
         
         return gid
         
+    @property
+    def proc_name(self):
+        if not self.conf.get('proc_name'):
+            return self.conf.get('default_proc_name')
+        return self.conf.get('proc_name')
         
     def _hook(self, hookname, *args):
         hook = self.conf.get(hookname)

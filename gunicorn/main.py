@@ -142,8 +142,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
                 if key == "debug":
                     value = (value == "true")
                 options[key] = value
-        if not 'proc_name' in options:
-            options['proc_name'] = options['__file__']
+        options['default_proc_name'] = options['__file__']
            
     conf = Config(options)
     arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
@@ -164,8 +163,8 @@ def run():
         if len(args) != 1:
             parser.error("No application module specified.")
 
-        if not opts.proc_name:
-            opts.proc_name = args[0]
+
+        opts.default_proc_name = args[0]
             
         try:
             return util.import_app(args[0])
@@ -210,8 +209,7 @@ def run_django():
         settings_modname = '%s.%s' % (project_name,  settings_name)
         os.environ['DJANGO_SETTINGS_MODULE'] = settings_modname
                                                 
-        if not opts.proc_name:
-            opts.proc_name = settings_modname
+        opts.default_proc_name  = settings_modname
         
         # django wsgi app
         return django.core.handlers.wsgi.WSGIHandler()
@@ -269,8 +267,7 @@ def run_paster():
         if not opts.debug:
             opts.debug = (ctx.global_conf.get('debug') == "true")
             
-        if not opts.proc_name:
-            opts.proc_name = ctx.global_conf.get('__file__')
+        opts.default_proc_name= ctx.global_conf.get('__file__')
 
         app = loadapp(config_url, relative_to=relative_to)
         return app

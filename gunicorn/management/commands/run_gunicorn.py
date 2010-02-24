@@ -53,8 +53,7 @@ class Command(BaseCommand):
             
         options['bind'] = addrport or '127.0.0.1'
         
-        if not options.get('proc_name'):
-            options['proc_name'] =settings.SETTINGS_MODULE
+        options['default_proc_name'] =settings.SETTINGS_MODULE
         conf = Config(options, options.get('gconfig'))
 
         admin_media_path = options.get('admin_media_path', '')
