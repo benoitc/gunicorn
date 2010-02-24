@@ -68,8 +68,7 @@ class Command(BaseCommand):
  
         # django.core.management.base forces the locale to en-us.
         translation.activate(settings.LANGUAGE_CODE)
- 
- 
+        
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
             arbiter = Arbiter(conf.address, conf.workers, handler,

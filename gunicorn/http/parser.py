@@ -34,9 +34,7 @@ class Parser(object):
         if parsing isn't done. headers dict is updated
         with new headers.
         """
-        if self.headers:
-            return self.headers
-        
+
         ld = len("\r\n\r\n")
         i = buf.find("\r\n\r\n")
         if i != -1:
