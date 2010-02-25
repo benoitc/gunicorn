@@ -106,7 +106,7 @@ def read_partial(sock, length):
 def write(sock, data):
     try:
         sock.sendall(data)
-    except:
+    except socket.error, e:
         if e[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
             pass
         raise
