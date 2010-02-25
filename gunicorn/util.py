@@ -117,6 +117,8 @@ def write(sock, data):
         except socket.error, e:
             if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                 break
+            if e[0] == errno.EPIPE and i == 0:
+                continue
             raise
         i += 1
         
