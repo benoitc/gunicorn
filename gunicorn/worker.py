@@ -112,7 +112,7 @@ class Worker(object):
                 self.handle(client, addr)
                 self.nr += 1
             except socket.error, e:
-                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
+                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED, errno.EPIPE):
                     raise
 
             # Keep processing clients until no one is waiting.
