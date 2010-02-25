@@ -22,8 +22,9 @@ from gunicorn import util
 
 class Arbiter(object):
     """
-    Arbiter maintain the workers processes alive. It launches or kill them if needed.
-    It also manage application reloading via SIGHUP/USR2.
+    Arbiter maintain the workers processes alive. It launches or
+    kills them if needed. It also manages application reloading
+    via SIGHUP/USR2.
     """
     
     START_CTX = {}
