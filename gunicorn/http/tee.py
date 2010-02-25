@@ -48,6 +48,15 @@ class TeeInput(object):
             self.tmp.seek(pos)
         self._len = self._tmp_size()
         return self._len
+        
+    def seek(self, offset, whence=0):
+        if self._is_socket:
+            pos = self.tmp.tell()
+            while True:
+                if not self._tee(CHUNK_SIZE):
+                    break
+            self.tmp.seek(pos)
+        self.tmp.seek(offset, whence)
 
     def flush(self):
         self.tmp.flush()
@@ -116,14 +125,17 @@ class TeeInput(object):
 
     def _tee(self, length):
         """ fetch partial body"""
-        while not self.parser.body_eof():
-            data = read_partial(self.socket, length)
-            self.buf += data
+        while True:
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
                 self.tmp.write(chunk)
                 self.tmp.seek(0, os.SEEK_END)
-                return chunk        
+                return chunk
+            
+            if self.parser.body_eof(): break
+            
+            data = read_partial(self.socket, length)
+            self.buf += data       
         self._finalize()
         return ""
         
@@ -131,12 +143,6 @@ class TeeInput(object):
         """ here we wil fetch final trailers
         if any."""
         if self.parser.body_eof():
-            # handle trailing headers
-            if self.parser.is_chunked and self._is_socket:
-                while not self.parser.trailing_header(self.buf):
-                    data = read_partial(self.socket, CHUNK_SIZE)
-                    if not data: break
-                    self.buf += data
             del self.buf
             self._is_socket = False
             
