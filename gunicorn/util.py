@@ -104,19 +104,12 @@ def read_partial(sock, length):
     return data
 
 def write(sock, data):
-    buf = ""
-    buf += data
-    while buf:
-        try:
-            bytes = sock.send(buf)
-            if bytes < len(buf):
-                buf = buf[bytes:]
-                continue
-            return len(data)
-        except socket.error, e:
-            if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
-                break
-            raise
+    try:
+        sock.sendall(data)
+    except:
+        if e[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
+            pass
+        raise
         
 def write_nonblock(sock, data):
     timeout = sock.gettimeout()
