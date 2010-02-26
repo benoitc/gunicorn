@@ -94,23 +94,29 @@ def close(sock):
 def read_partial(sock, length):
     return sock.recv(length)
 
-def write(sock, data):
+def write_chunk(sock, data):
+    chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
+    sock.sendall(chunk)
+    
+def write(sock, data, chunked=False):
+    if chunked:
+        return write_chunk(sock, data)
     sock.sendall(data)
 
-def write_nonblock(sock, data):
+def write_nonblock(sock, data, chunked=False):
     timeout = sock.gettimeout()
     if timeout != 0.0:
         try:
             sock.setblocking(0)
-            return write(sock, data)
+            return write(sock, data, chunked)
         finally:
             sock.setblocking(1)
     else:
-        return write(sock, data)
+        return write(sock, data, chunked)
     
-def writelines(sock, lines):
+def writelines(sock, lines, chunked=False):
     for line in list(lines):
-        write(sock, line)
+        write(sock, line, chunked)
 
 def write_error(sock, msg):
     html = textwrap.dedent("""\

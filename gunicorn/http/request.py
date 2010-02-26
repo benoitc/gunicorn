@@ -48,6 +48,7 @@ class Request(object):
         self.parser = Parser()
         self.start_response_called = False
         self.log = logging.getLogger(__name__)
+        self.response_chunked = False
 
     def read(self):
         environ = {}
@@ -154,6 +155,9 @@ class Request(object):
         self.response_status = status
         for name, value in response_headers:
             name = normalize_name(name)
+            if name == "Transfer-Encoding":
+                if value.lower() == "chunked":
+                    self.response_chunked = True
             if not isinstance(value, basestring):
                 value = str(value)
             self.response_headers.append((name, value.strip()))     

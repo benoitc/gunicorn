@@ -14,6 +14,7 @@ class Response(object):
         self.headers = req.response_headers or []
         self.status = req.response_status
         self.SERVER_VERSION = req.SERVER_VERSION
+        self.chunked = req.response_chunked
 
     def send(self):
         # send headers
@@ -31,8 +32,15 @@ class Response(object):
         
         write(self.sock, "%s\r\n" % "".join(resp_head))
 
+        last_chunk = None
         for chunk in list(self.data):
-            write(self.sock, chunk)
+            write(self.sock, chunk, self.chunked)
+            last_chunk = chunk
+            
+        if self.chunked:
+            if last_chunk or last_chunk is None:
+                # send last chunk
+                write_chunk("")
 
         close(self.sock)
 
