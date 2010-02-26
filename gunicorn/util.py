@@ -92,16 +92,7 @@ def close(sock):
         pass
   
 def read_partial(sock, length):
-    while True:
-        try:
-            ret = select.select([sock.fileno()], [], [], 0)
-            if ret[0]: break
-        except select.error, e:
-            if e[0] == errno.EINTR:
-                continue
-            raise
-    data = sock.recv(length)
-    return data
+    return sock.recv(length)
 
 def write(sock, data):
     sock.sendall(data)
