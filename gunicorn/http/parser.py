@@ -105,12 +105,13 @@ class Parser(object):
     def should_close(self):
         if self._should_close:
             return True
-        if self.headers_dict.get("Connection") == "close":
+        elif self.headers_dict.get("Connection") == "close":
             return True
-        if self.headers_dict.get("Connection") == "Keep-Alive":
+        elif self.headers_dict.get("Connection") == "Keep-Alive":
             return False
-        if int("%s%s" % self.version) < 11:
+        elif self.version < (1,0):
             return True
+        return False
         
     @property
     def is_chunked(self):
