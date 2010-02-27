@@ -12,6 +12,8 @@ class ParserError(Exception):
 
 class Parser(object):
     
+    _should_close = False
+    
     def __init__(self):
         self.status = ""
         self.headers = []
