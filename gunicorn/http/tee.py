@@ -34,6 +34,9 @@ class TeeInput(object):
             chunk, self.buf = parser.filter_body(buf)
             if chunk:
                 self.tmp.write(chunk)
+                self.tmp.flush()
+                if hasattr(self.tmp, 'fileno'):
+                    os.fsync(self.tmp.fileno())
             self._finalize()
             self.tmp.seek(0)
         
