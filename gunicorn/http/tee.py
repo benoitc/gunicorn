@@ -40,6 +40,7 @@ class TeeInput(object):
     @property
     def len(self):
         if self._len: return self._len
+        
         if self._is_socket:
             pos = self.tmp.tell()
             while True:

@@ -7,6 +7,7 @@ import ctypes
 import logging
 import os
 import re
+import socket
 import StringIO
 import sys
 from urllib import unquote
