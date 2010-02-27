@@ -27,12 +27,11 @@ class Config(object):
         group=None,
         
         after_fork=lambda server, worker: server.log.info(
-                        "worker=%s spawned pid=%s" % (worker.id, str(worker.pid))),
+            "Worker spawned: %s (pid: %s)" % (worker.id, worker.pid)),
         
-        before_fork=lambda server, worker: server.log.info(
-                        "worker=%s spawning" % worker.id),
-                        
-        before_exec=lambda server: server.log.info("forked child, reexecuting")
+        before_fork=lambda server, worker: True,
+
+        before_exec=lambda server: server.log.info("Forked child, reexecuting")
     )
     
     def __init__(self, cmdopts, path=None):

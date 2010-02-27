@@ -66,8 +66,10 @@ def configure_logging(opts):
 
     logger = logging.getLogger('gunicorn')
     logger.setLevel(loglevel)
+    format = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
+    datefmt = r"%Y/%m/%d %H:%M:%S"
     for h in handlers:
-        h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s %(message)s"))
+        h.setFormatter(logging.Formatter(format, datefmt))
         logger.addHandler(h)
 
 def daemonize():

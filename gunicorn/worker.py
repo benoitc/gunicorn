@@ -60,7 +60,6 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_exit)
         
     def handle_usr1(self, sig, frame):
-        self.log.info("USR1")
         self.nr = -65536;
         try:
             map(lambda p: p.close(), self.PIPE)
@@ -124,7 +123,7 @@ class Worker(object):
             
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
-                self.log.info("Parent process changed. Closing %s" % self)
+                self.log.info("Parent changed, shutting down: %s" % self)
                 return
             
             try:
@@ -159,11 +158,11 @@ class Worker(object):
             http.Response(client, response, req).send()
         except socket.error, e:
             if e[0] != errno.EPIPE:
-                self.log.exception("Error processing request. [%s]" % str(e))
+                self.log.exception("Error processing request.")
             else:
                 self.log.warn("Ignoring EPIPE")
         except Exception, e:
-            self.log.exception("Error processing request. [%s]" % str(e))
+            self.log.exception("Error processing request.")
             try:            
                 # Last ditch attempt to notify the client of an error.
                 mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"

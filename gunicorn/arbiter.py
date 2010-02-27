@@ -84,8 +84,8 @@ class Arbiter(object):
         self.init_signals()
         self.LISTENER = create_socket(self.conf)
         self.pidfile = self.opts.get("pidfile")
-        self.log.info("Booted Arbiter: %s" % os.getpid())
-        self.log.info("Listening on socket: %s" % self.LISTENER)
+        self.log.info("Arbiter booted")
+        self.log.info("Listening at: %s" % self.LISTENER)
         
     def _del_pidfile(self):
         self._pidfile = None
@@ -159,7 +159,7 @@ class Arbiter(object):
             self.SIG_QUEUE.append(sig)
             self.wakeup()
         else:
-            self.log.warn("Ignoring rapid signaling: %s" % sig)
+            self.log.warn("Dropping signal: %s" % sig)
 
     def run(self):
         """ main master loop. Launch to start the master"""
@@ -193,7 +193,7 @@ class Arbiter(object):
             except KeyboardInterrupt:
                 break
             except Exception:
-                self.log.info("Unhandled exception in main loop. [%s]" %  
+                self.log.info("Unhandled exception in main loop:\n%s" %  
                             traceback.format_exc())
                 self.stop(False)
                 if self.pidfile:
@@ -201,7 +201,7 @@ class Arbiter(object):
                 sys.exit(-1)
 
         self.stop()
-        self.log.info("%s is shutting down." % self.master_name)
+        self.log.info("Shutting down: %s" % self.master_name)
         if self.pidfile:
             self.unlink_pidfile(self.pidfile)
         sys.exit(0)
@@ -214,7 +214,7 @@ class Arbiter(object):
     def handle_hup(self):
         """ HUP handling . We relaunch gracefully the workers and app while 
         reloading configuration."""
-        self.log.info("%s hang up." % self.master_name)
+        self.log.info("Hang up: %s" % self.master_name)
         self.reexec()
         raise StopIteration
         
@@ -258,7 +258,7 @@ class Arbiter(object):
             self.logger.info("graceful stop of workers")
             self.kill_workers(True)
         else:
-            self.log.info("SIGWINCH ignored. not daemonized")
+            self.log.info("SIGWINCH ignored. Not daemonized")
     
     def wakeup(self):
         """ Wake up the arbiter by writing to the PIPE"""
@@ -325,7 +325,7 @@ class Arbiter(object):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
             if diff <= self.timeout:
                 continue
-            self.log.error("%s (pid:%s) timed out." % (worker, pid))
+            self.log.error("Worker timed out: %s (pid:%s)" % (worker, pid))
             self.kill_worker(pid, signal.SIGKILL)
     
     def reap_workers(self):
@@ -379,7 +379,8 @@ class Arbiter(object):
             worker_pid = os.getpid()
             try:
                 util._setproctitle("worker [%s]" % self.proc_name)
-                self.log.debug("Worker %s booting" % worker_pid)
+                self.log.debug("Booting worker: %s (age: %s)" % (
+                                                i, self.worker_age))
                 self.conf.after_fork(self, worker)
                 worker.run()
                 sys.exit(0)
@@ -389,7 +390,7 @@ class Arbiter(object):
                 self.log.exception("Exception in worker process.")
                 sys.exit(-1)
             finally:
-                self.log.info("Worker %s exiting." % worker_pid)
+                self.log.info("Worker exiting: %s (pid: %s)" % (i, worker_pid))
                 try:
                     worker.tmp.close()
                     os.unlink(worker.tmpname)
