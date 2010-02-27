@@ -27,9 +27,10 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, ppid, socket, app, timeout, conf):
+    def __init__(self, workerid, age, ppid, socket, app, timeout, conf):
         self.nr = 0
         self.id = workerid
+        self.age = age
         self.ppid = ppid
         self.debug = conf['debug']
         self.conf = conf

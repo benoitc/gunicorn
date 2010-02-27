@@ -47,6 +47,7 @@ class Arbiter(object):
     def __init__(self, address, num_workers, app, **kwargs):
         self.address = address
         self.num_workers = num_workers
+        self.worker_age = 0
         self.app = app
         
         self.timeout = 30
@@ -238,10 +239,11 @@ class Arbiter(object):
     
     def handle_ttou(self):
         """ SIGTTOU handling. Decrease number of workers."""
-        if self.num_workers > 0:
-            self.num_workers -= 1
+        if self.num_workers <= 1:
+            return
+        self.num_workers -= 1
         self.manage_workers()
-            
+
     def handle_usr1(self):
         """ SIGUSR1 handling. send USR1 to workers (which will kill it)"""
         self.kill_workers(signal.SIGUSR1)
@@ -348,9 +350,13 @@ class Arbiter(object):
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
-        for pid, w in self.WORKERS.items():
-            if w.id >= self.num_workers:
-                self.kill_worker(pid, signal.SIGQUIT)
+        num_to_kill = len(self.WORKERS) - self.num_workers
+        for i in range(num_to_kill, 0, -1):
+            pid, age = 0, sys.maxint
+            for (wpid, worker) in self.WORKERS.iteritems():
+                if worker.age < age:
+                    pid, age = wpid, worker.age
+            self.kill_worker(pid, signal.SIGQUIT)
 
     def spawn_workers(self):
         """ spawn new workers """
@@ -359,7 +365,9 @@ class Arbiter(object):
             if i in workers:
                 continue
 
-            worker = Worker(i, self.pid, self.LISTENER, self.app,
+            self.worker_age += 1
+            worker = Worker(i, self.worker_age, self.pid,
+                        self.LISTENER, self.app,
                         self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
