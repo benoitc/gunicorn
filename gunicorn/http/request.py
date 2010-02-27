@@ -87,7 +87,7 @@ class Request(object):
                 #
                 # So we try to read here the body and just skip it
                 
-                l = sock.CHUNK_SIZE
+                l = util.CHUNK_SIZE
                 while True:
                     b = ctypes.create_string_buffer(l)
                     try:
