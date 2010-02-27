@@ -79,7 +79,9 @@ class Arbiter(object):
         }
 
     def start(self):
-        """ Really initialize the arbiter. Strat to listen and set pidfile if needed."""
+        """\
+        Initialize the arbiter. Start listening and set pidfile if needed.
+        """
         self.pid = os.getpid()
         self.init_signals()
         self.LISTENER = create_socket(self.conf)
@@ -144,8 +146,10 @@ class Arbiter(object):
             raise
     
     def init_signals(self):
-        """ Init master signals handling. Most of signal are queued. Childs signals
-        only wake up the master"""
+        """\
+        Initialize master signal handling. Most of the signals
+        are queued. Child signals only wake up the master.
+        """
         if self.PIPE:
             map(lambda p: p.close(), self.PIPE)
         self.PIPE = pair = os.pipe()
@@ -162,7 +166,7 @@ class Arbiter(object):
             self.log.warn("Dropping signal: %s" % sig)
 
     def run(self):
-        """ main master loop. Launch to start the master"""
+        "Main master loop."
         self.start()
         util._setproctitle("master [%s]" % self.proc_name)
         self.manage_workers()
@@ -207,53 +211,70 @@ class Arbiter(object):
         sys.exit(0)
         
     def handle_chld(self, sig, frame):
-        """ SIGCHLD handling """
+        "SIGCHLD handling"
         self.wakeup()
         self.reap_workers()
         
     def handle_hup(self):
-        """ HUP handling . We relaunch gracefully the workers and app while 
-        reloading configuration."""
+        """\
+        HUP handling.
+        Entirely reloading the application including gracefully
+        restart the workers and rereading the configuration.
+        """
         self.log.info("Hang up: %s" % self.master_name)
         self.reexec()
         raise StopIteration
         
     def handle_quit(self):
-        """ SIGQUIT handling"""
+        "SIGQUIT handling"
         raise StopIteration
     
     def handle_int(self):
-        """ SIGINT handling """
+        "SIGINT handling"
         self.stop(False)
         raise StopIteration
     
     def handle_term(self):
-        """ SIGTERM handling """
+        "SIGTERM handling"
         self.stop(False)
         raise StopIteration
 
     def handle_ttin(self):
-        """ SIGTTIN handling. Increase number of workers."""
+        """\
+        SIGTTIN handling.
+        Increases the number of workers by one.
+        """
         self.num_workers += 1
         self.manage_workers()
     
     def handle_ttou(self):
-        """ SIGTTOU handling. Decrease number of workers."""
+        """\
+        SIGTTOU handling.
+        Decreases the number of workers by one.
+        """
         if self.num_workers <= 1:
             return
         self.num_workers -= 1
         self.manage_workers()
 
     def handle_usr1(self):
-        """ SIGUSR1 handling. send USR1 to workers (which will kill it)"""
+        """\
+        SIGUSR1 handling.
+        Kill all workers by sending them a SIGUSR1
+        """
         self.kill_workers(signal.SIGUSR1)
     
     def handle_usr2(self):
-        """ SIGUSR2 handling. relaunch WORKERS and reload app but don't kill old master/workers"""
+        """\
+        SIGUSR2 handling.
+        Creates a new master/worker set as a slave of the current
+        master without affecting old workers. Use this to do live
+        deployment with the ability to backout a change.
+        """
         self.reexec()
         
     def handle_winch(self):
-        """ SIGWINCH handling """
+        "SIGWINCH handling"
         if os.getppid() == 1 or os.getpgrp() != os.getpid():
             self.logger.info("graceful stop of workers")
             self.kill_workers(True)
@@ -261,7 +282,9 @@ class Arbiter(object):
             self.log.info("SIGWINCH ignored. Not daemonized")
     
     def wakeup(self):
-        """ Wake up the arbiter by writing to the PIPE"""
+        """\
+        Wake up the arbiter by writing to the PIPE
+        """
         try:
             os.write(self.PIPE[1], '.')
         except IOError, e:
@@ -269,8 +292,10 @@ class Arbiter(object):
                 raise
                     
     def sleep(self):
-        """ Master sleep and wake up when its PIPE change or timeout"""
-        
+        """\
+        Sleep until PIPE is readable or we timeout.
+        A readable PIPE means a signal occurred.
+        """
         try:
             ready = select.select([self.PIPE[0]], [], [], 1.0)
             if not ready[0]:
@@ -287,10 +312,11 @@ class Arbiter(object):
             sys.exit()
     
     def stop(self, graceful=True):
-        """ Stop workers
+        """\
+        Stop workers
         
-        :attr graceful: boolean, by default is True. If True workers will be killed gracefully 
-        (ie. we trying to wait end of client connection)
+        :attr graceful: boolean, If True (the default) workers will be
+        killed gracefully  (ie. trying to wait for the current connection)
         """
         self.LISTENER = None
         sig = signal.SIGQUIT
@@ -304,7 +330,9 @@ class Arbiter(object):
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
-        """ relaunch the master """
+        """\
+        Relaunch the master and workers.
+        """
         if self.pidfile:
             old_pidfile = "%s.oldbin" % self.pidfile
             self.pidfile = old_pidfile
@@ -320,7 +348,9 @@ class Arbiter(object):
         os.execlp(self.START_CTX[0], *self.START_CTX['argv'])
 
     def murder_workers(self):
-        """ kill unused/idle workers"""
+        """\
+        Kill unused/idle workers
+        """
         for (pid, worker) in list(self.WORKERS.items()):
             diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
             if diff <= self.timeout:
@@ -329,7 +359,9 @@ class Arbiter(object):
             self.kill_worker(pid, signal.SIGKILL)
     
     def reap_workers(self):
-        """ reap workers """
+        """\
+        Reap workers to avoid zombie processes
+        """
         try:
             while True:
                 wpid, status = os.waitpid(-1, os.WNOHANG)
@@ -346,7 +378,10 @@ class Arbiter(object):
                 pass
     
     def manage_workers(self):
-        """ maintain number of workers """
+        """\
+        Maintain the number of workers by spawning or killing
+        as required.
+        """
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
@@ -359,7 +394,12 @@ class Arbiter(object):
             self.kill_worker(pid, signal.SIGQUIT)
 
     def spawn_workers(self):
-        """ spawn new workers """
+        """\
+        Spawn new workers as needed.
+        
+        This is where a worker process leaves the main loop
+        of the master process.
+        """
         workers = set(w.id for w in self.WORKERS.values())
         for i in range(self.num_workers):
             if i in workers:
@@ -398,14 +438,16 @@ class Arbiter(object):
                     pass
 
     def kill_workers(self, sig):
-        """ kill all workers with signal sig
+        """\
+        Lill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
         for pid in self.WORKERS.keys():
             self.kill_worker(pid, sig)
                     
     def kill_worker(self, pid, sig):
-        """ kill a worker
+        """\
+        Kill a worker
         
         :attr pid: int, worker pid
         :attr sig: `signal.SIG*` value
