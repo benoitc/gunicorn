@@ -138,10 +138,10 @@ class TeeInput(object):
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
                 self.tmp.write(chunk)
-                self.tmp.seek(0, os.SEEK_END)
                 self.tmp.flush()
                 if hasattr(self.tmp, 'fileno'):
                     os.fsync(self.tmp.fileno())
+                self.tmp.seek(0, os.SEEK_END)
                 return chunk
             
             if self.parser.body_eof(): 
