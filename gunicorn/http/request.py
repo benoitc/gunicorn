@@ -73,29 +73,6 @@ class Request(object):
             self.socket.send("100 Continue\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
-            if self.parser.should_close:
-                # According to the RFC :
-                # 
-                # The presence of a message-body in a request is signaled by 
-                # the inclusion of a Content-Length or Transfer-Encoding header 
-                # field in the request's message-headers. A message-body MUST  
-                # NOT be included in a request if the specification of the  
-                # request method (section 5.1.1) does not allow sending an 
-                # entity-body in requests. A server SHOULD read and forward a 
-                # message-body on any request; if the request method does not 
-                # include defined semantics for an entity-body, then the 
-                # message-body SHOULD be ignored when handling the request. 
-                #
-                # So we try to read here the body and just skip it
-                
-                l = CHUNK_SIZE
-                while True:
-                    b = ctypes.create_string_buffer(l)
-                    try:
-                        l = self.socket.recv_into(b, l)
-                    except socket.error:
-                        break 
-            
             wsgi_input = StringIO.StringIO()
         else:
             wsgi_input = TeeInput(self.socket, self.parser, buf[i:])
