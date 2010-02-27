@@ -112,7 +112,7 @@ class Worker(object):
                 self.handle(client, addr)
                 self.nr += 1
             except socket.error, e:
-                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED, errno.EPIPE):
+                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
             # Keep processing clients until no one is waiting.
@@ -156,6 +156,11 @@ class Worker(object):
                 return 
 
             http.Response(client, response, req).send()
+        except socket.error, e:
+            if e[0] != errno.EPIPE:
+                self.log.exception("Error processing request. [%s]" % str(e))
+            else:
+                self.log.warn("Ignoring EPIPE")
         except Exception, e:
             self.log.exception("Error processing request. [%s]" % str(e))
             try:            
