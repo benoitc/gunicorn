@@ -147,7 +147,7 @@ class TeeInput(object):
                 self.tmp.seek(0, os.SEEK_END)
                 return chunk
             
-            if self.parser.body_eof(): 
+            if self.parser.body_eof():
                 break
             
             data = read_partial(self.socket, length)
