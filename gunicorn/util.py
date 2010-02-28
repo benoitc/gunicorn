@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import array
 import ctypes
 import errno
 import fcntl
@@ -92,8 +93,13 @@ def close(sock):
     except socket.error:
         pass
   
-def read_partial(sock, length):
-    return sock.recv(length)
+def read_partial(sock, length, buf=None):
+    if not buf:
+        buf = array.array("c", '\0' * length)
+        l = sock.recv_into(buf, length)
+        return buf[:l]
+    return buf
+
 
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))

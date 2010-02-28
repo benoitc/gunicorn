@@ -55,7 +55,6 @@ class Request(object):
     def read(self):
         environ = {}
         headers = []
-        buf = ""
         buf = read_partial(self.socket, CHUNK_SIZE)
         i = self.parser.filter_headers(headers, buf)
         if i == -1 and buf:
@@ -64,7 +63,8 @@ class Request(object):
                 if not data: break
                 buf += data
                 i = self.parser.filter_headers(headers, buf)
-                if i != -1: break
+                if i != -1:
+                    break            
 
         self.log.debug("%s", self.parser.status)
         self.log.debug("Headers:\n%s" % headers)

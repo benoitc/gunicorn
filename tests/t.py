@@ -4,6 +4,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import array
 import os
 import tempfile
 
@@ -49,6 +50,13 @@ class FakeSocket(object):
         
     def recv(self, length=None):
         return self.tmp.read()
+        
+    def recv_into(self, buf, length):
+        tmp_buffer = self.tmp.read(length)
+        v = len(tmp_buffer)
+        for i, c in enumerate(tmp_buffer):
+            buf[i] = c
+        return v
         
     def send(self, data):
         self.tmp.write(data)

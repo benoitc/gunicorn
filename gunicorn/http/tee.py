@@ -129,6 +129,8 @@ class TeeInput(object):
     def _tee(self, length):
         """ fetch partial body"""
         while True:
+            self.buf = read_partial(self.socket, length, self.buf)
+            
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
                 fwrite(self.tmp, chunk)
@@ -137,8 +139,6 @@ class TeeInput(object):
             if self.parser.body_eof():
                 break
             
-            data = read_partial(self.socket, length)
-            self.buf += data       
         self._finalize()
         return ""
         

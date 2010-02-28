@@ -38,10 +38,11 @@ class Parser(object):
         """
 
         ld = len("\r\n\r\n")
-        i = buf.find("\r\n\r\n")
+        s = "".join(buf)
+        i = s.find("\r\n\r\n")
         if i != -1:
             if i > 0:
-                r = buf[:i]
+                r = s[:i]
             pos = i+ld
             return self.finalize_headers(headers, r, pos)
         return -1
@@ -144,10 +145,11 @@ class Parser(object):
         return False
         
     def read_chunk(self, data):
+        s = "".join(data)
         if not self.start_offset:
-            i = data.find("\r\n")
+            i = s.find("\r\n")
             if i != -1:
-                chunk = data[:i].strip().split(";", 1)
+                chunk = s[:i].strip().split(";", 1)
                 chunk_size = int(chunk.pop(0), 16)
                 self.start_offset = i+2
                 self.chunk_size = chunk_size
@@ -158,17 +160,18 @@ class Parser(object):
                 ret = '', data[:self.start_offset]
                 return ret
             else:
-                buf = data[self.start_offset:self.start_offset+self.chunk_size]
+                chunk = s[self.start_offset:self.start_offset+self.chunk_size]
                 end_offset = self.start_offset + self.chunk_size + 2
                 # we wait CRLF else return None
                 if len(data) >= end_offset:
-                    ret = buf, data[end_offset:]
+                    ret = chunk, data[end_offset:]
                     self.chunk_size = 0
                     return ret
         return '', data
         
     def trailing_header(self, data):
-        i = data.find("\r\n\r\n")
+        s = "".join(data)
+        i = s.find("\r\n\r\n")
         return (i != -1)
         
     def filter_body(self, data):
@@ -179,17 +182,15 @@ class Parser(object):
         dlen = len(data)
         chunk = ''
         if self.is_chunked:
-
             chunk, data = self.read_chunk(data)
-            
             if not chunk:
                 return '', data
         else:
             if self._content_len > 0:
                 nr = min(dlen, self._content_len)
-                chunk = data[:nr]
+                chunk = "".join(data[:nr])
                 self._content_len -= nr
-                data = ''
+                data = []
                 
         self.start_offset = 0
         return (chunk, data)
