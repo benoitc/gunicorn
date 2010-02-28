@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <form method="post">
+    <form method="post" enctype='multipart/form-data'>
         <table>
         {{ form.as_table }}
         </table>
@@ -12,5 +12,6 @@
 	{% if subject %}
 		<p><strong>subject:</strong><br>{{ subject}}</p>
 		<p><strong>message:</strong><br>{{ message }}</p>
+		<p><strong>size:</strong><br>{{ size }}</p>
 	{% endif %}
 {% endblock content %}
