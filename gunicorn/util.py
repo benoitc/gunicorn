@@ -100,7 +100,6 @@ def read_partial(sock, length, buf=None):
         return buf[:l]
     return buf
 
-
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
     sock.sendall(chunk)
