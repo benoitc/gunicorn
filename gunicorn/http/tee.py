@@ -15,7 +15,7 @@ import os
 import StringIO
 import tempfile
 
-from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial
+from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial, fsize, fwrite
 
 class TeeInput(object):
     
@@ -33,10 +33,7 @@ class TeeInput(object):
         if len(buf) > 0:
             chunk, self.buf = parser.filter_body(buf)
             if chunk:
-                self.tmp.write(chunk)
-                self.tmp.flush()
-                if hasattr(self.tmp, 'fileno'):
-                    os.fsync(self.tmp.fileno())
+                fwrite(self.tmp, chunk)
             self._finalize()
             self.tmp.seek(0)
         
@@ -45,23 +42,17 @@ class TeeInput(object):
         if self._len: return self._len
         
         if self._is_socket:
-            pos = self.tmp.tell()
             while True:
-                self.tmp.seek(self._tmp_size())
                 if not self._tee(CHUNK_SIZE):
                     break
-            self.tmp.seek(pos)
         self._len = self._tmp_size()
         return self._len
         
     def seek(self, offset, whence=0):
         if self._is_socket:
-            pos = self.tmp.tell()
             while True:
-                self.tmp.seek(self._tmp_size())
                 if not self._tee(CHUNK_SIZE):
                     break
-            self.tmp.seek(pos)
         self.tmp.seek(offset, whence)
 
     def flush(self):
@@ -140,11 +131,7 @@ class TeeInput(object):
         while True:
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
-                self.tmp.write(chunk)
-                self.tmp.flush()
-                if hasattr(self.tmp, 'fileno'):
-                    os.fsync(self.tmp.fileno())
-                self.tmp.seek(0, os.SEEK_END)
+                fwrite(self.tmp, chunk)
                 return chunk
             
             if self.parser.body_eof():
@@ -163,14 +150,13 @@ class TeeInput(object):
             self._is_socket = False
             
     def _tmp_size(self):
-        if isinstance(self.tmp, StringIO.StringIO):
-            return self.tmp.len
-        else:
-            return int(os.fstat(self.tmp.fileno())[6])
+        return fsize(self.tmp)
             
     def _ensure_length(self, buf, length):
         if not buf or not self._len:
             return buf
         while len(buf) < length and self.len != self.tmp.tell():
-            buf += self._tee(length - len(buf))
+            data = self._tee(length - len(buf))
+            if not data: break
+            buf += data
         return buf

@@ -10,6 +10,7 @@ import os
 import resource
 import select
 import socket
+import StringIO
 import textwrap
 import time
 
@@ -140,6 +141,23 @@ def write_error(sock, msg):
     %s
     """) % (len(html), html)
     write_nonblock(sock, http)
+    
+def fwrite(f, data):
+    pos = f.tell()
+    f.seek(fsize(f))
+    f.write(data)
+    f.flush()
+    if hasattr(f, 'fileno'):
+        os.fsync(f.fileno())
+    f.seek(0, os.SEEK_END)
+    f.seek(pos)
+
+def fsize(f):
+    if isinstance(f, StringIO.StringIO):
+        return f.len
+    else:
+        return int(os.fstat(f.fileno())[6])
+        
 
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
