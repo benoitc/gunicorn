@@ -26,6 +26,7 @@ def home(request):
             tmp =  tempfile.TemporaryFile()
             for chunk in f.chunks():
                 tmp.write(chunk)
+            tmp.flush()
             size = int(os.fstat(tmp.fileno())[6])
     else:
         form = MsgForm()

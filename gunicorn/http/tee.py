@@ -33,7 +33,7 @@ class TeeInput(object):
         if len(buf) > 0:
             chunk, self.buf = parser.filter_body(buf)
             if chunk:
-                fwrite(self.tmp, chunk)
+                self.tmp.write(chunk)
             self._finalize()
             self.tmp.seek(0)
         
@@ -42,9 +42,12 @@ class TeeInput(object):
         if self._len: return self._len
         
         if self._is_socket:
+            pos = self.tmp.tell()
             while True:
+                self.tmp.seek(self._tmp_size())
                 if not self._tee(CHUNK_SIZE):
                     break
+            self.tmp.seek(0)
         self._len = self._tmp_size()
         return self._len
         
@@ -133,7 +136,9 @@ class TeeInput(object):
             
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
-                fwrite(self.tmp, chunk)
+                self.tmp.write(chunk)
+                self.tmp.flush()
+                self.tmp.seek(0, os.SEEK_END)
                 return chunk
             
             if self.parser.body_eof():

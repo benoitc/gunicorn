@@ -194,7 +194,7 @@ def test_011(buf, p):
     t.eq(body, "hello world")
 
 @t.request("017.http")
-def test_017(buf, p):
+def test_013(buf, p):
     headers = []
     i = p.filter_headers(headers, buf)
     t.ne(i, -1)
