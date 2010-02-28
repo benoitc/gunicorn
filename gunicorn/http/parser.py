@@ -40,8 +40,7 @@ class Parser(object):
         s = "".join(buf)
         i = s.find("\r\n\r\n")
         if i != -1:
-            if i > 0:
-                r = s[:i]
+            r = s[:i]
             pos = i+4
             return self.finalize_headers(headers, r, pos)
         return -1
