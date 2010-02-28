@@ -47,7 +47,7 @@ class TeeInput(object):
                 self.tmp.seek(self._tmp_size())
                 if not self._tee(CHUNK_SIZE):
                     break
-            self.tmp.seek(0)
+            self.tmp.seek(pos)
         self._len = self._tmp_size()
         return self._len
         
