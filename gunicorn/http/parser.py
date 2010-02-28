@@ -37,13 +37,12 @@ class Parser(object):
         with new headers.
         """
 
-        ld = len("\r\n\r\n")
         s = "".join(buf)
         i = s.find("\r\n\r\n")
         if i != -1:
             if i > 0:
                 r = s[:i]
-            pos = i+ld
+            pos = i+4
             return self.finalize_headers(headers, r, pos)
         return -1
         
@@ -119,8 +118,7 @@ class Parser(object):
     @property
     def is_chunked(self):
         """ is TE: chunked ?"""
-        transfert_encoding = self.headers_dict.get('Transfer-Encoding', False)
-        return (transfert_encoding == "chunked")
+        return (self.headers_dict.get('Transfer-Encoding') == "chunked")
         
     @property
     def content_len(self):

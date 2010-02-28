@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from gunicorn.util import http_date, write, close
+from gunicorn.util import  close, http_date, write, write_chunk
 
 class Response(object):
     

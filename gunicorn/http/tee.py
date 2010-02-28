@@ -155,7 +155,9 @@ class TeeInput(object):
     def _ensure_length(self, buf, length):
         if not buf or not self._len:
             return buf
-        while len(buf) < length and self.len != self.tmp.tell():
+        while True:
+            if len(buf) >= length: 
+                break
             data = self._tee(length - len(buf))
             if not data: break
             buf += data
