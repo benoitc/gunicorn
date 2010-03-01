@@ -155,8 +155,7 @@ class Request(object):
 
         self.response_status = status
         for name, value in response_headers:
-            name = normalize_name(name)
-            if name == "Transfer-Encoding":
+            if name.lower() == "transfer-encoding":
                 if value.lower() == "chunked":
                     self.response_chunked = True
             if not isinstance(value, basestring):

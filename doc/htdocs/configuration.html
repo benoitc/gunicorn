@@ -49,7 +49,7 @@
 
   <div class="document" id="the-configuration-file">
 <h1 class="title">The Configuration File</h1>
-<p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal"><span class="pre">gunicorn.conf.py</span></tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
+<p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
@@ -63,6 +63,8 @@ workers = 1             # Number of workers to initialize
 umask = 0               # Umask to set when daemonizing
 user = None             # Change process owner to user
 group = None            # Change process group to group
+proc_name = None        # Change the process name
+tmp_upload_dir = None   # Set path used to store temporary uploads
 
 def after_fork(server, worker):
     fmt = &quot;worker=%s spawned pid=%s&quot;
@@ -86,23 +88,27 @@ def before_exec(server):
 <dt>before_exec(server):</dt>
 <dd>This function is called before relaunching the master. This happens when the master receives a HUP or USR2 signal.</dd>
 <dt>bind:</dt>
-<dd>The address on which workers are listening. It can be a TCP address with a format of <tt class="docutils literal"><span class="pre">IP:PORT</span></tt> or a Unix socket address like <tt class="docutils literal"><span class="pre">unix:/path/to/socketfile</span></tt>.</dd>
+<dd>The address on which workers are listening. It can be a TCP address with a format of <tt class="docutils literal">IP:PORT</tt> or a Unix socket address like <tt class="docutils literal"><span class="pre">unix:/path/to/socketfile</span></tt>.</dd>
 <dt>daemon:</dt>
 <dd>Whether or not to detach the server from the controlling terminal.</dd>
 <dt>debug:</dt>
-<dd>If <tt class="docutils literal"><span class="pre">True</span></tt>, only one worker will be launch and the variable <tt class="docutils literal"><span class="pre">wsgi.multiprocess</span></tt> will be set to False.</dd>
+<dd>If <tt class="docutils literal">True</tt>, only one worker will be launch and the variable <tt class="docutils literal">wsgi.multiprocess</tt> will be set to False.</dd>
 <dt>group:</dt>
 <dd>The group in which worker processes will be launched.</dd>
 <dt>logfile:</dt>
-<dd>The path to the log file <tt class="docutils literal"><span class="pre">-</span></tt> (stdout) by default.</dd>
+<dd>The path to the log file <tt class="docutils literal">-</tt> (stdout) by default.</dd>
 <dt>loglevel:</dt>
-<dd>The level at which to log. <tt class="docutils literal"><span class="pre">info</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>, or <tt class="docutils literal"><span class="pre">error</span></tt> for instance. Only log messages of equal or greater severity are logged.</dd>
+<dd>The level at which to log. <tt class="docutils literal">info</tt>, <tt class="docutils literal">debug</tt>, or <tt class="docutils literal">error</tt> for instance. Only log messages of equal or greater severity are logged.</dd>
 <dt>pidfile:</dt>
 <dd>A file to store the master's PID.</dd>
+<dt>proc_name:</dt>
+<dd>If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a> is installed, it allows you to set the process name for this Gunicorn instance.</dd>
 <dt>umask:</dt>
 <dd>Used to set the umask when daemonizing.</dd>
 <dt>user:</dt>
 <dd>The user as which worker processes will by launched.</dd>
+<dt>tmp_upload_dir:</dt>
+<dd>Set the path used to store temporarily the body of the request.</dd>
 </dl>
 </div>
 </div>
