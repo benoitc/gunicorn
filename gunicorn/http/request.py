@@ -3,11 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import ctypes
 import logging
 import os
 import re
-import socket
 import StringIO
 import sys
 from urllib import unquote

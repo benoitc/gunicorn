@@ -15,7 +15,7 @@ import os
 import StringIO
 import tempfile
 
-from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial, fsize, fwrite
+from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial
 
 class TeeInput(object):
     
@@ -154,7 +154,10 @@ class TeeInput(object):
             self._is_socket = False
             
     def _tmp_size(self):
-        return fsize(self.tmp)
+        if isinstance(self.tmp, StringIO.StringIO):
+            return self.tmp.len
+        else:
+            return int(os.fstat(self.tmp.fileno())[6])
             
     def _ensure_length(self, buf, length):
         if not buf or not self._len:

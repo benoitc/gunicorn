@@ -17,8 +17,7 @@ from django.core.handlers.wsgi import WSGIHandler
  
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
-from gunicorn.main import daemonize, UMASK, configure_logging
-from gunicorn.util import parse_address, to_bytestring
+from gunicorn.main import daemonize, configure_logging
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
