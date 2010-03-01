@@ -4,6 +4,16 @@ title: News
 News
 ====
 
+0.6.2 / 2010-03-01
+------------------
+
+* Added support for chunked response.
+* Added possibility to configure proc_name in config file.
+* Improved HTTP parser. We now use buffers instead of strings to store temporary data.
+* Improved performance in send.
+* Workers are now murdered by age (the older is killed the first).
+
+
 0.6.1 / 2010-02-24
 ------------------
 

@@ -20,6 +20,7 @@ Example gunicorn.conf.py
     umask = 0               # Umask to set when daemonizing
     user = None             # Change process owner to user
     group = None            # Change process group to group
+    proc_name = None        # Change the process name
     
     def after_fork(server, worker):
         fmt = "worker=%s spawned pid=%s"
@@ -64,6 +65,9 @@ loglevel:
   
 pidfile:
     A file to store the master's PID.
+    
+proc_name:
+    If `setproctitle <http://pypi.python.org/pypi/setproctitle>`_ is installed, it allows you to set the process name for this Gunicorn instance.
   
 umask:
     Used to set the umask when daemonizing.
