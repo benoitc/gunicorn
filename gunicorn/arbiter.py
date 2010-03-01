@@ -352,9 +352,13 @@ class Arbiter(object):
         Kill unused/idle workers
         """
         for (pid, worker) in list(self.WORKERS.items()):
-            diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
-            if diff <= self.timeout:
+            try:
+                diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
+                if diff <= self.timeout:
+                    continue
+            except ValueError:
                 continue
+
             self.log.error("Worker timed out: %s (pid:%s)" % (worker, pid))
             self.kill_worker(pid, signal.SIGKILL)
     
