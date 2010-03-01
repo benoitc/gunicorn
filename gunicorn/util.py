@@ -94,11 +94,13 @@ def close(sock):
         pass
   
 def read_partial(sock, length, buf=None):
+    tmp_buf = array.array("c", '\0' * length)
+    l = sock.recv_into(tmp_buf, length)
+    
     if not buf:
-        buf = array.array("c", '\0' * length)
-        l = sock.recv_into(buf, length)
-        return buf[:l]
-    return buf
+        return tmp_buf[:l]
+    
+    return buf + tmp_buf[:l]
 
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
