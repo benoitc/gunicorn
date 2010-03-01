@@ -400,14 +400,10 @@ class Arbiter(object):
         This is where a worker process leaves the main loop
         of the master process.
         """
-        workers = set(w.id for w in self.WORKERS.values())
-        for i in range(self.num_workers):
-            if i in workers:
-                continue
-
+        
+        for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.worker_age += 1
-            worker = Worker(i, self.worker_age, self.pid,
-                        self.LISTENER, self.app,
+            worker = Worker(self.worker_age, self.pid, self.LISTENER, self.app,
                         self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
@@ -420,7 +416,7 @@ class Arbiter(object):
             try:
                 util._setproctitle("worker [%s]" % self.proc_name)
                 self.log.debug("Booting worker: %s (age: %s)" % (
-                                                i, self.worker_age))
+                                                worker_pid, self.worker_age))
                 self.conf.after_fork(self, worker)
                 worker.run()
                 sys.exit(0)
@@ -430,7 +426,7 @@ class Arbiter(object):
                 self.log.exception("Exception in worker process.")
                 sys.exit(-1)
             finally:
-                self.log.info("Worker exiting: %s (pid: %s)" % (i, worker_pid))
+                self.log.info("Worker exiting (pid: %s)" % worker_pid)
                 try:
                     worker.tmp.close()
                     os.unlink(worker.tmpname)

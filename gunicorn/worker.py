@@ -27,9 +27,8 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, workerid, age, ppid, socket, app, timeout, conf):
+    def __init__(self, age, ppid, socket, app, timeout, conf):
         self.nr = 0
-        self.id = workerid
         self.age = age
         self.ppid = ppid
         self.debug = conf['debug']
@@ -46,7 +45,7 @@ class Worker(object):
         self.address = self.socket.getsockname()
         
     def __str__(self):
-        return "<Worker %s>" % self.id
+        return "<Worker %s>" % os.getpid()
         
     @property
     def pid(self):
