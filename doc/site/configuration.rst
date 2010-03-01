@@ -21,6 +21,7 @@ Example gunicorn.conf.py
     user = None             # Change process owner to user
     group = None            # Change process group to group
     proc_name = None        # Change the process name
+    tmp_upload_dir = None   # Set path used to store temporary uploads
     
     def after_fork(server, worker):
         fmt = "worker=%s spawned pid=%s"
@@ -74,3 +75,6 @@ umask:
 
 user:
     The user as which worker processes will by launched.
+
+tmp_upload_dir:
+    Set the path used to store temporarily the body of the request.

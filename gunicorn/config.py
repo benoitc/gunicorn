@@ -25,6 +25,7 @@ class Config(object):
         umask="0",
         user=None,
         group=None,
+        tmp_upload_dir=None,
         
         after_fork=lambda server, worker: server.log.info(
             "Worker spawned (pid: %s)" % worker.pid),

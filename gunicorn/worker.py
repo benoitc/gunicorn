@@ -143,7 +143,7 @@ class Worker(object):
     def handle(self, client, addr):
         util.close_on_exec(client)
         try:
-            req = http.Request(client, addr, self.address, self.debug)
+            req = http.Request(client, addr, self.address, self.conf)
 
             try:
                 response = self.app(req.read(), req.start_response)

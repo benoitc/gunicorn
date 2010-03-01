@@ -36,8 +36,9 @@ class Request(object):
         "SERVER_SOFTWARE": "gunicorn/%s" % __version__
     }
 
-    def __init__(self, socket, client_address, server_address, debug=False):
-        self.debug = debug
+    def __init__(self, socket, client_address, server_address, conf):
+        self.debug = conf['debug']
+        self.conf = conf
         self.socket = socket
     
         self.client_address = client_address
@@ -73,7 +74,7 @@ class Request(object):
         if not self.parser.content_len and not self.parser.is_chunked:
             wsgi_input = StringIO.StringIO()
         else:
-            wsgi_input = TeeInput(self.socket, self.parser, buf[i:])
+            wsgi_input = TeeInput(self.socket, self.parser, buf[i:], self.conf)
                 
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and

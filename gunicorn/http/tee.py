@@ -19,7 +19,8 @@ from gunicorn.util import MAX_BODY, CHUNK_SIZE, read_partial
 
 class TeeInput(object):
     
-    def __init__(self, socket, parser, buf):
+    def __init__(self, socket, parser, buf, conf):
+        self.conf = conf
         self.buf = buf
         self.parser = parser
         self.socket = socket
@@ -28,7 +29,8 @@ class TeeInput(object):
         if self._len and self._len < MAX_BODY:
             self.tmp = StringIO.StringIO()
         else:
-            self.tmp = tempfile.TemporaryFile()
+            self.tmp = tempfile.TemporaryFile(
+                            dir=self.conf['tmp_upload_dir'])
             
         if len(buf) > 0:
             chunk, self.buf = parser.filter_body(buf)
