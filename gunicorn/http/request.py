@@ -13,7 +13,7 @@ from urllib import unquote
 from gunicorn import __version__
 from gunicorn.http.parser import Parser
 from gunicorn.http.tee import TeeInput
-from gunicorn.util import CHUNK_SIZE, read_partial, normalize_name
+from gunicorn.util import CHUNK_SIZE, read_partial
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
