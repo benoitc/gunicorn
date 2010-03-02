@@ -36,6 +36,7 @@ class TeeInput(object):
             chunk, self.buf = parser.filter_body(buf)
             if chunk:
                 self.tmp.write(chunk)
+                self.tmp.flush()
             self._finalize()
             self.tmp.seek(0)
         
