@@ -12,6 +12,7 @@ dirname = os.path.dirname(__file__)
 
 from gunicorn.http.parser import Parser
 from gunicorn.http.request import Request
+from gunicorn.config import Config
 
 def data_source(fname):
     with open(fname) as handle:
@@ -73,7 +74,7 @@ class http_request(object):
     def __call__(self, func):
         def run():
             fsock = FakeSocket(data_source(self.fname))
-            req = Request(fsock, ('127.0.0.1', 6000), ('127.0.0.1', 8000))
+            req = Request(fsock, ('127.0.0.1', 6000), ('127.0.0.1', 8000), Config({}))
             func(req)
         run.func_name = func.func_name
         return run
