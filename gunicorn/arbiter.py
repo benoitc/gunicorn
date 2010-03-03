@@ -49,13 +49,13 @@ class Arbiter(object):
         self.num_workers = num_workers
         self.worker_age = 0
         self.app = app
-        
-        self.timeout = 30
+        self.conf = kwargs.get("config", {})
+        self.timeout = self.conf['timeout']
         self.reexec_pid = 0
         self.debug = kwargs.get("debug", False)
         self.log = logging.getLogger(__name__)
         self.opts = kwargs
-        self.conf = kwargs.get("config", {})
+        
         self._pidfile = None
         self.master_name = "Master"
         self.proc_name = self.conf['proc_name']

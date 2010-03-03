@@ -13,19 +13,21 @@ from gunicorn import util
 class Config(object):
     
     DEFAULTS = dict(
-        proc_name = None,
-        default_proc_name = os.getcwd(),
+        backlog=2048,
         bind='127.0.0.1:8000',
         daemon=False,
         debug=False,
+        default_proc_name = os.getcwd(),
+        group=None,
         logfile='-',
         loglevel='info',
         pidfile=None,
-        workers=1,
+        proc_name = None,
+        timeout=30,
+        tmp_upload_dir=None,
         umask="0",
         user=None,
-        group=None,
-        tmp_upload_dir=None,
+        workers=1,
         
         after_fork=lambda server, worker: server.log.info(
             "Worker spawned (pid: %s)" % worker.pid),
