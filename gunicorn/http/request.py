@@ -69,7 +69,7 @@ class Request(object):
         self.log.debug("Headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
-            self.socket.send("100 Continue\n")
+            self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
             wsgi_input = StringIO.StringIO()
