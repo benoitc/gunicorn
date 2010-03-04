@@ -456,8 +456,8 @@ class Arbiter(object):
             os.kill(pid, sig)
         except OSError, e:
             if e.errno == errno.ESRCH:
-                worker = self.WORKERS.pop(pid)
                 try:
+                    worker = self.WORKERS.pop(pid)
                     worker.tmp.close()
                     os.unlink(worker.tmpname)
                 except:
