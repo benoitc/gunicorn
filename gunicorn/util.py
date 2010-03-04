@@ -90,14 +90,7 @@ def close(sock):
         pass
   
 def read_partial(sock, length, buf=None):
-    if buf is not None:
-        if len(buf) >= length:
-            return buf
-        else:
-            length = length - len(buf)
-
-    tmp_buf = sock.recv(length)
-    
+    tmp_buf = skt.recv(length)
     if not buf:
         return tmp_buf
     
