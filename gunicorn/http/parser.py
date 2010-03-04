@@ -36,11 +36,9 @@ class Parser(object):
         if parsing isn't done. headers dict is updated
         with new headers.
         """
-
-        s = "".join(buf)
-        i = s.find("\r\n\r\n")
+        i = buf.find("\r\n\r\n")
         if i != -1:
-            r = s[:i]
+            r = buf[:i]
             pos = i+4
             return self.finalize_headers(headers, r, pos)
         return -1
@@ -142,11 +140,10 @@ class Parser(object):
         return False
         
     def read_chunk(self, data):
-        s = "".join(data)
         if not self.start_offset:
-            i = s.find("\r\n")
+            i = data.find("\r\n")
             if i != -1:
-                chunk = s[:i].strip().split(";", 1)
+                chunk = data[:i].strip().split(";", 1)
                 chunk_size = int(chunk.pop(0), 16)
                 self.start_offset = i+2
                 self.chunk_size = chunk_size
@@ -157,7 +154,7 @@ class Parser(object):
                 ret = '', data[:self.start_offset]
                 return ret
             else:
-                chunk = s[self.start_offset:self.start_offset+self.chunk_size]
+                chunk = data[self.start_offset:self.start_offset+self.chunk_size]
                 end_offset = self.start_offset + self.chunk_size + 2
                 # we wait CRLF else return None
                 if len(data) >= end_offset:
@@ -167,8 +164,7 @@ class Parser(object):
         return '', data
         
     def trailing_header(self, data):
-        s = "".join(data)
-        i = s.find("\r\n\r\n")
+        i = data.find("\r\n\r\n")
         return (i != -1)
         
     def filter_body(self, data):
@@ -185,7 +181,7 @@ class Parser(object):
         else:
             if self._content_len > 0:
                 nr = min(dlen, self._content_len)
-                chunk = "".join(data[:nr])
+                chunk = data[:nr]
                 self._content_len -= nr
                 data = []
                 

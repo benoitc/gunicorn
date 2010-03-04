@@ -90,19 +90,15 @@ def close(sock):
         pass
   
 def read_partial(sock, length, buf=None):
-    if buf is not None:
-        if len(buf) >= length:
-            return buf
-        else:
-            length = length - len(buf)
-            
-    tmp_buf = ctypes.create_string_buffer(length)
-    l = sock.recv_into(tmp_buf, length)
+    if buf is not None and len(buf) >= length:
+        return buf
+
+    tmp_buf = sock.recv(length)
     
     if not buf:
-        return tmp_buf[:l]
+        return tmp_buf
     
-    return buf + tmp_buf[:l]
+    return buf + tmp_buf
 
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
