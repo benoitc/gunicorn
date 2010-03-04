@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import array
 import ctypes
 import fcntl
 import os
@@ -91,7 +90,13 @@ def close(sock):
         pass
   
 def read_partial(sock, length, buf=None):
-    tmp_buf = array.array("c", '\0' * length)
+    if buf is not None:
+        if len(buf) >= length:
+            return buf
+        else:
+            length = length - len(buf)
+            
+    tmp_buf = ctypes.create_string_buffer(length)
     l = sock.recv_into(tmp_buf, length)
     
     if not buf:
