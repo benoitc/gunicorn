@@ -135,7 +135,6 @@ class TeeInput(object):
     def _tee(self, length):
         """ fetch partial body"""
         while True:
-            print len(self._buf)
             chunk, self.buf = self.parser.filter_body(self.buf)
             if chunk:
                 self.tmp.write(chunk)
