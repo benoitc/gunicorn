@@ -134,7 +134,7 @@ def write_error(sock, msg):
     </html>
     """) % msg
     http = textwrap.dedent("""\
-    HTTP/1.0 500 Internal Server Error\r
+    HTTP/1.1 500 Internal Server Error\r
     Connection: close\r
     Content-Type: text/html\r
     Content-Length: %d\r
