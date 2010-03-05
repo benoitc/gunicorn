@@ -21,7 +21,7 @@ timeout_default = object()
 
 CHUNK_SIZE = (16 * 1024)
 
-MAX_BODY = 1024 * (80 + 32)
+MAX_BODY = 1024 * 132
 
 weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,

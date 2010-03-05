@@ -103,7 +103,7 @@ class TeeInput(object):
                 if not self._tee(CHUNK_SIZE):
                     break
                 self.tmp.seek(orig_size)
-                line = self.tmp.readline()
+                line += self.tmp.readline()
                 i = line.find("\n")
                 if i != -1: 
                     break
