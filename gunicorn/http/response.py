@@ -35,7 +35,7 @@ class Response(object):
         if self.chunked:
             if last_chunk or last_chunk is None:
                 # send last chunk
-                write_chunk("")
+                write_chunk(self._sock, "")
 
         close(self._sock)
 
