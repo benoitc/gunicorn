@@ -4,6 +4,12 @@ title: News
 News
 ====
 
+0.6.3 / 2010-03-07
+------------------
+
+* Make HTTP parsing faster.
+* Some fixes (see `logs <http://github.com/benoitc/gunicorn/commits/master>`_)
+
 0.6.2 / 2010-03-01
 ------------------
 
