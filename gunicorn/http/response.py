@@ -9,7 +9,7 @@ class Response(object):
     
     def __init__(self, sock, response, req):
         self.req = req
-        self.sock = sock
+        self._sock = sock
         self.data = response
         self.headers = req.response_headers or []
         self.status = req.response_status
@@ -18,21 +18,18 @@ class Response(object):
 
     def send(self):
         # send headers
-        resp_head = []    
-        resp_head.append("HTTP/1.1 %s\r\n" % (self.status))
-    
-        resp_head.append("Server: %s\r\n" % self.SERVER_VERSION)
-        resp_head.append("Date: %s\r\n" % http_date())
-        # always close the connection
-        resp_head.append("Connection: close\r\n")        
-        for name, value in self.headers:
-            resp_head.append("%s: %s\r\n" % (name, value))
-        
-        write(self.sock, "%s\r\n" % "".join(resp_head))
+        resp_head = [
+            "HTTP/1.1 %s\r\n" % self.status,
+            "Server: %s\r\n" % self.SERVER_VERSION,
+            "Date: %s\r\n" % http_date(),
+            "Connection: close\r\n"
+        ]
+        resp_head.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
+        write(self._sock, "%s\r\n" % "".join(resp_head))
 
         last_chunk = None
         for chunk in list(self.data):
-            write(self.sock, chunk, self.chunked)
+            write(self._sock, chunk, self.chunked)
             last_chunk = chunk
             
         if self.chunked:
@@ -40,7 +37,7 @@ class Response(object):
                 # send last chunk
                 write_chunk("")
 
-        close(self.sock)
+        close(self._sock)
 
         if hasattr(self.data, "close"):
             self.data.close()

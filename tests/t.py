@@ -6,6 +6,7 @@
 
 import array
 import os
+from StringIO import StringIO
 import tempfile
 
 dirname = os.path.dirname(__file__)
@@ -15,12 +16,12 @@ from gunicorn.http.request import Request
 from gunicorn.config import Config
 
 def data_source(fname):
+    buf = StringIO()
     with open(fname) as handle:
-        lines = []
         for line in handle:
             line = line.rstrip("\n").replace("\\r\\n", "\r\n")
-            lines.append(line)
-        return "".join(lines)
+            buf.write(line)
+        return buf
 
 class request(object):
     def __init__(self, name):
@@ -36,10 +37,10 @@ class request(object):
         
 class FakeSocket(object):
     
-    def __init__(self, data=""):
+    def __init__(self, data):
         self.tmp = tempfile.TemporaryFile()
         if data:
-            self.tmp.write(data)
+            self.tmp.write(data.getvalue())
             self.tmp.flush()
             self.tmp.seek(0)
 

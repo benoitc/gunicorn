@@ -88,13 +88,6 @@ def close(sock):
         sock.close()
     except socket.error:
         pass
-  
-def read_partial(sock, length, buf=None):
-    tmp_buf = sock.recv(length)
-    if not buf:
-        return tmp_buf
-    
-    return buf + tmp_buf
 
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))

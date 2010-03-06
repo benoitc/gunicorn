@@ -6,14 +6,14 @@
 import logging
 import os
 import re
-import StringIO
+from StringIO import StringIO
 import sys
 from urllib import unquote
 
 from gunicorn import __version__
 from gunicorn.http.parser import Parser
 from gunicorn.http.tee import TeeInput
-from gunicorn.util import CHUNK_SIZE, read_partial
+from gunicorn.util import CHUNK_SIZE
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
@@ -26,7 +26,7 @@ class Request(object):
     
     DEFAULTS = {
         "wsgi.url_scheme": 'http',
-        "wsgi.input": StringIO.StringIO(),
+        "wsgi.input": StringIO(),
         "wsgi.errors": sys.stderr,
         "wsgi.version": (1, 0),
         "wsgi.multithread": False,
@@ -39,14 +39,14 @@ class Request(object):
     def __init__(self, socket, client_address, server_address, conf):
         self.debug = conf['debug']
         self.conf = conf
-        self.socket = socket
+        self._sock = socket
     
         self.client_address = client_address
         self.server_address = server_address
         self.response_status = None
         self.response_headers = []
         self._version = 11
-        self.parser = Parser()
+        self.parser = Parser.parse_request()
         self.start_response_called = False
         self.log = logging.getLogger(__name__)
         self.response_chunked = False
@@ -54,27 +54,30 @@ class Request(object):
     def read(self):
         environ = {}
         headers = []
-        buf = read_partial(self.socket, CHUNK_SIZE)
-        i = self.parser.filter_headers(headers, buf)
-        if i == -1 and buf:
+        buf = StringIO()
+        data = self._sock.recv(CHUNK_SIZE)
+        buf.write(data)
+        buf2 = self.parser.filter_headers(headers, buf)
+        if not buf2:
             while True:
-                data = read_partial(self.socket, CHUNK_SIZE)
-                if not data: break
-                buf += data
-                i = self.parser.filter_headers(headers, buf)
-                if i != -1:
-                    break            
+                data = self._sock.recv(CHUNK_SIZE)
+                if not data:
+                    break
+                buf.write(data)
+                buf2 = self.parser.filter_headers(headers, buf)
+                if buf2: 
+                    break         
 
         self.log.debug("%s", self.parser.status)
         self.log.debug("Headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
-            self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
+            self._sock.send("HTTP/1.1 100 Continue\r\n\r\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
-            wsgi_input = StringIO.StringIO()
+            wsgi_input = StringIO()
         else:
-            wsgi_input = TeeInput(self.socket, self.parser, buf[i:], self.conf)
+            wsgi_input = TeeInput(self._sock, self.parser, buf2, self.conf)
                 
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and
