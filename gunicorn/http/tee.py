@@ -172,7 +172,7 @@ class TeeInput(object):
         if any."""
 
         if self.parser.body_eof():
-            del self.buf
+            self.buf = StringIO()
             self._is_socket = False
 
     def _tmp_size(self):
