@@ -460,6 +460,6 @@ class Arbiter(object):
                     worker = self.WORKERS.pop(pid)
                     worker.tmp.close()
                     os.unlink(worker.tmpname)
-                except:
+                except (KeyError, OSError):
                     pass
             raise            
