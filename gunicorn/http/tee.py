@@ -11,7 +11,10 @@ read or restart etc ... It's based on TeeInput from Gunicorn.
 
 """
 import os
-from StringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 import tempfile
 
 from gunicorn import util
@@ -33,7 +36,7 @@ class TeeInput(object):
         else:
             self.tmp = tempfile.TemporaryFile(dir=self.conf['tmp_upload_dir'])
         
-        if buf.len > 0:
+        if len(buf.getvalue()) > 0:
             chunk, self.buf = parser.filter_body(buf)
             if chunk:
                 self.tmp.write(chunk)
@@ -176,18 +179,18 @@ class TeeInput(object):
             self._is_socket = False
 
     def _tmp_size(self):
-        if isinstance(self.tmp, StringIO):
-            return self.tmp.len
-        else:
+        if hasattr(self.tmp, 'fileno'):
             return int(os.fstat(self.tmp.fileno())[6])
+        else:
+            return len(self.tmp.getvalue())
             
     def _ensure_length(self, dest, length):
-        if not dest.len or not self._len:
+        if not len(dest.getvalue()) or not self._len:
             return dest.getvalue()
         while True:
-            if dest.len >= length: 
+            if len(dest.getvalue()) >= length: 
                 break
-            data = self._tee(length - dest.len)
+            data = self._tee(length - len(dest.getvalue()))
             if not data: 
                 break
             dest.write(data)

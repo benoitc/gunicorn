@@ -6,7 +6,11 @@
 import logging
 import os
 import re
-from StringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+    
 import sys
 from urllib import unquote
 
@@ -76,8 +80,10 @@ class Request(object):
             
         if not self.parser.content_len and not self.parser.is_chunked:
             wsgi_input = StringIO()
+            content_length = "0"
         else:
             wsgi_input = TeeInput(self._sock, self.parser, buf2, self.conf)
+            content_length = str(wsgi_input.len)
                 
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and
@@ -132,7 +138,7 @@ class Request(object):
             "QUERY_STRING": self.parser.query_string,
             "RAW_URI": self.parser.raw_path,
             "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
-            "CONTENT_LENGTH": str(wsgi_input.len),
+            "CONTENT_LENGTH": content_length,
             "REMOTE_ADDR": remote_addr[0],
             "REMOTE_PORT": str(remote_addr[1]),
             "SERVER_NAME": server_address[0],
