@@ -23,16 +23,12 @@ Example gunicorn.conf.py
     proc_name = None        # Change the process name
     tmp_upload_dir = None   # Set path used to store temporary uploads
     
-    def after_fork(server, worker):
-        fmt = "worker=%s spawned pid=%s"
-        server.log.info(fmt % (worker.id, worker.pid))
-    
-    def before_fork(server, worker):
-        fmt = "worker=%s spawning"
-        server.log.info(fmt % worker.id)
-    
-    def before_exec(server):
-        serer.log.info("Forked child, reexecuting.")
+    after_fork=lambda server, worker: server.log.info(
+            "Worker spawned (pid: %s)" % worker.pid),
+        
+    before_fork=lambda server, worker: True,
+
+    before_exec=lambda server: server.log.info("Forked child, reexecuting"
 
 Parameter Descriptions
 ----------------------

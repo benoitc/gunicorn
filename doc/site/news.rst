@@ -4,6 +4,12 @@ title: News
 News
 ====
 
+0.6.4 / 2010-03-08
+------------------
+
+- Use cStringIO when it's possible (use less CPU and faster)
+- Fix worker freeze when a remote connexion close unexpectedly.
+
 0.6.3 / 2010-03-07
 ------------------
 
