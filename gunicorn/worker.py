@@ -16,7 +16,7 @@ import traceback
 
 from gunicorn import http
 from gunicorn import util
-
+from gunicorn.http.tee import UnexpectedEOF
 
 class Worker(object):
 
@@ -160,6 +160,8 @@ class Worker(object):
                 self.log.exception("Error processing request.")
             else:
                 self.log.warn("Ignoring EPIPE")
+        except UnexpectedShutdown:
+            self.log.exception("remote closed the connection unexpectedly.")
         except Exception, e:
             self.log.exception("Error processing request.")
             try:            

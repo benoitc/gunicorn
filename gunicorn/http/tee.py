@@ -19,6 +19,9 @@ import tempfile
 
 from gunicorn import util
 
+class UnexpectedEOF(object):
+    """ exception raised when remote closed the connection """
+
 class TeeInput(object):
     
     CHUNK_SIZE = util.CHUNK_SIZE
@@ -163,8 +166,17 @@ class TeeInput(object):
 
             if self.parser.body_eof():
                 break
+                
+            if not self._is_socket:
+                if self.parser.is_chunked:
+                    data = buf2.getvalue()
+                    if data.find("\r\n") >= 0:
+                        continue
+                raise UnexpectedEOF("remote closed the connection")
 
             data = self._sock.recv(length)
+            if not data:
+                self._is_socket = False
             buf2.write(data)
         
         self._finalize()
