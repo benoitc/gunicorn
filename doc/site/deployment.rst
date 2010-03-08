@@ -84,7 +84,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 `simple configuration`_ is::
 
     [program:gunicorn]
-    command=/usr/local/bin/gunicorn main:application -C /path/to/project/gunicorn.conf.py
+    command=/usr/local/bin/gunicorn main:application -c /path/to/project/gunicorn.conf.py
     directory=/path/to/project
     user=nobody
     autostart=true
