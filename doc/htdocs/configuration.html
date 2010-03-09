@@ -66,16 +66,12 @@ group = None            # Change process group to group
 proc_name = None        # Change the process name
 tmp_upload_dir = None   # Set path used to store temporary uploads
 
-def after_fork(server, worker):
-    fmt = &quot;worker=%s spawned pid=%s&quot;
-    server.log.info(fmt % (worker.id, worker.pid))
+after_fork=lambda server, worker: server.log.info(
+        &quot;Worker spawned (pid: %s)&quot; % worker.pid),
 
-def before_fork(server, worker):
-    fmt = &quot;worker=%s spawning&quot;
-    server.log.info(fmt % worker.id)
+before_fork=lambda server, worker: True,
 
-def before_exec(server):
-    serer.log.info(&quot;Forked child, reexecuting.&quot;)
+before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 </pre>
 </div>
 <div class="section" id="parameter-descriptions">
