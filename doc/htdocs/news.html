@@ -52,8 +52,8 @@
 <div class="section" id="id1">
 <h1>0.6.4 / 2010-03-08</h1>
 <ul class="simple">
-<li>Use cStringIO when it's possible (use less CPU and faster)</li>
-<li>Fix worker freeze when a remote connexion close unexpectedly.</li>
+<li>Use cStringIO for performance when possible.</li>
+<li>Fix worker freeze when a remote connection closes unexpectedly.</li>
 </ul>
 </div>
 <div class="section" id="id2">
@@ -67,10 +67,10 @@
 <h1>0.6.2 / 2010-03-01</h1>
 <ul class="simple">
 <li>Added support for chunked response.</li>
-<li>Added possibility to configure proc_name in config file.</li>
-<li>Improved HTTP parser. We now use buffers instead of strings to store temporary data.</li>
-<li>Improved performance in send.</li>
-<li>Workers are now murdered by age (the older is killed the first).</li>
+<li>Added proc_name option to the config file.</li>
+<li>Improved the HTTP parser. It now uses buffers instead of strings to store temporary data.</li>
+<li>Improved performance when sending responses.</li>
+<li>Workers are now murdered by age (the oldest is killed first).</li>
 </ul>
 </div>
 <div class="section" id="id4">
@@ -85,7 +85,7 @@
 <h1>0.6 / 2010-02-22</h1>
 <ul class="simple">
 <li>Added setproctitle</li>
-<li>Change privilege switch behaviour. We now works like NGINX, master keep the permission, new uid/gid permissions are only set to the workers.</li>
+<li>Change privilege switch behaviour. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.</li>
 </ul>
 </div>
 <div class="section" id="id6">

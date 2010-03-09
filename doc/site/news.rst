@@ -7,8 +7,8 @@ News
 0.6.4 / 2010-03-08
 ------------------
 
-- Use cStringIO when it's possible (use less CPU and faster)
-- Fix worker freeze when a remote connexion close unexpectedly.
+- Use cStringIO for performance when possible.
+- Fix worker freeze when a remote connection closes unexpectedly.
 
 0.6.3 / 2010-03-07
 ------------------
@@ -20,10 +20,10 @@ News
 ------------------
 
 * Added support for chunked response.
-* Added possibility to configure proc_name in config file.
-* Improved HTTP parser. We now use buffers instead of strings to store temporary data.
-* Improved performance in send.
-* Workers are now murdered by age (the older is killed the first).
+* Added proc_name option to the config file.
+* Improved the HTTP parser. It now uses buffers instead of strings to store temporary data.
+* Improved performance when sending responses.
+* Workers are now murdered by age (the oldest is killed first).
 
 
 0.6.1 / 2010-02-24
@@ -37,7 +37,7 @@ News
 ------------------
 
 * Added setproctitle
-* Change privilege switch behaviour. We now works like NGINX, master keep the permission, new uid/gid permissions are only set to the workers.
+* Change privilege switch behaviour. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.
 
 0.5.1 / 2010-02-22
 ------------------
