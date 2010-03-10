@@ -127,7 +127,7 @@ exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf">simple configuration</a> is:</p>
 <pre class="literal-block">
 [program:gunicorn]
-command=/usr/local/bin/gunicorn main:application -C /path/to/project/gunicorn.conf.py
+command=/usr/local/bin/gunicorn main:application -c /path/to/project/gunicorn.conf.py
 directory=/path/to/project
 user=nobody
 autostart=true

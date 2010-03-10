@@ -100,7 +100,8 @@ class Arbiter(object):
             return
         pid = self.valid_pidfile(path)
         if pid:
-            if self.pidfile and path == self.pidfile and pid == os.getpid():
+            if self._pidfile is not None and path == self._pidfile and \
+                    pid == os.getpid():
                 return path
             raise RuntimeError("Already running on PID %s " \
                         "(or pid file '%s' is stale)" % (os.getpid(), path))
@@ -120,8 +121,10 @@ class Arbiter(object):
         """ delete pidfile"""
         try:
             with open(path, "r") as f:
-                if int(f.read() or 0) == self.pid:
-                    os.unlink(f)
+                pid =  int(f.read() or 0)
+                
+            if pid == self.pid:
+                os.unlink(path)
         except:
             pass
         
@@ -335,7 +338,7 @@ class Arbiter(object):
         """
         if self.pidfile:
             old_pidfile = "%s.oldbin" % self.pidfile
-            self.pidfile = old_pidfile
+            self.pidfile = old_pidfile            
         
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
