@@ -27,13 +27,11 @@ class Response(object):
         resp_head.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
         write(self._sock, "%s\r\n" % "".join(resp_head))
 
-        last_chunk = None
         for chunk in list(self.data):
+            if chunk == "": break
             write(self._sock, chunk, self.chunked)
-            last_chunk = chunk
             
         if self.chunked:
-            if last_chunk or last_chunk is None:
                 # send last chunk
                 write_chunk(self._sock, "")
 
