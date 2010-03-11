@@ -23,7 +23,7 @@ setup(
     author = 'Benoit Chesneau',
     author_email = 'benoitc@e-engura.com',
     license = 'Apache License 2',
-    url = 'http://github.com/benoitc/gunicorn',
+    url = 'http://gunicorn.org',
 
     classifiers = [
         'Development Status :: 4 - Beta',
