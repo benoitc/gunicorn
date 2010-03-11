@@ -93,7 +93,6 @@ class Worker(object):
         util.close_on_exec(self.socket)
         util.close_on_exec(self.fd)
         self.init_signals()
-        
     
     def accept(self):
         try:

@@ -344,6 +344,9 @@ class Arbiter(object):
                 if worker.age < age:
                     pid, age = wpid, worker.age
             self.kill_worker(pid, signal.SIGQUIT)
+            
+    def init_worker(self, worker_age, pid, listener, app, timeout, conf):
+        return Worker(worker_age, pid, listener, app, timeout, conf)
 
     def spawn_workers(self):
         """\
@@ -355,8 +358,8 @@ class Arbiter(object):
         
         for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.worker_age += 1
-            worker = Worker(self.worker_age, self.pid, self.LISTENER, self.app,
-                        self.timeout/2.0, self.conf)
+            worker = self.init_worker(self.worker_age, self.pid, self.LISTENER, 
+                            self.app, self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
             if pid != 0:
