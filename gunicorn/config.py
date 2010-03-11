@@ -12,7 +12,7 @@ from gunicorn import util
 
 class Config(object):
     
-    DEFAULT_CONFIG_FILE = 'gunicorn.conf.py',
+    DEFAULT_CONFIG_FILE = 'gunicorn.conf.py'
     
     DEFAULTS = dict(
         backlog=2048,
@@ -42,7 +42,7 @@ class Config(object):
     def __init__(self, cmdopts, path=None):
         if not path:
             self.config_file = os.path.join(os.getcwd(), 
-                                            self.DEFAULT_CONFIG_FILE)
+                                    self.DEFAULT_CONFIG_FILE)
         else:
             self.config_file =  os.path.abspath(os.path.normpath(path))
         self.cmdopts = cmdopts    

@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import errno
 import os
 import tempfile
 
@@ -24,7 +25,7 @@ class Pidfile(object):
                 return path
             raise RuntimeError("Already running on PID %s " \
                         "(or pid file '%s' is stale)" % (os.getpid(), path))
-        if instane._pidfile:    
+        if instance._pidfile:    
             self.unlink_pidfile(instance, instance._pidfile)
 
         # write pidfile
