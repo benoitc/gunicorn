@@ -95,6 +95,15 @@ class Worker(object):
         self.init_signals()
         
     
+    def accept(self):
+        try:
+            client, addr = self.socket.accept()
+            self.handle(client, addr)
+            self.nr += 1
+        except socket.error, e:
+            if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
+                raise
+    
     def run(self):
         self.init_process()
         self.nr = 0
@@ -106,13 +115,9 @@ class Worker(object):
         while self.alive:
             self.nr = 0
             self.notify()
-            try:
-                client, addr = self.socket.accept()
-                self.handle(client, addr)
-                self.nr += 1
-            except socket.error, e:
-                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
-                    raise
+            
+            # accept a new connection
+            self.accept()
 
             # Keep processing clients until no one is waiting.
             # This prevents the need to select() for every
