@@ -16,6 +16,7 @@ import tempfile
 import time
 import traceback
 
+from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn.worker import Worker
 from gunicorn import util
@@ -43,6 +44,8 @@ class Arbiter(object):
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
     )
+    
+    pidfile = Pidfile()
 
     def __init__(self, address, num_workers, app, **kwargs):
         self.address = address
@@ -89,64 +92,6 @@ class Arbiter(object):
         self.log.info("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         
-    def _del_pidfile(self):
-        self._pidfile = None
-        
-    def _get_pidfile(self):
-        return self._pidfile
-        
-    def _set_pidfile(self, path):
-        if not path:
-            return
-        pid = self.valid_pidfile(path)
-        if pid:
-            if self._pidfile is not None and path == self._pidfile and \
-                    pid == os.getpid():
-                return path
-            raise RuntimeError("Already running on PID %s " \
-                        "(or pid file '%s' is stale)" % (os.getpid(), path))
-        if self.pidfile:    
-            self.unlink_pidfile(self.pidfile)
-
-        # write pidfile
-        fd, fname = tempfile.mkstemp(dir=os.path.dirname(path))
-        os.write(fd, "%s\n" % self.pid)
-        os.rename(fname, path)
-        os.close(fd)
-        self._pidfile = path
-    pidfile = property(_get_pidfile, _set_pidfile, _del_pidfile, 
-                    "manage creation/delettion of pidfile")
-    
-    def unlink_pidfile(self, path):
-        """ delete pidfile"""
-        try:
-            with open(path, "r") as f:
-                pid =  int(f.read() or 0)
-                
-            if pid == self.pid:
-                os.unlink(path)
-        except:
-            pass
-        
-    def valid_pidfile(self, path):
-        """ Validate pidfile and make it stale if needed"""
-        try:
-            with open(path, "r") as f:
-                wpid = int(f.read() or 0)
-
-                if wpid <= 0: return None
-     
-                try:
-                    os.kill(wpid, 0)
-                    return wpid
-                except OSError, e:
-                    if e[0] == errno.ESRCH:
-                        return
-                    raise
-        except IOError, e:
-            if e[0] == errno.ENOENT:
-                return
-            raise
     
     def init_signals(self):
         """\
@@ -204,13 +149,13 @@ class Arbiter(object):
                             traceback.format_exc())
                 self.stop(False)
                 if self.pidfile:
-                    self.unlink_pidfile(self.pidfile)
+                    del self.pidfile
                 sys.exit(-1)
 
         self.stop()
         self.log.info("Shutting down: %s" % self.master_name)
         if self.pidfile:
-            self.unlink_pidfile(self.pidfile)
+            del self.pidfile
         sys.exit(0)
         
     def handle_chld(self, sig, frame):
