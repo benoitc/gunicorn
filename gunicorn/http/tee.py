@@ -148,7 +148,10 @@ class TeeInput(object):
     __next__ = next
     
     def __iter__(self):
-        return self    
+        return self
+        
+    def get_socket(self):
+        return self._sock.dup()    
 
     def _tee(self, length):
         """ fetch partial body"""

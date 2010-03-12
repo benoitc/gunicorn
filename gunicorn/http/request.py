@@ -70,8 +70,8 @@ class Request(object):
                 buf.write(data)
                 buf2 = self.parser.filter_headers(headers, buf)
                 if buf2: 
-                    break         
-
+                    break
+                    
         self.log.debug("%s", self.parser.status)
         self.log.debug("Headers:\n%s" % headers)
         
@@ -79,7 +79,8 @@ class Request(object):
             self._sock.send("HTTP/1.1 100 Continue\r\n\r\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
-            wsgi_input = StringIO()
+            wsgi_input = TeeInput(self._sock, self.parser, StringIO(), 
+                            self.conf)
             content_length = "0"
         else:
             wsgi_input = TeeInput(self._sock, self.parser, buf2, self.conf)
