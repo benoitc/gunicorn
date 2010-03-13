@@ -1,0 +1,21 @@
+nd='unix:/tmp/gunicorn.sock',
+daemon=True,
+debug=False,
+logfile='/var/log/gunicorn.log',
+loglevel='info',
+pidfile='/var/run/gunicorn.pid',
+workers=1,
+umask=0,
+ 
+# for systems with nobody and no group
+user="nobody",
+group="nogroup",
+ 
+after_fork=lambda server, worker: server.log.info(
+                "worker=%s spawned pid=%s" % (worker.id,
+str(worker.pid))),
+ 
+before_fork=lambda server, worker: server.log.info(
+                "worker=%s spawning" % worker.id),
+                
+before_exec=lambda server: server.log.info("forked child, reexecuting")

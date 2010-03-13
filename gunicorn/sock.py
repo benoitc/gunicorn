@@ -33,10 +33,11 @@ class BaseSocket(object):
     
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setblocking(0)
         if not bound:
             self.bind(sock)
+        sock.setblocking(0)
         sock.listen(self.conf['backlog'])
+        
         return sock
         
     def bind(self, sock):
