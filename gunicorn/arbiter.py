@@ -412,5 +412,5 @@ class Arbiter(object):
                     worker.tmp.close()
                     os.unlink(worker.tmpname)
                 except (KeyError, OSError):
-                    pass
+                    return
             raise            

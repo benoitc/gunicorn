@@ -74,6 +74,8 @@ class Request(object):
                     
         self.log.debug("%s", self.parser.status)
         self.log.debug("Headers:\n%s" % headers)
+        if not headers:
+            return
         
         if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
             self._sock.send("HTTP/1.1 100 Continue\r\n\r\n")

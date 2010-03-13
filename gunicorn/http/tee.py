@@ -34,7 +34,9 @@ class TeeInput(object):
         self._is_socket = True
         self._len = parser.content_len
         
-        if self._len and self._len < util.MAX_BODY:
+        if not self.parser.content_len and not self.parser.is_chunked:
+            self.tmp = StringIO()
+        elif self._len and self._len < util.MAX_BODY:
             self.tmp = StringIO()
         else:
             self.tmp = tempfile.TemporaryFile(dir=self.conf['tmp_upload_dir'])
