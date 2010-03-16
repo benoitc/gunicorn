@@ -9,7 +9,6 @@ import os
 import pkg_resources
 import sys
 
-from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
 from gunicorn import util, __version__
 

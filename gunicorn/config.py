@@ -101,7 +101,6 @@ class Config(object):
     def arbiter(self):
         uri = self.conf.get('arbiter', 'egg:gunicorn')
         arbiter = util.parse_arbiter_uri(uri)
-        print arbiter
         if hasattr(arbiter, 'setup'):
             arbiter.setup()
         return arbiter
