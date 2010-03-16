@@ -27,6 +27,9 @@ class Command(BaseCommand):
             help='Gunicorn Config file. [%default]'),
         make_option('-w', '--workers', dest='workers', 
             help='Specifies the number of worker processes to use.'),
+        make_option('-a', '--arbiter', dest='arbiter',
+            help="gunicorn arbiter entry point or module "+
+            "[egg:gunicorn#main]"),
         make_option('--pid', dest='pidfile',
             help='set the background PID file'),
         make_option( '--daemon', dest='daemon', action="store_true",
@@ -70,7 +73,7 @@ class Command(BaseCommand):
         
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
-            arbiter = Arbiter(conf.address, conf.workers, handler,
+            arbiter = conf.arbiter(conf.address, conf.workers, handler,
                 pidfile=conf['pidfile'], config=conf)
             if conf['daemon']:
                 daemonize()
