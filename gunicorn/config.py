@@ -15,7 +15,7 @@ class Config(object):
     DEFAULT_CONFIG_FILE = 'gunicorn.conf.py'
     
     DEFAULTS = dict(
-            arbiter="egg:gunicorn",
+        arbiter="egg:gunicorn",
         backlog=2048,
         bind='127.0.0.1:8000',
         daemon=False,

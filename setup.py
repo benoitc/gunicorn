@@ -50,7 +50,8 @@ setup(
 
     [gunicorn.arbiter]
     main=gunicorn.arbiter:Arbiter
-    
+    eventlet=gunicorn.async.eventlet_server:EventletArbiter
+    gevent=gunicorn.async.gevent_server:GEventArbiter 
     
     [paste.server_runner]
     main=gunicorn.main:paste_server

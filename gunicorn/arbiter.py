@@ -154,8 +154,8 @@ class Arbiter(object):
 
         self.stop()
         self.log.info("Shutting down: %s" % self.master_name)
-        if self.pidfile:
-            del self.pidfile
+        #if self.pidfile:
+        #    del self.pidfile
         sys.exit(0)
         
     def handle_chld(self, sig, frame):

@@ -154,7 +154,11 @@ class Worker(object):
             req = http.Request(client, addr, self.address, self.conf)
 
             try:
-                response = self.app(req.read(), req.start_response)
+                environ = req.read()
+                if not environ or not req.parser.status:
+                    return
+
+                response = self.app(environ, req.start_response)
             except Exception, e:
                 # Only send back traceback in HTTP in debug mode.
                 if not self.debug:
@@ -180,4 +184,3 @@ class Worker(object):
                 pass
         finally:    
             util.close(client)
-            
