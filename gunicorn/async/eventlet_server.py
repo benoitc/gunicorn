@@ -16,25 +16,6 @@ from gunicorn import util
 from gunicorn import arbiter
 from gunicorn.async.base import KeepaliveWorker
 
-__original_GreenPipe__ = greenio.GreenPipe
-
-class _GreenPipe(__original_GreenPipe__):
-
-    def tell(self):
-        return self.fd.tell()
-
-    def seek(self, offset, whence=0):
-        fd = self.fd
-        self.read()
-        fd.seek(offset, whence)
-
-_eventlet_patched = None
-def patch_eventlet():
-    global _eventlet_patched
-    if _eventlet_patched:
-        return
-    greenio.GreenPipe = _GreenPipe
-    _eventlet_patched = True
         
 class EventletWorker(KeepaliveWorker):
 
@@ -59,8 +40,7 @@ class EventletArbiter(arbiter.Arbiter):
         import eventlet
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
-        patch_eventlet()
-        eventlet.monkey_patch(all=True)
+        eventlet.monkey_patch(all=False, socket=True, select=True)
         
     def init_worker(self, worker_age, pid, listener, app, timeout, conf):
         return EventletWorker(worker_age, pid, listener, app, timeout, conf)
