@@ -97,12 +97,17 @@ class Worker(object):
     def accept(self):
         try:
             client, addr = self.socket.accept()
+            self.init_sock(client)
             self.handle(client, addr)
             self.nr += 1
         except socket.error, e:
             if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                 raise
     
+    def init_sock(self, sock):
+        sock.setblocking(1)
+        util.close_on_exec(sock)
+
     def run(self):
         self.init_process()
         self.nr = 0
@@ -145,7 +150,6 @@ class Worker(object):
                 raise
 
     def handle(self, client, addr):
-        util.close_on_exec(client)
         try:
             req = http.Request(client, addr, self.address, self.conf)
 
