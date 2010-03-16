@@ -76,7 +76,9 @@ def get_maxfd():
     return maxfd
 
 def close_on_exec(fd):
-    fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    flags |= fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
     
 def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
