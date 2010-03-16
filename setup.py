@@ -47,6 +47,10 @@ setup(
     gunicorn=gunicorn.main:run
     gunicorn_django=gunicorn.main:run_django
     gunicorn_paster=gunicorn.main:run_paster
+
+    [gunicorn.arbiter]
+    main=gunicorn.arbiter:Arbiter
+    
     
     [paste.server_runner]
     main=gunicorn.main:paste_server

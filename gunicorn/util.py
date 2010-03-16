@@ -3,9 +3,11 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+
 import ctypes
 import fcntl
 import os
+import pkg_resources
 import resource
 import socket
 import textwrap
@@ -35,7 +37,30 @@ try:
 except ImportError:
     def _setproctitle(title):
         return
-             
+
+def parse_arbiter_uri(uri):
+    if uri.startswith("egg:"):
+        # uses entry points
+        entry_str = uri.split("egg:")[1]
+        parsed_ept = entry_str.split("#", 1)
+        try:
+            dist, name = entry_str.rsplit("#",1)
+        except:
+            dist = entry_str
+            name = "main"
+
+        return pkg_resources.load_entry_point(dist, "gunicorn.arbiter",
+                name)
+    else:
+        components = uri.split('.')
+        if len(components) == 1:
+            raise RuntimeError("arbiter uri invalid")
+        klass = components.pop(-1)
+        mod = __import__('.'.join(components))
+        for comp in components[1:]:
+            mod = getattr(mod, comp)
+        return getattr(mod, klass)
+
 def set_owner_process(uid,gid):
     """ set user and group of workers processes """
     if gid:
@@ -76,9 +101,8 @@ def get_maxfd():
     return maxfd
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD) | fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
     
 def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK

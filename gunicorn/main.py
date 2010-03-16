@@ -32,6 +32,9 @@ def options():
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers',
             help='Number of workers to spawn. [1]'),
+        op.make_option('-a', '--arbiter', dest='arbiter',
+            help="gunicorn arbiter entry point or module "+
+            "[egg:gunicorn#main]"),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
         op.make_option('-D', '--daemon', dest='daemon', action="store_true",
@@ -112,7 +115,7 @@ def main(usage, get_app):
     
     app = get_app(parser, opts, args)
     conf = Config(opts.__dict__, opts.config)
-    arbiter = Arbiter(conf.address, conf.workers, app, config=conf, 
+    arbiter = conf.arbiter(conf.address, conf.workers, app, config=conf, 
                 debug=conf['debug'], pidfile=conf['pidfile'])
     if conf['daemon']:
         daemonize()
@@ -147,7 +150,7 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
         options['default_proc_name'] = options['__file__']
            
     conf = Config(options)
-    arbiter = Arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
+    arbiter = conf.arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
                     pidfile=conf["pidfile"], config=conf)
     if conf["daemon"] :
         daemonize()

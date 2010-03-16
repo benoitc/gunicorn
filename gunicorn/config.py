@@ -15,12 +15,14 @@ class Config(object):
     DEFAULT_CONFIG_FILE = 'gunicorn.conf.py'
     
     DEFAULTS = dict(
+            arbiter="egg:gunicorn",
         backlog=2048,
         bind='127.0.0.1:8000',
         daemon=False,
         debug=False,
         default_proc_name = os.getcwd(),
         group=None,
+        keepalive=2,
         logfile='-',
         loglevel='info',
         pidfile=None,
@@ -30,6 +32,7 @@ class Config(object):
         umask="0",
         user=None,
         workers=1,
+        worker_connections=1000,
         
         after_fork=lambda server, worker: server.log.info(
             "Worker spawned (pid: %s)" % worker.pid),
@@ -93,7 +96,16 @@ class Config(object):
         
     def __iter__(self):
         return self.conf.iteritems()
-     
+
+    @property
+    def arbiter(self):
+        uri = self.conf.get('arbiter', 'egg:gunicorn')
+        arbiter = util.parse_arbiter_uri(uri)
+        print arbiter
+        if hasattr(arbiter, 'setup'):
+            arbiter.setup()
+        return arbiter
+
     @property   
     def workers(self):
         if not self.conf.get('workers'):
