@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -
 #
-# This file is part of grainbows released under the MIT license. 
+# This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import eventlet
+
 import time
-eventlet.monkey_patch(all=False, os=True, select=True, socket=True)
 
 class TestIter(object):
     
     def __iter__(self):
-        lines = ['line 1\n', 'line 2\n']
+        lines = ['line 1', 'line 2']
         for line in lines:
             yield line
             time.sleep(10)
@@ -26,4 +25,3 @@ def app(environ, start_response):
     print 'request received'
     start_response(status, response_headers)
     return TestIter()
-    

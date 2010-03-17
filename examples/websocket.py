@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of grainbow released under the MIT license. 
+# This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 #
 # Example code from Eventlet sources

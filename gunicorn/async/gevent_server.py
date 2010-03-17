@@ -9,7 +9,6 @@ import os
 
 import gevent
 from gevent import socket
-from gevent.event import Event
 from gevent.greenlet import Greenlet
 from gevent.pool import Pool
 
@@ -23,7 +22,6 @@ class GEventWorker(KeepaliveWorker):
     def init_process(self):
         super(GEventWorker, self).init_process()
         self.pool = Pool(self.worker_connections)
-        #self.socket = socket.socket(_sock=self.socket)
         
     def accept(self):
         try:
