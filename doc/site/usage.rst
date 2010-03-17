@@ -14,9 +14,9 @@ WSGI applications
 Thirty seconds to launch the `example application`_ packaged with Gunicorn::
 
     $ cd /path/to/gunicorn/examples/
-    $ gunicorn --workers=2 test:application
+    $ gunicorn --workers=2 test:app
 
-The module ``test:application`` specifies the complete module name and WSGI callable. You can replace it with anything that is available on your ``PYTHONPATH`` like such::
+The module ``test:app`` specifies the complete module name and WSGI callable. You can replace it with anything that is available on your ``PYTHONPATH`` like such::
 
     $ cd ~/
     $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
