@@ -42,10 +42,9 @@ def parse_arbiter_uri(uri):
     if uri.startswith("egg:"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
-        parsed_ept = entry_str.split("#", 1)
         try:
             dist, name = entry_str.rsplit("#",1)
-        except:
+        except ValueError:
             dist = entry_str
             name = "main"
 
