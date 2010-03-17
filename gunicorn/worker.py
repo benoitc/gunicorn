@@ -155,7 +155,7 @@ class Worker(object):
 
             try:
                 environ = req.read()
-                if not environ or not req.parser.status:
+                if not environ or not req.parser.status_line:
                     return
 
                 response = self.app(environ, req.start_response)
