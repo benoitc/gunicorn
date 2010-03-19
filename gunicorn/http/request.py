@@ -170,5 +170,6 @@ class Request(object):
                     self.response_chunked = True
             if not isinstance(value, basestring):
                 value = str(value)
-            self.response_headers.append((name.title(), value.strip()))     
+            self.response_headers.append((name.title(), value.strip()))
+
         self.start_response_called = True

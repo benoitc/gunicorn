@@ -30,11 +30,12 @@ class Response(object):
         resp_head.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
         write(self._sock, "%s\r\n" % "".join(resp_head))
 
-        for chunk in list(self.data):
-            if chunk == "": break
+        last_chunk = None
+        for chunk in self.data:
+            last_chunk = chunk
             write(self._sock, chunk, self.chunked)
             
-        if self.chunked:
+        if self.chunked and last_chunk != "":
             # send last chunk
             write_chunk(self._sock, "")
 

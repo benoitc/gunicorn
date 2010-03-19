@@ -1,7 +1,9 @@
 # Create your views here.
 
+import csv
 import os
 from django import forms
+from django.http import HttpResponse
 from django.shortcuts import render_to_response
 import tempfile
 
@@ -40,4 +42,19 @@ def home(request):
     })
     
     
-            
+def acsv(request):
+    rows = [
+        {'a': 1, 'b': 2},
+        {'a': 3, 'b': 3}
+    ]
+ 
+    response = HttpResponse(mimetype='text/csv')
+    response['Content-Disposition'] = 'attachment; filename=report.csv'
+ 
+    writer = csv.writer(response)
+    writer.writerow(['a', 'b'])
+ 
+    for r in rows:
+        writer.writerow([r['a'], r['b']])
+        
+    return response
