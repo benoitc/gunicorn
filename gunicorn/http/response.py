@@ -29,6 +29,8 @@ class Response(object):
         resp_head = self.default_headers()
         resp_head.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
         write(self._sock, "%s\r\n" % "".join(resp_head))
+        self.req.headers_sent = True
+        
 
         last_chunk = None
         for chunk in self.data:

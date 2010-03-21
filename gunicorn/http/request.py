@@ -54,6 +54,7 @@ class Request(object):
         self.start_response_called = False
         self.log = logging.getLogger(__name__)
         self.response_chunked = False
+        self.headers_sent = False
 
     def read(self):
         environ = {}
@@ -156,7 +157,7 @@ class Request(object):
     def start_response(self, status, response_headers, exc_info=None):
         if exc_info:
             try:
-                if self.start_response_called:
+                if self.headers_sent:
                     raise exc_info[0], exc_info[1], exc_info[2]
             finally:
                 exc_info = None
