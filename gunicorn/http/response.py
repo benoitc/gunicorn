@@ -28,7 +28,7 @@ class Response(object):
         if self.headers_sent:
             return
         tosend = [
-            "HTP/1.1 %s\r\n" % self.status,
+            "HTTP/1.1 %s\r\n" % self.status,
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % http_date(),
             "Connection: close\r\n"
