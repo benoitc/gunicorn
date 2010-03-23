@@ -27,8 +27,8 @@ class Response(object):
     def default_headers(self):
         return [
             "HTTP/1.1 %s\r\n" % self.status,
-            "Server: %s\r\n" % self.SERVER_VERSION,
-            "Date: %s\r\n" % util.http_date(),
+            "Server: %s\r\n" % self.version,
+            "Date: %s\r\n" % http_date(),
             "Connection: close\r\n"
         ]
 
