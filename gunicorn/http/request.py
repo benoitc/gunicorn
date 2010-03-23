@@ -26,7 +26,8 @@ class RequestError(Exception):
     pass
         
 class Request(object):
-    
+
+    RESPONSE_CLASS = Response
     SERVER_VERSION = "gunicorn/%s" % __version__
     
     DEFAULTS = {
@@ -165,5 +166,5 @@ class Request(object):
         elif self.response is not None:
             raise AssertionError("Response headers already set!")
 
-        self.response = Response(self, status, headers)
+        self.response = self.RESPONSE_CLASS(self, status, headers)
         return self.response.write

@@ -31,10 +31,16 @@ class KeepaliveResponse(http.Response):
             "Connection: %s\r\n" % connection_hdr
         ]
 
+    def close(self):
+        if self.chunked:
+            write_chunk(self.socket, "")
+
 class KeepaliveRequest(http.Request):
 
+    RESPONSE_CLASS = KeepaliveResponse
+
     def read(self):
-        ret = select.select([self._sock], [], [], self.conf.keepalive)
+        ret = select.select([self.socket], [], [], self.conf.keepalive)
         if not ret[0]:
             return
         try:
@@ -63,8 +69,15 @@ class KeepaliveWorker(Worker):
                     environ = req.read()
                     if not environ or not req.parser.headers:
                         return
-                    response = self.app(environ, req.start_response)
-                    if response == ALREADY_HANDLED:
+                    respiter = self.app(environ, req.start_response)
+                    if respiter == ALREADY_HANDLED:
+                        break
+                    for item in respiter:
+                        req.response.write(item)
+                    req.response.close()
+                    if hasattr(respiter, "close"):
+                        respiter.close()
+                    if req.parser.should_close:
                         break
                 except Exception, e:
                     #Only send back traceback in HTTP in debug mode.
@@ -73,9 +86,6 @@ class KeepaliveWorker(Worker):
                     util.write_error(client, traceback.format_exc())
                     break 
                 
-                KeepaliveResponse(client, response, req).send()
-                if req.parser.should_close:
-                    break
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
