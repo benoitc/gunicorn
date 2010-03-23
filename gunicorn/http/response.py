@@ -3,43 +3,46 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from gunicorn.util import  http_date, write, write_chunk
+from gunicorn.util import  close, http_date, write, write_chunk, is_hoppish
 
 class Response(object):
     
-    def __init__(self, sock, response, req):
+    def __init__(self, req, status, headers):
         self.req = req
-        self._sock = sock
-        self.data = response
-        self.headers = req.response_headers or []
-        self.status = req.response_status
-        self.SERVER_VERSION = req.SERVER_VERSION
-        self.chunked = req.response_chunked
+        self.version = req.SERVER_VERSION
+        self.status = status
+        self.chunked = False
+        self.headers = []
+        self.headers_sent = False
 
-    def default_headers(self):
-        return [
-            "HTTP/1.1 %s\r\n" % self.status,
-            "Server: %s\r\n" % self.SERVER_VERSION,
+        for name, value in headers:
+            assert isinstance(name, basestring), "%r is not a string" % name
+            assert isinstance(value, basestring), "%r is not a string" % value
+            assert not is_hoppish(name), "%s is a hop-by-hop header." % name
+            if name.lower().strip() == "transfer-encoding":
+                if value.lower().strip() == "chunked":
+                    self.chunked = True
+            self.headers.append((name.strip(), value.strip()))
+
+    def send_headers(self):
+        if self.headers_sent:
+            return
+        tosend = [
+            "HTP/1.1 %s\r\n" % self.status,
+            "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % http_date(),
             "Connection: close\r\n"
         ]
+        tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
+        write(self.req.socket, "%s\r\n" % "".join(tosend))
+        self.headers_sent = True
 
-    def send(self):
-        # send headers
-        resp_head = self.default_headers()
-        resp_head.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
-        write(self._sock, "%s\r\n" % "".join(resp_head))
-        self.req.headers_sent = True
-        
+    def write(self, arg):
+        self.send_headers()
+        assert isinstance(arg, basestring), "%r is not a string." % arg
+        write(self.req.socket, arg, self.chunked)
 
-        last_chunk = None
-        for chunk in self.data:
-            last_chunk = chunk
-            write(self._sock, chunk, self.chunked)
-            
-        if self.chunked and last_chunk != "":
-            # send last chunk
-            write_chunk(self._sock, "")
-
-        if hasattr(self.data, "close"):
-            self.data.close()
+    def close(self):
+        if self.chunked:
+            write_chunk(self.socket, "")
+        close(self.req.socket)

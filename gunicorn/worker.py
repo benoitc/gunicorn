@@ -158,7 +158,12 @@ class Worker(object):
                 if not environ or not req.parser.status_line:
                     return
 
-                response = self.app(environ, req.start_response)
+                respiter = self.app(environ, req.start_response)
+                for item in respiter:
+                    req.response.write(item)
+                req.response.close()
+                if hasattr(respiter, "close"):
+                    respiter.close()
             except Exception, e:
                 # Only send back traceback in HTTP in debug mode.
                 if not self.debug:
@@ -166,7 +171,6 @@ class Worker(object):
                 util.write_error(client, traceback.format_exc())
                 return 
 
-            http.Response(client, response, req).send()
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")

@@ -16,6 +16,7 @@ from urllib import unquote
 
 from gunicorn import __version__
 from gunicorn.http.parser import Parser
+from gunicorn.http.response import Response
 from gunicorn.http.tee import TeeInput
 from gunicorn.util import CHUNK_SIZE
 
@@ -43,7 +44,7 @@ class Request(object):
     def __init__(self, socket, client_address, server_address, conf):
         self.debug = conf['debug']
         self.conf = conf
-        self._sock = socket
+        self.socket = socket
     
         self.client_address = client_address
         self.server_address = server_address
@@ -51,8 +52,8 @@ class Request(object):
         self.response_headers = []
         self._version = 11
         self.parser = Parser.parse_request()
-        self.start_response_called = False
         self.log = logging.getLogger(__name__)
+        self.response = None
         self.response_chunked = False
         self.headers_sent = False
 
@@ -60,12 +61,12 @@ class Request(object):
         environ = {}
         headers = []
         buf = StringIO()
-        data = self._sock.recv(CHUNK_SIZE)
+        data = self.socket.recv(CHUNK_SIZE)
         buf.write(data)
         buf2 = self.parser.filter_headers(headers, buf)
         if not buf2:
             while True:
-                data = self._sock.recv(CHUNK_SIZE)
+                data = self.socket.recv(CHUNK_SIZE)
                 if not data:
                     break
                 buf.write(data)
@@ -77,14 +78,14 @@ class Request(object):
         self.log.debug("Headers:\n%s" % headers)
         
         if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
-            self._sock.send("HTTP/1.1 100 Continue\r\n\r\n")
+            self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
-            wsgi_input = TeeInput(self._sock, self.parser, StringIO(), 
+            wsgi_input = TeeInput(self.socket, self.parser, StringIO(), 
                             self.conf)
             content_length = "0"
         else:
-            wsgi_input = TeeInput(self._sock, self.parser, buf2, self.conf)
+            wsgi_input = TeeInput(self.socket, self.parser, buf2, self.conf)
             content_length = str(wsgi_input.len)
                 
         # This value should evaluate true if an equivalent application
@@ -154,23 +155,15 @@ class Request(object):
                 environ[key] = value
         return environ
         
-    def start_response(self, status, response_headers, exc_info=None):
+    def start_response(self, status, headers, exc_info=None):
         if exc_info:
             try:
-                if self.headers_sent:
+                if self.response and self.response.sent_headers:
                     raise exc_info[0], exc_info[1], exc_info[2]
             finally:
                 exc_info = None
-        elif self.start_response_called:
+        elif self.response is not None:
             raise AssertionError("Response headers already set!")
 
-        self.response_status = status
-        for name, value in response_headers:
-            if name.lower() == "transfer-encoding":
-                if value.lower() == "chunked":
-                    self.response_chunked = True
-            if not isinstance(value, basestring):
-                value = str(value)
-            self.response_headers.append((name.title(), value.strip()))
-
-        self.start_response_called = True
+        self.response = Response(self, status, headers)
+        return self.response.write

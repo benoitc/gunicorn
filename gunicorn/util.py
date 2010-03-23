@@ -29,6 +29,11 @@ weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+hop_headers = set("""
+    connection keep-alive proxy-authenticate proxy-authorization
+    te trailers transfer-encoding upgrade
+    """.split())
              
 try:
     from setproctitle import setproctitle
@@ -202,3 +207,6 @@ def to_bytestring(s):
         return s.encode('utf-8')
     else:
         return s
+
+def is_hoppish(header):
+    return header.lower().strip() in hop_headers
