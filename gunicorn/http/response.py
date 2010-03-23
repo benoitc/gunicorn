@@ -48,4 +48,3 @@ class Response(object):
     def close(self):
         if self.chunked:
             write_chunk(self.socket, "")
-        close(self.req.socket)
