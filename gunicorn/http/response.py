@@ -24,15 +24,18 @@ class Response(object):
                     self.chunked = True
             self.headers.append((name.strip(), value.strip()))
 
+    def default_headers(self):
+        return [
+            "HTTP/1.1 %s\r\n" % self.status,
+            "Server: %s\r\n" % self.SERVER_VERSION,
+            "Date: %s\r\n" % util.http_date(),
+            "Connection: close\r\n"
+        ]
+
     def send_headers(self):
         if self.headers_sent:
             return
-        tosend = [
-            "HTTP/1.1 %s\r\n" % self.status,
-            "Server: %s\r\n" % self.version,
-            "Date: %s\r\n" % http_date(),
-            "Connection: close\r\n"
-        ]
+        tosend = self.default_headers()
         tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
         write(self.req.socket, "%s\r\n" % "".join(tosend))
         self.headers_sent = True

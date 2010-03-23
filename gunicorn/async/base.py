@@ -26,7 +26,7 @@ class KeepaliveResponse(http.Response):
 
         return [
             "HTTP/1.1 %s\r\n" % self.status,
-            "Server: %s\r\n" % self.SERVER_VERSION,
+            "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection_hdr
         ]
