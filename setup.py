@@ -22,7 +22,7 @@ setup(
     ).read(),
     author = 'Benoit Chesneau',
     author_email = 'benoitc@e-engura.com',
-    license = 'Apache License 2',
+    license = 'MIT',
     url = 'http://gunicorn.org',
 
     classifiers = [
