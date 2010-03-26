@@ -17,6 +17,14 @@ Install from sources::
 Or from Pypi::
 
   $ easy_install -U gunicorn
+  
+If you want to handle `sleepy application <faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
+
+To install eventlet::
+
+  $ easy_install -U eventlet
+
+Replace `eventlet` by **gevent** if you want to use `gevent`. You can now launch gunicorn with Eventlet or Gevent arbiter, see `Gunicorn usage <http://gunicorn.org/usage.html>`_ for more information.
 
 Usage
 -----
