@@ -11,7 +11,7 @@ Command Line Usage
 WSGI applications
 -----------------
 
-Thirty seconds to launch the `example application`_ packaged with Gunicorn::
+To launch the `example application`_ packaged with Gunicorn::
 
     $ cd /path/to/gunicorn/examples/
     $ gunicorn --workers=2 test:app
@@ -20,6 +20,13 @@ The module ``test:app`` specifies the complete module name and WSGI callable. Yo
 
     $ cd ~/
     $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
+    
+To launch the `websocket example application <http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py>`_ using `Eventlet`_::
+
+        $ cd /path/to/gunicorn/examples/
+        $ gunicorn -w 12 -a "egg:gunicorn#eventlet" websocket:app
+
+and then go on `http://localhost:8000` to see the result.
 
 Full command line usage
 +++++++++++++++++++++++
@@ -36,6 +43,9 @@ Full command line usage
                           unix:/tmp/gunicorn.sock
     -w WORKERS, --workers=WORKERS
                           Number of workers to spawn. [1]
+    -a ARBITER, --arbiter=ARBITER
+                            gunicorn arbiter entry point or module
+                            [egg:gunicorn#main]
     -p PIDFILE, --pid=PIDFILE
                           set the background PID FILE
     -D, --daemon          Run daemonized in the background.
@@ -100,3 +110,4 @@ And then all you need to do is::
 .. _Paste: http://pythonpaste.org/script/
 .. _Pylons: http://pylonshq.com/
 .. _Turbogears 2: http://turbogears.org/2.0/
+.. _Eventlet: http://eventlet.net

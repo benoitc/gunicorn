@@ -16,11 +16,8 @@ What is a fast client?
   forwarded from an upstream proxy. Also see the above FAQ for what a fast
   client is not.
  
-Why only fast clients?
-  By designing a web server to only handle fast clients we can greatly simplify
-  the implementation. Think of it as a separation of concerns where your proxy
-  handles talking to the big bad world of the internet and filters the requests
-  to your application code.
+What are sleepy applications?
+  Applications that expect long request/response times and/or slow clients. Gunicorn use `Eventlet`_ or `Gevent`_ to manage concurrency.
 
 How might I test a proxy configuration?
   Check out slowloris_ for a script that will generate significant slow
@@ -54,3 +51,5 @@ How to name processes?
 
 .. _slowloris: http://ha.ckers.org/slowloris/
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
+.. _Eventlet: http://eventlet.net
+.. _Gevent: http://gevent.org

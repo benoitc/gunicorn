@@ -10,9 +10,12 @@ Example gunicorn.conf.py
 ------------------------
 ::
 
+    arbiter="egg:gunicorn"  # Or "egg:gunicorn#eventlet" (eventlet or gevent)
+    backlog = 2048
     bind = "127.0.0.1:8000" # Or "unix:/tmp/gunicorn.sock"
     daemon = False          # Whether work in the background
     debug = False           # Some extra logging
+    keepalive = 2           # Time we wait for next connection (in ms)
     logfile = "-"           # Name of the log file
     loglevel = "info"       # The level at which to log
     pidfile = None          # Path to a PID file
@@ -22,6 +25,7 @@ Example gunicorn.conf.py
     group = None            # Change process group to group
     proc_name = None        # Change the process name
     tmp_upload_dir = None   # Set path used to store temporary uploads
+    worker_connections=1000 # Number of connections accepted by a worker
     
     after_fork=lambda server, worker: server.log.info(
             "Worker spawned (pid: %s)" % worker.pid),
@@ -34,7 +38,13 @@ Parameter Descriptions
 ----------------------
 
 after_fork(server, worker):
-    This is called by the worker after initialization. 
+    This is called by the worker after initialization.
+    
+arbiter:
+    The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's `egg:gunicorn#main`. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to `egg:gunicorn#eventlet` to use it with `Eventlet`_ or `egg:gunicorn#gevent` with `Gevent`_. Eventlet arbiter can also be used with `Twisted`_ by using `Eventlet helper <http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted>`_.
+    
+backlog:
+    The backlog parameter defines the maximum length for the queue of pending connections see listen(2) for more information. The default is 2048.
   
 before_fork(server, worker):
     This is called by the worker just before forking.
@@ -53,6 +63,9 @@ debug:
   
 group:
     The group in which worker processes will be launched.
+    
+keepalive:
+    Keepalive timeout. The default is 2 seconds, which should be enough under most conditions for browsers to render the page and start retrieving extra elements for. Increasing this beyond 5 seconds is not recommended. Zero disables keepalive entirely.
   
 logfile:
     The path to the log file ``-`` (stdout) by default.
@@ -71,6 +84,14 @@ umask:
 
 user:
     The user as which worker processes will by launched.
+    
+worker_connections:
+    Number of connections a worker can handle when used with Eventlet or Gevent arbiter. The default is 1000.
 
 tmp_upload_dir:
     Set the path used to store temporarily the body of the request.
+    
+    
+.. _Eventlet: http://eventlet.net
+.. _Gevent: http://gevent.org
+.. _Twisted: http://twistedmatrix.com

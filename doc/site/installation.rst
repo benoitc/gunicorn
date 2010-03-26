@@ -49,6 +49,19 @@ If you've cloned the git repository, its highly recommended that you use the ``d
 
   $ python setup.py develop
   
+Installing requirements for sleepy application handling
+-------------------------------------------------------
+
+If you want to handle `sleepy application <faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
+
+To install eventlet::
+
+  $ easy_install -U eventlet
+  
+Replace `eventlet` by **gevent** if you want to use `gevent`. 
+
+You can now launch gunicorn with Eventlet or Gevent arbiter, see `usage <usage.html>`_ for more information.
+  
 Installing on Ubuntu/Debian systems
 -----------------------------------
 
@@ -66,3 +79,6 @@ Signing key::
 Fingerprint::
 
   49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
+
+.. _Eventlet: http://eventlet.net
+.. _Gevent: http://gevent.org

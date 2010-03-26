@@ -1,7 +1,7 @@
 About
 -----
 
-gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and nothing else.
+gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX handle fast clients **and** sleepy application.
 
 This is a port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `Freenode`_.
 
@@ -33,6 +33,9 @@ Usage
                             unix:/tmp/gunicorn.sock
       -w WORKERS, --workers=WORKERS
                             Number of workers to spawn. [1]
+      -a ARBITER, --arbiter=ARBITER
+                              gunicorn arbiter entry point or module
+                              [egg:gunicorn#main]
       -p PIDFILE, --pid=PIDFILE
                             set the background PID FILE
       -D, --daemon          Run daemonized in the background.

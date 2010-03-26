@@ -84,8 +84,7 @@ class KeepaliveWorker(Worker):
                     if not self.debug:
                         raise
                     util.write_error(client, traceback.format_exc())
-                    break 
-                
+                    break
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
