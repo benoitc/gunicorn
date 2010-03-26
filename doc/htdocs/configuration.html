@@ -53,7 +53,7 @@
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
-arbiter=&quot;egg:gunicorn&quot;  # Or &quot;egg:gunicorn#eventlet&quot; (eventlet or gevent)
+arbiter = &quot;egg:gunicorn&quot;  # Or &quot;egg:gunicorn#eventlet&quot; (eventlet or gevent)
 backlog = 2048
 bind = &quot;127.0.0.1:8000&quot; # Or &quot;unix:/tmp/gunicorn.sock&quot;
 daemon = False          # Whether work in the background
@@ -84,7 +84,7 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
 <dt>arbiter:</dt>
-<dd>The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's <cite>egg:gunicorn#main</cite>. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to <cite>egg:gunicorn#eventlet</cite> to use it with <a class="reference external" href="http://eventlet.net">Eventlet</a> or <cite>egg:gunicorn#gevent</cite> with <a class="reference external" href="http://gevent.org">Gevent</a>. Eventlet arbiter can also be used with <a class="reference external" href="http://twistedmatrix.com">Twisted</a> by using <a class="reference external" href="http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted">Eventlet helper</a>.</dd>
+<dd>The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's <cite>egg:gunicorn#main</cite>. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to <cite>egg:gunicorn#eventlet</cite> to use it with <a class="reference external" href="http://eventlet.net">Eventlet</a> or <cite>egg:gunicorn#gevent</cite> with <a class="reference external" href="http://gevent.org">Gevent</a>. Eventlet arbiter can also be used with <a class="reference external" href="http://twistedmatrix.com">Twisted</a> by using its <a class="reference external" href="http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted">helper</a>.</dd>
 <dt>backlog:</dt>
 <dd>The backlog parameter defines the maximum length for the queue of pending connections see listen(2) for more information. The default is 2048.</dd>
 <dt>before_fork(server, worker):</dt>

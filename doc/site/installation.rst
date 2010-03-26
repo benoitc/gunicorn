@@ -49,7 +49,7 @@ If you've cloned the git repository, its highly recommended that you use the ``d
 
   $ python setup.py develop
   
-Installing requirements for sleepy application handling
+Installation requirements for sleepy application handling
 -------------------------------------------------------
 
 If you want to handle `sleepy application <faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
