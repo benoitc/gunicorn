@@ -50,8 +50,8 @@
   <div class="document" id="production-setup">
 <h1 class="title">Production Setup</h1>
 <p>Although there are many HTTP proxies available, we strongly advise that you use <a class="reference external" href="http://www.nginx.org">Nginx</a>. If you choose another proxy server you need to make sure that it buffers slow clients when you use default Gunicorn arbiter. Without this buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.</p>
-<div class="section" id="nginx-config-for-fast-clients-hanling">
-<h1>Nginx Config for fast clients hanling</h1>
+<div class="section" id="nginx-config-for-fast-clients-handling">
+<h1>Nginx Config for fast clients handling</h1>
 <p>An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">example configuration</a> file for use with <a class="reference external" href="http://www.nginx.org">Nginx</a>:</p>
 <pre class="literal-block">
 worker_processes 1;
