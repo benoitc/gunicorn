@@ -4,6 +4,15 @@ title: News
 News
 ====
 
+0.7.0 / 2010-03-26
+------------------
+
+- Added support for `sleepy applications <faq.html>`_ using Eventlet_ or Gevent_.
+- Added Websockets_ support
+- Fix Chunked Encoding
+- Fix SIGWINCH on OpenBSD_
+- Fix `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`_ compliance for the write callable.
+
 0.6.5 / 2010-03-11
 ------------------
 
@@ -66,3 +75,7 @@ News
 * Some refactoring to make the code easier to hack
 * Allow multiple keys in request and response headers
 
+.. _Eventlet: http://eventlet.net
+.. _Gevent: http://gevent.org
+.. _OpenBSD: http://openbsd.org
+.. _Websockets: http://dev.w3.org/html5/websockets/
