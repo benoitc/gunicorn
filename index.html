@@ -47,23 +47,38 @@
 
     	<div class="document" id="green-unicorn">
 <h1 class="title">Green Unicorn</h1>
-<p>Green Unicorn (gunicorn) is an HTTP/WSGI Server for UNIX designed to serve <a class="reference external" href="faq.html">fast clients</a> and nothing else.</p>
-<p>This is a port of <a class="reference external" href="http://unicorn.bogomips.org/">Unicorn</a> in Python. Meet us on the <a class="reference external" href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn IRC channel</a>  on <a class="reference external" href="http://freenode.net">Freenode</a>.</p>
+<p>Green Unicorn (gunicorn) is an HTTP/WSGI Server for UNIX designed to serve
+<a class="reference external" href="faq.html">fast clients</a> or <a class="reference external" href="faq.html">sleepy applications</a>.</p>
+<p>This is a port of <a class="reference external" href="http://unicorn.bogomips.org/">Unicorn</a> in Python. Meet us on the <a class="reference external" href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn IRC channel</a>
+on <a class="reference external" href="http://freenode.net">Freenode</a>.</p>
 <p>Gunicorn is released under the MIT License. See the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/LICENSE">LICENSE</a> for more details.</p>
 <div class="section" id="features">
 <h1>Features</h1>
 <ul class="simple">
-<li>Designed for Unix, WSGI, and fast clients</li>
+<li>Designed for Unix, <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">WSGI</a>, fast clients and sleepy applications.</li>
 <li>Compatible with Python 2.x (&gt;= 2.5)</li>
-<li>Easy integration with <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications (Pylons, TurboGears 2, ...)</li>
+<li>Easy integration with <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications
+(<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...)</li>
 <li>Process management: <a class="reference external" href="http://gunicorn.org">Gunicorn</a> reaps and restarts workers that die.</li>
 <li>Load balancing via pre-fork and a shared socket</li>
 <li>Graceful worker process restarts</li>
 <li>Upgrade &quot;àla nginx&quot; without losing connections</li>
 <li>Simple and easy Python configuration</li>
-<li>Decode chunked transfers on-the-fly, allowing upload progress notifications or
-stream-based protocols over HTTP</li>
+<li>Decode chunked transfers on-the-fly, allowing upload progress notifications
+or stream-based protocols over HTTP</li>
+<li>Support for <a class="reference external" href="http://eventlet.net">Eventlet</a> and <a class="reference external" href="http://gevent.org">Gevent</a> .</li>
 <li>Post- and pre-fork hooks</li>
+</ul>
+</div>
+<div class="section" id="applications">
+<h1>Applications</h1>
+<ul class="simple">
+<li>Any <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">WSGI</a>, <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications
+(<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...)</li>
+<li>Websockets (see the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py">example</a>)</li>
+<li>Reverse proxy implementation (with <a class="reference external" href="http://benoitc.github.com/restkit/wsgi_proxy.html">Restkit WSGI proxy</a>)</li>
+<li>Comet</li>
+<li>Long Polling</li>
 </ul>
 </div>
 </div>

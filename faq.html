@@ -50,21 +50,19 @@
   <div class="document" id="faq">
 <h1 class="title">FAQ</h1>
 <dl class="docutils">
-<dt>What is a slow client?</dt>
-<dd>A slow client is defined as a request that can take an arbitrary amount of
-time to send or read a request. Sometimes due to network performance or
-because it is a malicious client attempting to cause problems. Check out
-the <a class="reference external" href="http://ha.ckers.org/slowloris/">slowloris</a> script to generate slow client traffic.</dd>
 <dt>What is a fast client?</dt>
 <dd>Generally speaking a fast client is something that is being served over the
 local network or from the same machine. This generally would refer to requests
 forwarded from an upstream proxy. Also see the above FAQ for what a fast
 client is not.</dd>
-<dt>Why only fast clients?</dt>
-<dd>By designing a web server to only handle fast clients we can greatly simplify
-the implementation. Think of it as a separation of concerns where your proxy
-handles talking to the big bad world of the internet and filters the requests
-to your application code.</dd>
+<dt>What is a slow client?</dt>
+<dd>A slow client is defined as a request that can take an arbitrary amount of
+time to send a request or read a response. Sometimes due to network
+performance or because it is a malicious client attempting to cause problems.
+Check out the <a class="reference external" href="http://ha.ckers.org/slowloris/">slowloris</a> script to generate slow client traffic.</dd>
+<dt>What are sleepy applications?</dt>
+<dd>Applications that expect long request/response times and/or slow clients.
+Gunicorn use <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a> to manage concurrency.</dd>
 <dt>How might I test a proxy configuration?</dt>
 <dd>Check out <a class="reference external" href="http://ha.ckers.org/slowloris/">slowloris</a> for a script that will generate significant slow
 traffic. If your application remains responsive through out that test you
@@ -86,8 +84,8 @@ $ kill -TTOU $masterpid
 </pre>
 </dd>
 <dt>How do I set SCRIPT_NAME?</dt>
-<dd>By default <tt class="docutils literal">SCRIPT_NAME</tt> is an empy string. The value could be set by
-setting <tt class="docutils literal">SCRIPT_NAME</tt> in the environment or as an HTTP header.</dd>
+<dd>By default <tt class="docutils literal"><span class="pre">SCRIPT_NAME</span></tt> is an empy string. The value could be set by
+setting <tt class="docutils literal"><span class="pre">SCRIPT_NAME</span></tt> in the environment or as an HTTP header.</dd>
 <dt>How to name processes?</dt>
 <dd>You need to install the Python package <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a>. Then you can name
 your process with <cite>-n</cite> or just let the default. If you use a configuration

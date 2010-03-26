@@ -56,16 +56,24 @@
 </ul>
 <div class="section" id="wsgi-applications">
 <h1>WSGI applications</h1>
-<p>Thirty seconds to launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
+<p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
 <pre class="literal-block">
 $ cd /path/to/gunicorn/examples/
 $ gunicorn --workers=2 test:app
 </pre>
-<p>The module <tt class="docutils literal">test:app</tt> specifies the complete module name and WSGI callable. You can replace it with anything that is available on your <tt class="docutils literal">PYTHONPATH</tt> like such:</p>
+<p>The module <tt class="docutils literal"><span class="pre">test:app</span></tt> specifies the complete module name and WSGI callable.
+You can replace it with anything that is available on your <tt class="docutils literal"><span class="pre">PYTHONPATH</span></tt> like
+such:</p>
 <pre class="literal-block">
 $ cd ~/
 $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
 </pre>
+<p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py">websocket example</a> application using <a class="reference external" href="http://eventlet.net">Eventlet</a>:</p>
+<pre class="literal-block">
+$ cd /path/to/gunicorn/examples/
+$ gunicorn -w 12 -a &quot;egg:gunicorn#eventlet&quot; websocket:app
+</pre>
+<p>You should then be able to visit <tt class="docutils literal"><span class="pre">http://localhost:8000</span></tt> to see output.</p>
 <div class="section" id="full-command-line-usage">
 <h2>Full command line usage</h2>
 <pre class="literal-block">
@@ -79,6 +87,9 @@ Options:
                         unix:/tmp/gunicorn.sock
   -w WORKERS, --workers=WORKERS
                         Number of workers to spawn. [1]
+  -a ARBITER, --arbiter=ARBITER
+                        gunicorn arbiter entry point or module
+                        [egg:gunicorn#main]
   -p PIDFILE, --pid=PIDFILE
                         set the background PID FILE
   -D, --daemon          Run daemonized in the background.
@@ -88,7 +99,7 @@ Options:
   -g GROUP, --group=GROUP
                         Change worker group
   -n APP_NAME, --name=APP_NAME
-                          Application name
+                        Application name
   --log-level=LOGLEVEL  Log level below which to silence messages. [info]
   --log-file=LOGFILE    Log to a file. - equals stdout. [-]
   -d, --debug           Debug mode. only 1 worker.
@@ -99,13 +110,15 @@ Options:
 </div>
 <div class="section" id="django-projects">
 <h1>Django Projects</h1>
-<p><a class="reference external" href="http://djangoproject.com">Django</a> projects can be handled easily by Gunicorn using the <tt class="docutils literal">gunicorn_django</tt> command:</p>
+<p><a class="reference external" href="http://djangoproject.com">Django</a> projects can be handled easily by Gunicorn using the
+<tt class="docutils literal"><span class="pre">gunicorn_django</span></tt> command:</p>
 <pre class="literal-block">
 $ cd $yourdjangoproject
 $ gunicorn_django --workers=2
 </pre>
-<p>But you can also use the <tt class="docutils literal">run_gunicorn</tt> <a class="reference external" href="http://docs.djangoproject.com/en/dev/howto/custom-management-commands/">admin command</a> like the other <tt class="docutils literal">management.py</tt> commands.</p>
-<p>Add <tt class="docutils literal">&quot;gunicorn&quot;</tt> to INSTALLED_APPS in your settings file:</p>
+<p>But you can also use the <tt class="docutils literal"><span class="pre">run_gunicorn</span></tt> <a class="reference external" href="http://docs.djangoproject.com/en/dev/howto/custom-management-commands/">admin command</a> like the other
+<tt class="docutils literal"><span class="pre">management.py</span></tt> commands.</p>
+<p>Add <tt class="docutils literal"><span class="pre">&quot;gunicorn&quot;</span></tt> to INSTALLED_APPS in your settings file:</p>
 <pre class="literal-block">
 INSTALLED_APPS = (
     ...
@@ -119,12 +132,13 @@ python manage.py run_gunicorn
 </div>
 <div class="section" id="paste-compatible-projects">
 <h1>Paste-compatible projects</h1>
-<p>For <a class="reference external" href="http://pythonpaste.org/script/">Paste</a> compatible projects (<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...) use the <tt class="docutils literal">gunicorn_paste</tt> command:</p>
+<p>For <a class="reference external" href="http://pythonpaste.org/script/">Paste</a> compatible projects (<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...) use the
+<tt class="docutils literal"><span class="pre">gunicorn_paste</span></tt> command:</p>
 <pre class="literal-block">
 $ cd $yourpasteproject
 $ gunicorn_paste --workers=2 development.ini
 </pre>
-<p>To use the <tt class="docutils literal">paster</tt> command add a sever section for Gunicorn:</p>
+<p>To use the <tt class="docutils literal"><span class="pre">paster</span></tt> command add a sever section for Gunicorn:</p>
 <pre class="literal-block">
 [server:main]
 use = egg:gunicorn#main
