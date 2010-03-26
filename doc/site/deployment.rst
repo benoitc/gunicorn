@@ -6,8 +6,8 @@ Production Setup
 
 Although there are many HTTP proxies available, we strongly advise that you use Nginx_. If you choose another proxy server you need to make sure that it buffers slow clients when you use default Gunicorn arbiter. Without this buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
 
-Nginx Config for fast clients hanling
--------------------------------------
+Nginx Config for fast clients handling
+--------------------------------------
 
 An `example configuration`_ file for use with Nginx_::
 
