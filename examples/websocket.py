@@ -8,7 +8,7 @@
 
 import collections
 import errno
-from grainbows.worker_base import ALREADY_HANDLED
+from gunicorn.async.base import ALREADY_HANDLED
 from eventlet import pools
 import socket
 import eventlet

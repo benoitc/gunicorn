@@ -7,7 +7,7 @@
 
 import collections
 import errno
-from grainbows.worker_base import ALREADY_HANDLED
+from gunicorn.async.base import ALREADY_HANDLED
 import socket
 import gevent
 from gevent.pool import Pool
