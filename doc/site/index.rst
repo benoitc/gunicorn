@@ -33,7 +33,7 @@ Applications
 
 * Any WSGI_, Django_ and Paster_ compatible applications
   (`Pylons`_, `TurboGears 2`_, ...)
-* Websockets (see the example_)
+* Websockets (see the example_ or the screencast_)
 * Reverse proxy implementation (with `Restkit WSGI proxy`_)
 * Comet
 * Long Polling
@@ -54,3 +54,4 @@ Applications
 .. _Turbogears 2: http://turbogears.org/2.0/
 .. _example: http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py
 .. _`Restkit WSGI proxy`: http://benoitc.github.com/restkit/wsgi_proxy.html
+.. _screencast: http://vimeo.com/10461162
