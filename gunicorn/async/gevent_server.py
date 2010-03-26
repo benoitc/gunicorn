@@ -28,15 +28,16 @@ class GEventWorker(KeepaliveWorker):
             client, addr = self.socket.accept()
             self.pool.spawn(self.handle, client, addr)
         except socket.error, e:
-            if e[0] not in (errno.EAGAIN, errno.EWOULDBLOCK):
-                raise
+            if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, errno.ECONNABORTED):
+                return
+            raise
                          
 class GEventArbiter(arbiter.Arbiter):
 
     @classmethod
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all(thread=True,  ssl=True)
+        monkey.patch_all()
     
     def init_worker(self, worker_age, pid, listener, app, timeout, conf):
         return GEventWorker(worker_age, pid, listener, app, timeout, conf)

@@ -169,6 +169,8 @@ class Worker(object):
                 req.response.close()
                 if hasattr(respiter, "close"):
                     respiter.close()
+            except socket.error:
+                raise
             except Exception, e:
                 # Only send back traceback in HTTP in debug mode.
                 if not self.debug:

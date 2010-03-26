@@ -28,7 +28,7 @@ class EventletWorker(KeepaliveWorker):
             client, addr = self.socket.accept()
             self.pool.spawn_n(self.handle, client, addr)
         except socket.error, e:
-            if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+            if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN, errno.ECONNABORTED):
                 return
             raise
 
