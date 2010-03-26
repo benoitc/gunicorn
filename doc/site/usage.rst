@@ -16,17 +16,19 @@ To launch the `example application`_ packaged with Gunicorn::
     $ cd /path/to/gunicorn/examples/
     $ gunicorn --workers=2 test:app
 
-The module ``test:app`` specifies the complete module name and WSGI callable. You can replace it with anything that is available on your ``PYTHONPATH`` like such::
+The module ``test:app`` specifies the complete module name and WSGI callable.
+You can replace it with anything that is available on your ``PYTHONPATH`` like
+such::
 
     $ cd ~/
     $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
     
-To launch the `websocket example application <http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py>`_ using `Eventlet`_::
+To launch the `websocket example`_ application using `Eventlet`_::
 
         $ cd /path/to/gunicorn/examples/
         $ gunicorn -w 12 -a "egg:gunicorn#eventlet" websocket:app
 
-and then go on `http://localhost:8000` to see the result.
+You should then be able to visit ``http://localhost:8000`` to see output.
 
 Full command line usage
 +++++++++++++++++++++++
@@ -44,8 +46,8 @@ Full command line usage
     -w WORKERS, --workers=WORKERS
                           Number of workers to spawn. [1]
     -a ARBITER, --arbiter=ARBITER
-                            gunicorn arbiter entry point or module
-                            [egg:gunicorn#main]
+                          gunicorn arbiter entry point or module
+                          [egg:gunicorn#main]
     -p PIDFILE, --pid=PIDFILE
                           set the background PID FILE
     -D, --daemon          Run daemonized in the background.
@@ -55,7 +57,7 @@ Full command line usage
     -g GROUP, --group=GROUP
                           Change worker group
     -n APP_NAME, --name=APP_NAME
-                            Application name
+                          Application name
     --log-level=LOGLEVEL  Log level below which to silence messages. [info]
     --log-file=LOGFILE    Log to a file. - equals stdout. [-]
     -d, --debug           Debug mode. only 1 worker.
@@ -65,12 +67,14 @@ Full command line usage
 Django Projects
 ---------------
 
-`Django`_ projects can be handled easily by Gunicorn using the ``gunicorn_django`` command::
+`Django`_ projects can be handled easily by Gunicorn using the
+``gunicorn_django`` command::
 
     $ cd $yourdjangoproject
     $ gunicorn_django --workers=2
 
-But you can also use the ``run_gunicorn`` `admin command`_ like the other ``management.py`` commands.
+But you can also use the ``run_gunicorn`` `admin command`_ like the other
+``management.py`` commands.
 
 Add ``"gunicorn"`` to INSTALLED_APPS in your settings file::
 
@@ -87,7 +91,8 @@ Then run::
 Paste-compatible projects
 -------------------------
 
-For `Paste`_ compatible projects (`Pylons`_, `TurboGears 2`_, ...) use the ``gunicorn_paste`` command::
+For `Paste`_ compatible projects (`Pylons`_, `TurboGears 2`_, ...) use the
+``gunicorn_paste`` command::
 
     $ cd $yourpasteproject
     $ gunicorn_paste --workers=2 development.ini
@@ -105,6 +110,7 @@ And then all you need to do is::
     $ paster serve development.ini workers=2
  
 .. _`example application`: http://github.com/benoitc/gunicorn/blob/master/examples/test.py
+.. _`websocket example`: http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py
 .. _Django: http://djangoproject.com
 .. _`admin command`: http://docs.djangoproject.com/en/dev/howto/custom-management-commands/
 .. _Paste: http://pythonpaste.org/script/

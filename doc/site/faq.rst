@@ -4,20 +4,21 @@ title: FAQ
 FAQ
 ===
 
-What is a slow client?
-  A slow client is defined as a request that can take an arbitrary amount of
-  time to send or read a request. Sometimes due to network performance or
-  because it is a malicious client attempting to cause problems. Check out
-  the slowloris_ script to generate slow client traffic.
-
 What is a fast client?
   Generally speaking a fast client is something that is being served over the
   local network or from the same machine. This generally would refer to requests
   forwarded from an upstream proxy. Also see the above FAQ for what a fast
   client is not.
- 
+
+What is a slow client?
+  A slow client is defined as a request that can take an arbitrary amount of
+  time to send a request or read a response. Sometimes due to network
+  performance or because it is a malicious client attempting to cause problems.
+  Check out the slowloris_ script to generate slow client traffic.
+
 What are sleepy applications?
-  Applications that expect long request/response times and/or slow clients. Gunicorn use `Eventlet`_ or `Gevent`_ to manage concurrency.
+  Applications that expect long request/response times and/or slow clients.
+  Gunicorn use `Eventlet`_ or `Gevent`_ to manage concurrency.
 
 How might I test a proxy configuration?
   Check out slowloris_ for a script that will generate significant slow

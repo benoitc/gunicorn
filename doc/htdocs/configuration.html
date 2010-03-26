@@ -49,29 +49,29 @@
 
   <div class="document" id="the-configuration-file">
 <h1 class="title">The Configuration File</h1>
-<p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
+<p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal"><span class="pre">gunicorn.conf.py</span></tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
-arbiter = &quot;egg:gunicorn&quot;  # Or &quot;egg:gunicorn#eventlet&quot; (eventlet or gevent)
-backlog = 2048
-bind = &quot;127.0.0.1:8000&quot; # Or &quot;unix:/tmp/gunicorn.sock&quot;
-daemon = False          # Whether work in the background
-debug = False           # Some extra logging
-keepalive = 2           # Time we wait for next connection (in ms)
-logfile = &quot;-&quot;           # Name of the log file
-loglevel = &quot;info&quot;       # The level at which to log
-pidfile = None          # Path to a PID file
-workers = 1             # Number of workers to initialize
-umask = 0               # Umask to set when daemonizing
-user = None             # Change process owner to user
-group = None            # Change process group to group
-proc_name = None        # Change the process name
-tmp_upload_dir = None   # Set path used to store temporary uploads
-worker_connections=1000 # Number of connections accepted by a worker
+arbiter = &quot;egg:gunicorn&quot;    # The arbiter to use for worker management
+backlog = 2048              # The listen queue size for the server socket
+bind = &quot;127.0.0.1:8000&quot;     # Or &quot;unix:/tmp/gunicorn.sock&quot;
+daemon = False              # Whether work in the background
+debug = False               # Some extra logging
+keepalive = 2               # Time we wait for next connection (in seconds)
+logfile = &quot;-&quot;               # Name of the log file
+loglevel = &quot;info&quot;           # The level at which to log
+pidfile = None              # Path to a PID file
+workers = 1                 # Number of workers to initialize
+umask = 0                   # Umask to set when daemonizing
+user = None                 # Change process owner to user
+group = None                # Change process group to group
+proc_name = None            # Change the process name
+tmp_upload_dir = None       # Set path used to store temporary uploads
+worker_connections=1000     # Maximum number of simultaneous connections
 
 after_fork=lambda server, worker: server.log.info(
-        &quot;Worker spawned (pid: %s)&quot; % worker.pid),
+        &quot;Worker spawned (pid: %s)&quot; % worker.pid)
 
 before_fork=lambda server, worker: True
 
@@ -84,37 +84,57 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
 <dt>arbiter:</dt>
-<dd>The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's <cite>egg:gunicorn#main</cite>. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to <cite>egg:gunicorn#eventlet</cite> to use it with <a class="reference external" href="http://eventlet.net">Eventlet</a> or <cite>egg:gunicorn#gevent</cite> with <a class="reference external" href="http://gevent.org">Gevent</a>. Eventlet arbiter can also be used with <a class="reference external" href="http://twistedmatrix.com">Twisted</a> by using its <a class="reference external" href="http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted">helper</a>.</dd>
+<dd><p class="first">The arbiter manages the worker processes that actually serve clients. It
+handles launching new workers and killing misbehaving workers among
+other things. By default the arbiter is <cite>egg:gunicorn#main</cite>. This arbiter
+only supports fast request handling requiring a buffering HTTP proxy.</p>
+<p class="last">If your application requires the ability to handle prolonged requests to
+provide long polling, comet, or calling an external web service you'll
+need to use an async arbiter. Gunicorn has two async arbiters built in
+using <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>. You can also use the Evenlet arbiter with
+the <a class="reference external" href="http://twistedmatrix.com">Twisted</a> helper.</p>
+</dd>
 <dt>backlog:</dt>
-<dd>The backlog parameter defines the maximum length for the queue of pending connections see listen(2) for more information. The default is 2048.</dd>
+<dd>The backlog parameter defines the maximum length for the queue of pending
+connections. The default is 2048. See listen(2) for more information</dd>
 <dt>before_fork(server, worker):</dt>
 <dd>This is called by the worker just before forking.</dd>
 <dt>before_exec(server):</dt>
-<dd>This function is called before relaunching the master. This happens when the master receives a HUP or USR2 signal.</dd>
+<dd>This function is called before relaunching the master. This happens when
+the master receives a HUP or USR2 signal.</dd>
 <dt>bind:</dt>
-<dd>The address on which workers are listening. It can be a TCP address with a format of <tt class="docutils literal">IP:PORT</tt> or a Unix socket address like <tt class="docutils literal"><span class="pre">unix:/path/to/socketfile</span></tt>.</dd>
+<dd>The address on which workers are listening. It can be a TCP address with a
+format of <tt class="docutils literal"><span class="pre">IP:PORT</span></tt> or a Unix socket address like
+<tt class="docutils literal"><span class="pre">unix:/path/to/socketfile</span></tt>.</dd>
 <dt>daemon:</dt>
 <dd>Whether or not to detach the server from the controlling terminal.</dd>
 <dt>debug:</dt>
-<dd>If <tt class="docutils literal">True</tt>, only one worker will be launch and the variable <tt class="docutils literal">wsgi.multiprocess</tt> will be set to False.</dd>
+<dd>If <tt class="docutils literal"><span class="pre">True</span></tt>, only one worker will be launch and the variable
+<tt class="docutils literal"><span class="pre">wsgi.multiprocess</span></tt> will be set to False.</dd>
 <dt>group:</dt>
 <dd>The group in which worker processes will be launched.</dd>
 <dt>keepalive:</dt>
-<dd>Keepalive timeout. The default is 2 seconds, which should be enough under most conditions for browsers to render the page and start retrieving extra elements for. Increasing this beyond 5 seconds is not recommended. Zero disables keepalive entirely.</dd>
+<dd>KeepAlive timeout. The default is 2 seconds, which should be enough under
+most conditions for browsers to render the page and start retrieving extra
+elements for. Increasing this beyond 5 seconds is not recommended. Zero
+disables KeepAlive entirely.</dd>
 <dt>logfile:</dt>
-<dd>The path to the log file <tt class="docutils literal">-</tt> (stdout) by default.</dd>
+<dd>The path to the log file <tt class="docutils literal"><span class="pre">-</span></tt> (stdout) by default.</dd>
 <dt>loglevel:</dt>
-<dd>The level at which to log. <tt class="docutils literal">info</tt>, <tt class="docutils literal">debug</tt>, or <tt class="docutils literal">error</tt> for instance. Only log messages of equal or greater severity are logged.</dd>
+<dd>The level at which to log. <tt class="docutils literal"><span class="pre">info</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>, or <tt class="docutils literal"><span class="pre">error</span></tt> for instance.
+Only log messages of equal or greater severity are logged.</dd>
 <dt>pidfile:</dt>
 <dd>A file to store the master's PID.</dd>
 <dt>proc_name:</dt>
-<dd>If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a> is installed, it allows you to set the process name for this Gunicorn instance.</dd>
+<dd>A name for the master process. Only takes effect if <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a> is
+installed. This alters the process names listed by commands like <tt class="docutils literal"><span class="pre">ps</span></tt>.</dd>
 <dt>umask:</dt>
 <dd>Used to set the umask when daemonizing.</dd>
 <dt>user:</dt>
 <dd>The user as which worker processes will by launched.</dd>
 <dt>worker_connections:</dt>
-<dd>Number of connections a worker can handle when used with Eventlet or Gevent arbiter. The default is 1000.</dd>
+<dd>Number of simultaneous connections a worker can handle when used with
+Eventlet or Gevent arbiter. The default is 1000.</dd>
 <dt>tmp_upload_dir:</dt>
 <dd>Set the path used to store temporarily the body of the request.</dd>
 </dl>

@@ -1,9 +1,12 @@
 About
 -----
 
-gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX handle fast clients **and** sleepy application.
+gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX handle fast clients
+**and** sleepy application.
 
-This is a port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_ on `Freenode`_.
+This is a port of Unicorn (http://unicorn.bogomips.org/) in Python. Meet us
+on `#gunicorn irc channel <http://webchat.freenode.net/?channels=gunicorn>`_
+on `Freenode`_.
 
 Installation
 ------------
@@ -18,13 +21,21 @@ Or from Pypi::
 
   $ easy_install -U gunicorn
   
-If you want to handle `sleepy application <http://gunicorn.org/faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
+If you want to handle `sleepy applications <http://gunicorn.org/faq.html>`_
+you will need to install `Eventlet`_ or `Gevent`_.
 
 To install eventlet::
 
   $ easy_install -U eventlet
 
-Replace `eventlet` by **gevent** if you want to use `gevent`. You can now launch gunicorn with Eventlet or Gevent arbiter, see `Gunicorn usage <http://gunicorn.org/usage.html>`_ for more information.
+Replace `eventlet` by **gevent** if you want to use `gevent`. You can now
+launch gunicorn with Eventlet or Gevent arbiter, see `Gunicorn usage
+<http://gunicorn.org/usage.html>`_ for more information.
+
+If you encounter errors when compiling the extensions for `gevent` or
+`eventlet` you probably need to install a newer version of libev_.
+
+.. _libev: http://software.schmorp.de/pkg/libev.html
 
 Usage
 -----
@@ -42,8 +53,8 @@ Usage
       -w WORKERS, --workers=WORKERS
                             Number of workers to spawn. [1]
       -a ARBITER, --arbiter=ARBITER
-                              gunicorn arbiter entry point or module
-                              [egg:gunicorn#main]
+                            gunicorn arbiter entry point or module
+                            [egg:gunicorn#main]
       -p PIDFILE, --pid=PIDFILE
                             set the background PID FILE
       -D, --daemon          Run daemonized in the background.
@@ -53,14 +64,13 @@ Usage
       -g GROUP, --group=GROUP
                             Change worker group
       -n APP_NAME, --name=APP_NAME
-                              Application name
+                            Application name
       --log-level=LOGLEVEL  Log level below which to silence messages. [info]
       --log-file=LOGFILE    Log to a file. - equals stdout. [-]
       -d, --debug           Debug mode. only 1 worker.
       --version             show program's version number and exit
       -h, --help            show this help message and exit
     
-
 
 Example with test app::
 
