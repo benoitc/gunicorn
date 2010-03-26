@@ -57,6 +57,7 @@ class Worker(object):
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGWINCH, self.handle_winch)
         
     def handle_usr1(self, sig, frame):
         self.nr = -65536;
@@ -70,6 +71,10 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         sys.exit(0)
+
+    def handle_winch(self, sig, fname):
+        # Ignore SIGWINCH in worker. Fix crash on OpenBSD
+        return
         
     def notify(self):
         """\
