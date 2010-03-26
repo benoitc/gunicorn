@@ -69,9 +69,9 @@ tmp_upload_dir = None   # Set path used to store temporary uploads
 after_fork=lambda server, worker: server.log.info(
         &quot;Worker spawned (pid: %s)&quot; % worker.pid),
 
-before_fork=lambda server, worker: True,
+before_fork=lambda server, worker: True
 
-before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
+before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;)
 </pre>
 </div>
 <div class="section" id="parameter-descriptions">
