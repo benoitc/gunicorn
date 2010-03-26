@@ -10,7 +10,7 @@ Example gunicorn.conf.py
 ------------------------
 ::
 
-    arbiter="egg:gunicorn"  # Or "egg:gunicorn#eventlet" (eventlet or gevent)
+    arbiter = "egg:gunicorn"  # Or "egg:gunicorn#eventlet" (eventlet or gevent)
     backlog = 2048
     bind = "127.0.0.1:8000" # Or "unix:/tmp/gunicorn.sock"
     daemon = False          # Whether work in the background
@@ -41,7 +41,7 @@ after_fork(server, worker):
     This is called by the worker after initialization.
     
 arbiter:
-    The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's `egg:gunicorn#main`. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to `egg:gunicorn#eventlet` to use it with `Eventlet`_ or `egg:gunicorn#gevent` with `Gevent`_. Eventlet arbiter can also be used with `Twisted`_ by using `Eventlet helper <http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted>`_.
+    The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's `egg:gunicorn#main`. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to `egg:gunicorn#eventlet` to use it with `Eventlet`_ or `egg:gunicorn#gevent` with `Gevent`_. Eventlet arbiter can also be used with `Twisted`_ by using its `helper <http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted>`_.
     
 backlog:
     The backlog parameter defines the maximum length for the queue of pending connections see listen(2) for more information. The default is 2048.
