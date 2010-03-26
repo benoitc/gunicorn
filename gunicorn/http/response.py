@@ -17,12 +17,19 @@ class Response(object):
 
         for name, value in headers:
             assert isinstance(name, basestring), "%r is not a string" % name
-            assert isinstance(value, basestring), "%r is not a string" % value
-            assert not is_hoppish(name), "%s is a hop-by-hop header." % name
-            if name.lower().strip() == "transfer-encoding":
-                if value.lower().strip() == "chunked":
-                    self.chunked = True
-            self.headers.append((name.strip(), value.strip()))
+            if is_hoppish(name):
+                lname = name.lower().strip()
+                if lname == "transfer-encoding":
+                    if value.lower().strip() == "chunked":
+                        self.chunked = True
+                elif lname == "connection":
+                    # handle websocket
+                    if value.lower().strip() != "upgrade":
+                        continue
+                else:
+                    # ignore hopbyhop headers
+                    continue
+            self.headers.append((name.strip(), str(value).strip()))
 
     def default_headers(self):
         return [
