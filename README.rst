@@ -22,7 +22,7 @@ Or from Pypi::
   $ easy_install -U gunicorn
   
 If you want to handle `sleepy applications <http://gunicorn.org/faq.html>`_
-you will need to install `Eventlet`_ or `Gevent`_.
+you will need to install Eventlet_ or Gevent_.
 
 To install eventlet::
 
@@ -159,3 +159,5 @@ Check `this article`_ for more information on ephemeral ports.
 
 .. _this article: http://www.ncftp.com/ncftpd/doc/misc/ephemeral_ports.html
 .. _freenode: http://freenode.net
+.. _Eventlet: http://eventlet.net
+.. _Gevent: http://gevent.org
