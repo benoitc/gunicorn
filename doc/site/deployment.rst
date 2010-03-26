@@ -4,10 +4,10 @@ title: Deployment
 Production Setup
 ================
 
-Although there are many HTTP proxies available, we strongly advise that you use Nginx_. If you choose another proxy server you need to make sure that it buffers slow clients. Without this buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
+Although there are many HTTP proxies available, we strongly advise that you use Nginx_. If you choose another proxy server you need to make sure that it buffers slow clients when you use default Gunicorn arbiter. Without this buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
 
-Nginx Config
-------------
+Nginx Config for fast clients hanling
+-------------------------------------
 
 An `example configuration`_ file for use with Nginx_::
 
@@ -61,6 +61,22 @@ An `example configuration`_ file for use with Nginx_::
             }
         }
     }
+    
+To handle sleepy applications, just add the line `proxy_buffering off;` under the proxy_redirect directive::
+
+  ...
+  location / {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+      proxy_buffering off;
+
+      if (!-f $request_filename) {
+          proxy_pass http://app_server;
+          break;
+      }
+  }
+  ....
 
 Daemon Monitoring
 -----------------

@@ -18,7 +18,7 @@ Or from Pypi::
 
   $ easy_install -U gunicorn
   
-If you want to handle `sleepy application <faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
+If you want to handle `sleepy application <http://gunicorn.org/faq.html>`_ you will need to install `Eventlet`_ or `Gevent`_.
 
 To install eventlet::
 
