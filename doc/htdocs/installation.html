@@ -59,7 +59,7 @@
 </div>
 <div class="section" id="installing-with-easy-install">
 <h1>Installing with easy_install</h1>
-<p>If you don't already have <tt class="docutils literal"><span class="pre">easy_install</span></tt> available you'll want to download and run the <tt class="docutils literal"><span class="pre">ez_setup.py</span></tt> script:</p>
+<p>If you don't already have <tt class="docutils literal">easy_install</tt> available you'll want to download and run the <tt class="docutils literal">ez_setup.py</tt> script:</p>
 <pre class="literal-block">
 $ curl -O http://peak.telecommunity.com/dist/ez_setup.py
 $ sudo python ez_setup.py -U setuptools
@@ -84,11 +84,21 @@ $ git clone git://github.com/benoitc/gunicorn.git
 <pre class="literal-block">
 $ python setup.py install
 </pre>
-<p>If you've cloned the git repository, its highly recommended that you use the <tt class="docutils literal"><span class="pre">develop</span></tt> command which will allow you to use Gunicorn from the source directory. This will allow you to keep up to date with development on GitHub as well as make changes to the source:</p>
+<p>If you've cloned the git repository, its highly recommended that you use the <tt class="docutils literal">develop</tt> command which will allow you to use Gunicorn from the source directory. This will allow you to keep up to date with development on GitHub as well as make changes to the source:</p>
 <pre class="literal-block">
 $ python setup.py develop
 </pre>
 </div>
+</div>
+<div class="section" id="installing-requirements-for-sleepy-application-handling">
+<h1>Installing requirements for sleepy application handling</h1>
+<p>If you want to handle <a class="reference external" href="faq.html">sleepy application</a> you will need to install <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>.</p>
+<p>To install eventlet:</p>
+<pre class="literal-block">
+$ easy_install -U eventlet
+</pre>
+<p>Replace <cite>eventlet</cite> by <strong>gevent</strong> if you want to use <cite>gevent</cite>.</p>
+<p>You can now launch gunicorn with Eventlet or Gevent arbiter, see <a class="reference external" href="usage.html">usage</a> for more information.</p>
 </div>
 <div class="section" id="installing-on-ubuntu-debian-systems">
 <h1>Installing on Ubuntu/Debian systems</h1>

@@ -53,9 +53,12 @@
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
+arbiter=&quot;egg:gunicorn&quot;  # Or &quot;egg:gunicorn#eventlet&quot; (eventlet or gevent)
+backlog = 2048
 bind = &quot;127.0.0.1:8000&quot; # Or &quot;unix:/tmp/gunicorn.sock&quot;
 daemon = False          # Whether work in the background
 debug = False           # Some extra logging
+keepalive = 2           # Time we wait for next connection (in ms)
 logfile = &quot;-&quot;           # Name of the log file
 loglevel = &quot;info&quot;       # The level at which to log
 pidfile = None          # Path to a PID file
@@ -65,6 +68,7 @@ user = None             # Change process owner to user
 group = None            # Change process group to group
 proc_name = None        # Change the process name
 tmp_upload_dir = None   # Set path used to store temporary uploads
+worker_connections=1000 # Number of connections accepted by a worker
 
 after_fork=lambda server, worker: server.log.info(
         &quot;Worker spawned (pid: %s)&quot; % worker.pid),
@@ -79,6 +83,10 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dl class="docutils">
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
+<dt>arbiter:</dt>
+<dd>The arbiter you want to use.  An arbiter maintain the workers processes alive. It launches or kills them if needed. It also manages application reloading  via SIGHUP/USR2. By default it's <cite>egg:gunicorn#main</cite>. This arbiter only support fast clients connections. If you need to create a sleepy application or handling keepalive set it to <cite>egg:gunicorn#eventlet</cite> to use it with <a class="reference external" href="http://eventlet.net">Eventlet</a> or <cite>egg:gunicorn#gevent</cite> with <a class="reference external" href="http://gevent.org">Gevent</a>. Eventlet arbiter can also be used with <a class="reference external" href="http://twistedmatrix.com">Twisted</a> by using <a class="reference external" href="http://bitbucket.org/which_linden/eventlet/src/tip/README.twisted">Eventlet helper</a>.</dd>
+<dt>backlog:</dt>
+<dd>The backlog parameter defines the maximum length for the queue of pending connections see listen(2) for more information. The default is 2048.</dd>
 <dt>before_fork(server, worker):</dt>
 <dd>This is called by the worker just before forking.</dd>
 <dt>before_exec(server):</dt>
@@ -91,6 +99,8 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dd>If <tt class="docutils literal">True</tt>, only one worker will be launch and the variable <tt class="docutils literal">wsgi.multiprocess</tt> will be set to False.</dd>
 <dt>group:</dt>
 <dd>The group in which worker processes will be launched.</dd>
+<dt>keepalive:</dt>
+<dd>Keepalive timeout. The default is 2 seconds, which should be enough under most conditions for browsers to render the page and start retrieving extra elements for. Increasing this beyond 5 seconds is not recommended. Zero disables keepalive entirely.</dd>
 <dt>logfile:</dt>
 <dd>The path to the log file <tt class="docutils literal">-</tt> (stdout) by default.</dd>
 <dt>loglevel:</dt>
@@ -103,6 +113,8 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dd>Used to set the umask when daemonizing.</dd>
 <dt>user:</dt>
 <dd>The user as which worker processes will by launched.</dd>
+<dt>worker_connections:</dt>
+<dd>Number of connections a worker can handle when used with Eventlet or Gevent arbiter. The default is 1000.</dd>
 <dt>tmp_upload_dir:</dt>
 <dd>Set the path used to store temporarily the body of the request.</dd>
 </dl>

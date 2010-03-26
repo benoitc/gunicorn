@@ -56,7 +56,7 @@
 </ul>
 <div class="section" id="wsgi-applications">
 <h1>WSGI applications</h1>
-<p>Thirty seconds to launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
+<p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
 <pre class="literal-block">
 $ cd /path/to/gunicorn/examples/
 $ gunicorn --workers=2 test:app
@@ -66,6 +66,12 @@ $ gunicorn --workers=2 test:app
 $ cd ~/
 $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
 </pre>
+<p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py">websocket example application</a> using <a class="reference external" href="http://eventlet.net">Eventlet</a>:</p>
+<pre class="literal-block">
+$ cd /path/to/gunicorn/examples/
+$ gunicorn -w 12 -a &quot;egg:gunicorn#eventlet&quot; websocket:app
+</pre>
+<p>and then go on <cite>http://localhost:8000</cite> to see the result.</p>
 <div class="section" id="full-command-line-usage">
 <h2>Full command line usage</h2>
 <pre class="literal-block">
@@ -79,6 +85,9 @@ Options:
                         unix:/tmp/gunicorn.sock
   -w WORKERS, --workers=WORKERS
                         Number of workers to spawn. [1]
+  -a ARBITER, --arbiter=ARBITER
+                          gunicorn arbiter entry point or module
+                          [egg:gunicorn#main]
   -p PIDFILE, --pid=PIDFILE
                         set the background PID FILE
   -D, --daemon          Run daemonized in the background.
