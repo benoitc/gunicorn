@@ -49,7 +49,7 @@
 
   <div class="document" id="the-configuration-file">
 <h1 class="title">The Configuration File</h1>
-<p>Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal"><span class="pre">gunicorn.conf.py</span></tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
+<p>Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
 <pre class="literal-block">
@@ -104,13 +104,13 @@ connections. The default is 2048. See listen(2) for more information</dd>
 the master receives a HUP or USR2 signal.</dd>
 <dt>bind:</dt>
 <dd>The address on which workers are listening. It can be a TCP address with a
-format of <tt class="docutils literal"><span class="pre">IP:PORT</span></tt> or a Unix socket address like
+format of <tt class="docutils literal">IP:PORT</tt> or a Unix socket address like
 <tt class="docutils literal"><span class="pre">unix:/path/to/socketfile</span></tt>.</dd>
 <dt>daemon:</dt>
 <dd>Whether or not to detach the server from the controlling terminal.</dd>
 <dt>debug:</dt>
-<dd>If <tt class="docutils literal"><span class="pre">True</span></tt>, only one worker will be launch and the variable
-<tt class="docutils literal"><span class="pre">wsgi.multiprocess</span></tt> will be set to False.</dd>
+<dd>If <tt class="docutils literal">True</tt>, only one worker will be launch and the variable
+<tt class="docutils literal">wsgi.multiprocess</tt> will be set to False.</dd>
 <dt>group:</dt>
 <dd>The group in which worker processes will be launched.</dd>
 <dt>keepalive:</dt>
@@ -119,15 +119,15 @@ most conditions for browsers to render the page and start retrieving extra
 elements for. Increasing this beyond 5 seconds is not recommended. Zero
 disables KeepAlive entirely.</dd>
 <dt>logfile:</dt>
-<dd>The path to the log file <tt class="docutils literal"><span class="pre">-</span></tt> (stdout) by default.</dd>
+<dd>The path to the log file <tt class="docutils literal">-</tt> (stdout) by default.</dd>
 <dt>loglevel:</dt>
-<dd>The level at which to log. <tt class="docutils literal"><span class="pre">info</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>, or <tt class="docutils literal"><span class="pre">error</span></tt> for instance.
+<dd>The level at which to log. <tt class="docutils literal">info</tt>, <tt class="docutils literal">debug</tt>, or <tt class="docutils literal">error</tt> for instance.
 Only log messages of equal or greater severity are logged.</dd>
 <dt>pidfile:</dt>
 <dd>A file to store the master's PID.</dd>
 <dt>proc_name:</dt>
 <dd>A name for the master process. Only takes effect if <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a> is
-installed. This alters the process names listed by commands like <tt class="docutils literal"><span class="pre">ps</span></tt>.</dd>
+installed. This alters the process names listed by commands like <tt class="docutils literal">ps</tt>.</dd>
 <dt>umask:</dt>
 <dd>Used to set the umask when daemonizing.</dd>
 <dt>user:</dt>
