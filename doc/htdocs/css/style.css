@@ -1,7 +1,7 @@
 body {
     background: #f9f9f9;
     color: #2a2a2a;
-    font-family: arial;
+    font-family: Arial, sans-serif;
     font-size: 1em;
 }
 
@@ -198,7 +198,7 @@ ul#actions li {
 
 ul#actions li a {
     font-style: bold;
-    font-size: 1em;
+    font-size: 0.9em;
     text-transform: capitalize;
     color: #ddd;
     text-decoration: none;
