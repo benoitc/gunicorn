@@ -4,7 +4,7 @@ title: The Configuration File
 The Configuration File
 ======================
 
-Gunciorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for ``gunicorn.conf.py`` in the current working directory or what ever path is specified on the command line with the ``-c`` option.
+Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for ``gunicorn.conf.py`` in the current working directory or what ever path is specified on the command line with the ``-c`` option.
 
 Example gunicorn.conf.py
 ------------------------
@@ -116,3 +116,4 @@ tmp_upload_dir:
 .. _Gevent: http://gevent.org
 .. _Twisted: http://twistedmatrix.com
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
+
