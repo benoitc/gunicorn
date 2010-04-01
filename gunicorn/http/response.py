@@ -53,5 +53,7 @@ class Response(object):
         write(self.req.socket, arg, self.chunked)
 
     def close(self):
+        if not self.headers_sent:
+            self.send_headers()
         if self.chunked:
             write_chunk(self.socket, "")
