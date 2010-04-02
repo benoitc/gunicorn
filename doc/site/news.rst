@@ -4,6 +4,11 @@ title: News
 News
 ====
 
+0.7.1 / 2010-04-01
+------------------
+
+- Fix bug when responses have no body.
+
 0.7.0 / 2010-03-26
 ------------------
 
