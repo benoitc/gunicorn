@@ -31,10 +31,6 @@ class KeepaliveResponse(http.Response):
             "Connection: %s\r\n" % connection_hdr
         ]
 
-    def close(self):
-        if self.chunked:
-            write_chunk(self.socket, "")
-
 class KeepaliveRequest(http.Request):
 
     RESPONSE_CLASS = KeepaliveResponse
