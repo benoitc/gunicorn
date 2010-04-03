@@ -159,7 +159,7 @@ class Request(object):
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
             try:
-                if self.response and self.response.sent_headers:
+                if self.response and self.response.headers_sent:
                     raise exc_info[0], exc_info[1], exc_info[2]
             finally:
                 exc_info = None
