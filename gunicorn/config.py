@@ -60,9 +60,9 @@ class Config(object):
         if not os.path.exists(self.config_file):
             return {}
 
-        config = {}
+        config = {} 
         try:
-            execfile(self.config_file, config)
+            execfile(self.config_file, globals(), config)
         except:
             sys.exit("Could not read config file %r" % (self.config_file,))
 
