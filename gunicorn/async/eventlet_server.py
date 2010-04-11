@@ -40,7 +40,7 @@ class EventletArbiter(arbiter.Arbiter):
         import eventlet
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
-        eventlet.monkey_patch(all=False, socket=True, select=True)
+        eventlet.monkey_patch(all=False, socket=True, select=True, thread=True)
         
     def init_worker(self, worker_age, pid, listener, app, timeout, conf):
         return EventletWorker(worker_age, pid, listener, app, timeout, conf)
