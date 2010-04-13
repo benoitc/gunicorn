@@ -307,7 +307,7 @@ class Arbiter(object):
             except ValueError:
                 continue
 
-            self.log.error("Worker timed out (pid:%s)" % pid)
+            self.log.critical("WORKER TIMEOUT (pid:%s)" % pid)
             self.kill_worker(pid, signal.SIGKILL)
     
     def reap_workers(self):
