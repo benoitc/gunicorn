@@ -27,6 +27,7 @@ class Config(object):
         loglevel='info',
         pidfile=None,
         proc_name = None,
+        spew=False,
         timeout=30,
         tmp_upload_dir=None,
         umask="0",

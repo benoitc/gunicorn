@@ -10,6 +10,7 @@ import pkg_resources
 import sys
 
 from gunicorn.config import Config
+from gunicorn.debug import spew
 from gunicorn import util, __version__
 
 LOG_LEVELS = {
@@ -51,7 +52,9 @@ def options():
         op.make_option('--log-file', dest='logfile',
             help='Log to a file. - equals stdout. [-]'),
         op.make_option('-d', '--debug', dest='debug', action="store_true",
-            default=False, help='Debug mode. only 1 worker.')
+            default=False, help='Debug mode. only 1 worker.'),
+        op.make_option('--spew', dest='spew', action="store_true",
+            default=False, help="Install a trace hook")
     ]
 
 def configure_logging(opts):
@@ -114,6 +117,8 @@ def main(usage, get_app):
     
     app = get_app(parser, opts, args)
     conf = Config(opts.__dict__, opts.config)
+    if conf['spew']:
+        spew()
     arbiter = conf.arbiter(conf.address, conf.workers, app, config=conf, 
                 debug=conf['debug'], pidfile=conf['pidfile'])
     if conf['daemon']:
@@ -149,6 +154,8 @@ def paste_server(app, global_conf=None, host="127.0.0.1", port=None,
         options['default_proc_name'] = options['__file__']
            
     conf = Config(options)
+    if conf['spew']:
+        spew()
     arbiter = conf.arbiter(conf.address, conf.workers, app, debug=conf["debug"], 
                     pidfile=conf["pidfile"], config=conf)
     if conf["daemon"] :
