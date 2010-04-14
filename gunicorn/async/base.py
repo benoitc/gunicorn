@@ -60,7 +60,6 @@ class KeepaliveWorker(Worker):
             self.init_sock(client)
             while True:
                 req = KeepaliveRequest(client, addr, self.address, self.conf)
-                
                 try:
                     environ = req.read()
                     if not environ or not req.parser.headers:

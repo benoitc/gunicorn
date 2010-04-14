@@ -37,7 +37,7 @@ class GEventArbiter(arbiter.Arbiter):
     @classmethod
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all()
+        monkey.patch_all(dns=False)
     
     def init_worker(self, worker_age, pid, listener, app, timeout, conf):
         return GEventWorker(worker_age, pid, listener, app, timeout, conf)
