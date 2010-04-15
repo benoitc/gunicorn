@@ -52,25 +52,6 @@
 <p>Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
-<p>arbiter=&quot;egg:gunicorn&quot;,
-backlog=2048,
-bind='127.0.0.1:8000',
-daemon=False,
-debug=False,
-default_proc_name = os.getcwd(),
-group=None,
-keepalive=2,
-logfile='-',
-loglevel='info',
-pidfile=None,
-proc_name = None,
-spew=False,
-timeout=30,
-tmp_upload_dir=None,
-umask=&quot;0&quot;,
-user=None,
-workers=1,
-worker_connections=1000,</p>
 <pre class="literal-block">
 arbiter = &quot;egg:gunicorn&quot;    # The arbiter to use for worker management
 backlog = 2048              # The listen queue size for the server socket
@@ -156,6 +137,8 @@ installed. This alters the process names listed by commands like <tt class="docu
 <dt>worker_connections:</dt>
 <dd>Number of simultaneous connections a worker can handle when used with
 Eventlet or Gevent arbiter. The default is 1000.</dd>
+<dt>timeout:</dt>
+<dd>Set worker timeout.</dd>
 <dt>tmp_upload_dir:</dt>
 <dd>Set the path used to store temporarily the body of the request.</dd>
 </dl>
