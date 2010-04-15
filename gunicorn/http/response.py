@@ -57,3 +57,17 @@ class Response(object):
             self.send_headers()
         if self.chunked:
             write_chunk(self.socket, "")
+
+class KeepaliveResponse(Response):
+
+    def default_headers(self):
+        connection = "keep-alive"
+        if self.req.parser.should_close:
+            connection = "close"
+
+        return [
+            "HTTP/1.1 %s\r\n" % self.status,
+            "Server: %s\r\n" % self.version,
+            "Date: %s\r\n" % http_date(),
+            "Connection: %s\r\n" % connection
+        ]

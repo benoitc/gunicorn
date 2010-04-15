@@ -18,7 +18,7 @@ import traceback
 
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
-from gunicorn.worker import Worker
+from gunicorn.workers.sync import SyncWorker
 from gunicorn import util
 
 class Arbiter(object):
@@ -47,21 +47,34 @@ class Arbiter(object):
     
     pidfile = Pidfile()
 
-    def __init__(self, address, num_workers, app, **kwargs):
+    def __init__(self, cfg, app):
+        self.cfg = cfg
+        self.app = app
+        
+        self.address = cfg.address
+        self.num_workers = cfg.num_workers
+        self.debug = cfg.debug
+        self.timeout = cfg.timeout
+        self.proc_name = cfg.proc_name
+        self.worker_class = cfg.worker_class
+        
         self.address = address
         self.num_workers = num_workers
-        self.worker_age = 0
         self.app = app
+
+        self._pidfile = None
+        self.worker_age = 0
+        self.reexec_pid = 0
+        self.master_name = "Master"
+
+        self.opts = kwargs
+        self.debug = kwargs.get("debug", False)
         self.conf = kwargs.get("config", {})
         self.timeout = self.conf['timeout']
-        self.reexec_pid = 0
-        self.debug = kwargs.get("debug", False)
-        self.log = logging.getLogger(__name__)
-        self.opts = kwargs
-        
-        self._pidfile = None
-        self.master_name = "Master"
         self.proc_name = self.conf['proc_name']
+        self.worker_class = kwargs.get("workerclass", SyncWorker)
+
+        self.log = logging.getLogger(__name__)
         
         # get current path, try to use PWD env first
         try:
@@ -345,9 +358,6 @@ class Arbiter(object):
                     pid, age = wpid, worker.age
             self.kill_worker(pid, signal.SIGQUIT)
             
-    def init_worker(self, worker_age, pid, listener, app, timeout, conf):
-        return Worker(worker_age, pid, listener, app, timeout, conf)
-
     def spawn_workers(self):
         """\
         Spawn new workers as needed.
@@ -358,8 +368,8 @@ class Arbiter(object):
         
         for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.worker_age += 1
-            worker = self.init_worker(self.worker_age, self.pid, self.LISTENER, 
-                            self.app, self.timeout/2.0, self.conf)
+            worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
+                                        self.app, self.timeout/2.0, self.conf)
             self.conf.before_fork(self, worker)
             pid = os.fork()
             if pid != 0:

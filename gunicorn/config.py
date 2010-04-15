@@ -15,7 +15,6 @@ class Config(object):
     DEFAULT_CONFIG_FILE = 'gunicorn.conf.py'
     
     DEFAULTS = dict(
-        arbiter="egg:gunicorn",
         backlog=2048,
         bind='127.0.0.1:8000',
         daemon=False,
@@ -34,6 +33,7 @@ class Config(object):
         user=None,
         workers=1,
         worker_connections=1000,
+        worker_class="egg:gunicorn#sync",
         
         after_fork=lambda server, worker: server.log.info(
             "Worker spawned (pid: %s)" % worker.pid),
@@ -99,12 +99,9 @@ class Config(object):
         return self.conf.iteritems()
 
     @property
-    def arbiter(self):
-        uri = self.conf.get('arbiter', 'egg:gunicorn')
-        arbiter = util.parse_arbiter_uri(uri)
-        if hasattr(arbiter, 'setup'):
-            arbiter.setup()
-        return arbiter
+    def worker_class(self):
+        uri = self.conf.get('workertype', None) or 'egg:gunicorn#sync'
+        return util.load_worker_class(uri)
 
     @property   
     def workers(self):
@@ -116,7 +113,7 @@ class Config(object):
         if self.conf['debug'] == True: 
             workers = 1
         return workers
-        
+
     @property
     def address(self):
         if not self.conf['bind']:

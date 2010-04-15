@@ -43,7 +43,7 @@ except ImportError:
     def _setproctitle(title):
         return
 
-def parse_arbiter_uri(uri):
+def load_worker_class(uri):
     if uri.startswith("egg:"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
@@ -53,8 +53,7 @@ def parse_arbiter_uri(uri):
             dist = entry_str
             name = "main"
 
-        return pkg_resources.load_entry_point(dist, "gunicorn.arbiter",
-                name)
+        return pkg_resources.load_entry_point(dist, "gunicorn.arbiter", name)
     else:
         components = uri.split('.')
         if len(components) == 1:

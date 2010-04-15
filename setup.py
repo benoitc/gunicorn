@@ -48,10 +48,10 @@ setup(
     gunicorn_django=gunicorn.main:run_django
     gunicorn_paster=gunicorn.main:run_paster
 
-    [gunicorn.arbiter]
-    main=gunicorn.arbiter:Arbiter
-    eventlet=gunicorn.async.eventlet_server:EventletArbiter
-    gevent=gunicorn.async.gevent_server:GEventArbiter 
+    [gunicorn.worker]
+    sync=gunicorn.workers.sync:SyncWorker
+    eventlet=gunicorn.workers.geventlet:EventletWorker
+    gevent=gunicorn.workers.ggevent:GEventWorker
     
     [paste.server_runner]
     main=gunicorn.main:paste_server
