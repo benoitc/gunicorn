@@ -61,6 +61,7 @@ Full command line usage
     --log-level=LOGLEVEL  Log level below which to silence messages. [info]
     --log-file=LOGFILE    Log to a file. - equals stdout. [-]
     -d, --debug           Debug mode. only 1 worker.
+    --spew                Install a trace hook
     --version             show program's version number and exit
     -h, --help            show this help message and exit
 

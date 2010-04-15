@@ -4,6 +4,13 @@ title: News
 News
 ====
 
+0.7.2 / 2010-04-15
+------------------
+
+- Added --spew option to help debugging (install a Trace hook)
+- Some fixes in async arbiters
+- Fix a bug in start_response on error
+
 0.7.1 / 2010-04-01
 ------------------
 
