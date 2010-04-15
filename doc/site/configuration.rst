@@ -9,25 +9,6 @@ Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn
 Example gunicorn.conf.py
 ------------------------
 
-arbiter="egg:gunicorn",
-backlog=2048,
-bind='127.0.0.1:8000',
-daemon=False,
-debug=False,
-default_proc_name = os.getcwd(),
-group=None,
-keepalive=2,
-logfile='-',
-loglevel='info',
-pidfile=None,
-proc_name = None,
-spew=False,
-timeout=30,
-tmp_upload_dir=None,
-umask="0",
-user=None,
-workers=1,
-worker_connections=1000,
 ::
 
     arbiter = "egg:gunicorn"    # The arbiter to use for worker management
@@ -129,6 +110,9 @@ user:
 worker_connections:
     Number of simultaneous connections a worker can handle when used with
     Eventlet or Gevent arbiter. The default is 1000.
+    
+timeout:
+    Set worker timeout. 
 
 tmp_upload_dir:
     Set the path used to store temporarily the body of the request.
