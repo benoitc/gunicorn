@@ -102,7 +102,7 @@ class KeepaliveWorker(Worker):
 
     def run(self):
         self.init_process()
-        self.socket.setblocking(0)
+        self.socket.setblocking(1)
 
         while self.alive:
             self.notify()

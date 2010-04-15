@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+from __future__ import with_statement
+
 import errno
 
 import collections
@@ -11,6 +13,7 @@ from eventlet.green import os
 from eventlet.green import socket
 from eventlet import greenio
 from eventlet.hubs import trampoline
+from eventlet.timeout import Timeout
 
 from gunicorn import util
 from gunicorn import arbiter
@@ -24,13 +27,14 @@ class EventletWorker(KeepaliveWorker):
         self.pool = eventlet.GreenPool(self.worker_connections)
   
     def accept(self):
-        try:
-            client, addr = self.socket.accept()
-            self.pool.spawn_n(self.handle, client, addr)
-        except socket.error, e:
-            if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN, errno.ECONNABORTED):
-                return
-            raise
+        with Timeout(0.1, False):
+            try:
+                client, addr = self.socket.accept()
+                self.pool.spawn_n(self.handle, client, addr)
+            except socket.error, e:
+                if e[0] in (errno.EWOULDBLOCK, errno.EAGAIN, errno.ECONNABORTED):
+                    return
+                raise
 
 
 class EventletArbiter(arbiter.Arbiter):

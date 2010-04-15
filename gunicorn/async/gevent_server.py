@@ -3,15 +3,15 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+from __future__ import with_statement
 
 import errno
 import os
 
 import gevent
-from gevent import socket
+from gevent import Timeout, socket
 from gevent.greenlet import Greenlet
 from gevent.pool import Pool
-
 
 from gunicorn import arbiter
 from gunicorn import util
@@ -24,13 +24,14 @@ class GEventWorker(KeepaliveWorker):
         self.pool = Pool(self.worker_connections)
         
     def accept(self):
-        try:
-            client, addr = self.socket.accept()
-            self.pool.spawn(self.handle, client, addr)
-        except socket.error, e:
-            if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, errno.ECONNABORTED):
-                return
-            raise
+        with Timeout(0.1, False):
+            try:
+                client, addr = self.socket.accept()
+                self.pool.spawn(self.handle, client, addr)
+            except socket.error, e:
+                if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, errno.ECONNABORTED):
+                    return
+                raise
                          
 class GEventArbiter(arbiter.Arbiter):
 
