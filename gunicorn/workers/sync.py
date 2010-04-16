@@ -1,12 +1,17 @@
 
-from gunicorn import http
+import errno
+import os
+import select
+import socket
+import traceback
+
+from gunicorn import http, util
 from gunicorn.http.tee import UnexpectedEOF
 from gunicorn.workers.base import Worker
 
 class SyncWorker(Worker):
     
     def run(self):
-        self.init_process()
         self.nr = 0
 
         # self.socket appears to lose its blocking status after
@@ -24,7 +29,7 @@ class SyncWorker(Worker):
             try:
                 client, addr = self.socket.accept()
                 client.setblocking(1)
-                util.close_on_exec(sock)
+                util.close_on_exec(client)
                 self.handle(client, addr)
                 self.nr += 1
             except socket.error, e:
@@ -79,7 +84,7 @@ class SyncWorker(Worker):
             util.close(client)
 
     def handle_request(self, client, addr):
-        req = http.Request(client, addr, self.address, self.conf)
+        req = http.Request(client, addr, self.address, self.cfg)
         try:
             environ = req.read()
             if not environ or not req.parser.status_line:

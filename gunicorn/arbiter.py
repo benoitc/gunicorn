@@ -50,32 +50,26 @@ class Arbiter(object):
     def __init__(self, cfg, app):
         self.cfg = cfg
         self.app = app
-        
+
+        self.log = logging.getLogger(__name__)
+
         self.address = cfg.address
-        self.num_workers = cfg.num_workers
+        self.num_workers = cfg.workers
         self.debug = cfg.debug
         self.timeout = cfg.timeout
         self.proc_name = cfg.proc_name
-        self.worker_class = cfg.worker_class
         
-        self.address = address
-        self.num_workers = num_workers
-        self.app = app
-
+        try:
+            self.worker_class = cfg.worker_class
+        except ImportError, e:
+            self.log.error("%s" % e)
+            sys.exit(1)
+        
         self._pidfile = None
         self.worker_age = 0
         self.reexec_pid = 0
         self.master_name = "Master"
-
-        self.opts = kwargs
-        self.debug = kwargs.get("debug", False)
-        self.conf = kwargs.get("config", {})
-        self.timeout = self.conf['timeout']
-        self.proc_name = self.conf['proc_name']
-        self.worker_class = kwargs.get("workerclass", SyncWorker)
-
-        self.log = logging.getLogger(__name__)
-        
+ 
         # get current path, try to use PWD env first
         try:
             a = os.stat(os.environ('PWD'))
@@ -100,8 +94,8 @@ class Arbiter(object):
         """
         self.pid = os.getpid()
         self.init_signals()
-        self.LISTENER = create_socket(self.conf)
-        self.pidfile = self.opts.get("pidfile")
+        self.LISTENER = create_socket(self.cfg)
+        self.pidfile = self.cfg.pidfile
         self.log.info("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         
@@ -305,7 +299,7 @@ class Arbiter(object):
             
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
-        self.conf.before_exec(self)
+        self.cfg.before_exec(self)
         os.execlp(self.START_CTX[0], *self.START_CTX['argv'])
 
     def murder_workers(self):
@@ -369,8 +363,8 @@ class Arbiter(object):
         for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.worker_age += 1
             worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
-                                        self.app, self.timeout/2.0, self.conf)
-            self.conf.before_fork(self, worker)
+                                        self.app, self.timeout/2.0, self.cfg)
+            self.cfg.before_fork(self, worker)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
@@ -382,8 +376,8 @@ class Arbiter(object):
                 util._setproctitle("worker [%s]" % self.proc_name)
                 self.log.debug("Booting worker: %s (age: %s)" % (
                                                 worker_pid, self.worker_age))
-                self.conf.after_fork(self, worker)
-                worker.run()
+                self.cfg.after_fork(self, worker)
+                worker.init_process()
                 sys.exit(0)
             except SystemExit:
                 raise

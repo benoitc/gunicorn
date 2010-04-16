@@ -58,7 +58,7 @@ class Response(object):
         if self.chunked:
             write_chunk(self.socket, "")
 
-class KeepaliveResponse(Response):
+class KeepAliveResponse(Response):
 
     def default_headers(self):
         connection = "keep-alive"

@@ -39,7 +39,6 @@ class EventletWorker(AsyncWorker):
         super(EventletWorker, self).init_process()
 
     def run(self):
-        self.init_process()
         self.socket.setblocking(1)
 
         pool = greenpool.GreenPool(self.worker_connections)

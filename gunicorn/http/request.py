@@ -7,6 +7,7 @@ import errno
 import logging
 import os
 import re
+import socket
 
 try:
     from cStringIO import StringIO
@@ -171,13 +172,13 @@ class Request(object):
         self.response = self.RESPONSE_CLASS(self, status, headers)
         return self.response.write
 
-class KeepaliveRequest(http.Request):
+class KeepAliveRequest(Request):
 
     RESPONSE_CLASS = KeepAliveResponse
 
     def read(self):
         try:
-            return super(KeepaliveRequest, self).read()
+            return super(KeepAliveRequest, self).read()
         except socket.error, e:
             if e[0] == errno.ECONNRESET:
                 return

@@ -4,7 +4,15 @@
 # See the NOTICE for more information.
 
 from gunicorn.http.parser import Parser
-from gunicorn.http.request import Request, RequestError
-from gunicorn.http.response import Response
+from gunicorn.http.request import Request, KeepAliveRequest, RequestError
+from gunicorn.http.response import Response, KeepAliveResponse
 
-__all__ = [Parser, Request, RequestError, Response]
+__all__ = [
+    Parser,
+    Request,
+    KeepAliveRequest,
+    RequestError,
+    Response,
+    KeepAliveResponse
+]
+    

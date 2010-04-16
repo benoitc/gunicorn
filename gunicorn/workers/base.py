@@ -4,15 +4,11 @@
 # See the NOTICE for more information.
 
 
-import errno
 import logging
 import os
-import select
 import signal
-import socket
 import sys
 import tempfile
-import traceback
 
 from gunicorn import util
 
@@ -25,7 +21,7 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, age, ppid, socket, app, timeout, conf):
+    def __init__(self, age, ppid, socket, app, timeout, cfg):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -36,17 +32,17 @@ class Worker(object):
         self.socket = socket
         self.app = app
         self.timeout = timeout
-        self.conf = conf
+        self.cfg = cfg
 
         self.nr = 0
         self.alive = True
         self.spinner = 0
         self.log = logging.getLogger(__name__)
-        self.debug = conf.get('debug', False)
+        self.debug = cfg.debug
         self.address = self.socket.getsockname()
 
         self.fd, self.tmpname = tempfile.mkstemp(prefix="wgunicorn-")
-        util.chown(self.tmpname, conf.uid, conf.gid)
+        util.chown(self.tmpname, cfg.uid, cfg.gid)
         self.tmp = os.fdopen(self.fd, "r+b")
         
     def __str__(self):
@@ -83,7 +79,7 @@ class Worker(object):
         super(MyWorkerClass, self).init_process() so that the ``run()``
         loop is initiated.
         """
-        util.set_owner_process(self.conf.uid, self.conf.gid)
+        util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # For waking ourselves up
         self.PIPE = os.pipe()

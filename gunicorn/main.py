@@ -33,7 +33,7 @@ def options():
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers',
             help='Number of workers to spawn. [1]'),
-        op.make_option('-k', '--worker-class', dest='klass',
+        op.make_option('-k', '--worker-class', dest='workerclass',
             help="The type of request processing to use "+
             "[egg:gunicorn#main]"),
         op.make_option('-p','--pid', dest='pidfile',
@@ -69,44 +69,6 @@ def main(usage, get_app):
     
     app = get_app(parser, opts, args)
     cfg = Config(opts.__dict__, opts.config)
-    if cfg.spew:
-        spew()
-    if cfg.daemon:
-        daemonize()
-    else:
-        os.setpgrp()
-    configure_logging(cfg)
-
-    Arbiter(cfg, app).run()
-    
-def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
-    """\
-    A paster server.
-    
-    Then entry point in your paster ini file should looks like this:
-    
-    [server:main]
-    use = egg:gunicorn#main
-    host = 127.0.0.1
-    port = 5000
-    
-    """
-    opts = kwargs.copy()
-    if port and not host.startswith("unix:"):
-        bind = "%s:%s" % (host, port)
-    else:
-        bind = host
-    opts['bind'] = bind
-
-    if gcfg:
-        for key, value in list(gcfg.items()):
-            if value and value is not None:
-                if key == "debug":
-                    value = (value == "true")
-                opts[key] = value
-        opts['default_proc_name'] = opts['__file__']
-           
-    cfg = Config(opts)
     if cfg.spew:
         spew()
     if cfg.daemon:
@@ -238,6 +200,44 @@ def run_paster():
         return app
 
     main("%prog [OPTIONS] pasteconfig.ini", get_app)
+
+def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
+    """\
+    A paster server.
+    
+    Then entry point in your paster ini file should looks like this:
+    
+    [server:main]
+    use = egg:gunicorn#main
+    host = 127.0.0.1
+    port = 5000
+    
+    """
+    opts = kwargs.copy()
+    if port and not host.startswith("unix:"):
+        bind = "%s:%s" % (host, port)
+    else:
+        bind = host
+    opts['bind'] = bind
+
+    if gcfg:
+        for key, value in list(gcfg.items()):
+            if value and value is not None:
+                if key == "debug":
+                    value = (value == "true")
+                opts[key] = value
+        opts['default_proc_name'] = opts['__file__']
+           
+    cfg = Config(opts)
+    if cfg.spew:
+        spew()
+    if cfg.daemon:
+        daemonize()
+    else:
+        os.setpgrp()
+    configure_logging(cfg)
+
+    Arbiter(cfg, app).run()
 
 def daemonize():
     """\

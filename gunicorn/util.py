@@ -51,9 +51,9 @@ def load_worker_class(uri):
             dist, name = entry_str.rsplit("#",1)
         except ValueError:
             dist = entry_str
-            name = "main"
+            name = "sync"
 
-        return pkg_resources.load_entry_point(dist, "gunicorn.arbiter", name)
+        return pkg_resources.load_entry_point(dist, "gunicorn.workers", name)
     else:
         components = uri.split('.')
         if len(components) == 1:
