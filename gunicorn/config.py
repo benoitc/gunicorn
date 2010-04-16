@@ -43,98 +43,83 @@ class Config(object):
         before_exec=lambda server: server.log.info("Forked child, reexecuting")
     )
     
-    def __init__(self, cmdopts, path=None):
-        if not path:
-            self.config_file = os.path.join(os.getcwd(), 
-                                    self.DEFAULT_CONFIG_FILE)
-        else:
-            self.config_file =  os.path.abspath(os.path.normpath(path))
-        self.cmdopts = cmdopts    
-        self.conf = {}
-        self.load()
-            
-    def _load_file(self):
-        """
-        Returns a dict of stuff found in the config file.
-        Defaults to $PWD/gunicorn.conf.py.
-        """
-        if not os.path.exists(self.config_file):
-            return {}
+    def __init__(self, opts, path=None):
+        self.cfg = self.DEFAULTS.copy()
 
-        config = {} 
-        try:
-            execfile(self.config_file, globals(), config)
-        except:
-            sys.exit("Could not read config file %r" % (self.config_file,))
+        if path is None:
+            path = os.path.join(os.getcwd(), self.DEFAULT_CONFIG_FILE)
+        if os.path.exists(path):
+            try:
+                execfile(path, globals(), self.cfg)
+            except Exception, e:
+                sys.exit("Could not read config file: %r\n    %s" % (path, e))
+            self.cfg.pop("__builtins__")
 
-        config.pop("__builtins__", None)
-        return config
-        
-    def load(self):
-        self.conf = self.DEFAULTS.copy()
-        self.conf.update(self._load_file())
-        for key, value in list(self.cmdopts.items()):
-            if value and value is not None:
-                self.conf[key] = value
+        opts = [(k, v) for (k, v) in opts.iteritems() if v is not None]
+        self.cfg.update(dict(opts))
            
     def __getitem__(self, key):
         try:
             return getattr(self, key)
         except AttributeError:
             pass
-        return self.conf[key]
+        return self.cfg[key]
         
     def __getattr__(self, key):
         try:
-            getattr(super(Config, self), key)
+            super(Config, self).__getattribute__(key)
         except AttributeError:
-            if key in self.conf:
-                return self.conf[key]
+            if key in self.cfg:
+                return self.cfg[key]
             raise
             
     def __contains__(self, key):
-        return (key in self.conf)
+        return (key in self.cfg)
         
     def __iter__(self):
-        return self.conf.iteritems()
+        return self.cfg.iteritems()
+
+    def get(self, key, default=None):
+        return self.cfg.get(key, default)
 
     @property
     def worker_class(self):
-        uri = self.conf.get('workertype', None) or 'egg:gunicorn#sync'
+        uri = self.cfg.get('workerclass', None) or 'egg:gunicorn#sync'
+        print uri
         return util.load_worker_class(uri)
 
     @property   
     def workers(self):
-        if not self.conf.get('workers'):
+        if not self.cfg.get('workers'):
             raise RuntimeError("invalid workers number")
-        workers = int(self.conf["workers"])
+        workers = int(self.cfg["workers"])
         if not workers:
             raise RuntimeError("number of workers < 1")
-        if self.conf['debug'] == True: 
+        if self.cfg['debug'] == True: 
             workers = 1
         return workers
 
     @property
     def address(self):
-        if not self.conf['bind']:
+        if not self.cfg['bind']:
             raise RuntimeError("Listener address is not set")
-        return util.parse_address(util.to_bytestring(self.conf['bind']))
+        return util.parse_address(util.to_bytestring(self.cfg['bind']))
         
     @property
     def umask(self):
-        if not self.conf.get('umask'):
+        if not self.cfg.get('umask'):
             return 0
-        umask = self.conf['umask']
+        umask = self.cfg['umask']
         if isinstance(umask, basestring):
             return int(umask, 0)
         return umask
         
     @property
     def uid(self):
-        if not self.conf.get('user'):
+        if not self.cfg.get('user'):
             return os.geteuid()
         
-        user =  self.conf.get('user')
+        user =  self.cfg.get('user')
         if user.isdigit() or isinstance(user, int):
             uid = int(user)
         else:
@@ -143,28 +128,20 @@ class Config(object):
         
     @property
     def gid(self):
-        if not self.conf.get('group'):
+        if not self.cfg.get('group'):
             return os.getegid()
-        group = self.conf.get('group')
+        group = self.cfg.get('group')
         if group.isdigit() or isinstance(group, int):
             gid = int(group)
         else:
             gid = grp.getgrnam(group).gr_gid
-        
         return gid
         
     @property
     def proc_name(self):
-        if not self.conf.get('proc_name'):
-            return self.conf.get('default_proc_name')
-        return self.conf.get('proc_name')
-        
-    def _hook(self, hookname, *args):
-        hook = self.conf.get(hookname)
-        if not hook: return
-        if not callable(hook):
-            raise RuntimeError("%s hook isn't a callable" % hookname)
-        return hook(*args)
+        if not self.cfg.get('proc_name'):
+            return self.cfg.get('default_proc_name')
+        return self.cfg.get('proc_name')
         
     def after_fork(self, *args):
         return self._hook("after_fork", *args)
@@ -174,4 +151,11 @@ class Config(object):
         
     def before_exec(self, *args):
         return self._hook("before_exec", *args)
-                  
+
+    def _hook(self, hookname, *args):
+        hook = self.cfg.get(hookname)
+        if not hook:
+            return
+        if not callable(hook):
+            raise RuntimeError("%r hook isn't a callable" % hookname)
+        return hook(*args)
