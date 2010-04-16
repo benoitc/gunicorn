@@ -8,7 +8,7 @@ http://assorted.svn.sourceforge.net/viewvc/assorted/real-time-plotter/trunk/src/
 <script>
 window.onload = function() {
     var data = {};
-    var s = new WebSocket("ws://nebula:8000/data");
+    var s = new WebSocket("ws://%(HTTP_HOST)s/data");
     s.onopen = function() { 
         //alert('open');
         s.send('hi');

@@ -8,7 +8,7 @@
 
 import collections
 import errno
-from gunicorn.async.base import ALREADY_HANDLED
+from gunicorn.workers.async import ALREADY_HANDLED
 from eventlet import pools
 import socket
 import eventlet
@@ -139,6 +139,7 @@ def app(environ, start_response):
         data = open(os.path.join(
                      os.path.dirname(__file__), 
                      'websocket.html')).read()
+        data = data % environ
         start_response('200 OK', [('Content-Type', 'text/html'),
                                  ('Content-Length', len(data))])
         return [data]
