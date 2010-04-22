@@ -84,7 +84,7 @@ class Config(object):
 
     @property
     def worker_class(self):
-        uri = self.cfg.get('workerclass', None) or 'egg:gunicorn#sync'
+        uri = self.cfg.get('worker_class', None) or 'egg:gunicorn#sync'
         worker_class = util.load_worker_class(uri)
         if hasattr(worker_class, "setup"):
             worker_class.setup()

@@ -169,6 +169,7 @@ def run_paster():
         pkg_resources.working_set.add_entry(relpath)
         ctx = loadwsgi.loadcontext(loadwsgi.SERVER, cfgurl, relative_to=relpath)
 
+        
         if not opts.workers:
             opts.workers = ctx.local_conf.get('workers', 1)
 
@@ -191,8 +192,13 @@ def run_paster():
                     bind = host
                 opts.bind = bind
 
+        for k, v in ctx.local_conf.items():
+            if not hasattr(opts, k):
+                setattr(opts, k, v)
+
         if not opts.debug:
             opts.debug = (ctx.global_conf.get('debug') == "true")
+            
             
         opts.default_proc_name= ctx.global_conf.get('__file__')
 
@@ -227,8 +233,9 @@ def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
                     value = (value == "true")
                 opts[key] = value
         opts['default_proc_name'] = opts['__file__']
-           
+    
     cfg = Config(opts)
+    
     if cfg.spew:
         spew()
     if cfg.daemon:
@@ -236,7 +243,6 @@ def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     else:
         os.setpgrp()
     configure_logging(cfg)
-
     Arbiter(cfg, app).run()
 
 def daemonize():
