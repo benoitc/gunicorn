@@ -4,14 +4,35 @@
 # See the NOTICE for more information.
 
 import os
+import sys
 
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 
+
 from gunicorn.workers.base import Worker
+from gunicorn import __version__ as gversion
+
+
+def patch_request_handler():
+    web = sys.modules.pop("tornado.web")
+
+    old_clear = web.RequestHandler.clear
+
+    def clear(self):
+        old_clear(self)
+        self._headers["Server"] += " (Gunicorn/%s)" % gversion
+         
+    web.RequestHandler.clear = clear
+    sys.modules["tornado.web"] = web
+    
 
 class TornadoWorker(Worker):
     
+    @classmethod
+    def setup(cls):
+        patch_request_handler()
+        
     def watchdog(self):
         self.notify()
             
