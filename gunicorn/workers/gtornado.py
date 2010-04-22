@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import os
+
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 
