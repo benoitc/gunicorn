@@ -56,7 +56,7 @@ class Response(object):
         if not self.headers_sent:
             self.send_headers()
         if self.chunked:
-            write_chunk(self.socket, "")
+            write_chunk(self.req.socket, "")
 
 class KeepAliveResponse(Response):
 
