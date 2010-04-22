@@ -4,6 +4,13 @@ title: News
 News
 ====
 
+0.7.3 / 2004-04-22
+------------------
+
+- Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use
+- Added support for `Tornado <http://www.tornadoweb.org/>`_ .
+
+
 0.7.2 / 2010-04-15
 ------------------
 

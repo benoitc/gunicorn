@@ -15,7 +15,7 @@ Gunicorn requires **Python 2.5 or newer** (Python 3.x will be supported soon).
 
 Install from sources::
 
-    $ python setup.py install
+  $ python setup.py install
 
 Or from Pypi::
 
@@ -42,49 +42,49 @@ Usage
 
 ::
 
-    $ gunicorn --help
-    Usage: gunicorn [OPTIONS] [APP_MODULE]
-    
-    Options:
-      -c CONFIG, --config=CONFIG
-                            Config file. [none]
-      -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
-                            unix:/tmp/gunicorn.sock
-      -w WORKERS, --workers=WORKERS
-                            Number of workers to spawn. [1]
-      -a ARBITER, --arbiter=ARBITER
-                            gunicorn arbiter entry point or module
+  $ gunicorn --help
+  Usage: gunicorn [OPTIONS] [APP_MODULE]
+  
+  Options:
+    -c CONFIG, --config=CONFIG
+                          Config file. [none]
+    -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
+                          unix:/tmp/gunicorn.sock
+    -k WORKERCLASS, --worker-class=WORKERCLASS
+                            The type of request processing to use
                             [egg:gunicorn#main]
-      -p PIDFILE, --pid=PIDFILE
-                            set the background PID FILE
-      -D, --daemon          Run daemonized in the background.
-      -m UMASK, --umask=UMASK
-                            Define umask of daemon process
-      -u USER, --user=USER  Change worker user
-      -g GROUP, --group=GROUP
-                            Change worker group
-      -n APP_NAME, --name=APP_NAME
-                            Application name
-      --log-level=LOGLEVEL  Log level below which to silence messages. [info]
-      --log-file=LOGFILE    Log to a file. - equals stdout. [-]
-      -d, --debug           Debug mode. only 1 worker.
-      --spew                Install a trace hook
-      --version             show program's version number and exit
-      -h, --help            show this help message and exit
+    -w WORKERS, --workers=WORKERS
+                          Number of workers to spawn. [1]
+    -p PIDFILE, --pid=PIDFILE
+                          set the background PID FILE
+    -D, --daemon          Run daemonized in the background.
+    -m UMASK, --umask=UMASK
+                          Define umask of daemon process
+    -u USER, --user=USER  Change worker user
+    -g GROUP, --group=GROUP
+                          Change worker group
+    -n APP_NAME, --name=APP_NAME
+                          Application name
+    --log-level=LOGLEVEL  Log level below which to silence messages. [info]
+    --log-file=LOGFILE    Log to a file. - equals stdout. [-]
+    -d, --debug           Debug mode. only 1 worker.
+    --spew                Install a trace hook
+    --version             show program's version number and exit
+    -h, --help            show this help message and exit
     
 
 Example with test app::
 
-    $ cd examples
-    $ gunicorn --workers=2 test:app
+  $ cd examples
+  $ gunicorn --workers=2 test:app
     
 Django projects
 +++++++++++++++
 
 For django projects use the `gunicorn_django` command::
 
-    $ cd yourdjangoproject
-    $ gunicorn_django --workers=2
+  $ cd yourdjangoproject
+  $ gunicorn_django --workers=2
 
 or use `run_gunicorn` command.
 
@@ -134,7 +134,7 @@ One of the first settings that usually needs to be bumped is the maximum number 
 
 ::
     
-    $ sudo ulimit -n 1024
+  $ sudo ulimit -n 1024
 
 Increasing the Listen Queue Size
 ++++++++++++++++++++++++++++++++
@@ -143,7 +143,7 @@ Listening sockets have an associated queue of incoming connections that are wait
 
 ::
 
-    $ sudo sysctl -w kern.ipc.somaxconn="1024"
+  $ sudo sysctl -w kern.ipc.somaxconn="1024"
 
 Widening the Ephemeral Port Range
 +++++++++++++++++++++++++++++++++
@@ -154,7 +154,7 @@ This setting is generally only required on machines that are being used to test 
 
 ::
 
-    $ sudo sysctl -w net.inet.ip.portrange.first="8048"
+  $ sudo sysctl -w net.inet.ip.portrange.first="8048"
 
 Check `this article`_ for more information on ephemeral ports.
 

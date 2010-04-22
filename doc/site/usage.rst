@@ -43,11 +43,11 @@ Full command line usage
                           Config file. [none]
     -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
                           unix:/tmp/gunicorn.sock
+    -k WORKERCLASS, --worker-class=WORKERCLASS
+                            The type of request processing to use
+                            [egg:gunicorn#main]
     -w WORKERS, --workers=WORKERS
                           Number of workers to spawn. [1]
-    -a ARBITER, --arbiter=ARBITER
-                          gunicorn arbiter entry point or module
-                          [egg:gunicorn#main]
     -p PIDFILE, --pid=PIDFILE
                           set the background PID FILE
     -D, --daemon          Run daemonized in the background.

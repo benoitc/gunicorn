@@ -11,7 +11,6 @@ Example gunicorn.conf.py
 
 ::
 
-    arbiter = "egg:gunicorn"    # The arbiter to use for worker management
     backlog = 2048              # The listen queue size for the server socket
     bind = "127.0.0.1:8000"     # Or "unix:/tmp/gunicorn.sock"
     daemon = False              # Whether work in the background
@@ -28,6 +27,7 @@ Example gunicorn.conf.py
     spew=False                  # Display trace
     timeout=30                  # Worker timeout
     tmp_upload_dir = None       # Set path used to store temporary uploads
+    worker_class = "egg:gunicorn#sync"    # The type of request processing to use
     worker_connections=1000     # Maximum number of simultaneous connections
     
     after_fork=lambda server, worker: server.log.info(
@@ -43,17 +43,16 @@ Parameter Descriptions
 after_fork(server, worker):
     This is called by the worker after initialization.
     
-arbiter:
-    The arbiter manages the worker processes that actually serve clients. It
-    handles launching new workers and killing misbehaving workers among
-    other things. By default the arbiter is `egg:gunicorn#main`. This arbiter
+worker_class:
+    Define the type of worker to use. A worker process all the requests send by
+    the arbiter.By default the worker_class is `egg:gunicorn#sync`. This worker
     only supports fast request handling requiring a buffering HTTP proxy.
     
     If your application requires the ability to handle prolonged requests to
     provide long polling, comet, or calling an external web service you'll
-    need to use an async arbiter. Gunicorn has two async arbiters built in
-    using `Eventlet`_ or `Gevent`_. You can also use the Evenlet arbiter with
-    the `Twisted`_ helper.
+    need to use an async worker. Gunicorn has three async workers built in
+    using `Tornado`_, `Eventlet`_ or `Gevent`_. You can also use the Evenlet
+    worker with the `Twisted`_ helper.
     
 backlog:
     The backlog parameter defines the maximum length for the queue of pending
@@ -121,5 +120,6 @@ tmp_upload_dir:
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
 .. _Twisted: http://twistedmatrix.com
+.. _Tornado: http://www.tornadoweb.org/
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
 

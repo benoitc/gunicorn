@@ -65,8 +65,6 @@ class GEventWorker(AsyncWorker):
             except greenlet.GreenletExit:
                 return
           
-            
-
     def cleanup(self, gt):
         try:
             try:
