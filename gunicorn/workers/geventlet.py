@@ -35,6 +35,12 @@ class EventletWorker(AsyncWorker):
             raise RuntimeError("You need eventlet >= 0.9.7")
         eventlet.monkey_patch(all=False, socket=True, select=True)
         
+    def keepalive_request(self, client, addr):
+        req = None
+        with eventlet.Timeout(self.cfg.keepalive, False):
+            req = super(EventletWorker, self).keepalive_request(client, addr)
+        return req
+        
     def run(self):
         self.socket.setblocking(1)
 

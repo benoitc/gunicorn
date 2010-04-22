@@ -10,6 +10,7 @@ import os
 
 import gevent
 from gevent import monkey
+monkey.noisy = False
 from gevent import socket
 from gevent import greenlet
 from gevent.pool import Pool
@@ -25,6 +26,12 @@ class GEventWorker(AsyncWorker):
     def setup(cls):
         from gevent import monkey
         monkey.patch_all()
+        
+    def keepalive_request(self, client, addr):
+        req = None
+        with gevent.Timeout(self.cfg.keepalive, False):
+            req = super(GEventWorker, self).keepalive_request(client, addr)
+        return req
         
     def run(self):
         self.socket.setblocking(1)

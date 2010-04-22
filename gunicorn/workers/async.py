@@ -21,6 +21,10 @@ class AsyncWorker(Worker):
     def __init__(self, *args, **kwargs):
         Worker.__init__(self, *args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
+    
+    def keepalive_request(self, client, addr):
+        return http.KeepAliveRequest(client, addr, self.address, 
+            self.cfg)
 
     def handle(self, client, addr):
         try:
@@ -49,7 +53,9 @@ class AsyncWorker(Worker):
             util.close(client)
 
     def handle_request(self, client, addr):
-        req = http.KeepAliveRequest(client, addr, self.address, self.cfg)
+        req = self.keepalive_request(client, addr)
+        if not req:
+            return False
         try:
             environ = req.read()
             if not environ or not req.parser.headers:
