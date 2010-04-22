@@ -33,7 +33,7 @@ def options():
             help='Adress to listen on. Ex. 127.0.0.1:8000 or unix:/tmp/gunicorn.sock'),
         op.make_option('-w', '--workers', dest='workers',
             help='Number of workers to spawn. [1]'),
-        op.make_option('-k', '--worker-class', dest='workerclass',
+        op.make_option('-k', '--worker-class', dest='worker_class',
             help="The type of request processing to use "+
             "[egg:gunicorn#sync]"),
         op.make_option('-p','--pid', dest='pidfile',
@@ -76,7 +76,7 @@ def main(usage, get_app):
     else:
         os.setpgrp()
     configure_logging(cfg)
-
+    
     Arbiter(cfg, app).run()
     
 def run():
@@ -140,6 +140,8 @@ def run_django():
         
         # django wsgi app
         return django.core.handlers.wsgi.WSGIHandler()
+        
+    
 
     main("%prog [OPTIONS] [SETTINGS_PATH]", get_app)
     

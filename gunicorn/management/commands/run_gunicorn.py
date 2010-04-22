@@ -15,6 +15,7 @@ from django.utils import translation
 from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 from django.core.handlers.wsgi import WSGIHandler
  
+from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
 from gunicorn.main import daemonize, configure_logging
  
@@ -24,7 +25,7 @@ class Command(BaseCommand):
             help='Specifies the directory from which to serve admin media.'),
         make_option('-c', '--config', dest='gconfig', type='string',
             help='Gunicorn Config file. [%default]'),
-        make_option('-k', '--worker-class', dest='workerclass',
+        make_option('-k', '--worker-class', dest='worker_class',
             help="The type of request processing to use "+
             "[egg:gunicorn#sync]"),
         make_option('-w', '--workers', dest='workers', 
@@ -72,8 +73,7 @@ class Command(BaseCommand):
         
         try:
             handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
-            arbiter = conf.arbiter(conf.address, conf.workers, handler,
-                pidfile=conf['pidfile'], config=conf)
+            arbiter = Arbiter(conf, handler)
             if conf['daemon']:
                 daemonize()
             else:
