@@ -27,10 +27,13 @@ class AsyncWorker(Worker):
             while self.handle_request(client, addr):
                 pass
         except socket.error, e:
-            if e[0] != errno.EPIPE:
+            if e[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Error processing request.")
             else:
-                self.log.warn("Ignoring EPIPE")
+                if e[0] == errno.ECONNRESET:
+                    self.log.warn("Ignoring connection reset")
+                else:
+                    self.log.warn("Ignoring EPIPE")
         except UnexpectedEOF:
             self.log.exception("Client closed the connection unexpectedly.")
         except Exception, e:
