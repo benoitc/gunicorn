@@ -4,8 +4,6 @@
 # See the NOTICE for more information.
 
 import errno
-import os
-import select
 import socket
 import traceback
 

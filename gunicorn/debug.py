@@ -6,7 +6,6 @@
 """The debug module contains utilities and functions for better 
 debugging Gunicorn."""
 
-import os
 import sys
 import linecache
 import re

@@ -12,7 +12,6 @@ import os
 import select
 import signal
 import sys
-import tempfile
 import time
 import traceback
 

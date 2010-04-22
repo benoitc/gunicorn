@@ -5,24 +5,15 @@
 
 from __future__ import with_statement
 
-import collections
-import errno
-import traceback
-
 import eventlet
 import eventlet.debug
 
 from eventlet.green import os
-from eventlet.green import socket
-from eventlet import greenio
 from eventlet import greenlet
 from eventlet import greenpool
 from eventlet import greenthread
 
-from gunicorn import util
-from gunicorn import arbiter
-from gunicorn.workers.async import AsyncWorker, ALREADY_HANDLED
-from gunicorn.http.tee import UnexpectedEOF
+from gunicorn.workers.async import AsyncWorker
 
 eventlet.debug.hub_exceptions(True)
 
@@ -57,11 +48,11 @@ class EventletWorker(AsyncWorker):
             
             eventlet.sleep(0.1)            
 
-        with evenlet.Timeout(self.timeout, False):
+        with eventlet.Timeout(self.timeout, False):
             pool.waitall()
 
     def acceptor(self, pool):
-        server_gt = greenthread.getcurrent()
+        greenthread.getcurrent()
         while True:
             try:
                 conn, addr = self.socket.accept()

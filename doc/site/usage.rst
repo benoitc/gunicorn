@@ -45,7 +45,7 @@ Full command line usage
                           unix:/tmp/gunicorn.sock
     -k WORKERCLASS, --worker-class=WORKERCLASS
                             The type of request processing to use
-                            [egg:gunicorn#main]
+                            [egg:gunicorn#sync]
     -w WORKERS, --workers=WORKERS
                           Number of workers to spawn. [1]
     -p PIDFILE, --pid=PIDFILE

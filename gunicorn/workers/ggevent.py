@@ -5,20 +5,15 @@
 
 from __future__ import with_statement
 
-import errno
 import os
 
 import gevent
 from gevent import monkey
 monkey.noisy = False
-from gevent import socket
 from gevent import greenlet
 from gevent.pool import Pool
 
-from gunicorn import util
-from gunicorn import arbiter
-from gunicorn.workers.async import AsyncWorker, ALREADY_HANDLED
-from gunicorn.http.tee import UnexpectedEOF
+from gunicorn.workers.async import AsyncWorker
 
 class GEventWorker(AsyncWorker):
         
@@ -54,7 +49,7 @@ class GEventWorker(AsyncWorker):
             pass
 
     def acceptor(self, pool):
-        server_gt = gevent.getcurrent()
+        gevent.getcurrent()
         while self.alive:
             try:
                 conn, addr = self.socket.accept()

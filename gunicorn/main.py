@@ -35,7 +35,7 @@ def options():
             help='Number of workers to spawn. [1]'),
         op.make_option('-k', '--worker-class', dest='workerclass',
             help="The type of request processing to use "+
-            "[egg:gunicorn#main]"),
+            "[egg:gunicorn#sync]"),
         op.make_option('-p','--pid', dest='pidfile',
             help='set the background PID FILE'),
         op.make_option('-D', '--daemon', dest='daemon', action="store_true",
@@ -163,10 +163,10 @@ def run_paster():
         relpath = os.path.dirname(cfgfname)
 
         # load module in sys path
-        sys.path.insert(0, relative_to)
+        sys.path.insert(0, relpath)
 
         # add to eggs
-        pkg_resources.working_set.add_entry(relative_to)
+        pkg_resources.working_set.add_entry(relpath)
         ctx = loadwsgi.loadcontext(loadwsgi.SERVER, cfgurl, relative_to=relpath)
 
         if not opts.workers:
@@ -196,7 +196,7 @@ def run_paster():
             
         opts.default_proc_name= ctx.global_conf.get('__file__')
 
-        app = loadapp(config_url, relative_to=relative_to)
+        app = loadapp(cfgurl, relative_to=relpath)
         return app
 
     main("%prog [OPTIONS] pasteconfig.ini", get_app)
