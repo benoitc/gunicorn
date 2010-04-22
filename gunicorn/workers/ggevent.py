@@ -11,26 +11,62 @@ import os
 import gevent
 from gevent import monkey
 from gevent import socket
-from gevent.greenlet import Greenlet
+from gevent import greenlet
 from gevent.pool import Pool
 
 from gunicorn import util
-from gunicorn.workers.async import AsyncWorker
+from gunicorn import arbiter
+from gunicorn.workers.async import AsyncWorker, ALREADY_HANDLED
+from gunicorn.http.tee import UnexpectedEOF
 
-class GEventWorker(KeepaliveWorker):
-    
-    def init_process(self):
+class GEventWorker(AsyncWorker):
+        
+    @classmethod  
+    def setup(cls):
+        from gevent import monkey
         monkey.patch_all()
-        super(GEventWorker, self).init_process()
         
     def run(self):
-        raise NotImplementedError()
+        self.socket.setblocking(1)
 
-    def accept(self):
+        pool = Pool(self.worker_connections)
+        acceptor = gevent.spawn(self.acceptor, pool)
+        
         try:
-            client, addr = self.socket.accept()
-            self.pool.spawn(self.handle, client, addr)
-        except socket.error, e:
-            if e[0] in (errno.EAGAIN, errno.EWOULDBLOCK, errno.ECONNABORTED):
+            while True:
+                self.notify()
+            
+                if self.ppid != os.getppid():
+                    self.log.info("Parent changed, shutting down: %s" % self)
+                    gevent.kill(acceptor)
+                    break
+                gevent.sleep(0.1)            
+
+            pool.join(timeout=self.timeout)
+        except KeyboardInterrupt:
+            pass
+
+    def acceptor(self, pool):
+        server_gt = gevent.getcurrent()
+        while self.alive:
+            try:
+                conn, addr = self.socket.accept()
+                gt = pool.spawn(self.handle, conn, addr)
+                gt._conn = conn
+                gt.link(self.cleanup)
+                conn, addr, gt = None, None, None
+            except greenlet.GreenletExit:
                 return
-            raise
+          
+            
+
+    def cleanup(self, gt):
+        try:
+            try:
+                gt.join()
+            finally:
+                gt._conn.close()
+        except greenlet.GreenletExit:
+            pass
+        except Exception:
+            self.log.exception("Unhandled exception in worker.")

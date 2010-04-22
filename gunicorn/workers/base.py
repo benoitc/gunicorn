@@ -105,6 +105,7 @@ class Worker(object):
         self.alive = False
 
     def handle_exit(self, sig, frame):
+        self.alive = False
         sys.exit(0)
 
     def handle_winch(self, sig, fname):

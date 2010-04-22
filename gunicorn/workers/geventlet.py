@@ -28,16 +28,13 @@ eventlet.debug.hub_exceptions(True)
 
 class EventletWorker(AsyncWorker):
 
-    def __init__(self, *args, **kwargs):
-        super(EventletWorker, self).__init__(*args, **kwargs)
+    @classmethod
+    def setup(cls):
+        import eventlet
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
-
-    def init_process(self):
         eventlet.monkey_patch(all=False, socket=True, select=True)
-        self.socket = greenio.GreenSocket(self.socket)
-        super(EventletWorker, self).init_process()
-
+        
     def run(self):
         self.socket.setblocking(1)
 
