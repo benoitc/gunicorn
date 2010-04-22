@@ -4,7 +4,7 @@ title: News
 News
 ====
 
-0.8.0 / 2004-04-22
+0.8.0 / 2010-04-22
 ------------------
 
 - Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use
