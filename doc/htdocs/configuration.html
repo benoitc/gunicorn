@@ -52,27 +52,7 @@
 <p>Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
 <h1>Example gunicorn.conf.py</h1>
-<p>arbiter=&quot;egg:gunicorn&quot;,
-backlog=2048,
-bind='127.0.0.1:8000',
-daemon=False,
-debug=False,
-default_proc_name = os.getcwd(),
-group=None,
-keepalive=2,
-logfile='-',
-loglevel='info',
-pidfile=None,
-proc_name = None,
-spew=False,
-timeout=30,
-tmp_upload_dir=None,
-umask=&quot;0&quot;,
-user=None,
-workers=1,
-worker_connections=1000,</p>
 <pre class="literal-block">
-arbiter = &quot;egg:gunicorn&quot;    # The arbiter to use for worker management
 backlog = 2048              # The listen queue size for the server socket
 bind = &quot;127.0.0.1:8000&quot;     # Or &quot;unix:/tmp/gunicorn.sock&quot;
 daemon = False              # Whether work in the background
@@ -89,6 +69,7 @@ proc_name = None            # Change the process name
 spew=False                  # Display trace
 timeout=30                  # Worker timeout
 tmp_upload_dir = None       # Set path used to store temporary uploads
+worker_class = &quot;egg:gunicorn#sync&quot;    # The type of request processing to use
 worker_connections=1000     # Maximum number of simultaneous connections
 
 after_fork=lambda server, worker: server.log.info(
@@ -104,16 +85,15 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 <dl class="docutils">
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
-<dt>arbiter:</dt>
-<dd><p class="first">The arbiter manages the worker processes that actually serve clients. It
-handles launching new workers and killing misbehaving workers among
-other things. By default the arbiter is <cite>egg:gunicorn#main</cite>. This arbiter
+<dt>worker_class:</dt>
+<dd><p class="first">Define the type of worker to use. A worker process all the requests send by
+the arbiter.By default the worker_class is <cite>egg:gunicorn#sync</cite>. This worker
 only supports fast request handling requiring a buffering HTTP proxy.</p>
 <p class="last">If your application requires the ability to handle prolonged requests to
 provide long polling, comet, or calling an external web service you'll
-need to use an async arbiter. Gunicorn has two async arbiters built in
-using <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>. You can also use the Evenlet arbiter with
-the <a class="reference external" href="http://twistedmatrix.com">Twisted</a> helper.</p>
+need to use an async worker. Gunicorn has three async workers built in
+using <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a>, <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>. You can also use the Evenlet
+worker with the <a class="reference external" href="http://twistedmatrix.com">Twisted</a> helper.</p>
 </dd>
 <dt>backlog:</dt>
 <dd>The backlog parameter defines the maximum length for the queue of pending
@@ -156,6 +136,8 @@ installed. This alters the process names listed by commands like <tt class="docu
 <dt>worker_connections:</dt>
 <dd>Number of simultaneous connections a worker can handle when used with
 Eventlet or Gevent arbiter. The default is 1000.</dd>
+<dt>timeout:</dt>
+<dd>Set worker timeout.</dd>
 <dt>tmp_upload_dir:</dt>
 <dd>Set the path used to store temporarily the body of the request.</dd>
 </dl>

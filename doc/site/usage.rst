@@ -14,19 +14,19 @@ WSGI applications
 To launch the `example application`_ packaged with Gunicorn::
 
     $ cd /path/to/gunicorn/examples/
-    $ gunicorn --workers=2 test:app
+    $ gunicorn -w 2 test:app
 
 The module ``test:app`` specifies the complete module name and WSGI callable.
 You can replace it with anything that is available on your ``PYTHONPATH`` like
 such::
 
     $ cd ~/
-    $ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
+    $ gunicorn -w 12 awesomeproject.wsgi.main:main_app
     
 To launch the `websocket example`_ application using `Eventlet`_::
 
         $ cd /path/to/gunicorn/examples/
-        $ gunicorn -w 12 -a "egg:gunicorn#eventlet" websocket:app
+        $ gunicorn -w 12 -k "egg:gunicorn#eventlet" websocket:app
 
 You should then be able to visit ``http://localhost:8000`` to see output.
 
@@ -44,8 +44,8 @@ Full command line usage
     -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
                           unix:/tmp/gunicorn.sock
     -k WORKERCLASS, --worker-class=WORKERCLASS
-                            The type of request processing to use
-                            [egg:gunicorn#sync]
+                          The type of request processing to use
+                          [egg:gunicorn#sync]
     -w WORKERS, --workers=WORKERS
                           Number of workers to spawn. [1]
     -p PIDFILE, --pid=PIDFILE

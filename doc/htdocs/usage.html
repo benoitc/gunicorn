@@ -59,19 +59,19 @@
 <p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/test.py">example application</a> packaged with Gunicorn:</p>
 <pre class="literal-block">
 $ cd /path/to/gunicorn/examples/
-$ gunicorn --workers=2 test:app
+$ gunicorn -w 2 test:app
 </pre>
 <p>The module <tt class="docutils literal">test:app</tt> specifies the complete module name and WSGI callable.
 You can replace it with anything that is available on your <tt class="docutils literal">PYTHONPATH</tt> like
 such:</p>
 <pre class="literal-block">
 $ cd ~/
-$ gunicorn --workers=12 awesomeproject.wsgi.main:main_app
+$ gunicorn -w 12 awesomeproject.wsgi.main:main_app
 </pre>
 <p>To launch the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py">websocket example</a> application using <a class="reference external" href="http://eventlet.net">Eventlet</a>:</p>
 <pre class="literal-block">
 $ cd /path/to/gunicorn/examples/
-$ gunicorn -w 12 -a &quot;egg:gunicorn#eventlet&quot; websocket:app
+$ gunicorn -w 12 -k &quot;egg:gunicorn#eventlet&quot; websocket:app
 </pre>
 <p>You should then be able to visit <tt class="docutils literal"><span class="pre">http://localhost:8000</span></tt> to see output.</p>
 <div class="section" id="full-command-line-usage">
@@ -85,11 +85,11 @@ Options:
                         Config file. [none]
   -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
                         unix:/tmp/gunicorn.sock
+  -k WORKERCLASS, --worker-class=WORKERCLASS
+                        The type of request processing to use
+                        [egg:gunicorn#sync]
   -w WORKERS, --workers=WORKERS
                         Number of workers to spawn. [1]
-  -a ARBITER, --arbiter=ARBITER
-                        gunicorn arbiter entry point or module
-                        [egg:gunicorn#main]
   -p PIDFILE, --pid=PIDFILE
                         set the background PID FILE
   -D, --daemon          Run daemonized in the background.
