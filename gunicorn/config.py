@@ -53,7 +53,7 @@ class Config(object):
                 execfile(path, globals(), self.cfg)
             except Exception, e:
                 sys.exit("Could not read config file: %r\n    %s" % (path, e))
-            self.cfg.pop("__builtins__")
+            self.cfg.pop("__builtins__", None)
 
         opts = [(k, v) for (k, v) in opts.iteritems() if v is not None]
         self.cfg.update(dict(opts))
