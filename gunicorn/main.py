@@ -67,8 +67,8 @@ def main(usage, get_app):
     parser = op.OptionParser(usage=usage, option_list=options(), version=vrs)
     opts, args = parser.parse_args()
     
-    app = get_app(parser, opts, args)
     cfg = Config(opts.__dict__, opts.config)
+    app = get_app(parser, opts, args)
     if cfg.spew:
         spew()
     if cfg.daemon:
