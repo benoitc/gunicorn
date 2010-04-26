@@ -6,6 +6,7 @@
 import os
 import sys
 
+import tornado.web
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 
