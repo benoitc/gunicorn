@@ -83,6 +83,7 @@ class Request(object):
         server_address = self.server_address
         script_name = os.environ.get("SCRIPT_NAME", "")
         content_type = ""
+        content_length = ""
         for hdr_name, hdr_value in req.headers:
             name = hdr_name.lower()
             if name == "expect":
@@ -97,14 +98,12 @@ class Request(object):
                 script_name = hdr_value
             elif name == "content-type":
                 content_type = hdr_value
+            elif name == "content-length":
+                content_length = hdr_value
+            else:
+                continue
                 
-        
-        wsgi_input = req.body
-        if hasattr(req.body, "length"):
-            content_length = str(req.body.length)
-        else:
-            content_length = None
-                
+                        
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and
         # should evaluate false otherwise. In debug mode we fall to one
@@ -134,7 +133,7 @@ class Request(object):
 
         environ = {
             "wsgi.url_scheme": url_scheme,
-            "wsgi.input": wsgi_input,
+            "wsgi.input": req.body,
             "wsgi.errors": sys.stderr,
             "wsgi.version": (1, 0),
             "wsgi.multithread": False,
