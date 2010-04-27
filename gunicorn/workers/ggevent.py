@@ -22,7 +22,7 @@ class GEventWorker(AsyncWorker):
         from gevent import monkey
         monkey.patch_all(dns=False)
         
-    def timeout(self):
+    def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
         
     def run(self):

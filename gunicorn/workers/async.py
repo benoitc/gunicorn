@@ -21,7 +21,7 @@ class AsyncWorker(Worker):
         Worker.__init__(self, *args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
     
-    def timeout(self):
+    def timeout_ctx(self):
         raise NotImplementedError()
 
     def handle(self, client, addr):
@@ -30,7 +30,7 @@ class AsyncWorker(Worker):
             try:
                 while True:
                     req = None
-                    with self.timeout():
+                    with self.timeout_ctx():
                         req = parser.next()
                     if not req:
                         break
@@ -45,8 +45,6 @@ class AsyncWorker(Worker):
                     self.log.warn("Ignoring connection reset")
                 else:
                     self.log.warn("Ignoring EPIPE")
-        except UnexpectedEOF:
-            self.log.exception("Client closed the connection unexpectedly.")
         except Exception, e:
             self.log.exception("General error processing request.")
             try:            

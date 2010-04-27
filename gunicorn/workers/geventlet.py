@@ -31,8 +31,8 @@ class EventletWorker(AsyncWorker):
     def init_process(self):
         hubs.use_hub()
         super(EventletWorker, self).init_process()
-
-    def timeout(self):
+        
+    def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive, False)
         
     def run(self):
