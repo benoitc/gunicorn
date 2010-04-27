@@ -32,11 +32,8 @@ class EventletWorker(AsyncWorker):
         hubs.use_hub()
         super(EventletWorker, self).init_process()
 
-    def keepalive_request(self, client, addr):
-        req = None
-        with eventlet.Timeout(self.cfg.keepalive, False):
-            req = super(EventletWorker, self).keepalive_request(client, addr)
-        return req
+    def timeout(self):
+        return eventlet.Timeout(self.cfg.keepalive, False)
         
     def run(self):
         self.socket.setblocking(1)

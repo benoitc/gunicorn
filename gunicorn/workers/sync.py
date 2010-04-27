@@ -10,8 +10,10 @@ import select
 import socket
 import traceback
 
-from gunicorn import http, util
-from gunicorn.http.tee import UnexpectedEOF
+from simplehttp import RequestParser
+
+import gunicorn.util as util
+import gunicorn.wsgi as wsgi
 from gunicorn.workers.base import Worker
 
 class SyncWorker(Worker):
@@ -69,35 +71,33 @@ class SyncWorker(Worker):
         
     def handle(self, client, addr):
         try:
-            self.handle_request(client, addr)
+            parser = RequestParser(client)
+            req = parser.next()
+            self.handle_request(req, client, addr)
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
             else:
                 self.log.warn("Ignoring EPIPE")
-        except UnexpectedEOF:
-            self.log.exception("Client closed the connection unexpectedly.")
         except Exception, e:
             self.log.exception("Error processing request.")
             try:            
                 # Last ditch attempt to notify the client of an error.
-                mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
+                mesg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
                 util.write_nonblock(client, mesg)
             except:
                 pass
         finally:    
             util.close(client)
 
-    def handle_request(self, client, addr):
-        req = http.Request(self.cfg, client, addr, self.address)
+    def handle_request(self, req, client, addr):
         try:
-            environ = req.read()
-            if not environ:
-                return
-            respiter = self.wsgi(environ, req.start_response)
+            debug = self.cfg.get("debug", False)
+            resp, environ = wsgi.create(req, client, addr, self.address, debug)
+            respiter = self.app(environ, resp.start_response)
             for item in respiter:
-                req.response.write(item)
-            req.response.close()
+                resp.write(item)
+            resp.close()
             if hasattr(respiter, "close"):
                 respiter.close()
         except socket.error:

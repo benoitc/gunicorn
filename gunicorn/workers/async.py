@@ -7,10 +7,11 @@ import errno
 import socket
 import traceback
 
-from gunicorn import http
-from gunicorn.http.tee import UnexpectedEOF
-from gunicorn import util
+import gunicorn.util as util
+import gunicorn.wsgi as wsgi
 from gunicorn.workers.base import Worker
+
+from simplehttp import RequestParser
 
 ALREADY_HANDLED = object()
 
@@ -20,12 +21,21 @@ class AsyncWorker(Worker):
         Worker.__init__(self, *args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
     
-    def keepalive_request(self, client, addr):
-        return http.KeepAliveRequest(self.cfg, client, addr, self.address)
+    def timeout(self):
+        raise NotImplementedError()
 
     def handle(self, client, addr):
         try:
-            while self.handle_request(client, addr):
+            parser = RequestParser(client)
+            try:
+                while True:
+                    req = None
+                    with self.timeout():
+                        req = parser.next()
+                    if not req:
+                        break
+                    self.handle_request(req, client, addr)
+            except StopIteration:
                 pass
         except socket.error, e:
             if e[0] not in (errno.EPIPE, errno.ECONNRESET):
@@ -49,24 +59,20 @@ class AsyncWorker(Worker):
         finally:
             util.close(client)
 
-    def handle_request(self, client, addr):
-        req = self.keepalive_request(client, addr)
-        if not req:
-            return False
+    def handle_request(self, req, sock, addr):
         try:
-            environ = req.read()
-            if not environ:
-                return False
-            respiter = self.wsgi(environ, req.start_response)
+            debug = self.cfg.get("debug", False)
+            resp, environ = wsgi.create(req, sock, addr, self.address, debug)
+            respiter = self.app(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
             for item in respiter:
-                req.response.write(item)
-            req.response.close()
+                resp.write(item)
+            resp.close()
             if hasattr(respiter, "close"):
                 respiter.close()
-            if req.req.should_close():
-                return False
+            if req.should_close():
+                raise StopIteration()
         except Exception, e:
             #Only send back traceback in HTTP in debug mode.
             if not self.debug:

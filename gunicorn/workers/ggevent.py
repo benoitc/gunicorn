@@ -22,11 +22,8 @@ class GEventWorker(AsyncWorker):
         from gevent import monkey
         monkey.patch_all(dns=False)
         
-    def keepalive_request(self, client, addr):
-        req = None
-        with gevent.Timeout(self.cfg.keepalive, False):
-            req = super(GEventWorker, self).keepalive_request(client, addr)
-        return req
+    def timeout(self):
+        return gevent.Timeout(self.cfg.keepalive, False)
         
     def run(self):
         self.socket.setblocking(1)
