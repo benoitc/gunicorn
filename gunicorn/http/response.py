@@ -62,7 +62,7 @@ class KeepAliveResponse(Response):
 
     def default_headers(self):
         connection = "keep-alive"
-        if self.req.parser.should_close:
+        if self.req.req.should_close():
             connection = "close"
 
         return [

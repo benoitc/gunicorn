@@ -17,6 +17,8 @@ except ImportError:
 import sys
 from urllib import unquote
 
+from simplehttp import RequestParser
+
 from gunicorn import __version__
 from gunicorn.http.parser import Parser
 from gunicorn.http.response import Response, KeepAliveResponse
@@ -54,41 +56,54 @@ class Request(object):
         self.response_status = None
         self.response_headers = []
         self._version = 11
-        self.parser = Parser.parse_request()
+        self.parser = RequestParser(self.socket)
         self.log = logging.getLogger(__name__)
         self.response = None
         self.response_chunked = False
         self.headers_sent = False
+        self.req = None
 
     def read(self):
         environ = {}
         headers = []
-        buf = StringIO()
-        data = self.socket.recv(CHUNK_SIZE)
-        buf.write(data)
-        buf2 = self.parser.filter_headers(headers, buf)
-        if not buf2:
-            while True:
-                data = self.socket.recv(CHUNK_SIZE)
-                if not data:
-                    break
-                buf.write(data)
-                buf2 = self.parser.filter_headers(headers, buf)
-                if buf2: 
-                    break
-                    
-        self.log.debug("%s", self.parser.status)
-        self.log.debug("Headers:\n%s" % headers)
         
-        if self.parser.headers_dict.get('Expect','').lower() == "100-continue":
-            self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
-            
-        if not self.parser.content_len and not self.parser.is_chunked:
-            wsgi_input = TeeInput(self.cfg, self.socket, self.parser, StringIO())
-            content_length = "0"
+        ended = False
+        req = None
+        
+        self.req = req = self.parser.next()
+        
+        ##self.log.debug("%s", self.parser.status)
+        self.log.debug("Headers:\n%s" % req.headers)
+        
+        # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+        # may not qualify the remote addr:
+        # http://www.ietf.org/rfc/rfc3875
+        client_address = self.client_address or "127.0.0.1"
+        forward_address = client_address
+        server_address = self.server_address
+        script_name = os.environ.get("SCRIPT_NAME", "")
+        content_type = ""
+        for hdr_name, hdr_value in req.headers:
+            name = hdr_name.lower()
+            if name == "expect":
+                # handle expect
+                if hdr_value.lower() == "100-continue":
+                    self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
+            elif name == "x-forwarded-for":
+                forward_address = hdr_value
+            elif name == "host":
+                host = hdr_value
+            elif name == "script_name":
+                script_name = hdr_value
+            elif name == "content-type":
+                content_type = hdr_value
+                
+        
+        wsgi_input = req.body
+        if hasattr(req.body, "length"):
+            content_length = str(req.body.length)
         else:
-            wsgi_input = TeeInput(self.cfg, self.socket, self.parser, buf2)
-            content_length = str(wsgi_input.len)
+            content_length = None
                 
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and
@@ -96,43 +111,26 @@ class Request(object):
         # worker so we comply to pylons and other paster app.
         wsgi_multiprocess = self.cfg.workers > 1
 
-        # authors should be aware that REMOTE_HOST and REMOTE_ADDR
-        # may not qualify the remote addr:
-        # http://www.ietf.org/rfc/rfc3875
-        client_address = self.client_address or "127.0.0.1"
-        forward_adress = self.parser.headers_dict.get('X-Forwarded-For', 
-                                                client_address)
-                                                
-        if self.parser.headers_dict.get("X-Forwarded-Protocol") == "https" or \
-            self.parser.headers_dict.get("X-Forwarded-Ssl") == "on":
-                url_scheme = "https"
-        else:
-            url_scheme = "http"
-        
-        if isinstance(forward_adress, basestring):
+        if isinstance(forward_address, basestring):
             # we only took the last one
             # http://en.wikipedia.org/wiki/X-Forwarded-For
-            if "," in forward_adress:
-                forward_adress = forward_adress.split(",")[-1].strip()
-            remote_addr = forward_adress.split(":")
+            if "," in forward_address:
+                forward_adress = forward_address.split(",")[-1].strip()
+            remote_addr = forward_address.split(":")
             if len(remote_addr) == 1:
                 remote_addr.append('')
         else:
-            remote_addr = forward_adress
-                
-        # Try to server address from headers
-        server_address = self.parser.headers_dict.get('Host', 
-                                                    self.server_address)
+            remote_addr = forward_address
+
         if isinstance(server_address, basestring):
             server_address =  server_address.split(":")
             if len(server_address) == 1:
                 server_address.append('')
-                
-        script_name = self.parser.headers_dict.get("SCRIPT_NAME", 
-                                            os.environ.get("SCRIPT_NAME", ""))
-        path_info = self.parser.path
+
+        path_info = req.path
         if script_name:
             path_info = path_info.split(script_name, 1)[-1]
+
 
         environ = {
             "wsgi.url_scheme": url_scheme,
@@ -144,23 +142,24 @@ class Request(object):
             "wsgi.run_once": False,
             "SCRIPT_NAME": script_name,
             "SERVER_SOFTWARE": self.SERVER_VERSION,
-            "REQUEST_METHOD": self.parser.method,
+            "REQUEST_METHOD": req.method,
             "PATH_INFO": unquote(path_info),
-            "QUERY_STRING": self.parser.query_string,
-            "RAW_URI": self.parser.raw_path,
-            "CONTENT_TYPE": self.parser.headers_dict.get('Content-Type', ''),
+            "QUERY_STRING": req.query,
+            "RAW_URI": req.path,
+            "CONTENT_TYPE": content_type,
             "CONTENT_LENGTH": content_length,
             "REMOTE_ADDR": remote_addr[0],
             "REMOTE_PORT": str(remote_addr[1]),
             "SERVER_NAME": server_address[0],
             "SERVER_PORT": str(server_address[1]),
-            "SERVER_PROTOCOL": self.parser.raw_version
+            "SERVER_PROTOCOL": req.version
         }
         
-        for key, value in self.parser.headers:
+        for key, value in req.headers:
             key = 'HTTP_' + key.upper().replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
+                
         return environ
         
     def start_response(self, status, headers, exc_info=None):

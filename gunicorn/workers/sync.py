@@ -92,7 +92,7 @@ class SyncWorker(Worker):
         req = http.Request(self.cfg, client, addr, self.address)
         try:
             environ = req.read()
-            if not environ or not req.parser.status_line:
+            if not environ:
                 return
             respiter = self.wsgi(environ, req.start_response)
             for item in respiter:
