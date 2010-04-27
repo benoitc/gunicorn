@@ -9,6 +9,7 @@ import sys
 import tornado.web
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.wsgi import WSGIContainer
 
 
 from gunicorn.workers.base import Worker
@@ -45,6 +46,11 @@ class TornadoWorker(Worker):
         self.socket.setblocking(0)
         self.ioloop = IOLoop.instance()
         PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
+
+        # Assume the app is a WSGI callable if its not an
+        # instance of tornardo.web.Application
+        if not isinstance(self.app, tornado.web.Application):
+            self.app = WSGIContainer(self.app)
 
         server = HTTPServer(self.app, io_loop=self.ioloop)
         server._socket = self.socket
