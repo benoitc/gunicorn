@@ -4,11 +4,18 @@ title: News
 News
 ====
 
-0.8.0 / 2004-04-22
+0.8.1 / 2010-04-29
+------------------
+
+- Fix builtins import in config
+- Fix installation with pip
+- Fix Tornado worker
+
+0.8.0 / 2010-04-22
 ------------------
 
 - Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use
-- Added support for `Tornado <http://www.tornadoweb.org/>`_ .
+- Added support for `Tornado <http://www.tornadoweb.org/>`_ 
 
 
 0.7.2 / 2010-04-15
