@@ -50,13 +50,21 @@
   <div class="document" id="news">
 <h1 class="title">News</h1>
 <div class="section" id="id1">
-<h1>0.8.0 / 2004-04-22</h1>
+<h1>0.8.1 / 2010-04-29</h1>
 <ul class="simple">
-<li>Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use</li>
-<li>Added support for <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a> .</li>
+<li>Fix builtins import in config</li>
+<li>Fix installation with pip</li>
+<li>Fix Tornado worker</li>
 </ul>
 </div>
 <div class="section" id="id2">
+<h1>0.8.0 / 2010-04-22</h1>
+<ul class="simple">
+<li>Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use</li>
+<li>Added support for <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a></li>
+</ul>
+</div>
+<div class="section" id="id3">
 <h1>0.7.2 / 2010-04-15</h1>
 <ul class="simple">
 <li>Added --spew option to help debugging (install a Trace hook)</li>
@@ -64,13 +72,13 @@
 <li>Fix a bug in start_response on error</li>
 </ul>
 </div>
-<div class="section" id="id3">
+<div class="section" id="id4">
 <h1>0.7.1 / 2010-04-01</h1>
 <ul class="simple">
 <li>Fix bug when responses have no body.</li>
 </ul>
 </div>
-<div class="section" id="id4">
+<div class="section" id="id5">
 <h1>0.7.0 / 2010-03-26</h1>
 <ul class="simple">
 <li>Added support for <a class="reference external" href="faq.html">sleepy applications</a> using <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>.</li>
@@ -80,28 +88,28 @@
 <li>Fix <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">PEP 333</a> compliance for the write callable.</li>
 </ul>
 </div>
-<div class="section" id="id5">
+<div class="section" id="id6">
 <h1>0.6.5 / 2010-03-11</h1>
 <ul class="simple">
 <li>Fix pidfile</li>
 <li>Fix Exception Error</li>
 </ul>
 </div>
-<div class="section" id="id6">
+<div class="section" id="id7">
 <h1>0.6.4 / 2010-03-08</h1>
 <ul class="simple">
 <li>Use cStringIO for performance when possible.</li>
 <li>Fix worker freeze when a remote connection closes unexpectedly.</li>
 </ul>
 </div>
-<div class="section" id="id7">
+<div class="section" id="id8">
 <h1>0.6.3 / 2010-03-07</h1>
 <ul class="simple">
 <li>Make HTTP parsing faster.</li>
 <li>Some fixes (see <a class="reference external" href="http://github.com/benoitc/gunicorn/commits/master">logs</a>)</li>
 </ul>
 </div>
-<div class="section" id="id8">
+<div class="section" id="id9">
 <h1>0.6.2 / 2010-03-01</h1>
 <ul class="simple">
 <li>Added support for chunked response.</li>
@@ -111,7 +119,7 @@
 <li>Workers are now murdered by age (the oldest is killed first).</li>
 </ul>
 </div>
-<div class="section" id="id9">
+<div class="section" id="id10">
 <h1>0.6.1 / 2010-02-24</h1>
 <ul class="simple">
 <li>Added gunicorn config file support for django admin command</li>
@@ -119,21 +127,21 @@
 <li>Removed TTIN/TTOU from workers which blocked other signals.</li>
 </ul>
 </div>
-<div class="section" id="id10">
+<div class="section" id="id11">
 <h1>0.6 / 2010-02-22</h1>
 <ul class="simple">
 <li>Added setproctitle</li>
 <li>Change privilege switch behaviour. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.</li>
 </ul>
 </div>
-<div class="section" id="id11">
+<div class="section" id="id12">
 <h1>0.5.1 / 2010-02-22</h1>
 <ul class="simple">
 <li>Fix umask</li>
 <li>Added debian packaging</li>
 </ul>
 </div>
-<div class="section" id="id12">
+<div class="section" id="id13">
 <h1>0.5 / 2010-02-20</h1>
 <ul class="simple">
 <li>Added <a class="reference external" href="configuration.html">configuration file</a> handler.</li>
