@@ -1,2 +1,0 @@
-PasteScript
-Pylons
