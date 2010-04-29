@@ -9,7 +9,8 @@ News
 
 - Fix builtins import in config
 - Fix installation with pip
-- Fix Tornado worker
+- Fix Tornado WSGI support
+- Delay application loading until after processing all configuration
 
 0.8.0 / 2010-04-22
 ------------------
