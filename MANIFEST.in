@@ -5,3 +5,4 @@ include THANKS
 recursive-include tests *
 recursive-include examples *
 recursive-include doc *
+recursive-include debian *
