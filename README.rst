@@ -120,7 +120,7 @@ apologize for the lack of script name creativity. And some usage::
 
 Simple example::
 
-    $ cd your pasteproject
+    $ cd yourpasteproject
     $ gunicorn_paste --workers=2 development.ini
 
 If you're wanting to keep on keeping on with the usual paster serve command,
@@ -133,7 +133,7 @@ you can specify the Gunicorn server settings in your configuration file::
 
 And then as per usual::
 
-    $ cd your pasteproject
+    $ cd yourpasteproject
     $ paster serve development.ini workers=2
 
 .. _Unicorn: http://unicorn.bogomips.org/
