@@ -90,7 +90,7 @@ applications. Basic usage::
 By default ``SETTINGS_PATH`` will look for ``settings.py`` in the current
 directory.
 
-Example with your Django project:
+Example with your Django project::
 
     $ cd path/to/yourdjangoproject
     $ gunicorn_django --workers=2
