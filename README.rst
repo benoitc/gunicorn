@@ -70,9 +70,9 @@ that don't require a translation layer. Basic usage::
 
     $ gunicorn [OPTIONS] APP_MODULE
 
-Where APP_MODULE is of the pattern $(MODULE_NAME):$(VARIABLE_NAME). The module
-name can be a full dotted path. The variable name refers to a WSGI callable
-that should be found in the specified module.
+Where ``APP_MODULE`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
+module name can be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.
 
 Example with test app::
 
@@ -87,17 +87,18 @@ applications. Basic usage::
 
     $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
 
-By default SETTINGS_PATH will look for settings.py in the current directory.
+By default ``SETTINGS_PATH`` will look for ``settings.py`` in the current
+directory.
 
 Example with your Django project:
 
-  $ cd path/to/yourdjangoproject
-  $ gunicorn_django --workers=2
+    $ cd path/to/yourdjangoproject
+    $ gunicorn_django --workers=2
 
 Alternatively, you can install some Gunicorn magic directly into your Django
 project and use the provided command for running the server.
 
-First you'll need to add ``gunicorn`` to your INSTALLED_APPS in the settings
+First you'll need to add ``gunicorn`` to your ``INSTALLED_APPS`` in the settings
 file::
 
     INSTALLED_APPS = (
@@ -107,7 +108,7 @@ file::
   
 Then you can run::
 
-  python manage.py run_gunicorn
+    python manage.py run_gunicorn
 
 gunicorn_paster
 +++++++++++++++
@@ -119,8 +120,8 @@ apologize for the lack of script name creativity. And some usage::
 
 Simple example::
 
-  $ cd your pasteproject
-  $ gunicorn_paste --workers=2 development.ini
+    $ cd your pasteproject
+    $ gunicorn_paste --workers=2 development.ini
 
 If you're wanting to keep on keeping on with the usual paster serve command,
 you can specify the Gunicorn server settings in your configuration file::
