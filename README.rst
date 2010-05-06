@@ -136,6 +136,12 @@ And then as per usual::
     $ cd yourpasteproject
     $ paster serve development.ini workers=2
 
+LICENSE
+-------
+
+Gunicorn is released under the MIT License. See the LICENSE_ file for more
+details.
+
 .. _Unicorn: http://unicorn.bogomips.org/
 .. _`#gunicorn`: http://webchat.freenode.net/?channels=gunicorn
 .. _freenode: http://freenode.net
@@ -145,3 +151,4 @@ And then as per usual::
 .. _libev: http://software.schmorp.de/pkg/libev.html
 .. _`config file`: http://gunicorn.org/configuration.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
