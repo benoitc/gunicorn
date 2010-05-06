@@ -6,7 +6,7 @@ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is
 broadly compatible with various web frameworks, simply implemented, light
 on server resource usage, and fairly speedy.
 
-Feel free to join us in #gunicorn_ on freenode_.
+Feel free to join us in `#gunicorn`_ on freenode_.
 
 Installation
 ------------
@@ -138,7 +138,7 @@ And then as per usual::
     $ paster serve development.ini workers=2
 
 .. _Unicorn: http://unicorn.bogomips.org/
-.. _#gunicorn: http://webchat.freenode.net/?channels=gunicorn
+.. _`#gunicorn`: http://webchat.freenode.net/?channels=gunicorn
 .. _freenode: http://freenode.net
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
