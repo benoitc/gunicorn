@@ -10,13 +10,12 @@ import select
 import socket
 import traceback
 
-from simplehttp import RequestParser
-
+import gunicorn.http.parser as parser
+import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
-import gunicorn.wsgi as wsgi
-from gunicorn.workers.base import Worker
+import gunicorn.workers.base as base
 
-class SyncWorker(Worker):
+class SyncWorker(base.Worker):
     
     def run(self):
         self.nr = 0
@@ -71,7 +70,7 @@ class SyncWorker(Worker):
         
     def handle(self, client, addr):
         try:
-            parser = RequestParser(client)
+            parser = parser.RequestParser(client)
             req = parser.next()
             self.handle_request(req, client, addr)
         except socket.error, e:
