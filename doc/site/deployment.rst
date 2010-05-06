@@ -115,6 +115,14 @@ the proxy_redirect directive::
 Daemon Monitoring
 -----------------
 
+.. note::
+    Make sure that when using either of these service monitors make sure
+    that you do not enable the daemon mode. These monitors expect that the
+    process they launch will be the process they need to monior. Daemonizing
+    will fork-exec which creates an unmonitored process and generally just
+    confuses the monitor services.
+
+
 A popular method for deploying Gunicorn is to have it monitored by runit_.
 An `example service`_ definition::
 
