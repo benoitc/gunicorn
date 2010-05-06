@@ -145,4 +145,4 @@ And then as per usual::
 .. _FAQ: http://gunicorn.org/faq.html
 .. _libev: http://software.schmorp.de/pkg/libev.html
 .. _`config file`: http://gunicorn.org/configuration.html
-
+.. _setproctitle: http://pypi.python.org/pypi/setproctitle/
