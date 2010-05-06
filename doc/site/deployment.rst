@@ -112,13 +112,21 @@ the proxy_redirect directive::
   }
   ....
 
+Working with Virtualenv
+-----------------------
+
+To serve an app from a Virtualenv_ it is generally easiest to just install
+Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
+scripts for that Virtualenv which can be used to run applications normally.
+
+
 Daemon Monitoring
 -----------------
 
 .. note::
-    Make sure that when using either of these service monitors make sure
-    that you do not enable the daemon mode. These monitors expect that the
-    process they launch will be the process they need to monior. Daemonizing
+    Make sure that when using either of these service monitors you do not
+    enable the Gunicorn's daemon mode. These monitors expect that the process
+    they launch will be the process they need to monior. Daemonizing
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
@@ -149,13 +157,6 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autostart=true
     autorestart=true
     redirect_stderr=True
-
-Working with Virtualenv
------------------------
-
-To serve an app from a Virtualenv_ it is generally easiest to just install
-Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
-scripts for that Virtualenv which can be used to run applications normally.
 
 
 .. _Nginx: http://www.nginx.org

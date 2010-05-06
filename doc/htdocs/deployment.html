@@ -151,8 +151,22 @@ location / {
 ....
 </pre>
 </div>
+<div class="section" id="working-with-virtualenv">
+<h1>Working with Virtualenv</h1>
+<p>To serve an app from a <a class="reference external" href="http://pypi.python.org/pypi/virtualenv">Virtualenv</a> it is generally easiest to just install
+Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
+scripts for that Virtualenv which can be used to run applications normally.</p>
+</div>
 <div class="section" id="daemon-monitoring">
 <h1>Daemon Monitoring</h1>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Make sure that when using either of these service monitors you do not
+enable the Gunicorn's daemon mode. These monitors expect that the process
+they launch will be the process they need to monior. Daemonizing
+will fork-exec which creates an unmonitored process and generally just
+confuses the monitor services.</p>
+</div>
 <p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>.
 An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
 <pre class="literal-block">
