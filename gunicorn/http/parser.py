@@ -17,20 +17,21 @@ class Parser(object):
         return self
     
     def next(self):
-        if self.mesg.should_close():
+        # Stop if HTTP dictates a stop.
+        if self.mesg and self.mesg.should_close():
             raise StopIteration()
-        self.discard()
+        
+        # Discard any unread body of the previous message
+        if self.mesg:
+            data = self.mesg.body.read(8192)
+            while data:
+                data = mesg.body.read(8192)
+        
+        # Parse the next request
         self.mesg = self.mesg_class(self.unreader)
         if not self.mesg:
             raise StopIteration()
         return self.mesg
-
-    def discard(self):
-        if self.mesg is not None:
-            data = self.mesg.read(8192)
-            while data:
-                self.mesg.read(8192)
-        self.mesg = None
 
 class RequestParser(Parser):
     def __init__(self, *args, **kwargs):

@@ -7,18 +7,17 @@ import errno
 import socket
 import traceback
 
+import gunicorn.http as http
+import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
-import gunicorn.wsgi as wsgi
-from gunicorn.workers.base import Worker
-
-from simplehttp import RequestParser
+import gunicorn.workers.base as base
 
 ALREADY_HANDLED = object()
 
-class AsyncWorker(Worker):
+class AsyncWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        Worker.__init__(self, *args, **kwargs)
+        super(AsyncWorker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
     
     def timeout_ctx(self):
@@ -26,7 +25,7 @@ class AsyncWorker(Worker):
 
     def handle(self, client, addr):
         try:
-            parser = RequestParser(client)
+            parser = http.RequestParser(client)
             try:
                 while True:
                     req = None

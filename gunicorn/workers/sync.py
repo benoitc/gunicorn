@@ -10,7 +10,7 @@ import select
 import socket
 import traceback
 
-import gunicorn.http.parser as parser
+import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
@@ -70,7 +70,7 @@ class SyncWorker(base.Worker):
         
     def handle(self, client, addr):
         try:
-            parser = parser.RequestParser(client)
+            parser = http.RequestParser(client)
             req = parser.next()
             self.handle_request(req, client, addr)
         except socket.error, e:
