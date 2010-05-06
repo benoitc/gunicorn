@@ -142,6 +142,14 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autorestart=true
     redirect_stderr=True
 
+Working with Virtualenv
+-----------------------
+
+To serve an app from a Virtualenv_ it is generally easiest to just install
+Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
+scripts for that Virtualenv which can be used to run applications normally.
+
+
 .. _Nginx: http://www.nginx.org
 .. _slowloris: http://ha.ckers.org/slowloris/
 .. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
@@ -149,3 +157,4 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
 .. _Supervisor: http://supervisord.org
 .. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
+.. _Virtualenv: http://pypi.python.org/pypi/virtualenv
