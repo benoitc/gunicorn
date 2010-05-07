@@ -117,6 +117,17 @@ To serve an app from a Virtualenv_ it is generally easiest to just install
 Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
 scripts for that Virtualenv which can be used to run applications normally.
 
+If you have Virtualenv installed, you should be able to do something like
+this::
+
+    $ mkdir ~/venvs/
+    $ virtualenv ~/venvs/webapp
+    $ source ~/venvs/webapp/bin/activate
+    $ ~/venvs/webapp/bin/easy_install -U gunicorn
+    $ deactivate
+
+Then you just need to use one of the thee Gunicorn scripts that was installed
+into ``~/venvs/webapp/bin``.
 
 Daemon Monitoring
 -----------------

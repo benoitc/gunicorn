@@ -55,12 +55,12 @@
 <a class="reference external" href="http://gunicorn.org/deployment.html">deployment</a> page. Test some more.</dd>
 <dt>What types of workers are there?</dt>
 <dd><p class="first">These can all be used with the <tt class="docutils literal"><span class="pre">-k</span></tt> option and specifying them
-as <tt class="docutils literal"><span class="pre">egg:gunicorn#$(NAME)</span></tt> where <tt class="docutils literal">$(NAME)</tt> is chosen from this list.</p>
+as <tt class="docutils literal"><span class="pre">egg:gunicorn#$(NAME)</span></tt> where <tt class="docutils literal"><span class="pre">$(NAME)</span></tt> is chosen from this list.</p>
 <ul class="last simple">
-<li><tt class="docutils literal">sync</tt> - The default synchronous worker</li>
-<li><tt class="docutils literal">eventlet</tt> - Asynchronous workers based on Greenlets</li>
-<li><tt class="docutils literal">gevent</tt> - Asynchronous workers based on Greenlets</li>
-<li><tt class="docutils literal">tornado</tt> - Asynchronous workers based on FriendFeed's Tornado server.</li>
+<li><tt class="docutils literal"><span class="pre">sync</span></tt> - The default synchronous worker</li>
+<li><tt class="docutils literal"><span class="pre">eventlet</span></tt> - Asynchronous workers based on Greenlets</li>
+<li><tt class="docutils literal"><span class="pre">gevent</span></tt> - Asynchronous workers based on Greenlets</li>
+<li><tt class="docutils literal"><span class="pre">tornado</span></tt> - Asynchronous workers based on FriendFeed's Tornado server.</li>
 </ul>
 </dd>
 <dt>How might I test a proxy configuration?</dt>
@@ -87,8 +87,8 @@ $ kill -TTOU $masterpid
 <dd>Start gunicorn with an approximate number of worker processes. Then use the
 TTIN and/or TTOU signals to adjust the number of workers under load.</dd>
 <dt>How do I set SCRIPT_NAME?</dt>
-<dd>By default <tt class="docutils literal">SCRIPT_NAME</tt> is an empy string. The value could be set by
-setting <tt class="docutils literal">SCRIPT_NAME</tt> in the environment or as an HTTP header.</dd>
+<dd>By default <tt class="docutils literal"><span class="pre">SCRIPT_NAME</span></tt> is an empy string. The value could be set by
+setting <tt class="docutils literal"><span class="pre">SCRIPT_NAME</span></tt> in the environment or as an HTTP header.</dd>
 <dt>How can I name processes?</dt>
 <dd>You need to install the Python package <a class="reference external" href="http://pypi.python.org/pypi/setproctitle">setproctitle</a>. Then you can specify
 a base process name on the command line (<tt class="docutils literal"><span class="pre">-n</span></tt>) or in the configuration

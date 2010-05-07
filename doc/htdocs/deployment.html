@@ -135,8 +135,8 @@ http {
 features like Comet, Long polling, or Web sockets, you need to turn off the
 proxy buffering. <strong>When you do this</strong> you must run with one of the async worker
 classes.</p>
-<p>To turn off buffering, you only need to add <tt class="docutils literal">proxy_buffering off;</tt> to your
-<tt class="docutils literal">location</tt> block:</p>
+<p>To turn off buffering, you only need to add <tt class="docutils literal"><span class="pre">proxy_buffering</span> <span class="pre">off;</span></tt> to your
+<tt class="docutils literal"><span class="pre">location</span></tt> block:</p>
 <pre class="literal-block">
 ...
 location / {
@@ -158,6 +158,17 @@ location / {
 <p>To serve an app from a <a class="reference external" href="http://pypi.python.org/pypi/virtualenv">Virtualenv</a> it is generally easiest to just install
 Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
 scripts for that Virtualenv which can be used to run applications normally.</p>
+<p>If you have Virtualenv installed, you should be able to do something like
+this:</p>
+<pre class="literal-block">
+$ mkdir ~/venvs/
+$ virtualenv ~/venvs/webapp
+$ source ~/venvs/webapp/bin/activate
+$ ~/venvs/webapp/bin/easy_install -U gunicorn
+$ deactivate
+</pre>
+<p>Then you just need to use one of the thee Gunicorn scripts that was installed
+into <tt class="docutils literal"><span class="pre">~/venvs/webapp/bin</span></tt>.</p>
 </div>
 <div class="section" id="daemon-monitoring">
 <h1>Daemon Monitoring</h1>
