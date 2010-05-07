@@ -66,7 +66,7 @@ backlog = 2048
 #   keepalive - The number of seconds to wait for the next request
 #       on a Keep-Alive HTTP connection.
 #
-#       A positive integer. Generally set in the few seconds range.
+#       A positive integer. Generally set in the 1-5 seconds range.
 #
 
 workers = 1
@@ -118,8 +118,8 @@ spew = False
 #       can be retrieved with a call to pwd.getgrnam(value) or None
 #       to change the worker processes group.
 #
-#   umask - A mask for file permissions written by Gunicorn. Only takes
-#       affect when the process has been daemonized.
+#   umask - A mask for file permissions written by Gunicorn. Not that
+#       this affects unix socket permissions.
 #
 #       A valid value for the os.umask(mode) call or a string
 #       compatible with int(value, 0) (0 means Python guesses
@@ -175,16 +175,17 @@ proc_name = None
 #
 #   after_fork - Called just after a worker has been forked.
 #
-#       Something callable that takes two parameters.
+#       A callable that takes a server and worker instance
+#       as arguments.
 #
 #   before_fork - Called just prior to forking the worker subprocess.
 #
-#       Something callable that takes two parameters.
+#       A callable that accepts the same arguments as after_fork
 #
 #   before_exec - Called just prior to forking off a secondary
 #       master process during things like config reloading.
 #
-#       Something callable that takes a single parameter.
+#       A callable that takes a server instance as the sole argument.
 #
 
 def after_fork(server, worker):
