@@ -126,7 +126,7 @@ this::
     $ ~/venvs/webapp/bin/easy_install -U gunicorn
     $ deactivate
 
-Then you just need to use one of the thee Gunicorn scripts that was installed
+Then you just need to use one of the three Gunicorn scripts that was installed
 into ``~/venvs/webapp/bin``.
 
 Daemon Monitoring
