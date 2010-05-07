@@ -45,17 +45,24 @@ Commonly Used Arguments
 
   * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_
   * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
-    can be any of $(HOST), $(HOST):$(PORT), or unix:$(PATH) where $(HOST) can
-    also be an IP.
+    can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
+    An IP is a valid ``$(HOST)``.
   * ``-w WORKERS, --workers=WORKERS`` - The number of worker processes. This
     number should generally be between 2-4 workers per core in the server.
     Check the FAQ_ for ideas on tuning this parameter.
   * ``-k WORKERCLASS, --worker-class=WORKERCLASS`` - The type of worker process
-    to run. You'll definitely want to read the FAQ_ for the implications of
-    this parameter.
+    to run. You'll definitely want to read the `production page`_ for the
+    implications of this parameter. You can set this to ``egg:gunicorn#$(NAME)``
+    where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``, or
+    ``tornado``. ``sync`` is the default.
   * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
     adjust the name of Gunicorn process as they appear in the process system
     table (which affects tools like ``ps`` and ``top``).
+
+    sync=gunicorn.workers.sync:SyncWorker
+    eventlet=gunicorn.workers.geventlet:EventletWorker
+    gevent=gunicorn.workers.ggevent:GEventWorker
+    tornado
 
 There are various other parameters that affect user privileges, logging, etc.
 You can see the complete list with the expected::
@@ -149,6 +156,7 @@ details.
 .. _Gevent: http://gevent.org
 .. _FAQ: http://gunicorn.org/faq.html
 .. _libev: http://software.schmorp.de/pkg/libev.html
+.. _`production page`: http://gunicorn.org/deployment.html
 .. _`config file`: http://gunicorn.org/configuration.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
