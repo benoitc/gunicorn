@@ -17,7 +17,7 @@ Features
 
 - Designed for Unix.
 - Compatible with Python 2.x (>= 2.5)
-- Easy integration with Django_ and Paster_ compatible applications
+- Easy integration with Django_ and Paster_ applications
   (`Pylons`_, `TurboGears 2`_, ...)
 - Process management: Gunicorn_ reaps and restarts workers that die.
 - Load balancing via pre-fork and a shared socket
