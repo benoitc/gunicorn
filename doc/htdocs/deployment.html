@@ -49,35 +49,33 @@
 
   <div class="document" id="production-setup">
 <h1 class="title">Production Setup</h1>
-<p>There are two general classes of configuration for Gunicorn. For the time
-being these will are referred to as &quot;fast clients&quot; and &quot;sleepy applications&quot;.</p>
-<div class="section" id="fast-clients">
-<h1>Fast Clients</h1>
-<p>Generally speaking when we say &quot;fast clients&quot; what we really mean is that the
-time taken to process a client from the time a socket is accepted until
-the time the socket is closed is well defined to be short. This means that
-clients are buffered by an upstream proxy (otherwise clients can send or
-receive data slowly) and that your application code does not have major
-blocking sections (a web request to the internet might occasionally take a
-non trivial amount of time).</p>
-<p>Traditional webapps are generally fine for fast client configurations.
-Deployments should generally default to this type of configuration unless it is
-known that the application code wants to do long-polling, comet, web sockets or
-has other potentially long operations (on the order of seconds).</p>
+<div class="section" id="synchronous-vs-asynchronous-workers">
+<h1>Synchronous vs Asynchronous workers</h1>
+<p>The default configuration of Gunicorn assumes that your application code is
+mostly CPU bound. The default worker class is a simple single threaded loop that
+just processes requests as they are received. In general, most applications will
+do just fine with this sort of configuration.</p>
+<p>This CPU bound assumption is why the default configuration needs to use a
+buffering HTTP proxy like <a class="reference external" href="http://www.nginx.org">Nginx</a> to protect the Gunicorn server. If we allowed
+direct connections a client could send a request slowly thus starving the server
+of free worker processes (because they're all stuck waiting for data).</p>
+<p>Example use-cases for asynchronous workers:</p>
+<blockquote>
+<ul class="simple">
+<li>Applications making long blocking calls (Ie, to external web services)</li>
+<li>Serving requests directly to the internet</li>
+<li>Streaming requests and responses</li>
+<li>Long polling</li>
+<li>Web sockets</li>
+<li>Comet</li>
+</ul>
+</blockquote>
 </div>
-<div class="section" id="sleepy-applications">
-<h1>Sleepy Applications</h1>
-<p>Any application that requires an undefined amount of time for client processing
-is considered a sleepy application. If you are wanting a platform that is
-capable of handling comet connections, long polling, or potentially long
-blocking operations (requests to external web services, ie Facebook Connect)
-then you'll want to use an async arbiter.</p>
-</div>
-<div class="section" id="nginx-config-for-fast-clients-handling">
-<h1>Nginx Config for fast clients handling</h1>
+<div class="section" id="basic-nginx-configuration">
+<h1>Basic Nginx Configuration</h1>
 <p>Although there are many HTTP proxies available, we strongly advise that you
 use <a class="reference external" href="http://www.nginx.org">Nginx</a>. If you choose another proxy server you need to make sure that it
-buffers slow clients when you use default Gunicorn arbiter. Without this
+buffers slow clients when you use default Gunicorn workers. Without this
 buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
 You can use <a class="reference external" href="http://ha.ckers.org/slowloris/">slowloris</a> to check if your proxy is behaving properly.</p>
 <p>An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">example configuration</a> file for fast clients with <a class="reference external" href="http://www.nginx.org">Nginx</a>:</p>
@@ -133,8 +131,12 @@ http {
     }
 }
 </pre>
-<p>To handle sleepy applications, just add the line <cite>proxy_buffering off;</cite> under
-the proxy_redirect directive:</p>
+<p>If you want to be able to handle streaming request/responses or other fancy
+features like Comet, Long polling, or Web sockets, you need to turn off the
+proxy buffering. <strong>When you do this</strong> you must run with one of the async worker
+classes.</p>
+<p>To turn off buffering, you only need to add <tt class="docutils literal">proxy_buffering off;</tt> to your
+<tt class="docutils literal">location</tt> block:</p>
 <pre class="literal-block">
 ...
 location / {
@@ -148,7 +150,7 @@ location / {
         break;
     }
 }
-....
+...
 </pre>
 </div>
 <div class="section" id="working-with-virtualenv">

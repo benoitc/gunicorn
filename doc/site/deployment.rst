@@ -4,43 +4,36 @@ title: Deployment
 Production Setup
 ================
 
-There are two general classes of configuration for Gunicorn. For the time
-being these will are referred to as "fast clients" and "sleepy applications".
+Synchronous vs Asynchronous workers
+-----------------------------------
 
-Fast Clients
-------------
+The default configuration of Gunicorn assumes that your application code is
+mostly CPU bound. The default worker class is a simple single threaded loop that
+just processes requests as they are received. In general, most applications will
+do just fine with this sort of configuration.
 
-Generally speaking when we say "fast clients" what we really mean is that the
-time taken to process a client from the time a socket is accepted until
-the time the socket is closed is well defined to be short. This means that
-clients are buffered by an upstream proxy (otherwise clients can send or
-receive data slowly) and that your application code does not have major
-blocking sections (a web request to the internet might occasionally take a
-non trivial amount of time).
+This CPU bound assumption is why the default configuration needs to use a
+buffering HTTP proxy like Nginx_ to protect the Gunicorn server. If we allowed
+direct connections a client could send a request slowly thus starving the server
+of free worker processes (because they're all stuck waiting for data).
 
-Traditional webapps are generally fine for fast client configurations.
-Deployments should generally default to this type of configuration unless it is
-known that the application code wants to do long-polling, comet, web sockets or
-has other potentially long operations (on the order of seconds).
+Example use-cases for asynchronous workers:
 
-Sleepy Applications
--------------------
+  * Applications making long blocking calls (Ie, to external web services)
+  * Serving requests directly to the internet
+  * Streaming requests and responses
+  * Long polling
+  * Web sockets
+  * Comet
 
-Any application that requires an undefined amount of time for client processing
-is considered a sleepy application. If you are wanting a platform that is
-capable of handling comet connections, long polling, or potentially long
-blocking operations (requests to external web services, ie Facebook Connect)
-then you'll want to use an async arbiter.
-
-Nginx Config for fast clients handling
---------------------------------------
+Basic Nginx Configuration
+-------------------------
 
 Although there are many HTTP proxies available, we strongly advise that you
 use Nginx_. If you choose another proxy server you need to make sure that it
-buffers slow clients when you use default Gunicorn arbiter. Without this
+buffers slow clients when you use default Gunicorn workers. Without this
 buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
 You can use slowloris_ to check if your proxy is behaving properly.
-
 
 An `example configuration`_ file for fast clients with Nginx_::
 
@@ -95,8 +88,13 @@ An `example configuration`_ file for fast clients with Nginx_::
         }
     }
 
-To handle sleepy applications, just add the line `proxy_buffering off;` under
-the proxy_redirect directive::
+If you want to be able to handle streaming request/responses or other fancy
+features like Comet, Long polling, or Web sockets, you need to turn off the
+proxy buffering. **When you do this** you must run with one of the async worker
+classes.
+
+To turn off buffering, you only need to add ``proxy_buffering off;`` to your
+``location`` block::
 
   ...
   location / {
@@ -110,7 +108,7 @@ the proxy_redirect directive::
           break;
       }
   }
-  ....
+  ...
 
 Working with Virtualenv
 -----------------------

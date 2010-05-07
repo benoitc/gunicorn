@@ -4,21 +4,18 @@ title: FAQ
 FAQ
 ===
 
-What is a fast client?
-  Generally speaking a fast client is something that is being served over the
-  local network or from the same machine. This generally would refer to requests
-  forwarded from an upstream proxy. Also see the above FAQ for what a fast
-  client is not.
+How do I know which type of worker to use?
+  Test. Read the "Synchronous vs Asynchronous workers" section on the 
+  deployment_ page. Test some more.
 
-What is a slow client?
-  A slow client is defined as a request that can take an arbitrary amount of
-  time to send a request or read a response. Sometimes due to network
-  performance or because it is a malicious client attempting to cause problems.
-  Check out the slowloris_ script to generate slow client traffic.
-
-What are sleepy applications?
-  Applications that expect long request/response times and/or slow clients.
-  Gunicorn use `Eventlet`_ or `Gevent`_ to manage concurrency.
+What types of workers are there?
+  These can all be used with the ``-k`` option and specifying them
+  as ``egg:gunicorn#$(NAME)`` where ``$(NAME)`` is chosen from this list.
+  
+  * ``sync`` - The default synchronous worker
+  * ``eventlet`` - Asynchronous workers based on Greenlets
+  * ``gevent`` - Asynchronous workers based on Greenlets
+  * ``tornado`` - Asynchronous workers based on FriendFeed's Tornado server.
 
 How might I test a proxy configuration?
   Check out slowloris_ for a script that will generate significant slow
@@ -30,7 +27,6 @@ How do I reload my application in Gunicorn?
 
     $ kill -HUP masterpid
 
-
 How do I increase or decrease the number of running workers dynamically?
     To increase the worker count by one::
 
@@ -40,16 +36,20 @@ How do I increase or decrease the number of running workers dynamically?
 
         $ kill -TTOU $masterpid
 
-  
+How can I figure out the best number of worker processes?
+  Start gunicorn with an approximate number of worker processes. Then use the
+  TTIN and/or TTOU signals to adjust the number of workers under load.
+
 How do I set SCRIPT_NAME?
     By default ``SCRIPT_NAME`` is an empy string. The value could be set by
     setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
 
-How to name processes?
-    You need to install the Python package setproctitle_. Then you can name
-    your process with `-n` or just let the default. If you use a configuration
-    file you can set the process name with the proc_name option.
+How can I name processes?
+    You need to install the Python package setproctitle_. Then you can specify
+    a base process name on the command line (``-n``) or in the configuration
+    file.
 
+.. _deployment: http://gunicorn.org/deployment.html
 .. _slowloris: http://ha.ckers.org/slowloris/
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
 .. _Eventlet: http://eventlet.net

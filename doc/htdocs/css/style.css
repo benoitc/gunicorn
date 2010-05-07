@@ -23,10 +23,15 @@ ul {
     padding-left: 1em;
 }
 
+dt {
+    border-top: 1px solid #BBB;
+    padding-top: 0.5em;
+}
+
 dd {
-    border-bottom: 1px solid #eee;
-    margin: 0 0 .5em;
-    padding: 0 0 .5em;
+    margin: 0px;
+    margin-bottom: 0.5em;
+    padding: 0px;
 }
 
 pre {

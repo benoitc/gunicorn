@@ -3,18 +3,19 @@ template: index.html
 Green Unicorn
 =============
 
-Green Unicorn (gunicorn) is an HTTP/WSGI Server for UNIX designed to serve
-`fast clients`_ or `sleepy applications`_.
+Gunicorn 'Green Unicorn' is a WSGI_ HTTP Server for UNIX. It's a pre-fork
+worker model ported from Ruby's Unicorn_ project. The Gunicorn server is
+broadly compatible with various web frameworks, simply implemented, light
+on server resource usage, and fairly speedy.
 
-This is a port of Unicorn_ in Python. Meet us on the `#gunicorn IRC channel`_
-on Freenode_.
+Feel free to join us in `#gunicorn`_ on freenode_.
 
 Gunicorn is released under the MIT License. See the LICENSE_ for more details.
 
 Features
 --------
 
-- Designed for Unix, WSGI_, fast clients and sleepy applications.
+- Designed for Unix.
 - Compatible with Python 2.x (>= 2.5)
 - Easy integration with Django_ and Paster_ compatible applications
   (`Pylons`_, `TurboGears 2`_, ...)
@@ -35,15 +36,13 @@ Applications
   (`Pylons`_, `TurboGears 2`_, ...)
 * Websockets (see the example_ or the screencast_)
 * Reverse proxy implementation (with `Restkit WSGI proxy`_)
-* Comet
 * Long Polling
+* Comet
 
 .. _WSGI:  http://www.python.org/dev/peps/pep-0333/
-.. _`fast clients`: faq.html
-.. _`sleepy applications`: faq.html
 .. _Unicorn: http://unicorn.bogomips.org/
-.. _`#gunicorn IRC channel`: http://webchat.freenode.net/?channels=gunicorn
-.. _Freenode: http://freenode.net
+.. _`#gunicorn`: http://webchat.freenode.net/?channels=gunicorn
+.. _freenode: http://freenode.net
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
 .. _Gunicorn: http://gunicorn.org
 .. _Django: http://djangoproject.com

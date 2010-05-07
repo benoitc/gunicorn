@@ -15,14 +15,15 @@ News
 0.8.0 / 2010-04-22
 ------------------
 
-- Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use
-- Added support for `Tornado <http://www.tornadoweb.org/>`_ 
+- Refactored Worker management for better async support. Now use the -k option
+  to set the type of request processing to use
+- Added support for Tornado_
 
 
 0.7.2 / 2010-04-15
 ------------------
 
-- Added --spew option to help debugging (install a Trace hook)
+- Added --spew option to help debugging (installs a system trace hook)
 - Some fixes in async arbiters
 - Fix a bug in start_response on error
 
@@ -34,16 +35,16 @@ News
 0.7.0 / 2010-03-26
 ------------------
 
-- Added support for `sleepy applications <faq.html>`_ using Eventlet_ or Gevent_.
+- Added support for Eventlet_ and Gevent_ based workers.
 - Added Websockets_ support
 - Fix Chunked Encoding
 - Fix SIGWINCH on OpenBSD_
-- Fix `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`_ compliance for the write callable.
+- Fix `PEP 333`_ compliance for the write callable.
 
 0.6.5 / 2010-03-11
 ------------------
 
-- Fix pidfile
+- Fix pidfile handling
 - Fix Exception Error
 
 0.6.4 / 2010-03-08
@@ -56,14 +57,15 @@ News
 ------------------
 
 * Make HTTP parsing faster.
-* Some fixes (see `logs <http://github.com/benoitc/gunicorn/commits/master>`_)
+* Various bug fixes
 
 0.6.2 / 2010-03-01
 ------------------
 
 * Added support for chunked response.
 * Added proc_name option to the config file.
-* Improved the HTTP parser. It now uses buffers instead of strings to store temporary data.
+* Improved the HTTP parser. It now uses buffers instead of strings to store
+  temporary data.
 * Improved performance when sending responses.
 * Workers are now murdered by age (the oldest is killed first).
 
@@ -71,21 +73,22 @@ News
 0.6.1 / 2010-02-24
 ------------------
 
-* Added gunicorn config file support for django admin command
+* Added gunicorn config file support for Django admin command
 * Fix gunicorn config file. -c was broken.
 * Removed TTIN/TTOU from workers which blocked other signals.
 
 0.6 / 2010-02-22
 ------------------
 
-* Added setproctitle
-* Change privilege switch behaviour. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.
+* Added setproctitle support
+* Change privilege switch behavior. We now work like NGINX, master keeps the
+  permissions, new uid/gid permissions are only set for workers.
 
 0.5.1 / 2010-02-22
 ------------------
 
 * Fix umask
-* Added debian packaging
+* Added Debian packaging
 
 0.5 / 2010-02-20 
 ----------------
@@ -98,10 +101,12 @@ News
 * Added umask option
 * Added SCRIPT_NAME support
 * Better support of some exotic settings for Django projects
-* Better support of Paste-compatible applicatins
+* Better support of Paste-compatible applications
 * Some refactoring to make the code easier to hack
 * Allow multiple keys in request and response headers
 
+.. _Tornado: http://www.tornadoweb.org/
+.. _`PEP 333`: http://www.python.org/dev/peps/pep-0333/
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
 .. _OpenBSD: http://openbsd.org

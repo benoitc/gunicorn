@@ -7,7 +7,7 @@ Installation
 Requirements
 ------------
 
-- **Python 2.5 or newer** (Python 3.x will be supported soon)
+- **Python 2.x >= 2.5** (Python 3.x will be supported soon)
 - setuptools >= 0.6c6
 - nosetests (for the test suite only)
 
@@ -27,7 +27,7 @@ To install or upgrade to the latest released version of Gunicorn::
 Installing from source
 ----------------------
 
-You can install Gunicorn from source as simply as you would install any other
+You can install Gunicorn from source just as you would install any other
 Python package. Gunicorn uses setuptools which will automatically fetch all
 dependencies (including setuptools itself).
 
@@ -39,11 +39,8 @@ fetch them with git_::
 
     $ git clone git://github.com/benoitc/gunicorn.git
 
-.. _`GitHub Downloads`: http://github.com/benoitc/gunicorn/downloads
-.. _git: http://git-scm.com/
-
 Installation
-++++++++++++++++
+++++++++++++
 
 ::
 
@@ -56,33 +53,30 @@ well as make changes to the source::
 
   $ python setup.py develop
   
-Installation requirements for sleepy application handling
----------------------------------------------------------
+Enabling async workers
+----------------------
 
-If you want to handle `sleepy application <faq.html>`_ you will need to install
-`Eventlet`_ or `Gevent`_.
+You may also want to install Eventlet_ or Gevent_ if you expect that your
+application code may need to pause for extended periods of time during
+request processing. Check out the FAQ_ for more information on when you'll
+want to consider one of the alternate worker types.
 
 To install eventlet::
 
-  $ easy_install -U eventlet
-  
-Replace ``eventlet`` with ``gevent`` if you want to use the ``gevent``
-arbiter.
+    $ easy_install -U eventlet
 
-You can now launch gunicorn with Eventlet or Gevent arbiter, see
-`usage <usage.html>`_ for more information.
+Replace ``eventlet`` with ``gevent`` to use to the ``gevent`` based workers.
 
 .. note::
-    If ``eventlet`` or ``gevent`` fails to install for you, its most likely
-    due to an out of date libev_ library. You'll need to download and install
-    a newer version for either of those to modules to work properly.
+    If you encounter errors when compiling the extensions for Eventlet_ or
+    Gevent_ you most likely need to install a newer version of libev_.
   
 Installing on Ubuntu/Debian systems
 -----------------------------------
 
-If you use `Ubuntu <http://www.ubuntu.com/>`_ karmic, you can update your
-system with packages from our PPA_ by adding ``ppa:bchesneau/gunicorn``
-to your system's Software Sources.
+If you use Ubuntu_ karmic, you can update your system with packages from
+our PPA_ by adding ``ppa:bchesneau/gunicorn`` to your system's Software
+Sources.
 
 Or this PPA can be added to your system manually by copying the lines below
 and adding them to your system's software sources::
@@ -98,7 +92,11 @@ Fingerprint::
 
   49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
 
+.. _`GitHub Downloads`: http://github.com/benoitc/gunicorn/downloads
+.. _FAQ: faq.html
+.. _git: http://git-scm.com/
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
 .. _libev: http://software.schmorp.de/pkg/libev.html
+.. _Ubuntu: http://www.ubuntu.com/
 .. _PPA: https://launchpad.net/~bchesneau/+archive/gunicorn

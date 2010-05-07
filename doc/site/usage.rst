@@ -1,120 +1,148 @@
 template: doc.html
 title: Command Line Usage
 
-Command Line Usage
-==================
+Usage
+=====
 
-- `WSGI applications`_
-- `Django projects`_
-- `Paste-compatible projects`_
+After installing Gunicorn you will have access to three command line scripts
+that can be used for serving the various supported web frameworks: ``gunicorn``,
+``gunicorn_django``, and ``gunicorn_paster``.
 
-WSGI applications
------------------
-
-To launch the `example application`_ packaged with Gunicorn::
-
-    $ cd /path/to/gunicorn/examples/
-    $ gunicorn -w 2 test:app
-
-The module ``test:app`` specifies the complete module name and WSGI callable.
-You can replace it with anything that is available on your ``PYTHONPATH`` like
-such::
-
-    $ cd ~/
-    $ gunicorn -w 12 awesomeproject.wsgi.main:main_app
-    
-To launch the `websocket example`_ application using `Eventlet`_::
-
-        $ cd /path/to/gunicorn/examples/
-        $ gunicorn -w 12 -k "egg:gunicorn#eventlet" websocket:app
-
-You should then be able to visit ``http://localhost:8000`` to see output.
-
-Full command line usage
+Commonly Used Arguments
 +++++++++++++++++++++++
 
-::
+  * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_
+  * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
+    can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
+    An IP is a valid ``$(HOST)``.
+  * ``-w WORKERS, --workers=WORKERS`` - The number of worker processes. This
+    number should generally be between 2-4 workers per core in the server.
+    Check the FAQ_ for ideas on tuning this parameter.
+  * ``-k WORKERCLASS, --worker-class=WORKERCLASS`` - The type of worker process
+    to run. You'll definitely want to read the `production page`_ for the
+    implications of this parameter. You can set this to ``egg:gunicorn#$(NAME)``
+    where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``, or
+    ``tornado``. ``sync`` is the default.
+  * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
+    adjust the name of Gunicorn process as they appear in the process system
+    table (which affects tools like ``ps`` and ``top``).
 
-  $ gunicorn --help
-  Usage: gunicorn [OPTIONS] [APP_MODULE]
-  
-  Options:
-    -c CONFIG, --config=CONFIG
-                          Config file. [none]
-    -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
-                          unix:/tmp/gunicorn.sock
-    -k WORKERCLASS, --worker-class=WORKERCLASS
-                          The type of request processing to use
-                          [egg:gunicorn#sync]
-    -w WORKERS, --workers=WORKERS
-                          Number of workers to spawn. [1]
-    -p PIDFILE, --pid=PIDFILE
-                          set the background PID FILE
-    -D, --daemon          Run daemonized in the background.
-    -m UMASK, --umask=UMASK
-                          Define umask of daemon process
-    -u USER, --user=USER  Change worker user
-    -g GROUP, --group=GROUP
-                          Change worker group
-    -n APP_NAME, --name=APP_NAME
-                          Application name
-    --log-level=LOGLEVEL  Log level below which to silence messages. [info]
-    --log-file=LOGFILE    Log to a file. - equals stdout. [-]
-    -d, --debug           Debug mode. only 1 worker.
-    --spew                Install a trace hook
-    --version             show program's version number and exit
-    -h, --help            show this help message and exit
+There are various other parameters that affect user privileges, logging, etc.
+You can see the complete list at the bottom of this page or as expected with::
 
-Django Projects
----------------
+    $ gunicorn -h
 
-`Django`_ projects can be handled easily by Gunicorn using the
-``gunicorn_django`` command::
+gunicorn
+++++++++
 
-    $ cd $yourdjangoproject
+The first and most basic script is used to server 'bare' WSGI applications
+that don't require a translation layer. Basic usage::
+
+    $ gunicorn [OPTIONS] APP_MODULE
+
+Where ``APP_MODULE`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
+module name can be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.
+
+Example with test app::
+
+    $ cd examples
+    $ gunicorn --workers=2 test:app
+    
+gunicorn_django
++++++++++++++++
+
+You might not have guessed it, but this script is used to server Django
+applications. Basic usage::
+
+    $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
+
+By default ``SETTINGS_PATH`` will look for ``settings.py`` in the current
+directory.
+
+Example with your Django project::
+
+    $ cd path/to/yourdjangoproject
     $ gunicorn_django --workers=2
 
-But you can also use the ``run_gunicorn`` `admin command`_ like the other
-``management.py`` commands.
+Alternatively, you can install some Gunicorn magic directly into your Django
+project and use the provided command for running the server.
 
-Add ``"gunicorn"`` to INSTALLED_APPS in your settings file::
+First you'll need to add ``gunicorn`` to your ``INSTALLED_APPS`` in the settings
+file::
 
     INSTALLED_APPS = (
         ...
         "gunicorn",
     )
   
-Then run::
+Then you can run::
 
     python manage.py run_gunicorn
-  
 
-Paste-compatible projects
--------------------------
+gunicorn_paster
++++++++++++++++
 
-For `Paste`_ compatible projects (`Pylons`_, `TurboGears 2`_, ...) use the
-``gunicorn_paste`` command::
+Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
+apologize for the lack of script name creativity. And some usage::
 
-    $ cd $yourpasteproject
+    $ gunicorn_paster [OPTIONS] paste_config.ini
+
+Simple example::
+
+    $ cd yourpasteproject
     $ gunicorn_paste --workers=2 development.ini
 
-To use the ``paster`` command add a sever section for Gunicorn::
+If you're wanting to keep on keeping on with the usual paster serve command,
+you can specify the Gunicorn server settings in your configuration file::
 
     [server:main]
     use = egg:gunicorn#main
     host = 127.0.0.1
     port = 5000
 
-And then all you need to do is::
+And then as per usual::
 
-    $ cd $yourpasteproject
+    $ cd yourpasteproject
     $ paster serve development.ini workers=2
- 
-.. _`example application`: http://github.com/benoitc/gunicorn/blob/master/examples/test.py
-.. _`websocket example`: http://github.com/benoitc/gunicorn/blob/master/examples/websocket.py
-.. _Django: http://djangoproject.com
-.. _`admin command`: http://docs.djangoproject.com/en/dev/howto/custom-management-commands/
-.. _Paste: http://pythonpaste.org/script/
-.. _Pylons: http://pylonshq.com/
-.. _Turbogears 2: http://turbogears.org/2.0/
-.. _Eventlet: http://eventlet.net
+
+Full Command Line Usage
++++++++++++++++++++++++
+
+::
+
+    $ gunicorn -h
+    Usage: gunicorn [OPTIONS] APP_MODULE
+
+    Options:
+      -c CONFIG, --config=CONFIG
+                            Config file. [none]
+      -b BIND, --bind=BIND  Adress to listen on. Ex. 127.0.0.1:8000 or
+                            unix:/tmp/gunicorn.sock
+      -w WORKERS, --workers=WORKERS
+                            Number of workers to spawn. [1]
+      -k WORKER_CLASS, --worker-class=WORKER_CLASS
+                            The type of request processing to use
+                            [egg:gunicorn#sync]
+      -p PIDFILE, --pid=PIDFILE
+                            set the background PID FILE
+      -D, --daemon          Run daemonized in the background.
+      -m UMASK, --umask=UMASK
+                            Define umask of daemon process
+      -u USER, --user=USER  Change worker user
+      -g GROUP, --group=GROUP
+                            Change worker group
+      -n PROC_NAME, --name=PROC_NAME
+                            Process name
+      --log-level=LOGLEVEL  Log level below which to silence messages. [info]
+      --log-file=LOGFILE    Log to a file. - equals stdout. [-]
+      -d, --debug           Debug mode. only 1 worker.
+      --spew                Install a trace hook
+      --version             show program's version number and exit
+      -h, --help            show this help message and exit
+
+
+.. _FAQ: faq.html
+.. _`production page`: deployment.html
+.. _`config file`: configuration.html
+.. _setproctitle: http://pypi.python.org/pypi/setproctitle/
