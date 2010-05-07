@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -
+#
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
 
 import socket
 
-from message import Request
-from unreader import SocketUnreader, IterUnreader
+from gunicorn.http.message import Request
+from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 class Parser(object):
     def __init__(self, mesg_class, source):
@@ -25,7 +29,7 @@ class Parser(object):
         if self.mesg:
             data = self.mesg.body.read(8192)
             while data:
-                data = mesg.body.read(8192)
+                data = self.mesg.body.read(8192)
         
         # Parse the next request
         self.mesg = self.mesg_class(self.unreader)

@@ -1,12 +1,15 @@
-
-import re
+# -*- coding: utf-8 -
+#
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
 
-from errors import *
+from gunicorn.http.errors import NoMoreData, ChunkMissingTerminator, \
+InvalidChunkSize
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
@@ -147,9 +150,9 @@ class EOFReader(object):
         
         data = self.unreader.read()
         while data:
-            buf.write(data)
-            if size is not None and buf.tell() > size:
-                data = buf.getvalue()
+            self.buf.write(data)
+            if size is not None and self.buf.tell() > size:
+                data = self.buf.getvalue()
                 ret, rest = data[:size], data[size:]
                 self.buf.truncate(0)
                 self.buf.write(rest)

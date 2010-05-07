@@ -41,7 +41,7 @@ setup(
     packages = find_packages(exclude=['examples', 'tests']),
     include_package_data = True,
     
-    install_requires=['setuptools', 'simplehttp'],
+    install_requires=['setuptools'],
 
     entry_points="""
     

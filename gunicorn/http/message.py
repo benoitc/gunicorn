@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -
+#
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
 
-import os
 import re
 import urlparse
 
@@ -8,8 +11,9 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from body import ChunkedReader, LengthReader, EOFReader, Body
-from errors import *
+from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
 
 class Message(object):
     def __init__(self, unreader):
@@ -72,7 +76,7 @@ class Message(object):
                 try:
                     clength = int(value)
                 except ValueError:
-                    clenth = None
+                    clength = None
             elif name.upper() == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
         

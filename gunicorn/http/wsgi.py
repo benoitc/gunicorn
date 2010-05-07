@@ -3,11 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import errno
 import logging
 import os
 import re
-import socket
 import sys
 from urllib import unquote
 
@@ -37,11 +35,11 @@ def create(req, sock, client, server, debug=False):
         if name == "expect":
             # handle expect
             if hdr_value.lower() == "100-continue":
-                self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
+                sock.send("HTTP/1.1 100 Continue\r\n\r\n")
         elif name == "x-forwarded-for":
-            forward_address = hdr_value
+            forward = hdr_value
         elif name == "host":
-            host = hdr_value
+            server = hdr_value
         elif name == "script_name":
             script_name = hdr_value
         elif name == "content-type":

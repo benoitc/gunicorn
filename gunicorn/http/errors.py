@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -
+#
+# This file is part of gunicorn released under the MIT license. 
+# See the NOTICE for more information.
 
 class ParseException(Exception):
     pass
@@ -22,6 +26,13 @@ class InvalidRequestMethod(ParseException):
 
     def __str__(self):
         return "Invalid HTTP method: %r" % self.method
+        
+class InvalidHTTPVersion(ParseException):
+    def __init__(self, version):
+        self.version = version
+        
+    def __str__(self):
+        return "Invalid HTTP Version: %s" % self.version
 
 class InvalidHeader(ParseException):
     def __init__(self, hdr):

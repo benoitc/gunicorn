@@ -74,6 +74,6 @@ class AsyncWorker(base.Worker):
             #Only send back traceback in HTTP in debug mode.
             if not self.debug:
                 raise
-            util.write_error(client, traceback.format_exc())
+            util.write_error(sock, traceback.format_exc())
             return False
         return True
