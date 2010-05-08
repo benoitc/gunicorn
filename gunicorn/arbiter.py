@@ -15,7 +15,7 @@ import sys
 import time
 import traceback
 
-from gunicorn.pidfile import set_pidfile, unlink_pidfile
+from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import util
@@ -92,7 +92,8 @@ class Arbiter(object):
         self.pid = os.getpid()
         self.init_signals()
         self.LISTENER = create_socket(self.cfg)
-        self.pidfile = set_pidfile(self.pid, self.cfg.pidfile, self.pidfile)
+        self.pidfile = Pidfile(self.cfg.pidfile)
+        self.pidfile.create(self.pid)
         self.log.info("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         
@@ -152,14 +153,14 @@ class Arbiter(object):
                 self.log.info("Unhandled exception in main loop:\n%s" %  
                             traceback.format_exc())
                 self.stop(False)
-                if self.pidfile:
-                    unlink_pidfile(self.pid, self.pidfile)
+                if self.pidfile is not None:
+                    self.pidfile.unlink()
                 sys.exit(-1)
 
         self.stop()
         self.log.info("Shutting down: %s" % self.master_name)
-        if self.pidfile:
-            unlink_pidfile(self.pid, self.pidfile)
+        if self.pidfile is not None:
+            self.pidfile.unlink()
         sys.exit(0)
         
     def handle_chld(self, sig, frame):
@@ -285,9 +286,8 @@ class Arbiter(object):
         """\
         Relaunch the master and workers.
         """
-        if self.pidfile:
-            old_pidfile = "%s.oldbin" % self.pidfile
-            self.pidfile = set_pidfile(self.pid, old_pidfile)            
+        if self.pidfile is not None:
+            self.pidfile.rename("%s.oldbin" % self.pidfile.path)         
         
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
