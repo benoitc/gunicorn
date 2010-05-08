@@ -15,7 +15,7 @@ import sys
 import time
 import traceback
 
-from gunicorn.pidfile import Pidfile
+from gunicorn.pidfile import set_pidfile, unlink_pidfile
 from gunicorn.sock import create_socket
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import util
@@ -44,8 +44,6 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
     
-    pidfile = Pidfile()
-
     def __init__(self, cfg, app):
         self.cfg = cfg
         self.app = app
@@ -64,7 +62,7 @@ class Arbiter(object):
             self.log.error("%s" % e)
             sys.exit(1)
         
-        self._pidfile = None
+        self.pidfile = None
         self.worker_age = 0
         self.reexec_pid = 0
         self.master_name = "Master"
@@ -94,7 +92,7 @@ class Arbiter(object):
         self.pid = os.getpid()
         self.init_signals()
         self.LISTENER = create_socket(self.cfg)
-        self.pidfile = self.cfg.pidfile
+        self.pidfile = set_pidfile(self.pid, self.cfg.pidfile, self.pidfile)
         self.log.info("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         
@@ -155,13 +153,13 @@ class Arbiter(object):
                             traceback.format_exc())
                 self.stop(False)
                 if self.pidfile:
-                    del self.pidfile
+                    unlink_pidfile(self.pid, self.pidfile)
                 sys.exit(-1)
 
         self.stop()
         self.log.info("Shutting down: %s" % self.master_name)
         if self.pidfile:
-            del self.pidfile
+            unlink_pidfile(self.pid, self.pidfile)
         sys.exit(0)
         
     def handle_chld(self, sig, frame):
@@ -289,7 +287,7 @@ class Arbiter(object):
         """
         if self.pidfile:
             old_pidfile = "%s.oldbin" % self.pidfile
-            self.pidfile = old_pidfile            
+            self.pidfile = set_pidfile(self.pid, old_pidfile)            
         
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
