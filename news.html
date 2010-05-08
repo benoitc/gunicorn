@@ -54,20 +54,22 @@
 <ul class="simple">
 <li>Fix builtins import in config</li>
 <li>Fix installation with pip</li>
-<li>Fix Tornado worker</li>
+<li>Fix Tornado WSGI support</li>
+<li>Delay application loading until after processing all configuration</li>
 </ul>
 </div>
 <div class="section" id="id2">
 <h1>0.8.0 / 2010-04-22</h1>
 <ul class="simple">
-<li>Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use</li>
+<li>Refactored Worker management for better async support. Now use the -k option
+to set the type of request processing to use</li>
 <li>Added support for <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a></li>
 </ul>
 </div>
 <div class="section" id="id3">
 <h1>0.7.2 / 2010-04-15</h1>
 <ul class="simple">
-<li>Added --spew option to help debugging (install a Trace hook)</li>
+<li>Added --spew option to help debugging (installs a system trace hook)</li>
 <li>Some fixes in async arbiters</li>
 <li>Fix a bug in start_response on error</li>
 </ul>
@@ -81,7 +83,7 @@
 <div class="section" id="id5">
 <h1>0.7.0 / 2010-03-26</h1>
 <ul class="simple">
-<li>Added support for <a class="reference external" href="faq.html">sleepy applications</a> using <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>.</li>
+<li>Added support for <a class="reference external" href="http://eventlet.net">Eventlet</a> and <a class="reference external" href="http://gevent.org">Gevent</a> based workers.</li>
 <li>Added <a class="reference external" href="http://dev.w3.org/html5/websockets/">Websockets</a> support</li>
 <li>Fix Chunked Encoding</li>
 <li>Fix SIGWINCH on <a class="reference external" href="http://openbsd.org">OpenBSD</a></li>
@@ -91,7 +93,7 @@
 <div class="section" id="id6">
 <h1>0.6.5 / 2010-03-11</h1>
 <ul class="simple">
-<li>Fix pidfile</li>
+<li>Fix pidfile handling</li>
 <li>Fix Exception Error</li>
 </ul>
 </div>
@@ -106,7 +108,7 @@
 <h1>0.6.3 / 2010-03-07</h1>
 <ul class="simple">
 <li>Make HTTP parsing faster.</li>
-<li>Some fixes (see <a class="reference external" href="http://github.com/benoitc/gunicorn/commits/master">logs</a>)</li>
+<li>Various bug fixes</li>
 </ul>
 </div>
 <div class="section" id="id9">
@@ -114,7 +116,8 @@
 <ul class="simple">
 <li>Added support for chunked response.</li>
 <li>Added proc_name option to the config file.</li>
-<li>Improved the HTTP parser. It now uses buffers instead of strings to store temporary data.</li>
+<li>Improved the HTTP parser. It now uses buffers instead of strings to store
+temporary data.</li>
 <li>Improved performance when sending responses.</li>
 <li>Workers are now murdered by age (the oldest is killed first).</li>
 </ul>
@@ -122,7 +125,7 @@
 <div class="section" id="id10">
 <h1>0.6.1 / 2010-02-24</h1>
 <ul class="simple">
-<li>Added gunicorn config file support for django admin command</li>
+<li>Added gunicorn config file support for Django admin command</li>
 <li>Fix gunicorn config file. -c was broken.</li>
 <li>Removed TTIN/TTOU from workers which blocked other signals.</li>
 </ul>
@@ -130,15 +133,16 @@
 <div class="section" id="id11">
 <h1>0.6 / 2010-02-22</h1>
 <ul class="simple">
-<li>Added setproctitle</li>
-<li>Change privilege switch behaviour. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.</li>
+<li>Added setproctitle support</li>
+<li>Change privilege switch behavior. We now work like NGINX, master keeps the
+permissions, new uid/gid permissions are only set for workers.</li>
 </ul>
 </div>
 <div class="section" id="id12">
 <h1>0.5.1 / 2010-02-22</h1>
 <ul class="simple">
 <li>Fix umask</li>
-<li>Added debian packaging</li>
+<li>Added Debian packaging</li>
 </ul>
 </div>
 <div class="section" id="id13">
@@ -152,7 +156,7 @@
 <li>Added umask option</li>
 <li>Added SCRIPT_NAME support</li>
 <li>Better support of some exotic settings for Django projects</li>
-<li>Better support of Paste-compatible applicatins</li>
+<li>Better support of Paste-compatible applications</li>
 <li>Some refactoring to make the code easier to hack</li>
 <li>Allow multiple keys in request and response headers</li>
 </ul>

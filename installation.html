@@ -52,15 +52,15 @@
 <div class="section" id="requirements">
 <h1>Requirements</h1>
 <ul class="simple">
-<li><strong>Python 2.5 or newer</strong> (Python 3.x will be supported soon)</li>
+<li><strong>Python 2.x &gt;= 2.5</strong> (Python 3.x will be supported soon)</li>
 <li>setuptools &gt;= 0.6c6</li>
 <li>nosetests (for the test suite only)</li>
 </ul>
 </div>
 <div class="section" id="installing-with-easy-install">
 <h1>Installing with easy_install</h1>
-<p>If you don't already have <tt class="docutils literal">easy_install</tt> available you'll want to download
-and run the <tt class="docutils literal">ez_setup.py</tt> script:</p>
+<p>If you don't already have <tt class="docutils literal"><span class="pre">easy_install</span></tt> available you'll want to download
+and run the <tt class="docutils literal"><span class="pre">ez_setup.py</span></tt> script:</p>
 <pre class="literal-block">
 $ curl -O http://peak.telecommunity.com/dist/ez_setup.py
 $ sudo python ez_setup.py -U setuptools
@@ -72,7 +72,7 @@ $ sudo easy_install -U gunicorn
 </div>
 <div class="section" id="installing-from-source">
 <h1>Installing from source</h1>
-<p>You can install Gunicorn from source as simply as you would install any other
+<p>You can install Gunicorn from source just as you would install any other
 Python package. Gunicorn uses setuptools which will automatically fetch all
 dependencies (including setuptools itself).</p>
 <div class="section" id="get-a-copy">
@@ -89,7 +89,7 @@ $ git clone git://github.com/benoitc/gunicorn.git
 $ python setup.py install
 </pre>
 <p>If you've cloned the git repository, its highly recommended that you use the
-<tt class="docutils literal">develop</tt> command which will allow you to use Gunicorn from the source
+<tt class="docutils literal"><span class="pre">develop</span></tt> command which will allow you to use Gunicorn from the source
 directory. This will allow you to keep up to date with development on GitHub as
 well as make changes to the source:</p>
 <pre class="literal-block">
@@ -97,30 +97,28 @@ $ python setup.py develop
 </pre>
 </div>
 </div>
-<div class="section" id="installation-requirements-for-sleepy-application-handling">
-<h1>Installation requirements for sleepy application handling</h1>
-<p>If you want to handle <a class="reference external" href="faq.html">sleepy application</a> you will need to install
-<a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a>.</p>
+<div class="section" id="enabling-async-workers">
+<h1>Enabling async workers</h1>
+<p>You may also want to install <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a> if you expect that your
+application code may need to pause for extended periods of time during
+request processing. Check out the <a class="reference external" href="faq.html">FAQ</a> for more information on when you'll
+want to consider one of the alternate worker types.</p>
 <p>To install eventlet:</p>
 <pre class="literal-block">
 $ easy_install -U eventlet
 </pre>
-<p>Replace <tt class="docutils literal">eventlet</tt> with <tt class="docutils literal">gevent</tt> if you want to use the <tt class="docutils literal">gevent</tt>
-arbiter.</p>
-<p>You can now launch gunicorn with Eventlet or Gevent arbiter, see
-<a class="reference external" href="usage.html">usage</a> for more information.</p>
+<p>Replace <tt class="docutils literal"><span class="pre">eventlet</span></tt> with <tt class="docutils literal"><span class="pre">gevent</span></tt> to use to the <tt class="docutils literal"><span class="pre">gevent</span></tt> based workers.</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
-<p class="last">If <tt class="docutils literal">eventlet</tt> or <tt class="docutils literal">gevent</tt> fails to install for you, its most likely
-due to an out of date <a class="reference external" href="http://software.schmorp.de/pkg/libev.html">libev</a> library. You'll need to download and install
-a newer version for either of those to modules to work properly.</p>
+<p class="last">If you encounter errors when compiling the extensions for <a class="reference external" href="http://eventlet.net">Eventlet</a> or
+<a class="reference external" href="http://gevent.org">Gevent</a> you most likely need to install a newer version of <a class="reference external" href="http://software.schmorp.de/pkg/libev.html">libev</a>.</p>
 </div>
 </div>
 <div class="section" id="installing-on-ubuntu-debian-systems">
 <h1>Installing on Ubuntu/Debian systems</h1>
-<p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a> karmic, you can update your
-system with packages from our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal">ppa:bchesneau/gunicorn</tt>
-to your system's Software Sources.</p>
+<p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a> karmic, you can update your system with packages from
+our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal"><span class="pre">ppa:bchesneau/gunicorn</span></tt> to your system's Software
+Sources.</p>
 <p>Or this PPA can be added to your system manually by copying the lines below
 and adding them to your system's software sources:</p>
 <pre class="literal-block">
