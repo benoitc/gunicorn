@@ -35,7 +35,7 @@ class GEventWorker(AsyncWorker):
         acceptor = gevent.spawn(self.acceptor, pool)
         
         try:
-            while True:
+            while self.alive:
                 self.notify()
             
                 if self.ppid != os.getppid():
@@ -47,6 +47,7 @@ class GEventWorker(AsyncWorker):
             pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
+        os._exit(3)
 
     def acceptor(self, pool):
         gevent.getcurrent()

@@ -103,7 +103,6 @@ class Worker(object):
             
     def handle_quit(self, sig, frame):
         self.alive = False
-        os._exit(3)
 
     def handle_exit(self, sig, frame):
         self.alive = False

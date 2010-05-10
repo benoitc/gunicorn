@@ -38,7 +38,7 @@ class EventletWorker(AsyncWorker):
         pool = greenpool.GreenPool(self.worker_connections)
         acceptor = greenthread.spawn(self.acceptor, pool)
         
-        while True:
+        while self.alive:
             self.notify()
             
             if self.ppid != os.getppid():
@@ -50,10 +50,11 @@ class EventletWorker(AsyncWorker):
 
         with eventlet.Timeout(self.timeout, False):
             pool.waitall()
+        os._exit(3)
 
     def acceptor(self, pool):
         greenthread.getcurrent()
-        while True:
+        while self.alive:
             try:
                 conn, addr = self.socket.accept()
                 gt = pool.spawn(self.handle, conn, addr)
