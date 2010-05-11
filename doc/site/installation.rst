@@ -63,14 +63,21 @@ want to consider one of the alternate worker types.
 
 To install eventlet::
 
-    $ easy_install -U eventlet
-
-Replace ``eventlet`` with ``gevent`` to use to the ``gevent`` based workers.
+    $ easy_install -U greenlet  # Required for both
+    $ easy_install -U eventlet  # For eventlet workers
+    $ easy_install -U gevent    # For gevent workers
 
 .. note::
-    If you encounter errors when compiling the extensions for Eventlet_ or
-    Gevent_ you most likely need to install a newer version of libev_.
-  
+    If installing ``greenlet`` fails you probably need to install
+    the Python headers. These headers are available in most package
+    managers. On Ubuntu the package name for ``apt-get`` is
+    ``python-dev``.
+
+    Gevent_ also requires that ``libevent`` 1.4.x or 2.0.4 is installed.
+    This could be a more recent version than what is available in your
+    package manager. If Gevent_ fails to build even with ``libevent``
+    installed, this is the most likely reason.
+
 Installing on Ubuntu/Debian systems
 -----------------------------------
 

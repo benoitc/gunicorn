@@ -105,13 +105,20 @@ request processing. Check out the <a class="reference external" href="faq.html">
 want to consider one of the alternate worker types.</p>
 <p>To install eventlet:</p>
 <pre class="literal-block">
-$ easy_install -U eventlet
+$ easy_install -U greenlet  # Required for both
+$ easy_install -U eventlet  # For eventlet workers
+$ easy_install -U gevent    # For gevent workers
 </pre>
-<p>Replace <tt class="docutils literal"><span class="pre">eventlet</span></tt> with <tt class="docutils literal"><span class="pre">gevent</span></tt> to use to the <tt class="docutils literal"><span class="pre">gevent</span></tt> based workers.</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
-<p class="last">If you encounter errors when compiling the extensions for <a class="reference external" href="http://eventlet.net">Eventlet</a> or
-<a class="reference external" href="http://gevent.org">Gevent</a> you most likely need to install a newer version of <a class="reference external" href="http://software.schmorp.de/pkg/libev.html">libev</a>.</p>
+<p>If installing <tt class="docutils literal"><span class="pre">greenlet</span></tt> fails you probably need to install
+the Python headers. These headers are available in most package
+managers. On Ubuntu the package name for <tt class="docutils literal"><span class="pre">apt-get</span></tt> is
+<tt class="docutils literal"><span class="pre">python-dev</span></tt>.</p>
+<p class="last"><a class="reference external" href="http://gevent.org">Gevent</a> also requires that <tt class="docutils literal"><span class="pre">libevent</span></tt> 1.4.x or 2.0.4 is installed.
+This could be a more recent version than what is available in your
+package manager. If <a class="reference external" href="http://gevent.org">Gevent</a> fails to build even with <tt class="docutils literal"><span class="pre">libevent</span></tt>
+installed, this is the most likely reason.</p>
 </div>
 </div>
 <div class="section" id="installing-on-ubuntu-debian-systems">
