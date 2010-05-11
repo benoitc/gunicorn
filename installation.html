@@ -105,13 +105,20 @@ request processing. Check out the <a class="reference external" href="faq.html">
 want to consider one of the alternate worker types.</p>
 <p>To install eventlet:</p>
 <pre class="literal-block">
+$ easy_install -U greenlet
 $ easy_install -U eventlet
 </pre>
 <p>Replace <tt class="docutils literal"><span class="pre">eventlet</span></tt> with <tt class="docutils literal"><span class="pre">gevent</span></tt> to use to the <tt class="docutils literal"><span class="pre">gevent</span></tt> based workers.</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
-<p class="last">If you encounter errors when compiling the extensions for <a class="reference external" href="http://eventlet.net">Eventlet</a> or
-<a class="reference external" href="http://gevent.org">Gevent</a> you most likely need to install a newer version of <a class="reference external" href="http://software.schmorp.de/pkg/libev.html">libev</a>.</p>
+<p>If installing greenlet fails you may need to make sure that you have
+the Python headers available for extension modules. These headers
+are generally available in your package manager. On Ubuntu the
+package is <tt class="docutils literal"><span class="pre">python-dev</span></tt>.</p>
+<p class="last"><a class="reference external" href="http://gevent.org">Gevent</a> also requires that libevent 1.4.x or 2.0.4 is installed. This
+may very well be newer than what's in your distributions package
+manager. If you have libevent installed and <a class="reference external" href="http://gevent.org">Gevent</a> still fails to
+build, this is the most likely reason.</p>
 </div>
 </div>
 <div class="section" id="installing-on-ubuntu-debian-systems">
