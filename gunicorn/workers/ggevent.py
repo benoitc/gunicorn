@@ -20,7 +20,7 @@ class GEventWorker(AsyncWorker):
     @classmethod  
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all()
+        monkey.patch_all(dns=False)
         
     def keepalive_request(self, client, addr):
         req = None
