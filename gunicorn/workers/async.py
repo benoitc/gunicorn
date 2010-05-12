@@ -30,7 +30,7 @@ class AsyncWorker(Worker):
                 pass
         except socket.error, e:
             if e[0] not in (errno.EPIPE, errno.ECONNRESET):
-                self.log.exception("Error processing request.")
+                self.log.exception("Socket error processing request.")
             else:
                 if e[0] == errno.ECONNRESET:
                     self.log.warn("Ignoring connection reset")
@@ -39,7 +39,7 @@ class AsyncWorker(Worker):
         except UnexpectedEOF:
             self.log.exception("Client closed the connection unexpectedly.")
         except Exception, e:
-            self.log.exception("Error processing request.")
+            self.log.exception("General error processing request.")
             try:            
                 # Last ditch attempt to notify the client of an error.
                 mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"

@@ -60,6 +60,9 @@ class GEventWorker(AsyncWorker):
                 conn, addr, gt = None, None, None
             except greenlet.GreenletExit:
                 return
+            except:
+                self.log.exception("Unexpected error in acceptor. Sepuku.")
+                os._exit(4)
           
     def cleanup(self, gt):
         try:

@@ -62,6 +62,9 @@ class EventletWorker(AsyncWorker):
                 conn, addr, gt = None, None, None
             except eventlet.StopServe:
                 return
+            except:
+                self.log.exception("Unexpected error in acceptor. Sepuku.")
+                os._exit(4)
 
     def cleanup(self, thread, conn):
         try:
