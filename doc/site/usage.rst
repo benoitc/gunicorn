@@ -9,7 +9,7 @@ that can be used for serving the various supported web frameworks: ``gunicorn``,
 ``gunicorn_django``, and ``gunicorn_paster``.
 
 Commonly Used Arguments
-+++++++++++++++++++++++
+-----------------------
 
   * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_
   * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
@@ -33,7 +33,7 @@ You can see the complete list at the bottom of this page or as expected with::
     $ gunicorn -h
 
 gunicorn
-++++++++
+--------
 
 The first and most basic script is used to server 'bare' WSGI applications
 that don't require a translation layer. Basic usage::
@@ -50,7 +50,7 @@ Example with test app::
     $ gunicorn --workers=2 test:app
     
 gunicorn_django
-+++++++++++++++
+---------------
 
 You might not have guessed it, but this script is used to server Django
 applications. Basic usage::
@@ -81,7 +81,7 @@ Then you can run::
     python manage.py run_gunicorn
 
 gunicorn_paster
-+++++++++++++++
+---------------
 
 Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
 apologize for the lack of script name creativity. And some usage::
@@ -107,7 +107,7 @@ And then as per usual::
     $ paster serve development.ini workers=2
 
 Full Command Line Usage
-+++++++++++++++++++++++
+-----------------------
 
 ::
 
@@ -141,8 +141,49 @@ Full Command Line Usage
       --version             show program's version number and exit
       -h, --help            show this help message and exit
 
+Framework Examples
+------------------
+
+This is an incomplete list of examples of using Gunicorn with various
+Python web frameworks. If you have an example to add you're very much
+invited to submit a ticket to the `issue tracker`_ to have it included.
+
+Itty
+++++
+
+Itty comes with builtin Gunicorn support. The Itty "Hello, world!" looks
+like such::
+
+    from itty import *
+
+    @get('/')
+    def index(request):
+        return 'Hello World!'
+
+    run_itty(server='gunicorn')
+
+Flask
++++++
+
+Flask applications are WSGI compatible. Given this Flask app in an importable
+Python module "helloflask.py"::
+
+    from flask import Flask
+    app = Flask(__name__)
+
+    @app.route("/")
+    def hello():
+        return "Hello World!"
+
+Gunicorn can then be used to run it as such::
+
+    $ gunicorn helloflask:app
+
+Remember, if you're just trying to get things up and runnign that "importable"
+can be as simple as "exists in the current directory".
 
 .. _FAQ: faq.html
 .. _`production page`: deployment.html
 .. _`config file`: configuration.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _`issue tracker`: http://github.com/benoitc/gunicorn/issues

@@ -50,27 +50,27 @@
   <div class="document" id="usage">
 <h1 class="title">Usage</h1>
 <p>After installing Gunicorn you will have access to three command line scripts
-that can be used for serving the various supported web frameworks: <tt class="docutils literal"><span class="pre">gunicorn</span></tt>,
-<tt class="docutils literal"><span class="pre">gunicorn_django</span></tt>, and <tt class="docutils literal"><span class="pre">gunicorn_paster</span></tt>.</p>
+that can be used for serving the various supported web frameworks: <tt class="docutils literal">gunicorn</tt>,
+<tt class="docutils literal">gunicorn_django</tt>, and <tt class="docutils literal">gunicorn_paster</tt>.</p>
 <div class="section" id="commonly-used-arguments">
 <h1>Commonly Used Arguments</h1>
 <blockquote>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-c</span> <span class="pre">CONFIG,</span> <span class="pre">--config=CONFIG</span></tt> - Specify the path to a <a class="reference external" href="configuration.html">config file</a></li>
-<li><tt class="docutils literal"><span class="pre">-b</span> <span class="pre">BIND,</span> <span class="pre">--bind=BIND</span></tt> - Specify a server socket to bind. Server sockets
-can be any of <tt class="docutils literal"><span class="pre">$(HOST)</span></tt>, <tt class="docutils literal"><span class="pre">$(HOST):$(PORT)</span></tt>, or <tt class="docutils literal"><span class="pre">unix:$(PATH)</span></tt>.
-An IP is a valid <tt class="docutils literal"><span class="pre">$(HOST)</span></tt>.</li>
-<li><tt class="docutils literal"><span class="pre">-w</span> <span class="pre">WORKERS,</span> <span class="pre">--workers=WORKERS</span></tt> - The number of worker processes. This
+<li><tt class="docutils literal"><span class="pre">-c</span> CONFIG, <span class="pre">--config=CONFIG</span></tt> - Specify the path to a <a class="reference external" href="configuration.html">config file</a></li>
+<li><tt class="docutils literal"><span class="pre">-b</span> BIND, <span class="pre">--bind=BIND</span></tt> - Specify a server socket to bind. Server sockets
+can be any of <tt class="docutils literal">$(HOST)</tt>, <tt class="docutils literal"><span class="pre">$(HOST):$(PORT)</span></tt>, or <tt class="docutils literal"><span class="pre">unix:$(PATH)</span></tt>.
+An IP is a valid <tt class="docutils literal">$(HOST)</tt>.</li>
+<li><tt class="docutils literal"><span class="pre">-w</span> WORKERS, <span class="pre">--workers=WORKERS</span></tt> - The number of worker processes. This
 number should generally be between 2-4 workers per core in the server.
 Check the <a class="reference external" href="faq.html">FAQ</a> for ideas on tuning this parameter.</li>
-<li><tt class="docutils literal"><span class="pre">-k</span> <span class="pre">WORKERCLASS,</span> <span class="pre">--worker-class=WORKERCLASS</span></tt> - The type of worker process
+<li><tt class="docutils literal"><span class="pre">-k</span> WORKERCLASS, <span class="pre">--worker-class=WORKERCLASS</span></tt> - The type of worker process
 to run. You'll definitely want to read the <a class="reference external" href="deployment.html">production page</a> for the
 implications of this parameter. You can set this to <tt class="docutils literal"><span class="pre">egg:gunicorn#$(NAME)</span></tt>
-where <tt class="docutils literal"><span class="pre">$(NAME)</span></tt> is one of <tt class="docutils literal"><span class="pre">sync</span></tt>, <tt class="docutils literal"><span class="pre">eventlet</span></tt>, <tt class="docutils literal"><span class="pre">gevent</span></tt>, or
-<tt class="docutils literal"><span class="pre">tornado</span></tt>. <tt class="docutils literal"><span class="pre">sync</span></tt> is the default.</li>
-<li><tt class="docutils literal"><span class="pre">-n</span> <span class="pre">APP_NAME,</span> <span class="pre">--name=APP_NAME</span></tt> - If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle/">setproctitle</a> is installed you can
+where <tt class="docutils literal">$(NAME)</tt> is one of <tt class="docutils literal">sync</tt>, <tt class="docutils literal">eventlet</tt>, <tt class="docutils literal">gevent</tt>, or
+<tt class="docutils literal">tornado</tt>. <tt class="docutils literal">sync</tt> is the default.</li>
+<li><tt class="docutils literal"><span class="pre">-n</span> APP_NAME, <span class="pre">--name=APP_NAME</span></tt> - If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle/">setproctitle</a> is installed you can
 adjust the name of Gunicorn process as they appear in the process system
-table (which affects tools like <tt class="docutils literal"><span class="pre">ps</span></tt> and <tt class="docutils literal"><span class="pre">top</span></tt>).</li>
+table (which affects tools like <tt class="docutils literal">ps</tt> and <tt class="docutils literal">top</tt>).</li>
 </ul>
 </blockquote>
 <p>There are various other parameters that affect user privileges, logging, etc.
@@ -86,7 +86,7 @@ that don't require a translation layer. Basic usage:</p>
 <pre class="literal-block">
 $ gunicorn [OPTIONS] APP_MODULE
 </pre>
-<p>Where <tt class="docutils literal"><span class="pre">APP_MODULE</span></tt> is of the pattern <tt class="docutils literal"><span class="pre">$(MODULE_NAME):$(VARIABLE_NAME)</span></tt>. The
+<p>Where <tt class="docutils literal">APP_MODULE</tt> is of the pattern <tt class="docutils literal"><span class="pre">$(MODULE_NAME):$(VARIABLE_NAME)</span></tt>. The
 module name can be a full dotted path. The variable name refers to a WSGI
 callable that should be found in the specified module.</p>
 <p>Example with test app:</p>
@@ -102,7 +102,7 @@ applications. Basic usage:</p>
 <pre class="literal-block">
 $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
 </pre>
-<p>By default <tt class="docutils literal"><span class="pre">SETTINGS_PATH</span></tt> will look for <tt class="docutils literal"><span class="pre">settings.py</span></tt> in the current
+<p>By default <tt class="docutils literal">SETTINGS_PATH</tt> will look for <tt class="docutils literal">settings.py</tt> in the current
 directory.</p>
 <p>Example with your Django project:</p>
 <pre class="literal-block">
@@ -111,7 +111,7 @@ $ gunicorn_django --workers=2
 </pre>
 <p>Alternatively, you can install some Gunicorn magic directly into your Django
 project and use the provided command for running the server.</p>
-<p>First you'll need to add <tt class="docutils literal"><span class="pre">gunicorn</span></tt> to your <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt> in the settings
+<p>First you'll need to add <tt class="docutils literal">gunicorn</tt> to your <tt class="docutils literal">INSTALLED_APPS</tt> in the settings
 file:</p>
 <pre class="literal-block">
 INSTALLED_APPS = (
@@ -183,6 +183,45 @@ Options:
   --version             show program's version number and exit
   -h, --help            show this help message and exit
 </pre>
+</div>
+<div class="section" id="framework-examples">
+<h1>Framework Examples</h1>
+<p>This is an incomplete list of examples of using Gunicorn with various
+Python web frameworks. If you have an example to add you're very much
+invited to submit a ticket to the <a class="reference external" href="http://github.com/benoitc/gunicorn/issues">issue tracker</a> to have it included.</p>
+<div class="section" id="itty">
+<h2>Itty</h2>
+<p>Itty comes with builtin Gunicorn support. The Itty &quot;Hello, world!&quot; looks
+like such:</p>
+<pre class="literal-block">
+from itty import *
+
+&#64;get('/')
+def index(request):
+    return 'Hello World!'
+
+run_itty(server='gunicorn')
+</pre>
+</div>
+<div class="section" id="flask">
+<h2>Flask</h2>
+<p>Flask applications are WSGI compatible. Given this Flask app in an importable
+Python module &quot;helloflask.py&quot;:</p>
+<pre class="literal-block">
+from flask import Flask
+app = Flask(__name__)
+
+&#64;app.route(&quot;/&quot;)
+def hello():
+    return &quot;Hello World!&quot;
+</pre>
+<p>Gunicorn can then be used to run it as such:</p>
+<pre class="literal-block">
+$ gunicorn helloflask:app
+</pre>
+<p>Remember, if you're just trying to get things up and runnign that &quot;importable&quot;
+can be as simple as &quot;exists in the current directory&quot;.</p>
+</div>
 </div>
 </div>
 
