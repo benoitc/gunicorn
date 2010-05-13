@@ -140,7 +140,7 @@ $ gunicorn_paste --workers=2 development.ini
 you can specify the Gunicorn server settings in your configuration file:</p>
 <pre class="literal-block">
 [server:main]
-use = egg:gunicorn#main
+worker_class = egg:gunicorn#sync
 host = 127.0.0.1
 port = 5000
 </pre>
