@@ -97,7 +97,7 @@ If you're wanting to keep on keeping on with the usual paster serve command,
 you can specify the Gunicorn server settings in your configuration file::
 
     [server:main]
-    worker_class = egg:gunicorn#sync
+    use = egg:gunicorn#main
     host = 127.0.0.1
     port = 5000
 
