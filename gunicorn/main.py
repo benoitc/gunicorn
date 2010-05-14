@@ -69,6 +69,7 @@ def main(usage, get_app):
     
     cfg = Config(opts.__dict__, opts.config)
     app = get_app(parser, opts, args)
+    cfg.update(app.get_config())
     if cfg.spew:
         spew()
     if cfg.daemon:
@@ -77,7 +78,7 @@ def main(usage, get_app):
         os.setpgrp()
     configure_logging(cfg)
     
-    Arbiter(cfg, app).run()
+    Arbiter(cfg, app.load()).run()
     
 def run():
     """\
@@ -90,10 +91,13 @@ def run():
         if len(args) != 1:
             parser.error("No application module specified.")
         opts.default_proc_name = args[0]
+
+        application = app.WSGIApplication(args[0])
         try:
-            return util.import_app(args[0])
+            application.load()
         except Exception, e:
             parser.error("Failed to import application module:\n    %s" % e)
+        return application
 
     main("%prog [OPTIONS] APP_MODULE", get_app)
     
@@ -124,22 +128,15 @@ def run_django():
              settings_path = os.path.join(project_path, "settings.py")
              if not os.path.exists(settings_path):
                  settings_notfound(settings_path)
-        
-        project_name = os.path.split(project_path)[-1]
-
-        sys.path.insert(0, project_path)
-        sys.path.append(os.path.join(project_path, os.pardir))
 
         # set environ
+        project_name = os.path.split(project_path)[-1]
         settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
-        
-        settings_modname = '%s.%s' % (project_name,  settings_name)
-        os.environ['DJANGO_SETTINGS_MODULE'] = settings_modname
-                                                
+        settings_modname = "%s.%s" % (project_name, settings_name)
         opts.default_proc_name  = settings_modname
         
         # django wsgi app
-        return django.core.handlers.wsgi.WSGIHandler()
+        return app.DjangoApplication(settings_modname, project_path)
         
     
 
@@ -150,7 +147,7 @@ def run_paster():
     The ``gunicorn_paster`` command for launcing Paster compatible
     apllications like Pylons or Turbogears2
     """
-    from paste.deploy import loadapp, loadwsgi
+    from paste.deploy import loadwsgi
 
     def get_app(parser, opts, args):
         if len(args) != 1:
@@ -169,43 +166,8 @@ def run_paster():
 
         # add to eggs
         pkg_resources.working_set.add_entry(relpath)
-        ctx = loadwsgi.loadcontext(loadwsgi.SERVER, cfgurl, relative_to=relpath)
-
         
-        if not opts.workers:
-            opts.workers = ctx.local_conf.get('workers', 1)
-
-        if not opts.umask:
-            opts.umask = int(ctx.local_conf.get('umask', UMASK))
-            
-        if not opts.group:
-            opts.group = ctx.local_conf.get('group')
-        
-        if not opts.user:
-            opts.user = ctx.local_conf.get('user')
-     
-        if not opts.bind:
-            host = ctx.local_conf.get('host')
-            port = ctx.local_conf.get('port')
-            if host:
-                if port:
-                    bind = "%s:%s" % (host, port)
-                else:
-                    bind = host
-                opts.bind = bind
-
-        for k, v in ctx.local_conf.items():
-            if not hasattr(opts, k):
-                setattr(opts, k, v)
-
-        if not opts.debug:
-            opts.debug = (ctx.global_conf.get('debug') == "true")
-            
-            
-        opts.default_proc_name= ctx.global_conf.get('__file__')
-
-        app = loadapp(cfgurl, relative_to=relpath)
-        return app
+        return app.PasterApplication(cfgurl, relpath, opts.__dict__)
 
     main("%prog [OPTIONS] pasteconfig.ini", get_app)
 

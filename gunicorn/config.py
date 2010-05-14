@@ -44,19 +44,30 @@ class Config(object):
     )
     
     def __init__(self, opts, path=None):
-        self.cfg = self.DEFAULTS.copy()
-
+        self.cfg = {}
+        self.opts = opts
         if path is None:
             path = os.path.join(os.getcwd(), self.DEFAULT_CONFIG_FILE)
-        if os.path.exists(path):
+        self.path = path
+        self.load()
+    
+    def update(self, opts):
+        opts = dict((k, v) for (k, v) in opts.iteritems() if v is not None)
+        self.opts.update(opts)
+        self.cfg.update(opts)
+    
+    def load(self):
+        self.cfg = self.DEFAULTS.copy()
+
+        if os.path.exists(self.path):
             try:
-                execfile(path, globals(), self.cfg)
+                execfile(self.path, globals(), self.cfg)
             except Exception, e:
-                sys.exit("Could not read config file: %r\n    %s" % (path, e))
+                sys.exit("Could not read config file: %r\n %s" % (self.path, e))
             self.cfg.pop("__builtins__", None)
 
-        opts = [(k, v) for (k, v) in opts.iteritems() if v is not None]
-        self.cfg.update(dict(opts))
+        opts = dict((k, v) for (k, v) in opts.iteritems() if v is not None)
+        self.cfg.update(opts)
            
     def __getitem__(self, key):
         try:
