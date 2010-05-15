@@ -3,99 +3,153 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import ConfigParser
 import grp
+import inspect
+import optparse
 import os
 import pwd
 import sys
+import types
 
+from gunicorn import __version__
 from gunicorn import util
 
+class Setting(object):
+    def __init__(self, name, opts):
+        self.name = name
+        self.section = opts["section"]
+        self.order = int(opts.get("order", 0))
+        self.cli = opts["cli"].split()
+        self.type = opts["type"].strip()
+        self.arity = opts.get('arity', None)
+        if self.arity:
+            self.arity = int(self.arity)
+        self.meta = opts.get('meta', "").strip() or None
+        self.action = opts.get('action', "store").strip()
+        self.default = opts.get('default').strip() or None
+        self.desc = opts["desc"]
+        self.short = self.desc.splitlines()[0].strip()
+
+        # Special case the callable types.
+        self.value = None
+        if self.default and self.type != 'callable':
+            self.set(self.default, modified=False)
+
+        # A flag that tells us if this setting
+        # has been altered
+        self.modified = False
+    
+    def add_option(self, parser):
+        if not len(self.cli):
+            return
+        args = tuple(self.cli)
+        opttypes = {
+            "pos_int": "int",
+            "bool": None
+        }
+        kwargs = {
+            "dest": self.name,
+            "metavar": self.meta or None,
+            "action": self.action,
+            "type": opttypes.get(self.type, "string"),
+            "default": None,
+            "help": "%s [%s]" % (self.short, self.default)
+        }
+        parser.add_option(*args, **kwargs)
+    
+    def get(self):
+        return self.value
+    
+    def set(self, val, modified=True):
+        validator = getattr(self, "set_%s" % self.type)
+        self.value = validator(val)
+        self.modified = modified
+    
+    def set_bool(self, val):
+        if isinstance(val, types.BooleanType):
+            return val
+        if val.lower().strip() == "true":
+            return True
+        elif val.lower().strip() == "false":
+            return False
+        else:
+            raise ValueError("Invalid boolean: %s" % val)
+    
+    def set_pos_int(self, val):
+        if not isinstance(val, (types.IntType, types.LongType)):
+            val = int(val, 0)
+        if val < 0:
+            raise ValueError("Value must be positive: %s" % val)
+        return val
+
+    def set_string(self, val):
+        return val.strip()
+    
+    def set_callable(self, val):
+        if not callable(val):
+            raise TypeError("Value is not callable: %s" % val)
+        arity = len(inspect.getargspec(val)[0])
+        if arity != self.arity:
+            raise TypeError("Value must have an arity of: %s" % self.arity)
+        return val
+
 class Config(object):
-    
-    DEFAULT_CONFIG_FILE = 'gunicorn.conf.py'
-    
-    DEFAULTS = dict(
-        backlog=2048,
-        bind='127.0.0.1:8000',
-        daemon=False,
-        debug=False,
-        default_proc_name = os.getcwd(),
-        group=None,
-        keepalive=2,
-        logfile='-',
-        loglevel='info',
-        pidfile=None,
-        proc_name = None,
-        spew=False,
-        timeout=30,
-        tmp_upload_dir=None,
-        umask="0",
-        user=None,
-        workers=1,
-        worker_connections=1000,
-        worker_class="egg:gunicorn#sync",
         
-        after_fork=lambda server, worker: server.log.info(
-            "Worker spawned (pid: %s)" % worker.pid),
+    def __init__(self, usage):
+        self.settings = {}
+        self.usage = usage
+
+        path = os.path.join(os.path.dirname(__file__), "options.ini")
+        opts = ConfigParser.SafeConfigParser()
+        if not len(opts.read(path)):
+            raise RuntimeError("Options configuration file is missing!")
         
-        before_fork=lambda server, worker: True,
+        for sect in opts.sections():
+            self.settings[sect] = Setting(sect, dict(opts.items(sect)))
 
-        before_exec=lambda server: server.log.info("Forked child, reexecuting")
-    )
-    
-    def __init__(self, opts, path=None):
-        self.cfg = {}
-        self.opts = opts
-        if path is None:
-            path = os.path.join(os.getcwd(), self.DEFAULT_CONFIG_FILE)
-        self.path = path
-        self.load()
-    
-    def update(self, opts):
-        opts = dict((k, v) for (k, v) in opts.iteritems() if v is not None)
-        self.opts.update(opts)
-        self.cfg.update(opts)
-    
-    def load(self):
-        self.cfg = self.DEFAULTS.copy()
-
-        if os.path.exists(self.path):
-            try:
-                execfile(self.path, globals(), self.cfg)
-            except Exception, e:
-                sys.exit("Could not read config file: %r\n %s" % (self.path, e))
-            self.cfg.pop("__builtins__", None)
-
-        opts = dict((k, v) for (k, v) in opts.iteritems() if v is not None)
-        self.cfg.update(opts)
-           
-    def __getitem__(self, key):
-        try:
-            return getattr(self, key)
-        except AttributeError:
-            pass
-        return self.cfg[key]
+        # Special case hook functions
+        self.settings['pre_fork'].set(def_pre_fork, modified=False)
+        self.settings['post_fork'].set(def_post_fork, modified=False)
+        self.settings['pre_exec'].set(def_pre_exec, modified=False)
         
-    def __getattr__(self, key):
-        try:
-            super(Config, self).__getattribute__(key)
-        except AttributeError:
-            if key in self.cfg:
-                return self.cfg[key]
-            raise
-            
-    def __contains__(self, key):
-        return (key in self.cfg)
-        
-    def __iter__(self):
-        return self.cfg.iteritems()
+    def __getattr__(self, name):
+        if name not in self.settings:
+            raise AttributeError("No configuration setting for: %s" % name)
+        return self.settings[name].get()
+    
+    def __setattr__(self, name, value):
+        if name != "settings" and name in self.settings:
+            raise AttributeError("Invalid access!")
+        super(Config, self).__setattr__(name, value)
+    
+    def set(self, name, value):
+        if name not in self.settings:
+            raise AttributeError("No configuration setting for: %s" % name)
+        self.settings[name].set(value)
 
-    def get(self, key, default=None):
-        return self.cfg.get(key, default)
+    def parser(self):
+        kwargs = {
+            "usage": self.usage,
+            "version": __version__,
+            "formatter": HelpFormatter()
+        }
+        parser = optparse.OptionParser(**kwargs)
+
+        keys = self.settings.keys()
+        def sorter(k):
+            return (self.settings[k].section, self.settings[k].order)
+        keys.sort(key=sorter)
+        for k in keys:
+            self.settings[k].add_option(parser)
+        return parser
+
+    def was_modified(self, name):
+        return self.settings[name].modified
 
     @property
     def worker_class(self):
-        uri = self.cfg.get('worker_class', None) or 'egg:gunicorn#sync'
+        uri = self.settings['worker_class'].get()
         worker_class = util.load_worker_class(uri)
         if hasattr(worker_class, "setup"):
             worker_class.setup()
@@ -103,72 +157,69 @@ class Config(object):
 
     @property   
     def workers(self):
-        if not self.cfg.get('workers'):
-            raise RuntimeError("invalid workers number")
-        workers = int(self.cfg["workers"])
-        if not workers:
-            raise RuntimeError("number of workers < 1")
-        if self.cfg['debug'] == True: 
-            workers = 1
-        return workers
+        if self.settings['debug'].get():
+            return 1
+        return self.settings['workers'].get()
 
     @property
     def address(self):
-        if not self.cfg['bind']:
-            raise RuntimeError("Listener address is not set")
-        return util.parse_address(util.to_bytestring(self.cfg['bind']))
-        
-    @property
-    def umask(self):
-        if not self.cfg.get('umask'):
-            return 0
-        umask = self.cfg['umask']
-        if isinstance(umask, basestring):
-            return int(umask, 0)
-        return umask
+        bind = self.settings['bind'].get()
+        return util.parse_address(util.to_bytestring(bind))
         
     @property
     def uid(self):
-        if not self.cfg.get('user'):
-            return os.geteuid()
+        user = self.settings['user'].get()
         
-        user =  self.cfg.get('user')
-        if user.isdigit() or isinstance(user, int):
-            uid = int(user)
+        if not user:
+            return os.geteuid()
+        elif user.isdigit() or isinstance(user, int):
+            return int(user)
         else:
-            uid = pwd.getpwnam(user).pw_uid
-        return uid
+            return pwd.getpwnam(user).pw_uid
         
     @property
     def gid(self):
-        if not self.cfg.get('group'):
+        group = self.settings['group'].get()
+
+        if not group:
             return os.getegid()
-        group = self.cfg.get('group')
-        if group.isdigit() or isinstance(group, int):
-            gid = int(group)
+        elif group.isdigit() or isinstance(user, int):
+            return int(group)
         else:
-            gid = grp.getgrnam(group).gr_gid
-        return gid
+            return grp.getgrnam(group).gr_gid
         
     @property
     def proc_name(self):
-        if not self.cfg.get('proc_name'):
-            return self.cfg.get('default_proc_name')
-        return self.cfg.get('proc_name')
-        
-    def after_fork(self, *args):
-        return self._hook("after_fork", *args)
-        
-    def before_fork(self, *args):
-        return self._hook("before_fork", *args)
-        
-    def before_exec(self, *args):
-        return self._hook("before_exec", *args)
+        pn = self.settings['proc_name'].get()
+        if pn:
+            return pn
+        else:
+            return self.settings['default_proc_name']
 
-    def _hook(self, hookname, *args):
-        hook = self.cfg.get(hookname)
-        if not hook:
-            return
-        if not callable(hook):
-            raise RuntimeError("%r hook isn't a callable" % hookname)
-        return hook(*args)
+    @property
+    def pre_fork(self):
+        return self.settings['pre_fork'].get()
+    
+    @property
+    def post_fork(self):
+        return self.settings['post_fork'].get()
+    
+    @property
+    def pre_exec(self):
+        return self.settings['pre_exec'].get()
+
+
+def def_pre_fork(server, worker):
+    pass
+
+def def_post_fork(server, worker):
+    server.log.info("Worker spawned (pid: %s)" % worker.pid)
+
+def def_pre_exec(server):
+    server.log.info("Forked child, reexecuting.")
+
+
+class HelpFormatter(optparse.IndentedHelpFormatter):
+    pass
+
+

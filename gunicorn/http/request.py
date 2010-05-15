@@ -45,9 +45,8 @@ class Request(object):
         "SERVER_SOFTWARE": "gunicorn/%s" % __version__
     }
 
-    def __init__(self, socket, client_address, server_address, conf):
-        self.debug = conf['debug']
-        self.conf = conf
+    def __init__(self, cfg, socket, client_address, server_address):
+        self.cfg = cfg
         self.socket = socket
     
         self.client_address = client_address
@@ -85,18 +84,17 @@ class Request(object):
             self.socket.send("HTTP/1.1 100 Continue\r\n\r\n")
             
         if not self.parser.content_len and not self.parser.is_chunked:
-            wsgi_input = TeeInput(self.socket, self.parser, StringIO(), 
-                            self.conf)
+            wsgi_input = TeeInput(self.cfg, self.socket, self.parser, StringIO())
             content_length = "0"
         else:
-            wsgi_input = TeeInput(self.socket, self.parser, buf2, self.conf)
+            wsgi_input = TeeInput(self.cfg, self.socket, self.parser, buf2)
             content_length = str(wsgi_input.len)
                 
         # This value should evaluate true if an equivalent application
         # object may be simultaneously invoked by another process, and
         # should evaluate false otherwise. In debug mode we fall to one
         # worker so we comply to pylons and other paster app.
-        wsgi_multiprocess = (self.debug == False)
+        wsgi_multiprocess = self.cfg.workers > 1
 
         # authors should be aware that REMOTE_HOST and REMOTE_ADDR
         # may not qualify the remote addr:

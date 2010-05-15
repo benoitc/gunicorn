@@ -209,3 +209,32 @@ def to_bytestring(s):
 
 def is_hoppish(header):
     return header.lower().strip() in hop_headers
+
+def daemonize():
+    """\
+    Standard daemonization of a process. Code is basd on the
+    ActiveState recipe at:
+        http://code.activestate.com/recipes/278731/
+    """
+    if not 'GUNICORN_FD' in os.environ:
+        if os.fork() == 0: 
+            os.setsid()
+            if os.fork() != 0:
+                os.umask(0) 
+            else:
+                os._exit(0)
+        else:
+            os._exit(0)
+        
+        maxfd = util.get_maxfd()
+
+        # Iterate through and close all file descriptors.
+        for fd in range(0, maxfd):
+            try:
+                os.close(fd)
+            except OSError:	# ERROR, fd wasn't open to begin with (ignored)
+                pass
+        
+        os.open(util.REDIRECT_TO, os.O_RDWR)
+        os.dup2(0, 1)
+        os.dup2(0, 2)

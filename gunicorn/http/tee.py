@@ -26,8 +26,8 @@ class TeeInput(object):
     
     CHUNK_SIZE = util.CHUNK_SIZE
     
-    def __init__(self, socket, parser, buf, conf):
-        self.conf = conf
+    def __init__(self, cfg, socket, parser, buf):
+        self.cfg = cfg
         self.buf = StringIO()
         self.parser = parser
         self._sock = socket
@@ -39,7 +39,7 @@ class TeeInput(object):
         elif self._len and self._len < util.MAX_BODY:
             self.tmp = StringIO()
         else:
-            self.tmp = tempfile.TemporaryFile(dir=self.conf['tmp_upload_dir'])
+            self.tmp = tempfile.TemporaryFile(dir=self.cfg['tmp_upload_dir'])
         
         if len(buf.getvalue()) > 0:
             chunk, self.buf = parser.filter_body(buf)

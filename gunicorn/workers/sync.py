@@ -89,7 +89,7 @@ class SyncWorker(Worker):
             util.close(client)
 
     def handle_request(self, client, addr):
-        req = http.Request(client, addr, self.address, self.cfg)
+        req = http.Request(self.cfg, client, addr, self.address)
         try:
             environ = req.read()
             if not environ or not req.parser.status_line:

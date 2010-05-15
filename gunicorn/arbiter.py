@@ -44,24 +44,19 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
     
-    def __init__(self, cfg, app):
-        self.cfg = cfg
-        self.app = app
+    def __init__(self, app):
+        self.cfg = app.cfg
+        self.app = app.load()
 
         self.log = logging.getLogger(__name__)
 
-        self.address = cfg.address
-        self.num_workers = cfg.workers
-        self.debug = cfg.debug
-        self.timeout = cfg.timeout
-        self.proc_name = cfg.proc_name
-        
-        try:
-            self.worker_class = cfg.worker_class
-        except ImportError, e:
-            self.log.error("%s" % e)
-            sys.exit(1)
-        
+        self.address = self.cfg.address
+        self.num_workers = self.cfg.workers
+        self.debug = self.cfg.debug
+        self.timeout = self.cfg.timeout
+        self.proc_name = self.cfg.proc_name
+        self.worker_class = self.cfg.worker_class
+
         self.pidfile = None
         self.worker_age = 0
         self.reexec_pid = 0
@@ -301,7 +296,7 @@ class Arbiter(object):
             
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
-        self.cfg.before_exec(self)
+        self.cfg.pre_exec(self)
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
     def murder_workers(self):
@@ -366,7 +361,7 @@ class Arbiter(object):
             self.worker_age += 1
             worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
                                         self.app, self.timeout/2.0, self.cfg)
-            self.cfg.before_fork(self, worker)
+            self.cfg.pre_fork(self, worker)
             pid = os.fork()
             if pid != 0:
                 self.WORKERS[pid] = worker
@@ -378,7 +373,7 @@ class Arbiter(object):
                 util._setproctitle("worker [%s]" % self.proc_name)
                 self.log.debug("Booting worker: %s (age: %s)" % (
                                                 worker_pid, self.worker_age))
-                self.cfg.after_fork(self, worker)
+                self.cfg.post_fork(self, worker)
                 worker.init_process()
                 sys.exit(0)
             except SystemExit:

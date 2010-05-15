@@ -21,8 +21,7 @@ class AsyncWorker(Worker):
         self.worker_connections = self.cfg.worker_connections
     
     def keepalive_request(self, client, addr):
-        return http.KeepAliveRequest(client, addr, self.address, 
-            self.cfg)
+        return http.KeepAliveRequest(self.cfg, client, addr, self.address)
 
     def handle(self, client, addr):
         try:

@@ -36,7 +36,7 @@ class BaseSocket(object):
         if not bound:
             self.bind(sock)
         sock.setblocking(0)
-        sock.listen(self.conf['backlog'])
+        sock.listen(self.conf.backlog)
         
         return sock
         
