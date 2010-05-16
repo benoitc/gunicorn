@@ -4,6 +4,13 @@ title: News
 News
 ====
 
+0.8.2 / 2010-05-16
+------------------
+
+- Fix pidfile
+- Fix QUIT/HUP in async workers
+- Documentation improvments
+
 0.8.1 / 2010-04-29
 ------------------
 
