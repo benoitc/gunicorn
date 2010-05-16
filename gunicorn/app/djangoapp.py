@@ -6,7 +6,8 @@
 import os
 import sys
 
-import django.core.handlers.wsgi
+from django.core.handlers.wsgi import WSGIHandler
+import django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
 from gunicorn import util
 from gunicorn.app.base import Application
@@ -43,4 +44,28 @@ class DjangoApplication(Application):
         
     def load(self):
         os.environ['DJANGO_SETTINGS_MODULE'] = self.settings_modname
-        return django.core.handlers.wsgi.WSGIHandler()
+        return WSGIHandler()
+
+class DjangoApplicationCommand(Application):
+    
+    def __init__(self, cfg, admin_media_path):
+        self.cfg = cfg
+        self.admin_media_path = admin_media_path
+        self.configure_logging()
+        
+    def load(self):
+        try:
+            return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
+        except WSGIServerException, e:
+            # Use helpful error messages instead of ugly tracebacks.
+            ERRORS = {
+                13: "You don't have permission to access that port.",
+                98: "That port is already in use.",
+                99: "That IP address can't be assigned-to.",
+            }
+            try:
+                error_text = ERRORS[e.args[0].args[0]]
+            except (AttributeError, KeyError):
+                error_text = str(e)
+            sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
+            sys.exit(1)

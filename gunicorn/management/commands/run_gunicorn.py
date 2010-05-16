@@ -12,12 +12,9 @@ import django
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.utils import translation
-from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
-from django.core.handlers.wsgi import WSGIHandler
- 
-from gunicorn.arbiter import Arbiter
+
 from gunicorn.config import Config
-from gunicorn.main import daemonize, configure_logging
+from gunicorn.app.djangoapp import DjangoApplicationCommand
  
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -56,7 +53,7 @@ class Command(BaseCommand):
         options['bind'] = addrport or '127.0.0.1'
         
         options['default_proc_name'] =settings.SETTINGS_MODULE
-        conf = Config(options, options.get('gconfig'))
+        cfg = Config(options, options.get('gconfig'))
 
         admin_media_path = options.get('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
@@ -65,31 +62,9 @@ class Command(BaseCommand):
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), 
                                             settings.SETTINGS_MODULE)
-        print "Development server is running at %s" % str(conf.address)
+        print "Development server is running at %s" % str(cfg.address)
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
         translation.activate(settings.LANGUAGE_CODE)
-        
-        try:
-            handler = AdminMediaHandler(WSGIHandler(), admin_media_path)
-            arbiter = Arbiter(conf, handler)
-            if conf['daemon']:
-                daemonize()
-            else:
-                os.setpgrp()
-            configure_logging(conf)
-            arbiter.run()
-        except WSGIServerException, e:
-            # Use helpful error messages instead of ugly tracebacks.
-            ERRORS = {
-                13: "You don't have permission to access that port.",
-                98: "That port is already in use.",
-                99: "That IP address can't be assigned-to.",
-            }
-            try:
-                error_text = ERRORS[e.args[0].args[0]]
-            except (AttributeError, KeyError):
-                error_text = str(e)
-            sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
-            sys.exit(1)
+        DjangoApplicationCommand(cfg, admin_media_path).run()
