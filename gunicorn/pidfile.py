@@ -42,17 +42,17 @@ class Pidfile(object):
         
     def rename(self, path):
         self.unlink()
-        self.path = path
+        self.fname = path
         self.create(self.pid)
         
     def unlink(self):
         """ delete pidfile"""
         try:
-            with open(self.path, "r") as f:
+            with open(self.fname, "r") as f:
                 pid1 =  int(f.read() or 0)
 
             if pid1 == self.pid:
-                os.unlink(self.path)
+                os.unlink(self.fname)
         except:
             pass
        

@@ -287,7 +287,7 @@ class Arbiter(object):
         Relaunch the master and workers.
         """
         if self.pidfile is not None:
-            self.pidfile.rename("%s.oldbin" % self.pidfile.path)         
+            self.pidfile.rename("%s.oldbin" % self.pidfile.fname)
         
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
