@@ -144,7 +144,7 @@ class Config(object):
             self.settings[k].add_option(parser)
         return parser
 
-    def was_modified(self, name):
+    def modified(self, name):
         return self.settings[name].modified
 
     @property
