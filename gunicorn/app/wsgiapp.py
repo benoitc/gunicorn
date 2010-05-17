@@ -20,12 +20,11 @@ class WSGIApplication(Application):
         self.app_uri = args[0]
 
         sys.path.insert(0, os.getcwd())
+
+    def load(self):
         try:
-            self.load()
+            return util.import_app(self.app_uri)
         except:
             print "Failed to import application: %s" % self.app_uri
             traceback.print_exc()
             sys.exit(1)
-
-    def load(self):
-        return util.import_app(self.app_uri)
