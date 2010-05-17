@@ -7,14 +7,14 @@ import os
 import sys
 
 from django.core.handlers.wsgi import WSGIHandler
-import django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
 from gunicorn import util
 from gunicorn.app.base import Application
 
 class DjangoApplication(Application):
     
-    def init(parser, opts, args):
+    def init(self, parser, opts, args):
         self.project_path = os.getcwd()
     
         if args:
@@ -28,13 +28,13 @@ class DjangoApplication(Application):
              if not os.path.exists(settings_path):
                  self.no_settings(settings_path)
 
-        project_name = os.path.split(project_path)[-1]
+        project_name = os.path.split(self.project_path)[-1]
         settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
         settings_modname = "%s.%s" % (project_name, settings_name)
         self.cfg.default_proc_name  = settings_modname
 
         sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.join(project_path, os.pardir))
+        sys.path.append(os.path.join(self.project_path, os.pardir))
 
     def no_settings(self, path):
         error = "Settings file '%s' not found in current folder.\n" % path
