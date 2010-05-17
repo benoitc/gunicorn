@@ -78,11 +78,14 @@ class Arbiter(object):
         except:
             cwd = os.getcwd()
             
+        args = sys.argv[:]
+        args.insert(0, sys.executable)
+
         # init start context
         self.START_CTX = {
-            "argv": copy.copy(sys.argv),
+            "args": args,
             "cwd": cwd,
-            0: copy.copy(sys.argv[0])
+            0: sys.executable
         }
 
     def start(self):
@@ -297,7 +300,7 @@ class Arbiter(object):
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
         self.cfg.before_exec(self)
-        os.execlp(self.START_CTX[0], *self.START_CTX['argv'])
+        os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
     def murder_workers(self):
         """\
