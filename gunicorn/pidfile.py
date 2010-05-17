@@ -32,7 +32,7 @@ class Pidfile(object):
         self.pid = pid
         
         # Write pidfile
-        fd, fname = tempfile.mkstemp()
+        fd, fname = tempfile.mkstemp(dir=os.path.dirname(self.fname))
         os.write(fd, "%s\n" % self.pid)
         if self.fname:
             os.rename(fname, self.fname)
