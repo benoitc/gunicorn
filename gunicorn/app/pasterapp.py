@@ -10,6 +10,9 @@ import sys
 from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER
 
+from gunicorn.app.base import Application
+from gunicorn.config import Config
+
 class PasterApplication(Application):
     
     def init(self, parser, opts, args):
@@ -31,11 +34,11 @@ class PasterApplication(Application):
 
     def app_config(self):
         cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
-        gc, lc = cx.global_conf, cx.local_conf
+        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
 
         cfg = {}
         
-        host, port = lc.get('host'), lc.get('port')
+        host, port = lc.pop('host', ''), lc.pop('port', '')
         if host and port:
             cfg['bind'] = '%s:%s' % (host, port)
         elif host:
@@ -52,25 +55,28 @@ class PasterApplication(Application):
 
 class PasterServerApplication(Application):
     
-    def __init__(self, app, *args, **kwargs):
-        self.log = logging.getLogger(__name__)
+    def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
         self.app = app
 
-        cfg = {}
-        host, port = kwargs.get('host'), kwargs.get('port')
-        if host and port:
-            cfg['bind'] = '%s:%s' % (host, port)
-        elif host:
-            cfg['bind'] = host
+        cfg = kwargs.copy()
+
+        if port and not host.startswith("unix:"):
+            bind = "%s:%s" % (host, port)
+        else:
+            bind = host
+        cfg["bind"] = bind
 
         if gcfg:
             for k, v in list(gcfg.items()):
-                if k.lower() in self.cfg.settings:
-                    self.cfg.set(k.lower(), v)
-            self.cfg.default_proc_name = kwargs.__file__
+                cfg[k] = v
+            cfg["default_proc_name"] = cfg['__file__']
 
-        self.configure_logging(cfg)
+        for k, v in list(cfg.items()):
+            if k.lower() in self.cfg.settings and v is not None:
+                self.cfg.set(k.lower(), v)
+            
+        self.configure_logging()
 
     def load(self):
         return self.app

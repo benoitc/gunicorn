@@ -27,7 +27,7 @@ def run_paster():
     from gunicorn.app.pasterapp import PasterApplication
     PasterApplication("%prog [OPTIONS] pasteconfig.ini").run()
 
-def paste_server(*args, **kwargs):
+def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     """\
     A paster server.
     
@@ -40,7 +40,7 @@ def paste_server(*args, **kwargs):
     
     """
     from gunicorn.app.pasterapp import PasterServerApplication
-    PasterServerApplication(app, *args, **kwargs).run()
+    PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()
 
  
 

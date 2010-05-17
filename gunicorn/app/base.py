@@ -28,7 +28,7 @@ class Application(object):
         
         # Load up the any app specific configuration
         if cfg:
-            for k, v in cfg:
+            for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
         
         # Load up the config file if its found.
