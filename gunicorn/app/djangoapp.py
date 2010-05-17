@@ -10,6 +10,7 @@ from django.core.handlers.wsgi import WSGIHandler
 from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
 from gunicorn import util
+from gunicorn.config import Config
 from gunicorn.app.base import Application
 
 class DjangoApplication(Application):
@@ -30,8 +31,8 @@ class DjangoApplication(Application):
 
         project_name = os.path.split(self.project_path)[-1]
         settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
-        settings_modname = "%s.%s" % (project_name, settings_name)
-        self.cfg.default_proc_name  = settings_modname
+        self.settings_modname = "%s.%s" % (project_name, settings_name)
+        self.cfg.set("default_proc_name", self.settings_modname)
 
         sys.path.insert(0, self.project_path)
         sys.path.append(os.path.join(self.project_path, os.pardir))
@@ -48,8 +49,12 @@ class DjangoApplication(Application):
 
 class DjangoApplicationCommand(Application):
     
-    def __init__(self, cfg, admin_media_path):
-        self.cfg = cfg
+    def __init__(self, options, admin_media_path):
+        self.cfg = Config()
+        for k, v in list(options.items()):
+            if k.lower() in self.cfg.settings and v is not None:
+                self.cfg.set(k.lower(), v)
+        
         self.admin_media_path = admin_media_path
         self.configure_logging()
         

@@ -53,18 +53,17 @@ class Command(BaseCommand):
         options['bind'] = addrport or '127.0.0.1'
         
         options['default_proc_name'] =settings.SETTINGS_MODULE
-        cfg = Config(options, options.get('gconfig'))
 
-        admin_media_path = options.get('admin_media_path', '')
+        admin_media_path = options.pop('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
 
         print "Validating models..."
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), 
                                             settings.SETTINGS_MODULE)
-        print "Development server is running at %s" % str(cfg.address)
+        print "Development server is running at %s" % options['bind']
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
         translation.activate(settings.LANGUAGE_CODE)
-        DjangoApplicationCommand(cfg, admin_media_path).run()
+        DjangoApplicationCommand(options, admin_media_path).run()

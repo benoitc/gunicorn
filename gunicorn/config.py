@@ -20,7 +20,7 @@ KNOWN_SETTINGS = []
 
 class Config(object):
         
-    def __init__(self, usage):
+    def __init__(self, usage=None):
         self.settings = dict((s.name, s) for s in KNOWN_SETTINGS)
         self.usage = usage
         
