@@ -28,7 +28,7 @@ class Application(object):
         
         # Load up the any app specific configuration
         if cfg:
-            for k, v in cfg.items():
+            for k, v in list(cfg.items()):
                 self.cfg.set(k.lower(), v)
         
         # Load up the config file if its found.
@@ -41,12 +41,12 @@ class Application(object):
                 traceback.print_exc()
                 sys.exit(1)
         
-            for k, v in cfg.iteritems():
+            for k, v in list(cfg.items()):
                 self.cfg.set(k.lower(), v)
             
         # Lastly, update the configuration with any command line
         # settings.
-        for k, v in opts.__dict__.iteritems():
+        for k, v in list(opts.__dict__.items()):
             if v is None:
                 continue
             self.cfg.set(k.lower(), v)
