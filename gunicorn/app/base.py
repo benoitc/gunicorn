@@ -47,7 +47,7 @@ class Application(object):
         # Lastly, update the configuration with any command line
         # settings.
         for k, v in opts.__dict__.iteritems():
-            if v is None or self.cfg.modified(k.lower()):
+            if v is None:
                 continue
             self.cfg.set(k.lower(), v)
             
