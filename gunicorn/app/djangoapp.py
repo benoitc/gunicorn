@@ -25,7 +25,7 @@ class DjangoApplication(Application):
             else:
                 self.project_path = os.path.dirname(settings_path)
         else:
-             settings_path = os.path.join(project_path, "settings.py")
+             settings_path = os.path.join(self.project_path, "settings.py")
              if not os.path.exists(settings_path):
                  self.no_settings(settings_path)
 
