@@ -95,8 +95,10 @@ class Arbiter(object):
         self.pid = os.getpid()
         self.init_signals()
         self.LISTENER = create_socket(self.cfg)
-        self.pidfile = Pidfile(self.cfg.pidfile)
-        self.pidfile.create(self.pid)
+        
+        if self.cfg.pidfile is not None:
+            self.pidfile = Pidfile(self.cfg.pidfile)
+            self.pidfile.create(self.pid)
         self.log.info("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         

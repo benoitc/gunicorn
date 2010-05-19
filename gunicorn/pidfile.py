@@ -32,7 +32,10 @@ class Pidfile(object):
         self.pid = pid
         
         # Write pidfile
-        fd, fname = tempfile.mkstemp(dir=os.path.dirname(self.fname))
+        fdir = os.path.dirname(self.fname)
+        if not os.path.isdir(fdir):
+            raise RuntimeError("%s don't exist. Can't create pidfile" % fdir)
+        fd, fname = tempfile.mkstemp(dir=fdir)
         os.write(fd, "%s\n" % self.pid)
         if self.fname:
             os.rename(fname, self.fname)
