@@ -6,6 +6,7 @@
 import logging
 import optparse
 import os
+import traceback
 
 from gunicorn import __version__
 from gunicorn import util
