@@ -176,7 +176,7 @@ def validate_pos_int(val):
     else:
         # Booleans are ints!
         val = int(val)
-    print "Setting: %s" % val
+    #print "Setting: %s" % val
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
     return val
