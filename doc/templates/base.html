@@ -4,40 +4,34 @@
     <meta charset="utf-8" />
     <title>Green Unicorn - {% block title %}Welcome{% endblock %}</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-  
-    <!--[if IE]>
-      <script>
-        document.createElement('section');
-        document.createElement('article');
-        document.createElement('aside');
-        document.createElement('footer');
-        document.createElement('header');
-        document.createElement('nav');
-        document.createElement('time');
-      </script>
-
-    <![endif]-->
-
-	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-	<div class="container"> 
-		<div id="header"> 
-	      
-	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
-
-	        <div id="links"> 
-	          Get the source via
-	          <a href="http://github.com/benoitc/gunicorn">git</a>, then
-	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
-	        </div> 
-	  </div>
-		{% block extra %}{% endblock %}
-    	{% block body %}{% endblock %}
-    <div id="footer">
-      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
-      <p>Hosted on <a href="http://github.com/">Github</a></p>
+    <div class="container">
+      <div id="header"> 
+        <a href="./">
+          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
+        </a>
+      </div>
+      <div id="menu">
+        <ul id="actions">
+          <li><a href="install.html">Install</a></li>
+          <li><a href="run.html">Run</a></li>
+          <li><a href="configure.html">Configure</a></li>
+          <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="design.html">Design</a><li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+      {% block body %}{% endblock %}
+      </div>
+      <div id="footer">
+        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
     </div>
-	</div>
   </body>
 </html>

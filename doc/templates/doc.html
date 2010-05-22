@@ -1,11 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}{{ title }}{% endblock %}
-
-{% block body %}
-  
-  {% include "menu.html" %}
-
-  {{ body }}
-  
-{% endblock %}
+{% block toc %}{{ toc }}{% endblock %}
+{% block body %}{{ body }}{% endblock %}

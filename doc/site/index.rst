@@ -2,7 +2,7 @@ template: index.html
 title: Welcome
 
 Green Unicorn
-=============
+-------------
 
 Gunicorn 'Green Unicorn' is a WSGI_ HTTP Server for UNIX. It's a pre-fork
 worker model ported from Ruby's Unicorn_ project. The Gunicorn server is

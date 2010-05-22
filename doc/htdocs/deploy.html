@@ -2,56 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Green Unicorn - Deployment</title>
+    <title>Green Unicorn - Deploy</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
     <div class="container">
       <div id="header"> 
-        <a href="http://gunicorn.org">
-          <img src="/images/logo.png" alt="Gunicorn - Green Unicorn" />
+        <a href="./">
+          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
         </a>
       </div>
       <div id="menu">
         <ul id="actions">
           <li><a href="install.html">Install</a></li>
+          <li><a href="run.html">Run</a></li>
           <li><a href="configure.html">Configure</a></li>
           <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="design.html">Design</a><li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="news.html">News</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
         </ul>
       </div>
-      <div class="document" id="production-setup">
-<h1 class="title">Production Setup</h1>
-<div class="section" id="synchronous-vs-asynchronous-workers">
-<h2>Synchronous vs Asynchronous workers</h2>
-<p>The default configuration of Gunicorn assumes that your application code is
-mostly CPU bound. The default worker class is a simple single threaded loop that
-just processes requests as they are received. In general, most applications will
-do just fine with this sort of configuration.</p>
-<p>This CPU bound assumption is why the default configuration needs to use a
-buffering HTTP proxy like <a class="reference external" href="http://www.nginx.org">Nginx</a> to protect the Gunicorn server. If we allowed
-direct connections a client could send a request slowly thus starving the server
-of free worker processes (because they're all stuck waiting for data).</p>
-<p>Example use-cases for asynchronous workers:</p>
-<blockquote>
+      <div id="content">
+      <div class="document">
+<div class="contents sidebar topic" id="contents">
+<p class="topic-title first">Contents</p>
 <ul class="simple">
-<li>Applications making long blocking calls (Ie, to external web services)</li>
-<li>Serving requests directly to the internet</li>
-<li>Streaming requests and responses</li>
-<li>Long polling</li>
-<li>Web sockets</li>
-<li>Comet</li>
+<li><a class="reference internal" href="#nginx-configuration" id="id3">Nginx Configuration</a></li>
+<li><a class="reference internal" href="#using-virtualenv" id="id4">Using Virtualenv</a></li>
+<li><a class="reference internal" href="#monitoring" id="id5">Monitoring</a><ul>
+<li><a class="reference internal" href="#runit" id="id6">Runit</a></li>
+<li><a class="reference internal" href="#supervisor" id="id7">Supervisor</a></li>
 </ul>
-</blockquote>
+</li>
+</ul>
 </div>
-<div class="section" id="basic-nginx-configuration">
-<h2>Basic Nginx Configuration</h2>
+<div class="section" id="nginx-configuration">
+<h2><a class="toc-backref" href="#contents">Nginx Configuration</a></h2>
 <p>Although there are many HTTP proxies available, we strongly advise that you
 use <a class="reference external" href="http://www.nginx.org">Nginx</a>. If you choose another proxy server you need to make sure that it
 buffers slow clients when you use default Gunicorn workers. Without this
-buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
+buffering Gunicorn will be easily susceptible to denial-of-service attacks.
 You can use <a class="reference external" href="http://ha.ckers.org/slowloris/">slowloris</a> to check if your proxy is behaving properly.</p>
 <p>An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf">example configuration</a> file for fast clients with <a class="reference external" href="http://www.nginx.org">Nginx</a>:</p>
 <pre class="literal-block">
@@ -128,8 +121,8 @@ location / {
 ...
 </pre>
 </div>
-<div class="section" id="working-with-virtualenv">
-<h2>Working with Virtualenv</h2>
+<div class="section" id="using-virtualenv">
+<h2><a class="toc-backref" href="#contents">Using Virtualenv</a></h2>
 <p>To serve an app from a <a class="reference external" href="http://pypi.python.org/pypi/virtualenv">Virtualenv</a> it is generally easiest to just install
 Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
 scripts for that Virtualenv which can be used to run applications normally.</p>
@@ -145,8 +138,8 @@ $ deactivate
 <p>Then you just need to use one of the three Gunicorn scripts that was installed
 into <tt class="docutils literal">~/venvs/webapp/bin</tt>.</p>
 </div>
-<div class="section" id="daemon-monitoring">
-<h2>Daemon Monitoring</h2>
+<div class="section" id="monitoring">
+<h2><a class="toc-backref" href="#contents">Monitoring</a></h2>
 <div class="note">
 <p class="first admonition-title">Note</p>
 <p class="last">Make sure that when using either of these service monitors you do not
@@ -155,6 +148,8 @@ they launch will be the process they need to monior. Daemonizing
 will fork-exec which creates an unmonitored process and generally just
 confuses the monitor services.</p>
 </div>
+<div class="section" id="runit">
+<h3><a class="toc-backref" href="#contents">Runit</a></h3>
 <p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>.
 An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
 <pre class="literal-block">
@@ -171,6 +166,9 @@ if [ -f $PID ]; then rm $PID fi
 cd $ROOT
 exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 </pre>
+</div>
+<div class="section" id="supervisor">
+<h3><a class="toc-backref" href="#contents">Supervisor</a></h3>
 <p>Another useful tool to monitor and control Gunicorn is <a class="reference external" href="http://supervisord.org">Supervisor</a>. A
 <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf">simple configuration</a> is:</p>
 <pre class="literal-block">
@@ -184,7 +182,9 @@ redirect_stderr=True
 </pre>
 </div>
 </div>
+</div>
 
+      </div>
       <div id="footer">
         <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
         <p>Hosted on <a href="http://github.com/">Github</a></p>

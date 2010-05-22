@@ -8,6 +8,7 @@ from __future__ import with_statement
 
 import codecs
 import datetime
+import inspect
 import os
 import subprocess as sp
 import sys
@@ -52,7 +53,7 @@ class Site(object):
         print ""
         print "Updating css..."
         try:
-            sp.check_call(["compass", "compile"])
+            sp.check_call(["compass", "compile", "--boring"])
         except sp.CalledProcessError:
             print "Failed to update CSS"
     
@@ -89,6 +90,8 @@ class Page(object):
         basename, oldext = os.path.splitext(filename)
         oldext = oldext.lower()[1:]
         converter = getattr(self, "convert_%s" % oldext, lambda x: x)
+        if "insert_settings" in self.headers:
+            body = body % {"settings": self.format_settings()}
         self.body = converter(body)
 
         newext = self.headers.get('ext', '.html')
@@ -120,13 +123,107 @@ class Page(object):
         if not tmpl_name:
             return self.body
 
-        kwargs = {"conf": conf, "body": self.body, "url": self.url()}
+        kwargs = {
+            "conf": conf,
+            "body": self.body,
+            "url": self.url()
+        }
         kwargs.update(self.headers)
         return self.site.get_template(tmpl_name).render(kwargs)
 
     def convert_rst(self, body):
-        parts = publish_parts(source=body, writer_name="html")
+        overrides = {"initial_header_level": 2}
+        parts = publish_parts(
+            source=body,
+            writer_name="html",
+            settings_overrides=overrides
+        )
         return parts['html_body']
+
+    def format_settings(self):
+        currdir = os.path.dirname(__file__)
+        sys.path.insert(0, os.path.join(currdir, ".."))
+        import gunicorn.config as guncfg
+        ret = []
+        for i, s in enumerate(guncfg.KNOWN_SETTINGS):
+            if i == 0 or s.section != guncfg.KNOWN_SETTINGS[i-1].section:
+                ret.append("%s\n%s\n\n" % (s.section, "+" * len(s.section)))
+            ret.append(self.fmt_setting2(s))
+        return ''.join(ret)
+
+    def fmt_setting2(self, s):
+        if callable(s.default):
+            val = inspect.getsource(s.default)
+            val = "\n".join("    %s" % l for l in val.splitlines())
+            val = " ::\n\n" + val
+        else:
+            val = "``%s``" % s.default
+        
+        if s.cli and s.meta:
+            args = ["%s %s" % (arg, s.meta) for arg in s.cli]
+            cli = ', '.join(args)
+        elif s.cli:
+            cli = ", ".join(s.cli)
+        
+        out = []
+        out.append("%s" % s.name)
+        out.append("~" * len(s.name))
+        out.append("")
+        if s.cli:
+            out.append("* ``%s``" % cli)
+        out.append("* %s" % val)
+        out.append("")
+        out.append(s.desc)
+        out.append("")
+        out.append("")
+        return "\n".join(out)
+
+    def fmt_setting(self, s):
+        out = []
+        lines = s.desc.splitlines()
+        width = max(map(lambda x: len(x), lines))
+
+        if not callable(s.default):
+            val = '%s' % s.default
+        else:
+            val = ''
+        
+        if s.cli and s.meta:
+            args = ["%s %s" % (arg, s.meta) for arg in s.cli]
+            cli = ', '.join(args)
+        elif s.cli:
+            cli = ", ".join(s.cli)
+        else:
+            cli = "N/A"
+
+        width = 80
+        namelen = 20
+        deflen = 20
+        clilen = width - (namelen + deflen + 4)
+
+        args = ("-" * namelen, "-" * deflen, "-" * clilen)
+        out.append("+%s+%s+%s+" % args)
+
+        names = "| %s" % s.name
+        names += " " * (namelen - (len(s.name) + 2))
+        names += " | %s" % val
+        names += " " * (deflen - (len(val) + 2))
+        names += " | %s" % cli
+        names += " " * (clilen - (len(cli) + 1))
+        names += "|"
+        out.append(names)
+        
+        out.append(out[0].replace("-", "="))
+
+        for l in lines:
+            l = l.rstrip("\n")
+            if len(l) < width:
+                l += " " * ((width - 2) - len(l))
+            out.append("|%s|" % l)
+        out.append("+%s+" % ("-" * (width - 2)))
+        out.extend(["", ""])
+
+        return "\n".join(out)
 
 def main():
     Site().render()

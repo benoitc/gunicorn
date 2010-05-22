@@ -197,16 +197,13 @@ def validate_callable(arity):
     return _validate_callable
 
 with Setting("config") as s:
-    s.section = "Config"
+    s.section = "Config File"
     s.cli = ["-c", "--config"]
     s.meta = "FILE"
     s.validator = validate_string
     s.default = None
     s.fmt_desc("""\
         The path to a Gunicorn config file.
-        
-        By default Gunicorn will try to read a file named 'gunicorn.conf.py' in
-        the current directory.
         
         Only has an effect when specified on the command line or as part of an
         application specific configuration.    
@@ -268,7 +265,7 @@ with Setting("worker_class") as s:
         The type of workers to use.
         
         The default async class should handle most 'normal' types of work loads.
-        You'll want to read http://gunicorn/deployment.hml for information on
+        You'll want to read http://gunicorn.org/design.hml for information on
         when you might want to choose one of the other worker classes.
         
         An string referring to a 'gunicorn.workers' entry point or a
@@ -277,10 +274,10 @@ with Setting("worker_class") as s:
         
         The default provided values are:
         
-        * egg:gunicorn#sync
-        * egg:gunicorn#eventlet - Requires eventlet >= 0.9.7
-        * egg:gunicorn#gevent   - Requires gevent >= 0.12.2 (?)
-        * egg:gunicorn#tornado  - Requires tornado >= 0.2    
+        * ``egg:gunicorn#sync``
+        * ``egg:gunicorn#eventlet`` - Requires eventlet >= 0.9.7
+        * ``egg:gunicorn#gevent``   - Requires gevent >= 0.12.2 (?)
+        * ``egg:gunicorn#tornado``  - Requires tornado >= 0.2    
         """)
 
 with Setting("worker_connections") as s:
@@ -393,27 +390,29 @@ with Setting("pidfile") as s:
 with Setting("user") as s:
     s.section = "Server Mechanics"
     s.cli = ["-u", "--user"]
+    s.meta = "USER"
     s.validator = validate_string
     s.default = None
     s.fmt_desc("""\
         Switch worker processes to run as this user.
         
         A valid user id (as an integer) or the name of a user that can be
-        retrieved with a call to pwd.getpwnam(value) or None to not change the
-        worker process user.
+        retrieved with a call to pwd.getpwnam(value) or None to not change
+        the worker process user.
         """)
 
 with Setting("group") as s:
     s.section = "Server Mechanics"
     s.cli = ["-g", "--group"]
+    s.meta = "GROUP"
     s.validator = validate_string
     s.default = None
     s.fmt_desc("""\
         Switch worker process to run as this group.
         
         A valid group id (as an integer) or the name of a user that can be
-        retrieved with a call to pwd.getgrnam(value) or None to change the
-        worker processes group.
+        retrieved with a call to pwd.getgrnam(value) or None to not change
+        the worker processes group.
         """)
 
 with Setting("umask") as s:
@@ -487,9 +486,10 @@ with Setting("proc_name") as s:
     s.fmt_desc("""\
         A base to use with setproctitle for process naming.
         
-        This affects things like 'ps' and 'top'. If you're going to be running
-        more than one instance of Gunicorn you'll probably want to set a name to
-        tell them apart. This requires that you install the setproctitle module.
+        This affects things like ``ps`` and ``top``. If you're going to be
+        running more than one instance of Gunicorn you'll probably want to set a
+        name to tell them apart. This requires that you install the setproctitle
+        module.
         
         It defaults to 'gunicorn'.
         """)

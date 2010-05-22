@@ -1,8 +1,9 @@
 template: doc.html
-title: Installing Gunicorn
+title: Install
 
-Installation
-============
+.. contents::
+    :class: sidebar
+    :backlinks: top
 
 Requirements
 ------------
@@ -11,8 +12,8 @@ Requirements
 - setuptools >= 0.6c6
 - nosetests (for the test suite only)
 
-Installing with easy_install
-----------------------------
+With easy_install
+-----------------
 
 If you don't already have ``easy_install`` available you'll want to download
 and run the ``ez_setup.py`` script::
@@ -24,44 +25,44 @@ To install or upgrade to the latest released version of Gunicorn::
 
   $ sudo easy_install -U gunicorn
 
-Installing from source
-----------------------
+From Source
+-----------
 
 You can install Gunicorn from source just as you would install any other
 Python package. Gunicorn uses setuptools which will automatically fetch all
 dependencies (including setuptools itself).
 
-Get a Copy
-++++++++++
-
 You can download a tarball of the latest sources from `GitHub Downloads`_ or
 fetch them with git_::
 
+    # Using git:
     $ git clone git://github.com/benoitc/gunicorn.git
+    $ cd gunicorn
 
-Installation
-++++++++++++
+    # Or using a tarball:
+    $ wget http://github.com/benoitc/gunicorn/tarball/master -o gunicorn.tar.gz
+    $ tar -xvzf gunicorn.tar.gz
+    $ cd gunicorn-$HASH/
 
-::
-
-  $ python setup.py install
+    # Install
+    $ sudo python setup.py install
 
 If you've cloned the git repository, its highly recommended that you use the
 ``develop`` command which will allow you to use Gunicorn from the source
 directory. This will allow you to keep up to date with development on GitHub as
 well as make changes to the source::
 
-  $ python setup.py develop
+    $ python setup.py develop
   
-Enabling async workers
-----------------------
+Async Workers
+-------------
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
-application code may need to pause for extended periods of time during
-request processing. Check out the FAQ_ for more information on when you'll
+application code may need to pause for extended periods of time during request
+processing. Check out the `design docs`_ for more information on when you'll
 want to consider one of the alternate worker types.
 
-To install eventlet::
+::
 
     $ easy_install -U greenlet  # Required for both
     $ easy_install -U eventlet  # For eventlet workers
@@ -78,8 +79,8 @@ To install eventlet::
     package manager. If Gevent_ fails to build even with ``libevent``
     installed, this is the most likely reason.
 
-Installing on Ubuntu/Debian systems
------------------------------------
+Ubuntu/Debian
+-------------
 
 If you use Ubuntu_ karmic, you can update your system with packages from
 our PPA_ by adding ``ppa:bchesneau/gunicorn`` to your system's Software
@@ -91,16 +92,22 @@ and adding them to your system's software sources::
   deb http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main 
   deb-src http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
   
-Signing key::
+Signing key
++++++++++++
+
+::
 
   1024R/15E5EB06
   
-Fingerprint::
+Fingerprint
++++++++++++
+
+::
 
   49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
 
 .. _`GitHub Downloads`: http://github.com/benoitc/gunicorn/downloads
-.. _FAQ: faq.html
+.. _`design docs`: design.html
 .. _git: http://git-scm.com/
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org

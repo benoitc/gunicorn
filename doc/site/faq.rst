@@ -1,33 +1,71 @@
 template: doc.html
 title: FAQ
 
-FAQ
-===
+.. contents:: Questions
+    :backlinks: top
 
-How do I know which type of worker to use?
-  Test. Read the "Synchronous vs Asynchronous workers" section on the 
-  deployment_ page. Test some more.
 
-What types of workers are there?
-  These can all be used with the ``-k`` option and specifying them
-  as ``egg:gunicorn#$(NAME)`` where ``$(NAME)`` is chosen from this list.
-  
-  * ``sync`` - The default synchronous worker
-  * ``eventlet`` - Asynchronous workers based on Greenlets
-  * ``gevent`` - Asynchronous workers based on Greenlets
-  * ``tornado`` - Asynchronous workers based on FriendFeed's Tornado server.
+WSGI Bits
+=========
 
-How might I test a proxy configuration?
-  Check out slowloris_ for a script that will generate significant slow
-  traffic. If your application remains responsive through out that test you
-  should be comfortable that all is well with your configuration.
+How do I set SCRIPT_NAME?
+-------------------------
+
+By default ``SCRIPT_NAME`` is an empy string. The value could be set by
+setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
+
+
+Server Stuff
+============
 
 How do I reload my application in Gunicorn?
-  You can gracefully reload by sending HUP signal to gunicorn::
+-------------------------------------------
+
+You can gracefully reload by sending HUP signal to gunicorn::
 
     $ kill -HUP masterpid
 
-How do I increase or decrease the number of running workers dynamically?
+How might I test a proxy configuration?
+---------------------------------------
+
+The Slowloris_ script is a great way to test that your proxy is correctly
+buffering responses for the synchronous workers.
+
+How can I name processes?
+-------------------------
+
+If you install the Python package setproctitle_ Gunicorn will set the process
+names to something a bit more meaningful. This will affect the output you see
+in tools like ``ps`` and ``top``. This helps for distinguishing the master
+process as well as between masters when running more than one app on a single
+machine. See the proc_name_ setting for more information.
+
+.. _slowloris: http://ha.ckers.org/slowloris/
+.. _setproctitle: http://pypi.python.org/pypi/setproctitle
+.. _proc_name: /configure.html#proc-name
+
+
+Worker Processes
+================
+
+How do I know which type of worker to use?
+------------------------------------------
+
+Read the design_ page for help on the various worker types.
+
+What types of workers are there?
+--------------------------------
+
+Check out the configuration docs for worker_class_
+
+How can I figure out the best number of worker processes?
+---------------------------------------------------------
+
+Here is our recommendation for tuning the `number of workers`_.
+
+How can I change the number of workers dynamically?
+---------------------------------------------------
+
     To increase the worker count by one::
 
         $ kill -TTIN $masterpid
@@ -36,21 +74,7 @@ How do I increase or decrease the number of running workers dynamically?
 
         $ kill -TTOU $masterpid
 
-How can I figure out the best number of worker processes?
-  Start gunicorn with an approximate number of worker processes. Then use the
-  TTIN and/or TTOU signals to adjust the number of workers under load.
+.. _design: /design.html
+.. _worker_class: /configure.html#worker-class
+.. _`number of workers`: /design.html#how-many-workers
 
-How do I set SCRIPT_NAME?
-    By default ``SCRIPT_NAME`` is an empy string. The value could be set by
-    setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
-
-How can I name processes?
-    You need to install the Python package setproctitle_. Then you can specify
-    a base process name on the command line (``-n``) or in the configuration
-    file.
-
-.. _deployment: http://gunicorn.org/deployment.html
-.. _slowloris: http://ha.ckers.org/slowloris/
-.. _setproctitle: http://pypi.python.org/pypi/setproctitle
-.. _Eventlet: http://eventlet.net
-.. _Gevent: http://gevent.org

@@ -4,57 +4,40 @@
     <meta charset="utf-8" />
     <title>Green Unicorn - Welcome</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-  
-    <!--[if IE]>
-      <script>
-        document.createElement('section');
-        document.createElement('article');
-        document.createElement('aside');
-        document.createElement('footer');
-        document.createElement('header');
-        document.createElement('nav');
-        document.createElement('time');
-      </script>
-
-    <![endif]-->
-
-	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-	<div class="container"> 
-		<div id="header"> 
-	      
-	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
-
-	        <div id="links"> 
-	          Get the source via
-	          <a href="http://github.com/benoitc/gunicorn">git</a>, then
-	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
-	        </div> 
-	  </div>
-		
-  <div id="menu">
-  <ul id="actions">
-    <li><a href="installation.html">Installation</a></li>
-    <li><a href="usage.html">Usage</a></li>
-    <li><a href="deployment.html">Deployment</a></li>
-    <li><a href="configuration.html">Configuration</a></li>
-    <li><a href="tuning.html">Tuning</a></li>
-    <li><a href="faq.html">FAQ</a></li>
-    <li><a href="news.html">News</a></li>
-  </ul>
-</div>
-
-    	<div class="document" id="green-unicorn">
-<h1 class="title">Green Unicorn</h1>
+    <div class="container">
+      <div id="header"> 
+        <a href="./">
+          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
+        </a>
+      </div>
+      <div id="menu">
+        <ul id="actions">
+          <li><a href="install.html">Install</a></li>
+          <li><a href="run.html">Run</a></li>
+          <li><a href="configure.html">Configure</a></li>
+          <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="design.html">Design</a><li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+      <div class="document">
+<div class="section" id="green-unicorn">
+<h2>Green Unicorn</h2>
 <p>Gunicorn 'Green Unicorn' is a <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">WSGI</a> HTTP Server for UNIX. It's a pre-fork
 worker model ported from Ruby's <a class="reference external" href="http://unicorn.bogomips.org/">Unicorn</a> project. The Gunicorn server is
 broadly compatible with various web frameworks, simply implemented, light
 on server resource usage, and fairly speedy.</p>
 <p>Feel free to join us in <a class="reference external" href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn</a> on <a class="reference external" href="http://freenode.net">freenode</a>.</p>
 <p>Gunicorn is released under the MIT License. See the <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/LICENSE">LICENSE</a> for more details.</p>
+</div>
 <div class="section" id="features">
-<h1>Features</h1>
+<h2>Features</h2>
 <ul class="simple">
 <li>Designed for Unix.</li>
 <li>Compatible with Python 2.x (&gt;= 2.5)</li>
@@ -72,7 +55,7 @@ or stream-based protocols over HTTP</li>
 </ul>
 </div>
 <div class="section" id="applications">
-<h1>Applications</h1>
+<h2>Applications</h2>
 <ul class="simple">
 <li>Any <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">WSGI</a>, <a class="reference external" href="http://djangoproject.com">Django</a> and <a class="reference external" href="http://pythonpaste.org/">Paster</a> compatible applications
 (<a class="reference external" href="http://pylonshq.com/">Pylons</a>, <a class="reference external" href="http://turbogears.org/2.0/">TurboGears 2</a>, ...)</li>
@@ -84,10 +67,11 @@ or stream-based protocols over HTTP</li>
 </div>
 </div>
 
-    <div id="footer">
-      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
-      <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
+      <div id="footer">
+        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
     </div>
-	</div>
   </body>
 </html>

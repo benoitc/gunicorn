@@ -1,9 +1,6 @@
 template: doc.html
 title: News
 
-News
-====
-
 0.9.1 / 2010-05-26
 ------------------
 

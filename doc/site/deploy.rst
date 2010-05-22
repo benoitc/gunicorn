@@ -1,38 +1,17 @@
 template: doc.html
-title: Deployment
+title: Deploy
 
-Production Setup
-================
+.. contents::
+    :class: sidebar
+    :backlinks: top
 
-Synchronous vs Asynchronous workers
------------------------------------
-
-The default configuration of Gunicorn assumes that your application code is
-mostly CPU bound. The default worker class is a simple single threaded loop that
-just processes requests as they are received. In general, most applications will
-do just fine with this sort of configuration.
-
-This CPU bound assumption is why the default configuration needs to use a
-buffering HTTP proxy like Nginx_ to protect the Gunicorn server. If we allowed
-direct connections a client could send a request slowly thus starving the server
-of free worker processes (because they're all stuck waiting for data).
-
-Example use-cases for asynchronous workers:
-
-  * Applications making long blocking calls (Ie, to external web services)
-  * Serving requests directly to the internet
-  * Streaming requests and responses
-  * Long polling
-  * Web sockets
-  * Comet
-
-Basic Nginx Configuration
--------------------------
+Nginx Configuration
+-------------------
 
 Although there are many HTTP proxies available, we strongly advise that you
 use Nginx_. If you choose another proxy server you need to make sure that it
 buffers slow clients when you use default Gunicorn workers. Without this
-buffering Gunicorn will be easily susceptible to Denial-Of-Service attacks.
+buffering Gunicorn will be easily susceptible to denial-of-service attacks.
 You can use slowloris_ to check if your proxy is behaving properly.
 
 An `example configuration`_ file for fast clients with Nginx_::
@@ -110,8 +89,8 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   }
   ...
 
-Working with Virtualenv
------------------------
+Using Virtualenv
+----------------
 
 To serve an app from a Virtualenv_ it is generally easiest to just install
 Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
@@ -129,8 +108,8 @@ this::
 Then you just need to use one of the three Gunicorn scripts that was installed
 into ``~/venvs/webapp/bin``.
 
-Daemon Monitoring
------------------
+Monitoring
+----------
 
 .. note::
     Make sure that when using either of these service monitors you do not
@@ -139,6 +118,9 @@ Daemon Monitoring
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
+
+Runit
++++++
 
 A popular method for deploying Gunicorn is to have it monitored by runit_.
 An `example service`_ definition::
@@ -155,6 +137,9 @@ An `example service`_ definition::
  
     cd $ROOT
     exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
+
+Supervisor
+++++++++++
 
 Another useful tool to monitor and control Gunicorn is Supervisor_. A 
 `simple configuration`_ is::
