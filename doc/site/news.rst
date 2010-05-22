@@ -7,6 +7,8 @@ News
 0.9.0-dev / 2010-05-17
 ------------------
 
+- Added *preload* setting. Load application code before the worker processes
+  are forked.
 - Refactored Config
 - Fix pidfile
 - Fix QUIT/HUP in async workers
