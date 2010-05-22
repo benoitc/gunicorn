@@ -46,7 +46,11 @@ class Arbiter(object):
     
     def __init__(self, app):
         self.cfg = app.cfg
-        self.app = app.load()
+        
+        if self.cfg.preload_app:
+            self.app = app.load()
+        else:
+            self.app = app
 
         self.log = logging.getLogger(__name__)
 

@@ -33,7 +33,9 @@ class Worker(object):
         self.app = app
         self.timeout = timeout
         self.cfg = cfg
-
+        if not self.cfg.preload_app:
+            self.app = app.load()
+        
         self.nr = 0
         self.alive = True
         self.spinner = 0

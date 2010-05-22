@@ -522,3 +522,13 @@ with Setting("pre_exec") as s:
         
         The callable needs to accept a single instance variable for the Arbiter.
         """)
+
+with Setting("preload_app") as s:
+    s.section = "Server Mechanic"
+    s.cli = ["--preload"]
+    s.validator = validate_bool
+    s.action = "store_true"
+    s.default = False
+    s.fmt_desc("""\
+        Enabling this preloads an application before forking worker processes.    
+        """)
