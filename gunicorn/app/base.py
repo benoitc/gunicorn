@@ -18,7 +18,7 @@ class Application(object):
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
-    def __init__(self, usage):
+    def __init__(self, usage=None):
         self.log = logging.getLogger(__name__)
         self.cfg = Config(usage)
         
