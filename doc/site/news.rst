@@ -7,6 +7,7 @@ News
 0.9.0-dev / 2010-05-17
 ------------------
 
+- Refactored Config
 - Fix pidfile
 - Fix QUIT/HUP in async workers
 - Fix reexec
