@@ -536,3 +536,17 @@ with Setting("pre_exec") as s:
         
         The callable needs to accept a single instance variable for the Arbiter.
         """)
+        
+
+with Setting("when_ready") as s:
+    s.section = "Server Hooks"
+    s.validator = validate_callable(1)
+    s.type = "callable"
+    def def_start_server(server):
+        pass
+    s.default = def_start_server
+    s.fmt_desc("""\
+        Called just after the server is started
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """)
