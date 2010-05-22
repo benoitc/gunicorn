@@ -39,7 +39,7 @@ class TeeInput(object):
         elif self._len and self._len < util.MAX_BODY:
             self.tmp = StringIO()
         else:
-            self.tmp = tempfile.TemporaryFile(dir=self.cfg['tmp_upload_dir'])
+            self.tmp = tempfile.TemporaryFile(dir=self.cfg.tmp_upload_dir)
         
         if len(buf.getvalue()) > 0:
             chunk, self.buf = parser.filter_body(buf)

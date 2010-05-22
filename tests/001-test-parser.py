@@ -167,7 +167,7 @@ def test_010(buf, p):
     body = ""
     while not p.body_eof():
         chunk, buf2 = p.filter_body(buf2)
-        print chunk
+        #print chunk
         if chunk:
             body += chunk
     t.eq(body, "all your base are belong to us")

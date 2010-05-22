@@ -5,7 +5,7 @@
 
 from __future__ import with_statement
 
-import ConfigParser
+import copy
 import grp
 import inspect
 import optparse
@@ -23,7 +23,7 @@ KNOWN_SETTINGS = []
 class Config(object):
         
     def __init__(self, usage=None):
-        self.settings = dict((s.name, s) for s in KNOWN_SETTINGS)
+        self.settings = dict((s.name, s.copy()) for s in KNOWN_SETTINGS)
         self.usage = usage
         
     def __getattr__(self, name):
@@ -78,7 +78,6 @@ class Config(object):
     @property
     def uid(self):
         user = self.settings['user'].get()
-        
         if not user:
             return os.geteuid()
         elif user.isdigit() or isinstance(user, int):
@@ -89,7 +88,6 @@ class Config(object):
     @property
     def gid(self):
         group = self.settings['group'].get()
-
         if not group:
             return os.getegid()
         elif group.isdigit() or isinstance(user, int):
@@ -104,18 +102,6 @@ class Config(object):
             return pn
         else:
             return self.settings['default_proc_name']
-
-    @property
-    def pre_fork(self):
-        return self.settings['pre_fork'].get()
-    
-    @property
-    def post_fork(self):
-        return self.settings['post_fork'].get()
-    
-    @property
-    def pre_exec(self):
-        return self.settings['pre_exec'].get()
 
 class Setting(object):
     def __init__(self, name):
@@ -162,6 +148,9 @@ class Setting(object):
             kwargs.pop("type")
         parser.add_option(*args, **kwargs)
     
+    def copy(self):
+        return copy.copy(self)
+    
     def get(self):
         return self.value
     
@@ -172,6 +161,8 @@ class Setting(object):
 def validate_bool(val):
     if isinstance(val, types.BooleanType):
         return val
+    if not isinstance(val, basestring):
+        raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
     elif val.lower().strip() == "false":
@@ -182,11 +173,17 @@ def validate_bool(val):
 def validate_pos_int(val):
     if not isinstance(val, (types.IntType, types.LongType)):
         val = int(val, 0)
+    else:
+        # Booleans are ints!
+        val = int(val)
+    print "Setting: %s" % val
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
     return val
 
 def validate_string(val):
+    if not isinstance(val, basestring):
+        raise TypeError("Not a string: %s" % val)
     return val.strip()
 
 def validate_callable(arity):
@@ -203,7 +200,7 @@ with Setting("config") as s:
     s.cli = ["-c", "--config"]
     s.meta = "FILE"
     s.validator = validate_string
-    s.default = "gunicorn.conf.py"
+    s.default = None
     s.fmt_desc("""\
         The path to a Gunicorn config file.
         

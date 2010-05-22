@@ -33,7 +33,13 @@ class Application(object):
         
         # Load up the config file if its found.
         if opts.config and os.path.exists(opts.config):
-            cfg = globals().copy()
+            cfg = {
+                "__builtins__": __builtins__,
+                "__name__": "__config__",
+                "__file__": opts.config,
+                "__doc__": None,
+                "__package__": None
+            }
             try:
                 execfile(opts.config, cfg, cfg)
             except Exception, e:
@@ -42,6 +48,9 @@ class Application(object):
                 sys.exit(1)
         
             for k, v in list(cfg.items()):
+                # Ignore unknown names
+                if k not in self.cfg.settings:
+                    continue
                 self.cfg.set(k.lower(), v)
             
         # Lastly, update the configuration with any command line

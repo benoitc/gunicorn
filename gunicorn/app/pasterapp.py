@@ -47,7 +47,12 @@ class PasterApplication(Application):
         cfg['workers'] = int(lc.get('workers', 1))
         cfg['umask'] = int(lc.get('umask', 0))
         cfg['default_proc_name'] = gc.get('__file__')
-        cfg.update(dict((k,v) for (k,v) in lc.items() if k not in cfg))
+        
+        for k, v in lc.items():
+            if k not in self.cfg.settings:
+                continue
+            cfg[k] = v
+
         return cfg
         
     def load(self):
