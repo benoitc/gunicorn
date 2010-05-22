@@ -1,262 +1,67 @@
+/* line 14, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, font, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-weight: inherit;
+  font-style: inherit;
+  font-size: 100%;
+  font-family: inherit;
+  vertical-align: baseline;
+}
+
+/* line 17, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 body {
-    background: #f9f9f9;
-    color: #2a2a2a;
-    font-family: Arial, sans-serif;
-    font-size: 1em;
+  line-height: 1;
+  color: black;
+  background: white;
 }
 
-div.container {
-    display: block;
-    width: 40em;
-    margin: 0 auto;
+/* line 19, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+ol, ul {
+  list-style: none;
 }
 
-a {
-    color: #569633;
+/* line 21, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  vertical-align: middle;
 }
 
-p {
-    font-size: 1em;
+/* line 23, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+caption, th, td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle;
 }
 
-ul {
-    padding-left: 1em;
+/* line 25, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+q, blockquote {
+  quotes: "" "";
+}
+/* line 96, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+q:before, q:after, blockquote:before, blockquote:after {
+  content: "";
 }
 
-dt {
-    border-top: 1px solid #BBB;
-    padding-top: 0.5em;
+/* line 27, ../../../../../../../../Library/Ruby/Gems/1.8/gems/compass-0.10.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+a img {
+  border: none;
 }
 
-dd {
-    margin: 0px;
-    margin-bottom: 0.5em;
-    padding: 0px;
-}
-
-pre {
-    font-family: 'andale mono', 'lucida console', monospace;
-    font: 100% monospace;
-    *font-size:75%
-
-    white-space:pre;
-    background: #ffd;
-    margin: 3px 3px 2em 3px;
-    padding: 8px 20px;
-}
-
-h1.title {
-    color: #fff;
-    background: 0;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    text-shadow: 0 1px #7a8500;
-    background: #489848;
-    font-size: 1.7em;
-    border: none;
-    padding: 0.3em;
-}
-
-h1 {
-    font-size: 1.3em;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 0.3em;
-    margin-top: 1em;
-    margin-bottom: 1.5em;
-    color: #000;
-}
-
-h2 {
-    font-size: 1.1em;
-    margin: 2em 0 0 0;
-    color: #000;
-    padding: 0;
-}
-
-div.document {
-    width: 100%;
-    clear: both;
-    padding: 0;
-    margin: 0 0 0.1em 0;
-}
-
-#green-unicorn p {
-    font-size: 1.2em;
-    color: #444;
-    padding: 1px 0px;
-}
-
-#footer {
-    border-top: 1px solid #ccc;
-    clear: both;
-    display: block;
-    width: 100%;
-    margin-top: 3em;
-    padding-top: 1em;
-    text-align: center;
-    font-size: 0.8em;
-}
-
-#footer a {
-    color: #444;
-}
-
-#bottom {
-    text-align: center;
-    font-size: 14px;
-    background: #fda;
-    padding: 10px 30px;
-}
-
-.info,.fork {
-    padding: 10px;
-}
-
-.content {
-    font-size: 1.2em;
-}
-
-#header {
-    border-bottom: 1px solid #ccc;
-    display: block;
-}
-
-#header:after,#header:after {
-    content: "\0020";
-    display: block;
-    height: 0;
-    clear: both;
-    visibility: hidden;
-    overflow: hidden;
-}
-
-#links {
-    color: #4E4E4E;
-    padding: 25px 0 0;
-}
-
-#links a {
-    font-weight: 700;
-    text-decoration: none;
-}
-
-#header #links {
-    text-align: right;
-    font-size: .8em;
-    margin-top: 0.5em;
-    position: relative;
-    top: 0;
-    right: 0;
-}
-
-h1.logo {
-    border: none;
-    margin: 0;
-    float: left;
-}
-
-h1.logo a {
-    text-decoration: none;
-    display: block;
-    height: 70px;
-    width: 290px;
-    padding: 0 0 30px;
-    background: url(../images/logo.png) no-repeat top left;
-    border: none;
-    text-indent: -9999px
-}
-
-.section p {
-    font-size: 1em;
-    margin: 0 0 20px;
-    padding: 0;
-}
-
-#menu {
-    width: 100%;
-    clear: both;
-    margin: auto;
-    font-size: 1em;
-    padding: 1.5em 0;
-}
-
-ul#actions {
-    list-style: none;
-    display: block;
-    width: 100%;
-    text-indent: 0;
-    margin: 0 auto;
-    padding: 0 0.2em 0 0.3em;
-}
-
-ul#actions li {
-    display: block;
-    float: left;
-    background: #4E4E4E;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    margin: 0 .3em 0 0;
-    padding: .2em;
-}
-
-ul#actions li a {
-    font-style: bold;
-    font-size: 1em;
-    text-transform: capitalize;
-    color: #ddd;
-    text-decoration: none;
-    padding: 0 0.6em;
-}
-
-ul#actions li a:hover {
-    color: #fff;
-}
-
-#faq dt {
-    font-size: 1.1em;
-    margin: 2em 0 0 0;
-    color: #000;
-    padding: 0;
-    font-weight: 700;
-}
-
-#faq dd {
-    margin: 0;
-    padding: 0;
-}
-
-#the-configuration-file dt {
-    font-weight: 700;
-}
-
-.note {
-    padding:.6em .6em .6em 80px;
-    border:1px solid #489848;
-    background:#FFFFDD;
-    margin-bottom:3.5em;
-    /*font-size:.95em;*/
-    position:relative;
-}
-
-.note p.admonition-title:before {
-    content:"!";
-    font-size:60px;
-    font-weight:bold;
-    color:#489848;
-    font-family:helvetica,arial;
-    position:absolute;
-    left:30px;
-}
-
-.note p.admonition-title {
-    font-weight:700;
-    padding:0;
-    margin:0 0 4px 0;
-}
-
-.note p.last {
-    padding:0;
-    margin:0;
+/* line 6, ../../css/style.sass */
+body {
+  background: #f9f9f9;
+  color: #2a2a2a;
+  font-family: Arial, sans-serif;
+  font-size: 1em;
 }

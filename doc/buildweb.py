@@ -9,6 +9,7 @@ from __future__ import with_statement
 import codecs
 import datetime
 import os
+import subprocess as sp
 import sys
 
 from docutils.core import publish_parts
@@ -36,6 +37,7 @@ class Site(object):
             if not os.path.isdir(tgt_path):
                 os.makedirs(tgt_path)
             self.process(files, curr_path, tgt_path)
+        self.sass_compile()
 
     def process(self, files, curr_path, tgt_path):
         for f in files:
@@ -45,7 +47,15 @@ class Site(object):
 
             print "Page: %s" % page.source
             page.write()
-            
+    
+    def sass_compile(self):
+        print ""
+        print "Updating css..."
+        try:
+            sp.check_call(["compass", "compile"])
+        except sp.CalledProcessError:
+            print "Failed to update CSS"
+    
     def get_template(self, name):
         return self.env.get_template(name)
 
