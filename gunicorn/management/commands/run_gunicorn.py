@@ -5,7 +5,6 @@
 
 from optparse import make_option
 import sys
-import os
 
  
 import django
@@ -13,7 +12,6 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.utils import translation
 
-from gunicorn.config import Config
 from gunicorn.app.djangoapp import DjangoApplicationCommand
  
 class Command(BaseCommand):

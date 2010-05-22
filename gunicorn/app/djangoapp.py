@@ -9,7 +9,6 @@ import sys
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
-from gunicorn import util
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 

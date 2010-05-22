@@ -4,15 +4,14 @@
 # See the NOTICE for more information.
 
 import logging
-import optparse
 import os
+import sys
 import traceback
 
-from gunicorn import __version__
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
-from gunicorn.debug import spew
+from gunicorn import debug
 
 class Application(object):
     """\

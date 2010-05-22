@@ -226,7 +226,7 @@ def daemonize():
         else:
             os._exit(0)
         
-        maxfd = util.get_maxfd()
+        maxfd = get_maxfd()
 
         # Iterate through and close all file descriptors.
         for fd in range(0, maxfd):
@@ -235,6 +235,6 @@ def daemonize():
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
                 pass
         
-        os.open(util.REDIRECT_TO, os.O_RDWR)
+        os.open(REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)

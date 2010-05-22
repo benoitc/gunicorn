@@ -11,7 +11,6 @@ import inspect
 import optparse
 import os
 import pwd
-import sys
 import textwrap
 import types
 
@@ -90,7 +89,7 @@ class Config(object):
         group = self.settings['group'].get()
         if not group:
             return os.getegid()
-        elif group.isdigit() or isinstance(user, int):
+        elif group.isdigit() or isinstance(group, int):
             return int(group)
         else:
             return grp.getgrnam(group).gr_gid

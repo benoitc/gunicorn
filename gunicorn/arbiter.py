@@ -5,7 +5,6 @@
 
 from __future__ import with_statement
 
-import copy
 import errno
 import logging
 import os
@@ -17,7 +16,6 @@ import traceback
 
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
-from gunicorn.workers.sync import SyncWorker
 from gunicorn import util
 
 class Arbiter(object):
