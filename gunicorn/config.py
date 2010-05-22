@@ -349,6 +349,21 @@ with Setting("spew") as s:
         This is the nuclear option.    
         """)
 
+with Setting("preload_app") as s:
+    s.section = "Server Mechanics"
+    s.cli = ["--preload"]
+    s.validator = validate_bool
+    s.action = "store_true"
+    s.default = False
+    s.fmt_desc("""\
+        Load application code before the worker processes are forked.
+        
+        By preloading an application you can save some RAM resources as well as
+        speed up server boot times. Although, if you defer application loading
+        to each worker process, you can reload your application code easily by
+        restarting workers.
+        """)
+
 with Setting("daemon") as s:
     s.section = "Server Mechanics"
     s.cli = ["-D", "--daemon"]
@@ -521,14 +536,4 @@ with Setting("pre_exec") as s:
         Called just before a new master process is forked.
         
         The callable needs to accept a single instance variable for the Arbiter.
-        """)
-
-with Setting("preload_app") as s:
-    s.section = "Server Mechanic"
-    s.cli = ["--preload"]
-    s.validator = validate_bool
-    s.action = "store_true"
-    s.default = False
-    s.fmt_desc("""\
-        Enabling this preloads an application before forking worker processes.    
         """)

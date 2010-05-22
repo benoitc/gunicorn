@@ -51,6 +51,8 @@ class DjangoApplicationCommand(Application):
     
     def __init__(self, options, admin_media_path):
         self.cfg = Config()
+        self.callable = None
+        
         for k, v in list(options.items()):
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)

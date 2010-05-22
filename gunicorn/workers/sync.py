@@ -94,7 +94,7 @@ class SyncWorker(Worker):
             environ = req.read()
             if not environ or not req.parser.status_line:
                 return
-            respiter = self.app(environ, req.start_response)
+            respiter = self.wsgi(environ, req.start_response)
             for item in respiter:
                 req.response.write(item)
             req.response.close()

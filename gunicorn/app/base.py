@@ -21,6 +21,7 @@ class Application(object):
     def __init__(self, usage=None):
         self.log = logging.getLogger(__name__)
         self.cfg = Config(usage)
+        self.callable = None
         
         parser = self.cfg.parser()
         opts, args = parser.parse_args()
@@ -67,6 +68,11 @@ class Application(object):
     
     def load(self):
         raise NotImplementedError
+        
+    def wsgi(self):
+        if self.callable is None:
+            self.callable = self.load()
+        return self.callable
     
     def run(self):
         if self.cfg.spew:

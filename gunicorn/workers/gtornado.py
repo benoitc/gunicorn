@@ -50,9 +50,9 @@ class TornadoWorker(Worker):
         # Assume the app is a WSGI callable if its not an
         # instance of tornardo.web.Application
         if not isinstance(self.app, tornado.web.Application):
-            self.app = WSGIContainer(self.app)
+            self.app = WSGIContainer(self.wsgi)
 
-        server = HTTPServer(self.app, io_loop=self.ioloop)
+        server = HTTPServer(self.wsgi, io_loop=self.ioloop)
         server._socket = self.socket
         server.start(num_processes=1)
 

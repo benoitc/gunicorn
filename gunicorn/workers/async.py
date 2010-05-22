@@ -57,7 +57,7 @@ class AsyncWorker(Worker):
             environ = req.read()
             if not environ or not req.parser.headers:
                 return False
-            respiter = self.app(environ, req.start_response)
+            respiter = self.wsgi(environ, req.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
             for item in respiter:

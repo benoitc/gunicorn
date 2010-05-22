@@ -45,12 +45,11 @@ class Arbiter(object):
     )
     
     def __init__(self, app):
+        self.app = app
         self.cfg = app.cfg
         
         if self.cfg.preload_app:
-            self.app = app.load()
-        else:
-            self.app = app
+            self.app.wsgi()
 
         self.log = logging.getLogger(__name__)
 

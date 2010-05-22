@@ -63,6 +63,7 @@ class PasterServerApplication(Application):
     def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
         self.app = app
+        self.callable = None
 
         cfg = kwargs.copy()
 

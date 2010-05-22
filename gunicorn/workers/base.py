@@ -91,9 +91,7 @@ class Worker(object):
         util.close_on_exec(self.fd)
         self.init_signals()
         
-        # do we need to load the app
-        if not self.cfg.preload_app:
-            self.app = self.app.load()
+        self.wsgi = self.app.wsgi()
         
         # Enter main run loop
         self.run()
