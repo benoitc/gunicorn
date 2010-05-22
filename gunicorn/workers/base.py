@@ -33,8 +33,6 @@ class Worker(object):
         self.app = app
         self.timeout = timeout
         self.cfg = cfg
-        if not self.cfg.preload_app:
-            self.app = app.load()
         
         self.nr = 0
         self.alive = True
@@ -92,6 +90,10 @@ class Worker(object):
         util.close_on_exec(self.socket)
         util.close_on_exec(self.fd)
         self.init_signals()
+        
+        # do we need to load the app
+        if not self.cfg.preload_app:
+            self.app = self.app.load()
         
         # Enter main run loop
         self.run()
