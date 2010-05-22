@@ -39,6 +39,8 @@ class Command(BaseCommand):
             help="Change worker group"),
         make_option('-n', '--name', dest='proc_name',
             help="Process name"),
+        make_option('--preload', dest='preload_app', action='store_true', default=False,
+            help="Load application code before the worker processes are forked.")
     )
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
