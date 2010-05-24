@@ -1,4 +1,5 @@
 template: index.html
+title: Welcome
 
 Green Unicorn
 =============
