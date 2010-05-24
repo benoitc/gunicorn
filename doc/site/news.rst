@@ -5,7 +5,7 @@ News
 ====
 
 0.9.0 2010-05-22
-------------------
+----------------
 
 - Added *when_ready* hook. Called just after the server is started 
 - Added *preload* setting. Load application code before the worker processes
