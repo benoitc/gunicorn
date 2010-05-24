@@ -4,16 +4,17 @@ title: News
 News
 ====
 
-0.9.0-dev / 2010-05-17
+0.9.0 2010-05-22
 ------------------
 
+- Added *when_ready* hook. Called just after the server is started 
 - Added *preload* setting. Load application code before the worker processes
   are forked.
 - Refactored Config
 - Fix pidfile
 - Fix QUIT/HUP in async workers
 - Fix reexec
-- Documentation improvments
+- Documentation improvements
 
 0.8.1 / 2010-04-29
 ------------------

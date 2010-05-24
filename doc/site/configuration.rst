@@ -39,6 +39,8 @@ Example gunicorn.conf.py
 
     before_exec=lambda server: server.log.info("Forked child, reexecuting")
 
+	when_ready=lambda server: server.log.info("Gunicorn started.")
+
 Parameter Descriptions
 ----------------------
 
@@ -107,6 +109,9 @@ umask:
 
 user:
     The user as which worker processes will by launched.
+
+when_ready(server):
+	This is called by the arbiter just after Gunicorn started.
     
 worker_connections:
     Number of simultaneous connections a worker can handle when used with
