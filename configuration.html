@@ -80,6 +80,8 @@ after_fork=lambda server, worker: server.log.info(
 before_fork=lambda server, worker: True
 
 before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;)
+
+    when_ready=lambda server: server.log.info(&quot;Gunicorn started.&quot;)
 </pre>
 </div>
 <div class="section" id="parameter-descriptions">
@@ -135,6 +137,8 @@ installed. This alters the process names listed by commands like <tt class="docu
 <dd>Used to set the umask when daemonizing.</dd>
 <dt>user:</dt>
 <dd>The user as which worker processes will by launched.</dd>
+<dt>when_ready(server):</dt>
+<dd>This is called by the arbiter just after Gunicorn started.</dd>
 <dt>worker_connections:</dt>
 <dd>Number of simultaneous connections a worker can handle when used with
 Eventlet or Gevent arbiter. The default is 1000.</dd>
