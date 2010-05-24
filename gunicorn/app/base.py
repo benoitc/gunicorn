@@ -52,7 +52,11 @@ class Application(object):
                 # Ignore unknown names
                 if k not in self.cfg.settings:
                     continue
-                self.cfg.set(k.lower(), v)
+                try:
+                    self.cfg.set(k.lower(), v)
+                except:
+                    sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                    raise
             
         # Lastly, update the configuration with any command line
         # settings.
