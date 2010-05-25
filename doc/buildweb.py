@@ -89,7 +89,7 @@ class Page(object):
         return "/".join([self.site.url, path])
 
     def needed(self):
-        for f in "force --force -f":
+        for f in "force --force -f".split():
             if f in sys.argv[1:]:
                 return True
         
