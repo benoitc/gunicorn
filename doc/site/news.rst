@@ -4,6 +4,13 @@ title: News
 News
 ====
 
+0.9.1 / 2010-05-26
+------------------
+
+- Fix configuration
+- Remove -d options which was used instead of -D for daemon.
+- Fix umask in unix socket
+
 0.9.0 / 2010-05-24
 ------------------
 

@@ -52,7 +52,7 @@ class Command(BaseCommand):
             
         options['bind'] = addrport or '127.0.0.1'
         
-        options['default_proc_name'] =settings.SETTINGS_MODULE
+        options['default_proc_name'] = settings.SETTINGS_MODULE
 
         admin_media_path = options.pop('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
