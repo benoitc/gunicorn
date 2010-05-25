@@ -327,7 +327,7 @@ with Setting("keepalive") as s:
 
 with Setting("debug") as s:
     s.section = "Debugging"
-    s.cli = ["-d", "--debug"]
+    s.cli = ["--debug"]
     s.validator = validate_bool
     s.action = "store_true"
     s.default = False

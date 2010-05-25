@@ -4,8 +4,15 @@ title: News
 News
 ====
 
-0.9.0 2010-05-22
-----------------
+0.9.1 / 2010-05-26
+------------------
+
+- Fix configuration
+- Remove -d options which was used instead of -D for daemon.
+- Fix umask in unix socket
+
+0.9.0 / 2010-05-24
+------------------
 
 - Added *when_ready* hook. Called just after the server is started 
 - Added *preload* setting. Load application code before the worker processes
