@@ -33,7 +33,8 @@ class Worker(object):
         self.app = app
         self.timeout = timeout
         self.cfg = cfg
-        
+        self.booted = False
+
         self.nr = 0
         self.alive = True
         self.spinner = 0
@@ -94,6 +95,7 @@ class Worker(object):
         self.wsgi = self.app.wsgi()
         
         # Enter main run loop
+        self.booted = True
         self.run()
 
     def init_signals(self):
