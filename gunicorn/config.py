@@ -181,6 +181,8 @@ def validate_pos_int(val):
     return val
 
 def validate_string(val):
+    if val is None:
+        return None
     if not isinstance(val, basestring):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
@@ -381,6 +383,7 @@ with Setting("pidfile") as s:
     s.cli = ["-p", "--pid"]
     s.meta = "FILE"
     s.validator = validate_string
+    s.default = None
     s.fmt_desc("""\
         A filename to use for the PID file.
         
@@ -391,6 +394,7 @@ with Setting("user") as s:
     s.section = "Server Mechanics"
     s.cli = ["-u", "--user"]
     s.validator = validate_string
+    s.default = None
     s.fmt_desc("""\
         Switch worker processes to run as this user.
         
@@ -403,6 +407,7 @@ with Setting("group") as s:
     s.section = "Server Mechanics"
     s.cli = ["-g", "--group"]
     s.validator = validate_string
+    s.default = None
     s.fmt_desc("""\
         Switch worker process to run as this group.
         
@@ -432,6 +437,7 @@ with Setting("tmp_upload_dir") as s:
     s.section = "Server Mechanics"
     s.meta = "DIR"
     s.validator = validate_string
+    s.default = None
     s.fmt_desc("""\
         Directory to store temporary request data as they are read.
         
@@ -524,6 +530,19 @@ with Setting("post_fork") as s:
         new Worker.
         """)
 
+with Setting("when_ready") as s:
+    s.section = "Server Hooks"
+    s.validator = validate_callable(1)
+    s.type = "callable"
+    def def_start_server(server):
+        pass
+    s.default = def_start_server
+    s.fmt_desc("""\
+        Called just after the server is started.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """)
+
 with Setting("pre_exec") as s:
     s.section = "Server Hooks"
     s.validator = validate_callable(1)
@@ -537,16 +556,3 @@ with Setting("pre_exec") as s:
         The callable needs to accept a single instance variable for the Arbiter.
         """)
         
-
-with Setting("when_ready") as s:
-    s.section = "Server Hooks"
-    s.validator = validate_callable(1)
-    s.type = "callable"
-    def def_start_server(server):
-        pass
-    s.default = def_start_server
-    s.fmt_desc("""\
-        Called just after the server is started
-        
-        The callable needs to accept a single instance variable for the Arbiter.
-        """)
