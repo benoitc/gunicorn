@@ -24,7 +24,12 @@ class Arbiter(object):
     kills them if needed. It also manages application reloading
     via SIGHUP/USR2.
     """
-    
+
+    # A flag indicating if a worker failed to
+    # to boot. If a worker process exist with
+    # this error code, the arbiter will terminate.
+    WORKER_BOOT_ERROR = 3
+
     START_CTX = {}
     
     LISTENER = None
@@ -322,10 +327,16 @@ class Arbiter(object):
         try:
             while True:
                 wpid, status = os.waitpid(-1, os.WNOHANG)
-                if not wpid: break
+                if not wpid:
+                    break
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
+                    # A worker said it cannot boot. We'll shutdown
+                    # to avoid infinite start/stop cycles.
+                    exitcode = status >> 8
+                    if exitcode == self.WORKER_BOOT_ERROR:
+                        raise StopIteration
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
@@ -380,7 +391,9 @@ class Arbiter(object):
             except SystemExit:
                 raise
             except:
-                self.log.exception("Exception in worker process.")
+                self.log.exception("Exception in worker process:")
+                if not worker.booted:
+                    sys.exit(self.WORKER_BOOT_ERROR)
                 sys.exit(-1)
             finally:
                 self.log.info("Worker exiting (pid: %s)" % worker_pid)
