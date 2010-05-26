@@ -102,6 +102,12 @@ class Request(object):
         client_address = self.client_address or "127.0.0.1"
         forward_adress = self.parser.headers_dict.get('X-Forwarded-For', 
                                                 client_address)
+                                                
+        if self.parser.headers_dict.get("X-Forwarded-Protocol") == "https" or \
+            self.parser.headers_dict.get("X-Forwarded-Ssl") == "on":
+                url_scheme = "https"
+        else:
+            url_scheme = "http"
         
         if isinstance(forward_adress, basestring):
             # we only took the last one
@@ -129,7 +135,7 @@ class Request(object):
             path_info = path_info.split(script_name, 1)[-1]
 
         environ = {
-            "wsgi.url_scheme": 'http',
+            "wsgi.url_scheme": url_scheme,
             "wsgi.input": wsgi_input,
             "wsgi.errors": sys.stderr,
             "wsgi.version": (1, 0),
