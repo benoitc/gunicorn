@@ -7,6 +7,7 @@ News
 0.9.1 / 2010-05-26
 ------------------
 
+- Support https via X-Forwarded-Protocol or X-Forwarded-Ssl headers
 - Fix configuration
 - Remove -d options which was used instead of -D for daemon.
 - Fix umask in unix socket
