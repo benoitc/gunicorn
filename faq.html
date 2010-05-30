@@ -47,6 +47,11 @@
 <li><a class="reference internal" href="#how-can-i-change-the-number-of-workers-dynamically" id="id11">How can I change the number of workers dynamically?</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#kernel-parameters" id="id12">Kernel Parameters</a><ul>
+<li><a class="reference internal" href="#how-can-i-increase-the-maximum-number-of-file-descriptors" id="id13">How can I increase the maximum number of file descriptors?</a></li>
+<li><a class="reference internal" href="#how-can-i-increase-the-maximum-socket-backlog" id="id14">How can I increase the maximum socket backlog?</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="wsgi-bits">
@@ -106,6 +111,34 @@ $ kill -TTIN $masterpid
 $ kill -TTOU $masterpid
 </pre>
 </blockquote>
+</div>
+</div>
+<div class="section" id="kernel-parameters">
+<h2><a class="toc-backref" href="#questions">Kernel Parameters</a></h2>
+<p>When dealing with large numbers of concurrent connections there are a handful of
+kernel parameters that you might need to adjust. Generally these should only
+affect sites with a very large concurrent load. These parameters are not
+specific to Gunicorn, they would apply to any sort of network server you may be
+running.</p>
+<p>These commands are for Linux. Your particular OS may have slightly different
+parameters.</p>
+<div class="section" id="how-can-i-increase-the-maximum-number-of-file-descriptors">
+<h3><a class="toc-backref" href="#questions">How can I increase the maximum number of file descriptors?</a></h3>
+<p>One of the first settings that usually needs to be bumped is the maximum number
+of open file descriptors for a given process. For the confused out there,
+remember that Unices treat sockets as files.</p>
+<pre class="literal-block">
+$ sudo ulimit -n 2048
+</pre>
+</div>
+<div class="section" id="how-can-i-increase-the-maximum-socket-backlog">
+<h3><a class="toc-backref" href="#questions">How can I increase the maximum socket backlog?</a></h3>
+<p>Listening sockets have an associated queue of incoming connections that are
+waiting to be accepted. If you happen to have a stampede of clients that fill up
+this queue new connections will eventually start getting dropped.</p>
+<pre class="literal-block">
+$ sudo sysctl -w net.core.somaxconn=&quot;2048&quot;
+</pre>
 </div>
 </div>
 </div>
