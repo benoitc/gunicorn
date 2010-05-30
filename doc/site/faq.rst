@@ -78,3 +78,36 @@ How can I change the number of workers dynamically?
 .. _worker_class: /configure.html#worker-class
 .. _`number of workers`: /design.html#how-many-workers
 
+Kernel Parameters
+=================
+
+When dealing with large numbers of concurrent connections there are a handful of
+kernel parameters that you might need to adjust. Generally these should only
+affect sites with a very large concurrent load. These parameters are not
+specific to Gunicorn, they would apply to any sort of network server you may be
+running.
+
+These commands are for Linux. Your particular OS may have slightly different
+parameters.
+
+How can I increase the maximum number of file descriptors?
+----------------------------------------------------------
+
+One of the first settings that usually needs to be bumped is the maximum number
+of open file descriptors for a given process. For the confused out there,
+remember that Unices treat sockets as files.
+
+::
+    
+    $ sudo ulimit -n 2048
+
+How can I increase the maximum socket backlog?
+----------------------------------------------
+
+Listening sockets have an associated queue of incoming connections that are
+waiting to be accepted. If you happen to have a stampede of clients that fill up
+this queue new connections will eventually start getting dropped.
+
+::
+
+    $ sudo sysctl -w net.core.somaxconn="2048"

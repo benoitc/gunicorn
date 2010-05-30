@@ -74,15 +74,19 @@ Some examples of behavior requiring asynchronous workers:
 How Many Workers?
 =================
 
+DO NOT scale the number of workers to the number of clients you expect to have.
+Gunicorn should only need 4-12 worker processes to handle hundreds or thousands
+of requests per second.
+
 Gunicorn relies on the operating system to provide all of the load balancing
 when handling requests. Generally we recommend ``(2 x $num_cores) + 1`` as the
 number of workers to start off with. While not overly scientific, the formula
 is based on the assumption that for a given core, one worker will be reading
 or writing from the socket while the other worker is processing a request.
 
-Obviously, your particular hardware and application are going to affect what
-the optimal number of workers is. Our recommendation is to start with the above
-guess and tune using TTIN and TTOU signals while the application is under load.
+Obviously, your particular hardware and application are going to affect the
+optimal number of workers. Our recommendation is to start with the above guess
+and tune using TTIN and TTOU signals while the application is under load.
 
 Always remember, there is such a thing as too many workers. After a point your
 worker processes will start thrashing system resources decreasing the throughput
