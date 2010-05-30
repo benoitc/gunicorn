@@ -4,56 +4,31 @@
     <meta charset="utf-8" />
     <title>Green Unicorn - The Configuration File</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-  
-    <!--[if IE]>
-      <script>
-        document.createElement('section');
-        document.createElement('article');
-        document.createElement('aside');
-        document.createElement('footer');
-        document.createElement('header');
-        document.createElement('nav');
-        document.createElement('time');
-      </script>
-
-    <![endif]-->
-
-	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-	<div class="container"> 
-		<div id="header"> 
-	      
-	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
-
-	        <div id="links"> 
-	          Get the source via
-	          <a href="http://github.com/benoitc/gunicorn">git</a>, then
-	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
-	        </div> 
-	  </div>
-		
-    	
-  
-  <div id="menu">
-  <ul id="actions">
-    <li><a href="installation.html">Installation</a></li>
-    <li><a href="usage.html">Usage</a></li>
-    <li><a href="deployment.html">Deployment</a></li>
-    <li><a href="configuration.html">Configuration</a></li>
-    <li><a href="tuning.html">Tuning</a></li>
-    <li><a href="faq.html">FAQ</a></li>
-    <li><a href="news.html">News</a></li>
-  </ul>
-</div>
-
-  <div class="document" id="the-configuration-file">
+    <div class="container">
+      <div id="header"> 
+        <a href="http://gunicorn.org">
+          <img src="/images/logo.png" alt="Gunicorn - Green Unicorn" />
+        </a>
+      </div>
+      <div id="menu">
+        <ul id="actions">
+          <li><a href="install.html">Install</a></li>
+          <li><a href="configure.html">Configure</a></li>
+          <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="news.html">News</a></li>
+        </ul>
+      </div>
+      <div class="document" id="the-configuration-file">
 <h1 class="title">The Configuration File</h1>
 <p>Gunicorn 0.5 introduced the ability to use a Python configuration file. Gunicorn
 will look for <tt class="docutils literal">gunicorn.conf.py</tt> in the current working directory or what ever
 path is specified on the command line with the <tt class="docutils literal"><span class="pre">-c</span></tt> option.</p>
 <div class="section" id="example-gunicorn-conf-py">
-<h1>Example gunicorn.conf.py</h1>
+<h2>Example gunicorn.conf.py</h2>
 <pre class="literal-block">
 backlog = 2048              # The listen queue size for the server socket
 bind = &quot;127.0.0.1:8000&quot;     # Or &quot;unix:/tmp/gunicorn.sock&quot;
@@ -85,7 +60,7 @@ before_exec=lambda server: server.log.info(&quot;Forked child, reexecuting&quot;
 </pre>
 </div>
 <div class="section" id="parameter-descriptions">
-<h1>Parameter Descriptions</h1>
+<h2>Parameter Descriptions</h2>
 <dl class="docutils">
 <dt>after_fork(server, worker):</dt>
 <dd>This is called by the worker after initialization.</dd>
@@ -150,12 +125,10 @@ Eventlet or Gevent arbiter. The default is 1000.</dd>
 </div>
 </div>
 
-  
-
-    <div id="footer">
-      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
-      <p>Hosted on <a href="http://github.com/">Github</a></p>
+      <div id="footer">
+        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
     </div>
-	</div>
   </body>
 </html>

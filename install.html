@@ -2,38 +2,55 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Green Unicorn - Installing Gunicorn</title>
+    <title>Green Unicorn - Install</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
     <div class="container">
       <div id="header"> 
-        <a href="http://gunicorn.org">
-          <img src="/images/logo.png" alt="Gunicorn - Green Unicorn" />
+        <a href="./">
+          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
         </a>
       </div>
       <div id="menu">
         <ul id="actions">
           <li><a href="install.html">Install</a></li>
+          <li><a href="run.html">Run</a></li>
           <li><a href="configure.html">Configure</a></li>
           <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="design.html">Design</a><li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="news.html">News</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
         </ul>
       </div>
-      <div class="document" id="installation">
-<h1 class="title">Installation</h1>
+      <div id="content">
+      <div class="document">
+<div class="contents sidebar topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#requirements" id="id1">Requirements</a></li>
+<li><a class="reference internal" href="#with-easy-install" id="id2">With easy_install</a></li>
+<li><a class="reference internal" href="#from-source" id="id3">From Source</a></li>
+<li><a class="reference internal" href="#async-workers" id="id4">Async Workers</a></li>
+<li><a class="reference internal" href="#ubuntu-debian" id="id5">Ubuntu/Debian</a><ul>
+<li><a class="reference internal" href="#signing-key" id="id6">Signing key</a></li>
+<li><a class="reference internal" href="#fingerprint" id="id7">Fingerprint</a></li>
+</ul>
+</li>
+</ul>
+</div>
 <div class="section" id="requirements">
-<h2>Requirements</h2>
+<h2><a class="toc-backref" href="#contents">Requirements</a></h2>
 <ul class="simple">
 <li><strong>Python 2.x &gt;= 2.5</strong> (Python 3.x will be supported soon)</li>
 <li>setuptools &gt;= 0.6c6</li>
 <li>nosetests (for the test suite only)</li>
 </ul>
 </div>
-<div class="section" id="installing-with-easy-install">
-<h1>Installing with easy_install</h1>
+<div class="section" id="with-easy-install">
+<h2><a class="toc-backref" href="#contents">With easy_install</a></h2>
 <p>If you don't already have <tt class="docutils literal">easy_install</tt> available you'll want to download
 and run the <tt class="docutils literal">ez_setup.py</tt> script:</p>
 <pre class="literal-block">
@@ -45,23 +62,25 @@ $ sudo python ez_setup.py -U setuptools
 $ sudo easy_install -U gunicorn
 </pre>
 </div>
-<div class="section" id="installing-from-source">
-<h2>Installing from source</h2>
+<div class="section" id="from-source">
+<h2><a class="toc-backref" href="#contents">From Source</a></h2>
 <p>You can install Gunicorn from source just as you would install any other
 Python package. Gunicorn uses setuptools which will automatically fetch all
 dependencies (including setuptools itself).</p>
-<div class="section" id="get-a-copy">
-<h3>Get a Copy</h3>
 <p>You can download a tarball of the latest sources from <a class="reference external" href="http://github.com/benoitc/gunicorn/downloads">GitHub Downloads</a> or
 fetch them with <a class="reference external" href="http://git-scm.com/">git</a>:</p>
 <pre class="literal-block">
+# Using git:
 $ git clone git://github.com/benoitc/gunicorn.git
-</pre>
-</div>
-<div class="section" id="id1">
-<h3>Installation</h3>
-<pre class="literal-block">
-$ python setup.py install
+$ cd gunicorn
+
+# Or using a tarball:
+$ wget http://github.com/benoitc/gunicorn/tarball/master -o gunicorn.tar.gz
+$ tar -xvzf gunicorn.tar.gz
+$ cd gunicorn-$HASH/
+
+# Install
+$ sudo python setup.py install
 </pre>
 <p>If you've cloned the git repository, its highly recommended that you use the
 <tt class="docutils literal">develop</tt> command which will allow you to use Gunicorn from the source
@@ -71,14 +90,12 @@ well as make changes to the source:</p>
 $ python setup.py develop
 </pre>
 </div>
-</div>
-<div class="section" id="enabling-async-workers">
-<h2>Enabling async workers</h2>
+<div class="section" id="async-workers">
+<h2><a class="toc-backref" href="#contents">Async Workers</a></h2>
 <p>You may also want to install <a class="reference external" href="http://eventlet.net">Eventlet</a> or <a class="reference external" href="http://gevent.org">Gevent</a> if you expect that your
-application code may need to pause for extended periods of time during
-request processing. Check out the <a class="reference external" href="faq.html">FAQ</a> for more information on when you'll
+application code may need to pause for extended periods of time during request
+processing. Check out the <a class="reference external" href="design.html">design docs</a> for more information on when you'll
 want to consider one of the alternate worker types.</p>
-<p>To install eventlet:</p>
 <pre class="literal-block">
 $ easy_install -U greenlet  # Required for both
 $ easy_install -U eventlet  # For eventlet workers
@@ -96,8 +113,8 @@ package manager. If <a class="reference external" href="http://gevent.org">Geven
 installed, this is the most likely reason.</p>
 </div>
 </div>
-<div class="section" id="installing-on-ubuntu-debian-systems">
-<h2>Installing on Ubuntu/Debian systems</h2>
+<div class="section" id="ubuntu-debian">
+<h2><a class="toc-backref" href="#contents">Ubuntu/Debian</a></h2>
 <p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a> karmic, you can update your system with packages from
 our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal">ppa:bchesneau/gunicorn</tt> to your system's Software
 Sources.</p>
@@ -107,17 +124,22 @@ and adding them to your system's software sources:</p>
 deb http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
 deb-src http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
 </pre>
-<p>Signing key:</p>
+<div class="section" id="signing-key">
+<h3><a class="toc-backref" href="#contents">Signing key</a></h3>
 <pre class="literal-block">
 1024R/15E5EB06
 </pre>
-<p>Fingerprint:</p>
+</div>
+<div class="section" id="fingerprint">
+<h3><a class="toc-backref" href="#contents">Fingerprint</a></h3>
 <pre class="literal-block">
 49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
 </pre>
 </div>
 </div>
+</div>
 
+      </div>
       <div id="footer">
         <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
         <p>Hosted on <a href="http://github.com/">Github</a></p>

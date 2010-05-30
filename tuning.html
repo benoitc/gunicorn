@@ -4,53 +4,32 @@
     <meta charset="utf-8" />
     <title>Green Unicorn - Tuning</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-  
-    <!--[if IE]>
-      <script>
-        document.createElement('section');
-        document.createElement('article');
-        document.createElement('aside');
-        document.createElement('footer');
-        document.createElement('header');
-        document.createElement('nav');
-        document.createElement('time');
-      </script>
-
-    <![endif]-->
-
-	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-	<div class="container"> 
-		<div id="header"> 
-	      
-	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
-
-	        <div id="links"> 
-	          Get the source via
-	          <a href="http://github.com/benoitc/gunicorn">git</a>, then
-	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
-	        </div> 
-	  </div>
-		
-    	
-  
-  <div id="menu">
-  <ul id="actions">
-    <li><a href="installation.html">Installation</a></li>
-    <li><a href="usage.html">Usage</a></li>
-    <li><a href="deployment.html">Deployment</a></li>
-    <li><a href="configuration.html">Configuration</a></li>
-    <li><a href="tuning.html">Tuning</a></li>
-    <li><a href="faq.html">FAQ</a></li>
-    <li><a href="news.html">News</a></li>
-  </ul>
-</div>
-
-  <div class="document" id="tuning">
+    <div class="container">
+      <div id="header"> 
+        <a href="./">
+          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
+        </a>
+      </div>
+      <div id="menu">
+        <ul id="actions">
+          <li><a href="install.html">Install</a></li>
+          <li><a href="run.html">Run</a></li>
+          <li><a href="configure.html">Configure</a></li>
+          <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="design.html">Design</a><li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
+        </ul>
+      </div>
+      <div id="content">
+      <div class="document" id="tuning">
 <h1 class="title">Tuning</h1>
 <div class="section" id="unicorn-configuration">
-<h1>Unicorn Configuration</h1>
+<h2>Unicorn Configuration</h2>
 <p>DO NOT scale the number of workers to the number of clients you expect to have.
 Gunicorn should only need 4-12 worker processes to handle hundreds or thousands
 of simultaneous clients. Remember, Gunicorn is <strong>NOT</strong> designed for serving slow
@@ -58,7 +37,7 @@ clients, that's the job of <a class="reference external" href="http://www.nginx.
 <p>See <a class="reference external" href="configuration.html">Configuration</a> for a more thorough description of the available parameters.</p>
 </div>
 <div class="section" id="kernel-parameters">
-<h1>Kernel Parameters</h1>
+<h2>Kernel Parameters</h2>
 <p>When dealing with large numbers of concurrent connections there are a handful of
 kernel parameters that you might need to adjust. Generally these should only
 affect sites with a very large concurrent load. These parameters are not
@@ -68,7 +47,7 @@ running.</p>
 slightly different flags. Always reference the appropriate man pages if
 uncertain.</p>
 <div class="section" id="file-descriptor-limits">
-<h2>File Descriptor Limits</h2>
+<h3>File Descriptor Limits</h3>
 <p>One of the first settings that usually needs to be bumped is the maximum number
 of open file descriptors for a given process. For the confused out there,
 remember that Unices treat sockets as files.</p>
@@ -77,7 +56,7 @@ $ sudo ulimit -n 2048
 </pre>
 </div>
 <div class="section" id="listen-queue-size">
-<h2>Listen Queue Size</h2>
+<h3>Listen Queue Size</h3>
 <p>Listening sockets have an associated queue of incoming connections that are
 waiting to be accepted. If you happen to have a stampede of clients that fill up
 this queue new connections will eventually start getting dropped.</p>
@@ -86,7 +65,7 @@ $ sudo sysctl -w kern.ipc.somaxconn=&quot;2048&quot;
 </pre>
 </div>
 <div class="section" id="ephemeral-port-range">
-<h2>Ephemeral Port Range</h2>
+<h3>Ephemeral Port Range</h3>
 <p>After a socket is closed it enters the TIME_WAIT state. This can become an issue
 after a prolonged burst of client activity. Eventually the ephemeral port range
 is exhausted which can cause new connections to stall while they wait for a
@@ -100,12 +79,11 @@ $ sudo sysctl -w net.inet.ip.portrange.first=&quot;8048&quot;
 </div>
 </div>
 
-  
-
-    <div id="footer">
-      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
-      <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
+      <div id="footer">
+        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
     </div>
-	</div>
   </body>
 </html>

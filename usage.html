@@ -4,74 +4,52 @@
     <meta charset="utf-8" />
     <title>Green Unicorn - Command Line Usage</title>
     <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-  
-    <!--[if IE]>
-      <script>
-        document.createElement('section');
-        document.createElement('article');
-        document.createElement('aside');
-        document.createElement('footer');
-        document.createElement('header');
-        document.createElement('nav');
-        document.createElement('time');
-      </script>
-
-    <![endif]-->
-
-	<link rel="stylesheet" href="css/style.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-	<div class="container"> 
-		<div id="header"> 
-	      
-	        <h1 class="logo"><a href="http://gunicorn.org">gunicorn</a></h1>
-
-	        <div id="links"> 
-	          Get the source via
-	          <a href="http://github.com/benoitc/gunicorn">git</a>, then
-	          <a href="http://github.com/benoitc/gunicorn/issues">send feedback</a> 
-	        </div> 
-	  </div>
-		
-    	
-  
-  <div id="menu">
-  <ul id="actions">
-    <li><a href="installation.html">Installation</a></li>
-    <li><a href="usage.html">Usage</a></li>
-    <li><a href="deployment.html">Deployment</a></li>
-    <li><a href="configuration.html">Configuration</a></li>
-    <li><a href="tuning.html">Tuning</a></li>
-    <li><a href="faq.html">FAQ</a></li>
-    <li><a href="news.html">News</a></li>
-  </ul>
-</div>
-
-  <div class="document" id="usage">
+    <div class="container">
+      <div id="header"> 
+        <a href="http://gunicorn.org">
+          <img src="/images/logo.png" alt="Gunicorn - Green Unicorn" />
+        </a>
+      </div>
+      <div id="menu">
+        <ul id="actions">
+          <li><a href="install.html">Install</a></li>
+          <li><a href="configure.html">Configure</a></li>
+          <li><a href="deploy.html">Deploy</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="news.html">News</a></li>
+        </ul>
+      </div>
+      <div class="document" id="usage">
 <h1 class="title">Usage</h1>
 <p>After installing Gunicorn you will have access to three command line scripts
 that can be used for serving the various supported web frameworks: <tt class="docutils literal">gunicorn</tt>,
 <tt class="docutils literal">gunicorn_django</tt>, and <tt class="docutils literal">gunicorn_paster</tt>.</p>
 <div class="section" id="commonly-used-arguments">
-<h1>Commonly Used Arguments</h1>
+<h2>Commonly Used Arguments</h2>
 <blockquote>
-<ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-c</span> CONFIG, <span class="pre">--config=CONFIG</span></tt> - Specify the path to a <a class="reference external" href="configuration.html">config file</a></li>
-<li><tt class="docutils literal"><span class="pre">-b</span> BIND, <span class="pre">--bind=BIND</span></tt> - Specify a server socket to bind. Server sockets
-can be any of <tt class="docutils literal">$(HOST)</tt>, <tt class="docutils literal"><span class="pre">$(HOST):$(PORT)</span></tt>, or <tt class="docutils literal"><span class="pre">unix:$(PATH)</span></tt>.
-An IP is a valid <tt class="docutils literal">$(HOST)</tt>.</li>
-<li><tt class="docutils literal"><span class="pre">-w</span> WORKERS, <span class="pre">--workers=WORKERS</span></tt> - The number of worker processes. This
-number should generally be between 2-4 workers per core in the server.
-Check the <a class="reference external" href="faq.html">FAQ</a> for ideas on tuning this parameter.</li>
-<li><tt class="docutils literal"><span class="pre">-k</span> WORKERCLASS, <span class="pre">--worker-class=WORKERCLASS</span></tt> - The type of worker process
-to run. You'll definitely want to read the <a class="reference external" href="deployment.html">production page</a> for the
-implications of this parameter. You can set this to <tt class="docutils literal"><span class="pre">egg:gunicorn#$(NAME)</span></tt>
-where <tt class="docutils literal">$(NAME)</tt> is one of <tt class="docutils literal">sync</tt>, <tt class="docutils literal">eventlet</tt>, <tt class="docutils literal">gevent</tt>, or
-<tt class="docutils literal">tornado</tt>. <tt class="docutils literal">sync</tt> is the default.</li>
-<li><tt class="docutils literal"><span class="pre">-n</span> APP_NAME, <span class="pre">--name=APP_NAME</span></tt> - If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle/">setproctitle</a> is installed you can
-adjust the name of Gunicorn process as they appear in the process system
-table (which affects tools like <tt class="docutils literal">ps</tt> and <tt class="docutils literal">top</tt>).</li>
-</ul>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">-c</span> CONFIG, <span class="pre">--config=CONFIG</span></tt></dt>
+<dd>Specify the path to a <a class="reference external" href="configuration.html">config file</a></dd>
+<dt><tt class="docutils literal"><span class="pre">-b</span> BIND, <span class="pre">--bind=BIND</span></tt></dt>
+<dd>Specify a server socket to bind. Server sockets can be any of <tt class="docutils literal">$(HOST)</tt>,
+<tt class="docutils literal"><span class="pre">$(HOST):$(PORT)</span></tt>, or <tt class="docutils literal"><span class="pre">unix:$(PATH)</span></tt>. An IP is a valid <tt class="docutils literal">$(HOST)</tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">-w</span> WORKERS, <span class="pre">--workers=WORKERS</span></tt></dt>
+<dd>The number of worker processes. This number should generally be between 2-4
+workers per core in the server. Check the <a class="reference external" href="faq.html">FAQ</a> for ideas on tuning this
+parameter.</dd>
+<dt><tt class="docutils literal"><span class="pre">-k</span> WORKERCLASS, <span class="pre">--worker-class=WORKERCLASS</span></tt></dt>
+<dd>The type of worker process to run. You'll definitely want to read the
+<a class="reference external" href="deployment.html">production page</a> for the implications of this parameter. You can set this
+to <tt class="docutils literal"><span class="pre">egg:gunicorn#$(NAME)</span></tt> where <tt class="docutils literal">$(NAME)</tt> is one of <tt class="docutils literal">sync</tt>,
+<tt class="docutils literal">eventlet</tt>, <tt class="docutils literal">gevent</tt>, or <tt class="docutils literal">tornado</tt>. <tt class="docutils literal">sync</tt> is the default.</dd>
+<dt><tt class="docutils literal"><span class="pre">-n</span> APP_NAME, <span class="pre">--name=APP_NAME</span></tt></dt>
+<dd>If <a class="reference external" href="http://pypi.python.org/pypi/setproctitle/">setproctitle</a> is installed you can adjust the name of Gunicorn process as
+they appear in the process system table (which affects tools like <tt class="docutils literal">ps</tt> and
+<tt class="docutils literal">top</tt>).</dd>
+</dl>
 </blockquote>
 <p>There are various other parameters that affect user privileges, logging, etc.
 You can see the complete list at the bottom of this page or as expected with:</p>
@@ -80,7 +58,7 @@ $ gunicorn -h
 </pre>
 </div>
 <div class="section" id="gunicorn">
-<h1>gunicorn</h1>
+<h2>gunicorn</h2>
 <p>The first and most basic script is used to server 'bare' WSGI applications
 that don't require a translation layer. Basic usage:</p>
 <pre class="literal-block">
@@ -96,7 +74,7 @@ $ gunicorn --workers=2 test:app
 </pre>
 </div>
 <div class="section" id="gunicorn-django">
-<h1>gunicorn_django</h1>
+<h2>gunicorn_django</h2>
 <p>You might not have guessed it, but this script is used to server Django
 applications. Basic usage:</p>
 <pre class="literal-block">
@@ -125,7 +103,7 @@ python manage.py run_gunicorn
 </pre>
 </div>
 <div class="section" id="gunicorn-paster">
-<h1>gunicorn_paster</h1>
+<h2>gunicorn_paster</h2>
 <p>Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
 apologize for the lack of script name creativity. And some usage:</p>
 <pre class="literal-block">
@@ -151,7 +129,7 @@ $ paster serve development.ini workers=2
 </pre>
 </div>
 <div class="section" id="full-command-line-usage">
-<h1>Full Command Line Usage</h1>
+<h2>Full Command Line Usage</h2>
 <pre class="literal-block">
 $ gunicorn -h
 Usage: gunicorn [OPTIONS] APP_MODULE
@@ -185,12 +163,12 @@ Options:
 </pre>
 </div>
 <div class="section" id="framework-examples">
-<h1>Framework Examples</h1>
+<h2>Framework Examples</h2>
 <p>This is an incomplete list of examples of using Gunicorn with various
 Python web frameworks. If you have an example to add you're very much
 invited to submit a ticket to the <a class="reference external" href="http://github.com/benoitc/gunicorn/issues">issue tracker</a> to have it included.</p>
 <div class="section" id="itty">
-<h2>Itty</h2>
+<h3>Itty</h3>
 <p>Itty comes with builtin Gunicorn support. The Itty &quot;Hello, world!&quot; looks
 like such:</p>
 <pre class="literal-block">
@@ -204,7 +182,7 @@ run_itty(server='gunicorn')
 </pre>
 </div>
 <div class="section" id="flask">
-<h2>Flask</h2>
+<h3>Flask</h3>
 <p>Flask applications are WSGI compatible. Given this Flask app in an importable
 Python module &quot;helloflask.py&quot;:</p>
 <pre class="literal-block">
@@ -225,12 +203,10 @@ can be as simple as &quot;exists in the current directory&quot;.</p>
 </div>
 </div>
 
-  
-
-    <div id="footer">
-      <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
-      <p>Hosted on <a href="http://github.com/">Github</a></p>
+      <div id="footer">
+        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Hosted on <a href="http://github.com/">Github</a></p>
+      </div>
     </div>
-	</div>
   </body>
 </html>
