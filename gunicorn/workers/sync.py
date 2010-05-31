@@ -91,9 +91,9 @@ class SyncWorker(base.Worker):
 
     def handle_request(self, req, client, addr):
         try:
-            debug = self.cfg.get("debug", False)
+            debug = self.cfg.debug or False
             resp, environ = wsgi.create(req, client, addr, self.address, debug)
-            respiter = self.app(environ, resp.start_response)
+            respiter = self.wsgi(environ, resp.start_response)
             for item in respiter:
                 resp.write(item)
             resp.close()
