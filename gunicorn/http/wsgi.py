@@ -27,6 +27,7 @@ def create(req, sock, client, server, debug=False):
     # http://www.ietf.org/rfc/rfc3875
     client = client or "127.0.0.1"
     forward = client
+    url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
     content_type = ""
     content_length = ""
@@ -38,6 +39,10 @@ def create(req, sock, client, server, debug=False):
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
         elif name == "x-forwarded-for":
             forward = hdr_value
+        elif name == "x-forwarded-protocol" and value.lower() == "ssl":
+            url_scheme = "https"
+        elif name == "x-forwarded-ssl" and value.lower() == "on":
+            url_scheme = "https"
         elif name == "host":
             server = hdr_value
         elif name == "script_name":
@@ -76,7 +81,7 @@ def create(req, sock, client, server, debug=False):
         path_info = path_info.split(script_name, 1)[1]
 
     environ = {
-        "wsgi.url_scheme": 'http',
+        "wsgi.url_scheme": url_scheme,
         "wsgi.input": req.body,
         "wsgi.errors": sys.stderr,
         "wsgi.version": (1, 0),

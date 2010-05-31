@@ -11,7 +11,7 @@ import tempfile
 
 dirname = os.path.dirname(__file__)
 
-from gunicorn.http.parser import Parser
+from gunicorn.http.parser import RequestParser
 from gunicorn.http.request import Request
 from gunicorn.config import Config
 
@@ -30,7 +30,7 @@ class request(object):
     def __call__(self, func):
         def run():
             src = data_source(self.fname)
-            func(src, Parser())
+            func(src, RequestParser(src))
         run.func_name = func.func_name
         return run
         
@@ -103,6 +103,9 @@ def has(a, b):
 
 def hasnot(a, b):
     assert not hasattr(a, b), "%r has an attribute %r" % (a, b)
+
+def istype(a, b):
+    assert isinstance(a, b), "%r is not an instance of %r" % (a, b)
 
 def raises(exctype, func, *args, **kwargs):
     try:

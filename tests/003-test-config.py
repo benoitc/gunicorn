@@ -19,7 +19,7 @@ dirname = os.path.dirname(__file__)
 def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
 def paster_ini():
-    return os.path.join(dirname, "..", "examples", "pylonstest", "nose.ini")
+    return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
 def PasterApp():
     try:
@@ -145,7 +145,7 @@ def test_cmd_line():
     with AltArgs(["prog_name", "-w", "3"]):
         app = NoConfigApp()
         t.eq(app.cfg.workers, 3)
-    with AltArgs(["prog_name", "-d"]):
+    with AltArgs(["prog_name", "--debug"]):
         app = NoConfigApp()
         t.eq(app.cfg.debug, True)
 

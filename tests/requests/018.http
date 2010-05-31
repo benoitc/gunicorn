@@ -1,0 +1,2 @@
+GET /foo/bar HTTP/1.0\r\n
+baz

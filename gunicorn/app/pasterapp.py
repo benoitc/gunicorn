@@ -22,7 +22,7 @@ class PasterApplication(Application):
         cfgfname = os.path.normpath(os.path.join(os.getcwd(), args[0]))
         cfgfname = os.path.abspath(cfgfname)
         if not os.path.exists(cfgfname):
-            parser.error("Config file not found.")
+            parser.error("Config file not found: %s" % cfgfname)
 
         self.cfgurl = 'config:%s' % cfgfname
         self.relpath = os.path.dirname(cfgfname)

@@ -1,5 +1,4 @@
-GET / HTTP/1.1\r\n
-X-SSL-Cert:    -----BEGIN CERTIFICATE-----\r\n
+certificate = """-----BEGIN CERTIFICATE-----\r\n
     MIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n
     ETAPBgNVBAoTCGVTY2llbmNlMRIwEAYDVQQLEwlBdXRob3JpdHkxCzAJBgNVBAMT\r\n
     AkNBMS0wKwYJKoZIhvcNAQkBFh5jYS1vcGVyYXRvckBncmlkLXN1cHBvcnQuYWMu\r\n
@@ -30,5 +29,12 @@ X-SSL-Cert:    -----BEGIN CERTIFICATE-----\r\n
     wTC6o2xq5y0qZ03JonF7OJspEd3I5zKY3E+ov7/ZhW6DqT8UFvsAdjvQbXyhV8Eu\r\n
     Yhixw1aKEPzNjNowuIseVogKOLXxWI5vAi5HgXdS0/ES5gDGsABo4fqovUKlgop3\r\n
     RA==\r\n
-    -----END CERTIFICATE-----\r\n
-\r\n
+    -----END CERTIFICATE-----""".replace("\n\n", "\n")
+
+request = {
+    "method": "GET",
+    "uri": uri("/"),
+    "version": (1, 1),
+    "headers": [("X-SSL-CERT", certificate)],
+    "body": ""
+}
