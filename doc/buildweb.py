@@ -18,6 +18,7 @@ from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 from jinja2.utils import open_if_exists
 
+from sitemap_gen import CreateSitemapFromFile
 import conf
 
 class Site(object):    
