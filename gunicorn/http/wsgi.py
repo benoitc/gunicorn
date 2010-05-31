@@ -88,6 +88,7 @@ def create(req, sock, client, server, debug=False):
         "wsgi.multithread": False,
         "wsgi.multiprocess": wsgi_multiprocess,
         "wsgi.run_once": False,
+        "gunicorn.socket": sock,
         "SCRIPT_NAME": script_name,
         "SERVER_SOFTWARE": SERVER_VERSION,
         "REQUEST_METHOD": req.method,

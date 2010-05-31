@@ -28,7 +28,7 @@ class WebSocketWSGI(object):
             start_response('400 Bad Request', [('Connection','close')])
             return []
    
-        sock = environ['wsgi.input'].get_socket()
+        sock = environ['gunicorn.socket']
         ws = WebSocket(sock, 
             environ.get('HTTP_ORIGIN'),
             environ.get('HTTP_WEBSOCKET_PROTOCOL'),
