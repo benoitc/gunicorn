@@ -116,7 +116,7 @@ div.container {
 #contents.sidebar {
   float: right;
   border-left: 1px solid #bbbbbb;
-  width: 150px;
+  width: 250px;
 }
 /* line 63, ../../css/style.sass */
 #contents.sidebar ul {
@@ -130,7 +130,7 @@ p.topic-title {
 
 /* line 69, ../../css/style.sass */
 div.section {
-  margin-right: 170px;
+  margin-right: 270px;
 }
 
 /* line 72, ../../css/style.sass */
