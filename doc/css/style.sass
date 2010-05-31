@@ -5,7 +5,7 @@
 
 $separator: #CCCCCC
 
-$size_body_width: 700px
+$size_body_width: 60em
 $size_toc_width: 150px
 
 $color_a: #569633
@@ -27,7 +27,7 @@ body
   color: $color_font
   line-height: 18px
   font-family: Arial, sans-serif
-  font-size: 13px
+  font-size: 100%
 
 div.container
   display: block
@@ -40,7 +40,7 @@ div.container
 
 #menu
   width: 100%
-  margin: 1em 0
+  margin: 1em 0 1.4em 0
   border-bottom: 1px solid $color_menu_border
   text-align: center
   ul
@@ -58,6 +58,7 @@ div.container
 
 #contents.sidebar
   float: right
+  border-left: 1px solid $color_menu_border
   width: $size_toc_width
   ul
     margin-bottom: 0.2em
