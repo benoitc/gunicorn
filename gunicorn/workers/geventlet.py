@@ -12,6 +12,7 @@ from eventlet.green import os
 from eventlet import greenlet
 from eventlet import greenpool
 from eventlet import greenthread
+from eventlet import hubs
 
 from gunicorn.workers.async import AsyncWorker
 
@@ -25,7 +26,11 @@ class EventletWorker(AsyncWorker):
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
         eventlet.monkey_patch(all=False, socket=True, select=True)
-        
+    
+    def init_process(self):
+        hubs.use_hub()
+        super(EventletWorker, self).init_process()
+
     def keepalive_request(self, client, addr):
         req = None
         with eventlet.Timeout(self.cfg.keepalive, False):
