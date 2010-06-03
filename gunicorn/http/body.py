@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import sys
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -177,50 +179,69 @@ class Body(object):
         if not ret:
             raise StopIteration()
         return ret
+
+    def getsize(self, size):
+        if size is None:
+            return sys.maxint
+        elif not isinstance(size, (int, long)):
+            raise TypeError("size must be an integral type")
+        elif size < 0:
+            return sys.maxint
+        return size
     
     def read(self, size=None):
-        if size is not None and not isinstance(size, (int, long)):
-            raise TypeError("size must be an integral type")
+        size = self.getsize(size)
+        if size == 0:
+            return ""
 
-        if size is not None and size < self.buf.tell():
+        if size < self.buf.tell():
             data = self.buf.getvalue()
             ret, rest = data[:size], data[size:]
             self.buf.truncate(0)
             self.buf.write(rest)
             return ret
 
-        if size > 0:
-            size -= self.buf.tell()
-        else:
-            size = None
-        
-        ret = self.buf.getvalue() + self.reader.read(size=size)
+        while size > self.buf.tell():
+            data = self.reader.read(1024)
+            if not len(data):
+                break
+            self.buf.write(data)
+
+        data = self.buf.getvalue()
+        ret, rest = data[:size], data[size:]
         self.buf.truncate(0)
+        self.buf.write(rest)
         return ret
     
     def readline(self, size=None):
+        size = self.getsize(size)
         if size == 0:
             return ""
-        if size < 0:
-            size = None
         
-        idx = -1
+        idx = self.buf.getvalue().find("\n")
         while idx < 0:
             data = self.reader.read(1024)
             if not len(data):
                 break
             self.buf.write(data)
-            if size is not None and self.buf.tell() > size:
+            idx = self.buf.getvalue().find("\n")
+            if size < self.buf.tell():
                 break
-            idx = self.buf.getvalue().find("\r\n")
+        
+        # If we didn't find it, and we got here, we've
+        # exceeded size or run out of data.
+        if idx < 0:
+            rlen = min(size, self.buf.tell())
+        else:
+            rlen = idx + 1
 
-        if idx < 0 and size is not None:
-            idx = size
-        elif idx < 0:
-            idx = self.buf.tell()
+            # If rlen is beyond our size threshold, trim back
+            if rlen > size:
+                rlen = size
         
         data = self.buf.getvalue()
-        ret, rest = data[:idx], data[idx:]
+        ret, rest = data[:rlen], data[rlen:]
+        
         self.buf.truncate(0)
         self.buf.write(rest)
         return ret

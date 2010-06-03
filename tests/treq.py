@@ -89,7 +89,7 @@ class request(object):
         return 1
     
     def size_small_random(self):
-        return random.randint(0, 2)
+        return random.randint(0, 4)
     
     def size_random(self):
         return random.randint(1, 4096)
@@ -117,6 +117,7 @@ class request(object):
             if not data:
                 count -= 1
             if count <= 0:
+                print "BOD: %r" % body
                 raise AssertionError("Unexpected apparent EOF")
 
         if len(body):
@@ -201,14 +202,7 @@ class request(object):
             for sz in sizers
             for sn in senders
         ]
-        # Strip out match_readlines, match_iter for all but one sizer
-        cfgs = [
-            (mt, sz, sn)
-            for (mt, sz, sn) in cfgs
-            if mt in [self.match_readlines, self.match_iter]
-            and sz != self.size_all
-        ]
-        
+
         ret = []
         for (mt, sz, sn) in cfgs:
             mtn = mt.func_name[6:]
@@ -223,43 +217,12 @@ class request(object):
 
     def check(self, sender, sizer, matcher):
         cases = self.expect[:]
-        ended = False
-        try:
-            p = RequestParser(sender())
-        except Exception, e:
-            if not isinstance(cases[0], Exception):
-                raise
-            self.same_error(e, cases[0])
-            t.eq(len(casese), 1)
-        while True:
-            try:
-                req = p.next()
-            except StopIteration, e:
-                t.eq(len(cases), 0)
-                ended = True
-                break
-            except ParseException, e:
-                if not issubclass(cases[0], Exception):
-                    raise
-                self.same_error(e, cases.pop(0))
-                t.eq(len(cases), 0)
-                return
-            else:
-                self.same(req, sizer, matcher, cases.pop(0))
+        p = RequestParser(sender())
+        for req in p:
+            self.same(req, sizer, matcher, cases.pop(0))
         t.eq(len(cases), 0)
-        t.eq(ended, True)
 
     def same(self, req, sizer, matcher, exp):
-        if isinstance(req, Exception):
-            self.same_error(req, exp)
-        else:
-            self.same_obj(req, sizer, matcher, exp)
-    
-    def same_error(self, req, exp):
-        t.istype(req, Exception)
-        t.istype(req, exp)
-    
-    def same_obj(self, req, sizer, matcher, exp):
         t.eq(req.method, exp["method"])
         t.eq(req.uri, exp["uri"]["raw"])
         t.eq(req.scheme, exp["uri"]["scheme"])
