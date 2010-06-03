@@ -25,8 +25,7 @@ class EventletWorker(AsyncWorker):
         import eventlet
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
-        eventlet.monkey_patch(all=False, socket=True, select=True,
-                thread=True)
+        eventlet.monkey_patch()
     
     def init_process(self):
         hubs.use_hub()
