@@ -12,7 +12,6 @@ import tempfile
 dirname = os.path.dirname(__file__)
 
 from gunicorn.http.parser import RequestParser
-from gunicorn.http.request import Request
 from gunicorn.config import Config
 
 def data_source(fname):
