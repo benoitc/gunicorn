@@ -63,9 +63,7 @@ class Application(object):
         for k, v in list(opts.__dict__.items()):
             if v is None:
                 continue
-            self.cfg.set(k.lower(), v)
-            
-        self.configure_logging()
+            self.cfg.set(k.lower(), v) 
     
     def init(self, parser, opts, args):
         raise NotImplementedError
@@ -85,6 +83,7 @@ class Application(object):
             util.daemonize()
         else:
             os.setpgrp()
+        self.configure_logging()
         Arbiter(self).run()
     
     def configure_logging(self):
