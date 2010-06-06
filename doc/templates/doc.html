@@ -1,4 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ title }}{% endblock %}
+{% if toc %}
 {% block toc %}{{ toc }}{% endblock %}
+{% endif %}
 {% block body %}{{ body }}{% endblock %}

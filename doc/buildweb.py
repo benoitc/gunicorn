@@ -90,14 +90,14 @@ class Page(object):
 
         basename, oldext = os.path.splitext(filename)
         oldext = oldext.lower()[1:]
-        converter = getattr(self, "convert_%s" % oldext, lambda x: x)
+        converter = getattr(self, "convert_%s" % oldext, lambda x: (None, x))
         if "insert_settings" in self.headers:
             body = body % {"settings": self.format_settings()}
-        self.body = converter(body)
+        self.toc, self.body = converter(body)
 
         newext = self.headers.get('ext', '.html')
         self.target = os.path.join(tgt_path, "%s%s" % (basename, newext))
-                
+        
     def url(self):
         path = self.target.split(conf.OUTPUT_PATH)[1].lstrip('/')
         return "/".join([self.site.url, path])
@@ -126,6 +126,7 @@ class Page(object):
 
         kwargs = {
             "conf": conf,
+            "toc": self.toc,
             "body": self.body,
             "url": self.url()
         }
@@ -139,7 +140,21 @@ class Page(object):
             writer_name="html",
             settings_overrides=overrides
         )
-        return parts['html_body']
+        lines = parts['html_body'].splitlines()
+        
+        toppos, botpos = None, None
+        for idx, line in enumerate(lines):
+            if line.find("_TOC_TOP_") >= 0:
+                toppos = idx
+            elif line.find("_TOC_BOT_") >= 0:
+                botpos = idx
+
+        if toppos is None or botpos is None:
+            return None, parts['html_body']
+
+        toc = lines[toppos+1:botpos]
+        body = lines[:toppos] + lines[botpos+1:]
+        return '\n'.join(toc), '\n'.join(body)
 
     def format_settings(self):
         currdir = os.path.dirname(__file__)
@@ -149,10 +164,10 @@ class Page(object):
         for i, s in enumerate(guncfg.KNOWN_SETTINGS):
             if i == 0 or s.section != guncfg.KNOWN_SETTINGS[i-1].section:
                 ret.append("%s\n%s\n\n" % (s.section, "+" * len(s.section)))
-            ret.append(self.fmt_setting2(s))
+            ret.append(self.fmt_setting(s))
         return ''.join(ret)
 
-    def fmt_setting2(self, s):
+    def fmt_setting(self, s):
         if callable(s.default):
             val = inspect.getsource(s.default)
             val = "\n".join("    %s" % l for l in val.splitlines())
@@ -177,53 +192,6 @@ class Page(object):
         out.append(s.desc)
         out.append("")
         out.append("")
-        return "\n".join(out)
-
-    def fmt_setting(self, s):
-        out = []
-        lines = s.desc.splitlines()
-        width = max(map(lambda x: len(x), lines))
-
-        if not callable(s.default):
-            val = '%s' % s.default
-        else:
-            val = ''
-        
-        if s.cli and s.meta:
-            args = ["%s %s" % (arg, s.meta) for arg in s.cli]
-            cli = ', '.join(args)
-        elif s.cli:
-            cli = ", ".join(s.cli)
-        else:
-            cli = "N/A"
-
-        width = 80
-        namelen = 20
-        deflen = 20
-        clilen = width - (namelen + deflen + 4)
-
-        args = ("-" * namelen, "-" * deflen, "-" * clilen)
-        out.append("+%s+%s+%s+" % args)
-
-        names = "| %s" % s.name
-        names += " " * (namelen - (len(s.name) + 2))
-        names += " | %s" % val
-        names += " " * (deflen - (len(val) + 2))
-        names += " | %s" % cli
-        names += " " * (clilen - (len(cli) + 1))
-        names += "|"
-        out.append(names)
-        
-        out.append(out[0].replace("-", "="))
-
-        for l in lines:
-            l = l.rstrip("\n")
-            if len(l) < width:
-                l += " " * ((width - 2) - len(l))
-            out.append("|%s|" % l)
-        out.append("+%s+" % ("-" * (width - 2)))
-        out.extend(["", ""])
-
         return "\n".join(out)
 
 def main():

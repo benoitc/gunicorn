@@ -1,9 +1,12 @@
 template: doc.html
 title: Run
 
+_TOC_TOP_
+
 .. contents::
-    :class: sidebar
     :backlinks: top
+
+_TOC_BOT_
 
 Commands
 --------

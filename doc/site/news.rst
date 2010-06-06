@@ -1,6 +1,13 @@
 template: doc.html
 title: News
 
+_TOC_TOP_
+
+.. contents::
+    :backlinks: top
+
+_TOC_BOT_
+
 0.9.1 / 2010-05-26
 ------------------
 

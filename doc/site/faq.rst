@@ -1,8 +1,12 @@
 template: doc.html
 title: FAQ
 
-.. contents:: Questions
+_TOC_TOP_
+
+.. contents::
     :backlinks: top
+
+_TOC_BOT_
 
 
 WSGI Bits

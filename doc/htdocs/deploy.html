@@ -7,19 +7,19 @@
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-    <div class="container">
-      <div id="header"> 
-        <a href="./">
-          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
-        </a>
-      </div>
+    <div id="container" class="twocolumn">
       <div id="menu">
+        <div class="logo">
+          <a href="./">
+            <img src="images/gunicorn.png" alt="Gunicorn - Green Unicorn" />
+          </a>
+        </div>
         <ul id="actions">
           <li><a href="install.html">Install</a></li>
           <li><a href="run.html">Run</a></li>
           <li><a href="configure.html">Configure</a></li>
           <li><a href="deploy.html">Deploy</a></li>
-          <li><a href="design.html">Design</a><li>
+          <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
@@ -27,18 +27,6 @@
       </div>
       <div id="content">
       <div class="document">
-<div class="contents sidebar topic" id="contents">
-<p class="topic-title first">Contents</p>
-<ul class="simple">
-<li><a class="reference internal" href="#nginx-configuration" id="id3">Nginx Configuration</a></li>
-<li><a class="reference internal" href="#using-virtualenv" id="id4">Using Virtualenv</a></li>
-<li><a class="reference internal" href="#monitoring" id="id5">Monitoring</a><ul>
-<li><a class="reference internal" href="#runit" id="id6">Runit</a></li>
-<li><a class="reference internal" href="#supervisor" id="id7">Supervisor</a></li>
-</ul>
-</li>
-</ul>
-</div>
 <div class="section" id="nginx-configuration">
 <h2><a class="toc-backref" href="#contents">Nginx Configuration</a></h2>
 <p>Although there are many HTTP proxies available, we strongly advise that you
@@ -173,7 +161,7 @@ exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf">simple configuration</a> is:</p>
 <pre class="literal-block">
 [program:gunicorn]
-command=/usr/local/bin/gunicorn main:application -c /path/to/project/gunicorn.conf.py
+command=/path/to/gunicorn main:application -c /path/to/gunicorn.conf.py
 directory=/path/to/project
 user=nobody
 autostart=true
@@ -183,10 +171,23 @@ redirect_stderr=True
 </div>
 </div>
 </div>
-
+      </div>
+      <div id="toc">
+      <div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#nginx-configuration" id="id3">Nginx Configuration</a></li>
+<li><a class="reference internal" href="#using-virtualenv" id="id4">Using Virtualenv</a></li>
+<li><a class="reference internal" href="#monitoring" id="id5">Monitoring</a><ul>
+<li><a class="reference internal" href="#runit" id="id6">Runit</a></li>
+<li><a class="reference internal" href="#supervisor" id="id7">Supervisor</a></li>
+</ul>
+</li>
+</ul>
+</div>
       </div>
       <div id="footer">
-        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Site Content License <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
         <p>Hosted on <a href="http://github.com/">Github</a></p>
       </div>
     </div>

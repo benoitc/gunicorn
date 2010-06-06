@@ -58,29 +58,29 @@ a img {
   border: none;
 }
 
-/* line 15, ../../css/style.sass */
-#container.twocolumn {
+/* line 15, ../../css/index.sass */
+#container.landing {
   margin-left: auto;
   margin-right: auto;
   width: 960px;
 }
-/* line 17, ../../css/style.sass */
-#container.twocolumn #header, #container.twocolumn #menu, #container.twocolumn #footer, #container.twocolumn #toc, #container.twocolumn #content {
+/* line 17, ../../css/index.sass */
+#container.landing #menu, #container.landing #header, #container.landing div.blurb, #container.landing #tutorial, #container.landing #actions, #container.landing #footer {
   display: inline;
   float: left;
   margin-left: 10px;
   margin-right: 10px;
 }
-/* line 19, ../../css/style.sass */
-#container.twocolumn #header, #container.twocolumn #menu, #container.twocolumn #footer {
+/* line 19, ../../css/index.sass */
+#container.landing #menu, #container.landing #header, #container.landing #footer {
   width: 940px;
 }
-/* line 21, ../../css/style.sass */
-#container.twocolumn #toc {
+/* line 22, ../../css/index.sass */
+#container.landing div.blurb {
   width: 300px;
 }
-/* line 23, ../../css/style.sass */
-#container.twocolumn #content {
+/* line 24, ../../css/index.sass */
+#container.landing #tutorial {
   width: 620px;
 }
 
@@ -167,18 +167,18 @@ fieldset {
   margin-bottom: 20px;
 }
 
-/* line 30, ../../css/style.sass */
-body {
-  font-family: Helvetica, Arial, sans-serif;
-}
-
-/* line 33, ../../css/style.sass */
+/* line 29, ../../css/index.sass */
 a, a:visited, a:hover, a:active {
   color: #569633;
   text-decoration: none;
 }
 
-/* line 39, ../../css/style.sass */
+/* line 33, ../../css/index.sass */
+#header {
+  margin: 46px 0px;
+}
+
+/* line 36, ../../css/index.sass */
 #menu {
   margin-bottom: 23px;
   -moz-border-radius-bottomleft: 10px;
@@ -196,13 +196,13 @@ a, a:visited, a:hover, a:active {
   background-color: #959595;
   text-align: right;
 }
-/* line 44, ../../css/style.sass */
+/* line 41, ../../css/index.sass */
 #menu div.logo {
   float: left;
   margin-left: 10px;
   padding-top: 3px;
 }
-/* line 48, ../../css/style.sass */
+/* line 45, ../../css/index.sass */
 #menu ul {
   display: inline;
   margin-right: 10px;
@@ -214,44 +214,36 @@ a, a:visited, a:hover, a:active {
   list-style-type: none;
   margin-left: 0px;
 }
-/* line 52, ../../css/style.sass */
+/* line 49, ../../css/index.sass */
 #menu ul li {
   display: inline;
   padding: 0px 3px;
 }
-/* line 55, ../../css/style.sass */
+/* line 52, ../../css/index.sass */
 #menu ul li a {
   font-size: 17px;
   color: white;
 }
 
-/* line 59, ../../css/style.sass */
-div.document {
-  border-right: 1px solid #959595;
-  padding-right: 15px;
+/* line 56, ../../css/index.sass */
+#footer {
+  border-top: 1px solid #959595;
+  padding: 10px 0px;
+  text-align: center;
+  color: #959595;
+}
+/* line 61, ../../css/index.sass */
+#footer p {
+  margin-bottom: 5px;
 }
 
-/* line 64, ../../css/style.sass */
-#toc ul ul {
-  list-style: disc;
-}
-/* line 66, ../../css/style.sass */
-#toc ul ul ul {
-  list-style: circle;
-}
-
-/* line 69, ../../css/style.sass */
-p.topic-title {
-  display: none;
-}
-
-/* line 72, ../../css/style.sass */
+/* line 64, ../../css/index.sass */
 pre, tt {
   font-family: "Andale Mono", "Lucida Console", monospace;
   font-size: 12px;
 }
 
-/* line 76, ../../css/style.sass */
+/* line 68, ../../css/index.sass */
 pre {
   white-space: pre;
   background-color: black;
@@ -259,47 +251,4 @@ pre {
   margin: 5px;
   margin-bottom: 20px;
   padding: 5px;
-}
-
-/* line 84, ../../css/style.sass */
-.note {
-  border-top: 1px solid #569633;
-  border-bottom: 1px solid #569633;
-  padding: 0.6em 0.6em 0.6em 80px;
-  margin-bottom: 2em;
-  position: relative;
-}
-/* line 90, ../../css/style.sass */
-.note p.admonition-title:before {
-  content: "!";
-  font-size: 60px;
-  font-weight: bold;
-  color: red;
-  position: absolute;
-  left: 30px;
-  font-family: helvetica, arial;
-}
-/* line 98, ../../css/style.sass */
-.note p.admonition-title {
-  font-weight: 700;
-  margin: 0;
-  margin-bottom: 4px;
-  padding: 0;
-}
-/* line 103, ../../css/style.sass */
-.note p.last {
-  padding: 0;
-  margin: 0;
-}
-
-/* line 107, ../../css/style.sass */
-#footer {
-  border-top: 1px solid #959595;
-  padding: 10px 0px;
-  text-align: center;
-  color: #959595;
-}
-/* line 112, ../../css/style.sass */
-#footer p {
-  margin-bottom: 5px;
 }

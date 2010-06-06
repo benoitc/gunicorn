@@ -1,131 +1,89 @@
+@import 960/grid
+@import 960/text
+
 @import compass/css3
-@import compass/reset
+@import compass/layout.scss
 @import compass/utilities/general
 @import compass/utilities/lists
 
-$separator: #CCCCCC
+@import compass/reset
 
-$size_body_width: 60em
-$size_toc_width: 250px
+$ninesixty-columns: 24
 
-$color_a: #569633
-$color_bg: #F9F9F9
-$color_font: #2A2A2A
-$color_footer_a: #444444
-$color_footer_border: #CCCCCC
-$color_headings: #489848
-$color_headings_border: #CCCCCC
-$color_menu_border: #BBBBBB
-$color_menu_a: #489848
-$color_note_before: #489848
-$color_note_border: #489848
-$color_pre_bg: #FFFFDD
-$color_th_border: #000000
+// Layout
+
+#container.twocolumn
+  +grid-container
+  #header, #menu, #footer, #toc, #content
+    +grid-unit-base
+  #header, #menu, #footer
+    +grid-width(24)
+  #toc
+    +grid-width(8)
+  #content
+    +grid-width(16)
+
+// Text
+
++text
 
 body
-  background: $color_bg
-  color: $color_font
-  line-height: 18px
-  font-family: Arial, sans-serif
-  font-size: 100%
+  font-family: Helvetica, Arial, sans-serif
 
-div.container
-  display: block
-  width: $size_body_width
-  margin: 0 auto
+a, a:visited, a:hover, a:active
+  color: #569633
+  text-decoration: none
 
-#header
-  margin: 1em auto
-  text-align: center
+// Style
 
 #menu
-  width: 100%
-  margin: 1em 0 1.4em 0
-  border-bottom: 1px solid $color_menu_border
-  text-align: center
+  margin-bottom: 23px
+  +border-bottom-radius(10px)
+  background-color: #959595
+  text-align: right
+  div.logo
+    float: left
+    margin-left: 10px
+    padding-top: 3px
   ul
-    +no-bullets
     display: inline
+    margin-right: 10px
+    +no-bullets
     li
       display: inline
-      margin-right: 15px
-      text-align: center
+      padding: 0px 3px
       a
-        font-size: 20px
-        font-weight: 700
-        color: $color_menu_a
-        text-decoration: none
+        font-size: 17px
+        color: white
 
-#contents.sidebar
-  float: right
-  border-left: 1px solid $color_menu_border
-  width: $size_toc_width
-  ul
-    margin-bottom: 0.2em
+div.document
+  border-right: 1px solid #959595
+  padding-right: 15px
+
+#toc
+  ul ul
+    list-style: disc
+  ul ul ul
+    list-style: circle
 
 p.topic-title
   display: none
 
-div.section
-  margin-right: $size_toc_width + 20px
-
-div.section div.section
-  margin-right: 0
-
-div.section ul
-  margin-left: 15px
-  +no-bullets
-
-h1, h2, h3, h4
-  color: $color_headings
-  
-h1
-  margin-top: 10px
-  font-size: 26px
-
-h2
-  border-bottom: 5px solid $color_headings_border
-  margin-bottom: 13px
-  padding-bottom: 3px
-  font-size: 20px
-  font-weight: 700
-
-h3
-  border-bottom: 1px solid $color_headings_border
-  margin-bottom: 13px
-  font-weight: 700
-
-a
-  color: $color_a
-  text-decoration: none
-
-p
-  margin-bottom: 1em
-  font-size: 1em
-
-ol
-  list-style: decimal
-  margin-left: 2em
-  margin-bottom: 13px
-
-ul
-  list-style: disc
-  margin-left: 2em
-  margin-bottom: 13px
-
 pre, tt
-  font-family: 'andale mono', 'lucida console', monospace
+  font-family: 'Andale Mono', 'Lucida Console', monospace
   font-size: 12px
-  background: $color_pre_bg
 
 pre
   white-space: pre
-  margin: 3px 3px 2em 3px
-  padding: 8px 20px
+  background-color: #000000
+  color: #00FF00
+  margin: 5px
+  margin-bottom: 20px
+  padding: 5px
 
 .note
-  border-top: 1px solid $color_note_border
-  border-bottom: 1px solid $color_note_border
+  border-top: 1px solid #569633
+  border-bottom: 1px solid #569633
   padding: .6em .6em .6em 80px
   margin-bottom: 2em
   position: relative
@@ -133,9 +91,8 @@ pre
     content: "!"
     font-size: 60px
     font-weight: bold
-    color: $color_note_before
+    color: #FF0000
     position: absolute
-    top:  30px
     left: 30px
     font-family: helvetica,arial
   p.admonition-title
@@ -148,13 +105,9 @@ pre
     margin: 0
 
 #footer
-  border-top: 1px solid $color_footer_border
-  clear: both
-  display: block
-  width: 100%
-  margin-top: 3em
-  padding-top: 1em
+  border-top: 1px solid #959595
+  padding: 10px 0px
   text-align: center
-  font-size: 0.8em
-  a
-    color: $color_footer_a
+  color: #959595
+  p
+    margin-bottom: 5px

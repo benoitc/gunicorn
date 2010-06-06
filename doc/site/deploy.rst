@@ -1,9 +1,12 @@
 template: doc.html
 title: Deploy
 
+_TOC_TOP_
+
 .. contents::
-    :class: sidebar
     :backlinks: top
+
+_TOC_BOT_
 
 Nginx Configuration
 -------------------
@@ -145,7 +148,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 `simple configuration`_ is::
 
     [program:gunicorn]
-    command=/usr/local/bin/gunicorn main:application -c /path/to/project/gunicorn.conf.py
+    command=/path/to/gunicorn main:application -c /path/to/gunicorn.conf.py
     directory=/path/to/project
     user=nobody
     autostart=true

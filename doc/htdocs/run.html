@@ -7,19 +7,19 @@
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
-    <div class="container">
-      <div id="header"> 
-        <a href="./">
-          <img src="images/logo.png" alt="Gunicorn - Green Unicorn" />
-        </a>
-      </div>
+    <div id="container" class="twocolumn">
       <div id="menu">
+        <div class="logo">
+          <a href="./">
+            <img src="images/gunicorn.png" alt="Gunicorn - Green Unicorn" />
+          </a>
+        </div>
         <ul id="actions">
           <li><a href="install.html">Install</a></li>
           <li><a href="run.html">Run</a></li>
           <li><a href="configure.html">Configure</a></li>
           <li><a href="deploy.html">Deploy</a></li>
-          <li><a href="design.html">Design</a><li>
+          <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
@@ -27,22 +27,6 @@
       </div>
       <div id="content">
       <div class="document">
-<div class="contents sidebar topic" id="contents">
-<p class="topic-title first">Contents</p>
-<ul class="simple">
-<li><a class="reference internal" href="#commands" id="id1">Commands</a><ul>
-<li><a class="reference internal" href="#gunicorn" id="id2">gunicorn</a></li>
-<li><a class="reference internal" href="#gunicorn-django" id="id3">gunicorn_django</a></li>
-<li><a class="reference internal" href="#gunicorn-paster" id="id4">gunicorn_paster</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#integration" id="id5">Integration</a><ul>
-<li><a class="reference internal" href="#django-manage-py" id="id6">Django ./manage.py</a></li>
-<li><a class="reference internal" href="#paster-serve" id="id7">paster serve</a></li>
-</ul>
-</li>
-</ul>
-</div>
 <div class="section" id="commands">
 <h2><a class="toc-backref" href="#contents">Commands</a></h2>
 <p>After installing Gunicorn you will have access to three command line scripts
@@ -154,10 +138,27 @@ $ paster serve development.ini workers=2
 </div>
 </div>
 </div>
-
+      </div>
+      <div id="toc">
+      <div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#commands" id="id1">Commands</a><ul>
+<li><a class="reference internal" href="#gunicorn" id="id2">gunicorn</a></li>
+<li><a class="reference internal" href="#gunicorn-django" id="id3">gunicorn_django</a></li>
+<li><a class="reference internal" href="#gunicorn-paster" id="id4">gunicorn_paster</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#integration" id="id5">Integration</a><ul>
+<li><a class="reference internal" href="#django-manage-py" id="id6">Django ./manage.py</a></li>
+<li><a class="reference internal" href="#paster-serve" id="id7">paster serve</a></li>
+</ul>
+</li>
+</ul>
+</div>
       </div>
       <div id="footer">
-        <p>This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
+        <p>Site Content License <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
         <p>Hosted on <a href="http://github.com/">Github</a></p>
       </div>
     </div>
