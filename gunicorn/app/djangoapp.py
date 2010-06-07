@@ -57,7 +57,6 @@ class DjangoApplicationCommand(Application):
                 self.cfg.set(k.lower(), v)
         
         self.admin_media_path = admin_media_path
-        self.configure_logging()
         
     def load(self):
         try:
