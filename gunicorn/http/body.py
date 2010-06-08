@@ -19,27 +19,22 @@ class ChunkedReader(object):
         self.parser = self.parse_chunked(unreader)
         self.buf = StringIO()
     
-    def read(self, size=None):
+    def read(self, size):
+        if not isinstance(size, (int, long)):
+            raise TypeError("size must be an integral type")
+        if size <= 0:
+            raise ValueError("Size must be positive.")
         if size == 0:
             return ""
-        if size < 0:
-            size = None
 
-        if not self.parser:
-            return self.buf.getvalue()
+        if self.parser:
+            while self.buf.tell() < size:
+                try:
+                    self.buf.write(self.parser.next())
+                except StopIteration:
+                    self.parser = None
+                    break
 
-        while size is None or self.buf.tell() < size:
-            try:
-                self.buf.write(self.parser.next())
-            except StopIteration:
-                self.parser = None
-                break
-
-        if size is None or self.buf.tell() < size:
-            ret = self.buf.getvalue()
-            self.buf.truncate(0)
-            return ret
-        
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
         self.buf.truncate(0)
@@ -115,14 +110,15 @@ class LengthReader(object):
         self.unreader = unreader
         self.length = length
     
-    def read(self, size=None):
-        if size is not None and not isinstance(size, (int, long)):
+    def read(self, size):
+        if not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
-
-        if size == 0 or self.length <= 0:
+        if size < 0:
+            raise ValueError("Size must be positive.")
+        if size == 0:
             return ""
-        if size < 0 or size is None:
-            size = self.length
+        size = min(self.length, size)
+        print "READING: %s of %d" % (size, self.length)
         
         buf = StringIO()
         data = self.unreader.read()
@@ -144,26 +140,28 @@ class EOFReader(object):
         self.buf = StringIO()
         self.finished = False
     
-    def read(self, size=None):
-        if size == 0 or self.finished:
-            return ""
+    def read(self, size):
+        if not isinstance(size, (int, long)):
+            raise TypeError("size must be an integral type")
         if size < 0:
-            size = None
+            raise ValueError("Size must be positive.")
+        if size == 0:
+            return ""
         
         data = self.unreader.read()
         while data:
             self.buf.write(data)
-            if size is not None and self.buf.tell() > size:
-                data = self.buf.getvalue()
-                ret, rest = data[:size], data[size:]
-                self.buf.truncate(0)
-                self.buf.write(rest)
-                return ret
+            if self.buf.tell() > size:
+                break
             data = self.unreader.read()
 
-        self.finished = True
-        ret = self.buf.getvalue()
+        if not data:
+            self.finished = True
+
+        data = self.buf.getvalue()
+        ret, rest = data[:size], data[size:]
         self.buf.truncate(0)
+        self.buf.write(rest)
         return ret
 
 class Body(object):
