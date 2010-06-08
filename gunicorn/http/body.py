@@ -118,7 +118,6 @@ class LengthReader(object):
         if size == 0:
             return ""
         size = min(self.length, size)
-        print "READING: %s of %d" % (size, self.length)
         
         buf = StringIO()
         data = self.unreader.read()
