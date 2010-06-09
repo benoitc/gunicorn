@@ -146,7 +146,7 @@ class EOFReader(object):
             raise TypeError("size must be an integral type")
         if size < 0:
             raise ValueError("Size must be positive.")
-        if size == 0:
+        if size == 0 or self.finished:
             return ""
         
         data = self.unreader.read()
@@ -158,6 +158,7 @@ class EOFReader(object):
 
         if not data:
             self.finished = True
+            return self.buf.getvalue()
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
