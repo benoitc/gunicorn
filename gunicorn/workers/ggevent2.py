@@ -44,7 +44,7 @@ class GEvent2Worker(Worker):
         handle.handle(self)
         
     def run(self):
-        self.socket.setblocking(0)
+        self.socket.setblocking(1)
         env = self.base_env.copy()
         
         env.update({
