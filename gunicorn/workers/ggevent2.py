@@ -19,7 +19,7 @@ class GEvent2Worker(Worker):
     
     base_env = {
         'GATEWAY_INTERFACE': 'CGI/1.1',
-        'SERVER_SOFTWARE': 'gevent/%s gunicotn/%s' % (gevent.__version__,
+        'SERVER_SOFTWARE': 'gevent/%s gunicorn/%s' % (gevent.__version__,
                                                     gunicorn.__version__),
         'SCRIPT_NAME': '',
         'wsgi.version': (1, 0),
@@ -52,7 +52,6 @@ class GEvent2Worker(Worker):
             'SERVER_PORT': str(self.address[1]) 
         })
         self.base_env = env
-        
         
         http = core.http()
         http.set_gencb(self.handle_request)
