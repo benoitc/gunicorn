@@ -74,3 +74,11 @@ class DjangoApplicationCommand(Application):
                 error_text = str(e)
             sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
             sys.exit(1)
+            
+def run():
+    """\
+    The ``gunicorn_django`` command line runner for launching Django
+    applications.
+    """
+    from gunicorn.app.djangoapp import DjangoApplication
+    DjangoApplication("%prog [OPTIONS] [SETTINGS_PATH]").run()

@@ -88,3 +88,25 @@ class PasterServerApplication(Application):
         return self.app
 
 
+def run():
+    """\
+    The ``gunicorn_paster`` command for launcing Paster compatible
+    apllications like Pylons or Turbogears2
+    """
+    from gunicorn.app.pasterapp import PasterApplication
+    PasterApplication("%prog [OPTIONS] pasteconfig.ini").run()
+
+def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
+    """\
+    A paster server.
+    
+    Then entry point in your paster ini file should looks like this:
+    
+    [server:main]
+    use = egg:gunicorn#main
+    host = 127.0.0.1
+    port = 5000
+    
+    """
+    from gunicorn.app.pasterapp import PasterServerApplication
+    PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()

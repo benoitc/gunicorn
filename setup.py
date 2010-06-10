@@ -46,9 +46,9 @@ setup(
     entry_points="""
     
     [console_scripts]
-    gunicorn=gunicorn.main:run
-    gunicorn_django=gunicorn.main:run_django
-    gunicorn_paster=gunicorn.main:run_paster
+    gunicorn=gunicorn.app.wsgiapp:run
+    gunicorn_django=gunicorn.app.djangoapp:run
+    gunicorn_paster=gunicorn.app.pasterapp:run
 
     [gunicorn.workers]
     sync=gunicorn.workers.sync:SyncWorker
@@ -57,7 +57,7 @@ setup(
     tornado=gunicorn.workers.gtornado:TornadoWorker
 
     [paste.server_runner]
-    main=gunicorn.main:paste_server
+    main=gunicorn.app.pasterapp:paste_server
     """,
     test_suite = 'nose.collector',
 )
