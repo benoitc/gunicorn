@@ -37,7 +37,7 @@ class GEvent2Worker(Worker):
     @classmethod
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all()
+        monkey.patch_all(dns=False)
    
     def handle_request(self, req):
         self.pool.spawn(self.handle, req)
