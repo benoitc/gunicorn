@@ -15,6 +15,10 @@ from gevent import wsgi
 import gunicorn
 from gunicorn.workers.base import Worker
 
+class WSGIHandler(wsgi.WSGIHandler):
+    def log_request(self, *args):
+        pass
+
 class GEvent2Worker(Worker):
     
     base_env = {
@@ -33,7 +37,6 @@ class GEvent2Worker(Worker):
         super(GEvent2Worker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.pool = None
-        self.log = None
     
     @classmethod
     def setup(cls):
@@ -44,7 +47,7 @@ class GEvent2Worker(Worker):
         self.pool.spawn(self.handle, req)
        
     def handle(self, req):
-        handle = wsgi.WSGIHandler(req)
+        handle = WSGIHandler(req)
         handle.handle(self)
         
     def run(self):
