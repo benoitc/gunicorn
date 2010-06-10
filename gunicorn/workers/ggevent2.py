@@ -29,6 +29,10 @@ class GEvent2Worker(Worker):
         'wsgi.run_once': False
     }
     
+    def __init__(self, *args, **kwargs):
+        super(GEvent2Worker, self).__init__(*args, **kwargs)
+        self.worker_connections = self.cfg.worker_connections
+        self.pool = None
     
     @classmethod
     def setup(cls):
@@ -36,8 +40,7 @@ class GEvent2Worker(Worker):
         monkey.patch_all()
    
     def handle_request(self, req):
-        gevent.getcurrent()
-        gevent.spawn(self.handle, req)
+        self.pool.spawn(self.handle, req)
        
     def handle(self, req):
         handle = wsgi.WSGIHandler(req)
@@ -55,6 +58,8 @@ class GEvent2Worker(Worker):
         
         http = core.http()
         http.set_gencb(self.handle_request)
+        self.pool = Pool(self.worker_connections)
+        
         self.application = self.wsgi
         acceptor = gevent.spawn(http.accept, self.socket.fileno())
         
@@ -67,7 +72,7 @@ class GEvent2Worker(Worker):
                     gevent.kill(acceptor)
                     break
                 gevent.sleep(0.1)            
-
+            pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
 
