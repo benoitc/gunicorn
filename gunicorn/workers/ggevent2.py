@@ -76,7 +76,7 @@ class GEvent2Worker(Worker):
                     gevent.kill(acceptor)
                     break
                 gevent.sleep(0.1)            
-            pool.join(timeout=self.timeout)
+            self.pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
 
