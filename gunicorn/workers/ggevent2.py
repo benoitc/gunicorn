@@ -33,6 +33,7 @@ class GEvent2Worker(Worker):
         super(GEvent2Worker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.pool = None
+        self.log = None
     
     @classmethod
     def setup(cls):
