@@ -18,6 +18,10 @@ from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
 
+
+class HUPSignal(Exception):
+    pass
+
 class Arbiter(object):
     """
     Arbiter maintain the workers processes alive. It launches or
@@ -48,20 +52,11 @@ class Arbiter(object):
     )
     
     def __init__(self, app):
-        self.app = app
-        self.cfg = app.cfg
+        self.setup(app)
         
-        if self.cfg.preload_app:
-            self.app.wsgi()
+        
 
         self.log = logging.getLogger(__name__)
-
-        self.address = self.cfg.address
-        self.num_workers = self.cfg.workers
-        self.debug = self.cfg.debug
-        self.timeout = self.cfg.timeout
-        self.proc_name = self.cfg.proc_name
-        self.worker_class = self.cfg.worker_class
 
         self.pidfile = None
         self.worker_age = 0
@@ -88,6 +83,19 @@ class Arbiter(object):
             "cwd": cwd,
             0: sys.executable
         }
+        
+    def setup(self, app):
+        self.app = app
+        self.cfg = app.cfg
+        self.address = self.cfg.address
+        self.num_workers = self.cfg.workers
+        self.debug = self.cfg.debug
+        self.timeout = self.cfg.timeout
+        self.proc_name = self.cfg.proc_name
+        self.worker_class = self.cfg.worker_class
+        
+        if self.cfg.preload_app:
+            self.app.wsgi()
 
     def start(self):
         """\
@@ -95,7 +103,8 @@ class Arbiter(object):
         """
         self.pid = os.getpid()
         self.init_signals()
-        self.LISTENER = create_socket(self.cfg)
+        if not self.LISTENER:
+            self.LISTENER = create_socket(self.cfg)
         
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)
@@ -110,7 +119,7 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         if self.PIPE:
-            map(lambda p: p.close(), self.PIPE)
+            map(lambda p: os.close(p), self.PIPE)
         self.PIPE = pair = os.pipe()
         map(util.set_non_blocking, pair)
         map(util.close_on_exec, pair)
@@ -150,11 +159,13 @@ class Arbiter(object):
                     continue
                 self.log.info("Handling signal: %s" % signame)
                 handler()  
-                self.wakeup()   
+                self.wakeup()
+            except HUPSignal:
+                return self.reload()
             except StopIteration:
-                break
+                self.halt()
             except KeyboardInterrupt:
-                break
+                self.halt()
             except Exception:
                 self.log.info("Unhandled exception in main loop:\n%s" %  
                             traceback.format_exc())
@@ -163,12 +174,6 @@ class Arbiter(object):
                     self.pidfile.unlink()
                 sys.exit(-1)
 
-        self.stop()
-        self.log.info("Shutting down: %s" % self.master_name)
-        if self.pidfile is not None:
-            self.pidfile.unlink()
-        sys.exit(0)
-        
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
         self.wakeup()
@@ -181,8 +186,7 @@ class Arbiter(object):
         restart the workers and rereading the configuration.
         """
         self.log.info("Hang up: %s" % self.master_name)
-        self.reexec()
-        raise StopIteration
+        raise HUPSignal
         
     def handle_quit(self):
         "SIGQUIT handling"
@@ -250,6 +254,14 @@ class Arbiter(object):
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
                     
+    def halt(self):
+        """ halt arbiter """
+        self.stop()
+        self.log.info("Shutting down: %s" % self.master_name)
+        if self.pidfile is not None:
+            self.pidfile.unlink()
+        sys.exit(0)
+        
     def sleep(self):
         """\
         Sleep until PIPE is readable or we timeout.
@@ -269,6 +281,7 @@ class Arbiter(object):
                 raise
         except KeyboardInterrupt:
             sys.exit()
+            
     
     def stop(self, graceful=True):
         """\
@@ -304,7 +317,24 @@ class Arbiter(object):
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
-
+        
+    def reload(self):
+        # reload conf
+        self.app.reload()
+        
+        # spawn new workers
+        for i in range(self.app.cfg.workers):
+            self.spawn_worker()
+        
+        # unlink pidfile
+        if self.pidfile is not None:
+            self.pidfile.unlink()
+            
+        self.setup(self.app)
+        self.manage_workers()
+        
+        return self.run()
+        
     def murder_workers(self):
         """\
         Kill unused/idle workers
@@ -361,6 +391,40 @@ class Arbiter(object):
                     pid, age = wpid, worker.age
             self.kill_worker(pid, signal.SIGQUIT)
             
+    def spawn_worker(self):
+        self.worker_age += 1
+        worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
+                                    self.app, self.timeout/2.0, self.cfg)
+        self.cfg.pre_fork(self, worker)
+        pid = os.fork()
+        if pid != 0:
+            self.WORKERS[pid] = worker
+            return
+
+        # Process Child
+        worker_pid = os.getpid()
+        try:
+            util._setproctitle("worker [%s]" % self.proc_name)
+            self.log.debug("Booting worker: %s (age: %s)" % (
+                                            worker_pid, self.worker_age))
+            self.cfg.post_fork(self, worker)
+            worker.init_process()
+            sys.exit(0)
+        except SystemExit:
+            raise
+        except:
+            self.log.exception("Exception in worker process:")
+            if not worker.booted:
+                sys.exit(self.WORKER_BOOT_ERROR)
+            sys.exit(-1)
+        finally:
+            self.log.info("Worker exiting (pid: %s)" % worker_pid)
+            try:
+                worker.tmp.close()
+                os.unlink(worker.tmpname)
+            except:
+                pass
+        
     def spawn_workers(self):
         """\
         Spawn new workers as needed.
@@ -370,38 +434,7 @@ class Arbiter(object):
         """
         
         for i in range(self.num_workers - len(self.WORKERS.keys())):
-            self.worker_age += 1
-            worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
-                                        self.app, self.timeout/2.0, self.cfg)
-            self.cfg.pre_fork(self, worker)
-            pid = os.fork()
-            if pid != 0:
-                self.WORKERS[pid] = worker
-                continue
-
-            # Process Child
-            worker_pid = os.getpid()
-            try:
-                util._setproctitle("worker [%s]" % self.proc_name)
-                self.log.debug("Booting worker: %s (age: %s)" % (
-                                                worker_pid, self.worker_age))
-                self.cfg.post_fork(self, worker)
-                worker.init_process()
-                sys.exit(0)
-            except SystemExit:
-                raise
-            except:
-                self.log.exception("Exception in worker process:")
-                if not worker.booted:
-                    sys.exit(self.WORKER_BOOT_ERROR)
-                sys.exit(-1)
-            finally:
-                self.log.info("Worker exiting (pid: %s)" % worker_pid)
-                try:
-                    worker.tmp.close()
-                    os.unlink(worker.tmpname)
-                except:
-                    pass
+            self.spawn_worker()
 
     def kill_workers(self, sig):
         """\

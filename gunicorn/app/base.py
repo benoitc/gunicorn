@@ -18,33 +18,46 @@ class Application(object):
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
+    LOG_LEVELS = {
+        "critical": logging.CRITICAL,
+        "error": logging.ERROR,
+        "warning": logging.WARNING,
+        "info": logging.INFO,
+        "debug": logging.DEBUG
+    }
+    
     def __init__(self, usage=None):
         self.log = logging.getLogger(__name__)
         self.cfg = Config(usage)
         self.callable = None
+        self.logger = None
         
-        parser = self.cfg.parser()
-        opts, args = parser.parse_args()
-        cfg = self.init(parser, opts, args)
+        self.cfgparser = self.cfg.parser()
+        self.opts, self.args = self.cfgparser.parse_args()
+
+        self.load_config()
+  
+    def load_config(self):
+        cfg = self.init(self.cfgparser, self.opts, self.args)
         
         # Load up the any app specific configuration
         if cfg:
             for k, v in list(cfg.items()):
                 self.cfg.set(k.lower(), v)
-        
+                
         # Load up the config file if its found.
-        if opts.config and os.path.exists(opts.config):
+        if self.opts.config and os.path.exists(self.opts.config):
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
-                "__file__": opts.config,
+                "__file__": self.opts.config,
                 "__doc__": None,
                 "__package__": None
             }
             try:
-                execfile(opts.config, cfg, cfg)
+                execfile(self.opts.config, cfg, cfg)
             except Exception, e:
-                print "Failed to read config file: %s" % opts.config
+                print "Failed to read config file: %s" % self.opts.config
                 traceback.print_exc()
                 sys.exit(1)
         
@@ -60,16 +73,23 @@ class Application(object):
             
         # Lastly, update the configuration with any command line
         # settings.
-        for k, v in list(opts.__dict__.items()):
+        for k, v in list(self.opts.__dict__.items()):
             if v is None:
                 continue
-            self.cfg.set(k.lower(), v) 
-    
+            self.cfg.set(k.lower(), v)
+               
     def init(self, parser, opts, args):
         raise NotImplementedError
     
     def load(self):
         raise NotImplementedError
+
+    def reload(self):
+        self.load_config()
+        if self.cfg.spew:
+            debug.spew()
+        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
+        self.logger.setLevel(loglevel)
         
     def wsgi(self):
         if self.callable is None:
@@ -90,7 +110,7 @@ class Application(object):
         """\
         Set the log level and choose the destination for log output.
         """
-        logger = logging.getLogger('gunicorn')
+        self.logger = logging.getLogger('gunicorn')
 
         handlers = []
         if self.cfg.logfile != "-":
@@ -98,21 +118,13 @@ class Application(object):
         else:
             handlers.append(logging.StreamHandler())
 
-        levels = {
-            "critical": logging.CRITICAL,
-            "error": logging.ERROR,
-            "warning": logging.WARNING,
-            "info": logging.INFO,
-            "debug": logging.DEBUG
-        }
-
-        loglevel = levels.get(self.cfg.loglevel.lower(), logging.INFO)
-        logger.setLevel(loglevel)
+        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
+        self.logger.setLevel(loglevel)
         
         format = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
         datefmt = r"%Y-%m-%d %H:%M:%S"
         for h in handlers:
             h.setFormatter(logging.Formatter(format, datefmt))
-            logger.addHandler(h)
+            self.logger.addHandler(h)
 
 
