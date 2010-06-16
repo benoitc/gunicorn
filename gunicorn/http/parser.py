@@ -11,7 +11,7 @@ from gunicorn.http.unreader import SocketUnreader, IterUnreader
 class Parser(object):
     def __init__(self, mesg_class, source):
         self.mesg_class = mesg_class
-        if isinstance(source, socket.socket):
+        if hasattr(source, "recv"):
             self.unreader = SocketUnreader(source)
         else:
             self.unreader = IterUnreader(source)
