@@ -65,10 +65,10 @@ class Arbiter(object):
  
         # get current path, try to use PWD env first
         try:
-            a = os.stat(os.environ('PWD'))
+            a = os.stat(os.environ['PWD'])
             b = os.stat(os.getcwd())
             if a.ino == b.ino and a.dev == b.dev:
-                cwd = os.environ('PWD')
+                cwd = os.environ['PWD']
             else:
                 cwd = os.getcwd()
         except:
@@ -295,7 +295,7 @@ class Arbiter(object):
         if not graceful:
             sig = signal.SIGTERM
         limit = time.time() + self.timeout
-        while self.WORKERS or time.time() > limit:
+        while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
             self.reap_workers()
