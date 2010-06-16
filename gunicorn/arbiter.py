@@ -321,18 +321,16 @@ class Arbiter(object):
     def reload(self):
         # reload conf
         self.app.reload()
+        self.setup(self.app)
         
-        # spawn new workers
+        # spawn new workers with new app & conf
         for i in range(self.app.cfg.workers):
             self.spawn_worker()
         
         # unlink pidfile
         if self.pidfile is not None:
             self.pidfile.unlink()
-            
-        self.setup(self.app)
-        self.manage_workers()
-        
+                    
         return self.run()
         
     def murder_workers(self):
