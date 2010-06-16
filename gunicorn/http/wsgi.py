@@ -39,9 +39,9 @@ def create(req, sock, client, server, debug=False):
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
         elif name == "x-forwarded-for":
             forward = hdr_value
-        elif name == "x-forwarded-protocol" and value.lower() == "ssl":
+        elif name == "x-forwarded-protocol" and hdr_value.lower() == "ssl":
             url_scheme = "https"
-        elif name == "x-forwarded-ssl" and value.lower() == "on":
+        elif name == "x-forwarded-ssl" and hdr_value.lower() == "on":
             url_scheme = "https"
         elif name == "host":
             server = hdr_value
