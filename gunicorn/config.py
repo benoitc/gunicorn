@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 import copy
 import grp
 import inspect
@@ -19,10 +17,19 @@ from gunicorn import util
 
 KNOWN_SETTINGS = []
 
+def wrap_method(func):
+    def _wrapped(instance, *args, **kwargs):
+        return func(*args, **kwargs)
+    return _wrapped
+
 class Config(object):
         
     def __init__(self, usage=None):
-        self.settings = dict((s.name, s.copy()) for s in KNOWN_SETTINGS)
+        self.settings = {}
+        for s in KNOWN_SETTINGS:
+            setting = s()
+            self.settings[setting.name] = setting.copy()
+        
         self.usage = usage
         
     def __getattr__(self, name):
@@ -101,35 +108,45 @@ class Config(object):
             return pn
         else:
             return self.settings['default_proc_name']
+            
+class SettingMeta(type):
+    def __new__(cls, name, bases, attrs):
+        super_new = super(SettingMeta, cls).__new__
+        parents = [b for b in bases if isinstance(b, SettingMeta)]
+        if not parents:
+            return super_new(cls, name, bases, attrs)
+    
+        attrs["order"] = len(KNOWN_SETTINGS)
+        attrs["validator"] = wrap_method(attrs["validator"])
+        
+        new_class = super_new(cls, name, bases, attrs)
+        new_class.fmt_desc(attrs.get("desc", ""))
+        KNOWN_SETTINGS.append(new_class)
+        return new_class
+
+    def fmt_desc(cls, desc):
+        desc = textwrap.dedent(desc).strip()
+        setattr(cls, "desc", desc)
+        setattr(cls, "short", desc.splitlines()[0])
 
 class Setting(object):
-    def __init__(self, name):
-        self.name = name
-        self.value = None
-        self.section = None
-        self.order = len(KNOWN_SETTINGS)
-        self.cli = None
-        self.validator = None
-        self.type = None
-        self.meta = None
-        self.action = None
-        self.default = None
-        self.short = None
-        self.desc = None
+    __metaclass__ = SettingMeta
     
-    def __enter__(self):
-        return self
+    name = None
+    value = None
+    section = None
+    cli = None
+    validator = None
+    type = None
+    meta = None
+    action = None
+    default = None
+    short = None
+    desc = None
     
-    def __exit__(self, exc_type, exc_val, traceback):
-        if exc_type is None:
-            KNOWN_SETTINGS.append(self)
-            if self.default is not None:
-                self.set(self.default)
-    
-    def fmt_desc(self, desc):
-        desc = textwrap.dedent(desc).strip()
-        self.desc = desc
-        self.short = desc.splitlines()[0]
+    def __init__(self):
+        if self.default is not None:
+            self.set(self.default)    
         
     def add_option(self, parser):
         if not self.cli:
@@ -175,7 +192,6 @@ def validate_pos_int(val):
     else:
         # Booleans are ints!
         val = int(val)
-    #print "Setting: %s" % val
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
     return val
@@ -196,40 +212,44 @@ def validate_callable(arity):
         return val
     return _validate_callable
 
-with Setting("config") as s:
-    s.section = "Config File"
-    s.cli = ["-c", "--config"]
-    s.meta = "FILE"
-    s.validator = validate_string
-    s.default = None
-    s.fmt_desc("""\
+
+class ConfigFile(Setting):
+    name = "config"
+    section = "Config File"
+    cli = ["-c", "--config"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
         The path to a Gunicorn config file.
         
         Only has an effect when specified on the command line or as part of an
         application specific configuration.    
-        """)
+        """
 
-with Setting("bind") as s:
-    s.section = "Server Socket"
-    s.cli = ["-b", "--bind"]
-    s.meta = "ADDRESS"
-    s.validator = validate_string
-    s.default = "127.0.0.1:8000"
-    s.fmt_desc("""\
+class Bind(Setting):
+    name = "bind"
+    section = "Server Socket"
+    cli = ["-b", "--bind"]
+    meta = "ADDRESS"
+    validator = validate_string
+    default = "127.0.0.1:8000"
+    desc = """\
         The socket to bind.
         
         A string of the form: 'HOST', 'HOST:PORT', 'unix:PATH'. An IP is a valid
         HOST.
-        """)
-
-with Setting("backlog") as s:
-    s.section = "Server Socket"
-    s.cli = ["--backlog"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 2048
-    s.fmt_desc("""\
+        """
+        
+class Backlog(Setting):
+    name = "backlog"
+    section = "Server Socket"
+    cli = ["--backlog"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 2048
+    desc = """\
         The maximum number of pending connections.    
         
         This refers to the number of clients that can be waiting to be served.
@@ -238,30 +258,32 @@ with Setting("backlog") as s:
         load.
         
         Must be a positive integer. Generally set in the 64-2048 range.    
-        """)
+        """
 
-with Setting("workers") as s:
-    s.section = "Worker Processes"
-    s.cli = ["-w", "--workers"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 1
-    s.fmt_desc("""\
+class Workers(Setting):
+    name = "workers"
+    section = "Worker Processes"
+    cli = ["-w", "--workers"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 1
+    desc = """\
         The number of worker process for handling requests.
         
         A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
         want to vary this a bit to find the best for your particular
         application's work load.
-        """)
+        """
 
-with Setting("worker_class") as s:
-    s.section = "Worker Processes"
-    s.cli = ["-k", "--worker-class"]
-    s.meta = "STRING"
-    s.validator = validate_string
-    s.default = "egg:gunicorn#sync"
-    s.fmt_desc("""\
+class WorkerClass(Setting):
+    name = "worker_class"
+    section = "Worker Processes"
+    cli = ["-k", "--worker-class"]
+    meta = "STRING"
+    validator = validate_string
+    default = "egg:gunicorn#sync"
+    desc = """\
         The type of workers to use.
         
         The default async class should handle most 'normal' types of work loads.
@@ -278,151 +300,162 @@ with Setting("worker_class") as s:
         * ``egg:gunicorn#eventlet`` - Requires eventlet >= 0.9.7
         * ``egg:gunicorn#gevent``   - Requires gevent >= 0.12.2 (?)
         * ``egg:gunicorn#tornado``  - Requires tornado >= 0.2    
-        """)
+        """
 
-with Setting("worker_connections") as s:
-    s.section = "Worker Processes"
-    s.cli = ["--worker-connections"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 1000
-    s.fmt_desc("""\
+class WorkerConnections(Setting):
+    name = "worker_connections"
+    section = "Worker Processes"
+    cli = ["--worker-connections"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 1000
+    desc = """\
         The maximum number of simultaneous clients.
         
         This setting only affects the Eventlet and Gevent worker types.
-        """)
+        """
 
-with Setting("timeout") as s:
-    s.section = "Worker Processes"
-    s.cli = ["-t", "--timeout"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 30
-    s.fmt_desc("""\
+class Timeout(Setting):
+    name = "timeout"
+    section = "Worker Processes"
+    cli = ["-t", "--timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 30
+    desc = """\
         Workers silent for more than this many seconds are killed and restarted.
         
         Generally set to thirty seconds. Only set this noticeably higher if
         you're sure of the repercussions for sync workers. For the non sync
         workers it just means that the worker process is still communicating and
         is not tied to the length of time required to handle a single request.
-        """)
+        """
 
-with Setting("keepalive") as s:
-    s.section = "Worker Processes"
-    s.cli = ["--keep-alive"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 2
-    s.fmt_desc("""\
+class Keepalive(Setting):
+    name = "keepalive"
+    section = "Worker Processes"
+    cli = ["--keep-alive"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 2
+    desc = """\
         The number of seconds to wait for requests on a Keep-Alive connection.
         
         Generally set in the 1-5 seconds range.    
-        """)
+        """
 
-with Setting("debug") as s:
-    s.section = "Debugging"
-    s.cli = ["--debug"]
-    s.validator = validate_bool
-    s.action = "store_true"
-    s.default = False
-    s.fmt_desc("""\
+class Debug(Setting):
+    name = "debug"
+    section = "Debugging"
+    cli = ["--debug"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
         Turn on debugging in the server.
         
         This limits the number of worker processes to 1 and changes some error
         handling that's sent to clients.
-        """)
+        """
 
-with Setting("spew") as s:
-    s.section = "Debugging"
-    s.cli = ["--spew"]
-    s.validator = validate_bool
-    s.action = "store_true"
-    s.default = False
-    s.fmt_desc("""\
+class Spew(Setting):
+    name = "spew"
+    section = "Debugging"
+    cli = ["--spew"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
         Install a trace function that spews every line executed by the server.
         
         This is the nuclear option.    
-        """)
+        """
 
-with Setting("preload_app") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["--preload"]
-    s.validator = validate_bool
-    s.action = "store_true"
-    s.default = False
-    s.fmt_desc("""\
+class PreloadApp(Setting):
+    name = "preload_app"
+    section = "Server Mechanics"
+    cli = ["--preload"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
         Load application code before the worker processes are forked.
         
         By preloading an application you can save some RAM resources as well as
         speed up server boot times. Although, if you defer application loading
         to each worker process, you can reload your application code easily by
         restarting workers.
-        """)
+        """
 
-with Setting("daemon") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["-D", "--daemon"]
-    s.validator = validate_bool
-    s.action = "store_true"
-    s.default = False
-    s.fmt_desc("""\
+class Daemon(Setting):
+    name = "daemon"
+    section = "Server Mechanics"
+    cli = ["-D", "--daemon"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
         Daemonize the Gunicorn process.
         
         Detaches the server from the controlling terminal and enters the
         background.
-        """)
+        """
 
-with Setting("pidfile") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["-p", "--pid"]
-    s.meta = "FILE"
-    s.validator = validate_string
-    s.default = None
-    s.fmt_desc("""\
+class Pidfile(Setting):
+    name = "pidfile"
+    section = "Server Mechanics"
+    cli = ["-p", "--pid"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
         A filename to use for the PID file.
         
         If not set, no PID file will be written.
-        """)
+        """
 
-with Setting("user") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["-u", "--user"]
-    s.meta = "USER"
-    s.validator = validate_string
-    s.default = None
-    s.fmt_desc("""\
+class User(Setting):
+    name = "user"
+    section = "Server Mechanics"
+    cli = ["-u", "--user"]
+    meta = "USER"
+    validator = validate_string
+    default = None
+    desc = """\
         Switch worker processes to run as this user.
         
         A valid user id (as an integer) or the name of a user that can be
         retrieved with a call to pwd.getpwnam(value) or None to not change
         the worker process user.
-        """)
+        """
 
-with Setting("group") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["-g", "--group"]
-    s.meta = "GROUP"
-    s.validator = validate_string
-    s.default = None
-    s.fmt_desc("""\
+class Group(Setting):
+    name = "group"
+    section = "Server Mechanics"
+    cli = ["-g", "--group"]
+    meta = "GROUP"
+    validator = validate_string
+    default = None
+    desc = """\
         Switch worker process to run as this group.
         
         A valid group id (as an integer) or the name of a user that can be
         retrieved with a call to pwd.getgrnam(value) or None to not change
         the worker processes group.
-        """)
+        """
 
-with Setting("umask") as s:
-    s.section = "Server Mechanics"
-    s.cli = ["-m", "--umask"]
-    s.meta = "INT"
-    s.validator = validate_pos_int
-    s.type = "int"
-    s.default = 0
-    s.fmt_desc("""\
+class Umask(Setting):
+    name = "umask"
+    section = "Server Mechanics"
+    cli = ["-m", "--umask"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 0
+    desc = """\
         A bit mask for the file mode on files written by Gunicorn.
         
         Note that this affects unix socket permissions.
@@ -430,14 +463,15 @@ with Setting("umask") as s:
         A valid value for the os.umask(mode) call or a string compatible with
         int(value, 0) (0 means Python guesses the base, so values like "0",
         "0xFF", "0022" are valid for decimal, hex, and octal representations)
-        """)
+        """
 
-with Setting("tmp_upload_dir") as s:
-    s.section = "Server Mechanics"
-    s.meta = "DIR"
-    s.validator = validate_string
-    s.default = None
-    s.fmt_desc("""\
+class TmpUploadDir(Setting):
+    name = "tmp_upload_dir"
+    section = "Server Mechanics"
+    meta = "DIR"
+    validator = validate_string
+    default = None
+    desc = """\
         Directory to store temporary request data as they are read.
         
         This may disappear in the near future.
@@ -445,28 +479,30 @@ with Setting("tmp_upload_dir") as s:
         This path should be writable by the process permissions set for Gunicorn
         workers. If not specified, Gunicorn will choose a system generated
         temporary directory.
-        """)
+        """
 
-with Setting("logfile") as s:
-    s.section = "Logging"
-    s.cli = ["--log-file"]
-    s.meta = "FILE"
-    s.validator = validate_string
-    s.default = "-"
-    s.fmt_desc("""\
+class Logfile(Setting):
+    name = "logfile"
+    section = "Logging"
+    cli = ["--log-file"]
+    meta = "FILE"
+    validator = validate_string
+    default = "-"
+    desc = """\
         The log file to write to.
         
         "-" means log to stdout.
-        """)
+        """
 
-with Setting("loglevel") as s:
-    s.section = "Logging"
-    s.cli = ["--log-level"]
-    s.meta = "LEVEL"
-    s.validator = validate_string
-    s.default = "info"
-    s.fmt_desc("""\
-        The granularity of log output
+class Loglevel(Setting):
+    name = "loglevel"
+    section = "Logging"
+    cli = ["--log-level"]
+    meta = "LEVEL"
+    validator = validate_string
+    default = "info"
+    desc = """\
+        The granularity of log outputs.
         
         Valid level names are:
         
@@ -475,15 +511,16 @@ with Setting("loglevel") as s:
         * warning
         * error
         * critical
-        """)
+        """
 
-with Setting("proc_name") as s:
-    s.section = "Process Naming"
-    s.cli = ["-n", "--name"]
-    s.meta = "STRING"
-    s.validator = validate_string
-    s.default = "gunicorn"
-    s.fmt_desc("""\
+class Procname(Setting):
+    name = "proc_name"
+    section = "Process Naming"
+    cli = ["-n", "--name"]
+    meta = "STRING"
+    validator = validate_string
+    default = "gunicorn"
+    desc = """\
         A base to use with setproctitle for process naming.
         
         This affects things like ``ps`` and ``top``. If you're going to be
@@ -492,67 +529,81 @@ with Setting("proc_name") as s:
         module.
         
         It defaults to 'gunicorn'.
-        """)
+        """
 
-with Setting("default_proc_name") as s:
-    s.section = "Process Naming"
-    s.validator = validate_string
-    s.default = "gunicorn"
-    s.fmt_desc("""\
+class DefaultProcName(Setting):
+    name = "default_proc_name"
+    section = "Process Naming"
+    validator = validate_string
+    default = "gunicorn"
+    desc = """\
         Internal setting that is adjusted for each type of application.
-        """)
+        """
 
-with Setting("pre_fork") as s:
-    s.section = "Server Hooks"
-    s.validator = validate_callable(2)
-    s.type = "callable"
+class Prefork(Setting):
+    name = "pre_fork"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
     def def_pre_fork(server, worker):
         pass
-    s.default = def_pre_fork
-    s.fmt_desc("""\
+    def_pre_fork = staticmethod(def_pre_fork)
+    default = def_pre_fork
+    desc = """\
         Called just before a worker is forked.
         
         The callable needs to accept two instance variables for the Arbiter and
         new Worker.
-        """)
+        """
+    
 
-with Setting("post_fork") as s:
-    s.section = "Server Hooks"
-    s.validator = validate_callable(2)
-    s.type = "callable"
+class Postfork(Setting):
+    name = "post_fork"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
     def def_post_fork(server, worker):
         server.log.info("Worker spawned (pid: %s)" % worker.pid)
-    s.default = def_post_fork
-    s.fmt_desc("""\
+    def_post_fork = staticmethod(def_post_fork)
+    default = def_post_fork
+    desc = """\
         Called just after a worker has been forked.
         
         The callable needs to accept two instance variables for the Arbiter and
         new Worker.
-        """)
+        """
+    
 
-with Setting("when_ready") as s:
-    s.section = "Server Hooks"
-    s.validator = validate_callable(1)
-    s.type = "callable"
+class WhenReady(Setting):
+    name = "when_ready"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    
     def def_start_server(server):
         pass
-    s.default = def_start_server
-    s.fmt_desc("""\
+    def_start_server = staticmethod(def_start_server)
+    default = def_start_server
+    desc = """\
         Called just after the server is started.
         
         The callable needs to accept a single instance variable for the Arbiter.
-        """)
-
-with Setting("pre_exec") as s:
-    s.section = "Server Hooks"
-    s.validator = validate_callable(1)
-    s.type = "callable"
+        """
+    
+        
+class PreExec(Setting):
+    name = "pre_exec"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
     def def_pre_exec(server):
         server.log.info("Forked child, reexecuting.")
-    s.default = def_pre_exec
-    s.fmt_desc("""\
+    def_pre_exec = staticmethod(def_pre_exec)
+    default = def_pre_exec
+    desc = """\
         Called just before a new master process is forked.
         
         The callable needs to accept a single instance variable for the Arbiter.
-        """)
+        """
+    
         

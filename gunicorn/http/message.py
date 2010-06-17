@@ -113,7 +113,7 @@ class Request(Message):
 
         super(Request, self).__init__(unreader)
 
-    
+
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
         if not data:
