@@ -47,6 +47,7 @@ class BaseSocket(object):
             self.sock.close()
         except socket.error, e:
             log.info("Error while closing socket %s" % str(e))
+        time.sleep(0.3)
         del self.sock
 
 class TCPSocket(BaseSocket):
