@@ -329,7 +329,7 @@ class Arbiter(object):
         if old_address != self.cfg.address:
             self.LISTENER.close()
             self.LISTENER = create_socket(self.cfg)
-        self.log.info("Listening at: %s" % self.LISTENER)    
+            self.log.info("Listening at: %s" % self.LISTENER)    
 
         # spawn new workers with new app & conf
         for i in range(self.app.cfg.workers):
