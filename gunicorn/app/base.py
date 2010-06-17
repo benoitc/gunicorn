@@ -28,17 +28,25 @@ class Application(object):
     
     def __init__(self, usage=None):
         self.log = logging.getLogger(__name__)
-        self.cfg = Config(usage)
+        self.usage = usage
+        self.cfg = None
         self.callable = None
         self.logger = None
         
-        self.cfgparser = self.cfg.parser()
-        self.opts, self.args = self.cfgparser.parse_args()
+        
 
         self.load_config()
   
     def load_config(self):
-        cfg = self.init(self.cfgparser, self.opts, self.args)
+        # init configuration
+        self.cfg = Config(self.usage)
+        
+        # parse console args
+        parser = self.cfg.parser()
+        opts, args = parser.parse_args()
+        
+        # optional settings from apps
+        cfg = self.init(parser, opts, args)
         
         # Load up the any app specific configuration
         if cfg:
@@ -46,18 +54,18 @@ class Application(object):
                 self.cfg.set(k.lower(), v)
                 
         # Load up the config file if its found.
-        if self.opts.config and os.path.exists(self.opts.config):
+        if opts.config and os.path.exists(opts.config):
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
-                "__file__": self.opts.config,
+                "__file__": opts.config,
                 "__doc__": None,
                 "__package__": None
             }
             try:
-                execfile(self.opts.config, cfg, cfg)
+                execfile(opts.config, cfg, cfg)
             except Exception, e:
-                print "Failed to read config file: %s" % self.opts.config
+                print "Failed to read config file: %s" % opts.config
                 traceback.print_exc()
                 sys.exit(1)
         
@@ -73,7 +81,7 @@ class Application(object):
             
         # Lastly, update the configuration with any command line
         # settings.
-        for k, v in list(self.opts.__dict__.items()):
+        for k, v in list(opts.__dict__.items()):
             if v is None:
                 continue
             self.cfg.set(k.lower(), v)
