@@ -32,9 +32,6 @@ class Application(object):
         self.cfg = None
         self.callable = None
         self.logger = None
-        
-        
-
         self.load_config()
   
     def load_config(self):
