@@ -27,6 +27,17 @@
       </div>
       <div id="content">
       <div class="document">
+<div class="section" id="dev-head-2010-06-17">
+<h2><a class="toc-backref" href="#contents">0.10-dev (head) / 2010-06-17</a></h2>
+<ul class="simple">
+<li>New HTTP parser.</li>
+<li>New HUP behaviour :
+- Reload configuration
+- Start the new worker processes with a new configuration
+- Gracefully shutdown the old worker processes</li>
+<li>New gevent worker &quot;egg:gunicorn#gevent2&quot;, working with gevent.wsgi.</li>
+</ul>
+</div>
 <div class="section" id="id1">
 <h2><a class="toc-backref" href="#contents">0.9.1 / 2010-05-26</a></h2>
 <ul class="simple">
@@ -167,21 +178,22 @@ permissions, new uid/gid permissions are only set for workers.</li>
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#id1" id="id16">0.9.1 / 2010-05-26</a></li>
-<li><a class="reference internal" href="#id2" id="id17">0.9.0 / 2010-05-24</a></li>
-<li><a class="reference internal" href="#id3" id="id18">0.8.1 / 2010-04-29</a></li>
-<li><a class="reference internal" href="#id4" id="id19">0.8.0 / 2010-04-22</a></li>
-<li><a class="reference internal" href="#id5" id="id20">0.7.2 / 2010-04-15</a></li>
-<li><a class="reference internal" href="#id6" id="id21">0.7.1 / 2010-04-01</a></li>
-<li><a class="reference internal" href="#id7" id="id22">0.7.0 / 2010-03-26</a></li>
-<li><a class="reference internal" href="#id8" id="id23">0.6.5 / 2010-03-11</a></li>
-<li><a class="reference internal" href="#id9" id="id24">0.6.4 / 2010-03-08</a></li>
-<li><a class="reference internal" href="#id10" id="id25">0.6.3 / 2010-03-07</a></li>
-<li><a class="reference internal" href="#id11" id="id26">0.6.2 / 2010-03-01</a></li>
-<li><a class="reference internal" href="#id12" id="id27">0.6.1 / 2010-02-24</a></li>
-<li><a class="reference internal" href="#id13" id="id28">0.6 / 2010-02-22</a></li>
-<li><a class="reference internal" href="#id14" id="id29">0.5.1 / 2010-02-22</a></li>
-<li><a class="reference internal" href="#id15" id="id30">0.5 / 2010-02-20</a></li>
+<li><a class="reference internal" href="#dev-head-2010-06-17" id="id16">0.10-dev (head) / 2010-06-17</a></li>
+<li><a class="reference internal" href="#id1" id="id17">0.9.1 / 2010-05-26</a></li>
+<li><a class="reference internal" href="#id2" id="id18">0.9.0 / 2010-05-24</a></li>
+<li><a class="reference internal" href="#id3" id="id19">0.8.1 / 2010-04-29</a></li>
+<li><a class="reference internal" href="#id4" id="id20">0.8.0 / 2010-04-22</a></li>
+<li><a class="reference internal" href="#id5" id="id21">0.7.2 / 2010-04-15</a></li>
+<li><a class="reference internal" href="#id6" id="id22">0.7.1 / 2010-04-01</a></li>
+<li><a class="reference internal" href="#id7" id="id23">0.7.0 / 2010-03-26</a></li>
+<li><a class="reference internal" href="#id8" id="id24">0.6.5 / 2010-03-11</a></li>
+<li><a class="reference internal" href="#id9" id="id25">0.6.4 / 2010-03-08</a></li>
+<li><a class="reference internal" href="#id10" id="id26">0.6.3 / 2010-03-07</a></li>
+<li><a class="reference internal" href="#id11" id="id27">0.6.2 / 2010-03-01</a></li>
+<li><a class="reference internal" href="#id12" id="id28">0.6.1 / 2010-02-24</a></li>
+<li><a class="reference internal" href="#id13" id="id29">0.6 / 2010-02-22</a></li>
+<li><a class="reference internal" href="#id14" id="id30">0.5.1 / 2010-02-22</a></li>
+<li><a class="reference internal" href="#id15" id="id31">0.5 / 2010-02-20</a></li>
 </ul>
 </div>
       </div>

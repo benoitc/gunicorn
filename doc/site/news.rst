@@ -13,9 +13,9 @@ _TOC_BOT_
 
 - New HTTP parser.
 - New HUP behaviour : 
- - Reload configuration
- - Start the new worker processes with a new configuration
- - Gracefully shutdown the old worker processes
+  - Reload configuration
+  - Start the new worker processes with a new configuration
+  - Gracefully shutdown the old worker processes
 - New gevent worker "egg:gunicorn#gevent2", working with gevent.wsgi.
  
 
