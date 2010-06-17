@@ -8,6 +8,17 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.10-dev (head) / 2010-06-17
+----------------------------
+
+- New HTTP parser.
+- New HUP behaviour : 
+ - Reload configuration
+ - Start the new worker processes with a new configuration
+ - Gracefully shutdown the old worker processes
+- New gevent worker "egg:gunicorn#gevent2", working with gevent.wsgi.
+ 
+
 0.9.1 / 2010-05-26
 ------------------
 
