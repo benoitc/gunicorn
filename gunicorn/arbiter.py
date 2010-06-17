@@ -18,10 +18,6 @@ from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
 
-
-class HUPSignal(Exception):
-    pass
-
 class Arbiter(object):
     """
     Arbiter maintain the workers processes alive. It launches or
@@ -53,8 +49,6 @@ class Arbiter(object):
     
     def __init__(self, app):
         self.setup(app)
-        
-        
 
         self.log = logging.getLogger(__name__)
 
@@ -160,8 +154,6 @@ class Arbiter(object):
                 self.log.info("Handling signal: %s" % signame)
                 handler()  
                 self.wakeup()
-            except HUPSignal:
-                self.reload()
             except StopIteration:
                 self.halt()
             except KeyboardInterrupt:
@@ -182,11 +174,12 @@ class Arbiter(object):
     def handle_hup(self):
         """\
         HUP handling.
-        Entirely reloading the application including gracefully
-        restart the workers and rereading the configuration.
+        - Reload configuration
+        - Start the new worker processes with a new configuration
+        - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s" % self.master_name)
-        raise HUPSignal
+        self.reload()
         
     def handle_quit(self):
         "SIGQUIT handling"
