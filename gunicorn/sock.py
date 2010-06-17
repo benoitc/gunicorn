@@ -37,11 +37,17 @@ class BaseSocket(object):
             self.bind(sock)
         sock.setblocking(0)
         sock.listen(self.conf.backlog)
-        
         return sock
         
     def bind(self, sock):
         sock.bind(self.address)
+        
+    def close(self):
+        try:
+            self.sock.close()
+        except socket.error, e:
+            log.info("Error while closing socket %s" % str(e))
+        del self.sock
 
 class TCPSocket(BaseSocket):
     
@@ -78,6 +84,10 @@ class UnixSocket(BaseSocket):
         sock.bind(self.address)
         util.chown(self.address, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
+        
+    def close(self):
+        super(UnixSocket, self).close()
+        os.unlink(self.address)
 
 def create_socket(conf):
     """

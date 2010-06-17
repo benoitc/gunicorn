@@ -10,6 +10,7 @@ import logging
 import os
 import select
 import signal
+import socket
 import sys
 import time
 import traceback
@@ -161,7 +162,7 @@ class Arbiter(object):
                 handler()  
                 self.wakeup()
             except HUPSignal:
-                return self.reload()
+                self.reload()
             except StopIteration:
                 self.halt()
             except KeyboardInterrupt:
@@ -319,10 +320,19 @@ class Arbiter(object):
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
         
     def reload(self):
+        old_address = self.cfg.address
+        old_listener = None
+        
         # reload conf
         self.app.reload()
         self.setup(self.app)
-        
+
+        # do we need to change listener ?
+        if old_address != self.cfg.address:
+            self.LISTENER.close()
+            self.LISTENER = create_socket(self.cfg)
+        self.log.info("Listening at: %s" % self.LISTENER)    
+
         # spawn new workers with new app & conf
         for i in range(self.app.cfg.workers):
             self.spawn_worker()
@@ -330,8 +340,18 @@ class Arbiter(object):
         # unlink pidfile
         if self.pidfile is not None:
             self.pidfile.unlink()
-                    
-        return self.run()
+
+        
+        # create new pidfile
+        if self.cfg.pidfile is not None:
+            self.pidfile = Pidfile(self.cfg.pidfile)
+            self.pidfile.create(self.pid)
+            
+        # set new proc_name
+        util._setproctitle("master [%s]" % self.proc_name)
+        
+        # manage workers
+        self.manage_workers()
         
     def murder_workers(self):
         """\
