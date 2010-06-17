@@ -320,8 +320,7 @@ class Arbiter(object):
         
     def reload(self):
         old_address = self.cfg.address
-        old_listener = None
-        
+
         # reload conf
         self.app.reload()
         self.setup(self.app)
@@ -340,7 +339,6 @@ class Arbiter(object):
         if self.pidfile is not None:
             self.pidfile.unlink()
 
-        
         # create new pidfile
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)
