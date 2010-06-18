@@ -5,9 +5,7 @@
 #
 # Example code from Eventlet sources
 
-from wsgiref.validate import validator
 
-#@validator
 def app(environ, start_response):
     """Simplest possible application object"""
     data = 'Hello, World!\n'

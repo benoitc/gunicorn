@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from __future__ import with_statement
 
 import os
 
@@ -23,7 +22,11 @@ class GEventWorker(AsyncWorker):
         monkey.patch_all(dns=False)
         
     def timeout_ctx(self):
-        return gevent.Timeout(self.cfg.keepalive, False)
+        timeout = gevent.Timeout(self.cfg.keepalive)
+        try:
+            return super(GEventWorker, self).timeout_ctx()
+        except gevent.Timeout:
+            return None
         
     def run(self):
         self.socket.setblocking(1)

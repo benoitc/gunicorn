@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 import errno
 import os
 import tempfile
@@ -51,8 +49,9 @@ class Pidfile(object):
     def unlink(self):
         """ delete pidfile"""
         try:
-            with open(self.fname, "r") as f:
-                pid1 =  int(f.read() or 0)
+            f = open(self.fname, "r")
+            pid1 =  int(f.read() or 0)
+            f.close()
 
             if pid1 == self.pid:
                 os.unlink(self.fname)
@@ -64,19 +63,20 @@ class Pidfile(object):
         if not self.fname:
             return
         try:
-            with open(self.fname, "r") as f:
-                wpid = int(f.read() or 0)
+            f = open(self.fname, "r")
+            wpid = int(f.read() or 0)
+            f.close()
 
-                if wpid <= 0:
+            if wpid <= 0:
+                return
+
+            try:
+                os.kill(wpid, 0)
+                return wpid
+            except OSError, e:
+                if e[0] == errno.ESRCH:
                     return
-
-                try:
-                    os.kill(wpid, 0)
-                    return wpid
-                except OSError, e:
-                    if e[0] == errno.ESRCH:
-                        return
-                    raise
+                raise
         except IOError, e:
             if e[0] == errno.ENOENT:
                 return

@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 import errno
 import logging
 import os
@@ -138,7 +136,10 @@ class Arbiter(object):
         while True:
             try:
                 self.reap_workers()
-                sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
+                if len(self.SIG_QUEUE):
+                    sig = self.SIG_QUEUE.pop(0)
+                else:
+                    sig = None
                 if sig is None:
                     self.sleep()
                     self.murder_workers()
@@ -415,19 +416,20 @@ class Arbiter(object):
         # Process Child
         worker_pid = os.getpid()
         try:
-            util._setproctitle("worker [%s]" % self.proc_name)
-            self.log.debug("Booting worker: %s (age: %s)" % (
+            try:
+                util._setproctitle("worker [%s]" % self.proc_name)
+                self.log.debug("Booting worker: %s (age: %s)" % (
                                             worker_pid, self.worker_age))
-            self.cfg.post_fork(self, worker)
-            worker.init_process()
-            sys.exit(0)
-        except SystemExit:
-            raise
-        except:
-            self.log.exception("Exception in worker process:")
-            if not worker.booted:
-                sys.exit(self.WORKER_BOOT_ERROR)
-            sys.exit(-1)
+                self.cfg.post_fork(self, worker)
+                worker.init_process()
+                sys.exit(0)
+            except SystemExit:
+                raise
+            except:
+                self.log.exception("Exception in worker process:")
+                if not worker.booted:
+                    sys.exit(self.WORKER_BOOT_ERROR)
+                sys.exit(-1)
         finally:
             self.log.info("Worker exiting (pid: %s)" % worker_pid)
             try:
