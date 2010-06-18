@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 import eventlet
 import eventlet.debug
 
@@ -32,7 +30,14 @@ class EventletWorker(AsyncWorker):
         super(EventletWorker, self).init_process()
         
     def timeout_ctx(self):
-        return eventlet.Timeout(self.cfg.keepalive, False)
+        timeout = eventlet.Timeout(self.cfg.keepalive)
+        try:
+            try;
+                return super(timeout_ctx, self)()
+            except eventlet.Timeout, t:
+                pass
+        finally:
+            timeout.cancel()
         
     def run(self):
         self.socket.setblocking(1)
@@ -50,8 +55,14 @@ class EventletWorker(AsyncWorker):
             
             eventlet.sleep(0.1)            
 
-        with eventlet.Timeout(self.timeout, False):
-            pool.waitall()
+        timeout = eventlet.Timeout(self.timeout)
+        try:
+            try:
+                pool.waitall()
+            except eventlet.Timeout:
+                pass
+        finally:
+            timeout.cancel()
         os._exit(3)
 
     def acceptor(self, pool):
@@ -70,12 +81,12 @@ class EventletWorker(AsyncWorker):
 
     def cleanup(self, thread, conn):
         try:
-            try:
-                thread.wait()
-            finally:
-                conn.close()
+            thread.wait()
         except greenlet.GreenletExit:
             pass
         except Exception:
             self.log.exception("Unhandled exception in worker.")
+        finally:
+            conn.close()
+
 

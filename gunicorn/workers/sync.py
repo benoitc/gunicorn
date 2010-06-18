@@ -67,25 +67,28 @@ class SyncWorker(base.Worker):
                     else:
                         return
                 raise
+            except SystemExit:
+                return
         
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
-            req = parser.next()
-            self.handle_request(req, client, addr)
-        except socket.error, e:
-            if e[0] != errno.EPIPE:
+            try:
+                parser = http.RequestParser(client)
+                req = parser.next()
+                self.handle_request(req, client, addr)
+            except socket.error, e:
+                if e[0] != errno.EPIPE:
+                    self.log.exception("Error processing request.")
+                else:
+                    self.log.warn("Ignoring EPIPE")
+            except Exception, e:
                 self.log.exception("Error processing request.")
-            else:
-                self.log.warn("Ignoring EPIPE")
-        except Exception, e:
-            self.log.exception("Error processing request.")
-            try:            
-                # Last ditch attempt to notify the client of an error.
-                mesg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
-                util.write_nonblock(client, mesg)
-            except:
-                pass
+                try:            
+                    # Last ditch attempt to notify the client of an error.
+                    mesg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+                    util.write_nonblock(client, mesg)
+                except:
+                    pass
         finally:    
             util.close(client)
 

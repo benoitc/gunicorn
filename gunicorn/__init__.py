@@ -3,5 +3,5 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-version_info = (0, 10, "0-dev")
+version_info = (0, 10, "0-py24dev")
 __version__ = ".".join(map(str, version_info))

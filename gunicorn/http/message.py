@@ -60,7 +60,7 @@ class Message(object):
             name, value = name.strip(), [value.lstrip()]
             
             # Consume value continuation lines
-            while len(lines) and lines[0].startswith((" ", "\t")):
+            while len(lines) and (lines[0].startswith(" ") or lines[0].startswith("\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
             
@@ -165,17 +165,20 @@ class Request(Message):
 
         # URI
         self.uri = bits[1]
-        parts = urlparse.urlparse(bits[1])
-        self.scheme = parts.scheme or None
-        self.host = parts.netloc or None
-        if parts.port is None:
+        scheme, netloc, path, parameters, query, fragment = urlparse.urlparse(bits[1])
+        self.scheme = scheme or None
+        self.host = netloc or ''
+
+        host_parts = self.host.rsplit(":", 1)
+
+        if len(host_parts) == 1:
             self.port = 80
         else:
-            self.host = self.host.rsplit(":", 1)[0]
-            self.port = parts.port
-        self.path = parts.path or None
-        self.query = parts.query or None
-        self.fragment = parts.fragment or None
+            self.host = host_parts[0]
+            self.port = host_parts[1]
+        self.path = path or None
+        self.query = query or None
+        self.fragment = fragment or None
 
         # Version
         match = self.versre.match(bits[2])
