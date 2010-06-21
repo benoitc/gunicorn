@@ -93,7 +93,7 @@ def create(req, sock, client, server, debug=False):
         "SERVER_SOFTWARE": SERVER_VERSION,
         "REQUEST_METHOD": req.method,
         "PATH_INFO": unquote(path_info),
-        "QUERY_STRING": req.query,
+        "QUERY_STRING": req.query or '',
         "RAW_URI": req.path,
         "CONTENT_TYPE": content_type,
         "CONTENT_LENGTH": content_length,
@@ -103,7 +103,7 @@ def create(req, sock, client, server, debug=False):
         "SERVER_PORT": str(server[1]),
         "SERVER_PROTOCOL": req.version
     }
-    
+
     for key, value in req.headers:
         key = 'HTTP_' + key.upper().replace('-', '_')
         if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
