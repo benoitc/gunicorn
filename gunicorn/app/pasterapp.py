@@ -47,7 +47,12 @@ class PasterApplication(Application):
         cfg['workers'] = int(lc.get('workers', 1))
         cfg['umask'] = int(lc.get('umask', 0))
         cfg['default_proc_name'] = gc.get('__file__')
-        
+
+        for k, v in gc.items():
+            if k not in self.cfg.settings:
+                continue
+            cfg[k] = v
+
         for k, v in lc.items():
             if k not in self.cfg.settings:
                 continue
@@ -81,7 +86,7 @@ class PasterServerApplication(Application):
         for k, v in list(cfg.items()):
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
-            
+
         self.configure_logging()
 
     def load(self):

@@ -89,7 +89,10 @@ class Arbiter(object):
         self.worker_class = self.cfg.worker_class
         
         if self.cfg.preload_app:
-            self.app.wsgi()
+            if not self.cfg.debug:
+                self.app.wsgi()
+            else:
+                self.log.warning("debug mode: app isn't preloaded.")
 
     def start(self):
         """\

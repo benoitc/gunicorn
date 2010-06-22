@@ -72,8 +72,6 @@ class Config(object):
 
     @property   
     def workers(self):
-        if self.settings['debug'].get():
-            return 1
         return self.settings['workers'].get()
 
     @property
