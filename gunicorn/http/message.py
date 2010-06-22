@@ -173,9 +173,9 @@ class Request(Message):
         else:
             self.host = self.host.rsplit(":", 1)[0]
             self.port = parts.port
-        self.path = parts.path or None
-        self.query = parts.query or None
-        self.fragment = parts.fragment or None
+        self.path = parts.path or ""
+        self.query = parts.query or ""
+        self.fragment = parts.fragment or ""
 
         # Version
         match = self.versre.match(bits[2])

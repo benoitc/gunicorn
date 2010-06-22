@@ -93,7 +93,7 @@ def create(req, sock, client, server, debug=False):
         "SERVER_SOFTWARE": SERVER_VERSION,
         "REQUEST_METHOD": req.method,
         "PATH_INFO": unquote(path_info),
-        "QUERY_STRING": req.query or '',
+        "QUERY_STRING": req.query,
         "RAW_URI": req.path,
         "CONTENT_TYPE": content_type,
         "CONTENT_LENGTH": content_length,
