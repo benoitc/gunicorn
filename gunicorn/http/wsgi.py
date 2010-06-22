@@ -17,7 +17,7 @@ NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
 
-def create(req, sock, client, server, debug=False):
+def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
 
     environ = {}
@@ -54,11 +54,8 @@ def create(req, sock, client, server, debug=False):
         else:
             continue
 
-    # This value should evaluate true if an equivalent application
-    # object may be simultaneously invoked by another process, and
-    # should evaluate false otherwise. In debug mode we fall to one
-    # worker so we comply to pylons and other paster app.
-    wsgi_multiprocess = (debug == False)
+    wsgi_multiprocess = (cfg.workers > 1)
+
 
     if isinstance(forward, basestring):
         # we only took the last one
@@ -108,7 +105,7 @@ def create(req, sock, client, server, debug=False):
         key = 'HTTP_' + key.upper().replace('-', '_')
         if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
             environ[key] = value
-            
+           
     return resp, environ
 
 class Response(object):

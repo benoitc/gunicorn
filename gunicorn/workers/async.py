@@ -61,7 +61,8 @@ class AsyncWorker(base.Worker):
     def handle_request(self, req, sock, addr):
         try:
             debug = self.cfg.debug or False
-            resp, environ = wsgi.create(req, sock, addr, self.address, debug)
+            resp, environ = wsgi.create(req, sock, addr, self.address,
+                    self.cfg)
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
