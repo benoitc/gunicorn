@@ -7,18 +7,34 @@
 
 import collections
 import errno
-from gunicorn.workers.async import ALREADY_HANDLED
+import re
+from md5 import md5
 import socket
+import struct
+
 import gevent
 from gevent.pool import Pool
+from gunicorn.workers.async import ALREADY_HANDLED
+
+# Parts adapted from http://code.google.com/p/pywebsocket/
+# mod_pywebsocket/handshake/handshake.py
 
 class WebSocketWSGI(object):
-    def __init__(self, handler, origin):
+    def __init__(self, handler):
         self.handler = handler
-        self.origin = origin
     
     def verify_client(self, ws):
         pass
+
+    def _get_key_value(self, key_value):
+        if not key_value:
+            return
+        key_number = int(re.sub("\\D", "", key_value))
+        spaces = re.subn(" ", "", key_value)[1]
+        if key_number % spaces != 0:
+            return
+        part = key_number / spaces
+        return part
 
     def __call__(self, environ, start_response):
         if not (environ['HTTP_CONNECTION'] == 'Upgrade' and
@@ -28,20 +44,46 @@ class WebSocketWSGI(object):
             return []
                     
         sock = environ['gunicorn.socket']
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 0)
         ws = WebSocket(sock, 
             environ.get('HTTP_ORIGIN'),
             environ.get('HTTP_WEBSOCKET_PROTOCOL'),
             environ.get('PATH_INFO'))
-        self.verify_client(ws)
+
+        key1 = self._get_key_value(environ.get('HTTP_SEC_WEBSOCKET_KEY1'))
+        key2 = self._get_key_value(environ.get('HTTP_SEC_WEBSOCKET_KEY2'))
+
         handshake_reply = ("HTTP/1.1 101 Web Socket Protocol Handshake\r\n"
                    "Upgrade: WebSocket\r\n"
-                   "Connection: Upgrade\r\n"
-                   "WebSocket-Origin: %s\r\n"
-                   "WebSocket-Location: ws://%s%s\r\n\r\n" % (
-                        self.origin, 
-                        environ.get('HTTP_HOST'), 
-                        ws.path))                                       
+                   "Connection: Upgrade\r\n")
+
+        if key1 and key2:
+            challenge = ""
+            challenge += struct.pack("!I", key1)  # network byteorder int
+            challenge += struct.pack("!I", key2)  # network byteorder int
+            challenge += environ['wsgi.input'].read()
+            handshake_reply +=  (
+                       "Sec-WebSocket-Origin: %s\r\n"
+                       "Sec-WebSocket-Location: ws://%s%s\r\n"
+                       "Sec-WebSocket-Protocol: %s\r\n"
+                       "\r\n%s" % (
+                            environ.get('HTTP_ORIGIN'), 
+                            environ.get('HTTP_HOST'), 
+                            ws.path,
+                            environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL'), 
+                            md5(challenge).digest()))
+
+        else:
+
+            handshake_reply += (
+                       "WebSocket-Origin: %s\r\n"
+                       "WebSocket-Location: ws://%s%s\r\n\r\n" % (
+                            environ.get('HTTP_ORIGIN'), 
+                            environ.get('HTTP_HOST'), 
+                            ws.path))
+
         sock.sendall(handshake_reply)
+
         try:
             self.handler(ws)
         except socket.error, e:
@@ -105,7 +147,7 @@ class WebSocket(object):
             msgs, self._buf = parse_messages(self._buf)
             self._msgs.extend(msgs)
         return self._msgs.popleft()
-        
+
 
 # demo app
 import os
