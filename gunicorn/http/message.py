@@ -79,6 +79,8 @@ class Message(object):
                     clength = None
             elif name.upper() == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
+            elif name.upper() == "SEC-WEBSOCKET-KEY1":
+                clength = 8
         
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))

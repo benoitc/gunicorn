@@ -470,6 +470,7 @@ class Arbiter(object):
                     worker = self.WORKERS.pop(pid)
                     worker.tmp.close()
                     os.unlink(worker.tmpname)
+                    return
                 except (KeyError, OSError):
                     return
             raise            
