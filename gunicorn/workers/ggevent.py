@@ -39,12 +39,10 @@ class GEventWorker(AsyncWorker):
                     self.log.info("Parent changed, shutting down: %s" % self)
                     gevent.kill(acceptor)
                     break
-                gevent.sleep(0.1)            
-
-            
+                gevent.sleep(0.1)
+            pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
-        pool.join(timeout=self.timeout)
         os._exit(3)
 
     def acceptor(self, pool):
@@ -56,8 +54,6 @@ class GEventWorker(AsyncWorker):
                 gt._conn = conn
                 gt.link(self.cleanup)
                 conn, addr, gt = None, None, None
-            except KeyboardInterrupt:
-                return
             except greenlet.GreenletExit:
                 return
             except:

@@ -7,7 +7,7 @@ class ParseException(Exception):
     pass
 
 class NoMoreData(ParseException):
-    def __init__(self, buf):
+    def __init__(self, buf=None):
         self.buf = buf
     def __str__(self):
         return "No more data after: %r" % self.buf

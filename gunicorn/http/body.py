@@ -95,7 +95,10 @@ class ChunkedReader(object):
             raise InvalidChunkSize(chunk_size)
 
         if chunk_size == 0:
-            self.parse_trailers(unreader, rest_chunk)
+            try:
+                self.parse_trailers(unreader, rest_chunk)
+            except NoMoreData:
+                pass
             return (0, None)
         return (chunk_size, rest_chunk)
 
