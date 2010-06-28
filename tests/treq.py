@@ -20,21 +20,21 @@ random.seed()
 
 def uri(data):
     ret = {"raw": data}
-    parts = urlparse.urlparse(data)
-    ret["scheme"] = parts.scheme or ''
-    ret["host"] = parts.netloc.rsplit(":", 1)[0] or None
-    ret["port"] = parts.port or 80
-    if parts.path and parts.params:
-        ret["path"] = ";".join([parts.path, parts.params])
-    elif parts.path:
-        ret["path"] = parts.path
-    elif parts.params:
+    scheme, netloc, path, params, query, fragment = urlparse.urlparse(data)
+    ret["scheme"] = scheme or ''
+    ret["host"] = netloc.rsplit(":", 1)[0] or ''
+    ret["port"] = netloc.rsplit(":", 1)[1:] or 80
+    if path and params:
+        ret["path"] = ";".join([path, params])
+    elif path:
+        ret["path"] = path
+    elif params:
         # Don't think this can happen
-        ret["path"] = ";" + parts.path
+        ret["path"] = ";" + path
     else:
         ret["path"] = ''
-    ret["query"] = parts.query or ''
-    ret["fragment"] = parts.fragment or ''
+    ret["query"] = query or ''
+    ret["fragment"] = fragment or ''
     return ret
 
 def load_py(fname):
@@ -52,8 +52,11 @@ class request(object):
         if not isinstance(self.expect, list):
             self.expect = [self.expect]
 
-        with open(self.fname) as handle:
+        handle = open(self.fname)
+        try:
             self.data = handle.read()
+        finally:
+            handle.close()
         self.data = self.data.replace("\n", "").replace("\\r\\n", "\r\n")
         self.data = self.data.replace("\\0", "\000")
 
@@ -252,8 +255,11 @@ class badrequest(object):
         if not isinstance(self.expect, list):
             self.expect = [self.expect]
 
-        with open(self.fname) as handle:
+        handle = open(self.fname)
+        try:
             self.data = handle.read()
+        finally:
+            handle.close()
         self.data = self.data.replace("\n", "").replace("\\r\\n", "\r\n")
         self.data = self.data.replace("\\0", "\000")
 
