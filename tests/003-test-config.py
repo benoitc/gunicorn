@@ -7,7 +7,6 @@ from nose.plugins.skip import SkipTest
 
 import t
 
-import functools
 import os
 import sys
 
@@ -139,52 +138,88 @@ def test_callable_validation():
     t.raises(TypeError, c.set, "pre_fork", lambda x: True)
 
 def test_cmd_line():
-    with AltArgs(["prog_name", "-b", "blargh"]):
+    args = AltArgs(["prog_name", "-b", "blargh"])
+    try:
+        args.__enter__()
         app = NoConfigApp()
         t.eq(app.cfg.bind, "blargh")
-    with AltArgs(["prog_name", "-w", "3"]):
+    finally:
+        args.__exit__(*sys.exc_info())
+    args = AltArgs(["prog_name", "-w", "3"])
+    try:
+        args.__enter__()
         app = NoConfigApp()
         t.eq(app.cfg.workers, 3)
-    with AltArgs(["prog_name", "--debug"]):
+    finally:
+        args.__exit__(*sys.exc_info())
+    args = AltArgs(["prog_name", "--debug"])
+    try:
+        args.__enter__()
         app = NoConfigApp()
         t.eq(app.cfg.debug, True)
+    finally:
+        args.__exit__(*sys.exc_info())
 
 def test_app_config():
-    with AltArgs():
+    args = AltArgs()
+    try:
+        args.__enter__()
         app = NoConfigApp()
+    finally:
+        args.__exit__(*sys.exc_info())
     for s in config.KNOWN_SETTINGS:
         t.eq(s.default, app.cfg.settings[s.name].get())
 
 def test_load_config():
-    with AltArgs(["prog_name", "-c", cfg_file()]):
+    args = AltArgs(["prog_name", "-c", cfg_file()])
+    try:
+        args.__enter__()
         app = NoConfigApp()
+    finally:
+        args.__exit__(*sys.exc_info())
     t.eq(app.cfg.bind, "unix:/tmp/bar/baz")
     t.eq(app.cfg.workers, 3)
     t.eq(app.cfg.proc_name, "fooey")
     
 def test_cli_overrides_config():
-    with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
+    args = AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"])
+    try:
+        args.__enter__()
         app = NoConfigApp()
         t.eq(app.cfg.bind, "blarney")
         t.eq(app.cfg.proc_name, "fooey")
+    finally:
+        args.__exit__(*sys.exc_info())
 
 def test_paster_config():
-    with AltArgs(["prog_name", paster_ini()]):
+    args = AltArgs(["prog_name", paster_ini()])
+    try:
+        args.__enter__()
         app = PasterApp()
         t.eq(app.cfg.bind, "192.168.0.1:80")
         t.eq(app.cfg.proc_name, "brim")
         t.eq("ignore_me" in app.cfg.settings, False)
+    finally:
+        args.__exit__(*sys.exc_info())
 
 def test_cfg_over_paster():
-    with AltArgs(["prog_name", "-c", cfg_file(), paster_ini()]):
+    args = AltArgs(["prog_name", "-c", cfg_file(), paster_ini()])
+    try:
+        args.__enter__()
         app = PasterApp()
         t.eq(app.cfg.bind, "unix:/tmp/bar/baz")
         t.eq(app.cfg.proc_name, "fooey")
         t.eq(app.cfg.default_proc_name, "blurgh")
+    finally:
+        args.__exit__(*sys.exc_info())
 
 def test_cli_cfg_paster():
-    with AltArgs(["prog_name", "-c", cfg_file(), "-b", "whee", paster_ini()]):
+    args = AltArgs(["prog_name", "-c", cfg_file(), "-b", "whee", paster_ini()])
+    try:
+        args.__enter__()
         app = PasterApp()
         t.eq(app.cfg.bind, "whee")
         t.eq(app.cfg.proc_name, "fooey")
         t.eq(app.cfg.default_proc_name, "blurgh")
+    finally:
+        args.__exit__(*sys.exc_info())

@@ -166,7 +166,7 @@ class Request(Message):
         # URI
         self.uri = bits[1]
         scheme, netloc, path, parameters, query, fragment = urlparse.urlparse(bits[1])
-        self.scheme = scheme or None
+        self.scheme = scheme or ''
         self.host = netloc or ''
 
         host_parts = self.host.rsplit(":", 1)

@@ -16,11 +16,14 @@ from gunicorn.config import Config
 
 def data_source(fname):
     buf = StringIO()
-    with open(fname) as handle:
+    handle = open(fname)
+    try:
         for line in handle:
             line = line.rstrip("\n").replace("\\r\\n", "\r\n")
             buf.write(line)
         return buf
+    finally:
+        handle.close()
 
 class request(object):
     def __init__(self, name):
