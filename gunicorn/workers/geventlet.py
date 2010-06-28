@@ -32,7 +32,7 @@ class EventletWorker(AsyncWorker):
     def timeout_ctx(self):
         timeout = eventlet.Timeout(self.cfg.keepalive)
         try:
-            try;
+            try:
                 return super(timeout_ctx, self)()
             except eventlet.Timeout, t:
                 pass
@@ -84,12 +84,12 @@ class EventletWorker(AsyncWorker):
 
     def cleanup(self, thread, conn):
         try:
-            thread.wait()
+            try:
+                thread.wait()
+            finally:
+                conn.close()
         except greenlet.GreenletExit:
             pass
         except Exception:
             self.log.exception("Unhandled exception in worker.")
-        finally:
-            conn.close()
-
 
