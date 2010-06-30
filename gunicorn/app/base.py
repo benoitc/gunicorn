@@ -107,7 +107,14 @@ class Application(object):
         if self.cfg.daemon:
             util.daemonize()
         else:
-            os.setpgrp()
+            try:
+                os.setpgrp()
+            except OSError, e:
+                if e[0] == errno.EPERM:
+                    sys.stderr.write("Error: You should use "
+                        "daemon mode here.\n")
+                raise
+                    
         self.configure_logging()
         Arbiter(self).run()
     
