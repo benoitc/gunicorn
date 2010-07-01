@@ -19,7 +19,7 @@ random.seed()
 def uri(data):
     ret = {"raw": data}
     parts = urlparse.urlparse(data)
-    ret["scheme"] = parts.scheme or None
+    ret["scheme"] = parts.scheme or ''
     ret["host"] = parts.netloc.rsplit(":", 1)[0] or None
     ret["port"] = parts.port or 80
     if parts.path and parts.params:
@@ -30,9 +30,9 @@ def uri(data):
         # Don't think this can happen
         ret["path"] = ";" + parts.path
     else:
-        ret["path"] = None
-    ret["query"] = parts.query or None
-    ret["fragment"] = parts.fragment or None
+        ret["path"] = ''
+    ret["query"] = parts.query or ''
+    ret["fragment"] = parts.fragment or ''
     return ret
 
 def load_py(fname):
