@@ -67,8 +67,6 @@ def test_property_access():
     t.eq(c.workers, 1)
     c.set("workers", 3)
     t.eq(c.workers, 3)
-    c.set("debug", True)
-    t.eq(c.workers, 1)
     
     # Address is parsed
     t.eq(c.address, ("127.0.0.1", 8000))
