@@ -8,8 +8,8 @@ _TOC_TOP_
 
 _TOC_BOT_
 
-0.10-dev (head) / 2010-06-17
-----------------------------
+0.10.0 / 2010-07-08
+-------------------
 
 - New HTTP parser.
 - New HUP behaviour : 
@@ -17,7 +17,13 @@ _TOC_BOT_
   - Start the new worker processes with a new configuration
   - Gracefully shutdown the old worker processes
 - New gevent worker "egg:gunicorn#gevent2", working with gevent.wsgi.
- 
+- New documentation site.
+- Refactoring of configuration
+- Fixed QUIT with eventlet worker
+- Added an example reloader config
+- Allows people to pass info from the command line to a WSGI application. See `examples/alt_spec.py <http://github.com/benoitc/gunicorn/raw/master/examples/alt_spec.py>`_ example::
+
+  $ gunicorn 'alt_spec:load("my arg here")'
 
 0.9.1 / 2010-05-26
 ------------------
