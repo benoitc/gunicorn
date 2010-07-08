@@ -77,13 +77,16 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.9.1 - 2010-05-26</h3> 
-        <ul> 
-          <li>Support https via <tt>X-Forwarded-Protocol</tt> or <tt>X-Forwarded-Ssl</tt> headers</li> 
-          <li>Remove <tt>-d</tt> command line to avoid confusion with <tt>-D</tt></li> 
-          <li>Fixed a minor configuration bug</li> 
-          <li>Fixed umask for Unix sockets</li> 
-        </ul> 
+        <h3>Version 0.10.0 - 2010-05-26</h3>
+        <ul>
+          <li>New HTTP parser.</li>
+          <li>New HUP behavior allows for code reloading and better monitoring
+          support.</li>
+          <li>Application code preload configuration option. Defaults to
+          loading after workers fork so that code reloading works.</li>
+          <li>New WSGI application specification allows passing arguments
+          to WSGI apps from the command line.</li>
+        </ul>
       </div> 
       <div id="footer">
         <p>Site Content License <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
