@@ -55,7 +55,6 @@ class EventletWorker(AsyncWorker):
                     break
 
                 eventlet.sleep(0.1)            
-       
 
             timeout = eventlet.Timeout(self.timeout)
             try:
