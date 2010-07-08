@@ -25,7 +25,7 @@ class EventletWorker(AsyncWorker):
         import eventlet
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
-        eventlet.monkey_patch()
+        eventlet.monkey_patch(os=False)
     
     def init_process(self):
         hubs.use_hub()
@@ -40,20 +40,24 @@ class EventletWorker(AsyncWorker):
         pool = greenpool.GreenPool(self.worker_connections)
         acceptor = greenthread.spawn(self.acceptor, pool)
         
-        while self.alive:
-            self.notify()
+        try:
+            while self.alive:
+                self.notify()
+                
+                if self.ppid != os.getppid():
+                    self.log.info("Parent changed, shutting down: %s" % self)
+                    greenthread.kill(acceptor, eventlet.StopServe)
+                    break
             
-            if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s" % self)
-                greenthread.kill(acceptor, eventlet.StopServe)
-                break
-            
-            eventlet.sleep(0.1)            
+                eventlet.sleep(0.1)            
 
-        with eventlet.Timeout(self.timeout, False):
-            pool.waitall()
-        os._exit(3)
-
+            with eventlet.Timeout(self.timeout, False):
+                if pool.waiting():
+                    pool.waitall()
+                
+        except KeyboardInterrupt:
+            pass
+        
     def acceptor(self, pool):
         greenthread.getcurrent()
         while self.alive:

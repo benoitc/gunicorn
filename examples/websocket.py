@@ -17,7 +17,6 @@ from gunicorn.workers.async import ALREADY_HANDLED
 from eventlet import pools
 
 import eventlet
-from eventlet.common import get_errno
 
 class WebSocketWSGI(object):
     def __init__(self, handler):

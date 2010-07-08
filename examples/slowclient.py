@@ -3,12 +3,10 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from wsgiref.validate import validator
 
 import time
 
 
-@validator
 def app(environ, start_response):
     """Application which cooperatively pauses 10 seconds before responding"""
     data = 'Hello, World!\n'
