@@ -11,88 +11,92 @@ _TOC_BOT_
 0.10.0 / 2010-07-08
 -------------------
 
-- New HTTP parser.
-- New HUP behaviour : 
-  - Reload configuration
-  - Start the new worker processes with a new configuration
-  - Gracefully shutdown the old worker processes
-- New gevent worker "egg:gunicorn#gevent2", working with gevent.wsgi.
-- New documentation site.
-- Refactoring of configuration
-- Fixed QUIT with eventlet worker
-- Added an example reloader config
-- Allows people to pass info from the command line to a WSGI application. See `examples/alt_spec.py <http://github.com/benoitc/gunicorn/raw/master/examples/alt_spec.py>`_ example::
-
-  $ gunicorn 'alt_spec:load("my arg here")'
+* New HTTP parser.
+* New HUP behaviour. Re-reads the configuration and then reloads all
+  worker processes without changing the master process id. Helpful for
+  code reloading and monitoring applications like supervisord and runit.
+* Added a preload configuration parameter. By default, application code
+  is now loaded after a worker forks. This couple with the new HUP
+  handling can be used for dev servers to do hot code reloading. Using
+  the preload flag can help a bit in small memory VM's.
+* Allow people to pass command line arguments to WSGI applications. See:
+  `examples/alt_spec.py
+  <http://github.com/benoitc/gunicorn/raw/master/examples/alt_spec.py>`_
+* Added an example gevent reloader configuration:
+  `examples/example_gevent_reloader.py
+  <http://github.com/benoitc/gunicorn/blob/master/examples/example_gevent_reloader.py>`_.
+* New gevent worker "egg:gunicorn#gevent2", working with gevent.wsgi.
+* Internal refactoring and various bug fixes.
+* New documentation website.
 
 0.9.1 / 2010-05-26
 ------------------
 
-- Support https via X-Forwarded-Protocol or X-Forwarded-Ssl headers
-- Fix configuration
-- Remove -d options which was used instead of -D for daemon.
-- Fix umask in unix socket
+* Support https via X-Forwarded-Protocol or X-Forwarded-Ssl headers
+* Fix configuration
+* Remove -d options which was used instead of -D for daemon.
+* Fix umask in unix socket
 
 0.9.0 / 2010-05-24
 ------------------
 
-- Added *when_ready* hook. Called just after the server is started 
-- Added *preload* setting. Load application code before the worker processes
+* Added *when_ready* hook. Called just after the server is started 
+* Added *preload* setting. Load application code before the worker processes
   are forked.
-- Refactored Config
-- Fix pidfile
-- Fix QUIT/HUP in async workers
-- Fix reexec
-- Documentation improvements
+* Refactored Config
+* Fix pidfile
+* Fix QUIT/HUP in async workers
+* Fix reexec
+* Documentation improvements
 
 0.8.1 / 2010-04-29
 ------------------
 
-- Fix builtins import in config
-- Fix installation with pip
-- Fix Tornado WSGI support
-- Delay application loading until after processing all configuration
+* Fix builtins import in config
+* Fix installation with pip
+* Fix Tornado WSGI support
+* Delay application loading until after processing all configuration
 
 0.8.0 / 2010-04-22
 ------------------
 
-- Refactored Worker management for better async support. Now use the -k option
+* Refactored Worker management for better async support. Now use the -k option
   to set the type of request processing to use
-- Added support for Tornado_
+* Added support for Tornado_
 
 
 0.7.2 / 2010-04-15
 ------------------
 
-- Added --spew option to help debugging (installs a system trace hook)
-- Some fixes in async arbiters
-- Fix a bug in start_response on error
+* Added --spew option to help debugging (installs a system trace hook)
+* Some fixes in async arbiters
+* Fix a bug in start_response on error
 
 0.7.1 / 2010-04-01
 ------------------
 
-- Fix bug when responses have no body.
+* Fix bug when responses have no body.
 
 0.7.0 / 2010-03-26
 ------------------
 
-- Added support for Eventlet_ and Gevent_ based workers.
-- Added Websockets_ support
-- Fix Chunked Encoding
-- Fix SIGWINCH on OpenBSD_
-- Fix `PEP 333`_ compliance for the write callable.
+* Added support for Eventlet_ and Gevent_ based workers.
+* Added Websockets_ support
+* Fix Chunked Encoding
+* Fix SIGWINCH on OpenBSD_
+* Fix `PEP 333`_ compliance for the write callable.
 
 0.6.5 / 2010-03-11
 ------------------
 
-- Fix pidfile handling
-- Fix Exception Error
+* Fix pidfile handling
+* Fix Exception Error
 
 0.6.4 / 2010-03-08
 ------------------
 
-- Use cStringIO for performance when possible.
-- Fix worker freeze when a remote connection closes unexpectedly.
+* Use cStringIO for performance when possible.
+* Fix worker freeze when a remote connection closes unexpectedly.
 
 0.6.3 / 2010-03-07
 ------------------
