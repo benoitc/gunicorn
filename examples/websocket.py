@@ -8,9 +8,14 @@
 
 import collections
 import errno
+from hashlib import md5
+import re
+import socket
+import struct
+
 from gunicorn.workers.async import ALREADY_HANDLED
 from eventlet import pools
-import socket
+
 import eventlet
 from eventlet.common import get_errno
 
@@ -20,6 +25,16 @@ class WebSocketWSGI(object):
     
     def verify_client(self, ws):
         pass
+        
+    def _get_key_value(self, key_value):
+        if not key_value:
+            return
+        key_number = int(re.sub("\\D", "", key_value))
+        spaces = re.subn(" ", "", key_value)[1]
+        if key_number % spaces != 0:
+            return
+        part = key_number / spaces
+        return part
 
     def __call__(self, environ, start_response):
         if not (environ['HTTP_CONNECTION'] == 'Upgrade' and
@@ -33,20 +48,45 @@ class WebSocketWSGI(object):
             environ.get('HTTP_ORIGIN'),
             environ.get('HTTP_WEBSOCKET_PROTOCOL'),
             environ.get('PATH_INFO'))
-        self.verify_client(ws)
+
         handshake_reply = ("HTTP/1.1 101 Web Socket Protocol Handshake\r\n"
                    "Upgrade: WebSocket\r\n"
-                   "Connection: Upgrade\r\n"
-                   "WebSocket-Origin: %s\r\n"
-                   "WebSocket-Location: ws://%s%s\r\n\r\n" % (
-                        environ.get('HTTP_ORIGIN'), 
-                        environ.get('HTTP_HOST'), 
-                        ws.path))                                       
+                   "Connection: Upgrade\r\n")
+                       
+        self.verify_client(ws)
+        
+        key1 = self._get_key_value(environ.get('HTTP_SEC_WEBSOCKET_KEY1'))
+        key2 = self._get_key_value(environ.get('HTTP_SEC_WEBSOCKET_KEY2'))
+        
+        
+        if key1 and key2:
+            challenge = ""
+            challenge += struct.pack("!I", key1)  # network byteorder int
+            challenge += struct.pack("!I", key2)  # network byteorder int
+            challenge += environ['wsgi.input'].read()
+            handshake_reply +=  (
+                       "Sec-WebSocket-Origin: %s\r\n"
+                       "Sec-WebSocket-Location: ws://%s%s\r\n"
+                       "Sec-WebSocket-Protocol: %s\r\n"
+                       "\r\n%s" % (
+                            environ.get('HTTP_ORIGIN'), 
+                            environ.get('HTTP_HOST'), 
+                            ws.path,
+                            environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL'), 
+                            md5(challenge).digest()))
+        else:
+            handshake_reply += (
+                       "WebSocket-Origin: %s\r\n"
+                       "WebSocket-Location: ws://%s%s\r\n\r\n" % (
+                            environ.get('HTTP_ORIGIN'), 
+                            environ.get('HTTP_HOST'), 
+                            ws.path))
+                                                       
         sock.sendall(handshake_reply)
         try:
             self.handler(ws)
         except socket.error, e:
-            if get_errno(e) != errno.EPIPE:
+            if e[0] != errno.EPIPE:
                 raise
         # use this undocumented feature of grainbows to ensure that it
         # doesn't barf on the fact that we didn't call start_response

@@ -8,7 +8,7 @@
 import collections
 import errno
 import re
-from md5 import md5
+from hashlib import md5
 import socket
 import struct
 
@@ -44,7 +44,7 @@ class WebSocketWSGI(object):
             return []
                     
         sock = environ['gunicorn.socket']
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 0)
+
         ws = WebSocket(sock, 
             environ.get('HTTP_ORIGIN'),
             environ.get('HTTP_WEBSOCKET_PROTOCOL'),
@@ -167,7 +167,7 @@ def handle(ws):
             ws.send("0 %s %s\n" % (i, random.random()))
             gevent.sleep(0.1)
                             
-wsapp = WebSocketWSGI(handle, 'http://localhost:8000')
+wsapp = WebSocketWSGI(handle)
 def app(environ, start_response):
     """ This resolves to the web page or the websocket depending on
     the path."""
