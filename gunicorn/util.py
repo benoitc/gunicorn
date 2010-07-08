@@ -10,6 +10,7 @@ import os
 import pkg_resources
 import resource
 import socket
+import sys
 import textwrap
 import time
 
@@ -174,13 +175,9 @@ def import_app(module):
         module, obj = module, "application"
     else:
         module, obj = parts[0], parts[1]
-    mod = __import__(module)
-    parts = module.split(".")
-    for p in parts[1:]:
-        mod = getattr(mod, p, None)
-        if mod is None:
-            raise ImportError("Failed to import: %s" % module)
-    app = getattr(mod, obj, None)
+    __import__(module)
+    mod = sys.modules[module]
+    app = eval(obj, mod.__dict__)
     if app is None:
         raise ImportError("Failed to find application object: %r" % obj)
     if not callable(app):
