@@ -45,7 +45,7 @@ class AsyncWorker(base.Worker):
                 if e[0] == errno.ECONNRESET:
                     self.log.warn("Ignoring connection reset")
                 else:
-                    self.log.warn("Ignoring EPIPE")
+                    self.log.debug("Ignoring EPIPE")
         except Exception, e:
             self.log.exception("General error processing request.")
             try:            
