@@ -23,10 +23,8 @@ class GEventWorker(AsyncWorker):
         
     def timeout_ctx(self):
         timeout = gevent.Timeout(self.cfg.keepalive)
-        try:
-            return super(GEventWorker, self).timeout_ctx()
-        except gevent.Timeout:
-            return None
+        timeout.start()
+        return timeout
         
     def run(self):
         self.socket.setblocking(1)

@@ -30,14 +30,7 @@ class EventletWorker(AsyncWorker):
         super(EventletWorker, self).init_process()
         
     def timeout_ctx(self):
-        timeout = eventlet.Timeout(self.cfg.keepalive)
-        try:
-            try:
-                return super(timeout_ctx, self)()
-            except eventlet.Timeout, t:
-                pass
-        finally:
-            timeout.cancel()
+        return eventlet.Timeout(self.cfg.keepalive)
         
     def run(self):
         self.socket.setblocking(1)

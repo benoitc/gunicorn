@@ -21,7 +21,7 @@ class AsyncWorker(base.Worker):
         self.worker_connections = self.cfg.worker_connections
     
     def timeout_ctx(self):
-        return self.parser.next()
+        raise NotImplemented()
 
     def handle(self, client, addr):
         try:
@@ -29,7 +29,11 @@ class AsyncWorker(base.Worker):
                 parser = http.RequestParser(client)
                 try:
                     while True:
-                        req = self.timeout_ctx()           
+                        timeout = self.timeout_ctx()
+                        try:
+                            req = parser.next()
+                        finally:
+                            timeout.cancel()
                         if not req:
                             break
                         self.handle_request(req, client, addr)
