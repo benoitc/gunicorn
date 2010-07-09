@@ -3,8 +3,6 @@
 # This file is part of the pywebmachine package released
 # under the MIT license.
 
-from __future__ import with_statement
-
 import t
 
 import inspect
