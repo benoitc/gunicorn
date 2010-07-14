@@ -61,7 +61,7 @@ Commonly Used Arguments
 
     sync=gunicorn.workers.sync:SyncWorker
     eventlet=gunicorn.workers.geventlet:EventletWorker
-    gevent=gunicorn.workers.ggevent:GEventWorker
+    gevent=gunicorn.workers.ggevent:GeventWorker
     tornado
 
 There are various other parameters that affect user privileges, logging, etc.

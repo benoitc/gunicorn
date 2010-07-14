@@ -18,16 +18,19 @@ import gunicorn
 from gunicorn.workers.async import AsyncWorker
 from gunicorn.workers.base import Worker
 
-BASE_WSGI_ENV = {'GATEWAY_INTERFACE': 'CGI/1.1',
-            'SERVER_SOFTWARE': 'gevent/%s gunicorn/%s' % (gevent.__version__,
-                                                        gunicorn.__version__),
-            'SCRIPT_NAME': '',
-            'wsgi.version': (1, 0),
-            'wsgi.multithread': False,
-            'wsgi.multiprocess': False,
-            'wsgi.run_once': False}
+VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
-class GEventWorker(AsyncWorker):
+BASE_WSGI_ENV = {
+    'GATEWAY_INTERFACE': 'CGI/1.1',
+    'SERVER_SOFTWARE': VERSION,
+    'SCRIPT_NAME': '',
+    'wsgi.version': (1, 0),
+    'wsgi.multithread': False,
+    'wsgi.multiprocess': False,
+    'wsgi.run_once': False
+}
+
+class GeventWorker(AsyncWorker):
         
     @classmethod  
     def setup(cls):
@@ -73,36 +76,28 @@ class GEventWorker(AsyncWorker):
           
     def cleanup(self, gt):
         try:
-            try:
-                gt.join()
-            finally:
-                gt._conn.close()
+            gt.join()
         except greenlet.GreenletExit:
             pass
         except Exception:
             self.log.exception("Unhandled exception in worker.")
-            
+        finally:
+            gt._conn.close()
 
-class WSGIHandler(wsgi.WSGIHandler):
-    def log_request(self, *args):
-        pass
-        
-class PyWSGIHandler(pywsgi.WSGIHandler):
-    def log_request(self, *args):
-        pass
-        
-class PyWSGIServer(pywsgi.WSGIServer):
-    base_env = BASE_WSGI_ENV
+class GeventBaseWorker(Worker):
+    """\
+    This base class is used for the two variants of workers that use
+    Gevent's two different WSGI workers. ``gevent_wsgi`` worker uses
+    the libevent HTTP parser but does not support streaming response
+    bodies or Keep-Alive. The ``gevent_pywsgi`` worker uses an
+    alternative Gevent WSGI server that supports streaming and Keep-
+    Alive but does not use the libevent HTTP parser.
+    """
+    server_class = None
+    wsgi_handler = None
 
-class WSGIServer(wsgi.WSGIServer):
-    base_env = BASE_WSGI_ENV        
-    
-class GEventWSGIWorker(Worker):
-    server_class = WSGIServer
-    wsgi_handler = WSGIHandler
-    
     def __init__(self, *args, **kwargs):
-        super(GEventWSGIWorker, self).__init__(*args, **kwargs)
+        super(GeventBaseWorker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
     
     @classmethod
@@ -132,6 +127,28 @@ class GEventWSGIWorker(Worker):
         except KeyboardInterrupt:
             pass
 
-class GEventPyWSGIWorker(GEventWSGIWorker):
+
+class WSGIHandler(wsgi.WSGIHandler):
+    def log_request(self, *args):
+        pass
+        
+class WSGIServer(wsgi.WSGIServer):
+    base_env = BASE_WSGI_ENV        
+    
+class GeventWSGIWorker(GeventBaseWorker):
+    "The libevent HTTP based workers"
+    server_class = WSGIServer
+    wsgi_handler = WSGIHandler
+
+
+class PyWSGIHandler(pywsgi.WSGIHandler):
+    def log_request(self, *args):
+        pass
+
+class PyWSGIServer(pywsgi.WSGIServer):
+    base_env = BASE_WSGI_ENV
+
+class GeventPyWSGIWorker(GeventBaseWorker):
+    "The Gevent StreamServer based workers."
     server_class = PyWSGIServer
     wsgi_handler = PyWSGIHandler
