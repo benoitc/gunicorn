@@ -51,7 +51,7 @@ class GEvent2Worker(Worker):
         server = WSGIServer(self.socket, application=self.wsgi, 
                         spawn=pool, handler_class=WSGIHandler)
         
-        acceptor = gevent.spawn(server.serve_forever)
+        server.start()
         
         try:
             while self.alive:
@@ -59,9 +59,9 @@ class GEvent2Worker(Worker):
             
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
-                    gevent.kill(acceptor)
+                    server.stop()
                     break
-                gevent.sleep(0.1)            
+                gevent.sleep(0.1) 
             self.pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
