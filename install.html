@@ -47,6 +47,17 @@ $ sudo python ez_setup.py -U setuptools
 <pre class="literal-block">
 $ sudo easy_install -U gunicorn
 </pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p>There is a limited support version of Gunicorn that is compatible
+with Python 2.4. This fork is managed by Randall Leeds and can be
+found <a class="reference external" href="http://github.com/tilgovi/gunicorn">here on github</a>. To install this version you must specify
+the full url to something like <tt class="docutils literal">pip</tt>. This hasn't been tested
+wtih <tt class="docutils literal">easy_install</tt> just yet:</p>
+<pre class="last literal-block">
+$ pip install git+http://github.com/tilgovi/gunicorn.git
+</pre>
+</div>
 </div>
 <div class="section" id="from-source">
 <h2><a class="toc-backref" href="#contents">From Source</a></h2>
