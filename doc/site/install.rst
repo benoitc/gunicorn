@@ -28,6 +28,15 @@ To install or upgrade to the latest released version of Gunicorn::
 
   $ sudo easy_install -U gunicorn
 
+.. note::
+    There is a limited support version of Gunicorn that is compatible
+    with Python 2.4. This fork is managed by Randall Leeds and can be
+    found `here on github`_. To install this version you must specify
+    the full url to something like ``pip``. This hasn't been tested
+    wtih ``easy_install`` just yet::
+
+        $ pip install git+http://github.com/tilgovi/gunicorn.git
+
 From Source
 -----------
 
@@ -56,7 +65,7 @@ directory. This will allow you to keep up to date with development on GitHub as
 well as make changes to the source::
 
     $ python setup.py develop
-  
+
 Async Workers
 -------------
 
@@ -113,6 +122,7 @@ Fingerprint
 .. _`design docs`: design.html
 .. _git: http://git-scm.com/
 .. _Eventlet: http://eventlet.net
+.. _`here on github`: http://github.com/tilgovi/gunicorn
 .. _Gevent: http://gevent.org
 .. _libev: http://software.schmorp.de/pkg/libev.html
 .. _Ubuntu: http://www.ubuntu.com/
