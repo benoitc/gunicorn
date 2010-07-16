@@ -103,17 +103,15 @@ class GeventBaseWorker(Worker):
     @classmethod
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all(dns=False)
+        monkey.patch_all()
         
     def run(self):
         self.socket.setblocking(1)
-        pool = Pool(self.worker_connections)
-        
+        pool = Pool(self.worker_connections)        
+        self.server_class.base_env['wsgi.multiprocess'] = (self.cfg.workers > 1)
         server = self.server_class(self.socket, application=self.wsgi, 
                         spawn=pool, handler_class=self.wsgi_handler)
-        
         server.start()
-        
         try:
             while self.alive:
                 self.notify()
@@ -131,6 +129,12 @@ class GeventBaseWorker(Worker):
 class WSGIHandler(wsgi.WSGIHandler):
     def log_request(self, *args):
         pass
+
+    def prepare_env(self):
+        env = super(WSGIHandler, self).prepare_env()
+        env['RAW_URI'] = self.request.uri
+        return env
+        
         
 class WSGIServer(wsgi.WSGIServer):
     base_env = BASE_WSGI_ENV        
@@ -144,6 +148,12 @@ class GeventWSGIWorker(GeventBaseWorker):
 class PyWSGIHandler(pywsgi.WSGIHandler):
     def log_request(self, *args):
         pass
+        
+    def get_environ(self):
+        env = super(PyWSGIHandler, self).get_environ()
+        env['gunicorn.sock'] = self.socket
+        env['RAW_URI'] = self.path
+        return env
 
 class PyWSGIServer(pywsgi.WSGIServer):
     base_env = BASE_WSGI_ENV

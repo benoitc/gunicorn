@@ -98,7 +98,7 @@ def create(req, sock, client, server, cfg):
         "REMOTE_PORT": str(remote[1]),
         "SERVER_NAME": server[0],
         "SERVER_PORT": str(server[1]),
-        "SERVER_PROTOCOL": req.version
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
     }
 
     for key, value in req.headers:
