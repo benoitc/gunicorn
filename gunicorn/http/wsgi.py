@@ -71,7 +71,12 @@ def create(req, sock, client, server, cfg):
     if isinstance(server, basestring):
         server =  server.split(":")
         if len(server) == 1:
-            server.append('')
+            if url_scheme == "http":
+                server.append("80")
+            elif url_scheme == "https":
+                server.append("443")
+            else:
+                server.append('')
 
     path_info = req.path
     if script_name:
