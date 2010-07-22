@@ -554,14 +554,13 @@ class Prefork(Setting):
         new Worker.
         """
     
-
 class Postfork(Setting):
     name = "post_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
     def def_post_fork(server, worker):
-        server.log.info("Worker spawned (pid: %s)" % worker.pid)
+        pass
     def_post_fork = staticmethod(def_post_fork)
     default = def_post_fork
     desc = """\
@@ -571,13 +570,11 @@ class Postfork(Setting):
         new Worker.
         """
     
-
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    
     def def_start_server(server):
         pass
     def_start_server = staticmethod(def_start_server)
@@ -588,14 +585,13 @@ class WhenReady(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
     
-        
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
     def def_pre_exec(server):
-        server.log.info("Forked child, reexecuting.")
+        pass
     def_pre_exec = staticmethod(def_pre_exec)
     default = def_pre_exec
     desc = """\

@@ -416,8 +416,7 @@ class Arbiter(object):
         worker_pid = os.getpid()
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
-            self.log.debug("Booting worker: %s (age: %s)" % (
-                                            worker_pid, self.worker_age))
+            self.log.info("Booting worker with pid: %s" % worker_pid)
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
