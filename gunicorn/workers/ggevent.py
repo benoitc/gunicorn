@@ -35,7 +35,7 @@ class GeventWorker(AsyncWorker):
     @classmethod  
     def setup(cls):
         from gevent import monkey
-        monkey.patch_all(dns=False)
+        monkey.patch_all()
         
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
@@ -58,6 +58,13 @@ class GeventWorker(AsyncWorker):
             pool.join(timeout=self.timeout)
         except KeyboardInterrupt:
             pass
+
+    def init_process(self):
+        #gevent doesn't reinitialize dns for us after forking
+        #here's the workaround
+        gevent.core.dns_shutdown(fail_requests=1)
+        gevent.core.dns_init()
+        super(GeventWorker, self).init_process()
 
     def acceptor(self, pool):
         gevent.getcurrent()
