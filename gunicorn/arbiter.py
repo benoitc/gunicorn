@@ -17,6 +17,7 @@ import traceback
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
+from gunicorn import __version__
 
 class Arbiter(object):
     """
@@ -49,14 +50,15 @@ class Arbiter(object):
     
     def __init__(self, app):
         self.log = logging.getLogger(__name__)
-
+        self.log.info("Starting gunicorn %s" % __version__)
+        
         self.setup(app)
-
+        
         self.pidfile = None
         self.worker_age = 0
         self.reexec_pid = 0
         self.master_name = "Master"
- 
+        
         # get current path, try to use PWD env first
         try:
             a = os.stat(os.environ['PWD'])
@@ -88,6 +90,11 @@ class Arbiter(object):
         self.proc_name = self.cfg.proc_name
         self.worker_class = self.cfg.worker_class
         
+        if self.cfg.debug:
+            self.log.debug("Current configuration:")
+            for config, value in sorted(self.cfg.settings.iteritems()):
+                self.log.debug("  %s: %s" % (config, value.value))
+        
         if self.cfg.preload_app:
             if not self.cfg.debug:
                 self.app.wsgi()
@@ -106,7 +113,7 @@ class Arbiter(object):
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
-        self.log.info("Arbiter booted")
+        self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s" % self.LISTENER)
         self.cfg.when_ready(self)
     
