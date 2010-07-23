@@ -569,7 +569,8 @@ class Postfork(Setting):
         The callable needs to accept two instance variables for the Arbiter and
         new Worker.
         """
-    
+
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
@@ -584,7 +585,8 @@ class WhenReady(Setting):
         
         The callable needs to accept a single instance variable for the Arbiter.
         """
-    
+
+
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
@@ -599,5 +601,37 @@ class PreExec(Setting):
         
         The callable needs to accept a single instance variable for the Arbiter.
         """
-    
+
+
+class PreRequest(Setting):
+    name = "pre_request"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
+    def def_pre_request(worker, req):
+        worker.log.debug("%s %s" % (req.method, req.path))
+    def_pre_request = staticmethod(def_pre_request)
+    default = def_pre_request
+    desc = """\
+        Called just before a worker processes the request.
         
+        The callable needs to accept two instance variables for the Worker and
+        the Request.
+        """
+
+
+class PostRequest(Setting):
+    name = "post_request"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
+    def def_post_request(worker, req):
+        pass
+    def_post_request = staticmethod(def_post_request)
+    default = def_post_request
+    desc = """\
+        Called after a worker processes the request.
+
+        The callable needs to accept two instance variables for the Worker and
+        the Request.
+        """

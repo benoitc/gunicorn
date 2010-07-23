@@ -61,6 +61,7 @@ class AsyncWorker(base.Worker):
     def handle_request(self, req, sock, addr):
         try:
             debug = self.cfg.debug or False
+            self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr, self.address,
                     self.cfg)
             respiter = self.wsgi(environ, resp.start_response)
@@ -73,6 +74,7 @@ class AsyncWorker(base.Worker):
                 respiter.close()
             if req.should_close():
                 raise StopIteration()
+            self.cfg.post_request(self, req)
         except Exception, e:
             #Only send back traceback in HTTP in debug mode.
             if not self.debug:
