@@ -280,24 +280,25 @@ class WorkerClass(Setting):
     cli = ["-k", "--worker-class"]
     meta = "STRING"
     validator = validate_string
-    default = "egg:gunicorn#sync"
+    default = "sync"
     desc = """\
         The type of workers to use.
         
-        The default async class should handle most 'normal' types of work loads.
+        The default class (sync) should handle most 'normal' types of workloads.
         You'll want to read http://gunicorn.org/design.hml for information on
         when you might want to choose one of the other worker classes.
         
-        An string referring to a 'gunicorn.workers' entry point or a
+        A string referring to one of the following bundled classes:
+        
+        * ``sync``
+        * ``eventlet`` - Requires eventlet >= 0.9.7
+        * ``gevent``   - Requires gevent >= 0.12.2 (?)
+        * ``tornado``  - Requires tornado >= 0.2
+        
+        Optionally, you can provide your own worker by giving gunicorn a
         MODULE:CLASS pair where CLASS is a subclass of
-        gunicorn.workers.base.Worker.
-        
-        The default provided values are:
-        
-        * ``egg:gunicorn#sync``
-        * ``egg:gunicorn#eventlet`` - Requires eventlet >= 0.9.7
-        * ``egg:gunicorn#gevent``   - Requires gevent >= 0.12.2 (?)
-        * ``egg:gunicorn#tornado``  - Requires tornado >= 0.2    
+        gunicorn.workers.base.Worker. This alternative syntax will load the
+        gevent class: ``egg:gunicorn#gevent``
         """
 
 class WorkerConnections(Setting):
