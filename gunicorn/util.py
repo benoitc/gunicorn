@@ -58,7 +58,13 @@ def load_worker_class(uri):
     else:
         components = uri.split('.')
         if len(components) == 1:
-            raise RuntimeError("arbiter uri invalid")
+            try:
+                if uri.startswith("#"):
+                    uri = uri[1:]
+                return pkg_resources.load_entry_point("gunicorn", 
+                            "gunicorn.workers", uri)
+            except ImportError: 
+                raise RuntimeError("arbiter uri invalid or not found")
         klass = components.pop(-1)
         mod = __import__('.'.join(components))
         for comp in components[1:]:
