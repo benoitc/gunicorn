@@ -48,9 +48,9 @@ class Arbiter(object):
     )
     
     def __init__(self, app):
-        self.setup(app)
-
         self.log = logging.getLogger(__name__)
+
+        self.setup(app)
 
         self.pidfile = None
         self.worker_age = 0
