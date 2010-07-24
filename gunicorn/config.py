@@ -539,6 +539,21 @@ class DefaultProcName(Setting):
         Internal setting that is adjusted for each type of application.
         """
 
+class WhenReady(Setting):
+    name = "when_ready"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def def_start_server(server):
+        pass
+    def_start_server = staticmethod(def_start_server)
+    default = def_start_server
+    desc = """\
+        Called just after the server is started.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 class Prefork(Setting):
     name = "pre_fork"
     section = "Server Hooks"
@@ -571,23 +586,6 @@ class Postfork(Setting):
         new Worker.
         """
 
-
-class WhenReady(Setting):
-    name = "when_ready"
-    section = "Server Hooks"
-    validator = validate_callable(1)
-    type = "callable"
-    def def_start_server(server):
-        pass
-    def_start_server = staticmethod(def_start_server)
-    default = def_start_server
-    desc = """\
-        Called just after the server is started.
-        
-        The callable needs to accept a single instance variable for the Arbiter.
-        """
-
-
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
@@ -602,7 +600,6 @@ class PreExec(Setting):
         
         The callable needs to accept a single instance variable for the Arbiter.
         """
-
 
 class PreRequest(Setting):
     name = "pre_request"
@@ -619,7 +616,6 @@ class PreRequest(Setting):
         The callable needs to accept two instance variables for the Worker and
         the Request.
         """
-
 
 class PostRequest(Setting):
     name = "post_request"
