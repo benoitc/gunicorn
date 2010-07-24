@@ -35,7 +35,7 @@ To install or upgrade to the latest released version of Gunicorn::
     the full url to something like ``pip``. This hasn't been tested
     wtih ``easy_install`` just yet::
 
-        $ pip install git+http://github.com/tilgovi/gunicorn.git
+        $ pip install -f http://github.com/tilgovi/gunicorn/tarball/py24 gunicorn
 
 From Source
 -----------
