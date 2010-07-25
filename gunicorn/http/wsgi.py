@@ -96,7 +96,7 @@ def create(req, sock, client, server, cfg):
         "REQUEST_METHOD": req.method,
         "PATH_INFO": unquote(path_info),
         "QUERY_STRING": req.query,
-        "RAW_URI": req.path,
+        "RAW_URI": req.uri,
         "CONTENT_TYPE": content_type,
         "CONTENT_LENGTH": content_length,
         "REMOTE_ADDR": remote[0],
