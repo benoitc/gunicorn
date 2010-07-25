@@ -1,3 +1,9 @@
+gunicorn (0.10.0-0) maverick; urgency=low
+
+  * Bump release.
+
+ -- Benoit Chesneau <bchesneau@gmail.com>  Sun, 25 Jul 2010 15:17:00 +0100
+ 
 gunicorn (0.5.1-1) karmic; urgency=low
 
   * First release. 
