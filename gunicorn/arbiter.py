@@ -168,6 +168,8 @@ class Arbiter(object):
                 self.halt()
             except KeyboardInterrupt:
                 self.halt()
+            except SystemExit:
+                raise
             except Exception:
                 self.log.info("Unhandled exception in main loop:\n%s" %  
                             traceback.format_exc())
