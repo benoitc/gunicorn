@@ -243,7 +243,7 @@ class Arbiter(object):
         "SIGWINCH handling"
         if os.getppid() == 1 or os.getpgrp() != os.getpid():
             self.logger.info("graceful stop of workers")
-            self.kill_workers(True)
+            self.kill_workers(signal.SIGQUIT)
         else:
             self.log.info("SIGWINCH ignored. Not daemonized")
     
