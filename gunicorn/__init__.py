@@ -15,7 +15,8 @@ if os.environ.get('release') != "true":
         stdin, stdout, stderr = popen3("git rev-parse --short HEAD --")
         error = stderr.read()
         if not error:
-            minor_tag = ".%s-git" % stdout.read()
+            git_tag = stdout.read()[:-1]
+            minor_tag = ".%s-git" % git_tag
     except OSError:        
         pass
 else:
