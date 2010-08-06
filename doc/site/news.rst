@@ -17,7 +17,7 @@ _TOC_BOT_
   <http://www.gevent.org/gevent.pywsgi.html>`_ .
   **"egg:gunicorn#gevent"** using our own HTTP parser is still here and
   is **recommended** for normal uses. Use the "gevent.wsgi" parser if you
-  need really fast connections and don't need streaming or ssl.
+  need really fast connections and don't need streaming, keepalive or ssl.
 * Add pre/post request hooks
 * Exit more quietly
 * Fix gevent dns issue

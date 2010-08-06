@@ -35,7 +35,7 @@
 &quot;egg:gunicorn#gevent_pywsgi&quot; worker using <a class="reference external" href="http://www.gevent.org/gevent.pywsgi.html">gevent.pywsgi</a> .
 <strong>&quot;egg:gunicorn#gevent&quot;</strong> using our own HTTP parser is still here and
 is <strong>recommended</strong> for normal uses. Use the &quot;gevent.wsgi&quot; parser if you
-need really fast connections and don't need streaming or ssl.</li>
+need really fast connections and don't need streaming, keepalive or ssl.</li>
 <li>Add pre/post request hooks</li>
 <li>Exit more quietly</li>
 <li>Fix gevent dns issue</li>
