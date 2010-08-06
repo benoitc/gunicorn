@@ -8,7 +8,7 @@ import os
 
 if os.environ.get('release') != "true":
 
-    minor_tag = "-dev"
+    minor_tag = ""
     try:
         from gunicorn.util import popen3
 
