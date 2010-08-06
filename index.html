@@ -77,15 +77,12 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.10.0 - 2010-05-26</h3>
+        <h3>Version 0.10.1 - 2010-08-06</h3>
         <ul>
-          <li>New HTTP parser.</li>
-          <li>New HUP behavior allows for code reloading and better monitoring
-          support.</li>
-          <li>Application code preload configuration option. Defaults to
-          loading after workers fork so that code reloading works.</li>
-          <li>New WSGI application specification allows passing arguments
-          to WSGI apps from the command line.</li>
+            <li>Improve gevent's workers</li>
+            <li>Add pre/post request hooks</li>
+            <li>Exit more quietly</li>
+            <li>Fix gevent dns issue</li>
         </ul>
       </div> 
       <div id="footer">
