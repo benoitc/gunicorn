@@ -14,6 +14,7 @@ import sys
 import time
 import traceback
 
+from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
@@ -168,6 +169,8 @@ class Arbiter(object):
                 self.halt()
             except KeyboardInterrupt:
                 self.halt()
+            except HaltServer, inst:
+                self.halt(reason=inst.reason, exit_status=inst.exit_status)
             except SystemExit:
                 raise
             except Exception:
@@ -259,13 +262,15 @@ class Arbiter(object):
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
                     
-    def halt(self):
+    def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
         self.log.info("Shutting down: %s" % self.master_name)
+        if reason is not None:
+            self.log.info("Reason: %s" % reason)
         if self.pidfile is not None:
             self.pidfile.unlink()
-        sys.exit(0)
+        sys.exit(exit_status)
         
     def sleep(self):
         """\
@@ -386,7 +391,8 @@ class Arbiter(object):
                     # to avoid infinite start/stop cycles.
                     exitcode = status >> 8
                     if exitcode == self.WORKER_BOOT_ERROR:
-                        raise StopIteration
+                        reason = "Worker failed to boot."
+                        raise HaltServer(reason, self.WORKER_BOOT_ERROR)
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
