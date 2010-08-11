@@ -62,6 +62,8 @@ def create(req, sock, client, server, cfg):
         if forward.find(",") >= 0:
             forward = forward.rsplit(",", 1)[1].strip()
         remote = forward.split(":")
+        if len(remote) < 2:
+            remote.append('80')
         if len(remote) == 1:
             remote.append('')
     else:
@@ -109,7 +111,7 @@ def create(req, sock, client, server, cfg):
         key = 'HTTP_' + key.replace('-', '_')
         if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
             environ[key] = value
-           
+    
     return resp, environ
 
 class Response(object):

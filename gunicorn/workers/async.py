@@ -80,6 +80,8 @@ class AsyncWorker(base.Worker):
             if req.should_close():
                 raise StopIteration()
             self.cfg.post_request(self, req)
+        except StopIteration:
+            raise
         except Exception, e:
             #Only send back traceback in HTTP in debug mode.
             if not self.debug:
