@@ -46,40 +46,31 @@ class EventletWorker(AsyncWorker):
                 
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
-                    greenthread.kill(acceptor, eventlet.StopServe)
                     break
             
                 eventlet.sleep(0.1)            
-
-            with eventlet.Timeout(self.timeout, False):
-                if pool.waiting():
-                    pool.waitall()
-                
         except KeyboardInterrupt:
             pass
+
+        # we stopped
+        greenthread.kill(acceptor, eventlet.StopServe)
+        with eventlet.Timeout(self.timeout, False):
+            if pool.waiting():
+                pool.waitall()
+       
         
     def acceptor(self, pool):
-        greenthread.getcurrent()
         while self.alive:
             try:
-                conn, addr = self.socket.accept()
-                gt = pool.spawn(self.handle, conn, addr)
-                gt.link(self.cleanup, conn)
-                conn, addr, gt = None, None, None
-            except eventlet.StopServe:
-                return
+                try:
+                    conn, addr = self.socket.accept()
+                except socket.error, e:
+                    if err[0] == errno.EAGAIN:
+                        sys.exc_clear()
+                        return
+                    raise
+                pool.spawn_n(self.handle, conn, addr)
             except:
                 self.log.exception("Unexpected error in acceptor. Sepuku.")
                 os._exit(4)
-
-    def cleanup(self, thread, conn):
-        try:
-            try:
-                thread.wait()
-            finally:
-                conn.close()
-        except greenlet.GreenletExit:
-            pass
-        except Exception:
-            self.log.exception("Unhandled exception in worker.")
 
