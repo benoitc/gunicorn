@@ -28,22 +28,19 @@ class AsyncWorker(base.Worker):
     def handle(self, client, addr):
         try:
             parser = http.RequestParser(client)
-            
             try:
-                if self.cfg.keepalive > 0:
-                    while True:
-                        req = None
-                        with self.timeout_ctx():
-                            req = parser.next()
-                        if not req:
-                            break
-                        self.handle_request(req, client, addr)
-                else:
-                    req = parser.next()
+                while True:
+                    req = None
+                    with self.timeout_ctx():
+                        req = parser.next()
+
+                    if not req:
+                        break
                     self.handle_request(req, client, addr)
+                
             except StopIteration:
                 pass
-        except socket.error, e:
+        except socket.error, e: 
             if e[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
             else:
