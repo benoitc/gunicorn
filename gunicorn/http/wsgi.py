@@ -20,7 +20,22 @@ log = logging.getLogger(__name__)
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
 
-    environ = {}
+    environ = {
+        "wsgi.input": req.body,
+        "wsgi.errors": sys.stderr,
+        "wsgi.version": (1, 0),
+        "wsgi.multithread": False,
+        "wsgi.multiprocess": (cfg.workers > 1),
+        "wsgi.run_once": False,
+        "gunicorn.socket": sock,
+        "SERVER_SOFTWARE": SERVER_VERSION,
+        "REQUEST_METHOD": req.method,
+        "QUERY_STRING": req.query,
+        "RAW_URI": req.uri,
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version)),
+        "CONTENT_TYPE": "",
+        "CONTENT_LENGTH": ""
+    }
     
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
@@ -48,16 +63,17 @@ def create(req, sock, client, server, cfg):
         elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
         elif hdr_name == "CONTENT-TYPE":
-            content_type = hdr_value
+            environ['CONTENT_TYPE'] = hdr_value
+            continue
         elif hdr_name == "CONTENT-LENGTH":
-            content_length = hdr_value
+            environ['CONTENT_LENGTH'] = hdr_value
+            continue
         
         key = 'HTTP_' + hdr_name.replace('-', '_')
-        if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
-            environ[key] = hdr_value
+        environ[key] = hdr_value
 
-    wsgi_multiprocess = (cfg.workers > 1)
-
+    environ['wsgi.url_scheme'] = url_scheme
+        
 
     if isinstance(forward, basestring):
         # we only took the last one
@@ -70,6 +86,9 @@ def create(req, sock, client, server, cfg):
     else:
         remote = forward 
 
+    environ['REMOTE_ADDR'] = remote[0]
+    environ['REMOTE_PORT'] = str(remote[1])
+
     if isinstance(server, basestring):
         server =  server.split(":")
         if len(server) == 1:
@@ -79,34 +98,14 @@ def create(req, sock, client, server, cfg):
                 server.append("443")
             else:
                 server.append('')
+    environ['SERVER_NAME'] = server[0]
+    environ['SERVER_PORT'] = server[1]
 
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
-
-    environ.update({
-        "wsgi.url_scheme": url_scheme,
-        "wsgi.input": req.body,
-        "wsgi.errors": sys.stderr,
-        "wsgi.version": (1, 0),
-        "wsgi.multithread": False,
-        "wsgi.multiprocess": wsgi_multiprocess,
-        "wsgi.run_once": False,
-        "gunicorn.socket": sock,
-        "SCRIPT_NAME": script_name,
-        "SERVER_SOFTWARE": SERVER_VERSION,
-        "REQUEST_METHOD": req.method,
-        "PATH_INFO": unquote(path_info),
-        "QUERY_STRING": req.query,
-        "RAW_URI": req.uri,
-        "CONTENT_TYPE": content_type,
-        "CONTENT_LENGTH": content_length,
-        "REMOTE_ADDR": remote[0],
-        "REMOTE_PORT": str(remote[1]),
-        "SERVER_NAME": server[0],
-        "SERVER_PORT": str(server[1]),
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
-    })
+    environ['PATH_INFO'] = unquote(path_info)
+    environ['SCRIPT_NAME'] = script_name
 
     return resp, environ
 
