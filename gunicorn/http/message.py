@@ -19,15 +19,17 @@ class Message(object):
     def __init__(self, unreader):
         self.unreader = unreader
         self.version = None
-        self.connection_hdr = None
+        self.headers = []
+        self.connection = None
         self.chunked = False
         self.clength = None
-        self.headers = []
+
+        self.length = []
+
         self.trailers = []
         self.body = None
 
         self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
-
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
         self.set_body_reader()
@@ -39,7 +41,7 @@ class Message(object):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = [line + "\r\n" for line in data.split("\r\n")]
+        lines = data.splitlines(True)
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -48,7 +50,9 @@ class Message(object):
             curr = lines.pop(0)
             if curr.find(":") < 0:
                 raise InvalidHeader(curr.strip())
+                
             name, value = curr.split(":", 1)
+
             name = name.rstrip(" \t").upper()
             if self.hdrre.search(name):
                 raise InvalidHeaderName(name)
@@ -58,23 +62,32 @@ class Message(object):
             while len(lines) and lines[0].startswith((" ", "\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
-           
+
+            headers.append((name, value))
+
             if name == "CONNECTION":
-                self.connection_hdr = value
+                self.connection = value.lower().strip()
+                
             elif name == "CONTENT-LENGTH":
                 try:
                     self.clength = int(value)
                 except ValueError:
                     pass
-            elif name == "TRANSFER-ENCODING":
-                 self.chunked = value.lower() == "chunked"
-            elif  name == "SEC-WEBSOCKET-KEY1":
-                self.clength = 8
 
-            headers.append((name, value))
+            elif name == "TRANSFER-ENCODING":
+                self.chunked = value.lower() == "chunked"
+                
+            elif name == "SEC-WEBSOCKET-KEY1":
+                if not self.clength:
+                    self.clength = 8
+            
         return headers
+        
 
     def set_body_reader(self):
+        clength = None
+        chunked = False
+
         if self.chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
         elif self.clength is not None:
@@ -83,12 +96,10 @@ class Message(object):
             self.body = Body(EOFReader(self.unreader))
 
     def should_close(self):
-        if self.connection_hdr is not None:
-            v = self.connection_hdr.lower().strip()
-            if v == "close":
-                return True
-            elif v == "keep-alive":
-                return False
+        if self.connection == "close":
+            return True
+        elif self.connection == "keep-alive":
+            return False
         return self.version <= (1, 0)
 
 
