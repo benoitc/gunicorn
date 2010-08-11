@@ -77,7 +77,7 @@ class GeventWorker(AsyncWorker):
             self.pool.spawn(self.handle, conn, addr)
         except:
             self.log.exception("Unexpected error in acceptor. Sepuku.")
-            os._exit(4)
+            self.alive = False
 
 
     def run(self):
