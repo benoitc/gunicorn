@@ -20,6 +20,8 @@ class Message(object):
         self.unreader = unreader
         self.version = None
         self.connection_hdr = None
+        self.chunked = False
+        self.clength = None
         self.headers = []
         self.trailers = []
         self.body = None
@@ -59,31 +61,24 @@ class Message(object):
            
             if name == "CONNECTION":
                 self.connection_hdr = value
+            elif name == "CONTENT-LENGTH":
+                try:
+                    self.clength = int(value)
+                except ValueError:
+                    pass
+            elif name == "TRANSFER-ENCODING":
+                 self.chunked = value.lower() == "chunked"
+            elif  name == "SEC-WEBSOCKET-KEY1":
+                self.clength = 8
 
             headers.append((name, value))
         return headers
 
     def set_body_reader(self):
-        chunked = False
-        clength = None
-        for (name, value) in self.headers:
-            if name == "CONTENT-LENGTH":
-                try:
-                    clength = int(value)
-                except ValueError:
-                    clength = None
-            elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == "chunked"
-            elif name == "SEC-WEBSOCKET-KEY1":
-                clength = 8
-
-            if clength is not None or chunked:
-                break
-
-        if chunked:
+        if self.chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
-        elif clength is not None:
-            self.body = Body(LengthReader(self.unreader, clength))
+        elif self.clength is not None:
+            self.body = Body(LengthReader(self.unreader, self.clength))
         else:
             self.body = Body(EOFReader(self.unreader))
 
