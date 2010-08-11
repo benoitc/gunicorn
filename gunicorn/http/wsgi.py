@@ -64,10 +64,8 @@ def create(req, sock, client, server, cfg):
         remote = forward.split(":")
         if len(remote) < 2:
             remote.append('80')
-        if len(remote) == 1:
-            remote.append('')
     else:
-        remote = forward
+        remote = forward 
 
     if isinstance(server, basestring):
         server =  server.split(":")
