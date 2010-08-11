@@ -36,15 +36,7 @@ class Message(object):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = []
-        while len(data):
-            pos = data.find("\r\n")
-            if pos < 0:
-                lines.append(data)
-                data = ""
-            else:
-                lines.append(data[:pos+2])
-                data = data[pos+2:]
+        lines = [line + "\r\n" for line in data.split("\r\n")]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -138,20 +130,28 @@ class Request(Message):
         rest = buf.getvalue()[idx+2:] # Skip \r\n
         buf.truncate(0)
         buf.write(rest)
+       
         
         # Headers
+        pos = 0
         idx = buf.getvalue().find("\r\n\r\n")
+
         done = buf.getvalue()[:2] == "\r\n"
         while idx < 0 and not done:
+            pos = buf.tell() - 4
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n\r\n")
+            idx = buf.getvalue()[pos:].find("\r\n\r\n")
             done = buf.getvalue()[:2] == "\r\n"
+             
         if done:
             self.unreader.unread(buf.getvalue()[2:])
             return ""
-        self.headers = self.parse_headers(buf.getvalue()[:idx])
 
-        ret = buf.getvalue()[idx+4:]
+        end = pos + idx
+        
+        self.headers = self.parse_headers(buf.getvalue()[:end])
+
+        ret = buf.getvalue()[end+4:]
         buf.truncate(0)
         return ret
     
