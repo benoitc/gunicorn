@@ -62,18 +62,20 @@ class Message(object):
     def set_body_reader(self):
         chunked = False
         clength = None
-
         for (name, value) in self.headers:
-            if name.upper() == "CONTENT-LENGTH":
+            if name == "CONTENT-LENGTH":
                 try:
                     clength = int(value)
                 except ValueError:
                     clength = None
-            elif name.upper() == "TRANSFER-ENCODING":
+            elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
-            elif name.upper() == "SEC-WEBSOCKET-KEY1":
+            elif name == "SEC-WEBSOCKET-KEY1":
                 clength = 8
-        
+
+            if clength is not None or chunked:
+                break
+
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
         elif clength is not None:
@@ -83,11 +85,13 @@ class Message(object):
 
     def should_close(self):
         for (h, v) in self.headers:
-            if h.lower() == "connection":
-                if v.lower().strip() == "close":
+            if h == "CONNECTION":
+                v = v.lower().strip()
+                if v == "close":
                     return True
-                elif v.lower().strip() == "keep-alive":
+                elif v == "keep-alive":
                     return False
+                break
         return self.version <= (1, 0)
 
 

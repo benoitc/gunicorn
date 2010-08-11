@@ -32,24 +32,23 @@ def create(req, sock, client, server, cfg):
     content_type = ""
     content_length = ""
     for hdr_name, hdr_value in req.headers:
-        name = hdr_name.lower()
-        if name == "expect":
+        if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif name == "x-forwarded-for":
+        elif hdr_name == "X-FORWARDED-FOR":
             forward = hdr_value
-        elif name == "x-forwarded-protocol" and hdr_value.lower() == "ssl":
+        elif hdr_name == "X-FORWARDED-PROTOCOL" and hdr_value.lower() == "ssl":
             url_scheme = "https"
-        elif name == "x-forwarded-ssl" and hdr_value.lower() == "on":
+        elif hdr_name == "X-FORWARDED-SSL" and hdr_value.lower() == "on":
             url_scheme = "https"
-        elif name == "host":
+        elif hdr_name == "HOST":
             server = hdr_value
-        elif name == "script_name":
+        elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
-        elif name == "content-type":
+        elif hdr_name == "CONTENT-TYPE":
             content_type = hdr_value
-        elif name == "content-length":
+        elif hdr_name == "CONTENT-LENGTH":
             content_length = hdr_value
         else:
             continue
@@ -107,7 +106,7 @@ def create(req, sock, client, server, cfg):
     }
 
     for key, value in req.headers:
-        key = 'HTTP_' + key.upper().replace('-', '_')
+        key = 'HTTP_' + key.replace('-', '_')
         if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
             environ[key] = value
            
