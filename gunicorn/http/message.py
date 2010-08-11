@@ -19,6 +19,7 @@ class Message(object):
     def __init__(self, unreader):
         self.unreader = unreader
         self.version = None
+        self.connection_hdr = None
         self.headers = []
         self.trailers = []
         self.body = None
@@ -55,7 +56,10 @@ class Message(object):
             while len(lines) and lines[0].startswith((" ", "\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
-            
+           
+            if name == "CONNECTION":
+                self.connection_hdr = value
+
             headers.append((name, value))
         return headers
 
@@ -84,14 +88,12 @@ class Message(object):
             self.body = Body(EOFReader(self.unreader))
 
     def should_close(self):
-        for (h, v) in self.headers:
-            if h == "CONNECTION":
-                v = v.lower().strip()
-                if v == "close":
-                    return True
-                elif v == "keep-alive":
-                    return False
-                break
+        if self.connection_hdr is not None:
+            v = self.connection_hdr.lower().strip()
+            if v == "close":
+                return True
+            elif v == "keep-alive":
+                return False
         return self.version <= (1, 0)
 
 
