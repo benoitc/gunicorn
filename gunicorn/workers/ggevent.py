@@ -14,7 +14,6 @@ import gevent
 from gevent import monkey
 monkey.noisy = False
 from gevent import greenlet
-from gevent import core
 from gevent.pool import Pool
 from gevent import pywsgi, wsgi
 
@@ -36,11 +35,6 @@ BASE_WSGI_ENV = {
 
 class GeventWorker(AsyncWorker):
 
-    def __init__(self, *args, **kwargs):
-        super(GeventWorker, self).__init__(*args, **kwargs)
-        self._accept_event = None
-        self.pool = Pool(self.worker_connections)
-         
         
     @classmethod  
     def setup(cls):
@@ -49,40 +43,34 @@ class GeventWorker(AsyncWorker):
         
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
-
-    def acceptor(self):
-        self.pool._semaphore.rawlink(self._acceptor)
-        if self._accept_event is None:
-            self._accept_event = core.read_event(self.socket.fileno(), 
-                    self._do_accept, persist=True)
         
     def _acceptor(self, event):
-        
-        if self._accept_event is None:
-            if not self.alive:
-                return
-            self._accept_event = core.read_event(self.socket.fileno(), 
-                    self._do_accept, persist=True)
+        if self.alive:
+            return
 
-    def _do_accept(self, event, _evtype):
-        try:
+    def acceptor(self, pool):
+        while self.alive:
             try:
-                conn, addr = self.socket.accept()
-            except socket.error, e:
-                if err[0] == errno.EAGAIN:
-                    sys.exc_clear()
-                    return
-                raise
+                try:
+                    conn, addr = self.socket.accept()
+                except socket.error, e:
+                    if err[0] == errno.EAGAIN:
+                        sys.exc_clear()
+                        return
+                    raise
 
-            self.pool.spawn(self.handle, conn, addr)
-        except:
-            self.log.exception("Unexpected error in acceptor. Sepuku.")
-            self.alive = False
+                pool.spawn(self.handle, conn, addr)
+            except:
+                raise
+                self.log.exception("Unexpected error in acceptor. Sepuku.")
+                self.alive = False
 
 
     def run(self):
         self.socket.setblocking(1)
-        acceptor = gevent.spawn(self.acceptor)
+        pool = Pool(self.worker_connections)
+        pool._semaphore.rawlink(self._acceptor)
+        acceptor = gevent.spawn(self.acceptor, pool)
         
         try:
             while self.alive:
@@ -95,23 +83,20 @@ class GeventWorker(AsyncWorker):
         except KeyboardInterrupt:
             pass
 
-        
-        # stop accepting:
-        if self._accept_event is not None:
-            self._accept_event.cancel()
-        
+
         # end
         gevent.kill(acceptor)
-        self.pool.join(timeout=self.timeout)
-        self.pool.kill(block=True, timeout=1)
+        pool.join(timeout=self.timeout)
+        pool.kill(block=True, timeout=1)
 
     def init_process(self):
         #gevent doesn't reinitialize dns for us after forking
         #here's the workaround
         gevent.core.dns_shutdown(fail_requests=1)
         gevent.core.dns_init()
+        
         super(GeventWorker, self).init_process()
-        self._accept_event = None
+
 
 
 class GeventBaseWorker(Worker):
