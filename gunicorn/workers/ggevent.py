@@ -40,7 +40,7 @@ class GeventWorker(AsyncWorker):
         super(GeventWorker, self).__init__(*args, **kwargs)
         self._accept_event = None
         self.pool = Pool(self.worker_connections)
-        
+         
         
     @classmethod  
     def setup(cls):
@@ -51,12 +51,13 @@ class GeventWorker(AsyncWorker):
         return gevent.Timeout(self.cfg.keepalive, False)
 
     def acceptor(self):
+        self.pool._semaphore.rawlink(self._acceptor)
         if self._accept_event is None:
             self._accept_event = core.read_event(self.socket.fileno(), 
                     self._do_accept, persist=True)
         
     def _acceptor(self, event):
-        self.pool._semaphore.rawlink(self._acceptor)
+        
         if self._accept_event is None:
             if not self.alive:
                 return
