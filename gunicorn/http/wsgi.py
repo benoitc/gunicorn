@@ -31,6 +31,7 @@ def create(req, sock, client, server, cfg):
     script_name = os.environ.get("SCRIPT_NAME", "")
     content_type = ""
     content_length = ""
+
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
@@ -50,8 +51,10 @@ def create(req, sock, client, server, cfg):
             content_type = hdr_value
         elif hdr_name == "CONTENT-LENGTH":
             content_length = hdr_value
-        else:
-            continue
+        
+        key = 'HTTP_' + hdr_name.replace('-', '_')
+        if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
+            environ[key] = hdr_value
 
     wsgi_multiprocess = (cfg.workers > 1)
 
@@ -81,7 +84,7 @@ def create(req, sock, client, server, cfg):
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
 
-    environ = {
+    environ.update({
         "wsgi.url_scheme": url_scheme,
         "wsgi.input": req.body,
         "wsgi.errors": sys.stderr,
@@ -103,13 +106,8 @@ def create(req, sock, client, server, cfg):
         "SERVER_NAME": server[0],
         "SERVER_PORT": str(server[1]),
         "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
-    }
+    })
 
-    for key, value in req.headers:
-        key = 'HTTP_' + key.replace('-', '_')
-        if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
-            environ[key] = value
-    
     return resp, environ
 
 class Response(object):
