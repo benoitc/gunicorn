@@ -41,7 +41,7 @@ class EventletWorker(AsyncWorker):
         self.socket.setblocking(1)
 
         pool = greenpool.GreenPool(self.worker_connections)
-        acceptor = greenthread.spawn(self.acceptor, pool)
+        acceptor = eventlet.spawn(self.acceptor, pool)
         
         try:
             while self.alive:
@@ -56,7 +56,7 @@ class EventletWorker(AsyncWorker):
             pass
 
         # we stopped
-        greenthread.kill(acceptor, eventlet.StopServe)
+        eventlet.kill(acceptor, eventlet.StopServe)
         with eventlet.Timeout(self.timeout, False):
             if pool.waiting():
                 pool.waitall()
@@ -76,12 +76,16 @@ class EventletWorker(AsyncWorker):
                 gt = pool.spawn(self.handle, conn, addr)
                 gt.link(self._stop_acceptor, acceptor_gt, conn)
                 conn, addr, gt = None, None, None
+            except socket.error, e:
+                if e[0] not in (errno.EBADF, errno.EINVAL, errno.ENOTSOCK):
+                    self.alive = False
+                    break
             except eventlet.StopServe:
-                return
+                break
             except:
+
                 self.log.exception("Unexpected error in acceptor. Sepuku.")
                 os._exit(4)
-
 
     def _stop_acceptor(self, t, acceptor_gt, conn):
         try:
