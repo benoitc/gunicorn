@@ -5,8 +5,11 @@
 
 from __future__ import with_statement
 
+import errno
+import socket
+import sys
+
 import eventlet
-import eventlet.debug
 
 from eventlet.green import os
 from eventlet import greenlet
@@ -15,8 +18,8 @@ from eventlet import greenthread
 from eventlet import hubs
 
 from gunicorn.workers.async import AsyncWorker
+from gunicorn import util
 
-eventlet.debug.hub_exceptions(True)
 
 class EventletWorker(AsyncWorker):
 
@@ -48,7 +51,7 @@ class EventletWorker(AsyncWorker):
                     self.log.info("Parent changed, shutting down: %s" % self)
                     break
             
-                eventlet.sleep(0.1)            
+                eventlet.sleep(self.timeout)            
         except KeyboardInterrupt:
             pass
 
@@ -60,17 +63,35 @@ class EventletWorker(AsyncWorker):
        
         
     def acceptor(self, pool):
+        acceptor_gt = greenthread.getcurrent()
         while self.alive:
             try:
                 try:
                     conn, addr = self.socket.accept()
                 except socket.error, e:
-                    if err[0] == errno.EAGAIN:
+                    if e[0] == errno.EAGAIN:
                         sys.exc_clear()
                         return
                     raise
-                pool.spawn_n(self.handle, conn, addr)
+                gt = pool.spawn(self.handle, conn, addr)
+                gt.link(self._stop_acceptor, acceptor_gt, conn)
+                conn, addr, gt = None, None, None
+            except eventlet.StopServe:
+                return
             except:
                 self.log.exception("Unexpected error in acceptor. Sepuku.")
                 os._exit(4)
+
+
+    def _stop_acceptor(self, t, acceptor_gt, conn):
+        try:
+            try:
+                t.wait()
+            finally:
+                util.close(conn)
+        except greenlet.GreenletExit:
+            pass
+        except Exception:
+            greenthread.kill(acceptor_gt, *sys.exc_info())
+        
 

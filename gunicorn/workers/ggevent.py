@@ -72,7 +72,7 @@ class GeventWorker(AsyncWorker):
             try:
                 conn, addr = self.socket.accept()
             except socket.error, e:
-                if err[0] == errno.EAGAIN:
+                if e[0] == errno.EAGAIN:
                     sys.exc_clear()
                     return
                 raise
