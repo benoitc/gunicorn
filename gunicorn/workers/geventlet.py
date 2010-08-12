@@ -38,73 +38,37 @@ class EventletWorker(AsyncWorker):
         
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive, False)
+
         
     def run(self):
         self.socket = GreenSocket(family_or_realsock=self.socket.sock)
-        self.socket.setblocking(1)
+        self.socket.setblocking(0)
 
-        pool = greenpool.GreenPool(self.worker_connections)
-        acceptor = eventlet.spawn(self.acceptor, pool)
-
-        try:
-            while self.alive:
-                self.notify()
-                
-                if self.ppid != os.getppid():
-                    self.log.info("Parent changed, shutting down: %s" % self)
-                    break
-            
-                eventlet.sleep(self.timeout)            
-        except KeyboardInterrupt:
-            pass
-
-        # we stopped
-        with eventlet.Timeout(self.timeout, False):
-            eventlet.kill(acceptor, eventlet.StopServe)
-
-       
-        
-    def acceptor(self, pool):
-        acceptor_gt = greenthread.getcurrent()
+        pool = eventlet.GreenPool(self.worker_connections)
         while self.alive:
 
-            # pool is full ?
-            if pool.running() > self.worker_connections:
-                continue
+            self.notify()
 
             try:
-                try:
-                    conn, addr = self.socket.accept()
-                except socket.error, e:
-                    if e[0] == errno.EAGAIN:
-                        sys.exc_clear()
-                        return
+                client, addr = self.socket.accept()
+                client.setblocking(1)
+                util.close_on_exec(client)
+                pool.spawn_n(self.handle, client, addr)
+            except socket.error, e:
+                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
-                gt = pool.spawn(self.handle, conn, addr)
-                gt.link(self._stop_acceptor, acceptor_gt, conn)
-                conn, addr, gt = None, None, None
-            except socket.error, e:
-                if e[0] not in (errno.EBADF, errno.EINVAL, errno.ENOTSOCK):
-                    self.alive = False
-                    break
-            except eventlet.StopServe:
-                if pool.waiting():
-                    pool.waitall()
+            if pool.running() > self.worker_connections:
+                continue
+           
+            if self.ppid != os.getppid():
+                self.log.info("Parent changed, shutting down: %s" % self)
                 break
-            except:
-                self.log.exception("Unexpected error in acceptor. Sepuku.")
-                os._exit(4)
 
-    def _stop_acceptor(self, t, acceptor_gt, conn):
-        try:
+            self.notify()
+            
             try:
-                t.wait()
-            finally:
-                util.close(conn)
-        except greenlet.GreenletExit:
-            pass
-        except Exception:
-            greenthread.kill(acceptor_gt, *sys.exc_info())
-        
-
+                hubs.trampoline(self.socket.fileno(), read=True,
+                    timeout=self.timeout)
+            except eventlet.Timeout:
+                pass

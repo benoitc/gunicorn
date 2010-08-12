@@ -40,7 +40,7 @@ class AsyncWorker(base.Worker):
                 
             except StopIteration:
                 pass
-        except socket.error, e: 
+        except socket.error, e:
             if e[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
             else:
