@@ -179,4 +179,3 @@ class Response(object):
             self.send_headers()
         if self.chunked:
             util.write_chunk(self.sock, "")
-

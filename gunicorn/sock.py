@@ -58,10 +58,6 @@ class TCPSocket(BaseSocket):
         return "http://%s:%d" % self.sock.getsockname()
     
     def set_options(self, sock, bound=False):
-        if hasattr(socket, "TCP_CORK"):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
-        elif hasattr(socket, "TCP_NOPUSH"):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return super(TCPSocket, self).set_options(sock, bound=bound)
 
