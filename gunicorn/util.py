@@ -47,9 +47,18 @@ monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+# Server and Date aren't technically hop-by-hop
+# headers, but they are in the purview of the
+# origin server which the WSGI spec says we should
+# act like. So we drop them and add our own.
+#
+# In the future, concatenation server header values
+# might be better, but nothing else does it and
+# dropping them is easier.
 hop_headers = set("""
     connection keep-alive proxy-authenticate proxy-authorization
     te trailers transfer-encoding upgrade
+    server date
     """.split())
              
 try:
