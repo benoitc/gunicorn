@@ -12,7 +12,7 @@ class TestIter(object):
         lines = ['line 1', 'line 2']
         for line in lines:
             yield line
-            time.sleep(10)
+            time.sleep(20)
 
 def app(environ, start_response):
     """Application which cooperatively pauses 10 seconds before responding"""
