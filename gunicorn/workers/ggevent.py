@@ -5,10 +5,7 @@
 
 from __future__ import with_statement
 
-import errno
 import os
-import socket
-import sys
 
 import gevent
 from gevent import monkey

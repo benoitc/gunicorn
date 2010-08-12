@@ -44,8 +44,6 @@ def create(req, sock, client, server, cfg):
     forward = client
     url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
-    content_type = ""
-    content_length = ""
 
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":

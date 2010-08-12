@@ -16,6 +16,8 @@ from eventlet import greenlet
 from eventlet import greenpool
 from eventlet import greenthread
 from eventlet import hubs
+from eventlet.greenio import GreenSocket
+
 
 from gunicorn.workers.async import AsyncWorker
 from gunicorn import util
@@ -38,11 +40,12 @@ class EventletWorker(AsyncWorker):
         return eventlet.Timeout(self.cfg.keepalive, False)
         
     def run(self):
+        self.socket = GreenSocket(family_or_realsock=self.socket.sock)
         self.socket.setblocking(1)
 
         pool = greenpool.GreenPool(self.worker_connections)
         acceptor = eventlet.spawn(self.acceptor, pool)
-        
+
         try:
             while self.alive:
                 self.notify()
@@ -56,15 +59,19 @@ class EventletWorker(AsyncWorker):
             pass
 
         # we stopped
-        eventlet.kill(acceptor, eventlet.StopServe)
         with eventlet.Timeout(self.timeout, False):
-            if pool.waiting():
-                pool.waitall()
+            eventlet.kill(acceptor, eventlet.StopServe)
+
        
         
     def acceptor(self, pool):
         acceptor_gt = greenthread.getcurrent()
         while self.alive:
+
+            # pool is full ?
+            if pool.running() > self.worker_connections:
+                continue
+
             try:
                 try:
                     conn, addr = self.socket.accept()
@@ -73,6 +80,7 @@ class EventletWorker(AsyncWorker):
                         sys.exc_clear()
                         return
                     raise
+
                 gt = pool.spawn(self.handle, conn, addr)
                 gt.link(self._stop_acceptor, acceptor_gt, conn)
                 conn, addr, gt = None, None, None
@@ -81,9 +89,10 @@ class EventletWorker(AsyncWorker):
                     self.alive = False
                     break
             except eventlet.StopServe:
+                if pool.waiting():
+                    pool.waitall()
                 break
             except:
-
                 self.log.exception("Unexpected error in acceptor. Sepuku.")
                 os._exit(4)
 
