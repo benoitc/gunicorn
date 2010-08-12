@@ -42,7 +42,7 @@ class EventletWorker(AsyncWorker):
         
     def run(self):
         self.socket = GreenSocket(family_or_realsock=self.socket.sock)
-        self.socket.setblocking(0)
+        self.socket.setblocking(1)
 
         pool = eventlet.GreenPool(self.worker_connections)
         while self.alive:
