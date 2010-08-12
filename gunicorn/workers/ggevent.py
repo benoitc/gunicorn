@@ -35,7 +35,7 @@ BASE_WSGI_ENV = {
 
 
 class GGeventServer(StreamServer):
-    def __init__(self, listener, handle, spawn='defaul', worker=None):
+    def __init__(self, listener, handle, spawn='default', worker=None):
         StreamServer.__init__(self, listener, spawn=spawn)
         self.handle_func = handle
         self.worker = worker
