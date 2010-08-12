@@ -8,6 +8,14 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.11.0 / 2010-08-12
+-------------------
+
+* Improve dramatically performances of Gevent and Eventlet workers
+* Optimize HTTP parsing
+* Drop Server and Date headers in start_response when provided.
+* Fix latency issue in async workers
+
 0.10.1 / 2010-08-06
 -------------------
 
