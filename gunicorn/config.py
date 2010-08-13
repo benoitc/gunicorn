@@ -632,3 +632,19 @@ class PostRequest(Setting):
         The callable needs to accept two instance variables for the Worker and
         the Request.
         """
+
+class WorkerExit(Setting):
+    name = "worker_exit"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
+    def def_worker_exit(server, worker):
+        pass
+    def_worker_exit = staticmethod(def_worker_exit)
+    default = def_worker_exit
+    desc = """\
+        Called just after a worker has been exited.
+
+        The callable needs to accept two instance variables for the Arbiter and
+        the just-exited Worker.
+        """

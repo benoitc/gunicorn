@@ -446,6 +446,7 @@ class Arbiter(object):
             self.log.info("Worker exiting (pid: %s)" % worker_pid)
             try:
                 worker.tmp.close()
+                self.cfg.worker_exit(self, worker)
                 os.unlink(worker.tmpname)
             except:
                 pass
@@ -483,6 +484,7 @@ class Arbiter(object):
                 try:
                     worker = self.WORKERS.pop(pid)
                     worker.tmp.close()
+                    self.cfg.worker_exit(self, worker)
                     os.unlink(worker.tmpname)
                     return
                 except (KeyError, OSError):
