@@ -37,7 +37,7 @@ class Command(BaseCommand):
             help="Change worker group"),
         make_option('-n', '--name', dest='proc_name',
             help="Process name"),
-        make_option('--preload', dest='preload_app', action='store_true', default=False,
+        make_option('--preload', dest='preload_app', action='store_true',
             help="Load application code before the worker processes are forked.")
     )
     help = "Starts a fully-functional Web server using gunicorn."
@@ -46,11 +46,12 @@ class Command(BaseCommand):
     # Validation is called explicitly each time the server is reloaded.
     requires_model_validation = False
  
-    def handle(self, addrport='', *args, **options):
+    def handle(self, addrport=None, *args, **options):
         if args:
             raise CommandError('Usage is runserver %s' % self.args)
             
-        options['bind'] = addrport or '127.0.0.1'
+        if addrport:
+            options['bind'] = addrport
         
         options['default_proc_name'] = settings.SETTINGS_MODULE
 
