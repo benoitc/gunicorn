@@ -51,6 +51,34 @@ class DjangoApplicationCommand(Application):
     def __init__(self, options, admin_media_path):
         self.cfg = Config()
         self.callable = None
+
+        # Load up the config file if its found.
+
+        config_file = options.get("config") or ""
+        if config_file and os.path.exists(config_file):
+            cfg = {
+                "__builtins__": __builtins__,
+                "__name__": "__config__",
+                "__file__": config_file,
+                "__doc__": None,
+                "__package__": None
+            }
+            try:
+                execfile(config_file, cfg, cfg)
+            except Exception, e:
+                print "Failed to read config file: %s" % config_file
+                traceback.print_exc()
+                sys.exit(1)
+        
+            for k, v in list(cfg.items()):
+                # Ignore unknown names
+                if k not in self.cfg.settings:
+                    continue
+                try:
+                    self.cfg.set(k.lower(), v)
+                except:
+                    sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                    raise
         
         for k, v in list(options.items()):
             if k.lower() in self.cfg.settings and v is not None:

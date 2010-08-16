@@ -13,12 +13,12 @@ from django.conf import settings
 from django.utils import translation
 
 from gunicorn.app.djangoapp import DjangoApplicationCommand
- 
+
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--adminmedia', dest='admin_media_path', default='',
             help='Specifies the directory from which to serve admin media.'),
-        make_option('-c', '--config', dest='gconfig', type='string',
+        make_option('-c', '--config', dest='config', type='string',
             help='Gunicorn Config file. [%default]'),
         make_option('-k', '--worker-class', dest='worker_class',
             help="The type of request processing to use "+
