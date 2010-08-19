@@ -6,6 +6,7 @@
 
 import logging
 import os
+import random
 import signal
 import sys
 import tempfile
@@ -81,6 +82,9 @@ class Worker(object):
         loop is initiated.
         """
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
+
+        # Reseed the random number generator
+        random.seed()
 
         # For waking ourselves up
         self.PIPE = os.pipe()
