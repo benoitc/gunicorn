@@ -22,10 +22,13 @@ def wrap_method(func):
         return func(*args, **kwargs)
     return _wrapped
 
-def make_settings():
+def make_settings(ignore=None):
     settings = {}
+    ignore = ignore or ()
     for s in KNOWN_SETTINGS:
         setting = s()
+        if setting.name in ignore:
+            continue
         settings[setting.name] = setting.copy()
     return settings
 

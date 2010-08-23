@@ -16,7 +16,7 @@ from gunicorn.app.djangoapp import DjangoApplicationCommand
 from gunicorn.config import make_settings
 
 def make_options():
-    g_settings = make_settings()
+    g_settings = make_settings(ignore=("version"))
 
     keys = g_settings.keys()
     def sorter(k):
