@@ -22,14 +22,17 @@ def wrap_method(func):
         return func(*args, **kwargs)
     return _wrapped
 
+def make_settings():
+    settings = {}
+    for s in KNOWN_SETTINGS:
+        setting = s()
+        settings[setting.name] = setting.copy()
+    return settings
+
 class Config(object):
         
     def __init__(self, usage=None):
-        self.settings = {}
-        for s in KNOWN_SETTINGS:
-            setting = s()
-            self.settings[setting.name] = setting.copy()
-        
+        self.settings = make_settings()
         self.usage = usage
         
     def __getattr__(self, name):

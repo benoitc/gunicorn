@@ -13,33 +13,47 @@ from django.conf import settings
 from django.utils import translation
 
 from gunicorn.app.djangoapp import DjangoApplicationCommand
+from gunicorn.config import make_settings
+
+def make_options():
+    g_settings = make_settings()
+
+    keys = g_settings.keys()
+    def sorter(k):
+        return (g_settings[k].section, g_settings[k].order)
+
+    opts = [
+        make_option('--adminmedia', dest='admin_media_path', default='',
+        help='Specifies the directory from which to serve admin media.')
+    ]
+
+    for k in keys:
+        setting = g_settings[k]
+        if not setting.cli:
+            continue
+
+        args = tuple(setting.cli)
+
+        kwargs = {
+            "dest": setting.name,
+            "metavar": setting.meta or None,
+            "action": setting.action or "store",
+            "type": setting.type or "string",
+            "default": None,
+            "help": "%s [%s]" % (setting.short, setting.default)
+        }
+        if kwargs["action"] != "store":
+            kwargs.pop("type")
+
+        opts.append(make_option(*args, **kwargs))
+
+    return tuple(opts)
+
+GUNICORN_OPTIONS = make_options()
+
 
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option('--adminmedia', dest='admin_media_path', default='',
-            help='Specifies the directory from which to serve admin media.'),
-        make_option('-c', '--config', dest='config', type='string',
-            help='Gunicorn Config file. [%default]'),
-        make_option('-k', '--worker-class', dest='worker_class',
-            help="The type of request processing to use "+
-            "[egg:gunicorn#sync]"),
-        make_option('-w', '--workers', dest='workers', 
-            help='Specifies the number of worker processes to use.'),
-        make_option('--pid', dest='pidfile',
-            help='set the background PID file'),
-        make_option( '--daemon', dest='daemon', action="store_true",
-            help='Run daemonized in the background.'),
-        make_option('--umask', dest='umask',
-            help="Define umask of daemon process"),
-        make_option('-u', '--user', dest="user", 
-            help="Change worker user"),
-        make_option('-g', '--group', dest="group", 
-            help="Change worker group"),
-        make_option('-n', '--name', dest='proc_name',
-            help="Process name"),
-        make_option('--preload', dest='preload_app', action='store_true',
-            help="Load application code before the worker processes are forked.")
-    )
+    option_list = BaseCommand.option_list + GUNICORN_OPTIONS
     help = "Starts a fully-functional Web server using gunicorn."
     args = '[optional port number, or ipaddr:port or unix:/path/to/sockfile]'
  
