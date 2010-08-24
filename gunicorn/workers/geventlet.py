@@ -50,7 +50,7 @@ class EventletWorker(AsyncWorker):
                         timeout=self.timeout)
                 except eventlet.Timeout:
                     pass
-        except eventlet.StopServer:
+        except eventlet.StopServe:
             pool.waitall()
 
     def run(self):
