@@ -29,15 +29,13 @@ class AsyncWorker(base.Worker):
         try:
             parser = http.RequestParser(client)
             try:
-                while True:
+                while self.alive:
                     req = None
                     with self.timeout_ctx():
                         req = parser.next()
-
                     if not req:
                         break
                     self.handle_request(req, client, addr)
-                
             except StopIteration:
                 pass
         except socket.error, e:
@@ -64,8 +62,12 @@ class AsyncWorker(base.Worker):
         try:
             debug = self.cfg.debug or False
             self.cfg.pre_request(self, req)
-            resp, environ = wsgi.create(req, sock, addr, self.address,
-                    self.cfg)
+            resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
+            self.nr += 1
+            if self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                resp.force_close()
+                self.alive = False
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False

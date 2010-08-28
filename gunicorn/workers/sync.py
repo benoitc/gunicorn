@@ -18,14 +18,11 @@ import gunicorn.workers.base as base
 class SyncWorker(base.Worker):
     
     def run(self):
-        self.nr = 0
-
         # self.socket appears to lose its blocking status after
         # we fork in the arbiter. Reset it here.
         self.socket.setblocking(0)
 
         while self.alive:
-            self.nr = 0
             self.notify()
             
             # Accept a connection. If we get an error telling us
@@ -37,17 +34,16 @@ class SyncWorker(base.Worker):
                 client.setblocking(1)
                 util.close_on_exec(client)
                 self.handle(client, addr)
-                self.nr += 1
+
+                # Keep processing clients until no one is waiting. This
+                # prevents the need to select() for every client that we
+                # process.
+                continue
+
             except socket.error, e:
                 if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
-            # Keep processing clients until no one is waiting. This
-            # prevents the need to select() for every client that we
-            # process.
-            if self.nr > 0:
-                continue
-            
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
                 self.log.info("Parent changed, shutting down: %s" % self)
@@ -97,6 +93,11 @@ class SyncWorker(base.Worker):
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, client, addr,
                     self.address, self.cfg)
+            self.nr += 1
+            if self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                resp.force_close()
+                self.alive = False
             respiter = self.wsgi(environ, resp.start_response)
             for item in respiter:
                 resp.write(item)

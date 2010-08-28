@@ -321,6 +321,25 @@ class WorkerConnections(Setting):
         This setting only affects the Eventlet and Gevent worker types.
         """
 
+class MaxRequests(Setting):
+    name = "max_requests"
+    section = "Worker Processes"
+    cli = ["--max-requests"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 0
+    desc = """\
+        The maximum number of requests a worker will process before restarting.
+        
+        Any value greater than zero will limit the number of requests a work
+        will process before automatically restarting. This is a simple method
+        to help limit the damage of memory leaks.
+        
+        If this is set to zero (the default) then the automatic worker
+        restarts are disabled.
+        """
+
 class Timeout(Setting):
     name = "timeout"
     section = "Worker Processes"

@@ -115,8 +115,12 @@ class Response(object):
         self.version = SERVER_VERSION
         self.status = None
         self.chunked = False
+        self.should_close = req.should_close()
         self.headers = []
         self.headers_sent = False
+
+    def force_close(self):
+        self.should_close = True
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
@@ -151,7 +155,7 @@ class Response(object):
 
     def default_headers(self):
         connection = "keep-alive"
-        if self.req.should_close():
+        if self.should_close:
             connection = "close"
 
         return [

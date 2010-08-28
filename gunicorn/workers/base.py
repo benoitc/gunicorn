@@ -37,6 +37,7 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
+        self.max_requests = cfg.max_requests or sys.maxint
         self.alive = True
         self.spinner = 0
         self.log = logging.getLogger(__name__)
