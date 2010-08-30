@@ -139,7 +139,7 @@ An `example service`_ definition::
     if [ -f $PID ]; then rm $PID fi
  
     cd $ROOT
-    exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
+    exec $GUNICORN -c $ROOT/gunicorn.conf.py --pidfile=$PID $APP
 
 Supervisor
 ++++++++++
