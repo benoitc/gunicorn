@@ -122,20 +122,16 @@ class GeventBaseWorker(Worker):
             
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
-                    server.stop()
                     break
-                gevent.sleep(0.1) 
+                gevent.sleep(0.1)
+
+            self.notify()
+            server.stop(timeout=self.timeout)
+        except gevent.GreenletExit:
+            pass
         except KeyboardInterrupt:
             pass
         
-        server.stop(timeout=self.timeout)
-
-    def handle_request(self, *args):
-        try:
-            super(GeventBaseWorker, self).handle_request(*args)
-        except gevent.GreenletExit:
-            pass
-
 
 class WSGIHandler(wsgi.WSGIHandler):
     def log_request(self, *args):
