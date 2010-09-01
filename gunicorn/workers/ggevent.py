@@ -125,9 +125,15 @@ class GeventBaseWorker(Worker):
                 gevent.sleep(0.1) 
         except KeyboardInterrupt:
             pass
-      
-        with gevent.Timeout(self.timeout, False):
-            gevent.spawn(server.stop).join()
+        
+        server.stop(timeout=self.timeout)
+
+    def handle_request(self, *args):
+        try:
+            super(GeventBaseWorker, self).handle_request(*args)
+        except gevent.GreenletExit:
+            pass
+
 
 class WSGIHandler(wsgi.WSGIHandler):
     def log_request(self, *args):
