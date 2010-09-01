@@ -8,11 +8,10 @@ from __future__ import with_statement
 import os
 
 import gevent
-from gevent import monkey
-monkey.noisy = False
 from gevent.pool import Pool
 from gevent.server import StreamServer
 from gevent import pywsgi, wsgi
+from gevent import hub
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
@@ -37,9 +36,8 @@ class GGeventServer(StreamServer):
         self.handle_func = handle
         self.worker = worker
 
-    def stop(self):
-        super(GGeventServer, self).stop()
-        self.worker.alive = False
+    def stop(self, timeout=None):
+        super(GGeventServer, self).stop(timeout=timeout)
 
     def handle(self, sock, addr):
         self.handle_func(sock, addr)
@@ -52,6 +50,7 @@ class GeventWorker(AsyncWorker):
     @classmethod  
     def setup(cls):
         from gevent import monkey
+        monkey.noisy = False
         monkey.patch_all()
         
     def timeout_ctx(self):
@@ -72,12 +71,14 @@ class GeventWorker(AsyncWorker):
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
                     break
-                gevent.sleep(self.timeout)
+                gevent.sleep(0.1)
+            
+            # Try to stop connections until timeout
+            self.notify()
+            server.stop(timeout=self.timeout)
         except:
             pass
 
-        with gevent.Timeout(self.timeout, False):
-            gevent.spawn(server.stop).join()
 
     def init_process(self):
         #gevent doesn't reinitialize dns for us after forking
@@ -106,6 +107,7 @@ class GeventBaseWorker(Worker):
     def setup(cls):
         from gevent import monkey
         monkey.patch_all()
+
         
     def run(self):
         self.socket.setblocking(1)
