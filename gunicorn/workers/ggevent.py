@@ -6,12 +6,17 @@
 from __future__ import with_statement
 
 import os
+import sys
+
+# workaround on osx, disable kqueue
+if sys.platform == "darwin":
+    os.environ['EVENT_NOKQUEUE'] = "1"
+
 
 import gevent
 from gevent.pool import Pool
 from gevent.server import StreamServer
 from gevent import pywsgi, wsgi
-from gevent import hub
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
@@ -53,6 +58,7 @@ class GeventWorker(AsyncWorker):
         monkey.noisy = False
         monkey.patch_all()
         
+        
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
@@ -79,6 +85,12 @@ class GeventWorker(AsyncWorker):
         except:
             pass
 
+
+    def handle_request(self, *args):
+        try:
+            super(GeventWorker, self).handle_request(*args)
+        except gevent.GreenletExit:
+            pass
 
     def init_process(self):
         #gevent doesn't reinitialize dns for us after forking
