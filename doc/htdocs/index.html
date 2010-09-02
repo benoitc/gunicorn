@@ -78,12 +78,14 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.11.0 - 2010-08-12</h3>
+        <h3>Version 0.11.1 - 2010-09-02</h3>
         <ul>
-            <li>Improve dramatically performances of Gevent and Eventlet workers</li>
-            <li>Optimize HTTP parsing</li>
-            <li>Drop Server and Date headers in start_response when provided</li>
-            <li>Fix latency issue in async worker</li>
+            <li>Implement max-requests feature to prevent memory leaks</li>
+            <li>Added 'worker_exit' server hook</li>
+            <li>Improve Eventlet worker</li>
+            <li>Fix Django command `run_gunicorn`</li>
+            <li>Fix the default proc name internal setting</li>
+            <li>Workaround to prevent Gevent worker to segfault on MacOSX</li>
         </ul>
       </div> 
       <div id="footer">

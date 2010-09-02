@@ -8,6 +8,17 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.11.1 / 2010-09-02
+-------------------
+
+* Implement max-requests feature to prevent memory leaks.
+* Added 'worker_exit' server hook.
+* Reseed the random number generator after fork().
+* Improve Eventlet worker.
+* Fix Django command `run_gunicorn`.
+* Fix the default proc name internal setting.
+* Workaround to prevent Gevent worker to segfault on MacOSX.
+
 0.11.0 / 2010-08-12
 -------------------
 
