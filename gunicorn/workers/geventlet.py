@@ -45,6 +45,4 @@ class EventletWorker(AsyncWorker):
 
         self.notify()
         with eventlet.Timeout(self.timeout, False):
-            self.log.info("are we blocking?")
             eventlet.kill(self.acceptor, eventlet.StopServe)
-        self.log.info("no sir!")
