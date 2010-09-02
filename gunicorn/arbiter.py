@@ -450,7 +450,7 @@ class Arbiter(object):
                 os.unlink(worker.tmpname)
             except:
                 pass
-        
+
     def spawn_workers(self):
         """\
         Spawn new workers as needed.

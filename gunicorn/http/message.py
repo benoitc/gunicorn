@@ -137,25 +137,21 @@ class Request(Message):
        
         
         # Headers
-        pos = 0
         idx = buf.getvalue().find("\r\n\r\n")
 
         done = buf.getvalue()[:2] == "\r\n"
         while idx < 0 and not done:
-            pos = buf.tell() - 4
             self.get_data(unreader, buf)
-            idx = buf.getvalue()[pos:].find("\r\n\r\n")
+            idx = buf.getvalue().find("\r\n\r\n")
             done = buf.getvalue()[:2] == "\r\n"
              
         if done:
             self.unreader.unread(buf.getvalue()[2:])
             return ""
 
-        end = pos + idx
-        
-        self.headers = self.parse_headers(buf.getvalue()[:end])
+        self.headers = self.parse_headers(buf.getvalue()[:idx])
 
-        ret = buf.getvalue()[end+4:]
+        ret = buf.getvalue()[idx+4:]
         buf.truncate(0)
         return ret
     

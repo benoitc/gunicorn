@@ -223,12 +223,11 @@ class Body(object):
        
         idx = self.buf.getvalue().find("\n")
         while idx < 0:
-            pos = self.buf.tell() - 1
             data = self.reader.read(1024)
             if not len(data):
                 break
             self.buf.write(data)
-            idx = self.buf.getvalue()[pos:].find("\n")
+            idx = self.buf.getvalue().find("\n")
             if size < self.buf.tell():
                 break
         

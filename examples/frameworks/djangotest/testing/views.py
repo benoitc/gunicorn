@@ -18,6 +18,7 @@ def home(request):
     subject = None
     message = None
     size = 0
+    print request.META
     if request.POST:
         form = MsgForm(request.POST, request.FILES)
         print request.FILES
@@ -25,11 +26,7 @@ def home(request):
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
             f = request.FILES['f']
-            tmp =  tempfile.TemporaryFile()
-            for chunk in f.chunks():
-                tmp.write(chunk)
-            tmp.flush()
-            size = int(os.fstat(tmp.fileno())[6])
+            size = int(os.fstat(f.fileno())[6])
     else:
         form = MsgForm()
         

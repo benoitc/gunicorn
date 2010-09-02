@@ -77,14 +77,16 @@ class GeventWorker(AsyncWorker):
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
                     break
-                gevent.sleep(0.1)
-            
+                gevent.sleep(0.1) 
+        except KeyboardInterrupt:
+            pass
+
+        try:
             # Try to stop connections until timeout
             self.notify()
             server.stop(timeout=self.timeout)
         except:
             pass
-
 
     def handle_request(self, *args):
         try:
@@ -137,11 +139,14 @@ class GeventBaseWorker(Worker):
                     break
                 gevent.sleep(0.1)
 
+        except KeyboardInterrupt:
+            pass
+
+        # try to stop the connections
+        try:
             self.notify()
             server.stop(timeout=self.timeout)
-        except gevent.GreenletExit:
-            pass
-        except KeyboardInterrupt:
+        except:
             pass
         
 
