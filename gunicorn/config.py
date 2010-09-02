@@ -108,10 +108,10 @@ class Config(object):
     @property
     def proc_name(self):
         pn = self.settings['proc_name'].get()
-        if pn:
+        if pn is not None:
             return pn
         else:
-            return self.settings['default_proc_name']
+            return self.settings['default_proc_name'].get()
             
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -543,7 +543,7 @@ class Procname(Setting):
     cli = ["-n", "--name"]
     meta = "STRING"
     validator = validate_string
-    default = "gunicorn"
+    default = None
     desc = """\
         A base to use with setproctitle for process naming.
         
