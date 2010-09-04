@@ -5,6 +5,7 @@
 
 import os
 import sys
+import traceback
 
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
