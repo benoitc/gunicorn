@@ -9,10 +9,9 @@ import re
 import sys
 from urllib import unquote
 
-from gunicorn import __version__
+from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
-SERVER_VERSION = "gunicorn/%s" % __version__
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ def create(req, sock, client, server, cfg):
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "gunicorn.socket": sock,
-        "SERVER_SOFTWARE": SERVER_VERSION,
+        "SERVER_SOFTWARE": SERVER_SOFTWARE,
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
@@ -112,7 +111,7 @@ class Response(object):
     def __init__(self, req, sock):
         self.req = req
         self.sock = sock
-        self.version = SERVER_VERSION
+        self.version = SERVER_SOFTWARE
         self.status = None
         self.chunked = False
         self.should_close = req.should_close()

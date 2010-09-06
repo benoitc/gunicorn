@@ -18,7 +18,8 @@ from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
-from gunicorn import __version__
+
+from gunicorn import __version__, SERVER_SOFTWARE
 
 class Arbiter(object):
     """
@@ -52,7 +53,9 @@ class Arbiter(object):
     def __init__(self, app):
         self.log = logging.getLogger(__name__)
         self.log.info("Starting gunicorn %s" % __version__)
-        
+       
+        os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
+
         self.setup(app)
         
         self.pidfile = None
