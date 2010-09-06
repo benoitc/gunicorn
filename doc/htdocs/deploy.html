@@ -92,8 +92,8 @@ http {
 features like Comet, Long polling, or Web sockets, you need to turn off the
 proxy buffering. <strong>When you do this</strong> you must run with one of the async worker
 classes.</p>
-<p>To turn off buffering, you only need to add <tt class="docutils literal"><span class="pre">proxy_buffering</span> <span class="pre">off;</span></tt> to your
-<tt class="docutils literal"><span class="pre">location</span></tt> block:</p>
+<p>To turn off buffering, you only need to add <tt class="docutils literal">proxy_buffering off;</tt> to your
+<tt class="docutils literal">location</tt> block:</p>
 <pre class="literal-block">
 ...
 location / {
@@ -125,7 +125,7 @@ $ ~/venvs/webapp/bin/easy_install -U gunicorn
 $ deactivate
 </pre>
 <p>Then you just need to use one of the three Gunicorn scripts that was installed
-into <tt class="docutils literal"><span class="pre">~/venvs/webapp/bin</span></tt>.</p>
+into <tt class="docutils literal">~/venvs/webapp/bin</tt>.</p>
 </div>
 <div class="section" id="monitoring">
 <h2><a class="toc-backref" href="#contents">Monitoring</a></h2>
