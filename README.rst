@@ -31,7 +31,7 @@ To install eventlet::
     $ easy_install -U eventlet
 
 If you encounter errors when compiling the extensions for Eventlet_ or
-Gevent_ you most likely need to install a newer version of libev_.
+Gevent_ you most likely need to install a newer version of libev_ or libevent_.
 
 Basic Usage
 -----------
@@ -156,6 +156,7 @@ details.
 .. _Gevent: http://gevent.org
 .. _FAQ: http://gunicorn.org/faq.html
 .. _libev: http://software.schmorp.de/pkg/libev.html
+.. _libevent: http://monkey.org/~provos/libevent
 .. _`production page`: http://gunicorn.org/deployment.html
 .. _`config file`: http://gunicorn.org/configuration.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
