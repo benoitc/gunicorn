@@ -88,7 +88,7 @@ want to consider one of the alternate worker types.
 
     Gevent_ also requires that ``libevent`` 1.4.x or 2.0.4 is installed.
     This could be a more recent version than what is available in your
-    package manager. If Gevent_ fails to build even with ``libevent``
+    package manager. If Gevent_ fails to build even with libevent_
     installed, this is the most likely reason.
 
 Ubuntu/Debian
@@ -124,6 +124,6 @@ Fingerprint
 .. _Eventlet: http://eventlet.net
 .. _`here on github`: http://github.com/tilgovi/gunicorn
 .. _Gevent: http://gevent.org
-.. _libev: http://software.schmorp.de/pkg/libev.html
+.. _libevent: http://monkey.org/~provos/libevent
 .. _Ubuntu: http://www.ubuntu.com/
 .. _PPA: https://launchpad.net/~bchesneau/+archive/gunicorn
