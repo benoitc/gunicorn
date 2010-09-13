@@ -1,4 +1,3 @@
-import gevent
 import logging
 import os
 import signal
@@ -27,5 +26,5 @@ def when_ready(server):
                     break
             gevent.sleep(1)
 
-    gevent.Greenlet.spawn(monitor)
-
+    import gevent
+    gevent.spawn(monitor)
