@@ -15,7 +15,7 @@ class TestIter(object):
             time.sleep(20)
 
 def app(environ, start_response):
-    """Application which cooperatively pauses 10 seconds before responding"""
+    """Application which cooperatively pauses 20 seconds (needed to surpass normal timeouts) before responding"""
     data = 'Hello, World!\n'
     status = '200 OK'
     response_headers = [
