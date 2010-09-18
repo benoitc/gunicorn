@@ -149,9 +149,16 @@ class EOFReader(object):
             raise TypeError("size must be an integral type")
         if size < 0:
             raise ValueError("Size must be positive.")
-        if size == 0 or self.finished:
+        if size == 0:
             return ""
-        
+       
+        if self.finished:
+            data = self.buf.getvalue()
+            ret, rest = data[:size], data[size:]
+            self.buf.truncate(0)
+            self.buf.write(rest)
+            return ret
+
         data = self.unreader.read()
         while data:
             self.buf.write(data)
@@ -161,7 +168,6 @@ class EOFReader(object):
 
         if not data:
             self.finished = True
-            return self.buf.getvalue()
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
@@ -221,34 +227,26 @@ class Body(object):
         if size == 0:
             return ""
        
-        idx = self.buf.getvalue().find("\n")
-        while idx < 0:
-            data = self.reader.read(1024)
-            if not len(data):
-                break
-            self.buf.write(data)
-            idx = self.buf.getvalue().find("\n")
-            if size < self.buf.tell():
-                break
-        
-        # If we didn't find it, and we got here, we've
-        # exceeded size or run out of data.
-        if idx < 0:
-            rlen = min(size, self.buf.tell())
-        else:
-            rlen = idx + 1
-
-            # If rlen is beyond our size threshold, trim back
-            if rlen > size:
-                rlen = size
-        
-        data = self.buf.getvalue()
-        ret, rest = data[:rlen], data[rlen:]
-        
+        line = self.buf.getvalue()
+        idx = line.find("\n")
+        if idx >= 0:
+            ret = line[:idx+1]
+            self.buf.truncate(0)
+            self.buf.write(line[idx+1:])
+            return ret
+            
         self.buf.truncate(0)
-        self.buf.write(rest)
-        return ret
-    
+        ch = ""
+        buf = [line]
+        lsize = len(line)
+        while lsize < size and ch != "\n":
+            ch = self.reader.read(1)
+            if not len(ch):
+                break
+            lsize += 1
+            buf.append(ch)
+        return "".join(buf)
+            
     def readlines(self, size=None):
         ret = []
         data = self.read()

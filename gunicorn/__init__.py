@@ -23,6 +23,6 @@ else:
     minor_tag = ""
     
 
-version_info = (0, 11, "1%s" % minor_tag)
+version_info = (0, 11, "2%s" % minor_tag)
 __version__ = ".".join(map(str, version_info))
 SERVER_SOFTWARE = "gunicorn/%s" % __version__
