@@ -116,8 +116,8 @@ for reference on setting at the command line.</p>
 <div class="section" id="config">
 <h4><a class="toc-backref" href="#contents">config</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-c</span> FILE, <span class="pre">--config</span> FILE</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">-c</span> <span class="pre">FILE,</span> <span class="pre">--config</span> <span class="pre">FILE</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>The path to a Gunicorn config file.</p>
 <p>Only has an effect when specified on the command line or as part of an
@@ -129,8 +129,8 @@ application specific configuration.</p>
 <div class="section" id="bind">
 <h4><a class="toc-backref" href="#contents">bind</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-b</span> ADDRESS, <span class="pre">--bind</span> ADDRESS</tt></li>
-<li><tt class="docutils literal">127.0.0.1:8000</tt></li>
+<li><tt class="docutils literal"><span class="pre">-b</span> <span class="pre">ADDRESS,</span> <span class="pre">--bind</span> <span class="pre">ADDRESS</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">127.0.0.1:8000</span></tt></li>
 </ul>
 <p>The socket to bind.</p>
 <p>A string of the form: 'HOST', 'HOST:PORT', 'unix:PATH'. An IP is a valid
@@ -139,8 +139,8 @@ HOST.</p>
 <div class="section" id="backlog">
 <h4><a class="toc-backref" href="#contents">backlog</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--backlog</span> INT</tt></li>
-<li><tt class="docutils literal">2048</tt></li>
+<li><tt class="docutils literal"><span class="pre">--backlog</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">2048</span></tt></li>
 </ul>
 <p>The maximum number of pending connections.</p>
 <p>This refers to the number of clients that can be waiting to be served.
@@ -155,8 +155,8 @@ load.</p>
 <div class="section" id="workers">
 <h4><a class="toc-backref" href="#contents">workers</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-w</span> INT, <span class="pre">--workers</span> INT</tt></li>
-<li><tt class="docutils literal">1</tt></li>
+<li><tt class="docutils literal"><span class="pre">-w</span> <span class="pre">INT,</span> <span class="pre">--workers</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">1</span></tt></li>
 </ul>
 <p>The number of worker process for handling requests.</p>
 <p>A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
@@ -166,8 +166,8 @@ application's work load.</p>
 <div class="section" id="worker-class">
 <h4><a class="toc-backref" href="#contents">worker_class</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-k</span> STRING, <span class="pre">--worker-class</span> STRING</tt></li>
-<li><tt class="docutils literal">sync</tt></li>
+<li><tt class="docutils literal"><span class="pre">-k</span> <span class="pre">STRING,</span> <span class="pre">--worker-class</span> <span class="pre">STRING</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">sync</span></tt></li>
 </ul>
 <p>The type of workers to use.</p>
 <p>The default class (sync) should handle most 'normal' types of workloads.
@@ -175,21 +175,21 @@ You'll want to read <a class="reference external" href="http://gunicorn.org/desi
 when you might want to choose one of the other worker classes.</p>
 <p>A string referring to one of the following bundled classes:</p>
 <ul class="simple">
-<li><tt class="docutils literal">sync</tt></li>
-<li><tt class="docutils literal">eventlet</tt> - Requires eventlet &gt;= 0.9.7</li>
-<li><tt class="docutils literal">gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
-<li><tt class="docutils literal">tornado</tt>  - Requires tornado &gt;= 0.2</li>
+<li><tt class="docutils literal"><span class="pre">sync</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">eventlet</span></tt> - Requires eventlet &gt;= 0.9.7</li>
+<li><tt class="docutils literal"><span class="pre">gevent</span></tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
+<li><tt class="docutils literal"><span class="pre">tornado</span></tt>  - Requires tornado &gt;= 0.2</li>
 </ul>
 <p>Optionally, you can provide your own worker by giving gunicorn a
 MODULE:CLASS pair where CLASS is a subclass of
 gunicorn.workers.base.Worker. This alternative syntax will load the
-gevent class: <tt class="docutils literal">egg:gunicorn#gevent</tt></p>
+gevent class: <tt class="docutils literal"><span class="pre">egg:gunicorn#gevent</span></tt></p>
 </div>
 <div class="section" id="worker-connections">
 <h4><a class="toc-backref" href="#contents">worker_connections</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--worker-connections</span> INT</tt></li>
-<li><tt class="docutils literal">1000</tt></li>
+<li><tt class="docutils literal"><span class="pre">--worker-connections</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">1000</span></tt></li>
 </ul>
 <p>The maximum number of simultaneous clients.</p>
 <p>This setting only affects the Eventlet and Gevent worker types.</p>
@@ -197,8 +197,8 @@ gevent class: <tt class="docutils literal">egg:gunicorn#gevent</tt></p>
 <div class="section" id="max-requests">
 <h4><a class="toc-backref" href="#contents">max_requests</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--max-requests</span> INT</tt></li>
-<li><tt class="docutils literal">0</tt></li>
+<li><tt class="docutils literal"><span class="pre">--max-requests</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">0</span></tt></li>
 </ul>
 <p>The maximum number of requests a worker will process before restarting.</p>
 <p>Any value greater than zero will limit the number of requests a work
@@ -210,8 +210,8 @@ restarts are disabled.</p>
 <div class="section" id="timeout">
 <h4><a class="toc-backref" href="#contents">timeout</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-t</span> INT, <span class="pre">--timeout</span> INT</tt></li>
-<li><tt class="docutils literal">30</tt></li>
+<li><tt class="docutils literal"><span class="pre">-t</span> <span class="pre">INT,</span> <span class="pre">--timeout</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">30</span></tt></li>
 </ul>
 <p>Workers silent for more than this many seconds are killed and restarted.</p>
 <p>Generally set to thirty seconds. Only set this noticeably higher if
@@ -222,8 +222,8 @@ is not tied to the length of time required to handle a single request.</p>
 <div class="section" id="keepalive">
 <h4><a class="toc-backref" href="#contents">keepalive</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--keep-alive</span> INT</tt></li>
-<li><tt class="docutils literal">2</tt></li>
+<li><tt class="docutils literal"><span class="pre">--keep-alive</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">2</span></tt></li>
 </ul>
 <p>The number of seconds to wait for requests on a Keep-Alive connection.</p>
 <p>Generally set in the 1-5 seconds range.</p>
@@ -235,7 +235,7 @@ is not tied to the length of time required to handle a single request.</p>
 <h4><a class="toc-backref" href="#contents">debug</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">--debug</span></tt></li>
-<li><tt class="docutils literal">False</tt></li>
+<li><tt class="docutils literal"><span class="pre">False</span></tt></li>
 </ul>
 <p>Turn on debugging in the server.</p>
 <p>This limits the number of worker processes to 1 and changes some error
@@ -245,7 +245,7 @@ handling that's sent to clients.</p>
 <h4><a class="toc-backref" href="#contents">spew</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">--spew</span></tt></li>
-<li><tt class="docutils literal">False</tt></li>
+<li><tt class="docutils literal"><span class="pre">False</span></tt></li>
 </ul>
 <p>Install a trace function that spews every line executed by the server.</p>
 <p>This is the nuclear option.</p>
@@ -257,7 +257,7 @@ handling that's sent to clients.</p>
 <h4><a class="toc-backref" href="#contents">preload_app</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">--preload</span></tt></li>
-<li><tt class="docutils literal">False</tt></li>
+<li><tt class="docutils literal"><span class="pre">False</span></tt></li>
 </ul>
 <p>Load application code before the worker processes are forked.</p>
 <p>By preloading an application you can save some RAM resources as well as
@@ -269,7 +269,7 @@ restarting workers.</p>
 <h4><a class="toc-backref" href="#contents">daemon</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-D,</span> <span class="pre">--daemon</span></tt></li>
-<li><tt class="docutils literal">False</tt></li>
+<li><tt class="docutils literal"><span class="pre">False</span></tt></li>
 </ul>
 <p>Daemonize the Gunicorn process.</p>
 <p>Detaches the server from the controlling terminal and enters the
@@ -278,8 +278,8 @@ background.</p>
 <div class="section" id="pidfile">
 <h4><a class="toc-backref" href="#contents">pidfile</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-p</span> FILE, <span class="pre">--pid</span> FILE</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">-p</span> <span class="pre">FILE,</span> <span class="pre">--pid</span> <span class="pre">FILE</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>A filename to use for the PID file.</p>
 <p>If not set, no PID file will be written.</p>
@@ -287,8 +287,8 @@ background.</p>
 <div class="section" id="user">
 <h4><a class="toc-backref" href="#contents">user</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-u</span> USER, <span class="pre">--user</span> USER</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">-u</span> <span class="pre">USER,</span> <span class="pre">--user</span> <span class="pre">USER</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>Switch worker processes to run as this user.</p>
 <p>A valid user id (as an integer) or the name of a user that can be
@@ -298,8 +298,8 @@ the worker process user.</p>
 <div class="section" id="group">
 <h4><a class="toc-backref" href="#contents">group</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-g</span> GROUP, <span class="pre">--group</span> GROUP</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">-g</span> <span class="pre">GROUP,</span> <span class="pre">--group</span> <span class="pre">GROUP</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>Switch worker process to run as this group.</p>
 <p>A valid group id (as an integer) or the name of a user that can be
@@ -309,8 +309,8 @@ the worker processes group.</p>
 <div class="section" id="umask">
 <h4><a class="toc-backref" href="#contents">umask</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-m</span> INT, <span class="pre">--umask</span> INT</tt></li>
-<li><tt class="docutils literal">0</tt></li>
+<li><tt class="docutils literal"><span class="pre">-m</span> <span class="pre">INT,</span> <span class="pre">--umask</span> <span class="pre">INT</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">0</span></tt></li>
 </ul>
 <p>A bit mask for the file mode on files written by Gunicorn.</p>
 <p>Note that this affects unix socket permissions.</p>
@@ -321,7 +321,7 @@ int(value, 0) (0 means Python guesses the base, so values like &quot;0&quot;,
 <div class="section" id="tmp-upload-dir">
 <h4><a class="toc-backref" href="#contents">tmp_upload_dir</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>Directory to store temporary request data as they are read.</p>
 <p>This may disappear in the near future.</p>
@@ -335,8 +335,8 @@ temporary directory.</p>
 <div class="section" id="logfile">
 <h4><a class="toc-backref" href="#contents">logfile</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--log-file</span> FILE</tt></li>
-<li><tt class="docutils literal">-</tt></li>
+<li><tt class="docutils literal"><span class="pre">--log-file</span> <span class="pre">FILE</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">-</span></tt></li>
 </ul>
 <p>The log file to write to.</p>
 <p>&quot;-&quot; means log to stdout.</p>
@@ -344,8 +344,8 @@ temporary directory.</p>
 <div class="section" id="loglevel">
 <h4><a class="toc-backref" href="#contents">loglevel</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--log-level</span> LEVEL</tt></li>
-<li><tt class="docutils literal">info</tt></li>
+<li><tt class="docutils literal"><span class="pre">--log-level</span> <span class="pre">LEVEL</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">info</span></tt></li>
 </ul>
 <p>The granularity of log outputs.</p>
 <p>Valid level names are:</p>
@@ -363,11 +363,11 @@ temporary directory.</p>
 <div class="section" id="proc-name">
 <h4><a class="toc-backref" href="#contents">proc_name</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">-n</span> STRING, <span class="pre">--name</span> STRING</tt></li>
-<li><tt class="docutils literal">gunicorn</tt></li>
+<li><tt class="docutils literal"><span class="pre">-n</span> <span class="pre">STRING,</span> <span class="pre">--name</span> <span class="pre">STRING</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">None</span></tt></li>
 </ul>
 <p>A base to use with setproctitle for process naming.</p>
-<p>This affects things like <tt class="docutils literal">ps</tt> and <tt class="docutils literal">top</tt>. If you're going to be
+<p>This affects things like <tt class="docutils literal"><span class="pre">ps</span></tt> and <tt class="docutils literal"><span class="pre">top</span></tt>. If you're going to be
 running more than one instance of Gunicorn you'll probably want to set a
 name to tell them apart. This requires that you install the setproctitle
 module.</p>
@@ -376,7 +376,7 @@ module.</p>
 <div class="section" id="default-proc-name">
 <h4><a class="toc-backref" href="#contents">default_proc_name</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal">gunicorn</tt></li>
+<li><tt class="docutils literal"><span class="pre">gunicorn</span></tt></li>
 </ul>
 <p>Internal setting that is adjusted for each type of application.</p>
 </div>
