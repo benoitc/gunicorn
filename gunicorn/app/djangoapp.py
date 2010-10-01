@@ -50,17 +50,20 @@ class DjangoApplication(Application):
 class DjangoApplicationCommand(Application):
     
     def __init__(self, options, admin_media_path):
-        self.cfg = Config()
+        self.config_file = options.get("config") or ""
+        self.options = options
+        self.admin_media_path = admin_media_path
         self.callable = None
+        self.load_config()
 
-        # Load up the config file if its found.
-
-        config_file = options.get("config") or ""
-        if config_file and os.path.exists(config_file):
+    def load_config(self):
+        self.cfg = Config()
+        
+        if self.config_file and os.path.exists(self.config_file):
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
-                "__file__": config_file,
+                "__file__": self.config_file,
                 "__doc__": None,
                 "__package__": None
             }
@@ -81,11 +84,9 @@ class DjangoApplicationCommand(Application):
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
         
-        for k, v in list(options.items()):
+        for k, v in list(self.options.items()):
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
-        
-        self.admin_media_path = admin_media_path
         
     def load(self):
         try:
