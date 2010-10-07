@@ -68,9 +68,9 @@ class DjangoApplicationCommand(Application):
                 "__package__": None
             }
             try:
-                execfile(config_file, cfg, cfg)
+                execfile(self.config_file, cfg, cfg)
             except Exception, e:
-                print "Failed to read config file: %s" % config_file
+                print "Failed to read config file: %s" % self.config_file
                 traceback.print_exc()
                 sys.exit(1)
         
