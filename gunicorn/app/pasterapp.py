@@ -6,6 +6,7 @@
 import os
 import pkg_resources
 import sys
+import ConfigParser
 
 from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER
@@ -26,6 +27,7 @@ class PasterApplication(Application):
 
         self.cfgurl = 'config:%s' % cfgfname
         self.relpath = os.path.dirname(cfgfname)
+        self.cfgfname = cfgfname
 
         sys.path.insert(0, self.relpath)
         pkg_resources.working_set.add_entry(self.relpath)
@@ -62,6 +64,24 @@ class PasterApplication(Application):
         
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
+
+    def configure_logging(self):
+        # from paste.script.command
+        parser = ConfigParser.ConfigParser()
+        parser.read([self.cfgfname])
+        if parser.has_section('loggers'):
+            if sys.version_info >= (2, 6):
+                from logging.config import fileConfig
+            else:
+                # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
+                # and less strict whitespace (which were incorporated into 2.6's)
+                from paste.script.util.logging_config import fileConfig
+
+            config_file = os.path.abspath(self.cfgfname)
+            fileConfig(config_file, dict(__file__=config_file,
+                                         here=os.path.dirname(config_file)))
+        else:
+            super(PasterApplication, self).configure_logging()
 
 class PasterServerApplication(Application):
     
