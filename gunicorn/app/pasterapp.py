@@ -83,8 +83,6 @@ class PasterApplication(PasterBaseApplication):
         pkg_resources.working_set.add_entry(self.relpath)
         
         return self.app_config()
-
-    
         
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
