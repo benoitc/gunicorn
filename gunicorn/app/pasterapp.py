@@ -17,6 +17,33 @@ from gunicorn.config import Config
 
 class PasterBaseApplication(Application):
 
+    def app_config(self):
+        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
+        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
+        cfg = {}
+        
+        host, port = lc.pop('host', ''), lc.pop('port', '')
+        if host and port:
+            cfg['bind'] = '%s:%s' % (host, port)
+        elif host:
+            cfg['bind'] = host
+
+        cfg['workers'] = int(lc.get('workers', 1))
+        cfg['umask'] = int(lc.get('umask', 0))
+        cfg['default_proc_name'] = gc.get('__file__')
+
+        for k, v in gc.items():
+            if k not in self.cfg.settings:
+                continue
+            cfg[k] = v
+
+        for k, v in lc.items():
+            if k not in self.cfg.settings:
+                continue
+            cfg[k] = v
+
+        return cfg
+
     def configure_logging(self):
         if hasattr(self, "cfgfname"):
             self.logger = logging.getLogger('gunicorn')
@@ -57,32 +84,7 @@ class PasterApplication(PasterBaseApplication):
         
         return self.app_config()
 
-    def app_config(self):
-        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
-        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
-        cfg = {}
-        
-        host, port = lc.pop('host', ''), lc.pop('port', '')
-        if host and port:
-            cfg['bind'] = '%s:%s' % (host, port)
-        elif host:
-            cfg['bind'] = host
-
-        cfg['workers'] = int(lc.get('workers', 1))
-        cfg['umask'] = int(lc.get('umask', 0))
-        cfg['default_proc_name'] = gc.get('__file__')
-
-        for k, v in gc.items():
-            if k not in self.cfg.settings:
-                continue
-            cfg[k] = v
-
-        for k, v in lc.items():
-            if k not in self.cfg.settings:
-                continue
-            cfg[k] = v
-
-        return cfg
+    
         
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
@@ -121,31 +123,10 @@ class PasterServerApplication(PasterBaseApplication):
         self.configure_logging()
 
     def load_config(self):
-        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
-        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
-        cfg = {}
+        if not hasattr(self, "cfgfname"):
+            return
         
-        host, port = lc.pop('host', ''), lc.pop('port', '')
-        if host and port:
-            cfg['bind'] = '%s:%s' % (host, port)
-        elif host:
-            cfg['bind'] = host
-
-        cfg['workers'] = int(lc.get('workers', 1))
-        cfg['umask'] = int(lc.get('umask', 0))
-        cfg['default_proc_name'] = gc.get('__file__')
-
-        for k, v in gc.items():
-            if k not in self.cfg.settings:
-                continue
-            cfg[k] = v
-
-        for k, v in lc.items():
-            if k not in self.cfg.settings:
-                continue
-            
-            cfg[k] = v
-
+        cfg = self.app_config()
         for k,v in cfg.items():
             try:
                 self.cfg.set(k.lower(), v)
