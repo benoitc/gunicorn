@@ -118,7 +118,8 @@ class Arbiter(object):
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.log.debug("Arbiter booted")
-        self.log.info("Listening at: %s" % self.LISTENER)
+        self.log.info("Listening at: %s (%s)" % (self.LISTENER,
+            self.pid))
         self.cfg.when_ready(self)
     
     def init_signals(self):

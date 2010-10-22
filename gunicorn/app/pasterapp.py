@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import logging
 import os
 import pkg_resources
 import sys
@@ -14,7 +15,29 @@ SERVER = loadwsgi.SERVER
 from gunicorn.app.base import Application
 from gunicorn.config import Config
 
-class PasterApplication(Application):
+class PasterBaseApplication(Application):
+
+    def configure_logging(self):
+        if hasattr(self, "cfgfname"):
+            self.logger = logging.getLogger('gunicorn')
+            # from paste.script.command
+            parser = ConfigParser.ConfigParser()
+            parser.read([self.cfgfname])
+            if parser.has_section('loggers'):
+                if sys.version_info >= (2, 6):
+                    from logging.config import fileConfig
+                else:
+                    # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
+                    # and less strict whitespace (which were incorporated into 2.6's)
+                    from paste.script.util.logging_config import fileConfig
+
+                config_file = os.path.abspath(self.cfgfname)
+                fileConfig(config_file, dict(__file__=config_file,
+                                             here=os.path.dirname(config_file)))
+                return
+        super(PasterApplication, self).configure_logging()
+
+class PasterApplication(PasterBaseApplication):
     
     def init(self, parser, opts, args):
         if len(args) != 1:
@@ -37,7 +60,6 @@ class PasterApplication(Application):
     def app_config(self):
         cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
         gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
-
         cfg = {}
         
         host, port = lc.pop('host', ''), lc.pop('port', '')
@@ -64,31 +86,20 @@ class PasterApplication(Application):
         
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
-
-    def configure_logging(self):
-        # from paste.script.command
-        parser = ConfigParser.ConfigParser()
-        parser.read([self.cfgfname])
-        if parser.has_section('loggers'):
-            if sys.version_info >= (2, 6):
-                from logging.config import fileConfig
-            else:
-                # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
-                # and less strict whitespace (which were incorporated into 2.6's)
-                from paste.script.util.logging_config import fileConfig
-
-            config_file = os.path.abspath(self.cfgfname)
-            fileConfig(config_file, dict(__file__=config_file,
-                                         here=os.path.dirname(config_file)))
-        else:
-            super(PasterApplication, self).configure_logging()
-
-class PasterServerApplication(Application):
+    
+class PasterServerApplication(PasterBaseApplication):
     
     def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
         self.app = app
         self.callable = None
+
+        gcfg = gcfg or {}
+        cfgfname = gcfg.get("__file__")
+        if cfgfname is not None:
+            self.cfgurl = 'config:%s' % cfgfname
+            self.relpath = os.path.dirname(cfgfname)
+            self.cfgfname = cfgfname
 
         cfg = kwargs.copy()
 
@@ -109,7 +120,42 @@ class PasterServerApplication(Application):
 
         self.configure_logging()
 
+    def load_config(self):
+        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
+        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
+        cfg = {}
+        
+        host, port = lc.pop('host', ''), lc.pop('port', '')
+        if host and port:
+            cfg['bind'] = '%s:%s' % (host, port)
+        elif host:
+            cfg['bind'] = host
+
+        cfg['workers'] = int(lc.get('workers', 1))
+        cfg['umask'] = int(lc.get('umask', 0))
+        cfg['default_proc_name'] = gc.get('__file__')
+
+        for k, v in gc.items():
+            if k not in self.cfg.settings:
+                continue
+            cfg[k] = v
+
+        for k, v in lc.items():
+            if k not in self.cfg.settings:
+                continue
+            
+            cfg[k] = v
+
+        for k,v in cfg.items():
+            try:
+                self.cfg.set(k.lower(), v)
+            except:
+                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                raise
+
     def load(self):
+        if hasattr(self, "cfgfname"):
+            return loadapp(self.cfgurl, relative_to=self.relpath)
         return self.app
 
 
