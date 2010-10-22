@@ -7,9 +7,6 @@ import os
 import sys
 import traceback
 
-from django.core.handlers.wsgi import WSGIHandler
-from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
-
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 
@@ -44,6 +41,7 @@ class DjangoApplication(Application):
         sys.exit(1)
         
     def load(self):
+        from django.core.handlers.wsgi import WSGIHandler
         os.environ['DJANGO_SETTINGS_MODULE'] = self.settings_modname
         return WSGIHandler()
 
@@ -89,6 +87,8 @@ class DjangoApplicationCommand(Application):
                 self.cfg.set(k.lower(), v)
         
     def load(self):
+        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+        from django.core.handlers.wsgi import WSGIHandler
         try:
             return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
