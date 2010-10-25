@@ -13,8 +13,10 @@ from gunicorn.app.base import Application
 class DjangoApplication(Application):
     
     def init(self, parser, opts, args):
+        from django.conf import ENVIRONMENT_VARIABLE
+        from django.core.management import setup_environ
+
         self.project_path = os.getcwd()
-    
         if args:
             settings_path = os.path.abspath(os.path.normpath(args[0]))
             if not os.path.exists(settings_path):
@@ -22,9 +24,18 @@ class DjangoApplication(Application):
             else:
                 self.project_path = os.path.dirname(settings_path)
         else:
-             settings_path = os.path.join(self.project_path, "settings.py")
-             if not os.path.exists(settings_path):
-                 self.no_settings(settings_path)
+            try:
+                self.settings_modname = os.environ[ENVIRONMENT_VARIABLE]
+                try:
+                    import settings
+                    setup_environ(settings)
+                except ImportError:
+                    self.no_settings(settings_path, import_error=True)
+                return
+            except KeyError:
+                settings_path = os.path.join(self.project_path, "settings.py")
+                if not os.path.exists(settings_path):
+                    self.no_settings(settings_path)
 
         project_name = os.path.split(self.project_path)[-1]
         settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
@@ -34,15 +45,19 @@ class DjangoApplication(Application):
         sys.path.insert(0, self.project_path)
         sys.path.append(os.path.join(self.project_path, os.pardir))
 
-    def no_settings(self, path):
-        error = "Settings file '%s' not found in current folder.\n" % path
+    def no_settings(self, path, import_error=False):
+        if import_error:
+            error = "Error: Can't find the file 'settings.py' %r." % __file__
+        else:
+            error = "Settings file '%s' not found in current folder.\n" % path
         sys.stderr.write(error)
         sys.stderr.flush()
         sys.exit(1)
         
     def load(self):
+        from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
-        os.environ['DJANGO_SETTINGS_MODULE'] = self.settings_modname
+        os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
         return WSGIHandler()
 
 class DjangoApplicationCommand(Application):
