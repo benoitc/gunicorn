@@ -41,7 +41,7 @@ class EventletWorker(AsyncWorker):
             if self.ppid != os.getppid():
                 self.log.info("Parent changed, shutting down: %s" % self)
                 break
-            eventlet.sleep(0.1)
+            eventlet.sleep(self.timeout)
 
         self.notify()
         with eventlet.Timeout(self.timeout, False):
