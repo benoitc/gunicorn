@@ -6,7 +6,10 @@
 import os
 import sys
 
-import tornado.web
+try:
+    import tornado.web
+except ImportError:
+    raise RuntimeError("You need tornado installed to use this worker.")
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer

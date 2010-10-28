@@ -7,8 +7,10 @@ from __future__ import with_statement
 
 
 import os
-
-import eventlet
+try:
+    import eventlet
+except ImportError:
+    raise RuntimeError("You need eventlet installed to use this worker.")
 from eventlet import hubs
 from eventlet.greenio import GreenSocket
 

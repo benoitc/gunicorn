@@ -117,7 +117,12 @@ class Application(object):
                 raise
                     
         self.configure_logging()
-        Arbiter(self).run()
+        try:
+            Arbiter(self).run()
+        except RuntimeError, e:
+            sys.stderr.write("\nError: %s\n\n" % e)
+            sys.stderr.flush()
+            sys.exit(1)
     
     def configure_logging(self):
         """\

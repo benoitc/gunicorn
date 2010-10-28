@@ -12,8 +12,10 @@ import sys
 if sys.platform == "darwin":
     os.environ['EVENT_NOKQUEUE'] = "1"
 
-
-import gevent
+try:
+    import gevent
+except ImportError:
+    raise RuntimeError("You need gevent installed to use this worker.")
 from gevent.pool import Pool
 from gevent.server import StreamServer
 from gevent import pywsgi, wsgi
