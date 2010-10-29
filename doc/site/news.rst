@@ -8,6 +8,18 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.11.2 / 2010-10-29
+-------------------
+
+* Add SERVER_SOFTWARE to the os.environ
+* Add support for django settings environement variable
+* Add support for logging configuration in Paster ini-files
+* Improve arbiter notification in asynchronous workers
+* Display the right error when a worker can't be used
+* Fix Django support
+* Fix HUP with Paster applications
+* Fix readline in wsgi.input
+
 0.11.1 / 2010-09-02
 -------------------
 

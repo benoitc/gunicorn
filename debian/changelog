@@ -1,3 +1,9 @@
+gunicorn (0.11.2-1) karmic; urgency=low
+
+  * New release. 
+
+ -- Benoit Chesneau <benoitc@e-engura.com>  Thu, 29 Oct 2010 05:42:00 +0100
+
 gunicorn (0.11.1-1) karmic; urgency=low
 
   * New release. 

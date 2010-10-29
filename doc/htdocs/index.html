@@ -79,14 +79,16 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.11.1 - 2010-09-02</h3>
+        <h3>Version 0.11.2 - 2010-1029</h3>
         <ul>
-            <li>Implement max-requests feature to prevent memory leaks</li>
-            <li>Added 'worker_exit' server hook</li>
-            <li>Improve Eventlet worker</li>
-            <li>Fix Django command `run_gunicorn`</li>
-            <li>Fix the default proc name internal setting</li>
-            <li>Workaround to prevent Gevent worker to segfault on MacOSX</li>
+            <li>Add <code>SERVER_SOFTWARE</code> to the os.environ</li>
+            <li>Add support for django settings environement variable</li>
+            <li>Add support for logging configuration in Paster ini-files</li>
+            <li>Improve arbiter notification in asynchronous workers</li>
+            <li>Display the right error when a worker can't be used</li>
+            <li>Fix Django support</li>
+            <li>Fix HUP with Paster applications</li>
+            <li>Fix readline in wsgi.input</lI>
         </ul>
       </div> 
       <div id="footer">

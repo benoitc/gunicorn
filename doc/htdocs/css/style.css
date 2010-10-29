@@ -1,4 +1,5 @@
-/* line 14, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+@charset "UTF-8";
+/* line 14, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
@@ -18,42 +19,42 @@ table, caption, tbody, tfoot, thead, tr, th, td {
   vertical-align: baseline;
 }
 
-/* line 17, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 17, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 body {
   line-height: 1;
   color: black;
   background: white;
 }
 
-/* line 19, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 19, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 ol, ul {
   list-style: none;
 }
 
-/* line 21, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 21, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 table {
   border-collapse: separate;
   border-spacing: 0;
   vertical-align: middle;
 }
 
-/* line 23, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 23, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 caption, th, td {
   text-align: left;
   font-weight: normal;
   vertical-align: middle;
 }
 
-/* line 25, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 25, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 q, blockquote {
   quotes: "" "";
 }
-/* line 96, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 96, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 q:before, q:after, blockquote:before, blockquote:after {
   content: "";
 }
 
-/* line 27, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
+/* line 27, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/reset/_utilities.scss */
 a img {
   border: none;
 }
@@ -84,17 +85,17 @@ a img {
   width: 620px;
 }
 
-/* line 4, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 4, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 body {
   font: 13px/1.5 Helvetica, Arial, 'Liberation Sans', FreeSans, sans-serif;
 }
 
-/* line 6, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 6, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 a:focus {
   outline: 1px dotted invert;
 }
 
-/* line 8, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 8, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 hr {
   border-color: #cccccc;
   border-style: solid;
@@ -103,52 +104,52 @@ hr {
   height: 0;
 }
 
-/* line 14, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 14, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h1 {
   font-size: 25px;
 }
 
-/* line 16, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 16, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h2 {
   font-size: 23px;
 }
 
-/* line 18, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 18, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h3 {
   font-size: 21px;
 }
 
-/* line 20, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 20, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h4 {
   font-size: 19px;
 }
 
-/* line 22, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 22, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h5 {
   font-size: 17px;
 }
 
-/* line 24, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 24, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 h6 {
   font-size: 15px;
 }
 
-/* line 26, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 26, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 ol {
   list-style: decimal;
 }
 
-/* line 28, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 28, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 ul {
   list-style: square;
 }
 
-/* line 30, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 30, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 li {
   margin-left: 30px;
 }
 
-/* line 32, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-960-plugin-0.9.13/stylesheets/960/_text.sass */
+/* line 32, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-960-plugin-0.10.0/stylesheets/960/_text.sass */
 p,
 dl,
 hr,
@@ -208,7 +209,7 @@ a, a:visited, a:hover, a:active {
   margin-right: 10px;
   list-style: none;
 }
-/* line 11, ../../../../../../../../../usr/local/Cellar/ruby/1.9.2-p0/lib/ruby/gems/1.9.1/gems/compass-0.10.5.pre.1/frameworks/compass/stylesheets/compass/utilities/lists/_bullets.scss */
+/* line 11, ../../../../../../../../../var/lib/gems/1.9.1/gems/compass-0.10.6/frameworks/compass/stylesheets/compass/utilities/lists/_bullets.scss */
 #menu ul li {
   list-style-image: none;
   list-style-type: none;
