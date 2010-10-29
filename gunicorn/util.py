@@ -206,7 +206,16 @@ def import_app(module):
         module, obj = module, "application"
     else:
         module, obj = parts[0], parts[1]
-    __import__(module)
+
+    try:
+        __import__(module)
+    except ImportError:
+        if module.endswith(".py") and os.path.exists(module):
+            raise ImportError("Failed to find application, did "
+                "you mean '%s:%s'?" % (module.rsplit(".",1)[0], obj))
+        else:
+            raise
+
     mod = sys.modules[module]
     app = eval(obj, mod.__dict__)
     if app is None:
