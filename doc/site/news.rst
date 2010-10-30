@@ -8,7 +8,7 @@ _TOC_TOP_
 
 _TOC_BOT_
 
-0.11.2 / 2010-10-29
+0.11.2 / 2010-10-30
 -------------------
 
 * Add SERVER_SOFTWARE to the os.environ
