@@ -78,7 +78,6 @@ class AsyncWorker(base.Worker):
                 respiter.close()
             if req.should_close():
                 raise StopIteration()
-            self.cfg.post_request(self, req)
         except StopIteration:
             raise
         except Exception, e:
@@ -87,4 +86,9 @@ class AsyncWorker(base.Worker):
                 raise
             util.write_error(sock, traceback.format_exc())
             return False
+        finally:
+            try:
+                self.cfg.post_request(self, req)
+            except:
+                pass
         return True

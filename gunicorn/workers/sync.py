@@ -104,7 +104,6 @@ class SyncWorker(base.Worker):
             resp.close()
             if hasattr(respiter, "close"):
                 respiter.close()
-            self.cfg.post_request(self, req)
         except socket.error:
             raise
         except Exception, e:
@@ -113,3 +112,9 @@ class SyncWorker(base.Worker):
                 raise
             util.write_error(client, traceback.format_exc())
             return
+        finally:
+            try:
+                self.cfg.post_request(self, req)
+            except:
+                pass
+
