@@ -111,10 +111,8 @@ class Application(object):
             try:
                 os.setpgrp()
             except OSError, e:
-                if e[0] == errno.EPERM:
-                    sys.stderr.write("Error: You should use "
-                        "daemon mode here.\n")
-                raise
+                if e[0] != errno.EPERM:
+                    raise
                     
         self.configure_logging()
         try:
