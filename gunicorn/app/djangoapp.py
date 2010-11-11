@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import logging
 import os
 import sys
 import traceback
@@ -63,6 +64,9 @@ class DjangoApplication(Application):
 class DjangoApplicationCommand(Application):
     
     def __init__(self, options, admin_media_path):
+        self.log = logging.getLogger(__name__)
+        self.usage = None
+        self.cfg = None
         self.config_file = options.get("config") or ""
         self.options = options
         self.admin_media_path = admin_media_path
