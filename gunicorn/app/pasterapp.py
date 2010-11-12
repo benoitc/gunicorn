@@ -62,7 +62,7 @@ class PasterBaseApplication(Application):
                 fileConfig(config_file, dict(__file__=config_file,
                                              here=os.path.dirname(config_file)))
                 return
-        super(PasterApplication, self).configure_logging()
+        super(PasterBaseApplication, self).configure_logging()
 
 class PasterApplication(PasterBaseApplication):
     
