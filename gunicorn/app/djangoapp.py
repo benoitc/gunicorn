@@ -15,8 +15,7 @@ class DjangoApplication(Application):
     
     def init(self, parser, opts, args):
         from django.conf import ENVIRONMENT_VARIABLE
-        from django.core.management import setup_environ
-
+        self.settings_modname = None
         self.project_path = os.getcwd()
         if args:
             settings_path = os.path.abspath(os.path.normpath(args[0]))
@@ -27,28 +26,55 @@ class DjangoApplication(Application):
         else:
             try:
                 self.settings_modname = os.environ[ENVIRONMENT_VARIABLE]
-                try:
-                    import settings
-                    setup_environ(settings)
-                except ImportError:
-                    self.no_settings(settings_path, import_error=True)
-                return
             except KeyError:
                 settings_path = os.path.join(self.project_path, "settings.py")
                 if not os.path.exists(settings_path):
-                    self.no_settings(settings_path)
+                    return self.no_settings(settings_path)
 
-        project_name = os.path.split(self.project_path)[-1]
-        settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
-        self.settings_modname = "%s.%s" % (project_name, settings_name)
+        if not self.settings_modname:
+            project_name = os.path.split(self.project_path)[-1]
+            settings_name, ext  = os.path.splitext(os.path.basename(settings_path))
+            self.settings_modname = "%s.%s" % (project_name, settings_name)
+            os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
+        else:
+            # try to check if we can import settings already.
+            try:
+                import settings
+            except ImportError:
+                # test if we are already in the project
+                # if not we try to use to find the module in current
+                # directory
+                project_path, settings_name = self.settings_modname.split(".")
+                aproject_path = os.path.abspath(os.path.join(os.getcwd(), 
+                    "..", project_path))
+                
+                if aproject_path != self.project_path:
+                    self.project_path = os.path.join(self.project_path,
+                        project_path)
+                    if not os.path.exists(self.project_path):
+                        return self.no_settings(self.project_path,
+                                import_error=True)
+
         self.cfg.set("default_proc_name", self.settings_modname)
 
+        # add the project path to sys.path
         sys.path.insert(0, self.project_path)
         sys.path.append(os.path.join(self.project_path, os.pardir))
 
+        # setup envoron
+        self.setup_environ() 
+
+    def setup_environ(self):
+        from django.core.management import setup_environ
+        try:
+            import settings
+            setup_environ(settings)
+        except ImportError, e:
+            return self.no_settings(self.settings_modname, import_error=True)
+
     def no_settings(self, path, import_error=False):
         if import_error:
-            error = "Error: Can't find the file 'settings.py' %r." % __file__
+            error = "Error: Can't find the settings in your PYTHONPATH"
         else:
             error = "Settings file '%s' not found in current folder.\n" % path
         sys.stderr.write(error)
