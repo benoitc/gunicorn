@@ -61,6 +61,14 @@ class TCPSocket(BaseSocket):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return super(TCPSocket, self).set_options(sock, bound=bound)
 
+class TCP6Socket(TCPSocket):
+
+    FAMILY = socket.AF_INET6
+
+    def __str__(self):
+        (host, port, fl, sc) = self.sock.getsockname()
+        return "http://[%s]:%d" % (host, port)
+
 class UnixSocket(BaseSocket):
     
     FAMILY = socket.AF_UNIX
@@ -97,7 +105,10 @@ def create_socket(conf):
     addr = conf.address
     
     if isinstance(addr, tuple):
-        sock_type = TCPSocket
+        if util.is_ipv6(addr[0]):
+            sock_type = TCP6Socket
+        else:
+            sock_type = TCPSocket
     elif isinstance(addr, basestring):
         sock_type = UnixSocket
     else:
