@@ -12,6 +12,7 @@ import sys
 import tempfile
 
 from gunicorn import util
+from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker(object):
 
@@ -39,14 +40,10 @@ class Worker(object):
         self.nr = 0
         self.max_requests = cfg.max_requests or sys.maxint
         self.alive = True
-        self.spinner = 0
         self.log = logging.getLogger(__name__)
         self.debug = cfg.debug
         self.address = self.socket.getsockname()
-
-        self.fd, self.tmpname = tempfile.mkstemp(prefix="wgunicorn-")
-        util.chown(self.tmpname, cfg.uid, cfg.gid)
-        self.tmp = os.fdopen(self.fd, "r+b")
+        self.tmp = WorkerTmp() 
         
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -61,11 +58,7 @@ class Worker(object):
         once every ``self.timeout`` seconds. If you fail in accomplishing
         this task, the master process will murder your workers.
         """
-        self.spinner = (self.spinner+1) % 2
-        if getattr(os, 'fchmod', None):
-            os.fchmod(self.tmp.fileno(), self.spinner)
-        else:
-            os.chmod(self.tmpname, self.spinner)
+        self.tmp.notify()
 
     def run(self):
         """\
@@ -94,7 +87,7 @@ class Worker(object):
         
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
-        util.close_on_exec(self.fd)
+        util.close_on_exec(self.tmp.fileno())
         self.init_signals()
         
         self.wsgi = self.app.wsgi()
