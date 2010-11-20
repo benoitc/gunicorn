@@ -10,43 +10,9 @@ import sys
 
 from gunicorn import __version__
 
-
-try:#python 2.6, use subprocess
-    import subprocess
-    subprocess.Popen  # trigger ImportError early
-    closefds = os.name == 'posix'
-    
-    def popen3(cmd, mode='t', bufsize=0):
-        p = subprocess.Popen(cmd, shell=True, bufsize=bufsize,
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
-            close_fds=closefds)
-        p.wait()
-        return (p.stdin, p.stdout, p.stderr)
-except ImportError:
-    subprocess = None
-    popen3 = os.popen3
-
-
-DEVELOP = "develop" in sys.argv
-
-version = __version__
-if DEVELOP:
-    minor_tag = ""
-    try:
-        stdin, stdout, stderr = popen3("git rev-parse --short HEAD --")
-        error = stderr.read()
-        if not error:
-            git_tag = stdout.read()[:-1]
-            minor_tag = ".%s-git" % git_tag
-    except OSError:        
-        pass
-
-    version = "%s%s" % (version, minor_tag)
-
-
 setup(
     name = 'gunicorn',
-    version = version,
+    version = __version__,
 
     description = 'WSGI HTTP Server for UNIX',
     long_description = file(
