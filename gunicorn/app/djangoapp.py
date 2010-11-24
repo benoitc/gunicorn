@@ -39,7 +39,7 @@ class DjangoApplication(Application):
         else:
             # try to check if we can import settings already.
             try:
-                import settings
+                from django.conf import settings
             except ImportError:
                 # test if we are already in the project
                 # if not we try to use to find the module in current
@@ -54,21 +54,16 @@ class DjangoApplication(Application):
                     if not os.path.exists(self.project_path):
                         return self.no_settings(self.project_path,
                                 import_error=True)
+                os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
 
         self.cfg.set("default_proc_name", self.settings_modname)
 
-        # add the project path to sys.path
-        sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.join(self.project_path, os.pardir))
-
-        # setup envoron
+        # setup environ
         self.setup_environ() 
 
     def setup_environ(self):
-        from django.core.management import setup_environ
         try:
-            import settings
-            setup_environ(settings)
+            from django.conf import settings
         except ImportError, e:
             return self.no_settings(self.settings_modname, import_error=True)
 
@@ -82,9 +77,7 @@ class DjangoApplication(Application):
         sys.exit(1)
         
     def load(self):
-        from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
-        os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
         return WSGIHandler()
 
 class DjangoApplicationCommand(Application):
