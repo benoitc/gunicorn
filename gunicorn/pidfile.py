@@ -42,6 +42,9 @@ class Pidfile(object):
         else:
             self.fname = fname
         os.close(fd)
+
+        # set permissions to -rw-r--r-- 
+        os.chmod(self.fname, 420)
         
     def rename(self, path):
         self.unlink()
