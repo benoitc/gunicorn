@@ -153,7 +153,6 @@ class Arbiter(object):
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()
-                    self.murder_workers()
                     self.manage_workers()
                     continue
                 
@@ -365,21 +364,6 @@ class Arbiter(object):
         # manage workers
         self.manage_workers()
         
-    def murder_workers(self):
-        """\
-        Kill unused/idle workers
-        """
-        for (pid, worker) in list(self.WORKERS.items()):
-            try:
-                diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
-                if diff <= self.timeout:
-                    continue
-            except ValueError:
-                continue
-
-            self.log.critical("WORKER TIMEOUT (pid:%s)" % pid)
-            self.kill_worker(pid, signal.SIGKILL)
-    
     def reap_workers(self):
         """\
         Reap workers to avoid zombie processes
@@ -411,10 +395,26 @@ class Arbiter(object):
         Maintain the number of workers by spawning or killing
         as required.
         """
+        active_workers = []
+        for (pid, worker) in list(self.WORKERS.items()):
+            try:
+                stat = os.fstat(worker.tmp.fileno())
+                diff = time.time() - stat.st_ctime
+                if diff <= self.timeout:
+                    # A fully booted worker will have called notify()
+                    if stat.st_mtime < stat.st_ctime:
+                        active_workers.append(pid)
+                    continue
+            except ValueError:
+                continue
+
+            self.log.critical("WORKER TIMEOUT (pid:%s)" % pid)
+            self.kill_worker(pid, signal.SIGKILL)
+
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
-        num_to_kill = len(self.WORKERS) - self.num_workers
+        num_to_kill = len(active_workers) - self.num_workers
         for i in range(num_to_kill, 0, -1):
             pid, age = 0, sys.maxint
             for (wpid, worker) in self.WORKERS.iteritems():
