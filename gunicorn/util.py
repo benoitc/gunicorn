@@ -45,14 +45,20 @@ hop_headers = set("""
     te trailers transfer-encoding upgrade
     server date
     """.split())
-             
-try:
-    from setproctitle import setproctitle
-    def _setproctitle(title):
-        setproctitle("gunicorn: %s" % title) 
-except ImportError:
-    def _setproctitle(title):
-        return
+
+def _setproctitle(title):
+    return
+
+for modulename, functionname in ( ('setproctitle', 'setproctitle'),
+                                  ('procname', 'setprocname') ):
+    try:
+        module = __import__(modulename)
+    except ImportError:
+        continue
+    function = getattr(module, functionname)
+    if function:
+        _setproctitle = lambda title: function("gunicorn: %s" % title)
+        break
 
 def load_worker_class(uri):
     if uri.startswith("egg:"):
