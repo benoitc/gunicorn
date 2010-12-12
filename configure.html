@@ -357,6 +357,16 @@ temporary directory.</p>
 <li>critical</li>
 </ul>
 </div>
+<div class="section" id="logconfig">
+<h4><a class="toc-backref" href="#contents">logconfig</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--log-config</span> FILE</tt></li>
+<li><tt class="docutils literal">None</tt></li>
+</ul>
+<p>The log config file to use.</p>
+<p>Gunicorn uses the standard Python logging module's Configuration
+file format.</p>
+</div>
 </div>
 <div class="section" id="process-naming">
 <h3><a class="toc-backref" href="#contents">Process Naming</a></h3>
@@ -524,21 +534,22 @@ the just-exited Worker.</p>
 <li><a class="reference internal" href="#logging" id="id30">Logging</a><ul>
 <li><a class="reference internal" href="#logfile" id="id31">logfile</a></li>
 <li><a class="reference internal" href="#loglevel" id="id32">loglevel</a></li>
+<li><a class="reference internal" href="#logconfig" id="id33">logconfig</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id33">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id34">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id35">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id34">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id35">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id36">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id36">Server Hooks</a><ul>
-<li><a class="reference internal" href="#when-ready" id="id37">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id38">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id39">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id40">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id41">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id42">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id43">worker_exit</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id37">Server Hooks</a><ul>
+<li><a class="reference internal" href="#when-ready" id="id38">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id39">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id40">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id41">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id42">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id43">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id44">worker_exit</a></li>
 </ul>
 </li>
 </ul>
