@@ -5,6 +5,7 @@
 
 import errno
 import logging
+import logging.config
 import os
 import sys
 import traceback
@@ -136,19 +137,25 @@ class Application(object):
         """
         self.logger = logging.getLogger('gunicorn')
 
-        handlers = []
-        if self.cfg.logfile != "-":
-            handlers.append(logging.FileHandler(self.cfg.logfile))
-        else:
-            handlers.append(logging.StreamHandler())
-
-        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
-        self.logger.setLevel(loglevel)
-        
-        format = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
+        fmt = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
         datefmt = r"%Y-%m-%d %H:%M:%S"
-        for h in handlers:
-            h.setFormatter(logging.Formatter(format, datefmt))
-            self.logger.addHandler(h)
+        if not self.cfg.logconfig:
+            handlers = []
+            if self.cfg.logfile != "-":
+                handlers.append(logging.FileHandler(self.cfg.logfile))
+            else:
+                handlers.append(logging.StreamHandler())
+
+            loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
+            self.logger.setLevel(loglevel)
+            for h in handlers:
+                h.setFormatter(logging.Formatter(fmt, datefmt))
+                self.logger.addHandler(h)
+        else:
+            if os.path.exists(self.cfg.logconfig):
+                logging.config.fileConfig(self.cfg.logconfig)
+            else:
+                raise RuntimeError("Error: logfile '%s' not found." %
+                        self.cfg.logconfig)
 
 
