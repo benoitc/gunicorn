@@ -114,9 +114,14 @@ class PasterServerApplication(PasterBaseApplication):
                 cfg[k] = v
             cfg["default_proc_name"] = cfg['__file__']
 
-        for k, v in list(cfg.items()):
-            if k.lower() in self.cfg.settings and v is not None:
-                self.cfg.set(k.lower(), v)
+        try:
+            for k, v in list(cfg.items()):
+                if k.lower() in self.cfg.settings and v is not None:
+                    self.cfg.set(k.lower(), v)
+        except Exception, e:
+            sys.stderr.write("\nConfig error: %s\n" % str(e))
+            sys.stderr.flush()
+            sys.exit(1)
 
         self.configure_logging()
 

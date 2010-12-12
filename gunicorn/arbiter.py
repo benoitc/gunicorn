@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 
-from gunicorn.errors import HaltServer
+from gunicorn.errors import ConfigError, HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util
@@ -146,6 +146,7 @@ class Arbiter(object):
         "Main master loop."
         self.start()
         util._setproctitle("master [%s]" % self.proc_name)
+        
         self.manage_workers()
         while True:
             try:

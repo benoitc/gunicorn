@@ -33,7 +33,15 @@ class Application(object):
         self.cfg = None
         self.callable = None
         self.logger = None
-        self.load_config()
+        self.do_load_config()
+
+    def do_load_config(self):
+        try:
+            self.load_config()
+        except Exception, e:
+            sys.stderr.write("\nError: %s\n" % str(e))
+            sys.stderr.flush()
+            sys.exit(1)
   
     def load_config(self):
         # init configuration
@@ -91,7 +99,7 @@ class Application(object):
         raise NotImplementedError
 
     def reload(self):
-        self.load_config()
+        self.do_load_config()
         if self.cfg.spew:
             debug.spew()
         loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
