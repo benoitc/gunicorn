@@ -56,7 +56,7 @@ class PasterBaseApplication(Application):
                 else:
                     # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
                     # and less strict whitespace (which were incorporated into 2.6's)
-                    from paste.script.util.logging_config import fileConfig
+                    from gunicorn.logging_config import fileConfig
 
                 config_file = os.path.abspath(self.cfgfname)
                 fileConfig(config_file, dict(__file__=config_file,

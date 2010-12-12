@@ -5,10 +5,14 @@
 
 import errno
 import logging
-import logging.config
 import os
 import sys
 import traceback
+try:
+    from logging.config import fileConfig
+except ImportError:
+    from gunicorn.logging_config import fileConfig
+
 
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
@@ -153,7 +157,7 @@ class Application(object):
                 self.logger.addHandler(h)
         else:
             if os.path.exists(self.cfg.logconfig):
-                logging.config.fileConfig(self.cfg.logconfig)
+                fileConfig(self.cfg.logconfig)
             else:
                 raise RuntimeError("Error: logfile '%s' not found." %
                         self.cfg.logconfig)
