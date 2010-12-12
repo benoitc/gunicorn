@@ -65,8 +65,9 @@ machine. See the <a class="reference external" href="/configure.html#proc-name">
 <div class="section" id="why-is-there-no-http-keep-alive">
 <h3><a class="toc-backref" href="#contents">Why is there no HTTP Keep-Alive?</a></h3>
 <p>The default Sync workers are designed to run behind Nginx which only uses
-HTTP/1.0 with it's upstream servers. If you want to send requests directly
-to Nginx you should use one of the various async workers.</p>
+HTTP/1.0 with its upstream servers. If you want to deploy Gunicorn to
+handle unbuffered requests (ie, serving requests directly from the internet)
+you should use one of the async workers.</p>
 </div>
 </div>
 <div class="section" id="worker-processes">
