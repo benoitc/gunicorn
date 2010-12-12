@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import time
 
 # workaround on osx, disable kqueue
 if sys.platform == "darwin":
@@ -72,13 +73,19 @@ class GeventWorker(AsyncWorker):
                 worker=self)
 
         server.start()
+        t = time.time()
         try:
             while self.alive:
-                self.notify()
+
+                if time.time() >= t:
+                    self.notify()
+                    t = time.time() + self.timeout
+
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
                     break
-                gevent.sleep(self.timeout) 
+                gevent.sleep(0.1)
+                
         except KeyboardInterrupt:
             pass
 
@@ -131,14 +138,20 @@ class GeventBaseWorker(Worker):
         server = self.server_class(self.socket, application=self.wsgi, 
                         spawn=pool, handler_class=self.wsgi_handler)
         server.start()
+
+        t = time.time()
         try:
             while self.alive:
-                self.notify()
+                if time.time() >= t:
+                    self.notify()
+                    t = time.time() + self.timeout
             
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s" % self)
                     break
-                gevent.sleep(self.timeout)
+                
+                # sleep 
+                gevent.sleep(0.1) 
 
         except KeyboardInterrupt:
             pass
