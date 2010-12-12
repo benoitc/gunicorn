@@ -8,7 +8,6 @@ import errno
 import os
 import select
 import socket
-import traceback
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -63,7 +62,7 @@ class SyncWorker(base.Worker):
                     else:
                         return
                 raise
-        
+    
     def handle(self, client, addr):
         try:
             parser = http.RequestParser(client)
@@ -78,12 +77,7 @@ class SyncWorker(base.Worker):
                 self.log.debug("Ignoring EPIPE")
         except Exception, e:
             self.log.exception("Error processing request.")
-            try:            
-                # Last ditch attempt to notify the client of an error.
-                mesg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
-                util.write_nonblock(client, mesg)
-            except:
-                pass
+            self.handle_error(client, e)
         finally:    
             util.close(client)
 
@@ -111,9 +105,7 @@ class SyncWorker(base.Worker):
             raise
         except Exception, e:
             # Only send back traceback in HTTP in debug mode.
-            if not self.debug:
-                raise
-            util.write_error(client, traceback.format_exc())
+            self.handle_error(client, e) 
             return
         finally:
             try:

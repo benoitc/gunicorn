@@ -45,7 +45,7 @@ hop_headers = set("""
     te trailers transfer-encoding upgrade
     server date
     """.split())
-             
+            
 try:
     from setproctitle import setproctitle
     def _setproctitle(title):
@@ -178,27 +178,28 @@ def writelines(sock, lines, chunked=False):
     for line in list(lines):
         write(sock, line, chunked)
 
-def write_error(sock, msg):
+def write_error(sock, msg, status_int=500, 
+        reason="Internal Server Error"):
     html = textwrap.dedent("""\
     <html>
         <head>
-            <title>Internal Server Error</title>
+            <title>%(reason)s</title>
         </head>
         <body>
-            <h1>Internal Server Error</h1>
-            <h2>WSGI Error Report:</h2>
-            <pre>%s</pre>
+            <h1>%(reason)s</h1>
+            %(msg)s
         </body>
     </html>
-    """) % msg
+    """) % {"reason": reason, "msg": msg}
+
     http = textwrap.dedent("""\
-    HTTP/1.1 500 Internal Server Error\r
+    HTTP/1.1 %s %s\r
     Connection: close\r
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
     %s
-    """) % (len(html), html)
+    """) % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http)
 
 def normalize_name(name):

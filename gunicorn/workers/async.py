@@ -48,13 +48,7 @@ class AsyncWorker(base.Worker):
                     self.log.debug("Ignoring EPIPE")
         except Exception, e:
             self.log.exception("General error processing request.")
-            try:            
-                # Last ditch attempt to notify the client of an error.
-                mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-                util.write_nonblock(client, mesg)
-            except:
-                pass
-            return
+            self.handle_error(client, e)
         finally:
             util.close(client)
 
@@ -82,9 +76,7 @@ class AsyncWorker(base.Worker):
             raise
         except Exception, e:
             #Only send back traceback in HTTP in debug mode.
-            if not self.debug:
-                raise
-            util.write_error(sock, traceback.format_exc())
+            self.handle_error(sock, e)
             return False
         finally:
             try:

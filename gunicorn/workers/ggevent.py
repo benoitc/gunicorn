@@ -72,7 +72,6 @@ class GeventWorker(AsyncWorker):
                 worker=self)
 
         server.start()
-
         try:
             while self.alive:
                 self.notify()
