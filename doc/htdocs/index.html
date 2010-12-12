@@ -79,16 +79,21 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.11.2 - 2010-10-30</h3>
+        <h3>Version 0.12.0 - 2010-12-12</h3>
         <ul>
-            <li>Add <code>SERVER_SOFTWARE</code> to the os.environ</li>
-            <li>Add support for django settings environement variable</li>
-            <li>Add support for logging configuration in Paster ini-files</li>
-            <li>Improve arbiter notification in asynchronous workers</li>
-            <li>Display the right error when a worker can't be used</li>
-            <li>Fix Django support</li>
-            <li>Fix HUP with Paster applications</li>
-            <li>Fix readline in wsgi.input</lI>
+            <li>Add support for logging configuration using a ini file.</li>
+            <li>Add IPV6 support</li>
+            <li>Add multidomain application example</li>
+            <li>Improve graceful handling: don't kill old workers 
+  until new ones are active</li>
+            <li>Improve gunicorn_django command when importing settings
+            module using<code>DJANGO_SETTINGS_MODULE</code> environment variable</li>
+            <li>Send appropriate error status on http parsing</li>
+            <li>Fix pidfile, set permissions so other user can read it and use it</li>
+            <li>Fix temporary file leaking</li>
+            <li>Fix setpgrp issue, can now be launched via ubuntu
+            upstart</li>
+            <li>Set the number of workers to zero on WINCH</li>
         </ul>
       </div> 
       <div id="footer">

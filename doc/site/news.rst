@@ -8,6 +8,25 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.12.0 / 2010-12-12
+-------------------
+
+- Add support for logging configuration using a ini file. 
+  It uses the standard Python logging's module Configuration 
+  file format and allows anyone to use his custom file handler
+- Add IPV6 support
+- Add multidomain application example
+- Improve graceful handling: don't kill old workers 
+  until new ones are active
+- Improve gunicorn_django command when importing settings module 
+  using DJANGO_SETTINGS_MODULE environment variable
+- Send appropriate error status on http parsing
+- Fix pidfile, set permissions so other user can read 
+  it and use it. 
+- Fix temporary file leaking
+- Fix setpgrp issue, can now be launched via ubuntu upstart
+- Set the number of workers to zero on WINCH
+
 0.11.2 / 2010-10-30
 -------------------
 

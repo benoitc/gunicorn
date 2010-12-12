@@ -62,6 +62,12 @@ machine. See the <a class="reference external" href="/configure.html#proc-name">
 <h3><a class="toc-backref" href="#contents">Gunicorn fails to start with upstart</a></h3>
 <p>Make sure you run gunicorn with <tt class="docutils literal"><span class="pre">--daemon</span></tt> option.</p>
 </div>
+<div class="section" id="why-is-there-no-http-keep-alive">
+<h3><a class="toc-backref" href="#contents">Why is there no HTTP Keep-Alive?</a></h3>
+<p>The default Sync workers are designed to run behind Nginx which only uses
+HTTP/1.0 with it's upstream servers. If you want to send requests directly
+to Nginx you should use one of the various async workers.</p>
+</div>
 </div>
 <div class="section" id="worker-processes">
 <h2><a class="toc-backref" href="#contents">Worker Processes</a></h2>
@@ -134,18 +140,19 @@ $ sudo sysctl -w net.core.somaxconn=&quot;2048&quot;
 <li><a class="reference internal" href="#how-might-i-test-a-proxy-configuration" id="id5">How might I test a proxy configuration?</a></li>
 <li><a class="reference internal" href="#how-can-i-name-processes" id="id6">How can I name processes?</a></li>
 <li><a class="reference internal" href="#gunicorn-fails-to-start-with-upstart" id="id7">Gunicorn fails to start with upstart</a></li>
+<li><a class="reference internal" href="#why-is-there-no-http-keep-alive" id="id8">Why is there no HTTP Keep-Alive?</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#worker-processes" id="id8">Worker Processes</a><ul>
-<li><a class="reference internal" href="#how-do-i-know-which-type-of-worker-to-use" id="id9">How do I know which type of worker to use?</a></li>
-<li><a class="reference internal" href="#what-types-of-workers-are-there" id="id10">What types of workers are there?</a></li>
-<li><a class="reference internal" href="#how-can-i-figure-out-the-best-number-of-worker-processes" id="id11">How can I figure out the best number of worker processes?</a></li>
-<li><a class="reference internal" href="#how-can-i-change-the-number-of-workers-dynamically" id="id12">How can I change the number of workers dynamically?</a></li>
+<li><a class="reference internal" href="#worker-processes" id="id9">Worker Processes</a><ul>
+<li><a class="reference internal" href="#how-do-i-know-which-type-of-worker-to-use" id="id10">How do I know which type of worker to use?</a></li>
+<li><a class="reference internal" href="#what-types-of-workers-are-there" id="id11">What types of workers are there?</a></li>
+<li><a class="reference internal" href="#how-can-i-figure-out-the-best-number-of-worker-processes" id="id12">How can I figure out the best number of worker processes?</a></li>
+<li><a class="reference internal" href="#how-can-i-change-the-number-of-workers-dynamically" id="id13">How can I change the number of workers dynamically?</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#kernel-parameters" id="id13">Kernel Parameters</a><ul>
-<li><a class="reference internal" href="#how-can-i-increase-the-maximum-number-of-file-descriptors" id="id14">How can I increase the maximum number of file descriptors?</a></li>
-<li><a class="reference internal" href="#how-can-i-increase-the-maximum-socket-backlog" id="id15">How can I increase the maximum socket backlog?</a></li>
+<li><a class="reference internal" href="#kernel-parameters" id="id14">Kernel Parameters</a><ul>
+<li><a class="reference internal" href="#how-can-i-increase-the-maximum-number-of-file-descriptors" id="id15">How can I increase the maximum number of file descriptors?</a></li>
+<li><a class="reference internal" href="#how-can-i-increase-the-maximum-socket-backlog" id="id16">How can I increase the maximum socket backlog?</a></li>
 </ul>
 </li>
 </ul>
