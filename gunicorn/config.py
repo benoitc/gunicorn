@@ -548,6 +548,7 @@ class Loglevel(Setting):
         * error
         * critical
         """
+
 class LogConfig(Setting):
     name = "logconfig"
     section = "Logging"
@@ -559,7 +560,6 @@ class LogConfig(Setting):
         The log config file to use. Gunicorn uses the standard Python \
 logging module's Configuration file format.
         """
-
 
 class Procname(Setting):
     name = "proc_name"
