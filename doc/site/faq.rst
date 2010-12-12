@@ -49,6 +49,13 @@ Gunicorn fails to start with upstart
 
 Make sure you run gunicorn with ``--daemon`` option.
 
+HTTP keep-alive?
+----------------
+
+HTTP keep-alive is usually managed by the proxy on top of gunicorn (like 
+NGINX). If Gunicorn is serving directly requests to the internet, you 
+need to use one of the async workers. See the design_ page for more info.
+
 .. _slowloris: http://ha.ckers.org/slowloris/
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
 .. _proc_name: /configure.html#proc-name
