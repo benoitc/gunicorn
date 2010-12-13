@@ -114,7 +114,7 @@ class DjangoApplicationCommand(Application):
                 try:
                     self.cfg.set(k.lower(), v)
                 except:
-                    sys.stderr.write("Invalid value for %s: %s [%s]\n\n" % (k, v))
+                    sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
         
         for k, v in list(self.options.items()):
