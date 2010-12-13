@@ -81,7 +81,6 @@ class DjangoApplication(Application):
 class DjangoApplicationCommand(Application):
     
     def __init__(self, options, admin_media_path):
-        self.log = logging.getLogger(__name__)
         self.usage = None
         self.cfg = None
         self.config_file = options.get("config") or ""

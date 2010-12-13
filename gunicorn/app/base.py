@@ -33,7 +33,6 @@ class Application(object):
     }
     
     def __init__(self, usage=None):
-        self.log = logging.getLogger(__name__)
         self.usage = usage
         self.cfg = None
         self.callable = None
