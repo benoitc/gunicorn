@@ -7,8 +7,6 @@ from __future__ import with_statement
 
 
 import os
-import time
-
 try:
     import eventlet
 except ImportError:
@@ -40,17 +38,13 @@ class EventletWorker(AsyncWorker):
         self.acceptor = eventlet.spawn(eventlet.serve, self.socket,
                 self.handle, self.worker_connections)
 
-        t = time.time()
         while self.alive:
-            if time.time() >= t:
-                self.notify()
-                t = time.time() + self.timeout
-            
+            self.notify()
             if self.ppid != os.getppid():
                 self.log.info("Parent changed, shutting down: %s" % self)
                 break
 
-            eventlet.sleep(0.1)
+            eventlet.sleep(1.0)
 
         self.notify()
         with eventlet.Timeout(self.timeout, False):
