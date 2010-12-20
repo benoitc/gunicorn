@@ -210,7 +210,9 @@ def validate_callable(arity):
 def validate_user(val):
     if val is None:
         return os.geteuid()
-    elif val.isdigit() or isinstance(val, int):
+    if isinstance(val, int):
+        return val
+    elif val.isdigit():
         return int(val)
     else:
         try:
@@ -221,7 +223,10 @@ def validate_user(val):
 def validate_group(val):
     if val is None:
         return os.getegid()
-    elif val.isdigit() or isinstance(val, int):
+
+    if isinstance(val, int):
+        return val
+    elif val.isdigit():
         return int(val)
     else:
         try:
@@ -459,7 +464,7 @@ class User(Setting):
     cli = ["-u", "--user"]
     meta = "USER"
     validator = validate_user
-    default = None
+    default = os.geteuid()
     desc = """\
         Switch worker processes to run as this user.
         
@@ -474,7 +479,7 @@ class Group(Setting):
     cli = ["-g", "--group"]
     meta = "GROUP"
     validator = validate_group
-    default = None
+    default = os.getegid()
     desc = """\
         Switch worker process to run as this group.
         

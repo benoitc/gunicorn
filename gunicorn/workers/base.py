@@ -49,7 +49,7 @@ class Worker(object):
         self.log = logging.getLogger(__name__)
         self.debug = cfg.debug
         self.address = self.socket.getsockname()
-        self.tmp = WorkerTmp() 
+        self.tmp = WorkerTmp(cfg) 
         
     def __str__(self):
         return "<Worker %s>" % self.pid
