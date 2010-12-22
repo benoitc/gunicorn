@@ -16,8 +16,6 @@ _TOC_BOT_
   file format and allows anyone to use his custom file handler
 - Add IPV6 support
 - Add multidomain application example
-- Improve graceful handling: don't kill old workers 
-  until new ones are active
 - Improve gunicorn_django command when importing settings module 
   using DJANGO_SETTINGS_MODULE environment variable
 - Send appropriate error status on http parsing
