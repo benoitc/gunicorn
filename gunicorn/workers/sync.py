@@ -83,7 +83,6 @@ class SyncWorker(base.Worker):
 
     def handle_request(self, req, client, addr):
         try:
-            debug = self.cfg.debug or False
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, client, addr,
                     self.address, self.cfg)

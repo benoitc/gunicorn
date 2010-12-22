@@ -123,6 +123,7 @@ class GeventBaseWorker(Worker):
     @classmethod
     def setup(cls):
         from gevent import monkey
+        monkey.noisy = False
         monkey.patch_all()
 
         
@@ -152,6 +153,14 @@ class GeventBaseWorker(Worker):
             server.stop(timeout=self.timeout)
         except:
             pass
+
+    def init_process(self):
+        #gevent doesn't reinitialize dns for us after forking
+        #here's the workaround
+        gevent.core.dns_shutdown(fail_requests=1)
+        gevent.core.dns_init()
+        super(GeventBaseWorker, self).init_process()
+
         
 
 class WSGIHandler(wsgi.WSGIHandler):

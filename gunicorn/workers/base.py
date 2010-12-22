@@ -9,7 +9,6 @@ import os
 import random
 import signal
 import sys
-import tempfile
 import traceback
 
 
@@ -116,9 +115,7 @@ class Worker(object):
         self.alive = False
         sys.exit(0)
 
-
     def handle_error(self, client, exc):
-        
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
             
@@ -144,8 +141,10 @@ class Worker(object):
             util.write_error(client, mesg, status_int=status_int, 
                     reason=reason)
         except:
-            self.log.warning("Unexpected error" % traceback.format_exc())
-            pass
+            if self.debug:
+                self.log.warning("Unexpected error %s" % traceback.format_exc())
+            else:
+                self.log.warning("Unexpected error %s" % str(exc))
         
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.

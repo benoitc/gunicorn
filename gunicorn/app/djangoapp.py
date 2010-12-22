@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import logging
 import os
 import sys
 import traceback
@@ -60,7 +59,7 @@ class DjangoApplication(Application):
                 for part in parts[1:]: 
                     settings_mod = getattr(settings_mod, part)
                 setup_environ(settings_mod)
-        except ImportError, e:
+        except ImportError:
             return self.no_settings(self.settings_modname, import_error=True)
 
     def no_settings(self, path, import_error=False):
@@ -102,7 +101,7 @@ class DjangoApplicationCommand(Application):
             }
             try:
                 execfile(self.config_file, cfg, cfg)
-            except Exception, e:
+            except Exception:
                 print "Failed to read config file: %s" % self.config_file
                 traceback.print_exc()
                 sys.exit(1)

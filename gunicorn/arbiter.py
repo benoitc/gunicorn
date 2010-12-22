@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 
-from gunicorn.errors import ConfigError, HaltServer
+from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
 from gunicorn import util

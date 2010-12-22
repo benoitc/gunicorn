@@ -7,7 +7,6 @@ from __future__ import with_statement
 
 import errno
 import socket
-import traceback
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -54,7 +53,6 @@ class AsyncWorker(base.Worker):
 
     def handle_request(self, req, sock, addr):
         try:
-            debug = self.cfg.debug or False
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
             self.nr += 1

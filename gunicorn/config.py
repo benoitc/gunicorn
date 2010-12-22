@@ -9,7 +9,6 @@ import inspect
 import optparse
 import os
 import pwd
-import sys
 import textwrap
 import types
 
