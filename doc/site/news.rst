@@ -8,7 +8,7 @@ _TOC_TOP_
 
 _TOC_BOT_
 
-0.12.0 / 2010-12-12
+0.12.0 / 2010-12-22
 -------------------
 
 - Add support for logging configuration using a ini file. 
