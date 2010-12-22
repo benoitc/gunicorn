@@ -143,8 +143,6 @@ class Worker(object):
         except:
             if self.debug:
                 self.log.warning("Unexpected error %s" % traceback.format_exc())
-            else:
-                self.log.warning("Unexpected error %s" % str(exc))
         
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
