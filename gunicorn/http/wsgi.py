@@ -114,15 +114,21 @@ class Response(object):
         self.version = SERVER_SOFTWARE
         self.status = None
         self.chunked = False
-        self.should_close = req.should_close()
+        self.must_close = False
         self.headers = []
         self.headers_sent = False
         self.clength = None
-        #self.te = None
         self.sent = 0
 
     def force_close(self):
-        self.should_close = True
+        self.must_close = True
+
+    def should_close(self):
+        if self.must_close or self.req.should_close():
+            return True
+        if self.clength is not None or self.chunked:
+            return False
+        return True
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
@@ -146,8 +152,6 @@ class Response(object):
             if lname == "content-length":
                 self.clength = int(value)
             elif util.is_hoppish(name):
-                #if lname == "transfer-encoding":
-                #    self.te = value.lower().strip()
                 if lname == "connection":
                     # handle websocket
                     if value.lower().strip() != "upgrade":
@@ -159,10 +163,9 @@ class Response(object):
 
 
     def is_chunked(self):
-        # maybe we should do this test if users expect this header
-        # to force chunked encoding
-        #if self.te == "chunked" and self.req.version > (1, 0):
-        #    return True
+        # Only use chunked responses when the client is
+        # speaking HTTP/1.1 or newer and there was
+        # no Content-Length header set.
         if self.clength:
             return False
         elif self.req.version <= (1,0):
@@ -171,16 +174,18 @@ class Response(object):
 
     def default_headers(self):
         connection = "keep-alive"
-        if self.should_close:
+        if self.should_close():
             connection = "close"
-
-        return [
+        headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
                 self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
         ]
+        if self.chunked:
+            headers.append("Transfer-Encoding: chunked\r\n")
+        return headers
 
     def send_headers(self):
         if self.headers_sent:

@@ -68,7 +68,7 @@ class AsyncWorker(base.Worker):
             resp.close()
             if hasattr(respiter, "close"):
                 respiter.close()
-            if req.should_close():
+            if resp.should_close():
                 raise StopIteration()
         except StopIteration:
             raise
