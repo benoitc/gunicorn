@@ -117,7 +117,7 @@ class Response(object):
         self.should_close = req.should_close()
         self.headers = []
         self.headers_sent = False
-        self.clength = -1
+        self.clength = None
         #self.te = None
         self.sent = 0
 
