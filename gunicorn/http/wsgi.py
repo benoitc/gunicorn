@@ -166,7 +166,7 @@ class Response(object):
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
-        if self.clength:
+        if self.clength is not None:
             return False
         elif self.req.version <= (1,0):
             return False
