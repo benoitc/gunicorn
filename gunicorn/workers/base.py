@@ -116,8 +116,17 @@ class Worker(object):
         sys.exit(0)
 
     def handle_error(self, client, exc):
+        self.log.exception("Error hanlding request")
+
+        status_int = 500
+        reason = "Internal Server Error"
+        mesg = ""
+
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+            
+            status_int = 400
+            reason = "Bad Request"
             
             if isinstance(exc, InvalidRequestLine):
                 mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
@@ -127,22 +136,15 @@ class Worker(object):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "<p>Invalid Header'%s'</p>" % str(exc)
-            reason = "Bad Request"
-            status_int = 400
-        else:
-            mesg = reason = "Internal Server reason"
-            status_int = 500
             
         if self.debug:
             tb =  traceback.format_exc()
-            mesg += "<h2>Traceback:</23><pre>%s</pre>" % tb
+            mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
 
         try:
-            util.write_error(client, mesg, status_int=status_int, 
-                    reason=reason)
+            util.write_error(client, status_int, reason, mesg)
         except:
-            if self.debug:
-                self.log.warning("Unexpected error %s" % traceback.format_exc())
+            self.log.exception("Failed to send error message.")
         
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
