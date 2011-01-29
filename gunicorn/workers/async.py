@@ -46,7 +46,6 @@ class AsyncWorker(base.Worker):
                 else:
                     self.log.debug("Ignoring EPIPE")
         except Exception, e:
-            self.log.exception("General error processing request.")
             self.handle_error(client, e)
         finally:
             util.close(client)

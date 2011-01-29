@@ -76,7 +76,6 @@ class SyncWorker(base.Worker):
             else:
                 self.log.debug("Ignoring EPIPE")
         except Exception, e:
-            self.log.exception("Error processing request.")
             self.handle_error(client, e)
         finally:    
             util.close(client)
