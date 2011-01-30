@@ -77,9 +77,22 @@ def create(req, sock, client, server, cfg):
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
             forward = forward.rsplit(",", 1)[1].strip()
-        remote = forward.split(":")
-        if len(remote) < 2:
-            remote.append('80')
+
+        # find host and port on ipv6 address
+        if '[' in forward and ']' in forward:
+            host =  forward.split(']')[0][1:].lower()
+        elif ":" in forward:
+            host = forward.split(":")[0].lower()
+        else:
+            host = fowerd
+
+        forward = forward.split(']')[-1]
+        if ":" in forward:
+            port = forward.split(':', 1)[1]
+        else:
+            port = 80
+
+        remote = (host, port)
     else:
         remote = forward 
 
