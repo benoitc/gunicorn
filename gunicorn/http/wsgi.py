@@ -84,7 +84,7 @@ def create(req, sock, client, server, cfg):
         elif ":" in forward:
             host = forward.split(":")[0].lower()
         else:
-            host = fowerd
+            host = forward
 
         forward = forward.split(']')[-1]
         if ":" in forward:
