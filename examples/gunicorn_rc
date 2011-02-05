@@ -1,4 +1,4 @@
-#!/bin sh
+#!/bin/sh
 
 GUNICORN=/usr/local/bin/gunicorn
 ROOT=/path/to/project
