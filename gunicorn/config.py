@@ -179,6 +179,25 @@ def validate_bool(val):
     else:
         raise ValueError("Invalid boolean: %s" % val)
 
+def validate_key_value(val):
+    if val is None:
+        return None
+
+    if not isinstance(val, basestring):
+        raise TypeError("Not a string: %s" % val)
+
+    if not ':' in val:
+        raise ValueError("Invalid key/value string: [%s]" % val)
+
+    key, value = val.split(':')
+    key = key.strip()
+    value = value.strip()
+
+    if not (key and value):
+        raise ValueError("Invalid key/value string: [%s]" % val)
+
+    return (key, value)
+
 def validate_pos_int(val):
     if not isinstance(val, (types.IntType, types.LongType)):
         val = int(val, 0)
@@ -519,6 +538,30 @@ class TmpUploadDir(Setting):
         This path should be writable by the process permissions set for Gunicorn
         workers. If not specified, Gunicorn will choose a system generated
         temporary directory.
+        """
+
+class SecureSchemeHeader(Setting):
+    name = "secure_scheme_header"
+    section = "Server Mechanics"
+    cli = ["--secure-scheme-header"]
+    meta = "HEADER:VALUE"
+    validator = validate_key_value
+    default = None
+    desc = """\
+
+        The header and value that tells gunicorn to set wsgi.url_scheme to "https".
+
+        The format is header:value. White space will be trimmed. Examples:
+
+            X-Forwarded-Protocol: https
+            X-Forwarded-Proto: https
+            X-Forwarded-SSL: on
+            HTTPS: on
+
+        It is critical that your front-end proxy configuration ensures that
+        this header can not be passed directly from the client.
+
+        If not set, gunicorn will never consider a request secure.
         """
 
 class Logfile(Setting):
