@@ -179,6 +179,11 @@ def validate_bool(val):
     else:
         raise ValueError("Invalid boolean: %s" % val)
 
+def validate_dict(val):
+    if not isinstance(val, dict):
+        raise TypeError("Value is not a dictionary: %s " % val)
+    return val
+
 def validate_pos_int(val):
     if not isinstance(val, (types.IntType, types.LongType)):
         val = int(val, 0)
@@ -520,6 +525,30 @@ class TmpUploadDir(Setting):
         This path should be writable by the process permissions set for Gunicorn
         workers. If not specified, Gunicorn will choose a system generated
         temporary directory.
+        """
+
+class SecureSchemeHeader(Setting):
+    name = "secure_scheme_headers"
+    section = "Server Mechanics"
+    validator = validate_dict
+    default = {
+        "X-FORWARDED-PROTOCOL": "ssl",
+        "X-FORWARDED-SSL": "on"
+    }
+    desc = """\
+
+        A dictionary containing headers and values that the front-end proxy
+        uses to indicate HTTPS requests. These tell gunicorn to set
+        wsgi.url_scheme to "https", so your application can tell that the
+        request is secure.
+
+        The dictionary should map upper-case header names to exact string
+        values. The value comparisons are case-sensitive, unlike the header
+        names, so make sure they're exactly what your front-end proxy sends
+        when handling HTTPS requests.
+
+        It is important that your front-end proxy configuration ensures that
+        the headers defined here can not be passed directly from the client.
         """
 
 class Logfile(Setting):
