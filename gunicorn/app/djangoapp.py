@@ -72,7 +72,7 @@ class DjangoApplication(Application):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
-        # setup envoron
+        # setup environ
         self.setup_environ()
         return WSGIHandler()
 

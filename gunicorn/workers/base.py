@@ -116,7 +116,7 @@ class Worker(object):
         sys.exit(0)
 
     def handle_error(self, client, exc):
-        self.log.exception("Error hanlding request")
+        self.log.exception("Error handling request")
 
         status_int = 500
         reason = "Internal Server Error"
