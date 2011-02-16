@@ -81,9 +81,22 @@ def create(req, sock, client, server, cfg):
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
             forward = forward.rsplit(",", 1)[1].strip()
-        remote = forward.split(":")
-        if len(remote) < 2:
-            remote.append('80')
+
+        # find host and port on ipv6 address
+        if '[' in forward and ']' in forward:
+            host =  forward.split(']')[0][1:].lower()
+        elif ":" in forward:
+            host = forward.split(":")[0].lower()
+        else:
+            host = forward
+
+        forward = forward.split(']')[-1]
+        if ":" in forward:
+            port = forward.split(':', 1)[1]
+        else:
+            port = 80
+
+        remote = (host, port)
     else:
         remote = forward 
 
@@ -118,12 +131,21 @@ class Response(object):
         self.version = SERVER_SOFTWARE
         self.status = None
         self.chunked = False
-        self.should_close = req.should_close()
+        self.must_close = False
         self.headers = []
         self.headers_sent = False
+        self.clength = None
+        self.sent = 0
 
     def force_close(self):
-        self.should_close = True
+        self.must_close = True
+
+    def should_close(self):
+        if self.must_close or self.req.should_close():
+            return True
+        if self.clength is not None or self.chunked:
+            return False
+        return True
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
@@ -137,17 +159,17 @@ class Response(object):
 
         self.status = status
         self.process_headers(headers)
+        self.chunked = self.is_chunked()
         return self.write
 
     def process_headers(self, headers):
         for name, value in headers:
             assert isinstance(name, basestring), "%r is not a string" % name
-            if util.is_hoppish(name):
-                lname = name.lower().strip()
-                if lname == "transfer-encoding":
-                    if value.lower().strip() == "chunked":
-                        self.chunked = True
-                elif lname == "connection":
+            lname = name.lower().strip()
+            if lname == "content-length":
+                self.clength = int(value)
+            elif util.is_hoppish(name):
+                if lname == "connection":
                     # handle websocket
                     if value.lower().strip() != "upgrade":
                         continue
@@ -156,17 +178,31 @@ class Response(object):
                     continue
             self.headers.append((name.strip(), str(value).strip()))
 
+
+    def is_chunked(self):
+        # Only use chunked responses when the client is
+        # speaking HTTP/1.1 or newer and there was
+        # no Content-Length header set.
+        if self.clength is not None:
+            return False
+        elif self.req.version <= (1,0):
+            return False
+        return True
+
     def default_headers(self):
         connection = "keep-alive"
-        if self.should_close:
+        if self.should_close():
             connection = "close"
-
-        return [
-            "HTTP/1.1 %s\r\n" % self.status,
+        headers = [
+            "HTTP/%s.%s %s\r\n" % (self.req.version[0],
+                self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
         ]
+        if self.chunked:
+            headers.append("Transfer-Encoding: chunked\r\n")
+        return headers
 
     def send_headers(self):
         if self.headers_sent:
@@ -179,6 +215,19 @@ class Response(object):
     def write(self, arg):
         self.send_headers()
         assert isinstance(arg, basestring), "%r is not a string." % arg
+
+        arglen = len(arg)
+        tosend = arglen
+        if self.clength is not None:
+            if self.sent >= self.clength:
+                # Never write more than self.clength bytes
+                return
+
+            tosend = min(self.clength - self.sent, tosend)
+            if tosend < arglen:
+                arg = arg[:tosend]
+
+        self.sent += tosend
         util.write(self.sock, arg, self.chunked)
 
     def close(self):

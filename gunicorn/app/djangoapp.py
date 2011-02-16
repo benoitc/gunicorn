@@ -43,9 +43,6 @@ class DjangoApplication(Application):
         sys.path.insert(0, self.project_path)
         sys.path.append(os.path.join(self.project_path, os.pardir))
 
-        # setup envoron
-        self.setup_environ() 
-
     def setup_environ(self):
         from django.core.management import setup_environ
         try:
@@ -75,6 +72,8 @@ class DjangoApplication(Application):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
+        # setup environ
+        self.setup_environ()
         return WSGIHandler()
 
 class DjangoApplicationCommand(Application):

@@ -178,19 +178,18 @@ def writelines(sock, lines, chunked=False):
     for line in list(lines):
         write(sock, line, chunked)
 
-def write_error(sock, msg, status_int=500, 
-        reason="Internal Server Error"):
+def write_error(sock, status_int, reason, mesg):
     html = textwrap.dedent("""\
     <html>
-        <head>
-            <title>%(reason)s</title>
-        </head>
-        <body>
-            <h1>%(reason)s</h1>
-            %(msg)s
-        </body>
+      <head>
+        <title>%(reason)s</title>
+      </head>
+      <body>
+        <h1>%(reason)s</h1>
+        %(mesg)s
+      </body>
     </html>
-    """) % {"reason": reason, "msg": msg}
+    """) % {"reason": reason, "mesg": mesg}
 
     http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r

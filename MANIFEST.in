@@ -8,5 +8,3 @@ recursive-include examples *
 recursive-include doc *
 recursive-include debian *
 recursive-include examples/frameworks *
-recursive-include examples/pylonstest *
-recursive-include examples/djangotest *

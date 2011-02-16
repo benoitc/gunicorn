@@ -46,7 +46,6 @@ class AsyncWorker(base.Worker):
                 else:
                     self.log.debug("Ignoring EPIPE")
         except Exception, e:
-            self.log.exception("General error processing request.")
             self.handle_error(client, e)
         finally:
             util.close(client)
@@ -68,7 +67,7 @@ class AsyncWorker(base.Worker):
             resp.close()
             if hasattr(respiter, "close"):
                 respiter.close()
-            if req.should_close():
+            if resp.should_close():
                 raise StopIteration()
         except StopIteration:
             raise
