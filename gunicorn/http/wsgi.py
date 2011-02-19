@@ -82,7 +82,7 @@ def create(req, sock, client, server, cfg):
         if '[' in forward and ']' in forward:
             host =  forward.split(']')[0][1:].lower()
         # ipv6 address without port (apache sets this header)
-        elif forward.count(':') > 2:
+        elif forward.count(':') >= 2:
             host = forward
         elif ":" in forward:
             host = forward.split(":")[0].lower()
