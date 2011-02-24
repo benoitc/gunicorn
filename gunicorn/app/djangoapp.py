@@ -10,10 +10,11 @@ import traceback
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 
+ENVIRONMENT_VARIABLE = 'DJANGO_SETTINGS_MODULE'
+
 class DjangoApplication(Application):
     
     def init(self, parser, opts, args):
-        from django.conf import ENVIRONMENT_VARIABLE
         self.settings_modname = None
         self.project_path = os.getcwd()
         if args:
