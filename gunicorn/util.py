@@ -257,13 +257,13 @@ def daemonize():
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
     """
     if not 'GUNICORN_FD' in os.environ:
-        if os.fork() == 0: 
-            os.setsid()
-            if os.fork():
-                os._exit(0)
-        else:
+        if os.fork():
             os._exit(0)
-       
+        os.setsid()
+
+        if os.fork():
+            os._exit(0)
+        
         os.umask(0)
         maxfd = get_maxfd()
 
