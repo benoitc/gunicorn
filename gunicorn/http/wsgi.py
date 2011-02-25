@@ -81,13 +81,13 @@ def create(req, sock, client, server, cfg):
         # find host and port on ipv6 address
         if '[' in forward and ']' in forward:
             host =  forward.split(']')[0][1:].lower()
-        elif ":" in forward:
+        elif ":" in forward and forward.count(":") == 1:
             host = forward.split(":")[0].lower()
         else:
             host = forward
 
         forward = forward.split(']')[-1]
-        if ":" in forward:
+        if ":" in forward and forward.count(":") == 1:
             port = forward.split(':', 1)[1]
         else:
             port = 80
