@@ -7,6 +7,8 @@ import os
 import sys
 import traceback
 
+from StringIO import StringIO
+
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 
@@ -69,12 +71,26 @@ class DjangoApplication(Application):
         sys.stderr.flush()
         sys.exit(1)
         
+    def validate(self):
+        # Validate models. This also ensures that all models are imported in
+        # case of import-time side effects.
+        from django.core.management.base import CommandError
+        from django.core.management.validation import get_validation_errors
+        s = StringIO()
+        if get_validation_errors(s):
+            s.seek(0)
+            error = s.read()
+            sys.stderr.write("One or more models did not validate:\n%s" % error)
+            sys.stderr.flush()
+            sys.exit(1)
+
     def load(self):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
         # setup environ
         self.setup_environ()
+        self.validate()
         return WSGIHandler()
 
 class DjangoApplicationCommand(Application):
