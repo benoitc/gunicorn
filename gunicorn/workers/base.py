@@ -131,11 +131,11 @@ class Worker(object):
             if isinstance(exc, InvalidRequestLine):
                 mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method'%s'</p>" % str(exc)
+                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header'%s'</p>" % str(exc)
+                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
             
         if self.debug:
             tb =  traceback.format_exc()
