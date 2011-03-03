@@ -144,7 +144,7 @@ class Worker(object):
         try:
             util.write_error(client, status_int, reason, mesg)
         except:
-            self.log.exception("Failed to send error message.")
+            self.log.warning("Failed to send error message.")
         
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
