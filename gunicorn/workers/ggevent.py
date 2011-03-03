@@ -51,9 +51,6 @@ class GGeventServer(StreamServer):
 
 class GeventWorker(AsyncWorker):
 
-    def __init__(self, *args, **kwargs):
-        super(GeventWorker, self).__init__(*args, **kwargs)
-
     @classmethod  
     def setup(cls):
         from gevent import monkey
