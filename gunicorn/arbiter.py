@@ -120,6 +120,9 @@ class Arbiter(object):
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)" % (self.LISTENER,
             self.pid))
+        self.log.info("Using worker: %s" %
+                self.cfg.settings['worker_class'].get())
+
         self.cfg.when_ready(self)
     
     def init_signals(self):
