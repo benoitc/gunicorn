@@ -125,7 +125,7 @@ class DjangoApplicationCommand(Application):
                 traceback.print_exc()
                 sys.exit(1)
         
-            for k, v in list(cfg.items()):
+            for k, v in cfg.items():
                 # Ignore unknown names
                 if k not in self.cfg.settings:
                     continue
@@ -135,7 +135,7 @@ class DjangoApplicationCommand(Application):
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
         
-        for k, v in list(self.options.items()):
+        for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
         

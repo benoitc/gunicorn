@@ -373,7 +373,7 @@ class Arbiter(object):
         """\
         Kill unused/idle workers
         """
-        for (pid, worker) in list(self.WORKERS.items()):
+        for (pid, worker) in self.WORKERS.items():
             try:
                 diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
                 if diff <= self.timeout:

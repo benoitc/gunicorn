@@ -110,12 +110,12 @@ class PasterServerApplication(PasterBaseApplication):
         cfg["bind"] = bind
 
         if gcfg:
-            for k, v in list(gcfg.items()):
+            for k, v in gcfg.items():
                 cfg[k] = v
             cfg["default_proc_name"] = cfg['__file__']
 
         try:
-            for k, v in list(cfg.items()):
+            for k, v in cfg.items():
                 if k.lower() in self.cfg.settings and v is not None:
                     self.cfg.set(k.lower(), v)
         except Exception, e:
