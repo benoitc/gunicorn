@@ -83,7 +83,7 @@ class Worker(object):
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # Reseed the random number generator
-        random.seed()
+        random.seed(os.urandom(64))
 
         # For waking ourselves up
         self.PIPE = os.pipe()
