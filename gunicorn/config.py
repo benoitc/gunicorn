@@ -703,3 +703,19 @@ class WorkerExit(Setting):
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
         """
+
+class OnStarting(Setting):
+    name = "on_starting"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def def_on_starting(server):
+        pass
+    def_on_starting = staticmethod(def_on_starting)
+    default = def_on_starting
+    desc = """\
+        Called just before the master process is initialized.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
