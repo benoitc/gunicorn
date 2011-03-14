@@ -109,6 +109,7 @@ class Arbiter(object):
         """\
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
+        self.cfg.pre_start(self)
         self.pid = os.getpid()
         self.init_signals()
         if not self.LISTENER:

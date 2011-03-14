@@ -3,6 +3,11 @@ import os
 import signal
 import sys
 
+def pre_start(server):
+    # use server hook to patch socket to allow worker reloading
+    from gevent import monkey
+    monkey.patch_socket()
+
 def when_ready(server):
     def monitor():
         modify_times = {}
