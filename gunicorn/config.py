@@ -704,15 +704,15 @@ class WorkerExit(Setting):
         the just-exited Worker.
         """
 
-class PreStart(Setting):
-    name = "pre_start"
+class OnStart(Setting):
+    name = "on_start"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    def def_pre_start(server):
+    def def_on_start(server):
         pass
-    def_pre_start = staticmethod(def_pre_start)
-    default = def_pre_start
+    def_on_start = staticmethod(def_on_start)
+    default = def_on_start
     desc = """\
         Called just before the master process is initialized.
         
