@@ -12,9 +12,29 @@ from urllib import unquote
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
+try:
+    # Python 3.3 has os.sendfile().
+    from os import sendfile
+except:
+    from sendfile import sendfile
+
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
+
+class FileWrapper:
+
+    def __init__(self, filelike, blksize=8192):
+        self.filelike = filelike
+        self.blksize = blksize
+        if hasattr(filelike, 'close'):
+            self.close = filelike.close
+
+    def __getitem__(self, key):
+        data = self.filelike.read(self.blksize)
+        if data:
+            return data
+        raise IndexError
 
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
@@ -26,6 +46,7 @@ def create(req, sock, client, server, cfg):
         "wsgi.multithread": False,
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
+        "wsgi.file_wrapper": FileWrapper,
         "gunicorn.socket": sock,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
         "REQUEST_METHOD": req.method,
@@ -225,6 +246,54 @@ class Response(object):
 
         self.sent += tosend
         util.write(self.sock, arg, self.chunked)
+
+    def sendfile_all(self, fileno, sockno, offset, nbytes):
+        # Send file in at most 1GB blocks as some operating
+        # systems can have problems with sending files in blocks
+        # over 2GB.
+
+        BLKSIZE = 0x3FFFFFFF
+
+        if nbytes > BLKSIZE:
+            for m in range(0, nbytes, BLKSIZE):
+                self.sendfile_all(fileno, sockno, offset, min(nbytes, BLKSIZE))
+                offset += BLKSIZE
+                nbytes -= BLKSIZE
+        else:
+            sent = 0
+            sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+            while sent != nbytes:
+                sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+
+    def write_file(self, respiter):
+        if sendfile and hasattr(respiter.filelike, 'fileno') and \
+               hasattr(respiter.filelike, 'tell'):
+
+            fileno = respiter.filelike.fileno()
+            fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
+            fo_offset = respiter.filelike.tell()
+            nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
+
+            if self.clength:
+                nbytes = min(nbytes, self.clength)
+
+            if nbytes == 0:
+                return
+
+            self.send_headers()
+
+            if self.is_chunked():
+                self.sock.sendall("%X\r\n" % nbytes)
+
+            self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
+
+            if self.is_chunked():
+                self.sock.sendall("\r\n")
+
+            os.lseek(fileno, fd_offset, os.SEEK_SET)
+        else:
+            for item in respiter:
+                self.write(item)
 
     def close(self):
         if not self.headers_sent:
