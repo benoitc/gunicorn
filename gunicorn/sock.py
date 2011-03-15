@@ -32,6 +32,10 @@ class BaseSocket(object):
         return getattr(self.sock, name)
     
     def set_options(self, sock, bound=False):
+        # set user sockopts
+        for (option, val) in self.conf.socket_options:
+            sock.setsockopt(socket.SOL_SOCKET, option, val)
+
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if not bound:
             self.bind(sock)

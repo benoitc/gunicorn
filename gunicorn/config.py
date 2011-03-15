@@ -233,6 +233,14 @@ def validate_group(val):
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
 
+def validate_sequence(val):
+    if val is None:
+        return None
+    if isinstance(val, (tuple, list)):
+        return val
+    else:
+        raise ValueError("Invalid sequence: %s" % val)
+
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
@@ -717,5 +725,17 @@ class OnStarting(Setting):
         Called just before the master process is initialized.
         
         The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+class SocketOptions(Setting):
+    name = "socket_options"
+    section = "Server Socket"
+    validator = validate_sequence
+    default = tuple()
+    desc = """\
+        A tuple of socket option/value pairs to apply to the server socket.
+        
+        A tuple of the form:
+            ((socket.TCP_NODELAY, 1), (socket.SO_SNDBUF, 65536)).
         """
 
