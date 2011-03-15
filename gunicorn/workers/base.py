@@ -6,7 +6,6 @@
 
 import logging
 import os
-import random
 import signal
 import sys
 import traceback
@@ -83,7 +82,7 @@ class Worker(object):
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # Reseed the random number generator
-        random.seed()
+        util.seed()
 
         # For waking ourselves up
         self.PIPE = os.pipe()

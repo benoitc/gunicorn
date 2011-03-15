@@ -14,6 +14,7 @@ except MemoryError:
 import fcntl
 import os
 import pkg_resources
+import random
 import resource
 import socket
 import sys
@@ -287,3 +288,9 @@ def daemonize():
         os.open(REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
+
+def seed():
+    try:
+        random.seed(os.urandom(64))
+    except NotImplementedError:
+        random.seed(random.random())
