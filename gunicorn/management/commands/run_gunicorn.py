@@ -76,7 +76,7 @@ class Command(BaseCommand):
         self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(), 
                                             settings.SETTINGS_MODULE)
-        print "Development server is running at %s" % options['bind']
+        print "Server is running"
         print "Quit the server with %s." % quit_command
  
         # django.core.management.base forces the locale to en-us.
