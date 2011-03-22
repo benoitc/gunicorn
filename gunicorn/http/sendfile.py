@@ -3,16 +3,22 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import ctypes
-import ctypes.util
 import errno
 import os
 import sys
 
-if sys.version_info >= (2, 6):
-    _libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-    _sendfile = _libc.sendfile
-else:
+# Python on Solaris compiled with Sun Studio doesn't have ctypes.
+try:
+    import ctypes
+    import ctypes.util
+
+    if sys.version_info >= (2, 6):
+        _libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+        _sendfile = _libc.sendfile
+    else:
+        _sendfile = None
+
+except ImportError:
     _sendfile = None
 
 if _sendfile:

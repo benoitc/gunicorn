@@ -10,6 +10,9 @@ except MemoryError:
     # selinux execmem denial
     # https://bugzilla.redhat.com/show_bug.cgi?id=488396
     ctypes = None
+except ImportError:
+    # Python on Solaris compiled with Sun Studio doesn't have ctypes
+    ctypes = None
 
 import fcntl
 import os
