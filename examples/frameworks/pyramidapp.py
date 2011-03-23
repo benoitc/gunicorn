@@ -1,7 +1,5 @@
-
 from pyramid.config import Configurator
 from pyramid.response import Response
-from paste.httpserver import serve
 
 def hello_world(request):
     return Response('Hello world!')

@@ -28,6 +28,18 @@
       <div id="content">
       <div class="document">
 <div class="section" id="id1">
+<h2><a class="toc-backref" href="#contents">0.12.1 / 2011-03-23</a></h2>
+<ul class="simple">
+<li>Add &quot;on_starting&quot; hook. This hook can be used to set anything before
+the arbiter really start</li>
+<li>Support bdist_rpm in setup</li>
+<li>Improve content-length handling (pep 3333)</li>
+<li>Improve Django support</li>
+<li>Fix daemonizing (#142)</li>
+<li>Fix ipv6 handling</li>
+</ul>
+</div>
+<div class="section" id="id2">
 <h2><a class="toc-backref" href="#contents">0.12.0 / 2010-12-22</a></h2>
 <ul class="simple">
 <li>Add support for logging configuration using a ini file.
@@ -45,7 +57,7 @@ it and use it.</li>
 <li>Set the number of workers to zero on WINCH</li>
 </ul>
 </div>
-<div class="section" id="id2">
+<div class="section" id="id3">
 <h2><a class="toc-backref" href="#contents">0.11.2 / 2010-10-30</a></h2>
 <ul class="simple">
 <li>Add SERVER_SOFTWARE to the os.environ</li>
@@ -58,7 +70,7 @@ it and use it.</li>
 <li>Fix readline in wsgi.input</li>
 </ul>
 </div>
-<div class="section" id="id3">
+<div class="section" id="id4">
 <h2><a class="toc-backref" href="#contents">0.11.1 / 2010-09-02</a></h2>
 <ul class="simple">
 <li>Implement max-requests feature to prevent memory leaks.</li>
@@ -70,7 +82,7 @@ it and use it.</li>
 <li>Workaround to prevent Gevent worker to segfault on MacOSX.</li>
 </ul>
 </div>
-<div class="section" id="id4">
+<div class="section" id="id5">
 <h2><a class="toc-backref" href="#contents">0.11.0 / 2010-08-12</a></h2>
 <ul class="simple">
 <li>Improve dramatically performances of Gevent and Eventlet workers</li>
@@ -79,7 +91,7 @@ it and use it.</li>
 <li>Fix latency issue in async workers</li>
 </ul>
 </div>
-<div class="section" id="id5">
+<div class="section" id="id6">
 <h2><a class="toc-backref" href="#contents">0.10.1 / 2010-08-06</a></h2>
 <ul class="simple">
 <li>Improve gevent's workers. Add &quot;egg:gunicorn#gevent_wsgi&quot; worker using
@@ -93,7 +105,7 @@ need really fast connections and don't need streaming, keepalive or ssl.</li>
 <li>Fix gevent dns issue</li>
 </ul>
 </div>
-<div class="section" id="id6">
+<div class="section" id="id7">
 <h2><a class="toc-backref" href="#contents">0.10.0 / 2010-07-08</a></h2>
 <ul class="simple">
 <li>New HTTP parser.</li>
@@ -113,7 +125,7 @@ the preload flag can help a bit in small memory VM's.</li>
 <li>New documentation website.</li>
 </ul>
 </div>
-<div class="section" id="id7">
+<div class="section" id="id8">
 <h2><a class="toc-backref" href="#contents">0.9.1 / 2010-05-26</a></h2>
 <ul class="simple">
 <li>Support https via X-Forwarded-Protocol or X-Forwarded-Ssl headers</li>
@@ -122,7 +134,7 @@ the preload flag can help a bit in small memory VM's.</li>
 <li>Fix umask in unix socket</li>
 </ul>
 </div>
-<div class="section" id="id8">
+<div class="section" id="id9">
 <h2><a class="toc-backref" href="#contents">0.9.0 / 2010-05-24</a></h2>
 <ul class="simple">
 <li>Added <em>when_ready</em> hook. Called just after the server is started</li>
@@ -135,7 +147,7 @@ are forked.</li>
 <li>Documentation improvements</li>
 </ul>
 </div>
-<div class="section" id="id9">
+<div class="section" id="id10">
 <h2><a class="toc-backref" href="#contents">0.8.1 / 2010-04-29</a></h2>
 <ul class="simple">
 <li>Fix builtins import in config</li>
@@ -144,7 +156,7 @@ are forked.</li>
 <li>Delay application loading until after processing all configuration</li>
 </ul>
 </div>
-<div class="section" id="id10">
+<div class="section" id="id11">
 <h2><a class="toc-backref" href="#contents">0.8.0 / 2010-04-22</a></h2>
 <ul class="simple">
 <li>Refactored Worker management for better async support. Now use the -k option
@@ -152,7 +164,7 @@ to set the type of request processing to use</li>
 <li>Added support for <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a></li>
 </ul>
 </div>
-<div class="section" id="id11">
+<div class="section" id="id12">
 <h2><a class="toc-backref" href="#contents">0.7.2 / 2010-04-15</a></h2>
 <ul class="simple">
 <li>Added --spew option to help debugging (installs a system trace hook)</li>
@@ -160,13 +172,13 @@ to set the type of request processing to use</li>
 <li>Fix a bug in start_response on error</li>
 </ul>
 </div>
-<div class="section" id="id12">
+<div class="section" id="id13">
 <h2><a class="toc-backref" href="#contents">0.7.1 / 2010-04-01</a></h2>
 <ul class="simple">
 <li>Fix bug when responses have no body.</li>
 </ul>
 </div>
-<div class="section" id="id13">
+<div class="section" id="id14">
 <h2><a class="toc-backref" href="#contents">0.7.0 / 2010-03-26</a></h2>
 <ul class="simple">
 <li>Added support for <a class="reference external" href="http://eventlet.net">Eventlet</a> and <a class="reference external" href="http://gevent.org">Gevent</a> based workers.</li>
@@ -176,28 +188,28 @@ to set the type of request processing to use</li>
 <li>Fix <a class="reference external" href="http://www.python.org/dev/peps/pep-0333/">PEP 333</a> compliance for the write callable.</li>
 </ul>
 </div>
-<div class="section" id="id14">
+<div class="section" id="id15">
 <h2><a class="toc-backref" href="#contents">0.6.5 / 2010-03-11</a></h2>
 <ul class="simple">
 <li>Fix pidfile handling</li>
 <li>Fix Exception Error</li>
 </ul>
 </div>
-<div class="section" id="id15">
+<div class="section" id="id16">
 <h2><a class="toc-backref" href="#contents">0.6.4 / 2010-03-08</a></h2>
 <ul class="simple">
 <li>Use cStringIO for performance when possible.</li>
 <li>Fix worker freeze when a remote connection closes unexpectedly.</li>
 </ul>
 </div>
-<div class="section" id="id16">
+<div class="section" id="id17">
 <h2><a class="toc-backref" href="#contents">0.6.3 / 2010-03-07</a></h2>
 <ul class="simple">
 <li>Make HTTP parsing faster.</li>
 <li>Various bug fixes</li>
 </ul>
 </div>
-<div class="section" id="id17">
+<div class="section" id="id18">
 <h2><a class="toc-backref" href="#contents">0.6.2 / 2010-03-01</a></h2>
 <ul class="simple">
 <li>Added support for chunked response.</li>
@@ -208,7 +220,7 @@ temporary data.</li>
 <li>Workers are now murdered by age (the oldest is killed first).</li>
 </ul>
 </div>
-<div class="section" id="id18">
+<div class="section" id="id19">
 <h2><a class="toc-backref" href="#contents">0.6.1 / 2010-02-24</a></h2>
 <ul class="simple">
 <li>Added gunicorn config file support for Django admin command</li>
@@ -216,7 +228,7 @@ temporary data.</li>
 <li>Removed TTIN/TTOU from workers which blocked other signals.</li>
 </ul>
 </div>
-<div class="section" id="id19">
+<div class="section" id="id20">
 <h2><a class="toc-backref" href="#contents">0.6 / 2010-02-22</a></h2>
 <ul class="simple">
 <li>Added setproctitle support</li>
@@ -224,14 +236,14 @@ temporary data.</li>
 permissions, new uid/gid permissions are only set for workers.</li>
 </ul>
 </div>
-<div class="section" id="id20">
+<div class="section" id="id21">
 <h2><a class="toc-backref" href="#contents">0.5.1 / 2010-02-22</a></h2>
 <ul class="simple">
 <li>Fix umask</li>
 <li>Added Debian packaging</li>
 </ul>
 </div>
-<div class="section" id="id21">
+<div class="section" id="id22">
 <h2><a class="toc-backref" href="#contents">0.5 / 2010-02-20</a></h2>
 <ul class="simple">
 <li>Added <a class="reference external" href="configuration.html">configuration file</a> handler.</li>
@@ -253,27 +265,28 @@ permissions, new uid/gid permissions are only set for workers.</li>
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#id1" id="id22">0.12.0 / 2010-12-22</a></li>
-<li><a class="reference internal" href="#id2" id="id23">0.11.2 / 2010-10-30</a></li>
-<li><a class="reference internal" href="#id3" id="id24">0.11.1 / 2010-09-02</a></li>
-<li><a class="reference internal" href="#id4" id="id25">0.11.0 / 2010-08-12</a></li>
-<li><a class="reference internal" href="#id5" id="id26">0.10.1 / 2010-08-06</a></li>
-<li><a class="reference internal" href="#id6" id="id27">0.10.0 / 2010-07-08</a></li>
-<li><a class="reference internal" href="#id7" id="id28">0.9.1 / 2010-05-26</a></li>
-<li><a class="reference internal" href="#id8" id="id29">0.9.0 / 2010-05-24</a></li>
-<li><a class="reference internal" href="#id9" id="id30">0.8.1 / 2010-04-29</a></li>
-<li><a class="reference internal" href="#id10" id="id31">0.8.0 / 2010-04-22</a></li>
-<li><a class="reference internal" href="#id11" id="id32">0.7.2 / 2010-04-15</a></li>
-<li><a class="reference internal" href="#id12" id="id33">0.7.1 / 2010-04-01</a></li>
-<li><a class="reference internal" href="#id13" id="id34">0.7.0 / 2010-03-26</a></li>
-<li><a class="reference internal" href="#id14" id="id35">0.6.5 / 2010-03-11</a></li>
-<li><a class="reference internal" href="#id15" id="id36">0.6.4 / 2010-03-08</a></li>
-<li><a class="reference internal" href="#id16" id="id37">0.6.3 / 2010-03-07</a></li>
-<li><a class="reference internal" href="#id17" id="id38">0.6.2 / 2010-03-01</a></li>
-<li><a class="reference internal" href="#id18" id="id39">0.6.1 / 2010-02-24</a></li>
-<li><a class="reference internal" href="#id19" id="id40">0.6 / 2010-02-22</a></li>
-<li><a class="reference internal" href="#id20" id="id41">0.5.1 / 2010-02-22</a></li>
-<li><a class="reference internal" href="#id21" id="id42">0.5 / 2010-02-20</a></li>
+<li><a class="reference internal" href="#id1" id="id23">0.12.1 / 2011-03-23</a></li>
+<li><a class="reference internal" href="#id2" id="id24">0.12.0 / 2010-12-22</a></li>
+<li><a class="reference internal" href="#id3" id="id25">0.11.2 / 2010-10-30</a></li>
+<li><a class="reference internal" href="#id4" id="id26">0.11.1 / 2010-09-02</a></li>
+<li><a class="reference internal" href="#id5" id="id27">0.11.0 / 2010-08-12</a></li>
+<li><a class="reference internal" href="#id6" id="id28">0.10.1 / 2010-08-06</a></li>
+<li><a class="reference internal" href="#id7" id="id29">0.10.0 / 2010-07-08</a></li>
+<li><a class="reference internal" href="#id8" id="id30">0.9.1 / 2010-05-26</a></li>
+<li><a class="reference internal" href="#id9" id="id31">0.9.0 / 2010-05-24</a></li>
+<li><a class="reference internal" href="#id10" id="id32">0.8.1 / 2010-04-29</a></li>
+<li><a class="reference internal" href="#id11" id="id33">0.8.0 / 2010-04-22</a></li>
+<li><a class="reference internal" href="#id12" id="id34">0.7.2 / 2010-04-15</a></li>
+<li><a class="reference internal" href="#id13" id="id35">0.7.1 / 2010-04-01</a></li>
+<li><a class="reference internal" href="#id14" id="id36">0.7.0 / 2010-03-26</a></li>
+<li><a class="reference internal" href="#id15" id="id37">0.6.5 / 2010-03-11</a></li>
+<li><a class="reference internal" href="#id16" id="id38">0.6.4 / 2010-03-08</a></li>
+<li><a class="reference internal" href="#id17" id="id39">0.6.3 / 2010-03-07</a></li>
+<li><a class="reference internal" href="#id18" id="id40">0.6.2 / 2010-03-01</a></li>
+<li><a class="reference internal" href="#id19" id="id41">0.6.1 / 2010-02-24</a></li>
+<li><a class="reference internal" href="#id20" id="id42">0.6 / 2010-02-22</a></li>
+<li><a class="reference internal" href="#id21" id="id43">0.5.1 / 2010-02-22</a></li>
+<li><a class="reference internal" href="#id22" id="id44">0.5 / 2010-02-20</a></li>
 </ul>
 </div>
       </div>
