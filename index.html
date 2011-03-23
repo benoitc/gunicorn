@@ -78,19 +78,15 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.12.0 - 2010-12-22</h3>
+        <h3>Version 0.12.1 - 2011-03-23</h3>
         <ul>
-            <li>Add support for logging configuration using a ini file.</li>
-            <li>Add IPV6 support</li>
-            <li>Add multidomain application example</li>
-            <li>Improve gunicorn_django command when importing settings
-            module using <code>DJANGO_SETTINGS_MODULE</code> environment variable</li>
-            <li>Send appropriate error status on http parsing</li>
-            <li>Fix pidfile, set permissions so other user can read it and use it</li>
-            <li>Fix temporary file leaking</li>
-            <li>Fix setpgrp issue, can now be launched via ubuntu
-            upstart</li>
-            <li>Set the number of workers to zero on WINCH</li>
+            <li>Add "on_starting" hook. This hook can be used to set
+            anything before the arbiter really start</li>
+            <li>Support bdist_rpm in setup</li>
+            <li>Improve content-length handling (pep 3333)</li>
+            <li>Improve Django support</li>
+            <li>Fix daemonizing (#142)</li>
+            <li>Fix ipv6 handling</li>
         </ul>
       </div> 
       <div id="footer">
