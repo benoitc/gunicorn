@@ -132,7 +132,7 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         if self.PIPE:
-            map(lambda p: os.close(p), self.PIPE)
+            map(os.close, self.PIPE)
         self.PIPE = pair = os.pipe()
         map(util.set_non_blocking, pair)
         map(util.close_on_exec, pair)
