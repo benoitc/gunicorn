@@ -208,6 +208,10 @@ class Response(object):
             return False
         elif self.req.version <= (1,0):
             return False
+        elif self.status.startswith("304"):
+            # Do not use chunked responses when the response is guaranteed to
+            # not have a response body.
+            return False
         return True
 
     def default_headers(self):
