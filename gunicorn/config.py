@@ -494,7 +494,7 @@ class Umask(Setting):
     meta = "INT"
     validator = validate_pos_int
     type = "int"
-    default = 0
+    default = None
     desc = """\
         A bit mask for the file mode on files written by Gunicorn.
         
