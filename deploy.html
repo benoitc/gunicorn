@@ -70,14 +70,16 @@ http {
         root /path/to/app/current/public;
 
         location / {
+            # checks for static file, if not found proxy to app
+            try_files $uri &#64;proxy_to_app;
+        }
+
+        location &#64;proxy_to_app {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $http_host;
             proxy_redirect off;
 
-            if (!-f $request_filename) {
-                proxy_pass http://app_server;
-                break;
-            }
+            proxy_pass   http://app_server;
         }
 
         error_page 500 502 503 504 /500.html;
@@ -152,7 +154,7 @@ APP=main:application
 if [ -f $PID ]; then rm $PID fi
 
 cd $ROOT
-exec $GUNICORN -c $ROOT/gunicorn.conf.py --pidfile=$PID $APP
+exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
 </pre>
 </div>
 <div class="section" id="supervisor">
