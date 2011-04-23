@@ -22,7 +22,7 @@ Gunicorn users.
     `user@gunicorn.org <mailto:user@gunicorn.org>`_
 
 The archive for this list can also be `browsed online
-<http://lists.gunicorn.org/users>`_ .
+<http://lists.gunicorn.org/user>`_ .
 
 Irc
 ===
