@@ -20,6 +20,7 @@
           <li><a href="deploy.html">Deploy</a></li>
           <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
+          <li><a href="community.html">Community</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/issues">Issues</a></li>
@@ -481,6 +482,18 @@ def def_worker_exit(server, worker):
 <p>The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.</p>
 </div>
+<div class="section" id="on-starting">
+<h4><a class="toc-backref" href="#contents">on_starting</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def def_on_starting(server):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just before the master process is initialized.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
 </div>
 </div>
 </div>
@@ -549,6 +562,7 @@ the just-exited Worker.</p>
 <li><a class="reference internal" href="#pre-request" id="id42">pre_request</a></li>
 <li><a class="reference internal" href="#post-request" id="id43">post_request</a></li>
 <li><a class="reference internal" href="#worker-exit" id="id44">worker_exit</a></li>
+<li><a class="reference internal" href="#on-starting" id="id45">on_starting</a></li>
 </ul>
 </li>
 </ul>
