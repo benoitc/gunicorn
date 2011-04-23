@@ -21,7 +21,7 @@ Gunicorn users.
   * Finally, to post a message to the list use the address to
     `user@gunicorn.org <mailto:user@gunicorn.org>`_
 
-The archives for this lists can also be `browsed online
+The archive for this list can also be `browsed online
 <http://lists.gunicorn.org/users>`_ .
 
 Irc
