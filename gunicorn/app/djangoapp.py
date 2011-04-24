@@ -62,12 +62,17 @@ class DjangoApplication(Application):
 
     def no_settings(self, path, import_error=False):
         if import_error:
-            error = "Error: Can't find the settings in your PYTHONPATH"
+            error = "Error: Can't find '%s' in your PYTHONPATH.\n" % path
         else:
             error = "Settings file '%s' not found in current folder.\n" % path
         sys.stderr.write(error)
         sys.stderr.flush()
         sys.exit(1)
+
+    def activate_translation(self):
+        from django.conf import settings
+        from django.utils import translation
+        translation.activate(settings.LANGUAGE_CODE)
         
     def validate(self):
         """ Validate models. This also ensures that all models are 
@@ -90,13 +95,15 @@ class DjangoApplication(Application):
     def load(self):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
+                
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
         # setup environ
         self.setup_environ()
         self.validate()
+        self.activate_translation()
         return WSGIHandler()
 
-class DjangoApplicationCommand(Application):
+class DjangoApplicationCommand(DjangoApplication):
     
     def __init__(self, options, admin_media_path):
         self.usage = None
@@ -105,6 +112,9 @@ class DjangoApplicationCommand(Application):
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
+        self.settings_modname = os.environ[ENVIRONMENT_VARIABLE]
+        self.project_path = os.getcwd()
+
         self.do_load_config()
 
     def load_config(self):
@@ -138,10 +148,30 @@ class DjangoApplicationCommand(Application):
         for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
+       
+    def setup_environ(self):
+        for modname in sys.modules.keys():
+            if modname.startswith('django') or \
+                    'settings' in modname.split('.'):
+                del sys.modules[modname]
+
+        # add the project path to sys.path
+        sys.path.insert(0, self.project_path)
+        sys.path.append(os.path.join(self.project_path, os.pardir))
+
         
+        super(DjangoApplicationCommand, self).setup_environ()
+
+
     def load(self):
+        # setup environ
+        self.setup_environ()
+        self.validate()
+        self.activate_translation()
+
         from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
         from django.core.handlers.wsgi import WSGIHandler
+
         try:
             return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
