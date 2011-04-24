@@ -42,7 +42,8 @@ class DjangoApplication(Application):
 
         # add the project path to sys.path
         sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.join(self.project_path, os.pardir))
+        sys.path.append(os.path.normpath(os.path.join(self.project_path,
+            os.pardir)))
 
     def setup_environ(self):
         from django.core.management import setup_environ
@@ -157,11 +158,9 @@ class DjangoApplicationCommand(DjangoApplication):
 
         # add the project path to sys.path
         sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.join(self.project_path, os.pardir))
-
-        
+        sys.path.append(os.path.normpath(os.path.join(self.project_path,
+            os.pardir)))
         super(DjangoApplicationCommand, self).setup_environ()
-
 
     def load(self):
         # setup environ
