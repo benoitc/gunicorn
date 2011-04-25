@@ -81,15 +81,20 @@ you start Gunicorn (including when you signal Gunicorn to reload).</p>
 you provide will be used for the configuration values.</p>
 <p>For instance:</p>
 <pre class="literal-block">
+import multiprocessing
+
+bind = &quot;127.0.0.1:8000&quot;
+workers = multiprocessing.cpu_count() * 2 + 1
+</pre>
+<p>On a side note, Python's older than 2.6 can use sysconf to get the
+number of processors:</p>
+<pre class="literal-block">
 import os
 
 def numCPUs():
     if not hasattr(os, &quot;sysconf&quot;):
         raise RuntimeError(&quot;No sysconf detected.&quot;)
     return os.sysconf(&quot;SC_NPROCESSORS_ONLN&quot;)
-
-bind = &quot;127.0.0.1:8000&quot;
-workers = numCPUs() * 2 + 1
 </pre>
 </div>
 <div class="section" id="command-line">
@@ -288,7 +293,7 @@ background.</p>
 <h4><a class="toc-backref" href="#contents">user</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-u</span> USER, <span class="pre">--user</span> USER</tt></li>
-<li><tt class="docutils literal">501</tt></li>
+<li><tt class="docutils literal">1744020413</tt></li>
 </ul>
 <p>Switch worker processes to run as this user.</p>
 <p>A valid user id (as an integer) or the name of a user that can be
@@ -299,7 +304,7 @@ the worker process user.</p>
 <h4><a class="toc-backref" href="#contents">group</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-g</span> GROUP, <span class="pre">--group</span> GROUP</tt></li>
-<li><tt class="docutils literal">20</tt></li>
+<li><tt class="docutils literal">2093627230</tt></li>
 </ul>
 <p>Switch worker process to run as this group.</p>
 <p>A valid group id (as an integer) or the name of a user that can be
