@@ -81,15 +81,10 @@ you start Gunicorn (including when you signal Gunicorn to reload).</p>
 you provide will be used for the configuration values.</p>
 <p>For instance:</p>
 <pre class="literal-block">
-import os
-
-def numCPUs():
-    if not hasattr(os, &quot;sysconf&quot;):
-        raise RuntimeError(&quot;No sysconf detected.&quot;)
-    return os.sysconf(&quot;SC_NPROCESSORS_ONLN&quot;)
+import multiprocessing
 
 bind = &quot;127.0.0.1:8000&quot;
-workers = numCPUs() * 2 + 1
+workers = multiprocessing.cpu_count() * 2 + 1
 </pre>
 </div>
 <div class="section" id="command-line">
