@@ -97,7 +97,7 @@ class Arbiter(object):
         if self.cfg.debug:
             self.log.debug("Current configuration:")
             for config, value in sorted(self.cfg.settings.iteritems()):
-                self.log.debug("  %s: %s", (config, value.value))
+                self.log.debug("  %s: %s", config, value.value)
         
         if self.cfg.preload_app:
             if not self.cfg.debug:
@@ -119,8 +119,8 @@ class Arbiter(object):
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.log.debug("Arbiter booted")
-        self.log.info("Listening at: %s (%s)", (self.LISTENER,
-            self.pid))
+        self.log.info("Listening at: %s (%s)", self.LISTENER,
+            self.pid)
         self.log.info("Using worker: %s",
                 self.cfg.settings['worker_class'].get())
 

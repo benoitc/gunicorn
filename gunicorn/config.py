@@ -662,7 +662,7 @@ class PreRequest(Setting):
     validator = validate_callable(2)
     type = "callable"
     def def_pre_request(worker, req):
-        worker.log.debug("%s %s", (req.method, req.path))
+        worker.log.debug("%s %s", req.method, req.path)
     def_pre_request = staticmethod(def_pre_request)
     default = def_pre_request
     desc = """\
