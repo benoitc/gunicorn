@@ -46,7 +46,7 @@ class BaseSocket(object):
         try:
             self.sock.close()
         except socket.error, e:
-            log.info("Error while closing socket %s" % str(e))
+            log.info("Error while closing socket %s", str(e))
         time.sleep(0.3)
         del self.sock
 
@@ -133,13 +133,13 @@ def create_socket(conf):
             return sock_type(conf)
         except socket.error, e:
             if e[0] == errno.EADDRINUSE:
-                log.error("Connection in use: %s" % str(addr))
+                log.error("Connection in use: %s", str(addr))
             if e[0] == errno.EADDRNOTAVAIL:
-                log.error("Invalid address: %s" % str(addr))
+                log.error("Invalid address: %s", str(addr))
                 sys.exit(1)
             if i < 5:
                 log.error("Retrying in 1 second.")
                 time.sleep(1)
           
-    log.error("Can't connect to %s" % str(addr))
+    log.error("Can't connect to %s", str(addr))
     sys.exit(1)

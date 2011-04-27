@@ -189,7 +189,7 @@ proc_name = None
 #
 
 def post_fork(server, worker):
-    server.log.info("Worker spawned (pid: %s)" % worker.pid)
+    server.log.info("Worker spawned (pid: %s)", worker.pid)
 
 def pre_fork(server, worker):
     pass

@@ -34,7 +34,7 @@ class TornadoWorker(Worker):
         self.notify()
             
         if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s" % self)
+            self.log.info("Parent changed, shutting down: %s", self)
             self.ioloop.stop()
     
     def run(self):
