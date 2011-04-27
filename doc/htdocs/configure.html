@@ -402,7 +402,7 @@ module.</p>
 <h4><a class="toc-backref" href="#contents">when_ready</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_start_server(server):
+def start_server(server):
     pass
 </pre>
 </li>
@@ -414,7 +414,7 @@ def def_start_server(server):
 <h4><a class="toc-backref" href="#contents">pre_fork</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_pre_fork(server, worker):
+def pre_fork(server, worker):
     pass
 </pre>
 </li>
@@ -427,7 +427,7 @@ new Worker.</p>
 <h4><a class="toc-backref" href="#contents">post_fork</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_post_fork(server, worker):
+def post_fork(server, worker):
     pass
 </pre>
 </li>
@@ -440,7 +440,7 @@ new Worker.</p>
 <h4><a class="toc-backref" href="#contents">pre_exec</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_pre_exec(server):
+def pre_exec(server):
     pass
 </pre>
 </li>
@@ -452,7 +452,7 @@ def def_pre_exec(server):
 <h4><a class="toc-backref" href="#contents">pre_request</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_pre_request(worker, req):
+def pre_request(worker, req):
     worker.log.debug(&quot;%s %s&quot; % (req.method, req.path))
 </pre>
 </li>
@@ -465,7 +465,7 @@ the Request.</p>
 <h4><a class="toc-backref" href="#contents">post_request</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_post_request(worker, req):
+def post_request(worker, req):
     pass
 </pre>
 </li>
@@ -478,7 +478,7 @@ the Request.</p>
 <h4><a class="toc-backref" href="#contents">worker_exit</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_worker_exit(server, worker):
+def worker_exit(server, worker):
     pass
 </pre>
 </li>
@@ -491,7 +491,7 @@ the just-exited Worker.</p>
 <h4><a class="toc-backref" href="#contents">on_starting</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_on_starting(server):
+def on_starting(server):
     pass
 </pre>
 </li>
