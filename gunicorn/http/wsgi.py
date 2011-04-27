@@ -244,6 +244,11 @@ class Response(object):
             if tosend < arglen:
                 arg = arg[:tosend]
 
+        # Sending an empty chunk signals the end of the
+        # response and prematurely closes the response
+        if self.chunked and tosend == 0:
+            return
+
         self.sent += tosend
         util.write(self.sock, arg, self.chunked)
 
