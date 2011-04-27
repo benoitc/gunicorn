@@ -594,6 +594,20 @@ class DefaultProcName(Setting):
         Internal setting that is adjusted for each type of application.
         """
 
+class OnStarting(Setting):
+    name = "on_starting"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def on_starting(server):
+        pass
+    default = staticmethod(on_starting)
+    desc = """\
+        Called just before the master process is initialized.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
@@ -696,18 +710,3 @@ class WorkerExit(Setting):
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
         """
-
-class OnStarting(Setting):
-    name = "on_starting"
-    section = "Server Hooks"
-    validator = validate_callable(1)
-    type = "callable"
-    def on_starting(server):
-        pass
-    default = staticmethod(on_starting)
-    desc = """\
-        Called just before the master process is initialized.
-        
-        The callable needs to accept a single instance variable for the Arbiter.
-        """
-

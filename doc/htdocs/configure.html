@@ -398,6 +398,18 @@ module.</p>
 </div>
 <div class="section" id="server-hooks">
 <h3><a class="toc-backref" href="#contents">Server Hooks</a></h3>
+<div class="section" id="on-starting">
+<h4><a class="toc-backref" href="#contents">on_starting</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def on_starting(server):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just before the master process is initialized.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
 <div class="section" id="when-ready">
 <h4><a class="toc-backref" href="#contents">when_ready</a></h4>
 <ul>
@@ -487,18 +499,6 @@ def worker_exit(server, worker):
 <p>The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.</p>
 </div>
-<div class="section" id="on-starting">
-<h4><a class="toc-backref" href="#contents">on_starting</a></h4>
-<ul>
-<li><pre class="first literal-block">
-def on_starting(server):
-    pass
-</pre>
-</li>
-</ul>
-<p>Called just before the master process is initialized.</p>
-<p>The callable needs to accept a single instance variable for the Arbiter.</p>
-</div>
 </div>
 </div>
 </div>
@@ -560,14 +560,14 @@ def on_starting(server):
 </ul>
 </li>
 <li><a class="reference internal" href="#server-hooks" id="id37">Server Hooks</a><ul>
-<li><a class="reference internal" href="#when-ready" id="id38">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id39">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id40">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id41">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id42">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id43">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id44">worker_exit</a></li>
-<li><a class="reference internal" href="#on-starting" id="id45">on_starting</a></li>
+<li><a class="reference internal" href="#on-starting" id="id38">on_starting</a></li>
+<li><a class="reference internal" href="#when-ready" id="id39">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id40">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id41">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id42">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id43">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id44">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id45">worker_exit</a></li>
 </ul>
 </li>
 </ul>
