@@ -45,7 +45,7 @@ class SyncWorker(base.Worker):
 
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s" % self)
+                self.log.info("Parent changed, shutting down: %s", self)
                 return
             
             try:
