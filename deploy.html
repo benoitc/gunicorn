@@ -144,7 +144,7 @@ confuses the monitor services.</p>
 <p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>.
 An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
 <pre class="literal-block">
-#!/bin sh
+#!/bin/sh
 
 GUNICORN=/usr/local/bin/gunicorn
 ROOT=/path/to/project
