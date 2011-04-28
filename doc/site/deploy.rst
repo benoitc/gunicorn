@@ -130,7 +130,7 @@ Runit
 A popular method for deploying Gunicorn is to have it monitored by runit_.
 An `example service`_ definition::
 
-    #!/bin sh
+    #!/bin/sh
     
     GUNICORN=/usr/local/bin/gunicorn
     ROOT=/path/to/project
