@@ -137,9 +137,9 @@ An `example service`_ definition::
     PID=/var/run/gunicorn.pid
     
     APP=main:application
- 
-    if [ -f $PID ]; then rm $PID fi
- 
+    
+    if [ -f $PID ]; then rm $PID; fi
+    
     cd $ROOT
     exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
 
