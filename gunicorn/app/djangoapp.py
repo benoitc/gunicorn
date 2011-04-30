@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import imp
 import os
 import sys
 import traceback
@@ -91,14 +92,15 @@ class DjangoApplication(Application):
             error = s.read()
             sys.stderr.write("One or more models did not validate:\n%s" % error)
             sys.stderr.flush()
+
             sys.exit(1)
 
     def load(self):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
-                
+
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
-        # setup environ
+        
         self.setup_environ()
         self.validate()
         self.activate_translation()
@@ -113,10 +115,30 @@ class DjangoApplicationCommand(DjangoApplication):
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
+         
+        self.init()
+        self.do_load_config()
+
+        for k, v in self.options.items():
+            if k.lower() in self.cfg.settings and v is not None:
+                self.cfg.set(k.lower(), v)
+       
+    def init(self):
         self.settings_modname = os.environ[ENVIRONMENT_VARIABLE]
+        self.project_name = self.settings_modname.split('.')[0]
         self.project_path = os.getcwd()
 
-        self.do_load_config()
+        # remove all modules related to djano
+        for modname, mod in sys.modules.items():
+            if 'settings' in modname.split('.') or \
+                    modname.startswith(self.project_name):
+                del sys.modules[modname] 
+
+        # add the project path to sys.path
+        sys.path.insert(0, self.project_path)
+        sys.path.append(os.path.normpath(os.path.join(self.project_path,
+            os.pardir)))
+
 
     def load_config(self):
         self.cfg = Config()
@@ -129,6 +151,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 "__doc__": None,
                 "__package__": None
             }
+
             try:
                 execfile(self.config_file, cfg, cfg)
             except Exception:
@@ -145,31 +168,24 @@ class DjangoApplicationCommand(DjangoApplication):
                 except:
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
-        
+       
         for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
-       
-    def setup_environ(self):
-        for modname in sys.modules.keys():
-            if modname.startswith('django') or \
-                    'settings' in modname.split('.'):
-                del sys.modules[modname]
-
-        # add the project path to sys.path
-        sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.normpath(os.path.join(self.project_path,
-            os.pardir)))
-        super(DjangoApplicationCommand, self).setup_environ()
 
     def load(self):
-        # setup environ
-        self.setup_environ()
-        self.validate()
-        self.activate_translation()
-
-        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+        for n in sys.modules.keys():
+            if 'settings' in n or 'djangotest' in n:
+                print n
+        from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
+        os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
+
+        self.setup_environ()
+        self.validate() 
+        self.activate_translation()
+        
+        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
         try:
             return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
@@ -186,7 +202,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 error_text = str(e)
             sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
             sys.exit(1)
-            
+           
 def run():
     """\
     The ``gunicorn_django`` command line runner for launching Django
