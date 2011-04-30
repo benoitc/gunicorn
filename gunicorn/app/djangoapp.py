@@ -174,9 +174,6 @@ class DjangoApplicationCommand(DjangoApplication):
                 self.cfg.set(k.lower(), v)
 
     def load(self):
-        for n in sys.modules.keys():
-            if 'settings' in n or 'djangotest' in n:
-                print n
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
