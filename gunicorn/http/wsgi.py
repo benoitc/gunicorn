@@ -15,8 +15,11 @@ import gunicorn.util as util
 try:
     # Python 3.3 has os.sendfile().
     from os import sendfile
-except:
-    from sendfile import sendfile
+except ImportError:
+    try:
+        from _senfile import sendfile
+    except ImportError:
+        sendfile = None
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
@@ -271,8 +274,9 @@ class Response(object):
                 sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
 
     def write_file(self, respiter):
-        if sendfile and hasattr(respiter.filelike, 'fileno') and \
-               hasattr(respiter.filelike, 'tell'):
+        if sendfile is not None and \
+                hasattr(respiter.filelike, 'fileno') and \
+                hasattr(respiter.filelike, 'tell'):
 
             fileno = respiter.filelike.fileno()
             fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
