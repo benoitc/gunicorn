@@ -45,7 +45,6 @@ def sendfile(fdout, fdin, offset, nbytes):
         _sendfile.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64,
                               ctypes.c_uint64, ctypes.c_voidp,
                               ctypes.POINTER(ctypes.c_uint64), ctypes.c_int]
-        _sbytes = ctypes.c_uint64(nbytes)
         result = _sendfile(fdin, fdout, offset, nbytes, None, _sbytes, 0)
         if result == -1:
             e = ctypes.get_errno()
