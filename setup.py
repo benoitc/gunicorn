@@ -57,7 +57,7 @@ setup(
     sync=gunicorn.workers.sync:SyncWorker
     eventlet=gunicorn.workers.geventlet:EventletWorker
     gevent=gunicorn.workers.ggevent:GeventWorker
-    gevent_wsgi=gunicorn.workers.ggevent:GeventWSGIWorker
+    gevent_wsgi=gunicorn.workers.ggevent_wsgi:GeventWSGIWorker
     gevent_pywsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
     tornado=gunicorn.workers.gtornado:TornadoWorker
 
