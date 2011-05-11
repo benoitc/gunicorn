@@ -18,7 +18,7 @@ except ImportError:
     raise RuntimeError("You need gevent installed to use this worker.")
 from gevent.pool import Pool
 from gevent.server import StreamServer
-from gevent import pywsgi, wsgi
+from gevent import pywsgi
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
@@ -94,12 +94,15 @@ class GeventWorker(AsyncWorker):
         except gevent.GreenletExit:
             pass
 
-    def init_process(self):
-        #gevent doesn't reinitialize dns for us after forking
-        #here's the workaround
-        gevent.core.dns_shutdown(fail_requests=1)
-        gevent.core.dns_init()
-        super(GeventWorker, self).init_process()
+    if hasattr(gevent.core, 'dns_shutdown'):
+
+        def init_process(self):
+            #gevent 0.13 and older doesn't reinitialize dns for us after forking
+            #here's the workaround
+            gevent.core.dns_shutdown(fail_requests=1)
+            gevent.core.dns_init()
+            super(GeventWorker, self).init_process()
+
 
 class GeventBaseWorker(Worker):
     """\
@@ -151,32 +154,14 @@ class GeventBaseWorker(Worker):
         except:
             pass
 
-    def init_process(self):
-        #gevent doesn't reinitialize dns for us after forking
-        #here's the workaround
-        gevent.core.dns_shutdown(fail_requests=1)
-        gevent.core.dns_init()
-        super(GeventBaseWorker, self).init_process()
+    if hasattr(gevent.core, 'dns_shutdown'):
 
-        
-
-class WSGIHandler(wsgi.WSGIHandler):
-    def log_request(self, *args):
-        pass
-
-    def prepare_env(self):
-        env = super(WSGIHandler, self).prepare_env()
-        env['RAW_URI'] = self.request.uri
-        return env
-        
-        
-class WSGIServer(wsgi.WSGIServer):
-    base_env = BASE_WSGI_ENV        
-    
-class GeventWSGIWorker(GeventBaseWorker):
-    "The libevent HTTP based workers"
-    server_class = WSGIServer
-    wsgi_handler = WSGIHandler
+        def init_process(self):
+            #gevent 0.13 and older doesn't reinitialize dns for us after forking
+            #here's the workaround
+            gevent.core.dns_shutdown(fail_requests=1)
+            gevent.core.dns_init()
+            super(GeventBaseWorker, self).init_process()
 
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
