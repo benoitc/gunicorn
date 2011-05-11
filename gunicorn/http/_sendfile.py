@@ -61,6 +61,6 @@ def sendfile(fdout, fdin, offset, nbytes):
         _offset = ctypes.c_uint64(offset)
         sent = _sendfile(fdout, fdin, _offset, nbytes) 
         if sent == -1:
-            e = ctypess.get_errno()
+            e = ctypes.get_errno()
             raise OSError(e, os.strerror(e))
         return sent
