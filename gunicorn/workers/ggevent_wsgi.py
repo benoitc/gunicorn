@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from gunicorn.worker.ggevent import BASE_WSGI_ENV, GeventBaseWorker 
+from gunicorn.workers.ggevent import BASE_WSGI_ENV, GeventBaseWorker 
 from gevent import wsgi
 
 
