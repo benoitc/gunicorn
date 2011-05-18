@@ -62,6 +62,11 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
+
+FILE_UPLOAD_HANDLERS = (
+        "django.core.files.uploadhandler.TemporaryFileUploadHandler",
+)
+
 ROOT_URLCONF = 'djangotest.urls'
 
 TEMPLATE_DIRS = ()
