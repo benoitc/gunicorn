@@ -79,15 +79,14 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.12.1 - 2011-03-23</h3>
+        <h3>Version 0.12.2 / 2011-05-18</h3>
         <ul>
-            <li>Add "on_starting" hook. This hook can be used to set
-            anything before the arbiter really start</li>
-            <li>Support bdist_rpm in setup</li>
-            <li>Improve content-length handling (pep 3333)</li>
-            <li>Improve Django support</li>
-            <li>Fix daemonizing (#142)</li>
-            <li>Fix ipv6 handling</li>
+            <li>Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
+            sendfile if available)</li>
+            <li>Fix django run_gunicorn command. Make sure we reload the application
+            code.</li>
+            <li>Fix django localisation</li>
+            <li>Compatible with gevent 0.14dev</li>
         </ul>
       </div> 
       <div id="footer">
