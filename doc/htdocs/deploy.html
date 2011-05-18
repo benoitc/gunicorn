@@ -142,7 +142,7 @@ confuses the monitor services.</p>
 <div class="section" id="runit">
 <h3><a class="toc-backref" href="#contents">Runit</a></h3>
 <p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>.
-An <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
+Here is an <a class="reference external" href="http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc">example service</a> definition:</p>
 <pre class="literal-block">
 #!/bin/sh
 
@@ -157,6 +157,12 @@ if [ -f $PID ]; then rm $PID; fi
 cd $ROOT
 exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
 </pre>
+<p>Save this as <tt class="docutils literal"><span class="pre">/etc/sv/[app_name]/run</span></tt>, and make it executable
+(<tt class="docutils literal">chmod u+x <span class="pre">/etc/sv/[app_name]/run</span></tt>).
+Then run <tt class="docutils literal">ln <span class="pre">-s</span> <span class="pre">/etc/sv/[app_name]</span> <span class="pre">/etc/service/[app_name]</span></tt>.
+If runit is installed, gunicorn should start running automatically as soon
+as you create the symlink.</p>
+<p>If it doesn't start automatically, run the script directly to troubleshoot.</p>
 </div>
 <div class="section" id="supervisor">
 <h3><a class="toc-backref" href="#contents">Supervisor</a></h3>

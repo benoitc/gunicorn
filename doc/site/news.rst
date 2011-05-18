@@ -8,6 +8,16 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.12.2 / 2011-05-18
+-------------------
+
+- Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
+  sendfile if available)
+- Fix django run_gunicorn command. Make sure we reload the application
+  code.
+- Fix django localisation
+- Compatible with gevent 0.14dev
+
 0.12.1 / 2011-03-23
 -------------------
 
