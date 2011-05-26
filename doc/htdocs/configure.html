@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+b<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -185,10 +185,13 @@ when you might want to choose one of the other worker classes.</p>
 <li><tt class="docutils literal">gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
 <li><tt class="docutils literal">tornado</tt>  - Requires tornado &gt;= 0.2</li>
 </ul>
-<p>Optionally, you can provide your own worker by giving gunicorn a
-MODULE:CLASS pair where CLASS is a subclass of
-gunicorn.workers.base.Worker. This alternative syntax will load the
-gevent class: <tt class="docutils literal">egg:gunicorn#gevent</tt></p>
+<p>
+Optionally, you can provide your own worker by giving gunicorn a python path
+to a subclass of gunicorn.workers.base.Worker. This alternative syntax will
+load the gevent class:
+<tt class="docutils literal">gunicorn.workers.ggevent.GeventWorker</tt>.
+Alternatively the syntax can also load the gevent class with
+<tt class="docutils literal">egg:gunicorn#gevent</tt></p>
 </div>
 <div class="section" id="worker-connections">
 <h4><a class="toc-backref" href="#contents">worker_connections</a></h4>
