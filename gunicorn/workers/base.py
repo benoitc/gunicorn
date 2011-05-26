@@ -6,7 +6,6 @@
 
 import logging
 import os
-import random
 import signal
 import sys
 import traceback
@@ -83,7 +82,7 @@ class Worker(object):
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # Reseed the random number generator
-        random.seed()
+        util.seed()
 
         # For waking ourselves up
         self.PIPE = os.pipe()
@@ -131,11 +130,11 @@ class Worker(object):
             if isinstance(exc, InvalidRequestLine):
                 mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method'%s'</p>" % str(exc)
+                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header'%s'</p>" % str(exc)
+                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
             
         if self.debug:
             tb =  traceback.format_exc()
@@ -144,7 +143,7 @@ class Worker(object):
         try:
             util.write_error(client, status_int, reason, mesg)
         except:
-            self.log.exception("Failed to send error message.")
+            self.log.warning("Failed to send error message.")
         
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.

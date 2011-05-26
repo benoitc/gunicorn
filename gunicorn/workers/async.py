@@ -62,11 +62,13 @@ class AsyncWorker(base.Worker):
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
-            for item in respiter:
-                resp.write(item)
-            resp.close()
-            if hasattr(respiter, "close"):
-                respiter.close()
+            try:
+                for item in respiter:
+                    resp.write(item)
+                resp.close()
+            finally:
+                if hasattr(respiter, "close"):
+                  respiter.close()
             if resp.should_close():
                 raise StopIteration()
         except StopIteration:

@@ -637,15 +637,28 @@ class DefaultProcName(Setting):
         Internal setting that is adjusted for each type of application.
         """
 
+class OnStarting(Setting):
+    name = "on_starting"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def on_starting(server):
+        pass
+    default = staticmethod(on_starting)
+    desc = """\
+        Called just before the master process is initialized.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    def def_start_server(server):
+    def start_server(server):
         pass
-    def_start_server = staticmethod(def_start_server)
-    default = def_start_server
+    default = staticmethod(start_server)
     desc = """\
         Called just after the server is started.
         
@@ -657,10 +670,9 @@ class Prefork(Setting):
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_pre_fork(server, worker):
+    def pre_fork(server, worker):
         pass
-    def_pre_fork = staticmethod(def_pre_fork)
-    default = def_pre_fork
+    default = staticmethod(pre_fork)
     desc = """\
         Called just before a worker is forked.
         
@@ -673,10 +685,9 @@ class Postfork(Setting):
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_post_fork(server, worker):
+    def post_fork(server, worker):
         pass
-    def_post_fork = staticmethod(def_post_fork)
-    default = def_post_fork
+    default = staticmethod(post_fork)
     desc = """\
         Called just after a worker has been forked.
         
@@ -689,10 +700,9 @@ class PreExec(Setting):
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    def def_pre_exec(server):
+    def pre_exec(server):
         pass
-    def_pre_exec = staticmethod(def_pre_exec)
-    default = def_pre_exec
+    default = staticmethod(pre_exec)
     desc = """\
         Called just before a new master process is forked.
         
@@ -704,10 +714,9 @@ class PreRequest(Setting):
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_pre_request(worker, req):
+    def pre_request(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
-    def_pre_request = staticmethod(def_pre_request)
-    default = def_pre_request
+    default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.
         
@@ -720,10 +729,9 @@ class PostRequest(Setting):
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_post_request(worker, req):
+    def post_request(worker, req):
         pass
-    def_post_request = staticmethod(def_post_request)
-    default = def_post_request
+    default = staticmethod(post_request)
     desc = """\
         Called after a worker processes the request.
 
@@ -736,10 +744,9 @@ class WorkerExit(Setting):
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_worker_exit(server, worker):
+    def worker_exit(server, worker):
         pass
-    def_worker_exit = staticmethod(def_worker_exit)
-    default = def_worker_exit
+    default = staticmethod(worker_exit)
     desc = """\
         Called just after a worker has been exited.
 

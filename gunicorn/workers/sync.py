@@ -45,7 +45,7 @@ class SyncWorker(base.Worker):
 
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s" % self)
+                self.log.info("Parent changed, shutting down: %s", self)
                 return
             
             try:
@@ -94,11 +94,16 @@ class SyncWorker(base.Worker):
                 self.log.info("Autorestarting worker after current request.")
                 self.alive = False
             respiter = self.wsgi(environ, resp.start_response)
-            for item in respiter:
-                resp.write(item)
-            resp.close()
-            if hasattr(respiter, "close"):
-                respiter.close()
+            try:
+                if isinstance(respiter, environ['wsgi.file_wrapper']):
+                    resp.write_file(respiter)
+                else:
+                    for item in respiter:
+                        resp.write(item)
+                resp.close()
+            finally:
+                if hasattr(respiter, "close"):
+                    respiter.close()
         except socket.error:
             raise
         except Exception, e:

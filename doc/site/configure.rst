@@ -69,15 +69,20 @@ you provide will be used for the configuration values.
 
 For instance::
 
+    import multiprocessing
+
+    bind = "127.0.0.1:8000"
+    workers = multiprocessing.cpu_count() * 2 + 1
+
+On a side note, Python's older than 2.6 can use sysconf to get the
+number of processors::
+
     import os
     
     def numCPUs():
         if not hasattr(os, "sysconf"):
             raise RuntimeError("No sysconf detected.")
         return os.sysconf("SC_NPROCESSORS_ONLN")
-
-    bind = "127.0.0.1:8000"
-    workers = numCPUs() * 2 + 1
 
 Command Line
 ------------

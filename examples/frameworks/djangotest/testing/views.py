@@ -5,6 +5,7 @@ import os
 from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 import tempfile
 
 class MsgForm(forms.Form):
@@ -36,7 +37,7 @@ def home(request):
         'subject': subject,
         'message': message,
         'size': size
-    })
+    }, RequestContext(request))
     
     
 def acsv(request):

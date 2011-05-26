@@ -8,6 +8,27 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.12.2 / 2011-05-18
+-------------------
+
+- Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
+  sendfile if available)
+- Fix django run_gunicorn command. Make sure we reload the application
+  code.
+- Fix django localisation
+- Compatible with gevent 0.14dev
+
+0.12.1 / 2011-03-23
+-------------------
+
+- Add "on_starting" hook. This hook can be used to set anything before
+  the arbiter really start
+- Support bdist_rpm in setup
+- Improve content-length handling (pep 3333)
+- Improve Django support
+- Fix daemonizing (#142)
+- Fix ipv6 handling
+
 0.12.0 / 2010-12-22
 -------------------
 

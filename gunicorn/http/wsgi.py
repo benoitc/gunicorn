@@ -12,9 +12,32 @@ from urllib import unquote
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
+try:
+    # Python 3.3 has os.sendfile().
+    from os import sendfile
+except ImportError:
+    try:
+        from _senfile import sendfile
+    except ImportError:
+        sendfile = None
+
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
+
+class FileWrapper:
+
+    def __init__(self, filelike, blksize=8192):
+        self.filelike = filelike
+        self.blksize = blksize
+        if hasattr(filelike, 'close'):
+            self.close = filelike.close
+
+    def __getitem__(self, key):
+        data = self.filelike.read(self.blksize)
+        if data:
+            return data
+        raise IndexError
 
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
@@ -26,6 +49,7 @@ def create(req, sock, client, server, cfg):
         "wsgi.multithread": False,
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
+        "wsgi.file_wrapper": FileWrapper,
         "gunicorn.socket": sock,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
         "REQUEST_METHOD": req.method,
@@ -85,13 +109,13 @@ def create(req, sock, client, server, cfg):
         # find host and port on ipv6 address
         if '[' in forward and ']' in forward:
             host =  forward.split(']')[0][1:].lower()
-        elif ":" in forward:
+        elif ":" in forward and forward.count(":") == 1:
             host = forward.split(":")[0].lower()
         else:
             host = forward
 
         forward = forward.split(']')[-1]
-        if ":" in forward:
+        if ":" in forward and forward.count(":") == 1:
             port = forward.split(':', 1)[1]
         else:
             port = 80
@@ -227,8 +251,62 @@ class Response(object):
             if tosend < arglen:
                 arg = arg[:tosend]
 
+        # Sending an empty chunk signals the end of the
+        # response and prematurely closes the response
+        if self.chunked and tosend == 0:
+            return
+
         self.sent += tosend
         util.write(self.sock, arg, self.chunked)
+
+    def sendfile_all(self, fileno, sockno, offset, nbytes):
+        # Send file in at most 1GB blocks as some operating
+        # systems can have problems with sending files in blocks
+        # over 2GB.
+
+        BLKSIZE = 0x3FFFFFFF
+
+        if nbytes > BLKSIZE:
+            for m in range(0, nbytes, BLKSIZE):
+                self.sendfile_all(fileno, sockno, offset, min(nbytes, BLKSIZE))
+                offset += BLKSIZE
+                nbytes -= BLKSIZE
+        else:
+            sent = 0
+            sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+            while sent != nbytes:
+                sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+
+    def write_file(self, respiter):
+        if sendfile is not None and \
+                hasattr(respiter.filelike, 'fileno') and \
+                hasattr(respiter.filelike, 'tell'):
+
+            fileno = respiter.filelike.fileno()
+            fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
+            fo_offset = respiter.filelike.tell()
+            nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
+
+            if self.clength:
+                nbytes = min(nbytes, self.clength)
+
+            if nbytes == 0:
+                return
+
+            self.send_headers()
+
+            if self.is_chunked():
+                self.sock.sendall("%X\r\n" % nbytes)
+
+            self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
+
+            if self.is_chunked():
+                self.sock.sendall("\r\n")
+
+            os.lseek(fileno, fd_offset, os.SEEK_SET)
+        else:
+            for item in respiter:
+                self.write(item)
 
     def close(self):
         if not self.headers_sent:

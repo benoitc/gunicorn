@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+import imp
 import os
 import sys
 import traceback
@@ -10,10 +11,11 @@ import traceback
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 
+ENVIRONMENT_VARIABLE = 'DJANGO_SETTINGS_MODULE'
+
 class DjangoApplication(Application):
     
     def init(self, parser, opts, args):
-        from django.conf import ENVIRONMENT_VARIABLE
         self.settings_modname = None
         self.project_path = os.getcwd()
         if args:
@@ -41,7 +43,8 @@ class DjangoApplication(Application):
 
         # add the project path to sys.path
         sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.join(self.project_path, os.pardir))
+        sys.path.append(os.path.normpath(os.path.join(self.project_path,
+            os.pardir)))
 
     def setup_environ(self):
         from django.core.management import setup_environ
@@ -61,22 +64,49 @@ class DjangoApplication(Application):
 
     def no_settings(self, path, import_error=False):
         if import_error:
-            error = "Error: Can't find the settings in your PYTHONPATH"
+            error = "Error: Can't find '%s' in your PYTHONPATH.\n" % path
         else:
             error = "Settings file '%s' not found in current folder.\n" % path
         sys.stderr.write(error)
         sys.stderr.flush()
         sys.exit(1)
+
+    def activate_translation(self):
+        from django.conf import settings
+        from django.utils import translation
+        translation.activate(settings.LANGUAGE_CODE)
         
+    def validate(self):
+        """ Validate models. This also ensures that all models are 
+        imported in case of import-time side effects."""
+        from django.core.management.base import CommandError
+        from django.core.management.validation import get_validation_errors
+        try:
+            from cStringIO import StringIO
+        except ImportError:
+            from StringIO import StringIO
+
+        s = StringIO()
+        if get_validation_errors(s):
+            s.seek(0)
+            error = s.read()
+            sys.stderr.write("One or more models did not validate:\n%s" % error)
+            sys.stderr.flush()
+
+            sys.exit(1)
+
     def load(self):
         from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
+
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
-        # setup environ
+        
         self.setup_environ()
+        self.validate()
+        self.activate_translation()
         return WSGIHandler()
 
-class DjangoApplicationCommand(Application):
+class DjangoApplicationCommand(DjangoApplication):
     
     def __init__(self, options, admin_media_path):
         self.usage = None
@@ -85,7 +115,30 @@ class DjangoApplicationCommand(Application):
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
+         
+        self.init()
         self.do_load_config()
+
+        for k, v in self.options.items():
+            if k.lower() in self.cfg.settings and v is not None:
+                self.cfg.set(k.lower(), v)
+       
+    def init(self):
+        self.settings_modname = os.environ[ENVIRONMENT_VARIABLE]
+        self.project_name = self.settings_modname.split('.')[0]
+        self.project_path = os.getcwd()
+
+        # remove all modules related to djano
+        for modname, mod in sys.modules.items():
+            if 'settings' in modname.split('.') or \
+                    modname.startswith(self.project_name):
+                del sys.modules[modname] 
+
+        # add the project path to sys.path
+        sys.path.insert(0, self.project_path)
+        sys.path.append(os.path.normpath(os.path.join(self.project_path,
+            os.pardir)))
+
 
     def load_config(self):
         self.cfg = Config()
@@ -98,6 +151,7 @@ class DjangoApplicationCommand(Application):
                 "__doc__": None,
                 "__package__": None
             }
+
             try:
                 execfile(self.config_file, cfg, cfg)
             except Exception:
@@ -105,7 +159,7 @@ class DjangoApplicationCommand(Application):
                 traceback.print_exc()
                 sys.exit(1)
         
-            for k, v in list(cfg.items()):
+            for k, v in cfg.items():
                 # Ignore unknown names
                 if k not in self.cfg.settings:
                     continue
@@ -114,14 +168,22 @@ class DjangoApplicationCommand(Application):
                 except:
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
-        
-        for k, v in list(self.options.items()):
+       
+        for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
-        
+
     def load(self):
-        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+        from django.conf import ENVIRONMENT_VARIABLE
         from django.core.handlers.wsgi import WSGIHandler
+        os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
+
+        self.setup_environ()
+        self.validate() 
+        self.activate_translation()
+        
+        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+
         try:
             return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
@@ -137,7 +199,7 @@ class DjangoApplicationCommand(Application):
                 error_text = str(e)
             sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
             sys.exit(1)
-            
+           
 def run():
     """\
     The ``gunicorn_django`` command line runner for launching Django

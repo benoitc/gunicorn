@@ -4,10 +4,20 @@
 # See the NOTICE for more information.
 
 
-import ctypes
+try:
+    import ctypes
+except MemoryError:
+    # selinux execmem denial
+    # https://bugzilla.redhat.com/show_bug.cgi?id=488396
+    ctypes = None
+except ImportError:
+    # Python on Solaris compiled with Sun Studio doesn't have ctypes
+    ctypes = None
+
 import fcntl
 import os
 import pkg_resources
+import random
 import resource
 import socket
 import sys
@@ -87,6 +97,8 @@ def set_owner_process(uid,gid):
         try:
             os.setgid(gid)
         except OverflowError:
+            if not ctypes:
+                raise
             # versions of python < 2.6.2 don't manage unsigned int for
             # groups like on osx or fedora
             os.setgid(-ctypes.c_int(-gid).value)
@@ -98,6 +110,8 @@ def chown(path, uid, gid):
     try:
         os.chown(path, uid, gid)
     except OverflowError:
+        if not ctypes:
+            raise
         os.chown(path, uid, -ctypes.c_int(-gid).value)
 
 
@@ -257,13 +271,13 @@ def daemonize():
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
     """
     if not 'GUNICORN_FD' in os.environ:
-        if os.fork() == 0: 
-            os.setsid()
-            if os.fork():
-                os._exit(0)
-        else:
+        if os.fork():
             os._exit(0)
-       
+        os.setsid()
+
+        if os.fork():
+            os._exit(0)
+        
         os.umask(0)
         maxfd = get_maxfd()
 
@@ -277,3 +291,9 @@ def daemonize():
         os.open(REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
+
+def seed():
+    try:
+        random.seed(os.urandom(64))
+    except NotImplementedError:
+        random.seed(random.random())

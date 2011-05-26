@@ -52,7 +52,7 @@ class Arbiter(object):
     
     def __init__(self, app):
         self.log = logging.getLogger(__name__)
-        self.log.info("Starting gunicorn %s" % __version__)
+        self.log.info("Starting gunicorn %s", __version__)
        
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
 
@@ -97,7 +97,7 @@ class Arbiter(object):
         if self.cfg.debug:
             self.log.debug("Current configuration:")
             for config, value in sorted(self.cfg.settings.iteritems()):
-                self.log.debug("  %s: %s" % (config, value.value))
+                self.log.debug("  %s: %s", config, value.value)
         
         if self.cfg.preload_app:
             if not self.cfg.debug:
@@ -109,6 +109,7 @@ class Arbiter(object):
         """\
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
+        self.cfg.on_starting(self)
         self.pid = os.getpid()
         self.init_signals()
         if not self.LISTENER:
@@ -118,8 +119,11 @@ class Arbiter(object):
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.log.debug("Arbiter booted")
-        self.log.info("Listening at: %s (%s)" % (self.LISTENER,
-            self.pid))
+        self.log.info("Listening at: %s (%s)", self.LISTENER,
+            self.pid)
+        self.log.info("Using worker: %s",
+                self.cfg.settings['worker_class'].get())
+
         self.cfg.when_ready(self)
     
     def init_signals(self):
@@ -128,7 +132,7 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         if self.PIPE:
-            map(lambda p: os.close(p), self.PIPE)
+            map(os.close, self.PIPE)
         self.PIPE = pair = os.pipe()
         map(util.set_non_blocking, pair)
         map(util.close_on_exec, pair)
@@ -140,7 +144,7 @@ class Arbiter(object):
             self.SIG_QUEUE.append(sig)
             self.wakeup()
         else:
-            self.log.warn("Dropping signal: %s" % sig)
+            self.log.warn("Dropping signal: %s", sig)
 
     def run(self):
         "Main master loop."
@@ -159,15 +163,15 @@ class Arbiter(object):
                     continue
                 
                 if sig not in self.SIG_NAMES:
-                    self.log.info("Ignoring unknown signal: %s" % sig)
+                    self.log.info("Ignoring unknown signal: %s", sig)
                     continue
                 
                 signame = self.SIG_NAMES.get(sig)
                 handler = getattr(self, "handle_%s" % signame, None)
                 if not handler:
-                    self.log.error("Unhandled signal: %s" % signame)
+                    self.log.error("Unhandled signal: %s", signame)
                     continue
-                self.log.info("Handling signal: %s" % signame)
+                self.log.info("Handling signal: %s", signame)
                 handler()  
                 self.wakeup()
             except StopIteration:
@@ -179,7 +183,7 @@ class Arbiter(object):
             except SystemExit:
                 raise
             except Exception:
-                self.log.info("Unhandled exception in main loop:\n%s" %  
+                self.log.info("Unhandled exception in main loop:\n%s",  
                             traceback.format_exc())
                 self.stop(False)
                 if self.pidfile is not None:
@@ -198,7 +202,7 @@ class Arbiter(object):
         - Start the new worker processes with a new configuration
         - Gracefully shutdown the old worker processes
         """
-        self.log.info("Hang up: %s" % self.master_name)
+        self.log.info("Hang up: %s", self.master_name)
         self.reload()
         
     def handle_quit(self):
@@ -271,9 +275,9 @@ class Arbiter(object):
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
-        self.log.info("Shutting down: %s" % self.master_name)
+        self.log.info("Shutting down: %s", self.master_name)
         if reason is not None:
-            self.log.info("Reason: %s" % reason)
+            self.log.info("Reason: %s", reason)
         if self.pidfile is not None:
             self.pidfile.unlink()
         sys.exit(exit_status)
@@ -345,7 +349,7 @@ class Arbiter(object):
         if old_address != self.cfg.address:
             self.LISTENER.close()
             self.LISTENER = create_socket(self.cfg)
-            self.log.info("Listening at: %s" % self.LISTENER)    
+            self.log.info("Listening at: %s", self.LISTENER)    
 
         # spawn new workers with new app & conf
         for i in range(self.app.cfg.workers):
@@ -370,7 +374,7 @@ class Arbiter(object):
         """\
         Kill unused/idle workers
         """
-        for (pid, worker) in list(self.WORKERS.items()):
+        for (pid, worker) in self.WORKERS.items():
             try:
                 diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
                 if diff <= self.timeout:
@@ -378,7 +382,7 @@ class Arbiter(object):
             except ValueError:
                 continue
 
-            self.log.critical("WORKER TIMEOUT (pid:%s)" % pid)
+            self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
             self.kill_worker(pid, signal.SIGKILL)
         
     def reap_workers(self):
@@ -437,7 +441,7 @@ class Arbiter(object):
         worker_pid = os.getpid()
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
-            self.log.info("Booting worker with pid: %s" % worker_pid)
+            self.log.info("Booting worker with pid: %s", worker_pid)
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
@@ -449,7 +453,7 @@ class Arbiter(object):
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
         finally:
-            self.log.info("Worker exiting (pid: %s)" % worker_pid)
+            self.log.info("Worker exiting (pid: %s)", worker_pid)
             try:
                 worker.tmp.close()
                 self.cfg.worker_exit(self, worker)

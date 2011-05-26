@@ -16,6 +16,7 @@
           <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="news.html">News</a></li>
+          <li><a href="community.html">Community</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/issues">Issues</a></li>
         </ul>
@@ -78,19 +79,14 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.12.0 - 2010-12-22</h3>
+        <h3>Version 0.12.2 / 2011-05-18</h3>
         <ul>
-            <li>Add support for logging configuration using a ini file.</li>
-            <li>Add IPV6 support</li>
-            <li>Add multidomain application example</li>
-            <li>Improve gunicorn_django command when importing settings
-            module using <code>DJANGO_SETTINGS_MODULE</code> environment variable</li>
-            <li>Send appropriate error status on http parsing</li>
-            <li>Fix pidfile, set permissions so other user can read it and use it</li>
-            <li>Fix temporary file leaking</li>
-            <li>Fix setpgrp issue, can now be launched via ubuntu
-            upstart</li>
-            <li>Set the number of workers to zero on WINCH</li>
+            <li>Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
+            sendfile if available)</li>
+            <li>Fix django run_gunicorn command. Make sure we reload the application
+            code.</li>
+            <li>Fix django localisation</li>
+            <li>Compatible with gevent 0.14dev</li>
         </ul>
       </div> 
       <div id="footer">
