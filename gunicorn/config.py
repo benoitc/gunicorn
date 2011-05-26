@@ -318,9 +318,10 @@ class WorkerClass(Setting):
         * ``tornado``  - Requires tornado >= 0.2
         
         Optionally, you can provide your own worker by giving gunicorn a
-        MODULE:CLASS pair where CLASS is a subclass of
-        gunicorn.workers.base.Worker. This alternative syntax will load the
-        gevent class: ``egg:gunicorn#gevent``
+        python path to a subclass of gunicorn.workers.base.Worker. This
+        alternative syntax will load the gevent class:
+        ``gunicorn.workers.ggevent.GeventWorker``. Alternatively the syntax
+        can also load the gevent class with ``egg:gunicorn#gevent``
         """
 
 class WorkerConnections(Setting):
