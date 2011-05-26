@@ -179,24 +179,10 @@ def validate_bool(val):
     else:
         raise ValueError("Invalid boolean: %s" % val)
 
-def validate_key_value(val):
-    if val is None:
-        return None
-
-    if not isinstance(val, basestring):
-        raise TypeError("Not a string: %s" % val)
-
-    if not ':' in val:
-        raise ValueError("Invalid key/value string: [%s]" % val)
-
-    key, value = val.split(':')
-    key = key.strip()
-    value = value.strip()
-
-    if not (key and value):
-        raise ValueError("Invalid key/value string: [%s]" % val)
-
-    return (key, value)
+def validate_dict(val):
+    if not isinstance(val, dict):
+        raise TypeError("Value is not a dictionary: %s " % val)
+    return val
 
 def validate_pos_int(val):
     if not isinstance(val, (types.IntType, types.LongType)):
@@ -541,27 +527,27 @@ class TmpUploadDir(Setting):
         """
 
 class SecureSchemeHeader(Setting):
-    name = "secure_scheme_header"
+    name = "secure_scheme_headers"
     section = "Server Mechanics"
-    cli = ["--secure-scheme-header"]
-    meta = "HEADER:VALUE"
-    validator = validate_key_value
-    default = None
+    validator = validate_dict
+    default = {
+        "X-FORWARDED-PROTOCOL": "https",
+        "X-FORWARDED-SSL": "on"
+    }
     desc = """\
 
-        The header and value that tells gunicorn to set wsgi.url_scheme to "https".
+        A dictionary containing headers and values that the front-end proxy
+        uses to indicate HTTPS requests. These tell gunicorn to set
+        wsgi.url_scheme to "https", so your application can tell that the
+        request is secure.
 
-        The format is header:value. White space will be trimmed. Examples:
+        The dictionary should map upper-case header names to exact string
+        values. The value comparisons are case-sensitive, unlike the header
+        names, so make sure they're exactly what your front-end proxy sends
+        when handling HTTPS requests.
 
-            X-Forwarded-Protocol: https
-            X-Forwarded-Proto: https
-            X-Forwarded-SSL: on
-            HTTPS: on
-
-        It is critical that your front-end proxy configuration ensures that
-        this header can not be passed directly from the client.
-
-        If not set, gunicorn will never consider a request secure.
+        It is important that your front-end proxy configuration ensures that
+        the headers defined here can not be passed directly from the client.
         """
 
 class Logfile(Setting):
