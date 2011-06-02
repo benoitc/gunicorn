@@ -167,7 +167,7 @@ class Request(Message):
 
         # URI
         self.uri = bits[1]
-        parts = urlparse.urlparse(bits[1])
+        parts = urlparse.urlsplit(bits[1])
         self.scheme = parts.scheme or ''
         self.host = parts.netloc or None
         if parts.port is None:
