@@ -219,7 +219,7 @@ def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
     
 def import_app(module):
-    parts = module.rsplit(":", 1)
+    parts = module.split(":", 1)
     if len(parts) == 1:
         module, obj = module, "application"
     else:
