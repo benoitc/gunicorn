@@ -30,6 +30,10 @@ class TornadoWorker(Worker):
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
         
+    def handle_quit(self, sig, frame):
+        super(TornadoWorker, self).handle_quit(sig, frame)
+        self.ioloop.stop()
+
     def watchdog(self):
         self.notify()
             
