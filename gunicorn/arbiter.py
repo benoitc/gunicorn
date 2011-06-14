@@ -419,12 +419,10 @@ class Arbiter(object):
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
-        num_to_kill = len(self.WORKERS) - self.num_workers
-        for i in range(num_to_kill, 0, -1):
-            pid, age = 0, sys.maxint
-            for (wpid, worker) in self.WORKERS.iteritems():
-                if worker.age < age:
-                    pid, age = wpid, worker.age
+        workers = self.WORKERS.items()
+        workers.sort(key=lambda w: w.age)
+        while len(workers) > self.num_workers:
+            (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGQUIT)
             
     def spawn_worker(self):
