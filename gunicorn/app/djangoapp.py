@@ -129,10 +129,10 @@ class DjangoApplicationCommand(DjangoApplication):
         self.project_path = os.getcwd()
 
         # remove all modules related to djano
-        for modname, mod in sys.modules.items():
-            if 'settings' in modname.split('.') or \
-                    modname.startswith(self.project_name):
-                del sys.modules[modname] 
+        #for modname, mod in sys.modules.items():
+        #    if 'settings' in modname.split('.') or \
+        #            modname.startswith(self.project_name):
+        #        del sys.modules[modname] 
 
         # add the project path to sys.path
         sys.path.insert(0, self.project_path)
