@@ -420,7 +420,7 @@ class Arbiter(object):
             self.spawn_workers()
 
         workers = self.WORKERS.items()
-        workers.sort(key=lambda w: w.age)
+        workers.sort(key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGQUIT)
