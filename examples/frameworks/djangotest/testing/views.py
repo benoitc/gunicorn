@@ -15,7 +15,8 @@ class MsgForm(forms.Form):
     
 
 def home(request):
-    
+    from django.conf import settings
+    print settings.SOME_VALUE
     subject = None
     message = None
     size = 0

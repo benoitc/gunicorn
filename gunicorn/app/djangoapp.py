@@ -4,8 +4,10 @@
 # See the NOTICE for more information.
 
 import imp
+import logging
 import os
 import sys
+import time
 import traceback
 
 from gunicorn.config import Config
@@ -128,17 +130,11 @@ class DjangoApplicationCommand(DjangoApplication):
         self.project_name = self.settings_modname.split('.')[0]
         self.project_path = os.getcwd()
 
-        # remove all modules related to djano
-        #for modname, mod in sys.modules.items():
-        #    if 'settings' in modname.split('.') or \
-        #            modname.startswith(self.project_name):
-        #        del sys.modules[modname] 
 
         # add the project path to sys.path
         sys.path.insert(0, self.project_path)
         sys.path.append(os.path.normpath(os.path.join(self.project_path,
             os.pardir)))
-
 
     def load_config(self):
         self.cfg = Config()
@@ -173,11 +169,79 @@ class DjangoApplicationCommand(DjangoApplication):
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
 
-    def load(self):
+
+
+    def reload_django_settings(self):
         from django.conf import ENVIRONMENT_VARIABLE
-        from django.core.handlers.wsgi import WSGIHandler
         os.environ[ENVIRONMENT_VARIABLE] = self.settings_modname
 
+        from django.conf import settings
+        from django.utils import importlib
+        
+        mod = importlib.import_module(self.settings_modname)
+
+        # reload module
+        reload(mod)
+
+        # reload settings.
+        # USe code from django.settings.Settings module.
+
+        # Settings that should be converted into tuples if they're mistakenly entered
+        # as strings.
+        tuple_settings = ("INSTALLED_APPS", "TEMPLATE_DIRS")
+
+        for setting in dir(mod):
+            if setting == setting.upper():
+                setting_value = getattr(mod, setting)
+                if setting in tuple_settings and type(setting_value) == str:
+                    setting_value = (setting_value,) # In case the user forgot the comma.
+                setattr(settings, setting, setting_value)
+
+        # Expand entries in INSTALLED_APPS like "django.contrib.*" to a list
+        # of all those apps.
+        new_installed_apps = []
+        for app in settings.INSTALLED_APPS:
+            if app.endswith('.*'):
+                app_mod = importlib.import_module(app[:-2])
+                appdir = os.path.dirname(app_mod.__file__)
+                app_subdirs = os.listdir(appdir)
+                app_subdirs.sort()
+                name_pattern = re.compile(r'[a-zA-Z]\w*')
+                for d in app_subdirs:
+                    if name_pattern.match(d) and os.path.isdir(os.path.join(appdir, d)):
+                        new_installed_apps.append('%s.%s' % (app[:-2], d))
+            else:
+                new_installed_apps.append(app)
+        setattr(settings, "INSTALLED_APPS", new_installed_apps)
+
+        if hasattr(time, 'tzset') and settings.TIME_ZONE:
+            # When we can, attempt to validate the timezone. If we can't find
+            # this file, no check happens and it's harmless.
+            zoneinfo_root = '/usr/share/zoneinfo'
+            if (os.path.exists(zoneinfo_root) and not
+                    os.path.exists(os.path.join(zoneinfo_root,
+                        *(settings.TIME_ZONE.split('/'))))):
+                raise ValueError("Incorrect timezone setting: %s" %
+                        settings.TIME_ZONE)
+            # Move the time zone info into os.environ. See ticket #2315 for why
+            # we don't do this unconditionally (breaks Windows).
+            os.environ['TZ'] = settings.TIME_ZONE
+            time.tzset()
+
+        # Settings are configured, so we can set up the logger if required
+        if settings.LOGGING_CONFIG:
+            # First find the logging configuration function ...
+            logging_config_path, logging_config_func_name = settings.LOGGING_CONFIG.rsplit('.', 1)
+            logging_config_module = importlib.import_module(logging_config_path)
+            logging_config_func = getattr(logging_config_module, logging_config_func_name)
+
+            # ... then invoke it with the logging settings
+            logging_config_func(settings.LOGGING)
+
+    def load(self):
+        from django.core.handlers.wsgi import WSGIHandler
+        
+        self.reload_django_settings()
         self.setup_environ()
         self.validate() 
         self.activate_translation()

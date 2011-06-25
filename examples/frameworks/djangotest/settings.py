@@ -71,6 +71,9 @@ ROOT_URLCONF = 'djangotest.urls'
 
 TEMPLATE_DIRS = ()
 
+
+SOME_VALUE = "hello world 2"
+
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
