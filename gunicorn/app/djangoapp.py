@@ -44,9 +44,10 @@ class DjangoApplication(Application):
         self.cfg.set("default_proc_name", self.settings_modname)
 
         # add the project path to sys.path
-        sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.normpath(os.path.join(self.project_path,
-            os.pardir)))
+        if not self.project_path in sys.path:
+            sys.path.insert(0, self.project_path)
+            sys.path.append(os.path.normpath(os.path.join(self.project_path,
+                os.pardir)))
 
     def setup_environ(self):
         from django.core.management import setup_environ
@@ -132,9 +133,10 @@ class DjangoApplicationCommand(DjangoApplication):
 
 
         # add the project path to sys.path
-        sys.path.insert(0, self.project_path)
-        sys.path.append(os.path.normpath(os.path.join(self.project_path,
-            os.pardir)))
+        if not self.project_path in sys.path:
+            sys.path.insert(0, self.project_path)
+            sys.path.append(os.path.normpath(os.path.join(self.project_path,
+                os.pardir)))
 
     def load_config(self):
         self.cfg = Config()
