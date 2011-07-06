@@ -29,7 +29,7 @@ class PasterBaseApplication(Application):
             cfg['bind'] = host
 
         cfg['workers'] = int(lc.get('workers', 1))
-        cfg['umask'] = int(lc.get('umask', 0))
+        cfg['umask'] = lc.get('umask')
         cfg['default_proc_name'] = gc.get('__file__')
 
         for k, v in gc.items():

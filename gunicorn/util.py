@@ -278,7 +278,6 @@ def daemonize():
         if os.fork():
             os._exit(0)
         
-        os.umask(0)
         maxfd = get_maxfd()
 
         # Iterate through and close all file descriptors.
