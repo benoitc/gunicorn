@@ -18,7 +18,7 @@ except MemoryError:
 SUPPORTED_PLATFORMS = (
         'darwin',
         'freebsd',
-        'dragonfly'
+        'dragonfly',
         'linux2')
 
 if sys.version_info < (2, 6) or \
@@ -35,6 +35,7 @@ def sendfile(fdout, fdin, offset, nbytes):
                               ctypes.c_int]
         _nbytes = ctypes.c_uint64(nbytes)
         result = _sendfile(fdin, fdout, offset, _nbytes, None, 0)
+        
         if result == -1:
             e = ctypes.get_errno()
             if e == errno.EAGAIN and _nbytes.value:

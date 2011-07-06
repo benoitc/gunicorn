@@ -270,9 +270,9 @@ class Response(object):
                 nbytes -= BLKSIZE
         else:
             sent = 0
-            sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+            sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
             while sent != nbytes:
-                sent += sendfile(fileno, sockno, offset+sent, nbytes-sent)
+                sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
 
     def write_file(self, respiter):
         if sendfile is not None and \
