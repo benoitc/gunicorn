@@ -81,6 +81,7 @@ class SyncWorker(base.Worker):
             util.close(client)
 
     def handle_request(self, req, client, addr):
+        environ = {}
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, client, addr,
@@ -112,7 +113,7 @@ class SyncWorker(base.Worker):
             return
         finally:
             try:
-                self.cfg.post_request(self, req)
+                self.cfg.post_request(self, req, environ)
             except:
                 pass
 
