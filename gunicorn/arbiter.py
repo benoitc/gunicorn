@@ -337,6 +337,31 @@ class Arbiter(object):
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
+
+    def spawn_workers_and_wait(self, num_workers=None, wait_limit=30):
+        """\
+        Create new workers and wait for them to be listening before
+        returning.
+        Return True iff all the workers started successfully within
+        wait_limit seconds.
+        This method is not called by gunicorn directly.  Its primary
+        purpose is to serve as a utility when cusomizing gunicorn with
+        an on_reload() callback.
+        """
+        if num_workers is None:
+            num_workers = self.app.cfg.workers
+        pids = [self.spawn_worker() for i in range(num_workers)]
+        tmpfiles = [self.WORKERS[pid].tmp for pid in pids]
+        threshold = time.time()
+        while tmpfiles:
+            now = time.time()
+            if now > threshold + wait_limit:
+                return False
+            if tmpfiles[-1].last_update() > threshold:
+                tmpfiles.pop()
+            else:
+                time.sleep(0.2)
+        return True
         
     def reload(self):
         old_address = self.cfg.address
@@ -352,8 +377,7 @@ class Arbiter(object):
             self.log.info("Listening at: %s", self.LISTENER)    
 
         # spawn new workers with new app & conf
-        for i in range(self.app.cfg.workers):
-            self.spawn_worker()
+        self.cfg.on_reload(self)
         
         # unlink pidfile
         if self.pidfile is not None:
@@ -376,8 +400,7 @@ class Arbiter(object):
         """
         for (pid, worker) in self.WORKERS.items():
             try:
-                diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
-                if diff <= self.timeout:
+                if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except ValueError:
                 continue
@@ -433,7 +456,7 @@ class Arbiter(object):
         pid = os.fork()
         if pid != 0:
             self.WORKERS[pid] = worker
-            return
+            return pid
 
         # Process Child
         worker_pid = os.getpid()
