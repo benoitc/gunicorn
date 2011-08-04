@@ -337,17 +337,17 @@ class Arbiter(object):
         """
         if self.pidfile is not None:
             self.pidfile.rename("%s.oldbin" % self.pidfile.fname)
-        
+
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
             self.master_name = "Old Master"
             return
-            
+
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
-        
+
     def reload(self):
         old_address = self.cfg.address
 
@@ -362,8 +362,7 @@ class Arbiter(object):
             self.log.info("Listening at: %s", self.LISTENER)    
 
         # spawn new workers with new app & conf
-        for i in range(self.app.cfg.workers):
-            self.spawn_worker()
+        self.cfg.on_reload(self)
         
         # unlink pidfile
         if self.pidfile is not None:
@@ -388,8 +387,7 @@ class Arbiter(object):
         """
         for (pid, worker) in self.WORKERS.items():
             try:
-                diff = time.time() - os.fstat(worker.tmp.fileno()).st_ctime
-                if diff <= self.timeout:
+                if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except ValueError:
                 continue
@@ -446,7 +444,7 @@ class Arbiter(object):
         pid = os.fork()
         if pid != 0:
             self.WORKERS[pid] = worker
-            return
+            return pid
 
         # Process Child
         worker_pid = os.getpid()
