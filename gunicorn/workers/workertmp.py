@@ -37,6 +37,9 @@ class WorkerTmp(object):
             self._tmp.truncate(0)
             os.write(self._tmp.fileno(), "X")
 
+    def last_update(self):
+        return os.fstat(self._tmp.fileno()).st_ctime
+
     def fileno(self):
         return self._tmp.fileno()
        

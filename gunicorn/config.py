@@ -637,6 +637,22 @@ class OnStarting(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+class OnReload(Setting):
+    name = "on_reload"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def on_reload(server):
+        for i in range(server.app.cfg.workers):
+            server.spawn_worker()
+
+    default = staticmethod(on_reload)
+    desc = """\
+        Called to recycle workers during a reload via SIGHUP.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"

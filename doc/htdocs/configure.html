@@ -448,6 +448,21 @@ def start_server(server):
 <p>Called just after the server is started.</p>
 <p>The callable needs to accept a single instance variable for the Arbiter.</p>
 </div>
+<div class="section" id="on-reload">
+<h4><a class="toc-backref" href="#contents">on_reload</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def on_reload(server):
+    for i in range(server.app.cfg.workers):
+        server.spawn_worker()
+</pre>
+</li>
+</ul>
+<p>Called during a reload from a SIGHUP signal.
+This callback should create an appropriate number of new workers.
+Old workers will be killed automatically by gunicorn, so it is not required to do so here.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
 <div class="section" id="pre-fork">
 <h4><a class="toc-backref" href="#contents">pre_fork</a></h4>
 <ul>
