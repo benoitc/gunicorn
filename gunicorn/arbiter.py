@@ -316,6 +316,10 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
+        try:
+            self.LISTENER.close()
+        except Exception:
+            pass
         self.LISTENER = None
         sig = signal.SIGQUIT
         if not graceful:
