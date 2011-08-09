@@ -379,6 +379,20 @@ class Timeout(Setting):
         is not tied to the length of time required to handle a single request.
         """
 
+class KillTimeout(Setting):
+    name = "kill_timeout"
+    section = "Worker Processes"
+    cli = ["--kill-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 30
+    desc = """\
+        How many seconds to wait for worker to die before killing it with SIGKILL.
+
+        By default set to 30 seconds. If set to zero, SIGKILL is not sent all.
+        """
+
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"
