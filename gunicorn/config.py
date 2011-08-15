@@ -643,8 +643,7 @@ class OnReload(Setting):
     validator = validate_callable(1)
     type = "callable"
     def on_reload(server):
-        for i in range(server.app.cfg.workers):
-            server.spawn_worker()
+        server.spawn_workers_and_wait()
 
     default = staticmethod(on_reload)
     desc = """\
