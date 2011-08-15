@@ -453,8 +453,7 @@ def start_server(server):
 <ul>
 <li><pre class="first literal-block">
 def on_reload(server):
-    for i in range(server.app.cfg.workers):
-        server.spawn_worker()
+    server.spawn_workers_and_wait()
 </pre>
 </li>
 </ul>
