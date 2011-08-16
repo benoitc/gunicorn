@@ -643,8 +643,8 @@ class OnReload(Setting):
     validator = validate_callable(1)
     type = "callable"
     def on_reload(server):
-        server.spawn_workers_and_wait()
-
+        for i in range(server.app.cfg.workers):
+            self.spawn_worker()
     default = staticmethod(on_reload)
     desc = """\
         Called to recycle workers during a reload via SIGHUP.
