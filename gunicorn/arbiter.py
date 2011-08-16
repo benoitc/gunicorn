@@ -338,31 +338,6 @@ class Arbiter(object):
         self.cfg.pre_exec(self)
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
-    def spawn_workers_and_wait(self, num_workers=None, wait_limit=None):
-        """\
-        Create new workers and wait for them to be listening before
-        returning.
-        Return True iff all the workers started successfully within
-        wait_limit seconds.
-        """
-        if num_workers is None:
-            num_workers = self.app.cfg.workers
-        if wait_limit is None:
-            wait_limit = self.cfg.timeout
-        pids = [self.spawn_worker() for i in range(num_workers)]
-        tmpfiles = [self.WORKERS[pid].tmp for pid in pids]
-        threshold = time.time()
-        while tmpfiles:
-            now = time.time()
-            if now > threshold + wait_limit:
-                self.log.warn("Worker startup too long; ignoring")
-                return False
-            if tmpfiles[-1].last_update() > threshold:
-                tmpfiles.pop()
-            else:
-                time.sleep(0.2)
-        return True
-        
     def reload(self):
         old_address = self.cfg.address
 
