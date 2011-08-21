@@ -101,6 +101,7 @@ class SyncWorker(base.Worker):
                 else:
                     for item in respiter:
                         resp.write(item)
+                self.log.access(resp, environ)
                 resp.close()
             finally:
                 if hasattr(respiter, "close"):

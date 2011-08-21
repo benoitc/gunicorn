@@ -12,11 +12,11 @@ import time
 
 from gunicorn import util
 
-log = logging.getLogger(__name__)
 
 class BaseSocket(object):
     
-    def __init__(self, conf, fd=None):
+    def __init__(self, conf, log, fd=None):
+        self.log = log
         self.conf = conf
         self.address = conf.address
         if fd is None:
@@ -46,7 +46,7 @@ class BaseSocket(object):
         try:
             self.sock.close()
         except socket.error, e:
-            log.info("Error while closing socket %s", str(e))
+            self.log.info("Error while closing socket %s", str(e))
         time.sleep(0.3)
         del self.sock
 
@@ -94,7 +94,7 @@ class UnixSocket(BaseSocket):
         super(UnixSocket, self).close()
         os.unlink(self.address)
 
-def create_socket(conf):
+def create_socket(conf, log):
     """
     Create a new socket for the given address. If the
     address is a tuple, a TCP socket is created. If it
@@ -117,7 +117,7 @@ def create_socket(conf):
     if 'GUNICORN_FD' in os.environ:
         fd = int(os.environ.pop('GUNICORN_FD'))
         try:
-            return sock_type(conf, fd=fd)
+            return sock_type(conf, log, fd=fd)
         except socket.error, e:
             if e[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
@@ -130,7 +130,7 @@ def create_socket(conf):
     
     for i in range(5):
         try:
-            return sock_type(conf)
+            return sock_type(conf, log)
         except socket.error, e:
             if e[0] == errno.EADDRINUSE:
                 log.error("Connection in use: %s", str(addr))

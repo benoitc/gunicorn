@@ -65,6 +65,8 @@ class AsyncWorker(base.Worker):
             try:
                 for item in respiter:
                     resp.write(item)
+
+                self.log.access(resp, environ)
                 resp.close()
             finally:
                 if hasattr(respiter, "close"):

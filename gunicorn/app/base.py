@@ -4,16 +4,12 @@
 # See the NOTICE for more information.
 
 import errno
-import logging
 import os
 import sys
 import traceback
-try:
-    from logging.config import fileConfig
-except ImportError:
-    from gunicorn.logging_config import fileConfig
 
 
+from gunicorn.glogging import Logger
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
@@ -24,13 +20,6 @@ class Application(object):
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
-    LOG_LEVELS = {
-        "critical": logging.CRITICAL,
-        "error": logging.ERROR,
-        "warning": logging.WARNING,
-        "info": logging.INFO,
-        "debug": logging.DEBUG
-    }
     
     def __init__(self, usage=None):
         self.usage = usage
@@ -106,8 +95,6 @@ class Application(object):
         self.do_load_config()
         if self.cfg.spew:
             debug.spew()
-        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
-        self.logger.setLevel(loglevel)
         
     def wsgi(self):
         if self.callable is None:
@@ -124,9 +111,7 @@ class Application(object):
                 os.setpgrp()
             except OSError, e:
                 if e[0] != errno.EPERM:
-                    raise
-                    
-        self.configure_logging()
+                    raise 
         try:
             Arbiter(self).run()
         except RuntimeError, e:
@@ -134,31 +119,3 @@ class Application(object):
             sys.stderr.flush()
             sys.exit(1)
     
-    def configure_logging(self):
-        """\
-        Set the log level and choose the destination for log output.
-        """
-        self.logger = logging.getLogger('gunicorn')
-
-        fmt = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
-        datefmt = r"%Y-%m-%d %H:%M:%S"
-        if not self.cfg.logconfig:
-            handlers = []
-            if self.cfg.logfile != "-":
-                handlers.append(logging.FileHandler(self.cfg.logfile))
-            else:
-                handlers.append(logging.StreamHandler())
-
-            loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
-            self.logger.setLevel(loglevel)
-            for h in handlers:
-                h.setFormatter(logging.Formatter(fmt, datefmt))
-                self.logger.addHandler(h)
-        else:
-            if os.path.exists(self.cfg.logconfig):
-                fileConfig(self.cfg.logconfig)
-            else:
-                raise RuntimeError("Error: logfile '%s' not found." %
-                        self.cfg.logconfig)
-
-

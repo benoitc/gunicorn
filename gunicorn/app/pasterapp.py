@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import logging
 import os
 import pkg_resources
 import sys
@@ -43,26 +42,6 @@ class PasterBaseApplication(Application):
             cfg[k] = v
 
         return cfg
-
-    def configure_logging(self):
-        if hasattr(self, "cfgfname"):
-            self.logger = logging.getLogger('gunicorn')
-            # from paste.script.command
-            parser = ConfigParser.ConfigParser()
-            parser.read([self.cfgfname])
-            if parser.has_section('loggers'):
-                if sys.version_info >= (2, 6):
-                    from logging.config import fileConfig
-                else:
-                    # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
-                    # and less strict whitespace (which were incorporated into 2.6's)
-                    from gunicorn.logging_config import fileConfig
-
-                config_file = os.path.abspath(self.cfgfname)
-                fileConfig(config_file, dict(__file__=config_file,
-                                             here=os.path.dirname(config_file)))
-                return
-        super(PasterBaseApplication, self).configure_logging()
 
 class PasterApplication(PasterBaseApplication):
     
@@ -123,7 +102,6 @@ class PasterServerApplication(PasterBaseApplication):
             sys.stderr.flush()
             sys.exit(1)
 
-        self.configure_logging()
 
     def load_config(self):
         if not hasattr(self, "cfgfname"):

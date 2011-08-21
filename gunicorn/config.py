@@ -551,15 +551,28 @@ class SecureSchemeHeader(Setting):
         the headers defined here can not be passed directly from the client.
         """
 
-class Logfile(Setting):
-    name = "logfile"
+class AccessLog(Setting):
+    name = "accesslog"
     section = "Logging"
-    cli = ["--log-file"]
+    cli = ["--access-logfile"]
+    meta = "FILE"
+    validator = validate_string
+    default = None  
+    desc = """\
+        The Access log file to write to.
+        
+        "-" means log to stdout.
+        """
+
+class ErrorLog(Setting):
+    name = "errorlog"
+    section = "Logging"
+    cli = ["--error-logfile"]
     meta = "FILE"
     validator = validate_string
     default = "-"
     desc = """\
-        The log file to write to.
+        The Error log file to write to.
         
         "-" means log to stdout.
         """
@@ -572,7 +585,7 @@ class Loglevel(Setting):
     validator = validate_string
     default = "info"
     desc = """\
-        The granularity of log outputs.
+        The granularity of Error log outputs.
         
         Valid level names are:
         
@@ -581,20 +594,6 @@ class Loglevel(Setting):
         * warning
         * error
         * critical
-        """
-
-class LogConfig(Setting):
-    name = "logconfig"
-    section = "Logging"
-    cli = ["--log-config"]
-    meta = "FILE"
-    validator = validate_string
-    default = None 
-    desc = """\
-        The log config file to use.
-        
-        Gunicorn uses the standard Python logging module's Configuration
-        file format.
         """
 
 class Procname(Setting):

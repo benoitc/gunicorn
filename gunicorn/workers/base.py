@@ -27,7 +27,7 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, age, ppid, socket, app, timeout, cfg):
+    def __init__(self, age, ppid, socket, app, timeout, cfg, log):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -44,7 +44,7 @@ class Worker(object):
         self.nr = 0
         self.max_requests = cfg.max_requests or sys.maxint
         self.alive = True
-        self.log = logging.getLogger(__name__)
+        self.log = log
         self.debug = cfg.debug
         self.address = self.socket.getsockname()
         self.tmp = WorkerTmp(cfg) 
@@ -92,6 +92,9 @@ class Worker(object):
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
         util.close_on_exec(self.tmp.fileno())
+
+        self.log.close_on_exec()
+
         self.init_signals()
         
         self.wsgi = self.app.wsgi()
@@ -106,6 +109,10 @@ class Worker(object):
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
+        signal.signal(signal.SIGUSR1, self.handle_usr1)
+
+    def handle_usr1(self, sig, frame):
+        self.log.reopen_files()
             
     def handle_quit(self, sig, frame):
         self.alive = False
