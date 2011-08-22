@@ -728,9 +728,9 @@ class PreRequest(Setting):
 class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
-    validator = validate_callable(2)
+    validator = validate_callable(3)
     type = "callable"
-    def post_request(worker, req):
+    def post_request(worker, req, environ):
         pass
     default = staticmethod(post_request)
     desc = """\
