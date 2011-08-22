@@ -337,12 +337,12 @@ class Arbiter(object):
         """
         if self.pidfile is not None:
             self.pidfile.rename("%s.oldbin" % self.pidfile.fname)
-        
+
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
             self.master_name = "Old Master"
             return
-            
+
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
