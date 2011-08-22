@@ -8,6 +8,11 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.13.1 / 2011-08-22
+-------------------
+
+- Fix unix socket. log argument was missing.
+
 0.13.0 / 2011-08-22
 -------------------
 
