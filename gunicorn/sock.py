@@ -73,7 +73,7 @@ class UnixSocket(BaseSocket):
     
     FAMILY = socket.AF_UNIX
     
-    def __init__(self, conf, fd=None):
+    def __init__(self, conf, log, fd=None):
         if fd is None:
             try:
                 os.remove(conf.address)
