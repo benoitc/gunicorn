@@ -567,7 +567,7 @@ class AccessLog(Setting):
 class ErrorLog(Setting):
     name = "errorlog"
     section = "Logging"
-    cli = ["--error-logfile"]
+    cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
     default = "-"
