@@ -79,7 +79,7 @@ class UnixSocket(BaseSocket):
                 os.remove(conf.address)
             except OSError:
                 pass
-        super(UnixSocket, self).__init__(conf, fd=fd)
+        super(UnixSocket, self).__init__(conf, log, fd=fd)
     
     def __str__(self):
         return "unix:%s" % self.address
