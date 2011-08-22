@@ -185,10 +185,13 @@ when you might want to choose one of the other worker classes.</p>
 <li><tt class="docutils literal">gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
 <li><tt class="docutils literal">tornado</tt>  - Requires tornado &gt;= 0.2</li>
 </ul>
-<p>Optionally, you can provide your own worker by giving gunicorn a
-MODULE:CLASS pair where CLASS is a subclass of
-gunicorn.workers.base.Worker. This alternative syntax will load the
-gevent class: <tt class="docutils literal">egg:gunicorn#gevent</tt></p>
+<p>
+Optionally, you can provide your own worker by giving gunicorn a python path
+to a subclass of gunicorn.workers.base.Worker. This alternative syntax will
+load the gevent class:
+<tt class="docutils literal">gunicorn.workers.ggevent.GeventWorker</tt>.
+Alternatively the syntax can also load the gevent class with
+<tt class="docutils literal">egg:gunicorn#gevent</tt></p>
 </div>
 <div class="section" id="worker-connections">
 <h4><a class="toc-backref" href="#contents">worker_connections</a></h4>
@@ -334,6 +337,29 @@ int(value, 0) (0 means Python guesses the base, so values like &quot;0&quot;,
 workers. If not specified, Gunicorn will choose a system generated
 temporary directory.</p>
 </div>
+<div class="section" id="secure-scheme-headers">
+<h4><a class="toc-backref" href="#contents">secure_scheme_headers</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal">{
+        "X-FORWARDED-PROTOCOL": "ssl",
+        "X-FORWARDED-SSL": "on"
+    }
+</tt></li>
+</ul>
+<p>A dictionary containing headers and values that the front-end proxy
+uses to indicate HTTPS requests. These tell gunicorn to set
+wsgi.url_scheme to "https", so your application can tell that the
+request is secure.</p>
+
+<p>The dictionary should map upper-case header names to exact string
+values. The value comparisons are case-sensitive, unlike the header
+names, so make sure they're exactly what your front-end proxy sends
+when handling HTTPS requests.</p>
+
+<p>It is important that your front-end proxy configuration ensures that
+the headers defined here can not be passed directly from the client.</p>
+
+</div>
 </div>
 <div class="section" id="logging">
 <h3><a class="toc-backref" href="#contents">Logging</a></h3>
@@ -420,6 +446,21 @@ def start_server(server):
 </li>
 </ul>
 <p>Called just after the server is started.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
+<div class="section" id="on-reload">
+<h4><a class="toc-backref" href="#contents">on_reload</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def on_reload(server):
+    for i in range(server.app.cfg.workers):
+        server.spawn_worker()
+</pre>
+</li>
+</ul>
+<p>Called during a reload from a SIGHUP signal.
+This callback should create an appropriate number of new workers.
+Old workers will be killed automatically by gunicorn, so it is not required to do so here.</p>
 <p>The callable needs to accept a single instance variable for the Arbiter.</p>
 </div>
 <div class="section" id="pre-fork">
@@ -546,28 +587,29 @@ the just-exited Worker.</p>
 <li><a class="reference internal" href="#group" id="id27">group</a></li>
 <li><a class="reference internal" href="#umask" id="id28">umask</a></li>
 <li><a class="reference internal" href="#tmp-upload-dir" id="id29">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#secure-scheme-headers" id="id30">secure_scheme_headers</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#logging" id="id30">Logging</a><ul>
-<li><a class="reference internal" href="#logfile" id="id31">logfile</a></li>
-<li><a class="reference internal" href="#loglevel" id="id32">loglevel</a></li>
-<li><a class="reference internal" href="#logconfig" id="id33">logconfig</a></li>
+<li><a class="reference internal" href="#logging" id="id31">Logging</a><ul>
+<li><a class="reference internal" href="#logfile" id="id32">logfile</a></li>
+<li><a class="reference internal" href="#loglevel" id="id33">loglevel</a></li>
+<li><a class="reference internal" href="#logconfig" id="id34">logconfig</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id34">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id35">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id36">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id35">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id36">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id37">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id37">Server Hooks</a><ul>
-<li><a class="reference internal" href="#on-starting" id="id38">on_starting</a></li>
-<li><a class="reference internal" href="#when-ready" id="id39">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id40">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id41">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id42">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id43">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id44">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id45">worker_exit</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id38">Server Hooks</a><ul>
+<li><a class="reference internal" href="#on-starting" id="id39">on_starting</a></li>
+<li><a class="reference internal" href="#when-ready" id="id40">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id41">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id42">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id43">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id44">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id45">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id46">worker_exit</a></li>
 </ul>
 </li>
 </ul>
