@@ -29,7 +29,7 @@ class Logger(object):
             '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
     def __init__(self, cfg):
-        self.error_log = logging.getLogger("gunicor.error")
+        self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
         self.error_handlers = []
         self.access_handlers = []
