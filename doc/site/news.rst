@@ -8,6 +8,24 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.13.0 / 2011-08-22
+-------------------
+
+- Improve logging: allows file-reopening and add access log file
+  compatible with the `apache combined log format <http://httpd.apache.org/docs/2.0/logs.html#combined>`_
+- Add the possibility to set custom SSL headers. X-Forwarded-Protocol
+  and X-Forwarded-SSL are still the default
+- New `on_reload` hook to customize how gunicorn spawn new workers on
+  SIGHUP
+- Handle projects with relative path in django_gunicorn command
+- Preserve path parameters in PATH_INFO
+- post_request hook now accepts the environ as argument.
+- When stopping the arbiter, close the listener asap.
+- Fix Django command `run_gunicorn` in settings reloading
+- Fix Tornado_ worker exiting
+- Fix the use of sendfile in wsgi.file_wrapper
+  
+
 0.12.2 / 2011-05-18
 -------------------
 

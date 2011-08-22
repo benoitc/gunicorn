@@ -79,14 +79,18 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.12.2 / 2011-05-18</h3>
+        <h3>Version 0.13.0 / 2011-08-22</h3>
         <ul>
-            <li>Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
-            sendfile if available)</li>
-            <li>Fix django run_gunicorn command. Make sure we reload the application
-            code.</li>
-            <li>Fix django localisation</li>
-            <li>Compatible with gevent 0.14dev</li>
+          <li>Improve logging: allows file-reopening and add access log file compatible with the <a href="http://httpd.apache.org/docs/2.0/logs.html#combined">apache combined log format</a></li>
+<li>Add the possibility to set custom SSL headers. X-Forwarded-Protocol  and X-Forwarded-SSL are still the default</li>
+<li>New <code>on_reload</code> hook to customize how gunicorn spawn new workers on <em>SIGHUP</em></li>
+<li>Handle projects with relative path in <code>django_gunicorn</code> command</li>
+<li>Preserve path parameters in <em>PATH_INFO</em></li>
+<li>Post_request hook now accepts the environ as argument.</li>
+<li>When stopping the arbiter, close the listener asap.</li>
+<li>Fix Django command <code>run_gunicorn</code> in settings reloading</li>
+<li>Fix Tornado_ worker exiting</li>
+<li>Fix the use of sendfile in wsgi.file_wrapper</li>
         </ul>
       </div> 
       <div id="footer">
