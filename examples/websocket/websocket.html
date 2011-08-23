@@ -7,8 +7,18 @@ http://assorted.svn.sourceforge.net/viewvc/assorted/real-time-plotter/trunk/src/
 <script src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
 <script>
 window.onload = function() {
+    var url = "ws://%(HTTP_HOST)s/data";
+
+    if('WebSocket' in window){
+      var s = new WebSocket(url);
+    } else if('MozWebSocket' in window){
+      var s = new MozWebSocket(url);
+    }else{
+      alert("Your browser don't support websockets");
+      return;
+    }
+
     var data = {};
-    var s = new WebSocket("ws://%(HTTP_HOST)s/data");
     s.onopen = function() { 
         //alert('open');
         s.send('hi');
