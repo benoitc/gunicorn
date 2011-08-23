@@ -6,16 +6,7 @@
 # Example code from Eventlet sources
 
 
-import collections
-import errno
-from hashlib import md5
-import re
-import socket
-import struct
-
-from gunicorn.workers.async import ALREADY_HANDLED
 from eventlet import pools
-
 import eventlet
 
 from base_websocket import BaseWebSocketWSGI, BaseLock

@@ -5,19 +5,9 @@
 #
 # Example code from Eventlet sources
 
-import collections
-import errno
-import re
-from hashlib import md5
-import socket
-import struct
-
 import gevent
-from gevent.pool import Pool
-from gunicorn.workers.async import ALREADY_HANDLED
 
 from base_websocket import BaseWebSocketWSGI as WebSocketWSGI
-
 
 # demo app
 import os
