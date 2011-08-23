@@ -279,7 +279,6 @@ class WebSocket(object):
         return self._msgs.popleft()
 
     def _wait_hybi(self):
-        print 'HAI'
         while not self._msgs:
             # no parsed messages, must mean buf needs more data
             delta = self.sock.recv(1024)
@@ -337,7 +336,6 @@ class WebSocket(object):
             self._buf = self._buf[frame['frame_length']:]
 
     def wait(self):
-        print "HAI??"
         if self.protocol_version == 7:
             return self._wait_hybi()
         else:
