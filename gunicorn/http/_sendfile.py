@@ -39,7 +39,7 @@ def sendfile(fdout, fdin, offset, nbytes):
         if result == -1:
             e = ctypes.get_errno()
             if e == errno.EAGAIN and _nbytes.value:
-                return nbytes.value
+                return _nbytes.value
             raise OSError(e, os.strerror(e))
         return _nbytes.value
     elif sys.platform in ('freebsd', 'dragonfly',):
