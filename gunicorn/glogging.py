@@ -6,7 +6,7 @@
 import datetime
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
-import sys
+import traceback
 
 from gunicorn import util
 
@@ -72,7 +72,7 @@ class Logger(object):
     def exception(self, msg, *args):
         self.error_log.exception(msg, *args)
 
-    def log(lvl, msg, *args, **kwargs):
+    def log(self, lvl, msg, *args, **kwargs):
         if isinstance(lvl, basestring):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
@@ -105,7 +105,7 @@ class Logger(object):
         try:
             self.access_log.info(self.access_log_format % atoms)
         except:
-            self.errors(traceback.format_exc())
+            self.error(traceback.format_exc())
 
     def now(self):
         """ return date in Apache Common Log Format """
@@ -136,7 +136,7 @@ class Logger(object):
    
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
-            if getattr(h, "_gunicorn") == True:
+            if getattr(h, "_gunicorn"):
                 return h
     
     def _set_handler(self, log, output, fmt):
