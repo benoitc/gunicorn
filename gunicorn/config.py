@@ -201,12 +201,15 @@ def validate_string(val):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
-def validate_callable(arity):
+def validate_callable(*arities):
     def _validate_callable(val):
         if not callable(val):
             raise TypeError("Value is not callable: %s" % val)
-        if arity != len(inspect.getargspec(val)[0]):
-            raise TypeError("Value must have an arity of: %s" % arity)
+        val_arity = len(inspect.getargspec(val)[0])
+        if all(arity != val_arity for arity in arities):
+            raise TypeError("Value must have an arity of: %s" %
+                            (arities[0] if len(arities)==1
+                             else " or ".join(str(a) for a in arities)))
         return val
     return _validate_callable
 
@@ -728,7 +731,7 @@ class PreRequest(Setting):
 class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
-    validator = validate_callable(3)
+    validator = validate_callable(3, 2)  # legacy hook has 2 parameters
     type = "callable"
     def post_request(worker, req, environ):
         pass
