@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 #
 
+import datetime
 import errno
 import os
 import select
@@ -84,6 +85,7 @@ class SyncWorker(base.Worker):
         environ = {}
         try:
             self.cfg.pre_request(self, req)
+            request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
                     self.address, self.cfg)
             # Force the connection closed until someone shows
@@ -101,8 +103,9 @@ class SyncWorker(base.Worker):
                 else:
                     for item in respiter:
                         resp.write(item)
-                self.log.access(resp, environ)
                 resp.close()
+                request_time = request_start - datetime.now()
+                self.log.access(resp, environ)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()

@@ -5,6 +5,7 @@
 
 from __future__ import with_statement
 
+from datetime import datetime
 import errno
 import socket
 
@@ -53,6 +54,7 @@ class AsyncWorker(base.Worker):
     def handle_request(self, req, sock, addr):
         try:
             self.cfg.pre_request(self, req)
+            request_start = datetime.now()
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
@@ -65,9 +67,9 @@ class AsyncWorker(base.Worker):
             try:
                 for item in respiter:
                     resp.write(item)
-
-                self.log.access(resp, environ)
                 resp.close()
+                request_time = request_start - datetime.now()
+                self.log.access(resp, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
                   respiter.close()

@@ -596,6 +596,36 @@ class AccessLog(Setting):
         "-" means log to stdout.
         """
 
+class AccessLogFormat(Setting):
+    name = "access_log_format"
+    section = "Logging"
+    cli = ["--access-logformat"]
+    meta = "STRING"
+    validator = validate_string
+    default = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'  
+    desc = """\
+        The Access log format .
+
+        By default:
+
+        %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+
+
+        h: remote address
+        t: date of the request
+        r: status line (ex: GET / HTTP/1.1)
+        s: status
+        b: response length or '-'
+        f: referer
+        a: user agent
+        T: request time in seconds
+        D: request time in microseconds
+
+        You can also pass any WSGI request header as a parameter. 
+        (ex '%(HTTP_HOST)s').
+        """
+
+
 class ErrorLog(Setting):
     name = "errorlog"
     section = "Logging"
