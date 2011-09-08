@@ -91,8 +91,56 @@ want to consider one of the alternate worker types.
     package manager. If Gevent_ fails to build even with libevent_
     installed, this is the most likely reason.
 
-Ubuntu/Debian
--------------
+Debian GNU/Linux
+----------------
+
+If you are using Debian GNU/Linux is is recommended that you use system
+packages to install Gunicorn. This has a number of advantages:
+
+ * Zero-effort installation: Automatically starts multiple Gunicorn instances
+   based on configurations defined in ``/etc/gunicorn.d``.
+
+ * Sensible default locations for logs (``/var/log/gunicorn``). Logs
+   can be automatically rotated and compressed using ``logrotate``.
+
+ * Improved security: Can easily run each Gunicorn instance with a dedicated
+   UNIX user/group.
+
+ * Sensible upgrade path: Upgrades to newer versions result in less downtime,
+   handle conflicting changes in configuration options, and can be quickly
+   rolled back in case of incompatibility. The package can also be purged
+   entirely from the system in seconds.
+
+Stable ("squeeze")
+++++++++++++++++++
+
+The version of Gunicorn in the Debian_ "stable" distribution is 0.10.0 (July
+2010). It is not recommended that you use this version.
+
+However, you can use the most recent version by using `Debian Backports`_.
+First, copy the following line to your ``/etc/apt/sources.list``::
+
+    deb http://backports.debian.org/debian-backports squeeze-backports main
+
+Then, update your local package lists::
+
+    $ sudo apt-get update
+
+You can then install the latest version using::
+
+    $ sudo apt-get -t squeeze-backports install gunicorn
+
+Testing ("wheezy") / Unstable ("sid")
++++++++++++++++++++++++++++++++++++++
+
+"wheezy" and "sid" contain the latest released version of Gunicorn. You can
+install it in the usual way::
+
+    $ sudo apt-get install gunicorn
+
+
+Ubuntu
+------
 
 If you use Ubuntu_ karmic, you can update your system with packages from
 our PPA_ by adding ``ppa:bchesneau/gunicorn`` to your system's Software
@@ -125,5 +173,7 @@ Fingerprint
 .. _`here on github`: http://github.com/tilgovi/gunicorn
 .. _Gevent: http://gevent.org
 .. _libevent: http://monkey.org/~provos/libevent
+.. _Debian: http://www.debian.org/
+.. _`Debian Backports`: http://backports.debian.org/
 .. _Ubuntu: http://www.ubuntu.com/
 .. _PPA: https://launchpad.net/~bchesneau/+archive/gunicorn
