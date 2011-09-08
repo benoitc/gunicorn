@@ -14,7 +14,6 @@ import time
 import traceback
 
 
-from gunicorn.glogging import Logger
 from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_socket
@@ -85,7 +84,7 @@ class Arbiter(object):
     def setup(self, app):
         self.app = app
         self.cfg = app.cfg
-        self.log = Logger(app.cfg)
+        self.log = self.cfg.logger_class(app.cfg)
     
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()

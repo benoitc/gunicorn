@@ -61,6 +61,9 @@ setup(
     gevent_pywsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
     tornado=gunicorn.workers.gtornado:TornadoWorker
 
+    [gunicorn.loggers]
+    simple=gunicorn.glogging:Logger
+
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server
     """,

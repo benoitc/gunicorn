@@ -72,7 +72,7 @@ class Config(object):
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
-        worker_class = util.load_worker_class(uri)
+        worker_class = util.load_class(uri)
         if hasattr(worker_class, "setup"):
             worker_class.setup()
         return worker_class
@@ -101,6 +101,17 @@ class Config(object):
             return pn
         else:
             return self.settings['default_proc_name'].get()
+
+    @property
+    def logger_class(self):
+        uri = self.settings['logger_class'].get()
+        logger_class = util.load_class(uri, default="simple",
+            section="gunicorn.loggers")
+
+        if hasattr(logger_class, "install"):
+            logger_class.install()
+        return logger_class
+
             
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -615,6 +626,25 @@ class Loglevel(Setting):
         * warning
         * error
         * critical
+        """
+
+class LoggerClass(Setting):
+    name = "logger_class"
+    section = "Logging"
+    cli = ["--logger-class"]
+    meta = "STRING"
+    validator = validate_string
+    default = "simple"
+    desc = """\
+        The logger you want to use to log events in gunicorn.
+
+        The default class (``gunicorn.glogging.Logger``) handle most of
+        normal usages in logging. It provides error and access logging.
+
+        You can provide your own worker by giving gunicorn a
+        python path to a subclass like gunicorn.glogging.Logger. 
+        Alternatively the syntax can also load the Logger class 
+        with ``egg:gunicorn#simple`
         """
 
 class Procname(Setting):

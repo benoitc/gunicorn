@@ -64,7 +64,7 @@ except ImportError:
     def _setproctitle(title):
         return
 
-def load_worker_class(uri):
+def load_class(uri, default="sync", section="gunicorn.workers"):
     if uri.startswith("egg:"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
@@ -72,19 +72,20 @@ def load_worker_class(uri):
             dist, name = entry_str.rsplit("#",1)
         except ValueError:
             dist = entry_str
-            name = "sync"
+            name = default
 
-        return pkg_resources.load_entry_point(dist, "gunicorn.workers", name)
+        return pkg_resources.load_entry_point(dist, section, name)
     else:
         components = uri.split('.')
         if len(components) == 1:
             try:
                 if uri.startswith("#"):
                     uri = uri[1:]
+
                 return pkg_resources.load_entry_point("gunicorn", 
-                            "gunicorn.workers", uri)
+                            section, uri)
             except ImportError: 
-                raise RuntimeError("arbiter uri invalid or not found")
+                raise RuntimeError("class uri invalid or not found")
         klass = components.pop(-1)
         mod = __import__('.'.join(components))
         for comp in components[1:]:
