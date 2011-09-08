@@ -238,6 +238,27 @@ def validate_group(val):
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
 
+def validate_post_request(val):
+
+    # decorator
+    def wrap_post_request(fun):
+        def _wrapped(instance, req, environ):
+            return fun(instance, req)
+        return _wrapped
+    
+    if not callable(val):
+        raise TypeError("Value isn't a callable: %s" % val)
+
+    largs = len(inspect.getargspec(val)[0])
+    if largs == 3:
+        return val
+    elif largs == 2:
+        return wrap_post_request(val)
+    else:
+         raise TypeError("Value must have an arity of: 3")
+
+
+
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
@@ -728,7 +749,7 @@ class PreRequest(Setting):
 class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
-    validator = validate_callable(3)
+    validator = validate_post_request
     type = "callable"
     def post_request(worker, req, environ):
         pass

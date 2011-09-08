@@ -75,7 +75,7 @@ class AsyncWorker(base.Worker):
                 raise StopIteration()
         finally:
             try:
-                self.cfg.post_request(self, req)
+                self.cfg.post_request(self, req, environ)
             except:
                 pass
         return True
