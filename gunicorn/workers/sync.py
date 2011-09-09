@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 #
 
-import datetime
+from datetime import datetime
 import errno
 import os
 import select
@@ -105,7 +105,7 @@ class SyncWorker(base.Worker):
                         resp.write(item)
                 resp.close()
                 request_time = request_start - datetime.now()
-                self.log.access(resp, environ)
+                self.log.access(resp, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
