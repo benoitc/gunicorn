@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <title>Green Unicorn - Configure</title>
-    <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
@@ -21,8 +20,10 @@
           <li><a href="deploy.html">Deploy</a></li>
           <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
+          <li><a href="community.html">Community</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/issues">Issues</a></li>
         </ul>
       </div>
       <div id="content">
@@ -80,15 +81,20 @@ you start Gunicorn (including when you signal Gunicorn to reload).</p>
 you provide will be used for the configuration values.</p>
 <p>For instance:</p>
 <pre class="literal-block">
+import multiprocessing
+
+bind = &quot;127.0.0.1:8000&quot;
+workers = multiprocessing.cpu_count() * 2 + 1
+</pre>
+<p>On a side note, Python's older than 2.6 can use sysconf to get the
+number of processors:</p>
+<pre class="literal-block">
 import os
 
 def numCPUs():
     if not hasattr(os, &quot;sysconf&quot;):
         raise RuntimeError(&quot;No sysconf detected.&quot;)
     return os.sysconf(&quot;SC_NPROCESSORS_ONLN&quot;)
-
-bind = &quot;127.0.0.1:8000&quot;
-workers = numCPUs() * 2 + 1
 </pre>
 </div>
 <div class="section" id="command-line">
@@ -166,22 +172,26 @@ application's work load.</p>
 <h4><a class="toc-backref" href="#contents">worker_class</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-k</span> STRING, <span class="pre">--worker-class</span> STRING</tt></li>
-<li><tt class="docutils literal">egg:gunicorn#sync</tt></li>
+<li><tt class="docutils literal">sync</tt></li>
 </ul>
 <p>The type of workers to use.</p>
-<p>The default async class should handle most 'normal' types of work loads.
-You'll want to read <a class="reference external" href="http://gunicorn.org/design.hml">http://gunicorn.org/design.hml</a> for information on
+<p>The default class (sync) should handle most 'normal' types of workloads.
+You'll want to read <a class="reference external" href="http://gunicorn.org/design.html">http://gunicorn.org/design.html</a> for information on
 when you might want to choose one of the other worker classes.</p>
-<p>An string referring to a 'gunicorn.workers' entry point or a
-MODULE:CLASS pair where CLASS is a subclass of
-gunicorn.workers.base.Worker.</p>
-<p>The default provided values are:</p>
+<p>A string referring to one of the following bundled classes:</p>
 <ul class="simple">
-<li><tt class="docutils literal">egg:gunicorn#sync</tt></li>
-<li><tt class="docutils literal">egg:gunicorn#eventlet</tt> - Requires eventlet &gt;= 0.9.7</li>
-<li><tt class="docutils literal">egg:gunicorn#gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
-<li><tt class="docutils literal">egg:gunicorn#tornado</tt>  - Requires tornado &gt;= 0.2</li>
+<li><tt class="docutils literal">sync</tt></li>
+<li><tt class="docutils literal">eventlet</tt> - Requires eventlet &gt;= 0.9.7</li>
+<li><tt class="docutils literal">gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
+<li><tt class="docutils literal">tornado</tt>  - Requires tornado &gt;= 0.2</li>
 </ul>
+<p>
+Optionally, you can provide your own worker by giving gunicorn a python path
+to a subclass of gunicorn.workers.base.Worker. This alternative syntax will
+load the gevent class:
+<tt class="docutils literal">gunicorn.workers.ggevent.GeventWorker</tt>.
+Alternatively the syntax can also load the gevent class with
+<tt class="docutils literal">egg:gunicorn#gevent</tt></p>
 </div>
 <div class="section" id="worker-connections">
 <h4><a class="toc-backref" href="#contents">worker_connections</a></h4>
@@ -191,6 +201,19 @@ gunicorn.workers.base.Worker.</p>
 </ul>
 <p>The maximum number of simultaneous clients.</p>
 <p>This setting only affects the Eventlet and Gevent worker types.</p>
+</div>
+<div class="section" id="max-requests">
+<h4><a class="toc-backref" href="#contents">max_requests</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--max-requests</span> INT</tt></li>
+<li><tt class="docutils literal">0</tt></li>
+</ul>
+<p>The maximum number of requests a worker will process before restarting.</p>
+<p>Any value greater than zero will limit the number of requests a work
+will process before automatically restarting. This is a simple method
+to help limit the damage of memory leaks.</p>
+<p>If this is set to zero (the default) then the automatic worker
+restarts are disabled.</p>
 </div>
 <div class="section" id="timeout">
 <h4><a class="toc-backref" href="#contents">timeout</a></h4>
@@ -273,7 +296,7 @@ background.</p>
 <h4><a class="toc-backref" href="#contents">user</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-u</span> USER, <span class="pre">--user</span> USER</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal">1744020413</tt></li>
 </ul>
 <p>Switch worker processes to run as this user.</p>
 <p>A valid user id (as an integer) or the name of a user that can be
@@ -284,7 +307,7 @@ the worker process user.</p>
 <h4><a class="toc-backref" href="#contents">group</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-g</span> GROUP, <span class="pre">--group</span> GROUP</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal">2093627230</tt></li>
 </ul>
 <p>Switch worker process to run as this group.</p>
 <p>A valid group id (as an integer) or the name of a user that can be
@@ -314,6 +337,29 @@ int(value, 0) (0 means Python guesses the base, so values like &quot;0&quot;,
 workers. If not specified, Gunicorn will choose a system generated
 temporary directory.</p>
 </div>
+<div class="section" id="secure-scheme-headers">
+<h4><a class="toc-backref" href="#contents">secure_scheme_headers</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal">{
+        "X-FORWARDED-PROTOCOL": "ssl",
+        "X-FORWARDED-SSL": "on"
+    }
+</tt></li>
+</ul>
+<p>A dictionary containing headers and values that the front-end proxy
+uses to indicate HTTPS requests. These tell gunicorn to set
+wsgi.url_scheme to "https", so your application can tell that the
+request is secure.</p>
+
+<p>The dictionary should map upper-case header names to exact string
+values. The value comparisons are case-sensitive, unlike the header
+names, so make sure they're exactly what your front-end proxy sends
+when handling HTTPS requests.</p>
+
+<p>It is important that your front-end proxy configuration ensures that
+the headers defined here can not be passed directly from the client.</p>
+
+</div>
 </div>
 <div class="section" id="logging">
 <h3><a class="toc-backref" href="#contents">Logging</a></h3>
@@ -342,6 +388,16 @@ temporary directory.</p>
 <li>critical</li>
 </ul>
 </div>
+<div class="section" id="logconfig">
+<h4><a class="toc-backref" href="#contents">logconfig</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--log-config</span> FILE</tt></li>
+<li><tt class="docutils literal">None</tt></li>
+</ul>
+<p>The log config file to use.</p>
+<p>Gunicorn uses the standard Python logging module's Configuration
+file format.</p>
+</div>
 </div>
 <div class="section" id="process-naming">
 <h3><a class="toc-backref" href="#contents">Process Naming</a></h3>
@@ -349,7 +405,7 @@ temporary directory.</p>
 <h4><a class="toc-backref" href="#contents">proc_name</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-n</span> STRING, <span class="pre">--name</span> STRING</tt></li>
-<li><tt class="docutils literal">gunicorn</tt></li>
+<li><tt class="docutils literal">None</tt></li>
 </ul>
 <p>A base to use with setproctitle for process naming.</p>
 <p>This affects things like <tt class="docutils literal">ps</tt> and <tt class="docutils literal">top</tt>. If you're going to be
@@ -368,11 +424,50 @@ module.</p>
 </div>
 <div class="section" id="server-hooks">
 <h3><a class="toc-backref" href="#contents">Server Hooks</a></h3>
+<div class="section" id="on-starting">
+<h4><a class="toc-backref" href="#contents">on_starting</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def on_starting(server):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just before the master process is initialized.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
+<div class="section" id="when-ready">
+<h4><a class="toc-backref" href="#contents">when_ready</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def start_server(server):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just after the server is started.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
+<div class="section" id="on-reload">
+<h4><a class="toc-backref" href="#contents">on_reload</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def on_reload(server):
+    for i in range(server.app.cfg.workers):
+        server.spawn_worker()
+</pre>
+</li>
+</ul>
+<p>Called during a reload from a SIGHUP signal.
+This callback should create an appropriate number of new workers.
+Old workers will be killed automatically by gunicorn, so it is not required to do so here.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
 <div class="section" id="pre-fork">
 <h4><a class="toc-backref" href="#contents">pre_fork</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_pre_fork(server, worker):
+def pre_fork(server, worker):
     pass
 </pre>
 </li>
@@ -385,8 +480,8 @@ new Worker.</p>
 <h4><a class="toc-backref" href="#contents">post_fork</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_post_fork(server, worker):
-    server.log.info(&quot;Worker spawned (pid: %s)&quot; % worker.pid)
+def post_fork(server, worker):
+    pass
 </pre>
 </li>
 </ul>
@@ -394,29 +489,56 @@ def def_post_fork(server, worker):
 <p>The callable needs to accept two instance variables for the Arbiter and
 new Worker.</p>
 </div>
-<div class="section" id="when-ready">
-<h4><a class="toc-backref" href="#contents">when_ready</a></h4>
-<ul>
-<li><pre class="first literal-block">
-def def_start_server(server):
-    pass
-</pre>
-</li>
-</ul>
-<p>Called just after the server is started.</p>
-<p>The callable needs to accept a single instance variable for the Arbiter.</p>
-</div>
 <div class="section" id="pre-exec">
 <h4><a class="toc-backref" href="#contents">pre_exec</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def def_pre_exec(server):
-    server.log.info(&quot;Forked child, reexecuting.&quot;)
+def pre_exec(server):
+    pass
 </pre>
 </li>
 </ul>
 <p>Called just before a new master process is forked.</p>
 <p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
+<div class="section" id="pre-request">
+<h4><a class="toc-backref" href="#contents">pre_request</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def pre_request(worker, req):
+    worker.log.debug(&quot;%s %s&quot; % (req.method, req.path))
+</pre>
+</li>
+</ul>
+<p>Called just before a worker processes the request.</p>
+<p>The callable needs to accept two instance variables for the Worker and
+the Request.</p>
+</div>
+<div class="section" id="post-request">
+<h4><a class="toc-backref" href="#contents">post_request</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def post_request(worker, req):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called after a worker processes the request.</p>
+<p>The callable needs to accept two instance variables for the Worker and
+the Request.</p>
+</div>
+<div class="section" id="worker-exit">
+<h4><a class="toc-backref" href="#contents">worker_exit</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def worker_exit(server, worker):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just after a worker has been exited.</p>
+<p>The callable needs to accept two instance variables for the Arbiter and
+the just-exited Worker.</p>
 </div>
 </div>
 </div>
@@ -447,40 +569,47 @@ def def_pre_exec(server):
 <li><a class="reference internal" href="#workers" id="id13">workers</a></li>
 <li><a class="reference internal" href="#worker-class" id="id14">worker_class</a></li>
 <li><a class="reference internal" href="#worker-connections" id="id15">worker_connections</a></li>
-<li><a class="reference internal" href="#timeout" id="id16">timeout</a></li>
-<li><a class="reference internal" href="#keepalive" id="id17">keepalive</a></li>
+<li><a class="reference internal" href="#max-requests" id="id16">max_requests</a></li>
+<li><a class="reference internal" href="#timeout" id="id17">timeout</a></li>
+<li><a class="reference internal" href="#keepalive" id="id18">keepalive</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#debugging" id="id18">Debugging</a><ul>
-<li><a class="reference internal" href="#debug" id="id19">debug</a></li>
-<li><a class="reference internal" href="#spew" id="id20">spew</a></li>
+<li><a class="reference internal" href="#debugging" id="id19">Debugging</a><ul>
+<li><a class="reference internal" href="#debug" id="id20">debug</a></li>
+<li><a class="reference internal" href="#spew" id="id21">spew</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-mechanics" id="id21">Server Mechanics</a><ul>
-<li><a class="reference internal" href="#preload-app" id="id22">preload_app</a></li>
-<li><a class="reference internal" href="#daemon" id="id23">daemon</a></li>
-<li><a class="reference internal" href="#pidfile" id="id24">pidfile</a></li>
-<li><a class="reference internal" href="#user" id="id25">user</a></li>
-<li><a class="reference internal" href="#group" id="id26">group</a></li>
-<li><a class="reference internal" href="#umask" id="id27">umask</a></li>
-<li><a class="reference internal" href="#tmp-upload-dir" id="id28">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#server-mechanics" id="id22">Server Mechanics</a><ul>
+<li><a class="reference internal" href="#preload-app" id="id23">preload_app</a></li>
+<li><a class="reference internal" href="#daemon" id="id24">daemon</a></li>
+<li><a class="reference internal" href="#pidfile" id="id25">pidfile</a></li>
+<li><a class="reference internal" href="#user" id="id26">user</a></li>
+<li><a class="reference internal" href="#group" id="id27">group</a></li>
+<li><a class="reference internal" href="#umask" id="id28">umask</a></li>
+<li><a class="reference internal" href="#tmp-upload-dir" id="id29">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#secure-scheme-headers" id="id30">secure_scheme_headers</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#logging" id="id29">Logging</a><ul>
-<li><a class="reference internal" href="#logfile" id="id30">logfile</a></li>
-<li><a class="reference internal" href="#loglevel" id="id31">loglevel</a></li>
+<li><a class="reference internal" href="#logging" id="id31">Logging</a><ul>
+<li><a class="reference internal" href="#logfile" id="id32">logfile</a></li>
+<li><a class="reference internal" href="#loglevel" id="id33">loglevel</a></li>
+<li><a class="reference internal" href="#logconfig" id="id34">logconfig</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id32">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id33">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id34">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id35">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id36">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id37">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id35">Server Hooks</a><ul>
-<li><a class="reference internal" href="#pre-fork" id="id36">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id37">post_fork</a></li>
-<li><a class="reference internal" href="#when-ready" id="id38">when_ready</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id39">pre_exec</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id38">Server Hooks</a><ul>
+<li><a class="reference internal" href="#on-starting" id="id39">on_starting</a></li>
+<li><a class="reference internal" href="#when-ready" id="id40">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id41">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id42">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id43">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id44">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id45">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id46">worker_exit</a></li>
 </ul>
 </li>
 </ul>

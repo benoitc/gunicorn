@@ -53,14 +53,16 @@ An `example configuration`_ file for fast clients with Nginx_::
             root /path/to/app/current/public;
  
             location / {
+                # checks for static file, if not found proxy to app
+                try_files $uri @proxy_to_app;
+            }
+
+            location @proxy_to_app {
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header Host $http_host;
                 proxy_redirect off;
  
-                if (!-f $request_filename) {
-                    proxy_pass http://app_server;
-                    break;
-                }
+                proxy_pass   http://app_server;
             }
  
             error_page 500 502 503 504 /500.html;
@@ -126,20 +128,29 @@ Runit
 +++++
 
 A popular method for deploying Gunicorn is to have it monitored by runit_.
-An `example service`_ definition::
+Here is an `example service`_ definition::
 
-    #!/bin sh
+    #!/bin/sh
     
     GUNICORN=/usr/local/bin/gunicorn
     ROOT=/path/to/project
     PID=/var/run/gunicorn.pid
     
     APP=main:application
- 
-    if [ -f $PID ]; then rm $PID fi
- 
+    
+    if [ -f $PID ]; then rm $PID; fi
+    
     cd $ROOT
-    exec $GUNICORN -C $ROOT/gunicorn.conf.py --pidfile=$PID $APP
+    exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
+
+Save this as ``/etc/sv/[app_name]/run``, and make it executable
+(``chmod u+x /etc/sv/[app_name]/run``).
+Then run ``ln -s /etc/sv/[app_name] /etc/service/[app_name]``.
+If runit is installed, gunicorn should start running automatically as soon 
+as you create the symlink.
+
+If it doesn't start automatically, run the script directly to troubleshoot.
+
 
 Supervisor
 ++++++++++

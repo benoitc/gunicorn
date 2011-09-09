@@ -14,3 +14,5 @@ gunicorn.egg-info
 nohup.out
 .coverage
 doc/.sass-cache
+examples/frameworks/pylonstest/PasteScript*
+examples/frameworks/pylonstest/pylonstest.egg-info/

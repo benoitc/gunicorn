@@ -5,6 +5,7 @@ import os
 from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
+from django.template import RequestContext
 import tempfile
 
 class MsgForm(forms.Form):
@@ -14,10 +15,12 @@ class MsgForm(forms.Form):
     
 
 def home(request):
-    
+    from django.conf import settings
+    print settings.SOME_VALUE
     subject = None
     message = None
     size = 0
+    print request.META
     if request.POST:
         form = MsgForm(request.POST, request.FILES)
         print request.FILES
@@ -25,11 +28,7 @@ def home(request):
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
             f = request.FILES['f']
-            tmp =  tempfile.TemporaryFile()
-            for chunk in f.chunks():
-                tmp.write(chunk)
-            tmp.flush()
-            size = int(os.fstat(tmp.fileno())[6])
+            size = int(os.fstat(f.fileno())[6])
     else:
         form = MsgForm()
         
@@ -39,7 +38,7 @@ def home(request):
         'subject': subject,
         'message': message,
         'size': size
-    })
+    }, RequestContext(request))
     
     
 def acsv(request):

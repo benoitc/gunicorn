@@ -4,11 +4,11 @@
 # See the NOTICE for more information.
 #
 
+from datetime import datetime
 import errno
 import os
 import select
 import socket
-import traceback
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -18,14 +18,11 @@ import gunicorn.workers.base as base
 class SyncWorker(base.Worker):
     
     def run(self):
-        self.nr = 0
-
         # self.socket appears to lose its blocking status after
         # we fork in the arbiter. Reset it here.
         self.socket.setblocking(0)
 
         while self.alive:
-            self.nr = 0
             self.notify()
             
             # Accept a connection. If we get an error telling us
@@ -37,20 +34,19 @@ class SyncWorker(base.Worker):
                 client.setblocking(1)
                 util.close_on_exec(client)
                 self.handle(client, addr)
-                self.nr += 1
+
+                # Keep processing clients until no one is waiting. This
+                # prevents the need to select() for every client that we
+                # process.
+                continue
+
             except socket.error, e:
                 if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
-            # Keep processing clients until no one is waiting. This
-            # prevents the need to select() for every client that we
-            # process.
-            if self.nr > 0:
-                continue
-            
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s" % self)
+                self.log.info("Parent changed, shutting down: %s", self)
                 return
             
             try:
@@ -67,9 +63,7 @@ class SyncWorker(base.Worker):
                     else:
                         return
                 raise
-            except SystemExit:
-                return
-        
+    
     def handle(self, client, addr):
         try:
             try:
@@ -82,34 +76,50 @@ class SyncWorker(base.Worker):
                 if e[0] != errno.EPIPE:
                     self.log.exception("Error processing request.")
                 else:
-                    self.log.warn("Ignoring EPIPE")
+                    self.log.debug("Ignoring EPIPE")
             except Exception, e:
-                self.log.exception("Error processing request.")
-                try:            
-                    # Last ditch attempt to notify the client of an error.
-                    mesg = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
-                    util.write_nonblock(client, mesg)
-                except:
-                    pass
-        finally:    
+                self.handle_error(client, e)
+        finally:
             util.close(client)
 
     def handle_request(self, req, client, addr):
+        environ = {}
         try:
-            debug = self.cfg.debug or False
-            resp, environ = wsgi.create(req, client, addr,
-                    self.address, self.cfg)
-            respiter = self.wsgi(environ, resp.start_response)
-            for item in respiter:
-                resp.write(item)
-            resp.close()
-            if hasattr(respiter, "close"):
-                respiter.close()
-        except socket.error:
-            raise
-        except Exception, e:
-            # Only send back traceback in HTTP in debug mode.
-            if not self.debug:
+            try:
+                self.cfg.pre_request(self, req)
+                request_start = datetime.now()
+                resp, environ = wsgi.create(req, client, addr,
+                        self.address, self.cfg)
+                # Force the connection closed until someone shows
+                # a buffering proxy that supports Keep-Alive to
+                # the backend.
+                resp.force_close()
+                self.nr += 1
+                if self.nr >= self.max_requests:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
+                respiter = self.wsgi(environ, resp.start_response)
+                try:
+                    if isinstance(respiter, environ['wsgi.file_wrapper']):
+                        resp.write_file(respiter)
+                    else:
+                        for item in respiter:
+                            resp.write(item)
+                    resp.close()
+                    request_time = request_start - datetime.now()
+                    self.log.access(resp, environ, request_time)
+                finally:
+                    if hasattr(respiter, "close"):
+                        respiter.close()
+            except socket.error:
                 raise
-            util.write_error(client, traceback.format_exc())
-            return
+            except Exception, e:
+                # Only send back traceback in HTTP in debug mode.
+                self.handle_error(client, e) 
+                return
+        finally:
+            try:
+                self.cfg.post_request(self, req, environ)
+            except:
+                pass
+

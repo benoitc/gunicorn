@@ -3,11 +3,13 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-import logging
+import errno
 import os
 import sys
 import traceback
 
+
+from gunicorn.glogging import Logger
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
@@ -18,21 +20,21 @@ class Application(object):
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
-    LOG_LEVELS = {
-        "critical": logging.CRITICAL,
-        "error": logging.ERROR,
-        "warning": logging.WARNING,
-        "info": logging.INFO,
-        "debug": logging.DEBUG
-    }
     
     def __init__(self, usage=None):
-        self.log = logging.getLogger(__name__)
         self.usage = usage
         self.cfg = None
         self.callable = None
         self.logger = None
-        self.load_config()
+        self.do_load_config()
+
+    def do_load_config(self):
+        try:
+            self.load_config()
+        except Exception, e:
+            sys.stderr.write("\nError: %s\n" % str(e))
+            sys.stderr.flush()
+            sys.exit(1)
   
     def load_config(self):
         # init configuration
@@ -46,8 +48,8 @@ class Application(object):
         cfg = self.init(parser, opts, args)
         
         # Load up the any app specific configuration
-        if cfg:
-            for k, v in list(cfg.items()):
+        if cfg and cfg is not None:
+            for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
                 
         # Load up the config file if its found.
@@ -61,12 +63,12 @@ class Application(object):
             }
             try:
                 execfile(opts.config, cfg, cfg)
-            except Exception, e:
+            except Exception:
                 print "Failed to read config file: %s" % opts.config
                 traceback.print_exc()
                 sys.exit(1)
         
-            for k, v in list(cfg.items()):
+            for k, v in cfg.items():
                 # Ignore unknown names
                 if k not in self.cfg.settings:
                     continue
@@ -78,7 +80,7 @@ class Application(object):
             
         # Lastly, update the configuration with any command line
         # settings.
-        for k, v in list(opts.__dict__.items()):
+        for k, v in opts.__dict__.items():
             if v is None:
                 continue
             self.cfg.set(k.lower(), v)
@@ -90,11 +92,9 @@ class Application(object):
         raise NotImplementedError
 
     def reload(self):
-        self.load_config()
+        self.do_load_config()
         if self.cfg.spew:
             debug.spew()
-        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
-        self.logger.setLevel(loglevel)
         
     def wsgi(self):
         if self.callable is None:
@@ -110,33 +110,12 @@ class Application(object):
             try:
                 os.setpgrp()
             except OSError, e:
-                if e[0] == errno.EPERM:
-                    sys.stderr.write("Error: You should use "
-                        "daemon mode here.\n")
-                raise
-                    
-        self.configure_logging()
-        Arbiter(self).run()
+                if e[0] != errno.EPERM:
+                    raise 
+        try:
+            Arbiter(self).run()
+        except RuntimeError, e:
+            sys.stderr.write("\nError: %s\n\n" % e)
+            sys.stderr.flush()
+            sys.exit(1)
     
-    def configure_logging(self):
-        """\
-        Set the log level and choose the destination for log output.
-        """
-        self.logger = logging.getLogger('gunicorn')
-
-        handlers = []
-        if self.cfg.logfile != "-":
-            handlers.append(logging.FileHandler(self.cfg.logfile))
-        else:
-            handlers.append(logging.StreamHandler())
-
-        loglevel = self.LOG_LEVELS.get(self.cfg.loglevel.lower(), logging.INFO)
-        self.logger.setLevel(loglevel)
-        
-        format = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
-        datefmt = r"%Y-%m-%d %H:%M:%S"
-        for h in handlers:
-            h.setFormatter(logging.Formatter(format, datefmt))
-            self.logger.addHandler(h)
-
-

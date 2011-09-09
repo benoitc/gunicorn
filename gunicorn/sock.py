@@ -12,11 +12,11 @@ import time
 
 from gunicorn import util
 
-log = logging.getLogger(__name__)
 
 class BaseSocket(object):
     
-    def __init__(self, conf, fd=None):
+    def __init__(self, conf, log, fd=None):
+        self.log = log
         self.conf = conf
         self.address = conf.address
         if fd is None:
@@ -46,7 +46,7 @@ class BaseSocket(object):
         try:
             self.sock.close()
         except socket.error, e:
-            log.info("Error while closing socket %s" % str(e))
+            self.log.info("Error while closing socket %s", str(e))
         time.sleep(0.3)
         del self.sock
 
@@ -58,24 +58,28 @@ class TCPSocket(BaseSocket):
         return "http://%s:%d" % self.sock.getsockname()
     
     def set_options(self, sock, bound=False):
-        if hasattr(socket, "TCP_CORK"):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
-        elif hasattr(socket, "TCP_NOPUSH"):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NOPUSH, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return super(TCPSocket, self).set_options(sock, bound=bound)
+
+class TCP6Socket(TCPSocket):
+
+    FAMILY = socket.AF_INET6
+
+    def __str__(self):
+        (host, port, fl, sc) = self.sock.getsockname()
+        return "http://[%s]:%d" % (host, port)
 
 class UnixSocket(BaseSocket):
     
     FAMILY = socket.AF_UNIX
     
-    def __init__(self, conf, fd=None):
+    def __init__(self, conf, log, fd=None):
         if fd is None:
             try:
                 os.remove(conf.address)
             except OSError:
                 pass
-        super(UnixSocket, self).__init__(conf, fd=fd)
+        super(UnixSocket, self).__init__(conf, log, fd=fd)
     
     def __str__(self):
         return "unix:%s" % self.address
@@ -90,7 +94,7 @@ class UnixSocket(BaseSocket):
         super(UnixSocket, self).close()
         os.unlink(self.address)
 
-def create_socket(conf):
+def create_socket(conf, log):
     """
     Create a new socket for the given address. If the
     address is a tuple, a TCP socket is created. If it
@@ -101,7 +105,10 @@ def create_socket(conf):
     addr = conf.address
     
     if isinstance(addr, tuple):
-        sock_type = TCPSocket
+        if util.is_ipv6(addr[0]):
+            sock_type = TCP6Socket
+        else:
+            sock_type = TCPSocket
     elif isinstance(addr, basestring):
         sock_type = UnixSocket
     else:
@@ -110,7 +117,7 @@ def create_socket(conf):
     if 'GUNICORN_FD' in os.environ:
         fd = int(os.environ.pop('GUNICORN_FD'))
         try:
-            return sock_type(conf, fd=fd)
+            return sock_type(conf, log, fd=fd)
         except socket.error, e:
             if e[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
@@ -123,16 +130,16 @@ def create_socket(conf):
     
     for i in range(5):
         try:
-            return sock_type(conf)
+            return sock_type(conf, log)
         except socket.error, e:
             if e[0] == errno.EADDRINUSE:
-                log.error("Connection in use: %s" % str(addr))
+                log.error("Connection in use: %s", str(addr))
             if e[0] == errno.EADDRNOTAVAIL:
-                log.error("Invalid address: %s" % str(addr))
+                log.error("Invalid address: %s", str(addr))
                 sys.exit(1)
             if i < 5:
                 log.error("Retrying in 1 second.")
                 time.sleep(1)
           
-    log.error("Can't connect to %s" % str(addr))
+    log.error("Can't connect to %s", str(addr))
     sys.exit(1)

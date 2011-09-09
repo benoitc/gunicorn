@@ -6,7 +6,10 @@
 import os
 import sys
 
-import tornado.web
+try:
+    import tornado.web
+except ImportError:
+    raise RuntimeError("You need tornado installed to use this worker.")
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer
@@ -27,11 +30,15 @@ class TornadoWorker(Worker):
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
         
+    def handle_quit(self, sig, frame):
+        super(TornadoWorker, self).handle_quit(sig, frame)
+        self.ioloop.stop()
+
     def watchdog(self):
         self.notify()
             
         if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s" % self)
+            self.log.info("Parent changed, shutting down: %s", self)
             self.ioloop.stop()
     
     def run(self):

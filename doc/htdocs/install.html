@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <title>Green Unicorn - Install</title>
-    <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
     <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
   </head>
   <body>
@@ -21,8 +20,10 @@
           <li><a href="deploy.html">Deploy</a></li>
           <li><a href="design.html">Design</a></li>
           <li><a href="faq.html">FAQ</a></li>
+          <li><a href="community.html">Community</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="http://github.com/benoitc/gunicorn/">Code</a></li>
+          <li><a href="http://github.com/benoitc/gunicorn/issues">Issues</a></li>
         </ul>
       </div>
       <div id="content">
@@ -55,7 +56,7 @@ found <a class="reference external" href="http://github.com/tilgovi/gunicorn">he
 the full url to something like <tt class="docutils literal">pip</tt>. This hasn't been tested
 wtih <tt class="docutils literal">easy_install</tt> just yet:</p>
 <pre class="last literal-block">
-$ pip install git+http://github.com/tilgovi/gunicorn.git
+$ pip install -f http://github.com/tilgovi/gunicorn/tarball/py24 gunicorn
 </pre>
 </div>
 </div>
@@ -106,7 +107,7 @@ managers. On Ubuntu the package name for <tt class="docutils literal"><span clas
 <tt class="docutils literal"><span class="pre">python-dev</span></tt>.</p>
 <p class="last"><a class="reference external" href="http://gevent.org">Gevent</a> also requires that <tt class="docutils literal">libevent</tt> 1.4.x or 2.0.4 is installed.
 This could be a more recent version than what is available in your
-package manager. If <a class="reference external" href="http://gevent.org">Gevent</a> fails to build even with <tt class="docutils literal">libevent</tt>
+package manager. If <a class="reference external" href="http://gevent.org">Gevent</a> fails to build even with <a class="reference external" href="http://monkey.org/~provos/libevent">libevent</a>
 installed, this is the most likely reason.</p>
 </div>
 </div>

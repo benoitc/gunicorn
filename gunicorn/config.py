@@ -13,6 +13,7 @@ import textwrap
 import types
 
 from gunicorn import __version__
+from gunicorn.errors import ConfigError
 from gunicorn import util
 
 KNOWN_SETTINGS = []
@@ -22,14 +23,20 @@ def wrap_method(func):
         return func(*args, **kwargs)
     return _wrapped
 
+def make_settings(ignore=None):
+    settings = {}
+    ignore = ignore or ()
+    for s in KNOWN_SETTINGS:
+        setting = s()
+        if setting.name in ignore:
+            continue
+        settings[setting.name] = setting.copy()
+    return settings
+
 class Config(object):
         
     def __init__(self, usage=None):
-        self.settings = {}
-        for s in KNOWN_SETTINGS:
-            setting = s()
-            self.settings[setting.name] = setting.copy()
-        
+        self.settings = make_settings()
         self.usage = usage
         
     def __getattr__(self, name):
@@ -65,7 +72,7 @@ class Config(object):
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
-        worker_class = util.load_worker_class(uri)
+        worker_class = util.load_class(uri)
         if hasattr(worker_class, "setup"):
             worker_class.setup()
         return worker_class
@@ -81,31 +88,30 @@ class Config(object):
         
     @property
     def uid(self):
-        user = self.settings['user'].get()
-        if not user:
-            return os.geteuid()
-        elif user.isdigit() or isinstance(user, int):
-            return int(user)
-        else:
-            return pwd.getpwnam(user).pw_uid
-        
+        return self.settings['user'].get()
+      
     @property
     def gid(self):
-        group = self.settings['group'].get()
-        if not group:
-            return os.getegid()
-        elif group.isdigit() or isinstance(group, int):
-            return int(group)
-        else:
-            return grp.getgrnam(group).gr_gid
+        return self.settings['group'].get()
         
     @property
     def proc_name(self):
         pn = self.settings['proc_name'].get()
-        if pn:
+        if pn is not None:
             return pn
         else:
-            return self.settings['default_proc_name']
+            return self.settings['default_proc_name'].get()
+
+    @property
+    def logger_class(self):
+        uri = self.settings['logger_class'].get()
+        logger_class = util.load_class(uri, default="simple",
+            section="gunicorn.loggers")
+
+        if hasattr(logger_class, "install"):
+            logger_class.install()
+        return logger_class
+
             
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -184,6 +190,11 @@ def validate_bool(val):
     else:
         raise ValueError("Invalid boolean: %s" % val)
 
+def validate_dict(val):
+    if not isinstance(val, dict):
+        raise TypeError("Value is not a dictionary: %s " % val)
+    return val
+
 def validate_pos_int(val):
     if not isinstance(val, (types.IntType, types.LongType)):
         val = int(val, 0)
@@ -209,6 +220,54 @@ def validate_callable(arity):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
+
+
+def validate_user(val):
+    if val is None:
+        return os.geteuid()
+    if isinstance(val, int):
+        return val
+    elif val.isdigit():
+        return int(val)
+    else:
+        try:
+            return pwd.getpwnam(val).pw_uid
+        except KeyError:
+            raise ConfigError("No such user: '%s'" % val)
+
+def validate_group(val):
+    if val is None:
+        return os.getegid()
+
+    if isinstance(val, int):
+        return val
+    elif val.isdigit():
+        return int(val)
+    else:
+        try:
+            return grp.getgrnam(val).gr_gid
+        except KeyError:
+            raise ConfigError("No such group: '%s'" % val)
+
+def validate_post_request(val):
+
+    # decorator
+    def wrap_post_request(fun):
+        def _wrapped(instance, req, environ):
+            return fun(instance, req)
+        return _wrapped
+    
+    if not callable(val):
+        raise TypeError("Value isn't a callable: %s" % val)
+
+    largs = len(inspect.getargspec(val)[0])
+    if largs == 3:
+        return val
+    elif largs == 2:
+        return wrap_post_request(val)
+    else:
+         raise TypeError("Value must have an arity of: 3")
+
 
 
 class ConfigFile(Setting):
@@ -280,24 +339,26 @@ class WorkerClass(Setting):
     cli = ["-k", "--worker-class"]
     meta = "STRING"
     validator = validate_string
-    default = "egg:gunicorn#sync"
+    default = "sync"
     desc = """\
         The type of workers to use.
         
-        The default async class should handle most 'normal' types of work loads.
-        You'll want to read http://gunicorn.org/design.hml for information on
+        The default class (sync) should handle most 'normal' types of workloads.
+        You'll want to read http://gunicorn.org/design.html for information on
         when you might want to choose one of the other worker classes.
         
-        An string referring to a 'gunicorn.workers' entry point or a
-        MODULE:CLASS pair where CLASS is a subclass of
-        gunicorn.workers.base.Worker.
+        A string referring to one of the following bundled classes:
         
-        The default provided values are:
+        * ``sync``
+        * ``eventlet`` - Requires eventlet >= 0.9.7
+        * ``gevent``   - Requires gevent >= 0.12.2 (?)
+        * ``tornado``  - Requires tornado >= 0.2
         
-        * ``egg:gunicorn#sync``
-        * ``egg:gunicorn#eventlet`` - Requires eventlet >= 0.9.7
-        * ``egg:gunicorn#gevent``   - Requires gevent >= 0.12.2 (?)
-        * ``egg:gunicorn#tornado``  - Requires tornado >= 0.2    
+        Optionally, you can provide your own worker by giving gunicorn a
+        python path to a subclass of gunicorn.workers.base.Worker. This
+        alternative syntax will load the gevent class:
+        ``gunicorn.workers.ggevent.GeventWorker``. Alternatively the syntax
+        can also load the gevent class with ``egg:gunicorn#gevent``
         """
 
 class WorkerConnections(Setting):
@@ -312,6 +373,25 @@ class WorkerConnections(Setting):
         The maximum number of simultaneous clients.
         
         This setting only affects the Eventlet and Gevent worker types.
+        """
+
+class MaxRequests(Setting):
+    name = "max_requests"
+    section = "Worker Processes"
+    cli = ["--max-requests"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 0
+    desc = """\
+        The maximum number of requests a worker will process before restarting.
+        
+        Any value greater than zero will limit the number of requests a work
+        will process before automatically restarting. This is a simple method
+        to help limit the damage of memory leaks.
+        
+        If this is set to zero (the default) then the automatic worker
+        restarts are disabled.
         """
 
 class Timeout(Setting):
@@ -420,8 +500,8 @@ class User(Setting):
     section = "Server Mechanics"
     cli = ["-u", "--user"]
     meta = "USER"
-    validator = validate_string
-    default = None
+    validator = validate_user
+    default = os.geteuid()
     desc = """\
         Switch worker processes to run as this user.
         
@@ -435,8 +515,8 @@ class Group(Setting):
     section = "Server Mechanics"
     cli = ["-g", "--group"]
     meta = "GROUP"
-    validator = validate_string
-    default = None
+    validator = validate_group
+    default = os.getegid()
     desc = """\
         Switch worker process to run as this group.
         
@@ -479,15 +559,82 @@ class TmpUploadDir(Setting):
         temporary directory.
         """
 
-class Logfile(Setting):
-    name = "logfile"
+class SecureSchemeHeader(Setting):
+    name = "secure_scheme_headers"
+    section = "Server Mechanics"
+    validator = validate_dict
+    default = {
+        "X-FORWARDED-PROTOCOL": "ssl",
+        "X-FORWARDED-SSL": "on"
+    }
+    desc = """\
+
+        A dictionary containing headers and values that the front-end proxy
+        uses to indicate HTTPS requests. These tell gunicorn to set
+        wsgi.url_scheme to "https", so your application can tell that the
+        request is secure.
+
+        The dictionary should map upper-case header names to exact string
+        values. The value comparisons are case-sensitive, unlike the header
+        names, so make sure they're exactly what your front-end proxy sends
+        when handling HTTPS requests.
+
+        It is important that your front-end proxy configuration ensures that
+        the headers defined here can not be passed directly from the client.
+        """
+
+class AccessLog(Setting):
+    name = "accesslog"
     section = "Logging"
-    cli = ["--log-file"]
+    cli = ["--access-logfile"]
+    meta = "FILE"
+    validator = validate_string
+    default = None  
+    desc = """\
+        The Access log file to write to.
+        
+        "-" means log to stdout.
+        """
+
+class AccessLogFormat(Setting):
+    name = "access_log_format"
+    section = "Logging"
+    cli = ["--access-logformat"]
+    meta = "STRING"
+    validator = validate_string
+    default = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'  
+    desc = """\
+        The Access log format .
+
+        By default:
+
+        %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+
+
+        h: remote address
+        t: date of the request
+        r: status line (ex: GET / HTTP/1.1)
+        s: status
+        b: response length or '-'
+        f: referer
+        a: user agent
+        T: request time in seconds
+        D: request time in microseconds
+
+        You can also pass any WSGI request header as a parameter. 
+        (ex '%(HTTP_HOST)s').
+        """
+
+
+class ErrorLog(Setting):
+    name = "errorlog"
+    section = "Logging"
+    cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
     default = "-"
     desc = """\
-        The log file to write to.
+        The Error log file to write to.
         
         "-" means log to stdout.
         """
@@ -500,7 +647,7 @@ class Loglevel(Setting):
     validator = validate_string
     default = "info"
     desc = """\
-        The granularity of log outputs.
+        The granularity of Error log outputs.
         
         Valid level names are:
         
@@ -511,13 +658,32 @@ class Loglevel(Setting):
         * critical
         """
 
+class LoggerClass(Setting):
+    name = "logger_class"
+    section = "Logging"
+    cli = ["--logger-class"]
+    meta = "STRING"
+    validator = validate_string
+    default = "simple"
+    desc = """\
+        The logger you want to use to log events in gunicorn.
+
+        The default class (``gunicorn.glogging.Logger``) handle most of
+        normal usages in logging. It provides error and access logging.
+
+        You can provide your own worker by giving gunicorn a
+        python path to a subclass like gunicorn.glogging.Logger. 
+        Alternatively the syntax can also load the Logger class 
+        with ``egg:gunicorn#simple`
+        """
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"
     cli = ["-n", "--name"]
     meta = "STRING"
     validator = validate_string
-    default = "gunicorn"
+    default = None
     desc = """\
         A base to use with setproctitle for process naming.
         
@@ -538,15 +704,57 @@ class DefaultProcName(Setting):
         Internal setting that is adjusted for each type of application.
         """
 
+class OnStarting(Setting):
+    name = "on_starting"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def on_starting(server):
+        pass
+    default = staticmethod(on_starting)
+    desc = """\
+        Called just before the master process is initialized.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+class OnReload(Setting):
+    name = "on_reload"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def on_reload(server):
+        for i in range(server.app.cfg.workers):
+            server.spawn_worker()
+    default = staticmethod(on_reload)
+    desc = """\
+        Called to recycle workers during a reload via SIGHUP.
+
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+class WhenReady(Setting):
+    name = "when_ready"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = "callable"
+    def start_server(server):
+        pass
+    default = staticmethod(start_server)
+    desc = """\
+        Called just after the server is started.
+        
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 class Prefork(Setting):
     name = "pre_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_pre_fork(server, worker):
+    def pre_fork(server, worker):
         pass
-    def_pre_fork = staticmethod(def_pre_fork)
-    default = def_pre_fork
+    default = staticmethod(pre_fork)
     desc = """\
         Called just before a worker is forked.
         
@@ -554,54 +762,76 @@ class Prefork(Setting):
         new Worker.
         """
     
-
 class Postfork(Setting):
     name = "post_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
-    def def_post_fork(server, worker):
-        server.log.info("Worker spawned (pid: %s)" % worker.pid)
-    def_post_fork = staticmethod(def_post_fork)
-    default = def_post_fork
+    def post_fork(server, worker):
+        pass
+    default = staticmethod(post_fork)
     desc = """\
         Called just after a worker has been forked.
         
         The callable needs to accept two instance variables for the Arbiter and
         new Worker.
         """
-    
 
-class WhenReady(Setting):
-    name = "when_ready"
-    section = "Server Hooks"
-    validator = validate_callable(1)
-    type = "callable"
-    
-    def def_start_server(server):
-        pass
-    def_start_server = staticmethod(def_start_server)
-    default = def_start_server
-    desc = """\
-        Called just after the server is started.
-        
-        The callable needs to accept a single instance variable for the Arbiter.
-        """
-    
-        
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    def def_pre_exec(server):
-        server.log.info("Forked child, reexecuting.")
-    def_pre_exec = staticmethod(def_pre_exec)
-    default = def_pre_exec
+    def pre_exec(server):
+        pass
+    default = staticmethod(pre_exec)
     desc = """\
         Called just before a new master process is forked.
         
         The callable needs to accept a single instance variable for the Arbiter.
         """
-    
+
+class PreRequest(Setting):
+    name = "pre_request"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
+    def pre_request(worker, req):
+        worker.log.debug("%s %s" % (req.method, req.path))
+    default = staticmethod(pre_request)
+    desc = """\
+        Called just before a worker processes the request.
         
+        The callable needs to accept two instance variables for the Worker and
+        the Request.
+        """
+
+class PostRequest(Setting):
+    name = "post_request"
+    section = "Server Hooks"
+    validator = validate_post_request
+    type = "callable"
+    def post_request(worker, req, environ):
+        pass
+    default = staticmethod(post_request)
+    desc = """\
+        Called after a worker processes the request.
+
+        The callable needs to accept two instance variables for the Worker and
+        the Request.
+        """
+
+class WorkerExit(Setting):
+    name = "worker_exit"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = "callable"
+    def worker_exit(server, worker):
+        pass
+    default = staticmethod(worker_exit)
+    desc = """\
+        Called just after a worker has been exited.
+
+        The callable needs to accept two instance variables for the Arbiter and
+        the just-exited Worker.
+        """

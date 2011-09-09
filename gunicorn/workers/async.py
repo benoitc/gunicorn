@@ -3,9 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
+from datetime import datetime
 import errno
 import socket
-import traceback
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -30,6 +30,7 @@ class AsyncWorker(base.Worker):
                 try:
                     while True:
                         timeout = self.timeout_ctx()
+                        req = None
                         try:
                             req = parser.next()
                         finally:
@@ -44,40 +45,41 @@ class AsyncWorker(base.Worker):
                     self.log.exception("Socket error processing request.")
                 else:
                     if e[0] == errno.ECONNRESET:
-                        self.log.warn("Ignoring connection reset")
+                        self.log.debug("Ignoring connection reset")
                     else:
-                        self.log.warn("Ignoring EPIPE")
+                        self.log.debug("Ignoring EPIPE")
             except Exception, e:
-                self.log.exception("General error processing request.")
-                try:            
-                    # Last ditch attempt to notify the client of an error.
-                    mesg = "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-                    util.write_nonblock(client, mesg)
-                except:
-                    pass
-                return
+                self.handle_error(client, e)
         finally:
             util.close(client)
 
     def handle_request(self, req, sock, addr):
         try:
-            debug = self.cfg.debug or False
-            resp, environ = wsgi.create(req, sock, addr, self.address,
-                    self.cfg)
+            self.cfg.pre_request(self, req)
+            request_start = datetime.now()
+            resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
+            self.nr += 1
+            if self.alive and self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                resp.force_close()
+                self.alive = False
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
-            for item in respiter:
-                resp.write(item)
-            resp.close()
-            if hasattr(respiter, "close"):
-                respiter.close()
-            if req.should_close():
+            try:
+                for item in respiter:
+                    resp.write(item)
+                resp.close()
+                request_time = request_start - datetime.now()
+                self.log.access(resp, environ, request_time)
+            finally:
+                if hasattr(respiter, "close"):
+                  respiter.close()
+            if resp.should_close():
                 raise StopIteration()
-        except Exception, e:
-            #Only send back traceback in HTTP in debug mode.
-            if not self.debug:
-                raise
-            util.write_error(sock, traceback.format_exc())
-            return False
+        finally:
+            try:
+                self.cfg.post_request(self, req, environ)
+            except:
+                pass
         return True

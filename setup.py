@@ -6,6 +6,7 @@
 
 import os
 from setuptools import setup, find_packages
+import sys
 
 from gunicorn import __version__
 
@@ -36,6 +37,10 @@ setup(
         'Topic :: Internet',
         'Topic :: Utilities',
         'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Internet :: WWW/HTTP :: WSGI',
+        'Topic :: Internet :: WWW/HTTP :: WSGI :: Server',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     zip_safe = False,
     packages = find_packages(exclude=['examples', 'tests']),
@@ -53,9 +58,13 @@ setup(
     [gunicorn.workers]
     sync=gunicorn.workers.sync:SyncWorker
     eventlet=gunicorn.workers.geventlet:EventletWorker
-    gevent=gunicorn.workers.ggevent:GEventWorker
-    gevent2=gunicorn.workers.ggevent2:GEvent2Worker
+    gevent=gunicorn.workers.ggevent:GeventWorker
+    gevent_wsgi=gunicorn.workers.ggevent_wsgi:GeventWSGIWorker
+    gevent_pywsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
     tornado=gunicorn.workers.gtornado:TornadoWorker
+
+    [gunicorn.loggers]
+    simple=gunicorn.glogging:Logger
 
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server

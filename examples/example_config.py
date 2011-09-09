@@ -38,7 +38,7 @@ backlog = 2048
 #       of the other worker classes.
 #
 #       An string referring to a 'gunicorn.workers' entry point
-#       or a MODULE:CLASS pair where CLASS is a subclass of
+#       or a python path to a subclass of
 #       gunicorn.workers.base.Worker. The default provided values
 #       are:
 #
@@ -173,26 +173,26 @@ proc_name = None
 #
 # Server hooks
 #
-#   after_fork - Called just after a worker has been forked.
+#   post_fork - Called just after a worker has been forked.
 #
 #       A callable that takes a server and worker instance
 #       as arguments.
 #
-#   before_fork - Called just prior to forking the worker subprocess.
+#   pre_fork - Called just prior to forking the worker subprocess.
 #
 #       A callable that accepts the same arguments as after_fork
 #
-#   before_exec - Called just prior to forking off a secondary
+#   pre_exec - Called just prior to forking off a secondary
 #       master process during things like config reloading.
 #
 #       A callable that takes a server instance as the sole argument.
 #
 
-def after_fork(server, worker):
-    server.log.info("Worker spawned (pid: %s)" % worker.pid)
+def post_fork(server, worker):
+    server.log.info("Worker spawned (pid: %s)", worker.pid)
 
-def before_fork(server, worker):
+def pre_fork(server, worker):
     pass
 
-def before_exec(server):
+def pre_exec(server):
     server.log.info("Forked child, re-executing.")

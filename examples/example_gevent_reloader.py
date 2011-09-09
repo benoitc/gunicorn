@@ -1,8 +1,12 @@
-import gevent
 import logging
 import os
 import signal
 import sys
+
+def on_starting(server):
+    # use server hook to patch socket to allow worker reloading
+    from gevent import monkey
+    monkey.patch_socket()
 
 def when_ready(server):
     def monitor():
@@ -27,5 +31,5 @@ def when_ready(server):
                     break
             gevent.sleep(1)
 
-    gevent.Greenlet.spawn(monitor)
-
+    import gevent
+    gevent.spawn(monitor)

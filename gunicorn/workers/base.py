@@ -8,9 +8,15 @@ import logging
 import os
 import signal
 import sys
-import tempfile
+import traceback
+
 
 from gunicorn import util
+from gunicorn.workers.workertmp import WorkerTmp
+
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
+
 
 class Worker(object):
 
@@ -21,7 +27,7 @@ class Worker(object):
     
     PIPE = []
 
-    def __init__(self, age, ppid, socket, app, timeout, cfg):
+    def __init__(self, age, ppid, socket, app, timeout, cfg, log):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -36,15 +42,12 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
+        self.max_requests = cfg.max_requests or sys.maxint
         self.alive = True
-        self.spinner = 0
-        self.log = logging.getLogger(__name__)
+        self.log = log
         self.debug = cfg.debug
         self.address = self.socket.getsockname()
-
-        self.fd, self.tmpname = tempfile.mkstemp(prefix="wgunicorn-")
-        util.chown(self.tmpname, cfg.uid, cfg.gid)
-        self.tmp = os.fdopen(self.fd, "r+b")
+        self.tmp = WorkerTmp(cfg) 
         
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -59,11 +62,7 @@ class Worker(object):
         once every ``self.timeout`` seconds. If you fail in accomplishing
         this task, the master process will murder your workers.
         """
-        self.spinner = (self.spinner+1) % 2
-        if getattr(os, 'fchmod', None):
-            os.fchmod(self.tmp.fileno(), self.spinner)
-        else:
-            os.chmod(self.tmpname, self.spinner)
+        self.tmp.notify()
 
     def run(self):
         """\
@@ -82,6 +81,9 @@ class Worker(object):
         """
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
+        # Reseed the random number generator
+        util.seed()
+
         # For waking ourselves up
         self.PIPE = os.pipe()
         map(util.set_non_blocking, self.PIPE)
@@ -89,7 +91,10 @@ class Worker(object):
         
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
-        util.close_on_exec(self.fd)
+        util.close_on_exec(self.tmp.fileno())
+
+        self.log.close_on_exec()
+
         self.init_signals()
         
         self.wsgi = self.app.wsgi()
@@ -104,6 +109,10 @@ class Worker(object):
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
+        signal.signal(signal.SIGUSR1, self.handle_usr1)
+
+    def handle_usr1(self, sig, frame):
+        self.log.reopen_files()
             
     def handle_quit(self, sig, frame):
         self.alive = False
@@ -112,6 +121,37 @@ class Worker(object):
         self.alive = False
         sys.exit(0)
 
+    def handle_error(self, client, exc):
+        self.log.exception("Error handling request")
+
+        status_int = 500
+        reason = "Internal Server Error"
+        mesg = ""
+
+        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+            
+            status_int = 400
+            reason = "Bad Request"
+            
+            if isinstance(exc, InvalidRequestLine):
+                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidRequestMethod):
+                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidHTTPVersion):
+                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+            elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
+                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
+            
+        if self.debug:
+            tb =  traceback.format_exc()
+            mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
+
+        try:
+            util.write_error(client, status_int, reason, mesg)
+        except:
+            self.log.warning("Failed to send error message.")
+        
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
         return

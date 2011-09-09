@@ -9,18 +9,56 @@ import re
 import sys
 from urllib import unquote
 
-from gunicorn import __version__
+from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
-SERVER_VERSION = "gunicorn/%s" % __version__
+try:
+    # Python 3.3 has os.sendfile().
+    from os import sendfile
+except ImportError:
+    try:
+        from _sendfile import sendfile
+    except ImportError:
+        sendfile = None
+
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
 
+class FileWrapper:
+
+    def __init__(self, filelike, blksize=8192):
+        self.filelike = filelike
+        self.blksize = blksize
+        if hasattr(filelike, 'close'):
+            self.close = filelike.close
+
+    def __getitem__(self, key):
+        data = self.filelike.read(self.blksize)
+        if data:
+            return data
+        raise IndexError
+
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
 
-    environ = {}
+    environ = {
+        "wsgi.input": req.body,
+        "wsgi.errors": sys.stderr,
+        "wsgi.version": (1, 0),
+        "wsgi.multithread": False,
+        "wsgi.multiprocess": (cfg.workers > 1),
+        "wsgi.run_once": False,
+        "wsgi.file_wrapper": FileWrapper,
+        "gunicorn.socket": sock,
+        "SERVER_SOFTWARE": SERVER_SOFTWARE,
+        "REQUEST_METHOD": req.method,
+        "QUERY_STRING": req.query,
+        "RAW_URI": req.uri,
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version)),
+        "CONTENT_TYPE": "",
+        "CONTENT_LENGTH": ""
+    }
     
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
@@ -29,83 +67,80 @@ def create(req, sock, client, server, cfg):
     forward = client
     url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
-    content_type = ""
-    content_length = ""
+
+    secure_headers = getattr(cfg, "secure_scheme_headers")
+
     for hdr_name, hdr_value in req.headers:
-        name = hdr_name.lower()
-        if name == "expect":
+        if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif name == "x-forwarded-for":
+        elif hdr_name == "X-FORWARDED-FOR":
             forward = hdr_value
-        elif name == "x-forwarded-protocol" and hdr_value.lower() == "ssl":
+        elif (hdr_name.upper() in secure_headers and
+              hdr_value == secure_headers[hdr_name.upper()]):
             url_scheme = "https"
-        elif name == "x-forwarded-ssl" and hdr_value.lower() == "on":
-            url_scheme = "https"
-        elif name == "host":
+        elif hdr_name == "HOST":
             server = hdr_value
-        elif name == "script_name":
+        elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
-        elif name == "content-type":
-            content_type = hdr_value
-        elif name == "content-length":
-            content_length = hdr_value
-        else:
+        elif hdr_name == "CONTENT-TYPE":
+            environ['CONTENT_TYPE'] = hdr_value
             continue
+        elif hdr_name == "CONTENT-LENGTH":
+            environ['CONTENT_LENGTH'] = hdr_value
+            continue
+        
+        key = 'HTTP_' + hdr_name.replace('-', '_')
+        environ[key] = hdr_value
 
-    wsgi_multiprocess = (cfg.workers > 1)
-
-
+    environ['wsgi.url_scheme'] = url_scheme
+        
     if isinstance(forward, basestring):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
             forward = forward.rsplit(",", 1)[1].strip()
-        remote = forward.split(":")
-        if len(remote) == 1:
-            remote.append('')
+
+        # find host and port on ipv6 address
+        if '[' in forward and ']' in forward:
+            host =  forward.split(']')[0][1:].lower()
+        elif ":" in forward and forward.count(":") == 1:
+            host = forward.split(":")[0].lower()
+        else:
+            host = forward
+
+        forward = forward.split(']')[-1]
+        if ":" in forward and forward.count(":") == 1:
+            port = forward.split(':', 1)[1]
+        else:
+            port = 80
+
+        remote = (host, port)
     else:
-        remote = forward
+        remote = forward 
+
+    environ['REMOTE_ADDR'] = remote[0]
+    environ['REMOTE_PORT'] = str(remote[1])
 
     if isinstance(server, basestring):
         server =  server.split(":")
         if len(server) == 1:
-            server.append('')
+            if url_scheme == "http":
+                server.append("80")
+            elif url_scheme == "https":
+                server.append("443")
+            else:
+                server.append('')
+    environ['SERVER_NAME'] = server[0]
+    environ['SERVER_PORT'] = server[1]
 
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
+    environ['PATH_INFO'] = unquote(path_info)
+    environ['SCRIPT_NAME'] = script_name
 
-    environ = {
-        "wsgi.url_scheme": url_scheme,
-        "wsgi.input": req.body,
-        "wsgi.errors": sys.stderr,
-        "wsgi.version": (1, 0),
-        "wsgi.multithread": False,
-        "wsgi.multiprocess": wsgi_multiprocess,
-        "wsgi.run_once": False,
-        "gunicorn.socket": sock,
-        "SCRIPT_NAME": script_name,
-        "SERVER_SOFTWARE": SERVER_VERSION,
-        "REQUEST_METHOD": req.method,
-        "PATH_INFO": unquote(path_info),
-        "QUERY_STRING": req.query,
-        "RAW_URI": req.path,
-        "CONTENT_TYPE": content_type,
-        "CONTENT_LENGTH": content_length,
-        "REMOTE_ADDR": remote[0],
-        "REMOTE_PORT": str(remote[1]),
-        "SERVER_NAME": server[0],
-        "SERVER_PORT": str(server[1]),
-        "SERVER_PROTOCOL": req.version
-    }
-
-    for key, value in req.headers:
-        key = 'HTTP_' + key.upper().replace('-', '_')
-        if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
-            environ[key] = value
-           
     return resp, environ
 
 class Response(object):
@@ -113,11 +148,24 @@ class Response(object):
     def __init__(self, req, sock):
         self.req = req
         self.sock = sock
-        self.version = SERVER_VERSION
+        self.version = SERVER_SOFTWARE
         self.status = None
         self.chunked = False
+        self.must_close = False
         self.headers = []
         self.headers_sent = False
+        self.clength = None
+        self.sent = 0
+
+    def force_close(self):
+        self.must_close = True
+
+    def should_close(self):
+        if self.must_close or self.req.should_close():
+            return True
+        if self.clength is not None or self.chunked:
+            return False
+        return True
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
@@ -131,17 +179,17 @@ class Response(object):
 
         self.status = status
         self.process_headers(headers)
+        self.chunked = self.is_chunked()
         return self.write
 
     def process_headers(self, headers):
         for name, value in headers:
             assert isinstance(name, basestring), "%r is not a string" % name
-            if util.is_hoppish(name):
-                lname = name.lower().strip()
-                if lname == "transfer-encoding":
-                    if value.lower().strip() == "chunked":
-                        self.chunked = True
-                elif lname == "connection":
+            lname = name.lower().strip()
+            if lname == "content-length":
+                self.clength = int(value)
+            elif util.is_hoppish(name):
+                if lname == "connection":
                     # handle websocket
                     if value.lower().strip() != "upgrade":
                         continue
@@ -150,17 +198,35 @@ class Response(object):
                     continue
             self.headers.append((name.strip(), str(value).strip()))
 
+
+    def is_chunked(self):
+        # Only use chunked responses when the client is
+        # speaking HTTP/1.1 or newer and there was
+        # no Content-Length header set.
+        if self.clength is not None:
+            return False
+        elif self.req.version <= (1,0):
+            return False
+        elif self.status.startswith("304") or self.status.startswith("204"):
+            # Do not use chunked responses when the response is guaranteed to
+            # not have a response body.
+            return False
+        return True
+
     def default_headers(self):
         connection = "keep-alive"
-        if self.req.should_close():
+        if self.should_close():
             connection = "close"
-
-        return [
-            "HTTP/1.1 %s\r\n" % self.status,
+        headers = [
+            "HTTP/%s.%s %s\r\n" % (self.req.version[0],
+                self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
         ]
+        if self.chunked:
+            headers.append("Transfer-Encoding: chunked\r\n")
+        return headers
 
     def send_headers(self):
         if self.headers_sent:
@@ -173,11 +239,77 @@ class Response(object):
     def write(self, arg):
         self.send_headers()
         assert isinstance(arg, basestring), "%r is not a string." % arg
+
+        arglen = len(arg)
+        tosend = arglen
+        if self.clength is not None:
+            if self.sent >= self.clength:
+                # Never write more than self.clength bytes
+                return
+
+            tosend = min(self.clength - self.sent, tosend)
+            if tosend < arglen:
+                arg = arg[:tosend]
+
+        # Sending an empty chunk signals the end of the
+        # response and prematurely closes the response
+        if self.chunked and tosend == 0:
+            return
+
+        self.sent += tosend
         util.write(self.sock, arg, self.chunked)
+
+    def sendfile_all(self, fileno, sockno, offset, nbytes):
+        # Send file in at most 1GB blocks as some operating
+        # systems can have problems with sending files in blocks
+        # over 2GB.
+
+        BLKSIZE = 0x3FFFFFFF
+
+        if nbytes > BLKSIZE:
+            for m in range(0, nbytes, BLKSIZE):
+                self.sendfile_all(fileno, sockno, offset, min(nbytes, BLKSIZE))
+                offset += BLKSIZE
+                nbytes -= BLKSIZE
+        else:
+            sent = 0
+            sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
+            while sent != nbytes:
+                sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
+
+    def write_file(self, respiter):
+        if sendfile is not None and \
+                hasattr(respiter.filelike, 'fileno') and \
+                hasattr(respiter.filelike, 'tell'):
+
+            fileno = respiter.filelike.fileno()
+            fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
+            fo_offset = respiter.filelike.tell()
+            nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
+
+            if self.clength:
+                nbytes = min(nbytes, self.clength)
+
+            if nbytes == 0:
+                return
+
+            self.send_headers()
+
+            if self.is_chunked():
+                self.sock.sendall("%X\r\n" % nbytes)
+
+            self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
+
+            if self.is_chunked():
+                self.sock.sendall("\r\n")
+
+            os.lseek(fileno, fd_offset, os.SEEK_SET)
+        else:
+            for item in respiter:
+                self.write(item)
 
     def close(self):
         if not self.headers_sent:
             self.send_headers()
         if self.chunked:
             util.write_chunk(self.sock, "")
-

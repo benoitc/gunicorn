@@ -1,5 +1,5 @@
 Gunicorn THANKS
-=====================
+===============
 
 A number of people have contributed to Gunicorn by reporting problems,
 suggesting improvements or submitting changes. Some of these people are:
@@ -12,4 +12,28 @@ Sergey Shepelev <temotor@gmail.com>
 Chris Dent <chris.dent@gmail.com>
 Matt Good <matt@matt-good.net>
 Randall Leeds <randall.leeds@gmail.com>
+<<<<<<< HEAD
 thomasst <http://github.com/thomasst>
+=======
+thomasst <http://github.com/thomasst>
+Jonas Borgström <http://github.com/jborg>
+PA Parent <paparent@paparent.me>
+Travis Cline <travis.cline@gmail.com>
+Adrien Lemaire <lemaire.adrien@gmail.com>
+Oliver Tonnhofer <olt@bogosoft.com>
+Anand Chitipothu <anandology@gmail.com>
+Jannis Leidel <jannis@leidel.info>
+Josh Ourisman <josh@joshourisman.com>
+Chris Lamb <lamby@debian.org>
+Neil Chintomby <nchintomby@gmail.com>
+Alex Robbins <alexander.j.robbins@gmail.com>
+Graham Dumpleton <Graham.Dumpleton@gmail.com> 
+Dan Sully <daniel-github@electricrain.com>
+Fabian Topfstedt <topfstedt@schneevonmorgen.com>
+Denis Bilenko <denis.bilenko@gmail.com>
+Michael Schurter <m@schmichael.com>
+Masahiro Nakagawa <repeatedly@gmail.com>
+Denis Bilenko <denis.bilenko@gmail.com>
+Phil Schanely <phil@daylife.com>
+Chris Lamb <lamby@debian.org>
+>>>>>>> benoitc/master

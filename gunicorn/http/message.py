@@ -36,15 +36,7 @@ class Message(object):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = []
-        while len(data):
-            pos = data.find("\r\n")
-            if pos < 0:
-                lines.append(data)
-                data = ""
-            else:
-                lines.append(data[:pos+2])
-                data = data[pos+2:]
+        lines = [line + "\r\n" for line in data.split("\r\n")]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -70,18 +62,20 @@ class Message(object):
     def set_body_reader(self):
         chunked = False
         clength = None
-
         for (name, value) in self.headers:
-            if name.upper() == "CONTENT-LENGTH":
+            if name == "CONTENT-LENGTH":
                 try:
                     clength = int(value)
                 except ValueError:
                     clength = None
-            elif name.upper() == "TRANSFER-ENCODING":
+            elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
-            elif name.upper() == "SEC-WEBSOCKET-KEY1":
+            elif name == "SEC-WEBSOCKET-KEY1":
                 clength = 8
-        
+
+            if clength is not None or chunked:
+                break
+
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
         elif clength is not None:
@@ -91,11 +85,13 @@ class Message(object):
 
     def should_close(self):
         for (h, v) in self.headers:
-            if h.lower() == "connection":
-                if v.lower().strip() == "close":
+            if h == "CONNECTION":
+                v = v.lower().strip()
+                if v == "close":
                     return True
-                elif v.lower().strip() == "keep-alive":
+                elif v == "keep-alive":
                     return False
+                break
         return self.version <= (1, 0)
 
 
@@ -136,23 +132,27 @@ class Request(Message):
             idx = buf.getvalue().find("\r\n")
         self.parse_request_line(buf.getvalue()[:idx])
         rest = buf.getvalue()[idx+2:] # Skip \r\n
-        buf.truncate(0)
+        buf = StringIO()
         buf.write(rest)
+       
         
         # Headers
         idx = buf.getvalue().find("\r\n\r\n")
+
         done = buf.getvalue()[:2] == "\r\n"
         while idx < 0 and not done:
             self.get_data(unreader, buf)
             idx = buf.getvalue().find("\r\n\r\n")
             done = buf.getvalue()[:2] == "\r\n"
+             
         if done:
             self.unreader.unread(buf.getvalue()[2:])
             return ""
+
         self.headers = self.parse_headers(buf.getvalue()[:idx])
 
         ret = buf.getvalue()[idx+4:]
-        buf.truncate(0)
+        buf = StringIO()
         return ret
     
     def parse_request_line(self, line):
@@ -167,20 +167,20 @@ class Request(Message):
 
         # URI
         self.uri = bits[1]
-        scheme, netloc, path, parameters, query, fragment = urlparse.urlparse(bits[1])
-        self.scheme = scheme or ''
-        self.host = netloc or ''
-
+        parts = urlparse.urlsplit(bits[1])
+        self.scheme = parts[0] or ''
+        self.host = parts[1] or ''
+        
         host_parts = self.host.rsplit(":", 1)
-
         if len(host_parts) == 1:
             self.port = 80
         else:
             self.host = host_parts[0]
             self.port = host_parts[1]
-        self.path = path or ""
-        self.query = query or ""
-        self.fragment = fragment or ""
+            
+        self.path = parts[2] or ""
+        self.query = parts[3] or ""
+        self.fragment = parts[4] or ""
 
         # Version
         match = self.versre.match(bits[2])

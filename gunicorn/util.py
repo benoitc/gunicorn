@@ -4,15 +4,26 @@
 # See the NOTICE for more information.
 
 
-import ctypes
+try:
+    import ctypes
+except MemoryError:
+    # selinux execmem denial
+    # https://bugzilla.redhat.com/show_bug.cgi?id=488396
+    ctypes = None
+except ImportError:
+    # Python on Solaris compiled with Sun Studio doesn't have ctypes
+    ctypes = None
+
 import fcntl
 import os
 import pkg_resources
+import random
 import resource
 import socket
 import sys
 import textwrap
 import time
+
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
@@ -31,11 +42,20 @@ monthname = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+# Server and Date aren't technically hop-by-hop
+# headers, but they are in the purview of the
+# origin server which the WSGI spec says we should
+# act like. So we drop them and add our own.
+#
+# In the future, concatenation server header values
+# might be better, but nothing else does it and
+# dropping them is easier.
 hop_headers = set("""
     connection keep-alive proxy-authenticate proxy-authorization
     te trailers transfer-encoding upgrade
+    server date
     """.split())
-             
+            
 try:
     from setproctitle import setproctitle
     def _setproctitle(title):
@@ -44,7 +64,7 @@ except ImportError:
     def _setproctitle(title):
         return
 
-def load_worker_class(uri):
+def load_class(uri, default="sync", section="gunicorn.workers"):
     if uri.startswith("egg:"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
@@ -52,13 +72,20 @@ def load_worker_class(uri):
             dist, name = entry_str.rsplit("#",1)
         except ValueError:
             dist = entry_str
-            name = "sync"
+            name = default
 
-        return pkg_resources.load_entry_point(dist, "gunicorn.workers", name)
+        return pkg_resources.load_entry_point(dist, section, name)
     else:
         components = uri.split('.')
         if len(components) == 1:
-            raise RuntimeError("arbiter uri invalid")
+            try:
+                if uri.startswith("#"):
+                    uri = uri[1:]
+
+                return pkg_resources.load_entry_point("gunicorn", 
+                            section, uri)
+            except ImportError: 
+                raise RuntimeError("class uri invalid or not found")
         klass = components.pop(-1)
         mod = __import__('.'.join(components))
         for comp in components[1:]:
@@ -71,6 +98,8 @@ def set_owner_process(uid,gid):
         try:
             os.setgid(gid)
         except OverflowError:
+            if not ctypes:
+                raise
             # versions of python < 2.6.2 don't manage unsigned int for
             # groups like on osx or fedora
             os.setgid(-ctypes.c_int(-gid).value)
@@ -82,21 +111,42 @@ def chown(path, uid, gid):
     try:
         os.chown(path, uid, gid)
     except OverflowError:
+        if not ctypes:
+            raise
         os.chown(path, uid, -ctypes.c_int(-gid).value)
+
+
+def is_ipv6(addr):
+    try:
+        socket.inet_pton(socket.AF_INET6, addr)
+    except socket.error: # not a valid address
+        return False
+    return True
         
-def parse_address(host, port=None, default_port=8000):
-    if host.startswith("unix:"):
-        return host.split("unix:")[1]
-        
-    if not port:
-        if ':' in host:
-            host, port = host.split(':', 1)
-            if not port.isdigit():
-                raise RuntimeError("%r is not a valid port number." % port)
-            port = int(port)
-        else:
-            port = default_port
-    return (host, int(port))
+def parse_address(netloc, default_port=8000):
+    if netloc.startswith("unix:"):
+        return netloc.split("unix:")[1]
+
+    # get host
+    if '[' in netloc and ']' in netloc:
+        host = netloc.split(']')[0][1:].lower()
+    elif ':' in netloc:
+        host = netloc.split(':')[0].lower()
+    elif netloc == "":
+        host = "0.0.0.0"
+    else:
+        host = netloc.lower()
+    
+    #get port
+    netloc = netloc.split(']')[-1]
+    if ":" in netloc:
+        port = netloc.split(':', 1)[1]
+        if not port.isdigit():
+            raise RuntimeError("%r is not a valid port number." % port)
+        port = int(port)
+    else:
+        port = default_port 
+    return (host, port)
     
 def get_maxfd():
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
@@ -143,39 +193,48 @@ def writelines(sock, lines, chunked=False):
     for line in list(lines):
         write(sock, line, chunked)
 
-def write_error(sock, msg):
+def write_error(sock, status_int, reason, mesg):
     html = textwrap.dedent("""\
     <html>
-        <head>
-            <title>Internal Server Error</title>
-        </head>
-        <body>
-            <h1>Internal Server Error</h1>
-            <h2>WSGI Error Report:</h2>
-            <pre>%s</pre>
-        </body>
+      <head>
+        <title>%(reason)s</title>
+      </head>
+      <body>
+        <h1>%(reason)s</h1>
+        %(mesg)s
+      </body>
     </html>
-    """) % msg
+    """) % {"reason": reason, "mesg": mesg}
+
     http = textwrap.dedent("""\
-    HTTP/1.1 500 Internal Server Error\r
+    HTTP/1.1 %s %s\r
     Connection: close\r
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
     %s
-    """) % (len(html), html)
+    """) % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http)
 
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
     
 def import_app(module):
-    parts = module.rsplit(":", 1)
+    parts = module.split(":", 1)
     if len(parts) == 1:
         module, obj = module, "application"
     else:
         module, obj = parts[0], parts[1]
-    __import__(module)
+
+    try:
+        __import__(module)
+    except ImportError:
+        if module.endswith(".py") and os.path.exists(module):
+            raise ImportError("Failed to find application, did "
+                "you mean '%s:%s'?" % (module.rsplit(".",1)[0], obj))
+        else:
+            raise
+
     mod = sys.modules[module]
     app = eval(obj, mod.__dict__)
     if app is None:
@@ -209,20 +268,18 @@ def is_hoppish(header):
 
 def daemonize():
     """\
-    Standard daemonization of a process. Code is basd on the
-    ActiveState recipe at:
-        http://code.activestate.com/recipes/278731/
+    Standard daemonization of a process.
+    http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
     """
     if not 'GUNICORN_FD' in os.environ:
-        if os.fork() == 0: 
-            os.setsid()
-            if os.fork() != 0:
-                os.umask(0) 
-            else:
-                os._exit(0)
-        else:
+        if os.fork():
+            os._exit(0)
+        os.setsid()
+
+        if os.fork():
             os._exit(0)
         
+        os.umask(0)
         maxfd = get_maxfd()
 
         # Iterate through and close all file descriptors.
@@ -235,3 +292,9 @@ def daemonize():
         os.open(REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)
         os.dup2(0, 2)
+
+def seed():
+    try:
+        random.seed(os.urandom(64))
+    except NotImplementedError:
+        random.seed(random.random())

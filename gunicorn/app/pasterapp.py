@@ -6,6 +6,7 @@
 import os
 import pkg_resources
 import sys
+import ConfigParser
 
 from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER
@@ -13,29 +14,11 @@ SERVER = loadwsgi.SERVER
 from gunicorn.app.base import Application
 from gunicorn.config import Config
 
-class PasterApplication(Application):
-    
-    def init(self, parser, opts, args):
-        if len(args) != 1:
-            parser.error("No application name specified.")
-
-        cfgfname = os.path.normpath(os.path.join(os.getcwd(), args[0]))
-        cfgfname = os.path.abspath(cfgfname)
-        if not os.path.exists(cfgfname):
-            parser.error("Config file not found: %s" % cfgfname)
-
-        self.cfgurl = 'config:%s' % cfgfname
-        self.relpath = os.path.dirname(cfgfname)
-
-        sys.path.insert(0, self.relpath)
-        pkg_resources.working_set.add_entry(self.relpath)
-        
-        return self.app_config()
+class PasterBaseApplication(Application):
 
     def app_config(self):
         cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
         gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
-
         cfg = {}
         
         host, port = lc.pop('host', ''), lc.pop('port', '')
@@ -59,16 +42,64 @@ class PasterApplication(Application):
             cfg[k] = v
 
         return cfg
+
+    def load_config(self):
+        super(PasterBaseApplication, self).load_config()
+
+        # reload logging conf
+        if hasattr(self, "cfgfname"):
+            parser = ConfigParser.ConfigParser()
+            parser.read([self.cfgfname])
+            if parser.has_section('loggers'):
+                if sys.version_info >= (2, 6):
+                    from logging.config import fileConfig
+                else:
+                    # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
+                    # and less strict whitespace (which were incorporated into 2.6's)
+                    from gunicorn.logging_config import fileConfig
+
+                config_file = os.path.abspath(self.cfgfname)
+                fileConfig(config_file, dict(__file__=config_file,
+                                             here=os.path.dirname(config_file)))
+        
+
+
+class PasterApplication(PasterBaseApplication):
+    
+    def init(self, parser, opts, args):
+        if len(args) != 1:
+            parser.error("No application name specified.")
+
+        cfgfname = os.path.normpath(os.path.join(os.getcwd(), args[0]))
+        cfgfname = os.path.abspath(cfgfname)
+        if not os.path.exists(cfgfname):
+            parser.error("Config file not found: %s" % cfgfname)
+
+        self.cfgurl = 'config:%s' % cfgfname
+        self.relpath = os.path.dirname(cfgfname)
+        self.cfgfname = cfgfname
+
+        sys.path.insert(0, self.relpath)
+        pkg_resources.working_set.add_entry(self.relpath)
+        
+        return self.app_config()
         
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
-
-class PasterServerApplication(Application):
+    
+class PasterServerApplication(PasterBaseApplication):
     
     def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
         self.app = app
         self.callable = None
+
+        gcfg = gcfg or {}
+        cfgfname = gcfg.get("__file__")
+        if cfgfname is not None:
+            self.cfgurl = 'config:%s' % cfgfname
+            self.relpath = os.path.dirname(cfgfname)
+            self.cfgfname = cfgfname
 
         cfg = kwargs.copy()
 
@@ -79,17 +110,35 @@ class PasterServerApplication(Application):
         cfg["bind"] = bind
 
         if gcfg:
-            for k, v in list(gcfg.items()):
+            for k, v in gcfg.items():
                 cfg[k] = v
             cfg["default_proc_name"] = cfg['__file__']
 
-        for k, v in list(cfg.items()):
-            if k.lower() in self.cfg.settings and v is not None:
-                self.cfg.set(k.lower(), v)
+        try:
+            for k, v in cfg.items():
+                if k.lower() in self.cfg.settings and v is not None:
+                    self.cfg.set(k.lower(), v)
+        except Exception, e:
+            sys.stderr.write("\nConfig error: %s\n" % str(e))
+            sys.stderr.flush()
+            sys.exit(1)
 
-        self.configure_logging()
+
+    def load_config(self):
+        if not hasattr(self, "cfgfname"):
+            return
+        
+        cfg = self.app_config()
+        for k,v in cfg.items():
+            try:
+                self.cfg.set(k.lower(), v)
+            except:
+                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                raise
 
     def load(self):
+        if hasattr(self, "cfgfname"):
+            return loadapp(self.cfgurl, relative_to=self.relpath)
         return self.app
 
 

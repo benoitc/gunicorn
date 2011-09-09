@@ -6,15 +6,15 @@
 import eventlet
 import eventlet.debug
 
-from eventlet.green import os
-from eventlet import greenlet
-from eventlet import greenpool
-from eventlet import greenthread
+import os
+try:
+    import eventlet
+except ImportError:
+    raise RuntimeError("You need eventlet installed to use this worker.")
 from eventlet import hubs
+from eventlet.greenio import GreenSocket
 
 from gunicorn.workers.async import AsyncWorker
-
-eventlet.debug.hub_exceptions(True)
 
 class EventletWorker(AsyncWorker):
 
@@ -24,7 +24,7 @@ class EventletWorker(AsyncWorker):
         if eventlet.version_info < (0,9,7):
             raise RuntimeError("You need eventlet >= 0.9.7")
         eventlet.monkey_patch(os=False)
-    
+
     def init_process(self):
         hubs.use_hub()
         super(EventletWorker, self).init_process()
@@ -33,55 +33,25 @@ class EventletWorker(AsyncWorker):
         return eventlet.Timeout(self.cfg.keepalive)
         
     def run(self):
+        self.socket = GreenSocket(family_or_realsock=self.socket.sock)
         self.socket.setblocking(1)
+        self.acceptor = eventlet.spawn(eventlet.serve, self.socket,
+                self.handle, self.worker_connections)
 
-        pool = greenpool.GreenPool(self.worker_connections)
-        acceptor = greenthread.spawn(self.acceptor, pool)
-        
-        try:
-            while self.alive:
-                self.notify()
-                
-                if self.ppid != os.getppid():
-                    self.log.info("Parent changed, shutting down: %s" % self)
-                    greenthread.kill(acceptor, eventlet.StopServe)
-                    break
-
-                eventlet.sleep(0.1)            
-
-            timeout = eventlet.Timeout(self.timeout)
-            try:
-                try:
-                    pool.waitall()
-                except eventlet.Timeout:
-                    pass
-            finally:
-                timeout.cancel()                
-        except KeyboardInterrupt:
-            pass
-        
-    def acceptor(self, pool):
-        greenthread.getcurrent()
         while self.alive:
-            try:
-                conn, addr = self.socket.accept()
-                gt = pool.spawn(self.handle, conn, addr)
-                gt.link(self.cleanup, conn)
-                conn, addr, gt = None, None, None
-            except eventlet.StopServe:
-                return
-            except:
-                self.log.exception("Unexpected error in acceptor. Sepuku.")
-                os._exit(4)
+            self.notify()
+            if self.ppid != os.getppid():
+                self.log.info("Parent changed, shutting down: %s" % self)
+                break
 
-    def cleanup(self, thread, conn):
+            eventlet.sleep(0.1)            
+
+        self.notify()
+        timeout = eventlet.Timeout(self.timeout)
         try:
             try:
-                thread.wait()
-            finally:
-                conn.close()
-        except greenlet.GreenletExit:
-            pass
-        except Exception:
-            self.log.exception("Unhandled exception in worker.")
-
+                eventlet.kill(self.acceptor,  eventlet.StopServe)
+            except eventlet.Timeout:
+                pass
+        finally:
+            timeout.cancel()                

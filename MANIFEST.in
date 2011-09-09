@@ -3,9 +3,8 @@ include LICENSE
 include NOTICE
 include README.rst
 include THANKS
-include gunicorn/options.ini
 recursive-include tests *
 recursive-include examples *
 recursive-include doc *
 recursive-include debian *
-recursive-include examples/pylonstest *
+recursive-include examples/frameworks *
