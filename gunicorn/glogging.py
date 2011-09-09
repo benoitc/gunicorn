@@ -26,9 +26,6 @@ class Logger(object):
 
     access_fmt = "%(message)s"
 
-    access_log_format = \
-            '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
-
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
@@ -73,7 +70,7 @@ class Logger(object):
     def exception(self, msg, *args):
         self.error_log.exception(msg, *args)
 
-    def log(lvl, msg, *args, **kwargs):
+    def log(self, lvl, msg, *args, **kwargs):
         if isinstance(lvl, basestring):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
