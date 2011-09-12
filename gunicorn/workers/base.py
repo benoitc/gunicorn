@@ -109,11 +109,7 @@ class Worker(object):
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
-        signal.signal(signal.SIGUSR1, self.handle_usr1)
 
-    def handle_usr1(self, sig, frame):
-        self.log.reopen_files()
-            
     def handle_quit(self, sig, frame):
         self.alive = False
 

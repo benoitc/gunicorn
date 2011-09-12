@@ -244,9 +244,8 @@ class Arbiter(object):
     def handle_usr1(self):
         """\
         SIGUSR1 handling.
-        Kill all workers by sending them a SIGUSR1
+        Reopen log files.
         """
-        self.kill_workers(signal.SIGUSR1)
         self.log.reopen_files()
     
     def handle_usr2(self):
