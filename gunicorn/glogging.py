@@ -126,7 +126,7 @@ class Logger(object):
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
                     handler.stream.close()
-                    handler.stream = open(handler.baseFileName,
+                    handler.stream = open(handler.baseFilename,
                             handler.mode)
                     handler.release()
 
