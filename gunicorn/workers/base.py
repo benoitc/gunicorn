@@ -110,6 +110,11 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
+        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        # by interrupting system calls
+        if hasattr(signal, 'siginterrupt'):  # python >= 2.6
+            signal.siginterrupt(signal.SIGQUIT, False)
+            signal.siginterrupt(signal.SIGUSR1, False)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
