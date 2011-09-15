@@ -175,7 +175,8 @@ class Arbiter(object):
                 if not handler:
                     self.log.error("Unhandled signal: %s", signame)
                     continue
-                self.log.info("Handling signal: %s", signame)
+                if signame != 'usr1':
+                    self.log.info("Handling signal: %s", signame)
                 handler()  
                 self.wakeup()
             except StopIteration:
@@ -248,6 +249,7 @@ class Arbiter(object):
         """
         self.kill_workers(signal.SIGUSR1)
         self.log.reopen_files()
+        self.log.info("Handled signal: usr1")
     
     def handle_usr2(self):
         """\
