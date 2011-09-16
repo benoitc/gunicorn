@@ -52,7 +52,12 @@ class TornadoWorker(Worker):
             self.app = WSGIContainer(self.wsgi)
 
         server = HTTPServer(self.wsgi, io_loop=self.ioloop)
-        server._socket = self.socket
+        if hasattr(server, "add_socket"): # tornado > 2.0
+            server.add_socket(self.socket)
+        elif hasattr(server, "_sockets"): # tornado 2.0
+            server._sockets[self.socket.fileno()] = self.socket
+        else: # tornado 1.2 or earlier
+            server._socket = self.socket
         server.start(num_processes=1)
 
         self.ioloop.start()
