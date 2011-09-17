@@ -81,16 +81,16 @@ def app(environ, start_response):
       <div class="blurb"> 
         <h3>Version 0.13.0 / 2011-08-22</h3>
         <ul>
-          <li>Improve logging: allows file-reopening and add access log file compatible with the <a href="http://httpd.apache.org/docs/2.0/logs.html#combined">apache combined log format</a></li>
-<li>Add the possibility to set custom SSL headers. X-Forwarded-Protocol  and X-Forwarded-SSL are still the default</li>
-<li>New <code>on_reload</code> hook to customize how gunicorn spawn new workers on <em>SIGHUP</em></li>
-<li>Handle projects with relative path in <code>django_gunicorn</code> command</li>
-<li>Preserve path parameters in <em>PATH_INFO</em></li>
-<li>Post_request hook now accepts the environ as argument.</li>
-<li>When stopping the arbiter, close the listener asap.</li>
-<li>Fix Django command <code>run_gunicorn</code> in settings reloading</li>
-<li>Fix Tornado_ worker exiting</li>
-<li>Fix the use of sendfile in wsgi.file_wrapper</li>
+
+          <li>Add support for Tornado 2.0 in tornado worker</li>
+          <li>Improve access logs: allows customisation of the log
+          format &amp; add request time</li>
+          <li>Logger module is now pluggable</li>
+          <li>Improve graceful shutdown in Python versions &gt;=
+          2.6</li>
+          <li>Fix post_request root arity for compatibility</li>
+          <li>Fix sendfile support</li>
+          <li>Fix Django reloading</li>
         </ul>
       </div> 
       <div id="footer">
