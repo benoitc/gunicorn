@@ -55,7 +55,8 @@ class TCPSocket(BaseSocket):
     FAMILY = socket.AF_INET
     
     def __str__(self):
-        return "http://%s:%d" % self.sock.getsockname()
+        transport = (self.conf.certfile != None) and "https" or "http"
+        return transport + "://%s:%d" % self.sock.getsockname()
     
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -66,8 +67,9 @@ class TCP6Socket(TCPSocket):
     FAMILY = socket.AF_INET6
 
     def __str__(self):
+        transport = (self.conf.certfile != None) and "https" or "http"
         (host, port, fl, sc) = self.sock.getsockname()
-        return "http://[%s]:%d" % (host, port)
+        return transport + "://[%s]:%d" % (host, port)
 
 class UnixSocket(BaseSocket):
     
