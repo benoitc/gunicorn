@@ -3,7 +3,9 @@
 # This file is part of gunicorn released under the MIT license. 
 # See the NOTICE for more information.
 
-from gunicorn.workers.ggevent import BASE_WSGI_ENV, GeventBaseWorker 
+from datetime import datetime
+
+from gunicorn.workers.ggevent import BASE_WSGI_ENV, GeventWorker 
 from gevent import wsgi
 
 
@@ -32,7 +34,7 @@ class WSGIHandler(wsgi.WSGIHandler):
 class WSGIServer(wsgi.WSGIServer):
     base_env = BASE_WSGI_ENV  
 
-class GeventWSGIWorker(GeventBaseWorker):
+class GeventWSGIWorker(GeventWorker):
     "The Gevent StreamServer based workers."
     server_class = WSGIServer
     wsgi_handler = WSGIHandler
