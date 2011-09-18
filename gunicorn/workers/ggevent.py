@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import os
 import sys
+from datetime import datetime
 
 # workaround on osx, disable kqueue
 if sys.platform == "darwin":
@@ -131,8 +132,9 @@ class GeventBaseWorker(Worker):
         self.socket.setblocking(1)
         pool = Pool(self.worker_connections)        
         self.server_class.base_env['wsgi.multiprocess'] = (self.cfg.workers > 1)
-        server = self.server_class(self.socket, application=self.wsgi, 
-                        spawn=pool, handler_class=self.wsgi_handler)
+        server = self.server_class(
+            self.socket, application=self.wsgi, spawn=pool, log=self.log,
+            handler_class=self.wsgi_handler)
         server.start()
         try:
             while self.alive:
@@ -165,8 +167,12 @@ class GeventBaseWorker(Worker):
 
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
-    def log_request(self, *args):
-        pass
+
+    def log_request(self):
+        start = datetime.fromtimestamp(self.time_start)
+        finish = datetime.fromtimestamp(self.time_finish)
+        response_time = finish - start
+        self.server.log.access(self, self.environ, response_time)
         
     def get_environ(self):
         env = super(PyWSGIHandler, self).get_environ()

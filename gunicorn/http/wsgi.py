@@ -154,7 +154,7 @@ class Response(object):
         self.must_close = False
         self.headers = []
         self.headers_sent = False
-        self.clength = None
+        self.response_length = None
         self.sent = 0
 
     def force_close(self):
@@ -163,7 +163,7 @@ class Response(object):
     def should_close(self):
         if self.must_close or self.req.should_close():
             return True
-        if self.clength is not None or self.chunked:
+        if self.response_length is not None or self.chunked:
             return False
         return True
 
@@ -187,7 +187,7 @@ class Response(object):
             assert isinstance(name, basestring), "%r is not a string" % name
             lname = name.lower().strip()
             if lname == "content-length":
-                self.clength = int(value)
+                self.response_length = int(value)
             elif util.is_hoppish(name):
                 if lname == "connection":
                     # handle websocket
@@ -203,7 +203,7 @@ class Response(object):
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
-        if self.clength is not None:
+        if self.response_length is not None:
             return False
         elif self.req.version <= (1,0):
             return False
@@ -242,12 +242,12 @@ class Response(object):
 
         arglen = len(arg)
         tosend = arglen
-        if self.clength is not None:
-            if self.sent >= self.clength:
-                # Never write more than self.clength bytes
+        if self.response_length is not None:
+            if self.sent >= self.response_length:
+                # Never write more than self.response_length bytes
                 return
 
-            tosend = min(self.clength - self.sent, tosend)
+            tosend = min(self.response_length - self.sent, tosend)
             if tosend < arglen:
                 arg = arg[:tosend]
 
@@ -287,8 +287,8 @@ class Response(object):
             fo_offset = respiter.filelike.tell()
             nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
 
-            if self.clength:
-                nbytes = min(nbytes, self.clength)
+            if self.response_length:
+                nbytes = min(nbytes, self.response_length)
 
             if nbytes == 0:
                 return
