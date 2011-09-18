@@ -22,9 +22,21 @@ class SyncWorker(base.Worker):
         # we fork in the arbiter. Reset it here.
         self.socket.setblocking(0)
 
+        if self.cfg.certfile != None:
+            from ssl import wrap_socket
+            self.socket = wrap_socket(self.socket.sock,
+                                      keyfile=self.cfg.keyfile,
+                                      certfile=self.cfg.certfile,
+                                      cert_reqs=self.cfg.cert_reqs,
+                                      ssl_version=self.cfg.ssl_version,
+                                      ca_certs=self.cfg.ca_certs,
+                                      suppress_ragged_eofs=\
+                                          self.cfg.suppress_ragged_eofs,
+                                      ciphers=self.cfg.ciphers,
+                                      do_handshake_on_connect=False)
+
         while self.alive:
             self.notify()
-            
             # Accept a connection. If we get an error telling us
             # that no connection is waiting we fall down to the
             # select which is where we'll wait for a bit for new
