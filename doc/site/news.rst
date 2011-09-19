@@ -8,6 +8,13 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.13.3 / 2011-09-19
+-------------------
+
+- refactor gevent worker
+- prevent leaking fds on reexec
+- fix inverted request_time computation
+
 0.13.2 / 2011-09-17
 -------------------
 

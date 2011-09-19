@@ -79,18 +79,11 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb"> 
-        <h3>Version 0.13.0 / 2011-08-22</h3>
+        <h3>Version 0.13.3 / 2011-09-19</h3>
         <ul>
-
-          <li>Add support for Tornado 2.0 in tornado worker</li>
-          <li>Improve access logs: allows customisation of the log
-          format &amp; add request time</li>
-          <li>Logger module is now pluggable</li>
-          <li>Improve graceful shutdown in Python versions &gt;=
-          2.6</li>
-          <li>Fix post_request root arity for compatibility</li>
-          <li>Fix sendfile support</li>
-          <li>Fix Django reloading</li>
+          <li>refactor gevent worker</li>
+          <li>prevent leaking fds on reexec</li>
+          <li>fix inverted request_time computation</li>
         </ul>
       </div> 
       <div id="footer">
