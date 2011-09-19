@@ -39,6 +39,9 @@ BASE_WSGI_ENV = {
 
 class GeventWorker(AsyncWorker):
 
+    server_class = None
+    wsgi_handler = None
+
     @classmethod  
     def setup(cls):
         from gevent import monkey
@@ -53,7 +56,7 @@ class GeventWorker(AsyncWorker):
         self.socket.setblocking(1)
 
         pool = Pool(self.worker_connections)
-        if hasattr(self, 'server_class'):
+        if self.server_class is not None
             server = self.server_class(
                 self.socket, application=self.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
