@@ -268,6 +268,54 @@ def validate_post_request(val):
     else:
          raise TypeError("Value must have an arity of: 3")
 
+def check_ssl_present():
+    try:
+        import ssl
+    except ImportError:
+        raise RuntimeError("You must install the ssl package.")
+
+def ssl_validate_string(default):
+    """\
+    return a validation function that checks for availability of
+    the ssl lib if anything other than the setting's default string
+    is provided.
+    """
+    def _validate(val, default=default):
+        if val != default:
+            check_ssl_present()
+        return validate_string(val)
+    return _validate
+
+def ssl_validate_bool(default):
+    """\
+    return a validation function that checks for availability of
+    the ssl lib if anything other than the setting's default
+    is provided.
+    """
+    def _validate(val, default=default):
+        if val != default:
+            check_ssl_present()
+        return validate_bool(val)
+    return _validate
+
+def validate_cert_reqs(val):
+    if not isinstance(val, (types.IntType, types.LongType)):
+        val = int(val, 0)
+    if val > 0:
+        check_ssl_present()
+    if val < 0 or val > 2:
+        raise ValueError("cert_reqs must be 0, 1, or 2: %s" % val)
+    return val
+
+def validate_ssl_version(val):
+    if not isinstance(val, (types.IntType, types.LongType)):
+        val = int(val, 2)
+    if val !=2:
+        check_ssl_present()
+    if val < 0 or val > 3:
+        raise ValueError("ssl_version must be 0, 1, 2, or 3: %s" % val)
+    return val
+
 
 
 class ConfigFile(Setting):
@@ -674,7 +722,7 @@ class LoggerClass(Setting):
         You can provide your own worker by giving gunicorn a
         python path to a subclass like gunicorn.glogging.Logger. 
         Alternatively the syntax can also load the Logger class 
-        with ``egg:gunicorn#simple`
+        with ``egg:gunicorn#simple``
         """
 
 class Procname(Setting):
@@ -834,4 +882,95 @@ class WorkerExit(Setting):
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
+        """
+
+
+class KeyFile(Setting):
+    name = "keyfile"
+    section = "Gevent SSL Options"
+    cli = ["--keyfile"]
+    meta = "FILE"
+    default = None
+    validator = ssl_validate_string(default)
+    desc = """\
+        For gevent SSL: path to a PEM format private key file.
+        """
+
+
+class CertFile(Setting):
+    name = "certfile"
+    section = "Gevent SSL Options"
+    cli = ["--certfile"]
+    meta = "FILE"
+    default = None
+    validator = ssl_validate_string(default)
+    desc = """\
+        For gevent SSL: path to a PEM format certificate file.
+
+        The private key and certificate may be stored in the same cert file.
+        """
+
+
+class CertReqs(Setting):
+    name = "cert_reqs"
+    section = "Gevent SSL Options"
+    cli = ["--cert_reqs"]
+    meta = "INT"
+    validator = validate_cert_reqs
+    type = "int"
+    default = 0
+    desc = """\
+        For gevent SSL: 0=CERT_NONE, 1=CERT_OPTIONAL, 2=CERT_REQUIRED
+        """
+
+
+class SSLVersion(Setting):
+    name = "ssl_version"
+    section = "Gevent SSL Options"
+    cli = ["--ssl_version"]
+    meta = "INT"
+    type = "int"
+    default = 2
+    validator = validate_ssl_version
+    desc = """\
+        For gevent SSL: 0=SSLv2, 1=SSLv3, 2=SSLv23, 3=TLSv1
+        """
+
+
+class CACerts(Setting):
+    name = "ca_certs"
+    section = "Gevent SSL Options"
+    cli = ["--ca_certs"]
+    meta = "FILE"
+    default = None
+    validator = ssl_validate_string(default)
+    desc = """\
+        For gevent SSL: path to a PEM format CA certs file.
+        """
+
+
+class NoSuppressRaggedEOF(Setting):
+    name = "suppress_ragged_eofs"
+    section = "Gevent SSL Options"
+    cli = ["--no_suppress_eofs"]
+    default = True
+    validator = ssl_validate_bool(default)
+    action = "store_false"
+    desc = """\
+        For gevent SSL: raise EOF Exceptions back to caller.
+        """
+
+
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "Gevent SSL Options"
+    cli = ["--ciphers"]
+    meta = "STRING"
+    default = None
+    validator = ssl_validate_string(default)
+    desc = """\
+        For gevent SSL: limit the list of available ciphers.
+
+        See:
+        http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
         """

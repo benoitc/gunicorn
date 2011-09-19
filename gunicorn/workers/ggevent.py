@@ -38,8 +38,11 @@ BASE_WSGI_ENV = {
 
 
 class GGeventServer(StreamServer):
-    def __init__(self, listener, handle, spawn='default', worker=None):
-        StreamServer.__init__(self, listener, spawn=spawn)
+    def __init__(self, listener, handle, spawn='default', worker=None, **ssl_args):
+        if ssl_args['certfile'] != None:
+            StreamServer.__init__(self, listener, spawn=spawn, **ssl_args)
+        else:
+            StreamServer.__init__(self, listener, spawn=spawn)
         self.handle_func = handle
         self.worker = worker
 
@@ -66,7 +69,15 @@ class GeventWorker(AsyncWorker):
 
         pool = Pool(self.worker_connections)
         server = GGeventServer(self.socket, self.handle, spawn=pool,
-                worker=self)
+                           worker=self,
+                           keyfile=self.cfg.keyfile,
+                           certfile=self.cfg.certfile,
+                           cert_reqs=self.cfg.cert_reqs,
+                           ssl_version=self.cfg.ssl_version,
+                           ca_certs=self.cfg.ca_certs,
+                           suppress_ragged_eofs=self.cfg.suppress_ragged_eofs,
+                           ciphers=self.cfg.ciphers
+                           )
 
         server.start()
         try:
@@ -126,7 +137,7 @@ class GeventBaseWorker(Worker):
         monkey.noisy = False
         monkey.patch_all()
 
-        
+    
     def run(self):
         self.socket.setblocking(1)
         pool = Pool(self.worker_connections)        
