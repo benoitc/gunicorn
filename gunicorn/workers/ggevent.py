@@ -56,7 +56,7 @@ class GeventWorker(AsyncWorker):
         self.socket.setblocking(1)
 
         pool = Pool(self.worker_connections)
-        if self.server_class is not None
+        if self.server_class is not None:
             server = self.server_class(
                 self.socket, application=self.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
