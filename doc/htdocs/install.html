@@ -111,8 +111,53 @@ package manager. If <a class="reference external" href="http://gevent.org">Geven
 installed, this is the most likely reason.</p>
 </div>
 </div>
-<div class="section" id="ubuntu-debian">
-<h2><a class="toc-backref" href="#contents">Ubuntu/Debian</a></h2>
+<div class="section" id="debian-gnu-linux">
+<h2><a class="toc-backref" href="#contents">Debian GNU/Linux</a></h2>
+<p>If you are using Debian GNU/Linux is is recommended that you use system
+packages to install Gunicorn. This has a number of advantages:</p>
+<blockquote>
+<ul class="simple">
+<li>Zero-effort installation: Automatically starts multiple Gunicorn instances
+based on configurations defined in <tt class="docutils literal">/etc/gunicorn.d</tt>.</li>
+<li>Sensible default locations for logs (<tt class="docutils literal">/var/log/gunicorn</tt>). Logs
+can be automatically rotated and compressed using <tt class="docutils literal">logrotate</tt>.</li>
+<li>Improved security: Can easily run each Gunicorn instance with a dedicated
+UNIX user/group.</li>
+<li>Sensible upgrade path: Upgrades to newer versions result in less downtime,
+handle conflicting changes in configuration options, and can be quickly
+rolled back in case of incompatibility. The package can also be purged
+entirely from the system in seconds.</li>
+</ul>
+</blockquote>
+<div class="section" id="stable-squeeze">
+<h3><a class="toc-backref" href="#contents">Stable (&quot;squeeze&quot;)</a></h3>
+<p>The version of Gunicorn in the <a class="reference external" href="http://www.debian.org/">Debian</a> &quot;stable&quot; distribution is 0.10.0 (July
+2010). It is not recommended that you use this version.</p>
+<p>However, you can use the most recent version by using <a class="reference external" href="http://backports.debian.org/">Debian Backports</a>.
+First, copy the following line to your <tt class="docutils literal">/etc/apt/sources.list</tt>:</p>
+<pre class="literal-block">
+deb http://backports.debian.org/debian-backports squeeze-backports main
+</pre>
+<p>Then, update your local package lists:</p>
+<pre class="literal-block">
+$ sudo apt-get update
+</pre>
+<p>You can then install the latest version using:</p>
+<pre class="literal-block">
+$ sudo apt-get -t squeeze-backports install gunicorn
+</pre>
+</div>
+<div class="section" id="testing-wheezy-unstable-sid">
+<h3><a class="toc-backref" href="#contents">Testing (&quot;wheezy&quot;) / Unstable (&quot;sid&quot;)</a></h3>
+<p>&quot;wheezy&quot; and &quot;sid&quot; contain the latest released version of Gunicorn. You can
+install it in the usual way:</p>
+<pre class="literal-block">
+$ sudo apt-get install gunicorn
+</pre>
+</div>
+</div>
+<div class="section" id="ubuntu">
+<h2><a class="toc-backref" href="#contents">Ubuntu</a></h2>
 <p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a> karmic, you can update your system with packages from
 our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal">ppa:bchesneau/gunicorn</tt> to your system's Software
 Sources.</p>
@@ -141,13 +186,18 @@ deb-src http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#requirements" id="id1">Requirements</a></li>
-<li><a class="reference internal" href="#with-easy-install" id="id2">With easy_install</a></li>
-<li><a class="reference internal" href="#from-source" id="id3">From Source</a></li>
-<li><a class="reference internal" href="#async-workers" id="id4">Async Workers</a></li>
-<li><a class="reference internal" href="#ubuntu-debian" id="id5">Ubuntu/Debian</a><ul>
-<li><a class="reference internal" href="#signing-key" id="id6">Signing key</a></li>
-<li><a class="reference internal" href="#fingerprint" id="id7">Fingerprint</a></li>
+<li><a class="reference internal" href="#requirements" id="id2">Requirements</a></li>
+<li><a class="reference internal" href="#with-easy-install" id="id3">With easy_install</a></li>
+<li><a class="reference internal" href="#from-source" id="id4">From Source</a></li>
+<li><a class="reference internal" href="#async-workers" id="id5">Async Workers</a></li>
+<li><a class="reference internal" href="#debian-gnu-linux" id="id6">Debian GNU/Linux</a><ul>
+<li><a class="reference internal" href="#stable-squeeze" id="id7">Stable (&quot;squeeze&quot;)</a></li>
+<li><a class="reference internal" href="#testing-wheezy-unstable-sid" id="id8">Testing (&quot;wheezy&quot;) / Unstable (&quot;sid&quot;)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ubuntu" id="id9">Ubuntu</a><ul>
+<li><a class="reference internal" href="#signing-key" id="id10">Signing key</a></li>
+<li><a class="reference internal" href="#fingerprint" id="id11">Fingerprint</a></li>
 </ul>
 </li>
 </ul>
