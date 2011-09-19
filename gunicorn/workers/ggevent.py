@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import os
 import sys
+from datetime import datetime
 
 # workaround on osx, disable kqueue
 if sys.platform == "darwin":
@@ -36,19 +37,6 @@ BASE_WSGI_ENV = {
     'wsgi.run_once': False
 }
 
-
-class GGeventServer(StreamServer):
-    def __init__(self, listener, handle, spawn='default', worker=None):
-        StreamServer.__init__(self, listener, spawn=spawn)
-        self.handle_func = handle
-        self.worker = worker
-
-    def stop(self, timeout=None):
-        super(GGeventServer, self).stop(timeout=timeout)
-
-    def handle(self, sock, addr):
-        self.handle_func(sock, addr)
-
 class GeventWorker(AsyncWorker):
 
     @classmethod  
@@ -65,8 +53,12 @@ class GeventWorker(AsyncWorker):
         self.socket.setblocking(1)
 
         pool = Pool(self.worker_connections)
-        server = GGeventServer(self.socket, self.handle, spawn=pool,
-                worker=self)
+        if hasattr(self, 'server_class'):
+            server = self.server_class(
+                self.socket, application=self.wsgi, spawn=pool, log=self.log,
+                handler_class=self.wsgi_handler)
+        else:
+            server = StreamServer(self.socket, handle=self.handle, spawn=pool)
 
         server.start()
         try:
@@ -103,70 +95,13 @@ class GeventWorker(AsyncWorker):
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()
 
-
-class GeventBaseWorker(Worker):
-    """\
-    This base class is used for the two variants of workers that use
-    Gevent's two different WSGI workers. ``gevent_wsgi`` worker uses
-    the libevent HTTP parser but does not support streaming response
-    bodies or Keep-Alive. The ``gevent_pywsgi`` worker uses an
-    alternative Gevent WSGI server that supports streaming and Keep-
-    Alive but does not use the libevent HTTP parser.
-    """
-    server_class = None
-    wsgi_handler = None
-
-    def __init__(self, *args, **kwargs):
-        super(GeventBaseWorker, self).__init__(*args, **kwargs)
-        self.worker_connections = self.cfg.worker_connections
-    
-    @classmethod
-    def setup(cls):
-        from gevent import monkey
-        monkey.noisy = False
-        monkey.patch_all()
-
-        
-    def run(self):
-        self.socket.setblocking(1)
-        pool = Pool(self.worker_connections)        
-        self.server_class.base_env['wsgi.multiprocess'] = (self.cfg.workers > 1)
-        server = self.server_class(self.socket, application=self.wsgi, 
-                        spawn=pool, handler_class=self.wsgi_handler)
-        server.start()
-        try:
-            while self.alive:
-                self.notify()
-            
-                if self.ppid != os.getppid():
-                    self.log.info("Parent changed, shutting down: %s", self)
-                    break
-                
-                gevent.sleep(1.0) 
-
-        except KeyboardInterrupt:
-            pass
-
-        # try to stop the connections
-        try:
-            self.notify()
-            server.stop(timeout=self.timeout)
-        except:
-            pass
-
-    if hasattr(gevent.core, 'dns_shutdown'):
-
-        def init_process(self):
-            #gevent 0.13 and older doesn't reinitialize dns for us after forking
-            #here's the workaround
-            gevent.core.dns_shutdown(fail_requests=1)
-            gevent.core.dns_init()
-            super(GeventBaseWorker, self).init_process()
-
-
 class PyWSGIHandler(pywsgi.WSGIHandler):
-    def log_request(self, *args):
-        pass
+
+    def log_request(self):
+        start = datetime.fromtimestamp(self.time_start)
+        finish = datetime.fromtimestamp(self.time_finish)
+        response_time = finish - start
+        self.server.log.access(self, self.environ, response_time)
         
     def get_environ(self):
         env = super(PyWSGIHandler, self).get_environ()
@@ -177,7 +112,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
 class PyWSGIServer(pywsgi.WSGIServer):
     base_env = BASE_WSGI_ENV
 
-class GeventPyWSGIWorker(GeventBaseWorker):
+class GeventPyWSGIWorker(GeventWorker):
     "The Gevent StreamServer based workers."
     server_class = PyWSGIServer
     wsgi_handler = PyWSGIHandler
