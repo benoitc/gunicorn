@@ -61,25 +61,25 @@ class Message(object):
 
     def set_body_reader(self):
         chunked = False
-        clength = None
+        response_length = None
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
                 try:
-                    clength = int(value)
+                    response_length = int(value)
                 except ValueError:
-                    clength = None
+                    response_length = None
             elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
             elif name == "SEC-WEBSOCKET-KEY1":
-                clength = 8
+                response_length = 8
 
-            if clength is not None or chunked:
+            if response_length is not None or chunked:
                 break
 
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
-        elif clength is not None:
-            self.body = Body(LengthReader(self.unreader, clength))
+        elif response_length is not None:
+            self.body = Body(LengthReader(self.unreader, response_length))
         else:
             self.body = Body(EOFReader(self.unreader))
 

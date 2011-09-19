@@ -70,7 +70,7 @@ class AsyncWorker(base.Worker):
                 for item in respiter:
                     resp.write(item)
                 resp.close()
-                request_time = request_start - datetime.now()
+                request_time = datetime.now() - request_start
                 self.log.access(resp, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):

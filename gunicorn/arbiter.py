@@ -346,6 +346,8 @@ class Arbiter(object):
         os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
+        util.closerange(3, self.LISTENER.fileno())
+        util.closerange(self.LISTENER.fileno()+1, util.get_maxfd())
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
     def reload(self):

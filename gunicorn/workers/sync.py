@@ -106,7 +106,7 @@ class SyncWorker(base.Worker):
                         for item in respiter:
                             resp.write(item)
                     resp.close()
-                    request_time = request_start - datetime.now()
+                    request_time = datetime.now() - request_start
                     self.log.access(resp, environ, request_time)
                 finally:
                     if hasattr(respiter, "close"):
@@ -117,6 +117,7 @@ class SyncWorker(base.Worker):
                 # Only send back traceback in HTTP in debug mode.
                 self.handle_error(client, e) 
                 return
+
         finally:
             try:
                 self.cfg.post_request(self, req, environ)

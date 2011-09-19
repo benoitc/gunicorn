@@ -8,6 +8,25 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.13.3 / 2011-09-19
+-------------------
+
+- refactor gevent worker
+- prevent leaking fds on reexec
+- fix inverted request_time computation
+
+0.13.2 / 2011-09-17
+-------------------
+
+- Add support for Tornado 2.0 in tornado worker
+- Improve access logs: allows customisation of the log format & add
+  request time
+- Logger module is now pluggable
+- Improve graceful shutdown in Python versions >= 2.6
+- Fix post_request root arity for compatibility
+- Fix sendfile support
+- Fix Django reloading
+
 0.13.1 / 2011-08-22
 -------------------
 

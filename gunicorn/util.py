@@ -169,6 +169,17 @@ def close(sock):
     except socket.error:
         pass
 
+try:
+    from os import closerange
+except ImportError:
+    def closerange(fd_low, fd_high):
+        # Iterate through and close all file descriptors.
+        for fd in krange(fd_low, fd_high):
+            try:
+                os.close(fd)
+            except OSError:	# ERROR, fd wasn't open to begin with (ignored)
+                pass
+
 def write_chunk(sock, data):
     chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
     sock.sendall(chunk)
@@ -281,13 +292,7 @@ def daemonize():
         
         os.umask(0)
         maxfd = get_maxfd()
-
-        # Iterate through and close all file descriptors.
-        for fd in range(0, maxfd):
-            try:
-                os.close(fd)
-            except OSError:	# ERROR, fd wasn't open to begin with (ignored)
-                pass
+        closerange(0, maxfd)
         
         os.open(REDIRECT_TO, os.O_RDWR)
         os.dup2(0, 1)

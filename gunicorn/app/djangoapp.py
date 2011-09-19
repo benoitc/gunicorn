@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import traceback
+import re
 
 from gunicorn.config import Config
 from gunicorn.app.base import Application
