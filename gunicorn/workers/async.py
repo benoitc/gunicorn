@@ -6,6 +6,7 @@
 from datetime import datetime
 import errno
 import socket
+import sys
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -21,7 +22,7 @@ class AsyncWorker(base.Worker):
         self.worker_connections = self.cfg.worker_connections
     
     def timeout_ctx(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def handle(self, client, addr):
         try:
@@ -32,7 +33,11 @@ class AsyncWorker(base.Worker):
                         timeout = self.timeout_ctx()
                         req = None
                         try:
-                            req = parser.next()
+                            try:
+                                req = parser.next()
+                            except:
+                                if sys.exc_info()[1] is not timeout:
+                                    raise
                         finally:
                             timeout.cancel()
                         if not req:

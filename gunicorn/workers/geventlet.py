@@ -30,7 +30,7 @@ class EventletWorker(AsyncWorker):
         super(EventletWorker, self).init_process()
         
     def timeout_ctx(self):
-        return eventlet.Timeout(self.cfg.keepalive)
+        return eventlet.Timeout(self.cfg.keepalive, False)
         
     def run(self):
         self.socket = GreenSocket(family_or_realsock=self.socket.sock)

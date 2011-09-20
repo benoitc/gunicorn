@@ -49,10 +49,10 @@ class GeventWorker(AsyncWorker):
         
         
     def timeout_ctx(self):
-        timeout = gevent.Timeout(self.cfg.keepalive)
+        timeout = gevent.Timeout(self.cfg.keepalive, False)
         timeout.start()
         return timeout
-        
+
     def run(self):
         self.socket.setblocking(1)
 
