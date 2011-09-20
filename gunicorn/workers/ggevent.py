@@ -37,6 +37,7 @@ BASE_WSGI_ENV = {
     'wsgi.run_once': False
 }
 
+
 class GeventWorker(AsyncWorker):
 
     server_class = None
@@ -61,8 +62,20 @@ class GeventWorker(AsyncWorker):
                 self.socket, application=self.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
         else:
-            server = StreamServer(self.socket, handle=self.handle, spawn=pool)
-
+            if self.cfg.certfile != None:
+                server = StreamServer(self.socket, handle=self.handle,
+                                      spawn=pool,
+                                      keyfile=self.cfg.keyfile,
+                                      certfile=self.cfg.certfile,
+                                      cert_reqs=self.cfg.cert_reqs,
+                                      ssl_version=self.cfg.ssl_version,
+                                      ca_certs=self.cfg.ca_certs,
+                                      suppress_ragged_eofs=\
+                                          self.cfg.suppress_ragged_eofs,
+                                      ciphers=self.cfg.ciphers)
+            else:
+                server = StreamServer(self.socket, handle=self.handle,
+                                      spawn=pool)
         server.start()
         try:
             while self.alive:
@@ -97,6 +110,7 @@ class GeventWorker(AsyncWorker):
             gevent.core.dns_shutdown(fail_requests=1)
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()
+
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
 
