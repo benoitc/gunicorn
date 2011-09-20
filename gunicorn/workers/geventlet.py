@@ -44,7 +44,7 @@ class EventletWorker(AsyncWorker):
                 self.log.info("Parent changed, shutting down: %s" % self)
                 break
 
-            eventlet.sleep(0.1)            
+            eventlet.sleep(1.0)
 
         self.notify()
         timeout = eventlet.Timeout(self.timeout)
