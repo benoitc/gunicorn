@@ -8,6 +8,12 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.13.4 / 2011-09-23
+-------------------
+
+- fix util.closerange function used to prevent leaking fds on python 2.5
+  (typo)
+
 0.13.3 / 2011-09-19
 -------------------
 

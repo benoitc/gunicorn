@@ -174,7 +174,7 @@ try:
 except ImportError:
     def closerange(fd_low, fd_high):
         # Iterate through and close all file descriptors.
-        for fd in krange(fd_low, fd_high):
+        for fd in xrange(fd_low, fd_high):
             try:
                 os.close(fd)
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
