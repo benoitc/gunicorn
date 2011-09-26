@@ -20,7 +20,7 @@ Install from sources::
 
 Or from the Github tarball::
 
-  $ pip install http://github.com/tilgovi/gunicorn/tarball/py24
+  $ pip install http://github.com/benoitc/gunicorn/tarball/py24
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during
