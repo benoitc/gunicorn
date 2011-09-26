@@ -8,18 +8,19 @@ resource usage, and fairly speedy.
 
 Feel free to join us in `#gunicorn`_ on freenode_.
 
+This python 2.4 fork is maintained separately because it is not part of the
+official distribution. It will not appear on pypi.
+
 Installation
 ------------
-
-Gunicorn requires **Python 2.x >= 2.5**. Python 3.x support is planned.
 
 Install from sources::
 
   $ python setup.py install
 
-Or from Pypi::
+Or from the Github tarball::
 
-  $ easy_install -U gunicorn
+  $ pip install http://github.com/tilgovi/gunicorn/tarball/py24
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during
