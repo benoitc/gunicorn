@@ -40,8 +40,6 @@ class FileWrapper:
         raise IndexError
 
 def create(req, sock, client, server, cfg):
-    resp = Response(req, sock)
-
     environ = {
         "wsgi.input": req.body_file(),
         "wsgi.errors": sys.stderr,
@@ -121,6 +119,7 @@ def create(req, sock, client, server, cfg):
     environ['SERVER_NAME'] = server[0]
     environ['SERVER_PORT'] = str(server[1])
 
+    resp = Response(req, sock)
     return resp, environ
 
 class Response(object):
