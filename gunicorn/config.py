@@ -625,7 +625,6 @@ class AccessLogFormat(Setting):
         (ex '%(HTTP_HOST)s').
         """
 
-
 class ErrorLog(Setting):
     name = "errorlog"
     section = "Logging"
