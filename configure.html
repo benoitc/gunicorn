@@ -185,13 +185,11 @@ when you might want to choose one of the other worker classes.</p>
 <li><tt class="docutils literal">gevent</tt>   - Requires gevent &gt;= 0.12.2 (?)</li>
 <li><tt class="docutils literal">tornado</tt>  - Requires tornado &gt;= 0.2</li>
 </ul>
-<p>
-Optionally, you can provide your own worker by giving gunicorn a python path
-to a subclass of gunicorn.workers.base.Worker. This alternative syntax will
-load the gevent class:
-<tt class="docutils literal">gunicorn.workers.ggevent.GeventWorker</tt>.
-Alternatively the syntax can also load the gevent class with
-<tt class="docutils literal">egg:gunicorn#gevent</tt></p>
+<p>Optionally, you can provide your own worker by giving gunicorn a
+python path to a subclass of gunicorn.workers.base.Worker. This
+alternative syntax will load the gevent class:
+<tt class="docutils literal">gunicorn.workers.ggevent.GeventWorker</tt>. Alternatively the syntax
+can also load the gevent class with <tt class="docutils literal">egg:gunicorn#gevent</tt></p>
 </div>
 <div class="section" id="worker-connections">
 <h4><a class="toc-backref" href="#contents">worker_connections</a></h4>
@@ -296,7 +294,7 @@ background.</p>
 <h4><a class="toc-backref" href="#contents">user</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-u</span> USER, <span class="pre">--user</span> USER</tt></li>
-<li><tt class="docutils literal">1744020413</tt></li>
+<li><tt class="docutils literal">501</tt></li>
 </ul>
 <p>Switch worker processes to run as this user.</p>
 <p>A valid user id (as an integer) or the name of a user that can be
@@ -307,7 +305,7 @@ the worker process user.</p>
 <h4><a class="toc-backref" href="#contents">group</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-g</span> GROUP, <span class="pre">--group</span> GROUP</tt></li>
-<li><tt class="docutils literal">2093627230</tt></li>
+<li><tt class="docutils literal">20</tt></li>
 </ul>
 <p>Switch worker process to run as this group.</p>
 <p>A valid group id (as an integer) or the name of a user that can be
@@ -340,36 +338,59 @@ temporary directory.</p>
 <div class="section" id="secure-scheme-headers">
 <h4><a class="toc-backref" href="#contents">secure_scheme_headers</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal">{
-        "X-FORWARDED-PROTOCOL": "ssl",
-        "X-FORWARDED-SSL": "on"
-    }
-</tt></li>
+<li><tt class="docutils literal"><span class="pre">{'X-FORWARDED-PROTOCOL':</span> 'ssl', <span class="pre">'X-FORWARDED-SSL':</span> 'on'}</tt></li>
 </ul>
 <p>A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. These tell gunicorn to set
-wsgi.url_scheme to "https", so your application can tell that the
+wsgi.url_scheme to &quot;https&quot;, so your application can tell that the
 request is secure.</p>
-
 <p>The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
 names, so make sure they're exactly what your front-end proxy sends
 when handling HTTPS requests.</p>
-
 <p>It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.</p>
-
 </div>
 </div>
 <div class="section" id="logging">
 <h3><a class="toc-backref" href="#contents">Logging</a></h3>
-<div class="section" id="logfile">
-<h4><a class="toc-backref" href="#contents">logfile</a></h4>
+<div class="section" id="accesslog">
+<h4><a class="toc-backref" href="#contents">accesslog</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--log-file</span> FILE</tt></li>
+<li><tt class="docutils literal"><span class="pre">--access-logfile</span> FILE</tt></li>
+<li><tt class="docutils literal">None</tt></li>
+</ul>
+<p>The Access log file to write to.</p>
+<p>&quot;-&quot; means log to stdout.</p>
+</div>
+<div class="section" id="access-log-format">
+<h4><a class="toc-backref" href="#contents">access_log_format</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--access-logformat</span> STRING</tt></li>
+<li><tt class="docutils literal">%(h)s %(l)s %(u)s %(t)s <span class="pre">&quot;%(r)s&quot;</span> %(s)s %(b)s <span class="pre">&quot;%(f)s&quot;</span> <span class="pre">&quot;%(a)s&quot;</span></tt></li>
+</ul>
+<p>The Access log format .</p>
+<p>By default:</p>
+<p>%(h)s %(l)s %(u)s %(t)s &quot;%(r)s&quot; %(s)s %(b)s &quot;%(f)s&quot; &quot;%(a)s&quot;</p>
+<p>h: remote address
+t: date of the request
+r: status line (ex: GET / HTTP/1.1)
+s: status
+b: response length or '-'
+f: referer
+a: user agent
+T: request time in seconds
+D: request time in microseconds</p>
+<p>You can also pass any WSGI request header as a parameter.
+(ex '%(HTTP_HOST)s').</p>
+</div>
+<div class="section" id="errorlog">
+<h4><a class="toc-backref" href="#contents">errorlog</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--error-logfile</span> FILE, <span class="pre">--log-file</span> FILE</tt></li>
 <li><tt class="docutils literal">-</tt></li>
 </ul>
-<p>The log file to write to.</p>
+<p>The Error log file to write to.</p>
 <p>&quot;-&quot; means log to stdout.</p>
 </div>
 <div class="section" id="loglevel">
@@ -378,7 +399,7 @@ the headers defined here can not be passed directly from the client.</p>
 <li><tt class="docutils literal"><span class="pre">--log-level</span> LEVEL</tt></li>
 <li><tt class="docutils literal">info</tt></li>
 </ul>
-<p>The granularity of log outputs.</p>
+<p>The granularity of Error log outputs.</p>
 <p>Valid level names are:</p>
 <ul class="simple">
 <li>debug</li>
@@ -388,15 +409,22 @@ the headers defined here can not be passed directly from the client.</p>
 <li>critical</li>
 </ul>
 </div>
-<div class="section" id="logconfig">
-<h4><a class="toc-backref" href="#contents">logconfig</a></h4>
+<div class="section" id="logger-class">
+<h4><a class="toc-backref" href="#contents">logger_class</a></h4>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">--log-config</span> FILE</tt></li>
-<li><tt class="docutils literal">None</tt></li>
+<li><tt class="docutils literal"><span class="pre">--logger-class</span> STRING</tt></li>
+<li><tt class="docutils literal">simple</tt></li>
 </ul>
-<p>The log config file to use.</p>
-<p>Gunicorn uses the standard Python logging module's Configuration
-file format.</p>
+<p>The logger you want to use to log events in gunicorn.</p>
+<p>The default class (<tt class="docutils literal">gunicorn.glogging.Logger</tt>) handle most of
+normal usages in logging. It provides error and access logging.</p>
+<p>You can provide your own worker by giving gunicorn a
+python path to a subclass like gunicorn.glogging.Logger.
+Alternatively the syntax can also load the Logger class
+with <a href="#id1"><span class="problematic" id="id2">``</span></a>egg:gunicorn#simple`</p>
+<div class="system-message" id="id1">
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">&lt;string&gt;</tt>, line 442); <em><a href="#id2">backlink</a></em></p>
+Inline literal start-string without end-string.</div>
 </div>
 </div>
 <div class="section" id="process-naming">
@@ -436,18 +464,6 @@ def on_starting(server):
 <p>Called just before the master process is initialized.</p>
 <p>The callable needs to accept a single instance variable for the Arbiter.</p>
 </div>
-<div class="section" id="when-ready">
-<h4><a class="toc-backref" href="#contents">when_ready</a></h4>
-<ul>
-<li><pre class="first literal-block">
-def start_server(server):
-    pass
-</pre>
-</li>
-</ul>
-<p>Called just after the server is started.</p>
-<p>The callable needs to accept a single instance variable for the Arbiter.</p>
-</div>
 <div class="section" id="on-reload">
 <h4><a class="toc-backref" href="#contents">on_reload</a></h4>
 <ul>
@@ -458,9 +474,19 @@ def on_reload(server):
 </pre>
 </li>
 </ul>
-<p>Called during a reload from a SIGHUP signal.
-This callback should create an appropriate number of new workers.
-Old workers will be killed automatically by gunicorn, so it is not required to do so here.</p>
+<p>Called to recycle workers during a reload via SIGHUP.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+</div>
+<div class="section" id="when-ready">
+<h4><a class="toc-backref" href="#contents">when_ready</a></h4>
+<ul>
+<li><pre class="first literal-block">
+def start_server(server):
+    pass
+</pre>
+</li>
+</ul>
+<p>Called just after the server is started.</p>
 <p>The callable needs to accept a single instance variable for the Arbiter.</p>
 </div>
 <div class="section" id="pre-fork">
@@ -518,7 +544,7 @@ the Request.</p>
 <h4><a class="toc-backref" href="#contents">post_request</a></h4>
 <ul>
 <li><pre class="first literal-block">
-def post_request(worker, req):
+def post_request(worker, req, environ):
     pass
 </pre>
 </li>
@@ -548,68 +574,71 @@ the just-exited Worker.</p>
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id1">Overview</a></li>
-<li><a class="reference internal" href="#framework-settings" id="id2">Framework Settings</a><ul>
-<li><a class="reference internal" href="#paster-applications" id="id3">Paster Applications</a></li>
+<li><a class="reference internal" href="#overview" id="id3">Overview</a></li>
+<li><a class="reference internal" href="#framework-settings" id="id4">Framework Settings</a><ul>
+<li><a class="reference internal" href="#paster-applications" id="id5">Paster Applications</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#configuration-file" id="id4">Configuration File</a></li>
-<li><a class="reference internal" href="#command-line" id="id5">Command Line</a></li>
-<li><a class="reference internal" href="#settings" id="id6">Settings</a><ul>
-<li><a class="reference internal" href="#config-file" id="id7">Config File</a><ul>
-<li><a class="reference internal" href="#config" id="id8">config</a></li>
+<li><a class="reference internal" href="#configuration-file" id="id6">Configuration File</a></li>
+<li><a class="reference internal" href="#command-line" id="id7">Command Line</a></li>
+<li><a class="reference internal" href="#settings" id="id8">Settings</a><ul>
+<li><a class="reference internal" href="#config-file" id="id9">Config File</a><ul>
+<li><a class="reference internal" href="#config" id="id10">config</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-socket" id="id9">Server Socket</a><ul>
-<li><a class="reference internal" href="#bind" id="id10">bind</a></li>
-<li><a class="reference internal" href="#backlog" id="id11">backlog</a></li>
+<li><a class="reference internal" href="#server-socket" id="id11">Server Socket</a><ul>
+<li><a class="reference internal" href="#bind" id="id12">bind</a></li>
+<li><a class="reference internal" href="#backlog" id="id13">backlog</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#worker-processes" id="id12">Worker Processes</a><ul>
-<li><a class="reference internal" href="#workers" id="id13">workers</a></li>
-<li><a class="reference internal" href="#worker-class" id="id14">worker_class</a></li>
-<li><a class="reference internal" href="#worker-connections" id="id15">worker_connections</a></li>
-<li><a class="reference internal" href="#max-requests" id="id16">max_requests</a></li>
-<li><a class="reference internal" href="#timeout" id="id17">timeout</a></li>
-<li><a class="reference internal" href="#keepalive" id="id18">keepalive</a></li>
+<li><a class="reference internal" href="#worker-processes" id="id14">Worker Processes</a><ul>
+<li><a class="reference internal" href="#workers" id="id15">workers</a></li>
+<li><a class="reference internal" href="#worker-class" id="id16">worker_class</a></li>
+<li><a class="reference internal" href="#worker-connections" id="id17">worker_connections</a></li>
+<li><a class="reference internal" href="#max-requests" id="id18">max_requests</a></li>
+<li><a class="reference internal" href="#timeout" id="id19">timeout</a></li>
+<li><a class="reference internal" href="#keepalive" id="id20">keepalive</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#debugging" id="id19">Debugging</a><ul>
-<li><a class="reference internal" href="#debug" id="id20">debug</a></li>
-<li><a class="reference internal" href="#spew" id="id21">spew</a></li>
+<li><a class="reference internal" href="#debugging" id="id21">Debugging</a><ul>
+<li><a class="reference internal" href="#debug" id="id22">debug</a></li>
+<li><a class="reference internal" href="#spew" id="id23">spew</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-mechanics" id="id22">Server Mechanics</a><ul>
-<li><a class="reference internal" href="#preload-app" id="id23">preload_app</a></li>
-<li><a class="reference internal" href="#daemon" id="id24">daemon</a></li>
-<li><a class="reference internal" href="#pidfile" id="id25">pidfile</a></li>
-<li><a class="reference internal" href="#user" id="id26">user</a></li>
-<li><a class="reference internal" href="#group" id="id27">group</a></li>
-<li><a class="reference internal" href="#umask" id="id28">umask</a></li>
-<li><a class="reference internal" href="#tmp-upload-dir" id="id29">tmp_upload_dir</a></li>
-<li><a class="reference internal" href="#secure-scheme-headers" id="id30">secure_scheme_headers</a></li>
+<li><a class="reference internal" href="#server-mechanics" id="id24">Server Mechanics</a><ul>
+<li><a class="reference internal" href="#preload-app" id="id25">preload_app</a></li>
+<li><a class="reference internal" href="#daemon" id="id26">daemon</a></li>
+<li><a class="reference internal" href="#pidfile" id="id27">pidfile</a></li>
+<li><a class="reference internal" href="#user" id="id28">user</a></li>
+<li><a class="reference internal" href="#group" id="id29">group</a></li>
+<li><a class="reference internal" href="#umask" id="id30">umask</a></li>
+<li><a class="reference internal" href="#tmp-upload-dir" id="id31">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#secure-scheme-headers" id="id32">secure_scheme_headers</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#logging" id="id31">Logging</a><ul>
-<li><a class="reference internal" href="#logfile" id="id32">logfile</a></li>
-<li><a class="reference internal" href="#loglevel" id="id33">loglevel</a></li>
-<li><a class="reference internal" href="#logconfig" id="id34">logconfig</a></li>
+<li><a class="reference internal" href="#logging" id="id33">Logging</a><ul>
+<li><a class="reference internal" href="#accesslog" id="id34">accesslog</a></li>
+<li><a class="reference internal" href="#access-log-format" id="id35">access_log_format</a></li>
+<li><a class="reference internal" href="#errorlog" id="id36">errorlog</a></li>
+<li><a class="reference internal" href="#loglevel" id="id37">loglevel</a></li>
+<li><a class="reference internal" href="#logger-class" id="id38">logger_class</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id35">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id36">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id37">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id39">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id40">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id41">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id38">Server Hooks</a><ul>
-<li><a class="reference internal" href="#on-starting" id="id39">on_starting</a></li>
-<li><a class="reference internal" href="#when-ready" id="id40">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id41">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id42">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id43">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id44">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id45">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id46">worker_exit</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id42">Server Hooks</a><ul>
+<li><a class="reference internal" href="#on-starting" id="id43">on_starting</a></li>
+<li><a class="reference internal" href="#on-reload" id="id44">on_reload</a></li>
+<li><a class="reference internal" href="#when-ready" id="id45">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id46">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id47">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id48">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id49">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id50">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id51">worker_exit</a></li>
 </ul>
 </li>
 </ul>
