@@ -14,9 +14,7 @@ import traceback
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
-
+from http_parser.http import NoMoreData, ParserError
 
 class Worker(object):
 
@@ -133,20 +131,10 @@ class Worker(object):
         reason = "Internal Server Error"
         mesg = ""
 
-        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+        if isinstance(exc, (NoMoreData, ParserError,)):
             
             status_int = 400
             reason = "Bad Request"
-            
-            if isinstance(exc, InvalidRequestLine):
-                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
-            elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
-            elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
-            elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
             
         if self.debug:
             tb =  traceback.format_exc()

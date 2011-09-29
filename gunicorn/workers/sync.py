@@ -10,8 +10,11 @@ import os
 import select
 import socket
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
+
+from http_parser.http import HttpStream
+from http_parser.reader import SocketReader
+
+import gunicorn.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
 
@@ -66,8 +69,9 @@ class SyncWorker(base.Worker):
     
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
-            req = parser.next()
+            reader = SocketReader(client)
+            req = HttpStream(reader, kind=0)
+            
             self.handle_request(req, client, addr)
         except StopIteration:
             self.log.debug("Ignored premature client disconnection.")
