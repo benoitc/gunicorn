@@ -46,7 +46,8 @@ setup(
     packages = find_packages(exclude=['examples', 'tests']),
     include_package_data = True,
    
-    install_requires=['http_parser']
+    install_requires=['http_parser'],
+
     entry_points="""
     
     [console_scripts]
