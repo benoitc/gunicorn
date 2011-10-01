@@ -64,15 +64,7 @@ class GeventWorker(AsyncWorker):
         else:
             if self.cfg.certfile != None:
                 server = StreamServer(self.socket, handle=self.handle,
-                                      spawn=pool,
-                                      keyfile=self.cfg.keyfile,
-                                      certfile=self.cfg.certfile,
-                                      cert_reqs=self.cfg.cert_reqs,
-                                      ssl_version=self.cfg.ssl_version,
-                                      ca_certs=self.cfg.ca_certs,
-                                      suppress_ragged_eofs=\
-                                          self.cfg.suppress_ragged_eofs,
-                                      ciphers=self.cfg.ciphers)
+                                      spawn=pool, **self.ssl_options)
             else:
                 server = StreamServer(self.socket, handle=self.handle,
                                       spawn=pool)

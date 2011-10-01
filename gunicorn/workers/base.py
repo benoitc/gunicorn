@@ -160,3 +160,16 @@ class Worker(object):
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
         return
+
+    @property
+    def ssl_options(self):
+        return {
+            'keyfile': self.cfg.keyfile,
+            'certfile': self.cfg.certfile,
+            'cert_reqs': self.cfg.cert_reqs,
+            'ssl_version': self.cfg.ssl_version,
+            'ca_certs': self.cfg.ca_certs,
+            'suppress_ragged_eofs': self.cfg.suppress_ragged_eofs,
+            'ciphers': self.cfg.ciphers,
+            }
+
