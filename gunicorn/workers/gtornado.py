@@ -50,11 +50,11 @@ class TornadoWorker(Worker):
         # instance of tornardo.web.Application
         if not isinstance(self.app, tornado.web.Application):
             self.app = WSGIContainer(self.wsgi)
-
         if self.cfg.certfile != None:
             ssl_opt = dict(self.ssl_options)
-            ssl_opt.update({'do_handshake_on_connect': False})
-            server = HTTPServer(self.wsgi, io_loop=self.ioloop, ssl_options=ssl_opt)
+            del(ssl_opt['do_handshake_on_connect'])
+            server = HTTPServer(self.wsgi, io_loop=self.ioloop,
+                                ssl_options=ssl_opt)
         else:
             server = HTTPServer(self.wsgi, io_loop=self.ioloop)
         if hasattr(server, "add_socket"): # tornado > 2.0

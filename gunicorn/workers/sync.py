@@ -25,15 +25,7 @@ class SyncWorker(base.Worker):
         if self.cfg.certfile != None:
             from ssl import wrap_socket
             self.socket = wrap_socket(self.socket.sock,
-                                      keyfile=self.cfg.keyfile,
-                                      certfile=self.cfg.certfile,
-                                      cert_reqs=self.cfg.cert_reqs,
-                                      ssl_version=self.cfg.ssl_version,
-                                      ca_certs=self.cfg.ca_certs,
-                                      suppress_ragged_eofs=\
-                                          self.cfg.suppress_ragged_eofs,
-                                      ciphers=self.cfg.ciphers,
-                                      do_handshake_on_connect=False)
+                                      **self.ssl_options)
 
         while self.alive:
             self.notify()

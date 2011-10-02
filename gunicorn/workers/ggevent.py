@@ -63,6 +63,11 @@ class GeventWorker(AsyncWorker):
                 handler_class=self.wsgi_handler)
         else:
             if self.cfg.certfile != None:
+                # without passing ssl options to StreamServer, gevent
+                # doesn't appear to know how to handle a socket
+                # already wrapped by the monkey-patched
+                # ssl.wrap_socket :( so we can't simply wrap the
+                # socket from the sock module.
                 server = StreamServer(self.socket, handle=self.handle,
                                       spawn=pool, **self.ssl_options)
             else:

@@ -34,10 +34,11 @@ class EventletWorker(AsyncWorker):
 
     def run(self):
         if self.cfg.certfile != None:
+            # neccessary to allow eventlet SSL to work with
+            # python >= 2.5 using PyOpenSSL
             from eventlet.green.ssl import wrap_socket as green_wrap_socket
-            ssl_opt = dict(self.ssl_options)
-            ssl_opt.update({'do_handshake_on_connect': False})
-            self.socket = green_wrap_socket(self.socket.sock, **ssl_opt)
+            self.socket = green_wrap_socket(self.socket.sock,
+                                            **self.ssl_options)
         else:
             self.socket = GreenSocket(family_or_realsock=self.socket.sock)
         self.socket.setblocking(1)

@@ -948,27 +948,39 @@ class CACerts(Setting):
         """
 
 
+class DoHandshakeOnConnect(Setting):
+    name = "do_handshake_on_connect"
+    section = "SSL Options"
+    cli = ["--do_handshake_on_connect"]
+    default = False
+    validator = ssl_validate_bool(default)
+    action = "store_true"
+    desc = """\
+        For SSL: handshake on client connection to SSL socket.
+        """
+
+
 class NoSuppressRaggedEOF(Setting):
     name = "suppress_ragged_eofs"
-    section = "Gevent SSL Options"
+    section = "SSL Options"
     cli = ["--no_suppress_eofs"]
     default = True
     validator = ssl_validate_bool(default)
     action = "store_false"
     desc = """\
-        For gevent SSL: raise EOF Exceptions back to caller.
+        For SSL: raise EOF Exceptions back to caller.
         """
 
 
 class Ciphers(Setting):
     name = "ciphers"
-    section = "Gevent SSL Options"
+    section = "SSL Options"
     cli = ["--ciphers"]
     meta = "STRING"
     default = None
     validator = ssl_validate_string(default)
     desc = """\
-        For gevent SSL: limit the list of available ciphers.
+        For SSL: limit the list of available ciphers.
 
         See:
         http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT

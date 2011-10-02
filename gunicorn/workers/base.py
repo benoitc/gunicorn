@@ -169,6 +169,7 @@ class Worker(object):
             'cert_reqs': self.cfg.cert_reqs,
             'ssl_version': self.cfg.ssl_version,
             'ca_certs': self.cfg.ca_certs,
+            'do_handshake_on_connect': self.cfg.do_handshake_on_connect,
             'suppress_ragged_eofs': self.cfg.suppress_ragged_eofs,
             'ciphers': self.cfg.ciphers,
             }
