@@ -138,6 +138,36 @@ def test_callable_validation():
     t.raises(TypeError, c.set, "pre_fork", 1)
     t.raises(TypeError, c.set, "pre_fork", lambda x: True)
 
+def test_validate_cert_reqs():
+    c = config.Config()
+    try:
+        import ssl
+    except ImportError:
+        raise SkipTest()
+    t.eq(c.settings['cert_reqs'].get(), ssl.CERT_NONE)
+    c.set("cert_reqs", ssl.CERT_OPTIONAL)
+    t.eq(c.settings['cert_reqs'].get(), ssl.CERT_OPTIONAL)
+    c.set("cert_reqs", ssl.CERT_REQUIRED)
+    t.eq(c.settings['cert_reqs'].get(), ssl.CERT_REQUIRED)
+    t.raises(ValueError, c.set, "cert_reqs", -1)
+    t.raises(ValueError, c.set, "cert_reqs", 3)
+
+def test_validate_ssl_version():
+    c = config.Config()
+    try:
+        import ssl
+    except ImportError:
+        raise SkipTest()
+    t.eq(c.settings['ssl_version'].get(), ssl.PROTOCOL_SSLv23)
+    c.set("ssl_version", ssl.PROTOCOL_SSLv2)
+    t.eq(c.settings['ssl_version'].get(), ssl.PROTOCOL_SSLv2)
+    c.set("ssl_version", ssl.PROTOCOL_SSLv3)
+    t.eq(c.settings['ssl_version'].get(), ssl.PROTOCOL_SSLv3)
+    c.set("ssl_version", ssl.PROTOCOL_TLSv1)
+    t.eq(c.settings['ssl_version'].get(), ssl.PROTOCOL_TLSv1)
+    t.raises(ValueError, c.set, "ssl_version", -1)
+    t.raises(ValueError, c.set, "ssl_version", 4)
+
 def test_cmd_line():
     with AltArgs(["prog_name", "-b", "blargh"]):
         app = NoConfigApp()

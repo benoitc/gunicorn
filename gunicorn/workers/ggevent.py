@@ -37,6 +37,7 @@ BASE_WSGI_ENV = {
     'wsgi.run_once': False
 }
 
+
 class GeventWorker(AsyncWorker):
 
     server_class = None
@@ -61,8 +62,17 @@ class GeventWorker(AsyncWorker):
                 self.socket, application=self.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
         else:
-            server = StreamServer(self.socket, handle=self.handle, spawn=pool)
-
+            if self.cfg.certfile != None:
+                # without passing ssl options to StreamServer, gevent
+                # doesn't appear to know how to handle a socket
+                # already wrapped by the monkey-patched
+                # ssl.wrap_socket :( so we can't simply wrap the
+                # socket from the sock module.
+                server = StreamServer(self.socket, handle=self.handle,
+                                      spawn=pool, **self.ssl_options)
+            else:
+                server = StreamServer(self.socket, handle=self.handle,
+                                      spawn=pool)
         server.start()
         try:
             while self.alive:
@@ -97,6 +107,7 @@ class GeventWorker(AsyncWorker):
             gevent.core.dns_shutdown(fail_requests=1)
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()
+
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
 

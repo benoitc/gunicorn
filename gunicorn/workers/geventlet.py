@@ -33,7 +33,14 @@ class EventletWorker(AsyncWorker):
         return eventlet.Timeout(self.cfg.keepalive, False) 
 
     def run(self):
-        self.socket = GreenSocket(family_or_realsock=self.socket.sock)
+        if self.cfg.certfile != None:
+            # neccessary to allow eventlet SSL to work with
+            # python >= 2.5 using PyOpenSSL
+            from eventlet.green.ssl import wrap_socket as green_wrap_socket
+            self.socket = green_wrap_socket(self.socket.sock,
+                                            **self.ssl_options)
+        else:
+            self.socket = GreenSocket(family_or_realsock=self.socket.sock)
         self.socket.setblocking(1)
         self.acceptor = eventlet.spawn(eventlet.serve, self.socket,
                 self.handle, self.worker_connections)
