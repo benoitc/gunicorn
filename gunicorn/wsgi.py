@@ -70,16 +70,14 @@ def create(req, sock, client, server, cfg):
     if environ.get('EXPECT', '').lower() == '100-continue':
         sock.send("HTTP/1.1 100 Continue\r\n\r\n")
 
+    # check if scheme is https
     for hdr_name, hdr_value in cfg.secure_scheme_headers.items():
         if environ.get(hdr_name) == hdr_value:
             url_scheme = "https"
             break
 
+    # get remote informations
     forward = environ.get(cfg.x_forwarded_for_header, forward)
-    server = environ.get("HOST", server)
-   
-    environ['wsgi.url_scheme'] = url_scheme
-        
     if isinstance(forward, basestring):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
@@ -102,11 +100,10 @@ def create(req, sock, client, server, cfg):
 
         remote = (host, port)
     else:
-        remote = forward 
+        remote = forward
 
-    environ['REMOTE_ADDR'] = remote[0]
-    environ['REMOTE_PORT'] = str(remote[1])
-
+    # find server infos
+    server = environ.get("HOST", server)
     if isinstance(server, basestring):
         server =  server.split(":")
         if len(server) == 1:
@@ -116,8 +113,14 @@ def create(req, sock, client, server, cfg):
                 server.append("443")
             else:
                 server.append('')
-    environ['SERVER_NAME'] = server[0]
-    environ['SERVER_PORT'] = str(server[1])
+
+    # finally update the environ
+    environ.update({
+        'wsgi.url_scheme': url_scheme,
+        'REMOTE_ADDR': remote[0],
+        'REMOTE_PORT': str(remote[1]),
+        'SERVER_NAME': server[0],
+        'SERVER_PORT': str(server[1])})
 
     resp = Response(req, sock)
     return resp, environ
