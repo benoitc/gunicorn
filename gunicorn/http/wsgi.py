@@ -133,7 +133,7 @@ def create(req, sock, client, server, cfg):
             else:
                 server.append('')
     environ['SERVER_NAME'] = server[0]
-    environ['SERVER_PORT'] = server[1]
+    environ['SERVER_PORT'] = str(server[1])
 
     path_info = req.path
     if script_name:
