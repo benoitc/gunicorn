@@ -91,8 +91,10 @@ def create(req, sock, client, server, cfg):
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
             continue
-        
+
         key = 'HTTP_' + hdr_name.replace('-', '_')
+        if key in environ:
+            hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
     environ['wsgi.url_scheme'] = url_scheme
