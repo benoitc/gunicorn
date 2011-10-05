@@ -68,14 +68,15 @@ def create(req, sock, client, server, cfg):
     url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
-    secure_headers = getattr(cfg, "secure_scheme_headers")
+    secure_headers = cfg.secure_scheme_headers
+    x_forwarded_for_header = cfg.x_forwarded_for_header
 
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif hdr_name == "X-FORWARDED-FOR":
+        elif hdr_name == x_forwarded_for_header:
             forward = hdr_value
         elif (hdr_name.upper() in secure_headers and
               hdr_value == secure_headers[hdr_name.upper()]):

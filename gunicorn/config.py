@@ -582,6 +582,16 @@ class SecureSchemeHeader(Setting):
         It is important that your front-end proxy configuration ensures that
         the headers defined here can not be passed directly from the client.
         """
+class XForwardedFor(Setting):
+    name = "x_forwarded_for_header"
+    section = "Server Mechanics"
+    meta = "STRING"
+    validator = validate_string
+    default = 'X-FORWARDED-FOR'
+    desc = """\
+        Set the X-Forwarded-For header that identify the originating IP
+        address of the client connection to gunicorn via a proxy.
+        """
 
 class AccessLog(Setting):
     name = "accesslog"
