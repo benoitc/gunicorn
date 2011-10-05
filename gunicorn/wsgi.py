@@ -17,7 +17,7 @@ try:
     from os import sendfile
 except ImportError:
     try:
-        from _sendfile import sendfile
+        from gunicorn._sendfile import sendfile
     except ImportError:
         sendfile = None
 
@@ -40,10 +40,8 @@ class FileWrapper:
         raise IndexError
 
 def create(req, sock, client, server, cfg):
-    resp = Response(req, sock)
-
     environ = {
-        "wsgi.input": req.body,
+        "wsgi.input": req.body_file(),
         "wsgi.errors": sys.stderr,
         "wsgi.version": (1, 0),
         "wsgi.multithread": False,
@@ -52,10 +50,10 @@ def create(req, sock, client, server, cfg):
         "wsgi.file_wrapper": FileWrapper,
         "gunicorn.socket": sock,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
-        "REQUEST_METHOD": req.method,
-        "QUERY_STRING": req.query,
-        "RAW_URI": req.uri,
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version)),
+        "REQUEST_METHOD": req.method(),
+        "QUERY_STRING": req.query_string(),
+        "RAW_URI": req.url(),
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version())),
         "CONTENT_TYPE": "",
         "CONTENT_LENGTH": ""
     }
@@ -66,37 +64,20 @@ def create(req, sock, client, server, cfg):
     client = client or "127.0.0.1"
     forward = client
     url_scheme = "http"
-    script_name = os.environ.get("SCRIPT_NAME", "")
+    
+    environ.update(req.wsgi_environ())
 
-    secure_headers = cfg.secure_scheme_headers
-    x_forwarded_for_header = cfg.x_forwarded_for_header
+    if environ.get('EXPECT', '').lower() == '100-continue':
+        sock.send("HTTP/1.1 100 Continue\r\n\r\n")
 
-    for hdr_name, hdr_value in req.headers:
-        if hdr_name == "EXPECT":
-            # handle expect
-            if hdr_value.lower() == "100-continue":
-                sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif hdr_name == x_forwarded_for_header:
-            forward = hdr_value
-        elif (hdr_name.upper() in secure_headers and
-              hdr_value == secure_headers[hdr_name.upper()]):
+    # check if scheme is https
+    for hdr_name, hdr_value in cfg.secure_scheme_headers.items():
+        if environ.get(hdr_name) == hdr_value:
             url_scheme = "https"
-        elif hdr_name == "HOST":
-            server = hdr_value
-        elif hdr_name == "SCRIPT_NAME":
-            script_name = hdr_value
-        elif hdr_name == "CONTENT-TYPE":
-            environ['CONTENT_TYPE'] = hdr_value
-            continue
-        elif hdr_name == "CONTENT-LENGTH":
-            environ['CONTENT_LENGTH'] = hdr_value
-            continue
-        
-        key = 'HTTP_' + hdr_name.replace('-', '_')
-        environ[key] = hdr_value
+            break
 
-    environ['wsgi.url_scheme'] = url_scheme
-        
+    # get remote informations
+    forward = environ.get(cfg.x_forwarded_for_header, forward)
     if isinstance(forward, basestring):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
@@ -119,11 +100,10 @@ def create(req, sock, client, server, cfg):
 
         remote = (host, port)
     else:
-        remote = forward 
+        remote = forward
 
-    environ['REMOTE_ADDR'] = remote[0]
-    environ['REMOTE_PORT'] = str(remote[1])
-
+    # find server infos
+    server = environ.get("HOST", server)
     if isinstance(server, basestring):
         server =  server.split(":")
         if len(server) == 1:
@@ -133,15 +113,16 @@ def create(req, sock, client, server, cfg):
                 server.append("443")
             else:
                 server.append('')
-    environ['SERVER_NAME'] = server[0]
-    environ['SERVER_PORT'] = str(server[1])
 
-    path_info = req.path
-    if script_name:
-        path_info = path_info.split(script_name, 1)[1]
-    environ['PATH_INFO'] = unquote(path_info)
-    environ['SCRIPT_NAME'] = script_name
+    # finally update the environ
+    environ.update({
+        'wsgi.url_scheme': url_scheme,
+        'REMOTE_ADDR': remote[0],
+        'REMOTE_PORT': str(remote[1]),
+        'SERVER_NAME': server[0],
+        'SERVER_PORT': str(server[1])})
 
+    resp = Response(req, sock)
     return resp, environ
 
 class Response(object):
@@ -162,7 +143,7 @@ class Response(object):
         self.must_close = True
 
     def should_close(self):
-        if self.must_close or self.req.should_close():
+        if self.must_close or not self.req.should_keep_alive():
             return True
         if self.response_length is not None or self.chunked:
             return False
@@ -206,7 +187,7 @@ class Response(object):
         # no Content-Length header set.
         if self.response_length is not None:
             return False
-        elif self.req.version <= (1,0):
+        elif self.req.version() <= (1,0):
             return False
         elif self.status.startswith("304") or self.status.startswith("204"):
             # Do not use chunked responses when the response is guaranteed to
@@ -216,11 +197,12 @@ class Response(object):
 
     def default_headers(self):
         connection = "keep-alive"
+        req_version = self.req.version()
         if self.should_close():
             connection = "close"
         headers = [
-            "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+            "HTTP/%s.%s %s\r\n" % (req_version[0],
+                req_version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection

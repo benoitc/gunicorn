@@ -9,8 +9,10 @@ from datetime import datetime
 import errno
 import socket
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
+from http_parser.http import NoMoreData, HttpStream
+from http_parser.reader import SocketReader
+
+from gunicorn import wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
 
@@ -27,13 +29,18 @@ class AsyncWorker(base.Worker):
 
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
+            reader = SocketReader(client)
+            
             try:
                 while True:
-                    req = None
+                    req = HttpStream(reader, kind=0)
+                    headers = None
                     with self.timeout_ctx():
-                        req = parser.next()
-                    if not req:
+                        try:
+                            headers = req.headers()
+                        except NoMoreData:
+                            pass
+                    if not headers:
                         break
                     self.handle_request(req, client, addr)
             except StopIteration:
