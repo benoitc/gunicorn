@@ -98,6 +98,8 @@ class Worker(object):
         self.init_signals()
         
         self.wsgi = self.app.wsgi()
+
+        util._setproctitle("worker [%s]" % self.cfg.proc_name)
         
         # Enter main run loop
         self.booted = True

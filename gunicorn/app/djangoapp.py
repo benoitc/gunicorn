@@ -19,74 +19,67 @@ ENVIRONMENT_VARIABLE = 'DJANGO_SETTINGS_MODULE'
 class DjangoApplication(Application):
     
     def init(self, parser, opts, args):
-        self.global_settings_path = None
-        self.project_path = None
-        if args:
-            self.global_settings_path = args[0]
-            if not os.path.exists(os.path.abspath(args[0])):
-                self.no_settings(args[0])
+        if len(args) > 1:
+            parser.error("Expected zero or one arguments, got %s" % len(args))
+        self.settings_modname, self.path = self.find_settings(*args)
+        self.cfg.set("default_proc_name", self.settings_modname)
            
-    def get_settings_modname(self):
+    def find_settings(self, settings_file=None):
         from django.conf import ENVIRONMENT_VARIABLE
 
         # get settings module
         settings_modname = None
-        if not self.global_settings_path:
-            project_path = os.getcwd()
+        if not settings_file:
+            settings_path = os.path.abspath(os.getcwd())
             try:
                 settings_modname = os.environ[ENVIRONMENT_VARIABLE]
             except KeyError:
-                settings_path = os.path.join(project_path, "settings.py")
-                if not os.path.exists(settings_path):
-                    return self.no_settings(settings_path)
+                settings_file = 'settings.py'
         else:
-            settings_path = os.path.abspath(self.global_settings_path)
-            if not os.path.exists(settings_path):
-                return self.no_settings(settings_path)
-            project_path = os.path.dirname(settings_path)
-
+            settings_path, settings_file = os.path.split(
+                os.path.abspath(settings_file))
 
         if not settings_modname:
-            project_name = os.path.split(project_path)[-1]
+            project_path = os.path.normpath(os.path.join(
+                settings_path, os.pardir))
+            project_name = os.path.basename(settings_path)
+            if not os.path.exists(os.path.join(settings_path, settings_file)):
+                return self.no_settings(settings_file)
             settings_name, ext  = os.path.splitext(
-                    os.path.basename(settings_path))
+                    os.path.basename(settings_file))
             settings_modname = "%s.%s" % (project_name, settings_name)
             os.environ[ENVIRONMENT_VARIABLE] = settings_modname
 
-        self.cfg.set("default_proc_name", settings_modname)
+        return settings_modname, [project_path, settings_path]
 
-        # add the project path to sys.path
-        if not project_path in sys.path:
-            # remove old project path from sys.path
-            if self.project_path is not None:
-                idx = sys.path.find(self.project_path)
-                if idx >= 0:
-                    del sys.path[idx]
-            self.project_path = project_path
+    def import_settings(self):
+        # add the search paths to sys.path
+        for path in self.path:
+            if not path in sys.path:
+                sys.path.insert(0, path)
 
-            sys.path.insert(0, project_path)
-            sys.path.append(os.path.normpath(os.path.join(project_path,
-                os.pardir)))
-
-        return settings_modname
-    
-    def setup_environ(self, settings_modname):
-        from django.core.management import setup_environ
-
-        # setup environ
+        # import settings module
         try:
-            parts = settings_modname.split(".")
-            settings_mod = __import__(settings_modname)
-            if len(parts) > 1:
-                settings_mod = __import__(parts[0])
-                path = os.path.dirname(os.path.abspath(
-                            os.path.normpath(settings_mod.__file__)))
-                sys.path.append(path)
-                for part in parts[1:]: 
-                    settings_mod = getattr(settings_mod, part)
-                setup_environ(settings_mod)
+            imp.acquire_lock()
+            module = None
+            search_path = sys.path
+            for part in self.settings_modname.split("."):
+                name = part
+                if module:
+                    search_path = getattr(module, '__path__', None)
+                    if not search_path: raise ImportError()
+                    name = '.'.join([module.__name__, part])
+                file, path, desc = imp.find_module(part, search_path)
+                try:
+                    module = imp.load_module(name, file, path, desc)
+                finally:
+                    if file: file.close()
         except ImportError:
-            return self.no_settings(settings_modname, import_error=True)
+            return self.no_settings(self.settings_modname, import_error=True)
+        finally:
+            imp.release_lock()
+
+        return module
 
     def no_settings(self, path, import_error=False):
         if import_error:
@@ -121,13 +114,23 @@ class DjangoApplication(Application):
 
             sys.exit(1)
 
-    def load(self):
+    @property
+    def django_handler(self):
         from django.core.handlers.wsgi import WSGIHandler
-       
-        self.setup_environ(self.get_settings_modname())
+        return WSGIHandler()
+
+    def load(self):
+        from django.core.management import setup_environ
+
+        # reload django settings and setup environ
+        settings_module = self.import_settings()
+        setup_environ(settings_module)
+
+        # validate models and activate translation
         self.validate()
         self.activate_translation()
-        return WSGIHandler()
+
+        return self.django_handler
 
 class DjangoApplicationCommand(DjangoApplication):
     
@@ -138,17 +141,13 @@ class DjangoApplicationCommand(DjangoApplication):
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
-        self.project_path = None
           
         self.do_load_config()
 
-        for k, v in self.options.items():
-            if k.lower() in self.cfg.settings and v is not None:
-                self.cfg.set(k.lower(), v)
-       
     def load_config(self):
         self.cfg = Config()
-        
+        self.init(None, None, [])
+
         if self.config_file and os.path.exists(self.config_file):
             cfg = {
                 "__builtins__": __builtins__,
@@ -179,52 +178,12 @@ class DjangoApplicationCommand(DjangoApplication):
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
 
-
-    def get_settings_modname(self):
-        from django.conf import ENVIRONMENT_VARIABLE
-
-        settings_modname = None
-        project_path = os.getcwd()
-        try:
-            settings_modname = os.environ[ENVIRONMENT_VARIABLE]
-        except KeyError:
-            settings_path = os.path.join(project_path, "settings.py")
-            if not os.path.exists(settings_path):
-                return self.no_settings(settings_path)
-        
-        if not settings_modname:
-            project_name = os.path.split(project_path)[-1]
-            settings_name, ext  = os.path.splitext(
-                    os.path.basename(settings_path))
-            settings_modname = "%s.%s" % (project_name, settings_name)
-            os.environ[ENVIRONMENT_VARIABLE] = settings_modname
-
-        self.cfg.set("default_proc_name", settings_modname)
-        # add the project path to sys.path
-        if not project_path in sys.path:
-            # remove old project path from sys.path
-            if self.project_path is not None:
-                idx = sys.path.find(self.project_path)
-                if idx >= 0:
-                    del sys.path[idx]
-            self.project_path = project_path
-            sys.path.insert(0, project_path)
-            sys.path.append(os.path.normpath(os.path.join(project_path,
-                os.pardir)))
-
-        # reload django settings
-        self.reload_django_settings(settings_modname)
-
-        return settings_modname
-
-    def reload_django_settings(self, settings_modname):
+    def import_settings(self):
         from django.conf import settings
         from django.utils import importlib
-        
-        mod = importlib.import_module(settings_modname)
 
         # reload module
-        reload(mod)
+        mod = super(DjangoApplicationCommand, self).import_settings()
 
         # reload settings.
         # USe code from django.settings.Settings module.
@@ -281,18 +240,14 @@ class DjangoApplicationCommand(DjangoApplication):
             # ... then invoke it with the logging settings
             logging_config_func(settings.LOGGING)
 
-    def load(self):
+        return mod
+
+    @property
+    def django_handler(self):
         from django.core.handlers.wsgi import WSGIHandler
-        
-        # reload django settings and setup environ
-        self.setup_environ(self.get_settings_modname())
-
-        # validate models and activate translation
-        self.validate() 
-        self.activate_translation()
-        
-        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
-
+        from django.core.servers.basehttp import \
+             AdminMediaHandler, \
+             WSGIServerException
         try:
             return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
