@@ -82,7 +82,7 @@ class Logger(object):
         for format details
         """
 
-        if not self.cfg.accesslog:
+        if not self.access_log.handlers:
             return
 
         status = resp.status.split(None, 1)[0]
@@ -121,7 +121,7 @@ class Logger(object):
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
                     handler.stream.close()
-                    handler.stream = open(handler.baseFileName,
+                    handler.stream = open(handler.baseFilename,
                             handler.mode)
                     handler.release()
 
@@ -136,7 +136,7 @@ class Logger(object):
    
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
-            if getattr(h, "_gunicorn") == True:
+            if getattr(h, "_gunicorn", False) == True:
                 return h
     
     def _set_handler(self, log, output, fmt):
