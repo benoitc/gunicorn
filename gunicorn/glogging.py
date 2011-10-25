@@ -53,7 +53,7 @@ class Logger(object):
 
 
     def critical(self, msg, *args, **kwargs):
-        self.error_log.exception(msg, *args, **kwargs)
+        self.error_log.critical(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
         self.error_log.error(msg, *args, **kwargs)
