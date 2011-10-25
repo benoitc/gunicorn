@@ -147,8 +147,6 @@ class Arbiter(object):
         if len(self.SIG_QUEUE) < 5:
             self.SIG_QUEUE.append(sig)
             self.wakeup()
-        else:
-            self.log.warning("Dropping signal: %s", sig)
 
     def run(self):
         "Main master loop."
