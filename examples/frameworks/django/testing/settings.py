@@ -1,4 +1,4 @@
-# Django settings for djangotest project.
+# Django settings for testing project.
 
 import platform
 PRODUCTION_MODE = platform.node().startswith('http')
@@ -67,7 +67,7 @@ FILE_UPLOAD_HANDLERS = (
         "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
 
-ROOT_URLCONF = 'djangotest.urls'
+ROOT_URLCONF = 'testing.urls'
 
 TEMPLATE_DIRS = ()
 
@@ -81,7 +81,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'djangotest.testing',
+    'testing',
     'gunicorn',
 )
 
