@@ -14,62 +14,59 @@ import re
 from gunicorn.config import Config
 from gunicorn.app.base import Application
 
-ENVIRONMENT_VARIABLE = 'DJANGO_SETTINGS_MODULE'
-
 class DjangoApplication(Application):
-    
+
     def init(self, parser, opts, args):
         if len(args) > 1:
             parser.error("Expected zero or one arguments, got %s" % len(args))
-        self.settings_modname, self.path = self.find_settings(*args)
+        self.project_dir = None
+        if args:
+            self.project_dir = args.pop()
+        self.settings_modname = self.find_settings()[0]
         self.cfg.set("default_proc_name", self.settings_modname)
            
-    def find_settings(self, settings_file=None):
+    def find_settings(self):
         from django.conf import ENVIRONMENT_VARIABLE
 
         # get settings module
         settings_modname = None
-        if not settings_file:
-            settings_path = os.path.abspath(os.getcwd())
+        python_path = None
+        project_dir = None
+        if not self.project_dir:
             try:
                 settings_modname = os.environ[ENVIRONMENT_VARIABLE]
             except KeyError:
-                settings_file = 'settings.py'
+                project_dir = os.path.abspath(os.getcwd())
         else:
-            settings_path, settings_file = os.path.split(
-                os.path.abspath(settings_file))
+            project_dir = os.path.abspath(self.project_dir)
 
         if not settings_modname:
-            project_path = os.path.normpath(os.path.join(
-                settings_path, os.pardir))
-            project_name = os.path.basename(settings_path)
-            if not os.path.exists(os.path.join(settings_path, settings_file)):
-                return self.no_settings(settings_file)
-            settings_name, ext  = os.path.splitext(
-                    os.path.basename(settings_file))
-            settings_modname = "%s.%s" % (project_name, settings_name)
+            python_path = [os.path.normpath(os.path.join(
+                project_dir, os.pardir))]
+            project_name = os.path.basename(project_dir)
+            print project_name, project_dir, python_path
+            if not os.path.exists(os.path.join(project_dir, 'settings.py')):
+                return self.no_settings('settings.py')
+            settings_modname = "%s.%s" % (project_name, 'settings')
             os.environ[ENVIRONMENT_VARIABLE] = settings_modname
 
-        return settings_modname, [project_path, settings_path]
+        return settings_modname, python_path
 
     def import_settings(self):
-        # add the search paths to sys.path
-        for path in self.path:
-            if not path in sys.path:
-                sys.path.insert(0, path)
+        # find the settings module
+        settings_modname, python_path = self.find_settings()
 
         # import settings module
         try:
             imp.acquire_lock()
             module = None
-            search_path = sys.path
             for part in self.settings_modname.split("."):
                 name = part
                 if module:
-                    search_path = getattr(module, '__path__', None)
-                    if not search_path: raise ImportError()
+                    python_path = getattr(module, '__path__', None)
+                    if not python_path: raise ImportError()
                     name = '.'.join([module.__name__, part])
-                file, path, desc = imp.find_module(part, search_path)
+                file, path, desc = imp.find_module(part, python_path)
                 try:
                     module = imp.load_module(name, file, path, desc)
                 finally:
@@ -85,7 +82,7 @@ class DjangoApplication(Application):
         if import_error:
             error = "Error: Can't find '%s' in your PYTHONPATH.\n" % path
         else:
-            error = "Settings file '%s' not found in current folder.\n" % path
+            error = "Settings file '%s' not found in project folder.\n" % path
         sys.stderr.write(error)
         sys.stderr.flush()
         sys.exit(1)
@@ -120,13 +117,7 @@ class DjangoApplication(Application):
         return WSGIHandler()
 
     def load(self):
-        from django.core.management import setup_environ
-
-        # reload django settings and setup environ
         settings_module = self.import_settings()
-        setup_environ(settings_module)
-
-        # validate models and activate translation
         self.validate()
         self.activate_translation()
 
@@ -270,4 +261,4 @@ def run():
     applications.
     """
     from gunicorn.app.djangoapp import DjangoApplication
-    DjangoApplication("%prog [OPTIONS] [SETTINGS_PATH]").run()
+    DjangoApplication("%prog [OPTIONS] [PROJECT_DIR]").run()
