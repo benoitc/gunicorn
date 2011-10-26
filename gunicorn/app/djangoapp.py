@@ -113,15 +113,20 @@ class DjangoApplication(Application):
 
     @property
     def django_handler(self):
-        from django.core.handlers.wsgi import WSGIHandler
-        return WSGIHandler()
+        try:
+            from django.core.servers.basehttp import \
+                 get_internal_wsgi_application
+            return get_internal_wsgi_application
+        except ImportError: # django < 1.4
+            from django.core.handlers.wsgi import WSGIHandler
+            return WSGIHandler
 
     def load(self):
         settings_module = self.import_settings()
         self.validate()
         self.activate_translation()
 
-        return self.django_handler
+        return self.django_handler()
 
 class DjangoApplicationCommand(DjangoApplication):
     
@@ -233,27 +238,9 @@ class DjangoApplicationCommand(DjangoApplication):
 
         return mod
 
-    @property
-    def django_handler(self):
-        from django.core.handlers.wsgi import WSGIHandler
-        from django.core.servers.basehttp import \
-             AdminMediaHandler, \
-             WSGIServerException
-        try:
-            return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
-        except WSGIServerException, e:
-            # Use helpful error messages instead of ugly tracebacks.
-            ERRORS = {
-                13: "You don't have permission to access that port.",
-                98: "That port is already in use.",
-                99: "That IP address can't be assigned-to.",
-            }
-            try:
-                error_text = ERRORS[e.args[0].args[0]]
-            except (AttributeError, KeyError):
-                error_text = str(e)
-            sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
-            sys.exit(1)
+    def load(self):
+        from django.core.servers.basehttp import AdminMediaHandler
+        return AdminMediaHandler(self.django_handler(), self.admin_media_path)
            
 def run():
     """\
