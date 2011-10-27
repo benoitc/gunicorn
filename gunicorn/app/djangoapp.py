@@ -44,7 +44,6 @@ class DjangoApplication(Application):
             python_path = [os.path.normpath(os.path.join(
                 project_dir, os.pardir))]
             project_name = os.path.basename(project_dir)
-            print project_name, project_dir, python_path
             if not os.path.exists(os.path.join(project_dir, 'settings.py')):
                 return self.no_settings('settings.py')
             settings_modname = "%s.%s" % (project_name, 'settings')
