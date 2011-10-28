@@ -26,15 +26,13 @@ class DjangoApplication(Application):
         self.cfg.set("default_proc_name", self.settings_modname)
            
     def find_settings(self):
-        from django.conf import ENVIRONMENT_VARIABLE
-
         # get settings module
         settings_modname = None
         python_path = None
         project_dir = None
         if not self.project_dir:
             try:
-                settings_modname = os.environ[ENVIRONMENT_VARIABLE]
+                settings_modname = os.environ['DJANGO_SETTINGS_MODULE']
             except KeyError:
                 project_dir = os.path.abspath(os.getcwd())
         else:
@@ -47,13 +45,18 @@ class DjangoApplication(Application):
             if not os.path.exists(os.path.join(project_dir, 'settings.py')):
                 return self.no_settings('settings.py')
             settings_modname = "%s.%s" % (project_name, 'settings')
-            os.environ[ENVIRONMENT_VARIABLE] = settings_modname
 
         return settings_modname, python_path
 
     def import_settings(self):
         # find the settings module
         settings_modname, python_path = self.find_settings()
+
+        # set up the path and django environment
+        os.environ['DJANGO_SETTINGS_MODULE'] = settings_modname
+        for path in python_path:
+            if not path in sys.path:
+                sys.path.insert(0, path)
 
         # import settings module
         try:
