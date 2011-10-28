@@ -1,4 +1,4 @@
-# Django settings for testing project.
+# Django settings for djangotest project.
 
 import platform
 PRODUCTION_MODE = platform.node().startswith('http')
@@ -67,7 +67,7 @@ FILE_UPLOAD_HANDLERS = (
         "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
 
-ROOT_URLCONF = 'testing.urls'
+ROOT_URLCONF = 'djangotest.urls'
 
 TEMPLATE_DIRS = ()
 
