@@ -110,6 +110,16 @@ this::
     $ ~/venvs/webapp/bin/easy_install -U gunicorn
     $ deactivate
 
+**Attention!** Avoid to install gunicorn globally on your system. This implies
+that you'll lose your virtualenv created PYTHONPATH when you use any
+Gunicorn scripts with your virtualenv activated. Anyway you can force the
+installation on your virtualenv by passing to pip ``-I`` or ``--ignore-installed``
+option when installing Gunicorn::
+
+    $ source ~/venvs/webapp/bin/activate
+    $ pip install -I gunicorn
+    $ deactivate
+
 Then you just need to use one of the three Gunicorn scripts that was installed
 into ``~/venvs/webapp/bin``.
 
