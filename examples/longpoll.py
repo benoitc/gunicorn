@@ -9,7 +9,7 @@ import time
 class TestIter(object):
     
     def __iter__(self):
-        lines = ['line 1', 'line 2']
+        lines = ['line 1\n', 'line 2\n']
         for line in lines:
             yield line
             time.sleep(20)

@@ -8,13 +8,32 @@
 #   $ gunicorn -k egg:gunicorn#tornado tornadoapp:app
 #
 
-import tornado.web
+from datetime import timedelta
 
-class MainHandler(tornado.web.RequestHandler):
+from tornado.web import Application, RequestHandler, asynchronous
+from tornado.ioloop import IOLoop
+
+class MainHandler(RequestHandler):
     def get(self):
         self.write("Hello, world")
 
-app = tornado.web.Application([
-    (r"/", MainHandler)
+class LongPollHandler(RequestHandler):
+    @asynchronous
+    def get(self):
+        lines = ['line 1\n', 'line 2\n']
+
+        def send():
+            try:
+                self.write(lines.pop(0))
+                self.flush()
+            except:
+                self.finish()
+            else:
+                IOLoop.instance().add_timeout(timedelta(0, 20), send)
+        send()
+
+app = Application([
+    (r"/", MainHandler),
+    (r"/longpoll", LongPollHandler)
 ])
 
