@@ -48,10 +48,11 @@ class TornadoWorker(Worker):
 
         # Assume the app is a WSGI callable if its not an
         # instance of tornardo.web.Application
-        if not isinstance(self.app, tornado.web.Application):
-            self.app = WSGIContainer(self.wsgi)
+        app = self.wsgi
+        if not isinstance(app, tornado.web.Application):
+            app = WSGIContainer(app)
 
-        server = HTTPServer(self.wsgi, io_loop=self.ioloop)
+        server = HTTPServer(app, io_loop=self.ioloop)
         if hasattr(server, "add_socket"): # tornado > 2.0
             server.add_socket(self.socket)
         elif hasattr(server, "_sockets"): # tornado 2.0
