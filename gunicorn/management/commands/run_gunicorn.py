@@ -62,7 +62,7 @@ class Command(BaseCommand):
  
     def handle(self, addrport=None, *args, **options):
         if args:
-            raise CommandError('Usage is runserver %s' % self.args)
+            raise CommandError('Usage is run_gunicorn %s' % self.args)
             
         if addrport:
             options['bind'] = addrport

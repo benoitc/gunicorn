@@ -68,14 +68,15 @@ def create(req, sock, client, server, cfg):
     url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
-    secure_headers = getattr(cfg, "secure_scheme_headers")
+    secure_headers = cfg.secure_scheme_headers
+    x_forwarded_for_header = cfg.x_forwarded_for_header
 
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif hdr_name == "X-FORWARDED-FOR":
+        elif hdr_name == x_forwarded_for_header:
             forward = hdr_value
         elif (hdr_name.upper() in secure_headers and
               hdr_value == secure_headers[hdr_name.upper()]):
@@ -90,8 +91,10 @@ def create(req, sock, client, server, cfg):
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
             continue
-        
+
         key = 'HTTP_' + hdr_name.replace('-', '_')
+        if key in environ:
+            hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
     environ['wsgi.url_scheme'] = url_scheme
@@ -133,7 +136,7 @@ def create(req, sock, client, server, cfg):
             else:
                 server.append('')
     environ['SERVER_NAME'] = server[0]
-    environ['SERVER_PORT'] = server[1]
+    environ['SERVER_PORT'] = str(server[1])
 
     path_info = req.path
     if script_name:
