@@ -182,6 +182,7 @@ class DjangoApplicationCommand(DjangoApplication):
 
         # reload module
         mod = super(DjangoApplicationCommand, self).import_settings()
+        reload(mod)
 
         # reload settings.
         # USe code from django.settings.Settings module.
