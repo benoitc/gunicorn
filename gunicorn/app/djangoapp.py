@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import imp
@@ -24,7 +24,7 @@ class DjangoApplication(Application):
             self.project_dir = args.pop()
         self.settings_modname = self.find_settings()[0]
         self.cfg.set("default_proc_name", self.settings_modname)
-           
+
     def find_settings(self):
         # get settings module
         settings_modname = None
@@ -93,9 +93,9 @@ class DjangoApplication(Application):
         from django.conf import settings
         from django.utils import translation
         translation.activate(settings.LANGUAGE_CODE)
-        
+
     def validate(self):
-        """ Validate models. This also ensures that all models are 
+        """ Validate models. This also ensures that all models are
         imported in case of import-time side effects."""
         from django.core.management.base import CommandError
         from django.core.management.validation import get_validation_errors
@@ -131,7 +131,7 @@ class DjangoApplication(Application):
         return self.django_handler()
 
 class DjangoApplicationCommand(DjangoApplication):
-    
+
     def __init__(self, options, admin_media_path):
         self.usage = None
         self.cfg = None
@@ -139,7 +139,7 @@ class DjangoApplicationCommand(DjangoApplication):
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
-          
+
         self.do_load_config()
 
     def load_config(self):
@@ -161,7 +161,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 print "Failed to read config file: %s" % self.config_file
                 traceback.print_exc()
                 sys.exit(1)
-        
+
             for k, v in cfg.items():
                 # Ignore unknown names
                 if k not in self.cfg.settings:
@@ -171,7 +171,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 except:
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
-       
+
         for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
@@ -243,7 +243,7 @@ class DjangoApplicationCommand(DjangoApplication):
     def load(self):
         from django.core.servers.basehttp import AdminMediaHandler
         return AdminMediaHandler(self.django_handler(), self.admin_media_path)
-           
+
 def run():
     """\
     The ``gunicorn_django`` command line runner for launching Django
