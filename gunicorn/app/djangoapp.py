@@ -297,20 +297,17 @@ class DjangoApplicationCommand(DjangoApplication):
 
         try:
             from django.core.servers.basehttp import get_internal_wsgi_application
+            from django.contrib.staticfiles.handlers import StaticFilesHandler
             WSGIHandler = get_internal_wsgi_application
-            AdminMediaHandler = None
         except ImportError:
             from django.core.handlers.wsgi import WSGIHandler
             from django.core.servers.basehttp import AdminMediaHandler
+            StaticFilesHandler = AdminMediaHandler
 
         from django.core.servers.basehttp import WSGIServerException
 
         try:
-            application = WSGIHandler()
-            if AdminMediaHandler:
-                return AdminMediaHandler(application, self.admin_media_path)
-            else:
-                return application
+            return StaticFilesHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.
             ERRORS = {
