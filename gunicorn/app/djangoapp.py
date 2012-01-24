@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import imp
@@ -17,7 +17,7 @@ from gunicorn.app.base import Application
 ENVIRONMENT_VARIABLE = 'DJANGO_SETTINGS_MODULE'
 
 class DjangoApplication(Application):
-    
+
     def init(self, parser, opts, args):
         self.global_settings_path = None
         self.project_path = None
@@ -25,7 +25,7 @@ class DjangoApplication(Application):
             self.global_settings_path = args[0]
             if not os.path.exists(os.path.abspath(args[0])):
                 self.no_settings(args[0])
-           
+
     def get_settings_modname(self):
         from django.conf import ENVIRONMENT_VARIABLE
 
@@ -69,7 +69,7 @@ class DjangoApplication(Application):
                 os.pardir)))
 
         return settings_modname
-    
+
     def setup_environ(self, settings_modname):
         from django.core.management import setup_environ
 
@@ -82,7 +82,7 @@ class DjangoApplication(Application):
                 path = os.path.dirname(os.path.abspath(
                             os.path.normpath(settings_mod.__file__)))
                 sys.path.append(path)
-                for part in parts[1:]: 
+                for part in parts[1:]:
                     settings_mod = getattr(settings_mod, part)
                 setup_environ(settings_mod)
         except ImportError:
@@ -101,9 +101,9 @@ class DjangoApplication(Application):
         from django.conf import settings
         from django.utils import translation
         translation.activate(settings.LANGUAGE_CODE)
-        
+
     def validate(self):
-        """ Validate models. This also ensures that all models are 
+        """ Validate models. This also ensures that all models are
         imported in case of import-time side effects."""
         from django.core.management.base import CommandError
         from django.core.management.validation import get_validation_errors
@@ -122,15 +122,21 @@ class DjangoApplication(Application):
             sys.exit(1)
 
     def load(self):
-        from django.core.handlers.wsgi import WSGIHandler
-       
         self.setup_environ(self.get_settings_modname())
         self.validate()
         self.activate_translation()
+
+        try:
+            from django.core.servers.basehttp import get_internal_wsgi_application
+            WSGIHandler = get_internal_wsgi_application
+        except ImportError:
+            from django.core.handlers.wsgi import WSGIHandler
+
         return WSGIHandler()
 
+
 class DjangoApplicationCommand(DjangoApplication):
-    
+
     def __init__(self, options, admin_media_path):
         self.usage = None
         self.cfg = None
@@ -139,16 +145,16 @@ class DjangoApplicationCommand(DjangoApplication):
         self.admin_media_path = admin_media_path
         self.callable = None
         self.project_path = None
-          
+
         self.do_load_config()
 
         for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
-       
+
     def load_config(self):
         self.cfg = Config()
-        
+
         if self.config_file and os.path.exists(self.config_file):
             cfg = {
                 "__builtins__": __builtins__,
@@ -164,7 +170,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 print "Failed to read config file: %s" % self.config_file
                 traceback.print_exc()
                 sys.exit(1)
-        
+
             for k, v in cfg.items():
                 # Ignore unknown names
                 if k not in self.cfg.settings:
@@ -174,7 +180,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 except:
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
-       
+
         for k, v in self.options.items():
             if k.lower() in self.cfg.settings and v is not None:
                 self.cfg.set(k.lower(), v)
@@ -191,7 +197,7 @@ class DjangoApplicationCommand(DjangoApplication):
             settings_path = os.path.join(project_path, "settings.py")
             if not os.path.exists(settings_path):
                 return self.no_settings(settings_path)
-        
+
         if not settings_modname:
             project_name = os.path.split(project_path)[-1]
             settings_name, ext  = os.path.splitext(
@@ -220,7 +226,7 @@ class DjangoApplicationCommand(DjangoApplication):
     def reload_django_settings(self, settings_modname):
         from django.conf import settings
         from django.utils import importlib
-        
+
         mod = importlib.import_module(settings_modname)
 
         # reload module
@@ -282,19 +288,26 @@ class DjangoApplicationCommand(DjangoApplication):
             logging_config_func(settings.LOGGING)
 
     def load(self):
-        from django.core.handlers.wsgi import WSGIHandler
-        
         # reload django settings and setup environ
         self.setup_environ(self.get_settings_modname())
 
         # validate models and activate translation
-        self.validate() 
+        self.validate()
         self.activate_translation()
-        
-        from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
 
         try:
-            return  AdminMediaHandler(WSGIHandler(), self.admin_media_path)
+            from django.core.servers.basehttp import get_internal_wsgi_application
+            from django.contrib.staticfiles.handlers import StaticFilesHandler
+            WSGIHandler = get_internal_wsgi_application
+        except ImportError:
+            from django.core.handlers.wsgi import WSGIHandler
+            from django.core.servers.basehttp import AdminMediaHandler
+            StaticFilesHandler = AdminMediaHandler
+
+        from django.core.servers.basehttp import WSGIServerException
+
+        try:
+            return StaticFilesHandler(WSGIHandler(), self.admin_media_path)
         except WSGIServerException, e:
             # Use helpful error messages instead of ugly tracebacks.
             ERRORS = {
@@ -308,7 +321,7 @@ class DjangoApplicationCommand(DjangoApplication):
                 error_text = str(e)
             sys.stderr.write(self.style.ERROR("Error: %s" % error_text) + '\n')
             sys.exit(1)
-           
+
 def run():
     """\
     The ``gunicorn_django`` command line runner for launching Django
