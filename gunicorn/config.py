@@ -683,7 +683,7 @@ class LoggerClass(Setting):
         You can provide your own worker by giving gunicorn a
         python path to a subclass like gunicorn.glogging.Logger. 
         Alternatively the syntax can also load the Logger class 
-        with ``egg:gunicorn#simple`
+        with `egg:gunicorn#simple`
         """
 
 class Procname(Setting):

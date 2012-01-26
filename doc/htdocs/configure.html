@@ -351,6 +351,14 @@ when handling HTTPS requests.</p>
 <p>It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.</p>
 </div>
+<div class="section" id="x-forwarded-for-header">
+<h4><a class="toc-backref" href="#contents">x_forwarded_for_header</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">X-FORWARDED-FOR</span></tt></li>
+</ul>
+<p>Set the X-Forwarded-For header that identify the originating IP
+address of the client connection to gunicorn via a proxy.</p>
+</div>
 </div>
 <div class="section" id="logging">
 <h3><a class="toc-backref" href="#contents">Logging</a></h3>
@@ -421,10 +429,7 @@ normal usages in logging. It provides error and access logging.</p>
 <p>You can provide your own worker by giving gunicorn a
 python path to a subclass like gunicorn.glogging.Logger.
 Alternatively the syntax can also load the Logger class
-with <a href="#id1"><span class="problematic" id="id2">``</span></a>egg:gunicorn#simple`</p>
-<div class="system-message" id="id1">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">&lt;string&gt;</tt>, line 442); <em><a href="#id2">backlink</a></em></p>
-Inline literal start-string without end-string.</div>
+with <cite>egg:gunicorn#simple</cite></p>
 </div>
 </div>
 <div class="section" id="process-naming">
@@ -574,71 +579,72 @@ the just-exited Worker.</p>
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id3">Overview</a></li>
-<li><a class="reference internal" href="#framework-settings" id="id4">Framework Settings</a><ul>
-<li><a class="reference internal" href="#paster-applications" id="id5">Paster Applications</a></li>
+<li><a class="reference internal" href="#overview" id="id1">Overview</a></li>
+<li><a class="reference internal" href="#framework-settings" id="id2">Framework Settings</a><ul>
+<li><a class="reference internal" href="#paster-applications" id="id3">Paster Applications</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#configuration-file" id="id6">Configuration File</a></li>
-<li><a class="reference internal" href="#command-line" id="id7">Command Line</a></li>
-<li><a class="reference internal" href="#settings" id="id8">Settings</a><ul>
-<li><a class="reference internal" href="#config-file" id="id9">Config File</a><ul>
-<li><a class="reference internal" href="#config" id="id10">config</a></li>
+<li><a class="reference internal" href="#configuration-file" id="id4">Configuration File</a></li>
+<li><a class="reference internal" href="#command-line" id="id5">Command Line</a></li>
+<li><a class="reference internal" href="#settings" id="id6">Settings</a><ul>
+<li><a class="reference internal" href="#config-file" id="id7">Config File</a><ul>
+<li><a class="reference internal" href="#config" id="id8">config</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-socket" id="id11">Server Socket</a><ul>
-<li><a class="reference internal" href="#bind" id="id12">bind</a></li>
-<li><a class="reference internal" href="#backlog" id="id13">backlog</a></li>
+<li><a class="reference internal" href="#server-socket" id="id9">Server Socket</a><ul>
+<li><a class="reference internal" href="#bind" id="id10">bind</a></li>
+<li><a class="reference internal" href="#backlog" id="id11">backlog</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#worker-processes" id="id14">Worker Processes</a><ul>
-<li><a class="reference internal" href="#workers" id="id15">workers</a></li>
-<li><a class="reference internal" href="#worker-class" id="id16">worker_class</a></li>
-<li><a class="reference internal" href="#worker-connections" id="id17">worker_connections</a></li>
-<li><a class="reference internal" href="#max-requests" id="id18">max_requests</a></li>
-<li><a class="reference internal" href="#timeout" id="id19">timeout</a></li>
-<li><a class="reference internal" href="#keepalive" id="id20">keepalive</a></li>
+<li><a class="reference internal" href="#worker-processes" id="id12">Worker Processes</a><ul>
+<li><a class="reference internal" href="#workers" id="id13">workers</a></li>
+<li><a class="reference internal" href="#worker-class" id="id14">worker_class</a></li>
+<li><a class="reference internal" href="#worker-connections" id="id15">worker_connections</a></li>
+<li><a class="reference internal" href="#max-requests" id="id16">max_requests</a></li>
+<li><a class="reference internal" href="#timeout" id="id17">timeout</a></li>
+<li><a class="reference internal" href="#keepalive" id="id18">keepalive</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#debugging" id="id21">Debugging</a><ul>
-<li><a class="reference internal" href="#debug" id="id22">debug</a></li>
-<li><a class="reference internal" href="#spew" id="id23">spew</a></li>
+<li><a class="reference internal" href="#debugging" id="id19">Debugging</a><ul>
+<li><a class="reference internal" href="#debug" id="id20">debug</a></li>
+<li><a class="reference internal" href="#spew" id="id21">spew</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-mechanics" id="id24">Server Mechanics</a><ul>
-<li><a class="reference internal" href="#preload-app" id="id25">preload_app</a></li>
-<li><a class="reference internal" href="#daemon" id="id26">daemon</a></li>
-<li><a class="reference internal" href="#pidfile" id="id27">pidfile</a></li>
-<li><a class="reference internal" href="#user" id="id28">user</a></li>
-<li><a class="reference internal" href="#group" id="id29">group</a></li>
-<li><a class="reference internal" href="#umask" id="id30">umask</a></li>
-<li><a class="reference internal" href="#tmp-upload-dir" id="id31">tmp_upload_dir</a></li>
-<li><a class="reference internal" href="#secure-scheme-headers" id="id32">secure_scheme_headers</a></li>
+<li><a class="reference internal" href="#server-mechanics" id="id22">Server Mechanics</a><ul>
+<li><a class="reference internal" href="#preload-app" id="id23">preload_app</a></li>
+<li><a class="reference internal" href="#daemon" id="id24">daemon</a></li>
+<li><a class="reference internal" href="#pidfile" id="id25">pidfile</a></li>
+<li><a class="reference internal" href="#user" id="id26">user</a></li>
+<li><a class="reference internal" href="#group" id="id27">group</a></li>
+<li><a class="reference internal" href="#umask" id="id28">umask</a></li>
+<li><a class="reference internal" href="#tmp-upload-dir" id="id29">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#secure-scheme-headers" id="id30">secure_scheme_headers</a></li>
+<li><a class="reference internal" href="#x-forwarded-for-header" id="id31">x_forwarded_for_header</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#logging" id="id33">Logging</a><ul>
-<li><a class="reference internal" href="#accesslog" id="id34">accesslog</a></li>
-<li><a class="reference internal" href="#access-log-format" id="id35">access_log_format</a></li>
-<li><a class="reference internal" href="#errorlog" id="id36">errorlog</a></li>
-<li><a class="reference internal" href="#loglevel" id="id37">loglevel</a></li>
-<li><a class="reference internal" href="#logger-class" id="id38">logger_class</a></li>
+<li><a class="reference internal" href="#logging" id="id32">Logging</a><ul>
+<li><a class="reference internal" href="#accesslog" id="id33">accesslog</a></li>
+<li><a class="reference internal" href="#access-log-format" id="id34">access_log_format</a></li>
+<li><a class="reference internal" href="#errorlog" id="id35">errorlog</a></li>
+<li><a class="reference internal" href="#loglevel" id="id36">loglevel</a></li>
+<li><a class="reference internal" href="#logger-class" id="id37">logger_class</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id39">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id40">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id41">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id38">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id39">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id40">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id42">Server Hooks</a><ul>
-<li><a class="reference internal" href="#on-starting" id="id43">on_starting</a></li>
-<li><a class="reference internal" href="#on-reload" id="id44">on_reload</a></li>
-<li><a class="reference internal" href="#when-ready" id="id45">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id46">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id47">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id48">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id49">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id50">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id51">worker_exit</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id41">Server Hooks</a><ul>
+<li><a class="reference internal" href="#on-starting" id="id42">on_starting</a></li>
+<li><a class="reference internal" href="#on-reload" id="id43">on_reload</a></li>
+<li><a class="reference internal" href="#when-ready" id="id44">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id45">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id46">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id47">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id48">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id49">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id50">worker_exit</a></li>
 </ul>
 </li>
 </ul>
