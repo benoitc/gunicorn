@@ -384,14 +384,9 @@ class Arbiter(object):
         Kill unused/idle workers
         """
         for (pid, worker) in self.WORKERS.items():
-            try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
-                    continue
-            except ValueError:
-                continue
-
-            self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
-            self.kill_worker(pid, signal.SIGKILL)
+            if time.time() - worker.tmp.last_update() > self.timeout:
+                self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
+                self.kill_worker(pid, signal.SIGKILL)
         
     def reap_workers(self):
         """\
