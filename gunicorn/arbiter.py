@@ -356,7 +356,7 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             self.LISTENER.close()
-            self.LISTENER = create_socket(self.cfg)
+            self.LISTENER = create_socket(self.cfg, self.log)
             self.log.info("Listening at: %s", self.LISTENER)    
 
         # spawn new workers with new app & conf
