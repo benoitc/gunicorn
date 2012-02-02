@@ -148,6 +148,8 @@ def create(req, sock, client, server, cfg):
 
 class Response(object):
 
+    has_connection = False
+
     def __init__(self, req, sock):
         self.req = req
         self.sock = sock
@@ -185,6 +187,27 @@ class Response(object):
         self.chunked = self.is_chunked()
         return self.write
 
+    def process_headers(self, headers): # pragma: no cover
+        for name, value in headers:
+            assert isinstance(name, basestring), "%r is not a string" % name
+            lname = name.lower().strip()
+            if lname == "content-length":
+                self.response_length = int(value)
+            elif util.is_hoppish(name):
+                if lname == "connection":
+                    # handle websocket
+                    if value.lower().strip() != "upgrade":
+                        continue
+                    else:
+                        self.has_connection = True
+                elif lname == "upgrade":
+                    if value.lower().strip() != "websocket":
+                        continue
+                else:
+                    # ignore hopbyhop headers
+                    continue
+            self.headers.append((name.strip(), str(value).strip()))
+
     def process_headers(self, headers):
         for name, value in headers:
             assert isinstance(name, basestring), "%r is not a string" % name
@@ -216,17 +239,20 @@ class Response(object):
             return False
         return True
 
-    def default_headers(self):
-        connection = "keep-alive"
-        if self.should_close():
-            connection = "close"
+    def default_headers(self): # pragma: no cover
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
-            "Connection: %s\r\n" % connection
-        ]
+            ]
+
+        if not self.has_connection:
+            connection = "keep-alive"
+            if self.should_close():
+                connection = "close"
+            headers.append("Connection: %s\r\n" % connection)
+
         if self.chunked:
             headers.append("Transfer-Encoding: chunked\r\n")
         return headers
