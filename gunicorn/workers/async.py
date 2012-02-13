@@ -35,6 +35,7 @@ class AsyncWorker(base.Worker):
                         req = parser.next()
                     if not req:
                         break
+                    self.cfg.pre_request(self, req)
                     self.handle_request(req, client, addr)
             except StopIteration, e:
                 self.log.debug("Closing connection. %s", e)
@@ -50,10 +51,13 @@ class AsyncWorker(base.Worker):
             self.handle_error(client, e)
         finally:
             util.close(client)
+            try:
+                self.cfg.post_request(self, req, environ)
+            except:
+                pass
 
     def handle_request(self, req, sock, addr):
         try:
-            self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
             self.nr += 1
@@ -75,9 +79,4 @@ class AsyncWorker(base.Worker):
                   respiter.close()
             if resp.should_close():
                 raise StopIteration()
-        finally:
-            try:
-                self.cfg.post_request(self, req, environ)
-            except:
-                pass
         return True
