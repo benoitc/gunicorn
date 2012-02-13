@@ -68,6 +68,7 @@ class SyncWorker(base.Worker):
         try:
             parser = http.RequestParser(client)
             req = parser.next()
+            self.cfg.pre_request(self, req)
             self.handle_request(req, client, addr)
         except StopIteration, e:
             self.log.debug("Closing connection. %s", e)
@@ -80,11 +81,14 @@ class SyncWorker(base.Worker):
             self.handle_error(client, e)
         finally:    
             util.close(client)
+            try:
+                self.cfg.post_request(self, req, environ)
+            except:
+                pass
 
     def handle_request(self, req, client, addr):
         environ = {}
         try:
-            self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
                     self.address, self.cfg)
@@ -115,9 +119,3 @@ class SyncWorker(base.Worker):
             # Only send back traceback in HTTP in debug mode.
             self.handle_error(client, e) 
             return
-        finally:
-            try:
-                self.cfg.post_request(self, req, environ)
-            except:
-                pass
-
