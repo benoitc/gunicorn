@@ -219,7 +219,10 @@ class DjangoApplicationCommand(DjangoApplication):
 
     def reload_django_settings(self, settings_modname):
         from django.conf import settings
-        from django.utils import importlib
+        try:
+            import importlib
+        except ImportError:
+            from django.utils import importlib
         
         mod = importlib.import_module(settings_modname)
 
