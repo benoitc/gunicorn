@@ -303,3 +303,11 @@ def seed():
         random.seed(os.urandom(64))
     except NotImplementedError:
         random.seed(random.random())
+
+
+def check_is_writeable(path):
+    try:
+        f = open(path, 'a')
+    except IOError, e:
+        raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
+    f.close()

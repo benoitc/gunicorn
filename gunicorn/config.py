@@ -686,6 +686,20 @@ class LoggerClass(Setting):
         with `egg:gunicorn#simple`
         """
 
+
+class LogConfig(Setting):
+    name = "logconfig"
+    section = "Logging"
+    cli = ["--log-config"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+The log config file to use.
+Gunicorn uses the standard Python logging module's Configuration
+file format.
+"""
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"

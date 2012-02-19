@@ -6,9 +6,15 @@
 import datetime
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
+import os
 import sys
 import traceback
 import threading
+
+try:
+    from logging.config import fileConfig
+except ImportError:
+    from gunicorn.logging_config import fileConfig
 
 from gunicorn import util
 
@@ -68,32 +74,37 @@ class Logger(object):
         self.access_log = logging.getLogger("gunicorn.access")
         self.error_handlers = []
         self.access_handlers = []
-
+        self.cfg = cfg
         self.setup(cfg)
 
     def setup(self, cfg):
-        self.cfg = cfg
+        if not cfg.logconfig:
+            loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+            self.error_log.setLevel(loglevel)
+            self.access_log.setLevel(logging.INFO)
 
-        loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
 
-        if cfg.errorlog != "-":
-            # if an error log file is set redirect stdout & stderr to
-            # this log file.
-            stdout_log = LazyWriter(cfg.errorlog, 'a')
-            sys.stdout = stdout_log
-            sys.stderr = stdout_log
+            if cfg.errorlog != "-":
+                # if an error log file is set redirect stdout & stderr to
+                # this log file.
+                stdout_log = LazyWriter(cfg.errorlog, 'a')
+                sys.stdout = stdout_log
+                sys.stderr = stdout_log
 
-        self.error_log.setLevel(loglevel)
+            # set gunicorn.error handler
+            self._set_handler(self.error_log, cfg.errorlog,
+                    logging.Formatter(self.error_fmt, self.datefmt))
 
-        # always info in access log
-        self.access_log.setLevel(logging.INFO)
-
-        self._set_handler(self.error_log, cfg.errorlog,
-                logging.Formatter(self.error_fmt, self.datefmt))
-
-        if cfg.accesslog is not None:
-            self._set_handler(self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt))
+            # set gunicorn.access handler
+            if cfg.accesslog is not None:
+                self._set_handler(self.access_log, cfg.accesslog,
+                    fmt=logging.Formatter(self.access_fmt))
+        else:
+            if os.path.exists(cfg.logconfig):
+                util.check_is_writeable(cfg.logconfig)
+                fileConfig(cfg.logconfig)
+            else:
+                raise RuntimeError("Error: log config '%s' not found" % path)
 
 
     def critical(self, msg, *args, **kwargs):
@@ -124,9 +135,8 @@ class Logger(object):
         for format details
         """
 
-        if not self.cfg.accesslog:
+        if not self.cfg.accesslog and not self.cfg.logconfig:
             return
-
 
         status = resp.status.split(None, 1)[0]
         atoms = {
@@ -197,6 +207,7 @@ class Logger(object):
         if output == "-":
             h = logging.StreamHandler()
         else:
+            util.check_is_writeable(output)
             h = logging.FileHandler(output)
 
         h.setFormatter(fmt)
