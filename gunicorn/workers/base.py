@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 
@@ -24,7 +24,7 @@ class Worker(object):
         lambda x: getattr(signal, "SIG%s" % x),
         "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )
-    
+
     PIPE = []
 
     def __init__(self, age, ppid, socket, app, timeout, cfg, log):
@@ -47,11 +47,11 @@ class Worker(object):
         self.log = log
         self.debug = cfg.debug
         self.address = self.socket.getsockname()
-        self.tmp = WorkerTmp(cfg) 
-        
+        self.tmp = WorkerTmp(cfg)
+
     def __str__(self):
         return "<Worker %s>" % self.pid
-        
+
     @property
     def pid(self):
         return os.getpid()
@@ -88,7 +88,7 @@ class Worker(object):
         self.PIPE = os.pipe()
         map(util.set_non_blocking, self.PIPE)
         map(util.close_on_exec, self.PIPE)
-        
+
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
         util.close_on_exec(self.tmp.fileno())
@@ -96,9 +96,9 @@ class Worker(object):
         self.log.close_on_exec()
 
         self.init_signals()
-        
+
         self.wsgi = self.app.wsgi()
-        
+
         # Enter main run loop
         self.booted = True
         self.run()
@@ -118,7 +118,7 @@ class Worker(object):
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
-            
+
     def handle_quit(self, sig, frame):
         self.alive = False
 
@@ -135,10 +135,10 @@ class Worker(object):
 
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
-            
+
             status_int = 400
             reason = "Bad Request"
-            
+
             if isinstance(exc, InvalidRequestLine):
                 mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
@@ -147,7 +147,7 @@ class Worker(object):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "<p>Invalid Header '%s'</p>" % str(exc)
-            
+
         if self.debug:
             tb =  traceback.format_exc()
             mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
@@ -156,7 +156,7 @@ class Worker(object):
             util.write_error(client, status_int, reason, mesg)
         except:
             self.log.warning("Failed to send error message.")
-        
+
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
         return

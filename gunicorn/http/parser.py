@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from gunicorn.http.message import Request
@@ -17,18 +17,18 @@ class Parser(object):
 
     def __iter__(self):
         return self
-    
+
     def next(self):
         # Stop if HTTP dictates a stop.
         if self.mesg and self.mesg.should_close():
             raise StopIteration()
-        
+
         # Discard any unread body of the previous message
         if self.mesg:
             data = self.mesg.body.read(8192)
             while data:
                 data = self.mesg.body.read(8192)
-        
+
         # Parse the next request
         self.mesg = self.mesg_class(self.unreader)
         if not self.mesg:

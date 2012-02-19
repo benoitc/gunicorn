@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import re
@@ -28,7 +28,7 @@ class Message(object):
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
         self.set_body_reader()
-    
+
     def parse(self):
         raise NotImplementedError()
 
@@ -50,12 +50,12 @@ class Message(object):
             if self.hdrre.search(name):
                 raise InvalidHeaderName(name)
             name, value = name.strip(), [value.lstrip()]
-            
+
             # Consume value continuation lines
             while len(lines) and lines[0].startswith((" ", "\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
-            
+
             headers.append((name, value))
         return headers
 
@@ -99,7 +99,7 @@ class Request(Message):
     def __init__(self, unreader):
         self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
         self.versre = re.compile("HTTP/(\d+).(\d+)")
-    
+
         self.method = None
         self.uri = None
         self.scheme = None
@@ -119,12 +119,12 @@ class Request(Message):
                 raise StopIteration()
             raise NoMoreData(buf.getvalue())
         buf.write(data)
-    
+
     def parse(self, unreader):
         buf = StringIO()
 
         self.get_data(unreader, buf, stop=True)
-        
+
         # Request line
         idx = buf.getvalue().find("\r\n")
         while idx < 0:
@@ -134,8 +134,8 @@ class Request(Message):
         rest = buf.getvalue()[idx+2:] # Skip \r\n
         buf = StringIO()
         buf.write(rest)
-       
-        
+
+
         # Headers
         idx = buf.getvalue().find("\r\n\r\n")
 
@@ -144,7 +144,7 @@ class Request(Message):
             self.get_data(unreader, buf)
             idx = buf.getvalue().find("\r\n\r\n")
             done = buf.getvalue()[:2] == "\r\n"
-             
+
         if done:
             self.unreader.unread(buf.getvalue()[2:])
             return ""
@@ -154,7 +154,7 @@ class Request(Message):
         ret = buf.getvalue()[idx+4:]
         buf = StringIO()
         return ret
-    
+
     def parse_request_line(self, line):
         bits = line.split(None, 2)
         if len(bits) != 3:

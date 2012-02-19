@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import datetime
@@ -39,7 +39,7 @@ class Logger(object):
 
         loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(loglevel)
-        
+
         # always info in access log
         self.access_log.setLevel(logging.INFO)
 
@@ -100,13 +100,13 @@ class Logger(object):
                 'D': str(request_time.microseconds)
                 }
 
-        # add WSGI request headers 
+        # add WSGI request headers
         atoms.update(dict([(k,v) for k, v in environ.items() \
                 if k.startswith('HTTP_')]))
 
         for k, v in atoms.items():
             atoms[k] = v.replace('"', '\\"')
-    
+
         try:
             self.access_log.info(self.cfg.access_log_format % atoms)
         except:
@@ -138,12 +138,12 @@ class Logger(object):
                     util.close_on_exec(handler.stream.fileno())
                     handler.release()
 
-   
+
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
             if getattr(h, "_gunicorn", False) == True:
                 return h
-    
+
     def _set_handler(self, log, output, fmt):
         # remove previous gunicorn log handler
         h = self._get_gunicorn_handler(log)

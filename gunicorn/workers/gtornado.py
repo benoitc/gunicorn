@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import os
@@ -19,7 +19,7 @@ from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
 
 class TornadoWorker(Worker):
-    
+
     @classmethod
     def setup(cls):
         web = sys.modules.pop("tornado.web")
@@ -29,18 +29,18 @@ class TornadoWorker(Worker):
             self._headers["Server"] += " (Gunicorn/%s)" % gversion
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
-        
+
     def handle_quit(self, sig, frame):
         super(TornadoWorker, self).handle_quit(sig, frame)
         self.ioloop.stop()
 
     def watchdog(self):
         self.notify()
-            
+
         if self.ppid != os.getppid():
             self.log.info("Parent changed, shutting down: %s", self)
             self.ioloop.stop()
-    
+
     def run(self):
         self.socket.setblocking(0)
         self.ioloop = IOLoop.instance()

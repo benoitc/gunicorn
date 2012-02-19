@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from datetime import datetime
 
-from gunicorn.workers.ggevent import BASE_WSGI_ENV, GeventWorker 
+from gunicorn.workers.ggevent import BASE_WSGI_ENV, GeventWorker
 from gevent import wsgi
 
 
@@ -30,9 +30,9 @@ class WSGIHandler(wsgi.WSGIHandler):
         self.time_start = datetime.now()
         super(WSGIHandler, self).handle()
 
-        
+
 class WSGIServer(wsgi.WSGIServer):
-    base_env = BASE_WSGI_ENV  
+    base_env = BASE_WSGI_ENV
 
 class GeventWSGIWorker(GeventWorker):
     "The Gevent StreamServer based workers."

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import logging
@@ -59,7 +59,7 @@ def create(req, sock, client, server, cfg):
         "CONTENT_TYPE": "",
         "CONTENT_LENGTH": ""
     }
-    
+
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
@@ -98,7 +98,7 @@ def create(req, sock, client, server, cfg):
         environ[key] = hdr_value
 
     environ['wsgi.url_scheme'] = url_scheme
-        
+
     if isinstance(forward, basestring):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
@@ -121,7 +121,7 @@ def create(req, sock, client, server, cfg):
 
         remote = (host, port)
     else:
-        remote = forward 
+        remote = forward
 
     environ['REMOTE_ADDR'] = remote[0]
     environ['REMOTE_PORT'] = str(remote[1])
