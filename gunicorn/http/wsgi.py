@@ -56,8 +56,6 @@ def create(req, sock, client, server, cfg):
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
         "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version)),
-        "CONTENT_TYPE": "",
-        "CONTENT_LENGTH": ""
     }
 
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
