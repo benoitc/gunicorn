@@ -727,6 +727,35 @@ class DefaultProcName(Setting):
         Internal setting that is adjusted for each type of application.
         """
 
+
+class DjangoSettings(Setting):
+    name = "django_settings"
+    section = "Django"
+    cli = ["--settings"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        The Python path to a Django settings module.
+
+        e.g. 'myproject.settings.main'. If this isn't provided, the
+        DJANGO_SETTINGS_MODULE environment variable will be used.
+        """
+
+class DjangoPythonPath(Setting):
+    name = "pythonpath"
+    section = "Django"
+    cli = ["--pythonpath"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        A directory to add to the Python path for Django.
+
+        e.g.
+        '/home/djangoprojects/myproject'.
+        """
+
 class OnStarting(Setting):
     name = "on_starting"
     section = "Server Hooks"

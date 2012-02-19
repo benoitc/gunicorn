@@ -64,6 +64,44 @@ except ImportError:
     def _setproctitle(title):
         return
 
+
+try:
+    from importlib import import_module
+except ImportError:
+    def _resolve_name(name, package, level):
+        """Return the absolute name of the module to be imported."""
+        if not hasattr(package, 'rindex'):
+            raise ValueError("'package' not set to a string")
+        dot = len(package)
+        for x in xrange(level, 1, -1):
+            try:
+                dot = package.rindex('.', 0, dot)
+            except ValueError:
+                raise ValueError("attempted relative import beyond top-level "
+                                  "package")
+        return "%s.%s" % (package[:dot], name)
+
+
+    def import_module(name, package=None):
+        """Import a module.
+
+The 'package' argument is required when performing a relative import. It
+specifies the package to use as the anchor point from which to resolve the
+relative import to an absolute import.
+
+"""
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("relative imports require the 'package' argument")
+            level = 0
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+            name = _resolve_name(name[level:], package, level)
+        __import__(name)
+        return sys.modules[name]
+
 def load_class(uri, default="sync", section="gunicorn.workers"):
     if uri.startswith("egg:"):
         # uses entry points
@@ -311,3 +349,24 @@ def check_is_writeable(path):
     except IOError, e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()
+
+
+if not hasattr(os.path, 'relpath'):
+    def relpath(path, start=os.path.curdir):
+        """Return a relative version of a path"""
+
+        if not path:
+            raise ValueError("no path specified")
+
+        start_list = os.path.abspath(start).split(os.path.sep)
+        path_list = os.path.abspath(path).split(os.path.sep)
+
+        # Work out how much of the filepath is shared by start and path.
+        i = len(os.path.commonprefix([start_list, path_list]))
+
+        rel_list = [os.path.pardir] * (len(start_list)-i) + path_list[i:]
+        if not rel_list:
+            return os.path.curdir
+        return os.path.join(*rel_list)
+else:
+    relpath = os.path.relpath

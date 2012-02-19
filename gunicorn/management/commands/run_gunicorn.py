@@ -28,6 +28,9 @@ def make_options():
     ]
 
     for k in keys:
+        if k in ('pythonpath', 'django_settings',):
+            continue
+
         setting = g_settings[k]
         if not setting.cli:
             continue
