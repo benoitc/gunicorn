@@ -101,7 +101,6 @@ class Logger(object):
                     fmt=logging.Formatter(self.access_fmt))
         else:
             if os.path.exists(cfg.logconfig):
-                util.check_is_writeable(cfg.logconfig)
                 fileConfig(cfg.logconfig)
             else:
                 raise RuntimeError("Error: log config '%s' not found" % path)
