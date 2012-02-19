@@ -8,8 +8,45 @@ import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 import sys
 import traceback
+import threading
 
 from gunicorn import util
+
+class LazyWriter(object):
+
+    """
+    File-like object that opens a file lazily when it is first written
+    to.
+    """
+
+    def __init__(self, filename, mode='w'):
+        self.filename = filename
+        self.fileobj = None
+        self.lock = threading.Lock()
+        self.mode = mode
+
+    def open(self):
+        if self.fileobj is None:
+            self.lock.acquire()
+            try:
+                if self.fileobj is None:
+                    self.fileobj = open(self.filename, self.mode)
+            finally:
+                self.lock.release()
+        return self.fileobj
+
+    def write(self, text):
+        fileobj = self.open()
+        fileobj.write(text)
+        fileobj.flush()
+
+    def writelines(self, text):
+        fileobj = self.open()
+        fileobj.writelines(text)
+        fileobj.flush()
+
+    def flush(self):
+        self.open().flush()
 
 class Logger(object):
 
@@ -38,6 +75,14 @@ class Logger(object):
         self.cfg = cfg
 
         loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+
+        if cfg.errorlog != "-":
+            # if an error log file is set redirect stdout & stderr to
+            # this log file.
+            stdout_log = LazyWriter(cfg.errorlog, 'a')
+            sys.stdout = stdout_log
+            sys.stderr = stdout_log
+
         self.error_log.setLevel(loglevel)
 
         # always info in access log
@@ -45,7 +90,6 @@ class Logger(object):
 
         self._set_handler(self.error_log, cfg.errorlog,
                 logging.Formatter(self.error_fmt, self.datefmt))
-
 
         if cfg.accesslog is not None:
             self._set_handler(self.access_log, cfg.accesslog,
