@@ -13,7 +13,9 @@ except ImportError:
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, LimitRequestLine
+
+MAX_REQUEST_LINE = 8190
 
 class Message(object):
     def __init__(self, cfg, unreader):
@@ -107,6 +109,12 @@ class Request(Message):
         self.query = None
         self.fragment = None
 
+        # get max request line size
+        self.limit_request_line = max(cfg.limit_request_line,
+                MAX_REQUEST_LINE)
+        if self.limit_request_line <= 0:
+            self.limit_request_line = MAX_REQUEST_LINE
+
         super(Request, self).__init__(cfg, unreader)
 
 
@@ -123,32 +131,39 @@ class Request(Message):
         self.get_data(unreader, buf, stop=True)
 
         # Request line
-        idx = buf.getvalue().find("\r\n")
-        while idx < 0:
+        data = buf.getvalue()
+        while True:
+            idx = data.find("\r\n")
+            if idx >= 0:
+                break
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n")
-        self.parse_request_line(buf.getvalue()[:idx])
-        rest = buf.getvalue()[idx+2:] # Skip \r\n
-        buf = StringIO()
-        buf.write(rest)
+            data = buf.getvalue()
 
+            if len(data) - 2 > self.limit_request_line:
+                raise LimitRequestLine(len(data), self.cfg.limit_request_line)
+
+        self.parse_request_line(data[:idx])
+        buf = StringIO()
+        buf.write(data[idx+2:]) # Skip \r\n
 
         # Headers
-        idx = buf.getvalue().find("\r\n\r\n")
+        data = buf.getvalue()
+        idx = data.find("\r\n\r\n")
 
-        done = buf.getvalue()[:2] == "\r\n"
+        done = data[:2] == "\r\n"
         while idx < 0 and not done:
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n\r\n")
-            done = buf.getvalue()[:2] == "\r\n"
+            data = buf.getvalue()
+            idx = data.find("\r\n\r\n")
+            done = data[:2] == "\r\n"
 
         if done:
-            self.unreader.unread(buf.getvalue()[2:])
+            self.unreader.unread(data[2:])
             return ""
 
-        self.headers = self.parse_headers(buf.getvalue()[:idx])
+        self.headers = self.parse_headers(data[:idx])
 
-        ret = buf.getvalue()[idx+4:]
+        ret = data[idx+4:]
         buf = StringIO()
         return ret
 

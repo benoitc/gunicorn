@@ -425,6 +425,29 @@ class Keepalive(Setting):
         Generally set in the 1-5 seconds range.
         """
 
+class LimitRequestLine(Setting):
+    name = "limit_request_line"
+    section = "Security"
+    cli = ["--limit-request-line"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 4094
+    desc = """\
+        The maximum size of HTTP request line in bytes.
+
+        This parameter is used to limit the allowed size of a client's
+        HTTP request-line. Since the request-line consists of the HTTP
+        method, URI, and protocol version, this directive places a
+        restriction on the length of a request-URI allowed for a request
+        on the server. A server needs this value to be large enough to
+        hold any of its resource names, including any information that
+        might be passed in the query part of a GET request. By default
+        this value is 4094 and can't be larger than 8190.
+
+        This parameter can be used to prevent any DDOS attack.
+        """
+
 class Debug(Setting):
     name = "debug"
     section = "Debugging"
