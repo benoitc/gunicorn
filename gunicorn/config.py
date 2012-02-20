@@ -688,6 +688,8 @@ class AccessLogFormat(Setting):
 
 
         h: remote address
+        l: '-'
+        u: currently '-', may be user name in future releases
         t: date of the request
         r: status line (ex: GET / HTTP/1.1)
         s: status
