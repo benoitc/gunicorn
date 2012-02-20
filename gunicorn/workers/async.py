@@ -27,7 +27,7 @@ class AsyncWorker(base.Worker):
 
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
+            parser = http.RequestParser(self.cfg, client)
             try:
                 while True:
                     req = None

@@ -66,7 +66,7 @@ class SyncWorker(base.Worker):
 
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
+            parser = http.RequestParser(self.cfg, client)
             req = parser.next()
             self.handle_request(req, client, addr)
         except StopIteration, e:

@@ -16,7 +16,8 @@ from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
 
 class Message(object):
-    def __init__(self, unreader):
+    def __init__(self, cfg, unreader):
+        self.cfg = cfg
         self.unreader = unreader
         self.version = None
         self.headers = []
@@ -96,7 +97,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, unreader):
+    def __init__(self, cfg, unreader):
         self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
         self.versre = re.compile("HTTP/(\d+).(\d+)")
 
@@ -106,7 +107,7 @@ class Request(Message):
         self.query = None
         self.fragment = None
 
-        super(Request, self).__init__(unreader)
+        super(Request, self).__init__(cfg, unreader)
 
 
     def get_data(self, unreader, buf, stop=False):
@@ -119,7 +120,6 @@ class Request(Message):
 
     def parse(self, unreader):
         buf = StringIO()
-
         self.get_data(unreader, buf, stop=True)
 
         # Request line
