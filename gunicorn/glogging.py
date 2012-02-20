@@ -157,6 +157,9 @@ class Logger(object):
         atoms.update(dict([(k,v) for k, v in environ.items() \
                 if k.startswith('HTTP_')]))
 
+        # add Response headers
+        print resp.headers
+
         for k, v in atoms.items():
             atoms[k] = v.replace('"', '\\"')
 
