@@ -144,7 +144,7 @@ tmp_upload_dir = None
 #   Logging
 #
 #   logfile - The path to a log file to write to.
-#   
+#
 #       A path string. "-" means log to stdout.
 #
 #   loglevel - The granularity of log output

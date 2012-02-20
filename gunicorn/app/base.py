@@ -102,6 +102,19 @@ class Application(object):
         return self.callable
 
     def run(self):
+        if self.cfg.check_config:
+            try:
+
+                self.load()
+            except:
+                sys.stderr.write("\nError while loading the application:\n\n")
+                traceback.print_exc()
+
+                sys.stderr.flush()
+                sys.exit(1)
+
+            sys.exit(0)
+
         if self.cfg.spew:
             debug.spew()
         if self.cfg.daemon:

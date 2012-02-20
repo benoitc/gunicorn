@@ -507,6 +507,17 @@ class Spew(Setting):
         This is the nuclear option.
         """
 
+class ConfigCheck(Setting):
+    name = "check_config"
+    section = "Debugging"
+    cli = ["--check-config",]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Check the configuration..
+        """
+
 class PreloadApp(Setting):
     name = "preload_app"
     section = "Server Mechanics"
