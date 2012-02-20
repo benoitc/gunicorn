@@ -102,9 +102,6 @@ class Request(Message):
 
         self.method = None
         self.uri = None
-        self.scheme = None
-        self.host = None
-        self.port = 80
         self.path = None
         self.query = None
         self.fragment = None
@@ -166,15 +163,17 @@ class Request(Message):
         self.method = bits[0].upper()
 
         # URI
-        self.uri = bits[1]
-        parts = urlparse.urlsplit(bits[1])
-        self.scheme = parts.scheme or ''
-        self.host = parts.netloc or None
-        if parts.port is None:
-            self.port = 80
+        # When the path starts with //, urlsplit considers it as a
+        # relative uri while the RDF says it shouldnt
+        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
+        # considers it as an absolute url.
+        # fix issue #297
+        if bits[1].startswith("//"):
+            self.uri = bits[1][1:]
         else:
-            self.host = self.host.rsplit(":", 1)[0]
-            self.port = parts.port
+            self.uri = bits[1]
+
+        parts = urlparse.urlsplit(self.uri)
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
