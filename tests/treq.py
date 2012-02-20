@@ -98,7 +98,7 @@ class request(object):
         return 1
 
     def size_small_random(self):
-        return random.randint(0, 4)
+        return random.randint(1, 4)
 
     def size_random(self):
         return random.randint(1, 4096)
