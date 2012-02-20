@@ -16,7 +16,7 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine
+LimitRequestLine, LimitRequestHeaders
 
 
 class Worker(object):
@@ -149,7 +149,9 @@ class Worker(object):
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "<p>Invalid Header '%s'</p>" % str(exc)
             elif isinstance(exc, LimitRequestLine):
-                msg = str(exc)
+                msg = "<p>%s</p>" % str(exc)
+            elif isinstance(exc, LimitRequestHeaders):
+                msg = "<p>Error parsing headers: '%s'</p>" % str(exc)
 
         if self.debug:
             tb =  traceback.format_exc()

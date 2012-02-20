@@ -448,6 +448,38 @@ class LimitRequestLine(Setting):
         This parameter can be used to prevent any DDOS attack.
         """
 
+class LimitRequestFields(Setting):
+    name = "limit_request_fields"
+    section = "Security"
+    cli = ["--limit-request-fields"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 100
+    desc= """\
+        Limit the number of HTTP headers fields in a request.
+
+        Value is a number from 0 (unlimited) to 32768. This parameter is
+        used to limit the number of headers in a request to prevent DDOS
+        attack. Used with the `limit_request_field_size` it allows more
+        safety.
+        """
+
+class LimitRequestFieldSize(Setting):
+    name = "limit_request_field_size"
+    section = "Security"
+    cli = ["--limit-request-field_size"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 8190
+    desc= """\
+        Limit he allowed size of an HTTP request header field.
+
+        Value is a number from 0 (unlimited) to 8190. to set the limit
+        on the allowed size of an HTTP request header field.
+        """
+
 class Debug(Setting):
     name = "debug"
     section = "Debugging"

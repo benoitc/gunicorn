@@ -13,9 +13,12 @@ except ImportError:
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, LimitRequestLine
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
+LimitRequestLine, LimitRequestHeaders
 
 MAX_REQUEST_LINE = 8190
+MAX_HEADERS = 32768
+MAX_HEADERFIELD_SIZE = 8190
 
 class Message(object):
     def __init__(self, cfg, unreader):
@@ -27,6 +30,19 @@ class Message(object):
         self.body = None
 
         self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
+
+        # set headers limits
+        self.limit_request_fields = max(cfg.limit_request_fields, MAX_HEADERS)
+        if self.limit_request_fields <= 0:
+            self.limit_request_fields = MAX_HEADERS
+        self.limit_request_field_size = max(cfg.limit_request_field_size,
+                MAX_HEADERFIELD_SIZE)
+        if self.limit_request_field_size <= 0:
+            self.limit_request_field_size = MAX_HEADERFIELD_SIZE
+
+        # set max header buffer size
+        self.max_buffer_headers = self.limit_request_fields * \
+                (self.limit_request_field_size + 2) + 4
 
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
@@ -44,6 +60,9 @@ class Message(object):
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
         while len(lines):
+            if len(headers) > self.limit_request_fields:
+                raise LimitRequestHeaders("limit request headers fields")
+
             # Parse initial header name : value pair.
             curr = lines.pop(0)
             if curr.find(":") < 0:
@@ -52,12 +71,16 @@ class Message(object):
             name = name.rstrip(" \t").upper()
             if self.hdrre.search(name):
                 raise InvalidHeaderName(name)
+
             name, value = name.strip(), [value.lstrip()]
 
             # Consume value continuation lines
             while len(lines) and lines[0].startswith((" ", "\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
+
+            if len(value) > self.limit_request_field_size:
+                raise LimitRequestHeaders("limit request field size")
 
             headers.append((name, value))
         return headers
@@ -114,7 +137,6 @@ class Request(Message):
                 MAX_REQUEST_LINE)
         if self.limit_request_line <= 0:
             self.limit_request_line = MAX_REQUEST_LINE
-
         super(Request, self).__init__(cfg, unreader)
 
 
@@ -151,11 +173,17 @@ class Request(Message):
         idx = data.find("\r\n\r\n")
 
         done = data[:2] == "\r\n"
-        while idx < 0 and not done:
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
+        while True:
             idx = data.find("\r\n\r\n")
             done = data[:2] == "\r\n"
+
+            if idx < 0 and not done:
+                self.get_data(unreader, buf)
+                data = buf.getvalue()
+                if len(data) > self.max_buffer_headers:
+                    raise LimitRequestHeaders("max buffer headers")
+            else:
+                break
 
         if done:
             self.unreader.unread(data[2:])
