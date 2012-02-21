@@ -6,11 +6,8 @@
 from optparse import make_option
 import sys
 
-
-import django
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from django.utils import translation
 
 from gunicorn.app.djangoapp import DjangoApplicationCommand
 from gunicorn.config import make_settings
@@ -75,8 +72,6 @@ class Command(BaseCommand):
         admin_media_path = options.pop('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
 
-        print "\nDjango version %s, using settings %r" % (django.get_version(),
-                                            settings.SETTINGS_MODULE)
         print "Server is running"
         print "Quit the server with %s." % quit_command
 
