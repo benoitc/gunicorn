@@ -18,21 +18,11 @@ def patch_django():
             import thread
             _get_ident = thread.get_ident
 
-            def _init(self, settings_dict, alias=DEFAULT_DB_ALIAS,
-                    allow_thread_sharing=False):
-                self.connection = None
-                self.queries = []
-                self.settings_dict = settings_dict
-                self.alias = alias
-                self.use_debug_cursor = None
+            __old__init__ = BaseDatabaseWrapper.__init__
 
-                # Transaction related attributes
-                self.transaction_state = []
-                self.savepoint_state = 0
-                self._dirty = None
+            def _init(self, *args, **kwargs):
+                __old__init__(self, *args, **kwargs)
                 self._thread_ident = _get_ident()
-                self.allow_thread_sharing = allow_thread_sharing
-
 
             def _validate_thread_sharing(self):
                 if (not self.allow_thread_sharing
