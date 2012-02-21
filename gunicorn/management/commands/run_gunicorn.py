@@ -70,5 +70,4 @@ class Command(BaseCommand):
         options['default_proc_name'] = settings.SETTINGS_MODULE
 
         admin_media_path = options.pop('admin_media_path', '')
-        quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
         DjangoApplicationCommand(options, admin_media_path).run()
