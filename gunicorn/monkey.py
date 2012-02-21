@@ -47,5 +47,5 @@ def patch_django():
             BaseDatabaseWrapper.validate_thread_sharing = _validate_thread_sharing
 
     except ImportError, e:
-        patch_django_db_backends = None
+        pass
 
