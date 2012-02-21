@@ -57,7 +57,6 @@ def make_default_env(cfg):
             sys.path.insert(0, pythonpath)
 
         if project_path not in sys.path:
-            print project_path
             sys.path.insert(0, project_path)
 
 
