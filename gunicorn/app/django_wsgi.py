@@ -29,6 +29,7 @@ except ImportError:
 
 from gunicorn import util
 
+
 def make_wsgi_application():
     # validate models
     s = StringIO()

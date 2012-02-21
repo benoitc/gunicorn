@@ -22,6 +22,7 @@ from gevent.server import StreamServer
 from gevent import pywsgi
 
 import gunicorn
+from gunicorn.monkey import patch_django
 from gunicorn.workers.async import AsyncWorker
 from gunicorn.workers.base import Worker
 
@@ -46,6 +47,7 @@ class GeventWorker(AsyncWorker):
     def setup(cls):
         from gevent import monkey
         monkey.noisy = False
+        patch_django()
         monkey.patch_all()
 
 
@@ -58,7 +60,7 @@ class GeventWorker(AsyncWorker):
         pool = Pool(self.worker_connections)
         if self.server_class is not None:
             server = self.server_class(
-                self.socket, application=self.wsgi, spawn=pool, log=self.log,
+                self.socket, application=self.app.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
         else:
             server = StreamServer(self.socket, handle=self.handle, spawn=pool)

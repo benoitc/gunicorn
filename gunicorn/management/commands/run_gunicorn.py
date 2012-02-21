@@ -7,7 +7,6 @@ from optparse import make_option
 import sys
 
 from django.core.management.base import BaseCommand, CommandError
-from django.conf import settings
 
 from gunicorn.app.djangoapp import DjangoApplicationCommand
 from gunicorn.config import make_settings
@@ -66,8 +65,6 @@ class Command(BaseCommand):
 
         if addrport:
             options['bind'] = addrport
-
-        options['default_proc_name'] = settings.SETTINGS_MODULE
 
         admin_media_path = options.pop('admin_media_path', '')
         DjangoApplicationCommand(options, admin_media_path).run()
