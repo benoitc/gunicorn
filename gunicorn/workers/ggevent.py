@@ -22,7 +22,6 @@ from gevent.server import StreamServer
 from gevent import pywsgi
 
 import gunicorn
-from gunicorn.monkey import patch_django
 from gunicorn.workers.async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
@@ -46,9 +45,7 @@ class GeventWorker(AsyncWorker):
     def setup(cls):
         from gevent import monkey
         monkey.noisy = False
-        patch_django()
         monkey.patch_all()
-
 
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
