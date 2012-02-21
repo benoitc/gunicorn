@@ -11,7 +11,6 @@ def patch_django():
     """
 
     try:
-        from django.db import DEFAULT_DB_ALIAS
         from django.db.backends import BaseDatabaseWrapper, DatabaseError
 
         if "validate_thread_sharing" in BaseDatabaseWrapper.__dict__:
@@ -36,6 +35,6 @@ def patch_django():
             BaseDatabaseWrapper.__init__ = _init
             BaseDatabaseWrapper.validate_thread_sharing = _validate_thread_sharing
 
-    except ImportError, e:
+    except ImportError:
         pass
 

@@ -3,11 +3,9 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import imp
 import os
 import sys
 
-from gunicorn.config import Config
 from gunicorn.app.base import Application
 from gunicorn import util
 
@@ -27,8 +25,8 @@ def find_settings_module(path):
             if lvl > 2:
                 break
     elif os.path.isfile(path):
-        project_path = os.path.dirname(settings_path)
-        settings_name, _  = os.path.splitext(os.path.basename(settings_path))
+        project_path = os.path.dirname(path)
+        settings_name, _  = os.path.splitext(os.path.basename(path))
 
     return project_path, settings_name
 
@@ -43,16 +41,17 @@ def make_default_env(cfg):
             sys.path.insert(0, pythonpath)
 
     try:
-        settings_modname = os.environ['DJANGO_SETTINGS_MODULE']
+        _ = os.environ['DJANGO_SETTINGS_MODULE']
     except KeyError:
         # not settings env set, try to build one.
         project_path, settings_name = find_settings_module(os.getcwd())
 
         if not project_path:
-            raise RunTimeError("django project not found")
+            raise RuntimeError("django project not found")
 
         pythonpath, project_name = os.path.split(project_path)
-        os.environ['DJANGO_SETTINGS_MODULE'] = "%s.settings" % project_name
+        os.environ['DJANGO_SETTINGS_MODULE'] = "%s.%s" % (project_name,
+                settings_name)
         if pythonpath not in sys.path:
             sys.path.insert(0, pythonpath)
 
@@ -72,7 +71,7 @@ class DjangoApplication(Application):
                         os.path.abspath(args[0]))
 
                 if not project_path:
-                    raise RunTimeError("django project not found")
+                    raise RuntimeError("django project not found")
 
                 pythonpath, project_name = os.path.split(project_path)
                 self.cfg.set("django_settings", "%s.%s" % (project_name,

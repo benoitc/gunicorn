@@ -4,7 +4,6 @@
 # See the NOTICE for more information.
 
 from optparse import make_option
-import sys
 
 from django.core.management.base import BaseCommand, CommandError
 

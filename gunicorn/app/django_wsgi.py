@@ -5,7 +5,6 @@
 
 """ module used to build the django wsgi application """
 
-import logging
 import os
 import re
 import sys
@@ -16,10 +15,9 @@ except ImportError:
     from StringIO import StringIO
 
 from django.conf import settings
-from django.core.management.base import CommandError
 from django.core.management.validation import get_validation_errors
 from django.utils import translation
-from django.core.servers.basehttp import AdminMediaHandler, WSGIServerException
+from django.core.servers.basehttp import AdminMediaHandler
 try:
     from django.core.servers.basehttp import get_internal_wsgi_application
     django14 = True

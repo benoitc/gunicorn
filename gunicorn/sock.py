@@ -4,7 +4,6 @@
 # See the NOTICE for more information.
 
 import errno
-import logging
 import os
 import socket
 import sys

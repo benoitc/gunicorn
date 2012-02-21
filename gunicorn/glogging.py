@@ -103,7 +103,7 @@ class Logger(object):
             if os.path.exists(cfg.logconfig):
                 fileConfig(cfg.logconfig)
             else:
-                raise RuntimeError("Error: log config '%s' not found" % path)
+                raise RuntimeError("Error: log config '%s' not found" % cfg.logconfig)
 
 
     def critical(self, msg, *args, **kwargs):

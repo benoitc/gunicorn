@@ -24,7 +24,6 @@ from gevent import pywsgi
 import gunicorn
 from gunicorn.monkey import patch_django
 from gunicorn.workers.async import AsyncWorker
-from gunicorn.workers.base import Worker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 

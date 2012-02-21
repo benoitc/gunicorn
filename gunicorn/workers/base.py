@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-
-import logging
 import os
 import signal
 import sys
@@ -149,9 +147,9 @@ class Worker(object):
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "<p>Invalid Header '%s'</p>" % str(exc)
             elif isinstance(exc, LimitRequestLine):
-                msg = "<p>%s</p>" % str(exc)
+                mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
-                msg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
 
         if self.debug:
             tb =  traceback.format_exc()
