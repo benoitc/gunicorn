@@ -71,8 +71,4 @@ class Command(BaseCommand):
 
         admin_media_path = options.pop('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
-
-        print "Server is running"
-        print "Quit the server with %s." % quit_command
-
         DjangoApplicationCommand(options, admin_media_path).run()
