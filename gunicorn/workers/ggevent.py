@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -42,13 +42,13 @@ class GeventWorker(AsyncWorker):
     server_class = None
     wsgi_handler = None
 
-    @classmethod  
+    @classmethod
     def setup(cls):
         from gevent import monkey
         monkey.noisy = False
         monkey.patch_all()
-        
-        
+
+
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
@@ -70,9 +70,9 @@ class GeventWorker(AsyncWorker):
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
-        
+
                 gevent.sleep(1.0)
-                
+
         except KeyboardInterrupt:
             pass
 
@@ -105,7 +105,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
         self.server.log.access(self, self.environ, response_time)
-        
+
     def get_environ(self):
         env = super(PyWSGIHandler, self).get_environ()
         env['gunicorn.sock'] = self.socket
