@@ -75,13 +75,9 @@ class Command(BaseCommand):
         admin_media_path = options.pop('admin_media_path', '')
         quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
 
-        print "Validating models..."
-        self.validate(display_num_errors=True)
         print "\nDjango version %s, using settings %r" % (django.get_version(),
                                             settings.SETTINGS_MODULE)
         print "Server is running"
         print "Quit the server with %s." % quit_command
 
-        # django.core.management.base forces the locale to en-us.
-        translation.activate(settings.LANGUAGE_CODE)
         DjangoApplicationCommand(options, admin_media_path).run()
