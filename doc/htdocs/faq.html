@@ -86,7 +86,8 @@ you should use one of the async workers.</p>
 </div>
 <div class="section" id="how-can-i-change-the-number-of-workers-dynamically">
 <h3><a class="toc-backref" href="#contents">How can I change the number of workers dynamically?</a></h3>
-<blockquote>
+<p>TTIN and TTOU signals can be sent to the master to increase or decrease
+the number of workers.</p>
 <p>To increase the worker count by one:</p>
 <pre class="literal-block">
 $ kill -TTIN $masterpid
@@ -95,7 +96,6 @@ $ kill -TTIN $masterpid
 <pre class="literal-block">
 $ kill -TTOU $masterpid
 </pre>
-</blockquote>
 </div>
 </div>
 <div class="section" id="kernel-parameters">

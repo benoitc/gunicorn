@@ -128,6 +128,12 @@ $ deactivate
 </pre>
 <p>Then you just need to use one of the three Gunicorn scripts that was installed
 into <tt class="docutils literal">~/venvs/webapp/bin</tt>.</p>
+<p>Note: You can force the installation of Gunicorn in your Virtualenv by
+passing <tt class="docutils literal"><span class="pre">-I</span></tt> or <tt class="docutils literal"><span class="pre">--ignore-installed</span></tt> option to pip:</p>
+<pre class="literal-block">
+$ source ~/venvs/webapp/bin/activate
+$ pip install -I gunicorn
+</pre>
 </div>
 <div class="section" id="monitoring">
 <h2><a class="toc-backref" href="#contents">Monitoring</a></h2>

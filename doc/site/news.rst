@@ -12,20 +12,20 @@ _TOC_BOT_
 -------------------
 
 - check if Request line is too large: You can now pass the parameter
-  '--limit-request-line` or set the 'limit_request_line` in your
+  ``--limit-request-line`` or set the ``limit_request_line`` in your
   configuration file to set the max size of the request line in bytes.
 - limit the number of headers fields and their size. Add
-  '--limit-request-fields` and 'limit-request-field-size` settings
-- add 'p' variable to the log access format to log pidfile
-- add '{HeaderName}o' variable to the logo access format to log the
+  ``--limit-request-field`` and ``limit-request-field-size`` settings
+- add ``p`` variable to the log access format to log pidfile
+- add ``{HeaderName}o`` variable to the logo access format to log the
   response header HeaderName
-- request header is now logged with the variable '{HeaderName}i' in the
+- request header is now logged with the variable ``{HeaderName}i`` in the
   access log file
 - improve error logging
 - support logging.configFile
 - support django 1.4 in both gunicorn_django & run_gunicorn command
 - improve reload in django run_gunicorn command (should just work now)
-- allows people to set the 'X-Forwarded-For` header key and disable it by
+- allows people to set the ``X-Forwarded-For`` header key and disable it by
   setting an empty string.
 - fix support of Tornado
 - many other fixes.
