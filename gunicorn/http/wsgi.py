@@ -157,6 +157,7 @@ class Response(object):
         self.headers_sent = False
         self.response_length = None
         self.sent = 0
+        self.upgrade = False
 
     def force_close(self):
         self.must_close = True
@@ -192,11 +193,11 @@ class Response(object):
             elif util.is_hoppish(name):
                 if lname == "connection":
                     # handle websocket
-                    if value.lower().strip() != "upgrade":
-                        continue
-                else:
-                    # ignore hopbyhop headers
-                    continue
+                    if value.lower().strip() == "upgrade":
+                        self.upgrade = True
+
+                # ignore hopbyhop headers
+                continue
             self.headers.append((name.strip(), str(value).strip()))
 
 
@@ -215,9 +216,14 @@ class Response(object):
         return True
 
     def default_headers(self):
-        connection = "keep-alive"
-        if self.should_close():
+        # set the connection header
+        if self.upgrade:
+            connection = "upgrade"
+        elif self.should_close():
             connection = "close"
+        else:
+            connection = "keepalive"
+
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
                 self.req.version[1], self.status),
