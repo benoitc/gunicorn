@@ -678,7 +678,7 @@ class AccessLogFormat(Setting):
     cli = ["--access-logformat"]
     meta = "STRING"
     validator = validate_string
-    default = "%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+    default = '"%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
     desc = """\
         The Access log format .
 
@@ -699,9 +699,8 @@ class AccessLogFormat(Setting):
         T: request time in seconds
         D: request time in microseconds,
         p: process ID
-
-        You can also pass any WSGI request header as a parameter.
-        (ex '%(HTTP_HOST)s').
+        {Header}i: request header
+        {Header}o: response header
         """
 
 class ErrorLog(Setting):

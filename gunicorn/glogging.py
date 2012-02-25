@@ -54,6 +54,26 @@ class LazyWriter(object):
     def flush(self):
         self.open().flush()
 
+class SafeAtoms(dict):
+
+    def __init__(self, atoms):
+        dict.__init__(self)
+        for key, value in atoms.items():
+            self[key] = value.replace('"', '\\"')
+
+    def __getitem__(self, k):
+        if k.startswith("{"):
+            kl = k.lower()
+            if kl in self:
+                return super(SafeAtoms, self).__getitem__(kl)
+            else:
+                return "-"
+        if k in self:
+            return super(SafeAtoms, self).__getitem__(k)
+        else:
+            return '-'
+
+
 class Logger(object):
 
     LOG_LEVELS = {
@@ -129,7 +149,7 @@ class Logger(object):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 
-    def access(self, resp, environ, request_time):
+    def access(self, resp, req, environ, request_time):
         """ Seee http://httpd.apache.org/docs/2.0/logs.html#combined
         for format details
         """
@@ -154,15 +174,19 @@ class Logger(object):
                 'p': "<%s>" % os.getpid()
                 }
 
-        # add WSGI request headers
-        atoms.update(dict([(k,v) for k, v in environ.items() \
-                if k.startswith('HTTP_')]))
+        # add request headers
+        atoms.update(dict([("{%s}i" % k.lower(),v) for k, v in req.headers]))
 
-        for k, v in atoms.items():
-            atoms[k] = v.replace('"', '\\"')
+        # add response headers
+        atoms.update(dict([("{%s}o" % k.lower(),v) for k, v in resp.headers]))
+
+        # wrap atoms:
+        # - make sure atoms will be test case insensitively
+        # - if atom doesn't exist replace it by '-'
+        safe_atoms = SafeAtoms(atoms)
 
         try:
-            self.access_log.info(self.cfg.access_log_format % atoms)
+            self.access_log.info(self.cfg.access_log_format % safe_atoms)
         except:
             self.error(traceback.format_exc())
 
