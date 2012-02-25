@@ -79,9 +79,6 @@ class Message(object):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
 
-            if len(value) > self.limit_request_field_size:
-                raise LimitRequestHeaders("limit request field size")
-
             headers.append((name, value))
         return headers
 
