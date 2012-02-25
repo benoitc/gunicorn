@@ -150,7 +150,8 @@ class Logger(object):
                 'f': environ.get('HTTP_REFERER', '-'),
                 'a': environ.get('HTTP_USER_AGENT', '-'),
                 'T': str(request_time.seconds),
-                'D': str(request_time.microseconds)
+                'D': str(request_time.microseconds),
+                'p': "<%s>" % os.getpid()
                 }
 
         # add WSGI request headers
