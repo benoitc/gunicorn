@@ -858,9 +858,9 @@ class WhenReady(Setting):
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
-    def start_server(server):
+    def when_ready(server):
         pass
-    default = staticmethod(start_server)
+    default = staticmethod(when_ready)
     desc = """\
         Called just after the server is started.
 
