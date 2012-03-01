@@ -15,7 +15,7 @@ from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
-from gunicorn.py3compat import StringIO
+from gunicorn.py3compat import BytesIO, b2s
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -30,7 +30,7 @@ class Message(object):
         self.trailers = []
         self.body = None
 
-        self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
+        self.hdrre = re.compile(b"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 
         # set headers limits
         self.limit_request_fields = max(cfg.limit_request_fields, MAX_HEADERS)
@@ -56,7 +56,7 @@ class Message(object):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = [line + "\r\n" for line in data.split("\r\n")]
+        lines = [line + b"\r\n" for line in data.split(b"\r\n")]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -66,21 +66,21 @@ class Message(object):
 
             # Parse initial header name : value pair.
             curr = lines.pop(0)
-            if curr.find(":") < 0:
+            if curr.find(b":") < 0:
                 raise InvalidHeader(curr.strip())
-            name, value = curr.split(":", 1)
-            name = name.rstrip(" \t").upper()
+            name, value = curr.split(b":", 1)
+            name = name.rstrip(b" \t").upper()
             if self.hdrre.search(name):
                 raise InvalidHeaderName(name)
 
             name, value = name.strip(), [value.lstrip()]
 
             # Consume value continuation lines
-            while len(lines) and lines[0].startswith((" ", "\t")):
+            while len(lines) and lines[0].startswith((b" ", b"\t")):
                 value.append(lines.pop(0))
-            value = ''.join(value).rstrip()
+            value = b''.join(value).rstrip()
 
-            headers.append((name, value))
+            headers.append((b2s(name), b2s(value)))
         return headers
 
     def set_body_reader(self):
@@ -93,7 +93,7 @@ class Message(object):
                 except ValueError:
                     response_length = None
             elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == "chunked"
+                chunked = value.lower() == u("chunked")
             elif name == "SEC-WEBSOCKET-KEY1":
                 response_length = 8
 
@@ -121,8 +121,8 @@ class Message(object):
 
 class Request(Message):
     def __init__(self, cfg, unreader):
-        self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
-        self.versre = re.compile("HTTP/(\d+).(\d+)")
+        self.methre = re.compile(b"[A-Z0-9$-_.]{3,20}")
+        self.versre = re.compile(b"HTTP/(\d+).(\d+)")
 
         self.method = None
         self.uri = None
@@ -147,13 +147,13 @@ class Request(Message):
         buf.write(data)
 
     def parse(self, unreader):
-        buf = StringIO()
+        buf = BytesIO()
         self.get_data(unreader, buf, stop=True)
 
         # Request line
         data = buf.getvalue()
         while True:
-            idx = data.find("\r\n")
+            idx = data.find(b"\r\n")
             if idx >= 0:
                 break
             self.get_data(unreader, buf)
@@ -163,17 +163,17 @@ class Request(Message):
                 raise LimitRequestLine(len(data), self.cfg.limit_request_line)
 
         self.parse_request_line(data[:idx])
-        buf = StringIO()
+        buf = BytesIO()
         buf.write(data[idx+2:]) # Skip \r\n
 
         # Headers
         data = buf.getvalue()
-        idx = data.find("\r\n\r\n")
+        idx = data.find(b"\r\n\r\n")
 
-        done = data[:2] == "\r\n"
+        done = data[:2] == b"\r\n"
         while True:
-            idx = data.find("\r\n\r\n")
-            done = data[:2] == "\r\n"
+            idx = data.find(b"\r\n\r\n")
+            done = data[:2] == b"\r\n"
 
             if idx < 0 and not done:
                 self.get_data(unreader, buf)
@@ -185,12 +185,12 @@ class Request(Message):
 
         if done:
             self.unreader.unread(data[2:])
-            return ""
+            return b""
 
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx+4:]
-        buf = StringIO()
+        buf = BytesIO()
         return ret
 
     def parse_request_line(self, line):
@@ -209,15 +209,15 @@ class Request(Message):
         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
         # considers it as an absolute url.
         # fix issue #297
-        if bits[1].startswith("//"):
+        if bits[1].startswith(b"//"):
             self.uri = bits[1][1:]
         else:
             self.uri = bits[1]
 
         parts = urlparse.urlsplit(self.uri)
-        self.path = parts.path or ""
-        self.query = parts.query or ""
-        self.fragment = parts.fragment or ""
+        self.path = b2s(parts.path) or ""
+        self.query = b2s(parts.query) or ""
+        self.fragment = b2s(parts.fragment) or ""
 
         # Version
         match = self.versre.match(bits[2])
