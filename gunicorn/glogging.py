@@ -6,15 +6,11 @@
 import datetime
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
+from logging.config import fileConfig
 import os
 import sys
 import traceback
 import threading
-
-try:
-    from logging.config import fileConfig
-except ImportError:
-    from gunicorn.logging_config import fileConfig
 
 from gunicorn import util
 
