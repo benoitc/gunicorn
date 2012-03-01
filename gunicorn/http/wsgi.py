@@ -240,7 +240,6 @@ class Response(object):
             return
         tosend = self.default_headers()
         tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
-        print tosend
         util.write(self.sock, "%s\r\n" % "".join(tosend))
         self.headers_sent = True
 
