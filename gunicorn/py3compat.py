@@ -7,18 +7,32 @@ if PY3:
     integer_types = int,
     text_type = str
 
+    def b2s(s):
+        return s.decode('latin1')
+
+    def s2b(s):
+        return s.encode('latin1')
+
     import io
     StringIO = io.StringIO
+    BytesIO = io.BytesIO
 
     def raise_with_tb(E, V, T):
         raise E(V).with_traceback(T)
 
     MAXSIZE = sys.maxsize
 
+
 else:
     string_types = basestring,
     integer_types = (int, long)
     text_type = unicode
+
+    def b2s(s):
+        return s
+
+    def s2b(s):
+        return s
 
     try:
         import cStringIO
@@ -26,6 +40,8 @@ else:
     except ImportError:
         import StringIO
         StringIO = StringIO.StringIO
+
+    BytesIO = StringIO
 
     def raise_with_tb(E, V, T):
         raiseE, V, T

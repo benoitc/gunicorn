@@ -5,14 +5,14 @@
 
 import os
 
-from gunicorn.py3compat import StringIO
+from gunicorn.py3compat import BytesIO
 
 # Classes that can undo reading data from
 # a given type of data source.
 
 class Unreader(object):
     def __init__(self):
-        self.buf = StringIO()
+        self.buf = BytesIO()
 
     def chunk(self):
         raise NotImplementedError()
@@ -22,7 +22,7 @@ class Unreader(object):
             raise TypeError("size parameter must be an int or long.")
         if size == 0:
             return ""
-        if size < 0:
+        if size is not None and size < 0:
             size = None
 
         self.buf.seek(0, os.SEEK_END)
@@ -66,9 +66,9 @@ class IterUnreader(Unreader):
 
     def chunk(self):
         if not self.iter:
-            return ""
+            return b""
         try:
             return self.iter.next()
         except StopIteration:
             self.iter = None
-            return ""
+            return b""
