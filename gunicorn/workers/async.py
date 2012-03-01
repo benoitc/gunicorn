@@ -61,7 +61,7 @@ class AsyncWorker(base.Worker):
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
                 self.alive = False
-            respiter = self.app.wsgi()(environ, resp.start_response)
+            respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
             try:

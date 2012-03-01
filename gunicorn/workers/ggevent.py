@@ -56,7 +56,7 @@ class GeventWorker(AsyncWorker):
         pool = Pool(self.worker_connections)
         if self.server_class is not None:
             server = self.server_class(
-                self.socket, application=self.app.wsgi, spawn=pool, log=self.log,
+                self.socket, application=self.wsgi, spawn=pool, log=self.log,
                 handler_class=self.wsgi_handler)
         else:
             server = StreamServer(self.socket, handle=self.handle, spawn=pool)
