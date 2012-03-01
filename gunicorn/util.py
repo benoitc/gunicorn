@@ -25,6 +25,7 @@ import textwrap
 import time
 import inspect
 
+from gunicorn import py3compat
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
@@ -309,9 +310,9 @@ def http_date(timestamp=None):
 
 def to_bytestring(s):
     """ convert to bytestring an unicode """
-    if not isinstance(s, basestring):
+    if not isinstance(s, py3compat.string_types):
         return s
-    if isinstance(s, unicode):
+    if isinstance(s, py3compat.text_type) and not py3compat.PY3:
         return s.encode('utf-8')
     else:
         return s
