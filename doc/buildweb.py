@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -21,7 +21,7 @@ from jinja2.utils import open_if_exists
 from sitemap_gen import CreateSitemapFromFile
 import conf
 
-class Site(object):    
+class Site(object):
     def __init__(self):
         self.url = conf.SITE_URL.rstrip('/')
 
@@ -47,22 +47,23 @@ class Site(object):
             if not page.needed():
                 continue
 
-            print "Page: %s" % page.source
+            print("Page: %s" % page.source)
             page.write()
-    
+
     def sass_compile(self):
-        print ""
-        print "Updating css..."
+        print("")
+        print("Updating css...")
         try:
             sp.check_call(["compass", "compile", "--boring"])
         except sp.CalledProcessError:
-            print "Failed to update CSS"
-    
+            sys.stderr.write("Failed to update CSS")
+            sys.stderr.flush()
+
     def get_template(self, name):
         return self.env.get_template(name)
 
 class Page(object):
-    
+
     def __init__(self, site, filename, curr_path, tgt_path):
         self.site = site
         self.filename = filename
@@ -72,7 +73,7 @@ class Page(object):
 
         with open(self.source, 'Ur') as handle:
             raw = handle.read()
-        
+
         try:
             headers, body = raw.split("\n\n", 1)
         except ValueError:
@@ -97,7 +98,7 @@ class Page(object):
 
         newext = self.headers.get('ext', '.html')
         self.target = os.path.join(tgt_path, "%s%s" % (basename, newext))
-        
+
     def url(self):
         path = self.target.split(conf.OUTPUT_PATH)[1].lstrip('/')
         return "/".join([self.site.url, path])
@@ -106,10 +107,10 @@ class Page(object):
         for f in "force --force -f".split():
             if f in sys.argv[1:]:
                 return True
-        
+
         if not os.path.exists(self.target):
             return True
-        
+
         smtime = os.stat(self.source).st_mtime
         tmtime = os.stat(self.target).st_mtime
         return smtime > tmtime
@@ -141,7 +142,7 @@ class Page(object):
             settings_overrides=overrides
         )
         lines = parts['html_body'].splitlines()
-        
+
         toppos, botpos = None, None
         for idx, line in enumerate(lines):
             if line.find("_TOC_TOP_") >= 0:
@@ -174,13 +175,13 @@ class Page(object):
             val = " ::\n\n" + val
         else:
             val = "``%s``" % s.default
-        
+
         if s.cli and s.meta:
             args = ["%s %s" % (arg, s.meta) for arg in s.cli]
             cli = ', '.join(args)
         elif s.cli:
             cli = ", ".join(s.cli)
-        
+
         out = []
         out.append("%s" % s.name)
         out.append("~" * len(s.name))
@@ -196,6 +197,6 @@ class Page(object):
 
 def main():
     Site().render()
-    
+
 if __name__ == "__main__":
     main()

@@ -12,18 +12,18 @@ class MsgForm(forms.Form):
     subject = forms.CharField(max_length=100)
     message = forms.CharField()
     f = forms.FileField()
-    
+
 
 def home(request):
     from django.conf import settings
-    print settings.SOME_VALUE
+    print(settings.SOME_VALUE)
     subject = None
     message = None
     size = 0
-    print request.META
+    print(request.META)
     if request.POST:
         form = MsgForm(request.POST, request.FILES)
-        print request.FILES
+        print(request.FILES)
         if form.is_valid():
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
@@ -31,29 +31,29 @@ def home(request):
             size = int(os.fstat(f.fileno())[6])
     else:
         form = MsgForm()
-        
-        
+
+
     return render_to_response('home.html', {
         'form': form,
         'subject': subject,
         'message': message,
         'size': size
     }, RequestContext(request))
-    
-    
+
+
 def acsv(request):
     rows = [
         {'a': 1, 'b': 2},
         {'a': 3, 'b': 3}
     ]
- 
+
     response = HttpResponse(mimetype='text/csv')
     response['Content-Disposition'] = 'attachment; filename=report.csv'
- 
+
     writer = csv.writer(response)
     writer.writerow(['a', 'b'])
- 
+
     for r in rows:
         writer.writerow([r['a'], r['b']])
-        
+
     return response

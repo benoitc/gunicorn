@@ -55,8 +55,8 @@ Usage: python sitemap_gen.py --config=config.xml [--help] [--testing]
 # entire file has been parsed.
 import sys
 if sys.hexversion < 0x02020000:
-  print 'This script requires Python 2.2 or later.'
-  print 'Currently run with version: %s' % sys.version
+  print('This script requires Python 2.2 or later.')
+  print('Currently run with version: %s' % sys.version)
   sys.exit(1)
 
 import fnmatch
@@ -291,7 +291,7 @@ class Encoder:
     # Something is seriously wrong if we get to here
     return text.encode(ENC_ASCII, 'ignore')
   #end def NarrowText
-  
+
   def MaybeNarrowPath(self, text):
     """ Paths may be allowed to stay wide """
     if self._widefiles:
@@ -381,7 +381,7 @@ class Output:
     if text:
       text = encoder.NarrowText(text, None)
       if self._verbose >= level:
-        print text
+        print(text)
   #end def Log
 
   def Warn(self, text):
@@ -391,7 +391,7 @@ class Output:
       hash = hashlib.md5(text).hexdigest()
       if not self._warns_shown.has_key(hash):
         self._warns_shown[hash] = 1
-        print '[WARNING] ' + text
+        print('[WARNING] ' + text)
       else:
         self.Log('(suppressed) [WARNING] ' + text, 3)
       self.num_warns = self.num_warns + 1
@@ -404,7 +404,7 @@ class Output:
       hash = hashlib.md5(text).hexdigest()
       if not self._errors_shown.has_key(hash):
         self._errors_shown[hash] = 1
-        print '[ERROR] ' + text
+        print('[ERROR] ' + text)
       else:
         self.Log('(suppressed) [ERROR] ' + text, 3)
       self.num_errors = self.num_errors + 1
@@ -414,9 +414,9 @@ class Output:
     """ Output an error and terminate the program. """
     if text:
       text = encoder.NarrowText(text, None)
-      print '[FATAL] ' + text
+      print('[FATAL] ' + text)
     else:
-      print 'Fatal error.'
+      print('Fatal error.')
     sys.exit(1)
   #end def Fatal
 
@@ -484,7 +484,7 @@ class URL(object):
     """ Do encoding and canonicalization on a URL string """
     if not loc:
       return loc
-    
+
     # Let the encoder try to narrow it
     narrow = encoder.NarrowText(loc, None)
 
@@ -545,7 +545,7 @@ class URL(object):
   def Validate(self, base_url, allow_fragment):
     """ Verify the data in this URL is well-formed, and override if not. """
     assert type(base_url) == types.StringType
-    
+
     # Test (and normalize) the ref
     if not self.loc:
       output.Warn('Empty URL')
@@ -611,7 +611,7 @@ class URL(object):
   def Log(self, prefix='URL', level=3):
     """ Dump the contents, empty or not, to the log. """
     out = prefix + ':'
-    
+
     for attribute in self.__slots__:
       value = getattr(self, attribute)
       if not value:
@@ -636,7 +636,7 @@ class URL(object):
           value = str(value)
         value = xml.sax.saxutils.escape(value)
         out = out + ('  <%s>%s</%s>\n' % (attribute, value, attribute))
-    
+
     out = out + SITEURL_XML_SUFFIX
     file.write(out)
   #end def WriteXML
@@ -709,7 +709,7 @@ class Filter:
     """ Process the URL, as above. """
     if (not url) or (not url.loc):
       return None
-    
+
     if self._wildcard:
       if fnmatch.fnmatchcase(url.loc, self._wildcard):
         return self._pass
@@ -738,7 +738,7 @@ class InputURL:
     if not ValidateAttributes('URL', attributes,
                                 ('href', 'lastmod', 'changefreq', 'priority')):
       return
-    
+
     url = URL()
     for attr in attributes.keys():
       if attr == 'href':
@@ -749,7 +749,7 @@ class InputURL:
     if not url.loc:
       output.Error('Url entries must have an href attribute.')
       return
-    
+
     self._url = url
     output.Log('Input: From URL "%s"' % self._url.loc, 2)
   #end def __init__
@@ -775,7 +775,7 @@ class InputURLList:
 
     if not ValidateAttributes('URLLIST', attributes, ('path', 'encoding')):
       return
-    
+
     self._path      = attributes.get('path')
     self._encoding  = attributes.get('encoding', ENC_UTF8)
     if self._path:
@@ -808,7 +808,7 @@ class InputURLList:
       line = line.strip()
       if (not line) or line[0] == '#':
         continue
-      
+
       # Split the line on space
       url = URL()
       cols = line.split(' ')
@@ -1156,7 +1156,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   """
 
   class _ContextBase(object):
-    
+
     """Base class for context handlers in our SAX processing.  A context
     handler is a class that is responsible for understanding one level of
     depth in the XML schema.  The class knows what sub-tags are allowed,
@@ -1165,7 +1165,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
     This base class is the API filled in by specific context handlers,
     all defined below.
     """
-    
+
     def __init__(self, subtags):
       """Initialize with a sequence of the sub-tags that would be valid in
       this context."""
@@ -1209,18 +1209,18 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   #end class _ContextBase
 
   class _ContextUrlSet(_ContextBase):
-    
+
     """Context handler for the document node in a Sitemap."""
-    
+
     def __init__(self):
       InputSitemap._ContextBase.__init__(self, ('url',))
     #end def __init__
   #end class _ContextUrlSet
 
   class _ContextUrl(_ContextBase):
-    
+
     """Context handler for a URL node in a Sitemap."""
-    
+
     def __init__(self, consumer):
       """Initialize this context handler with the callable consumer that
       wants our URLs."""
@@ -1241,7 +1241,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
       self._consumer(self._url, False)
       self._url = None
     #end def Close
-  
+
     def Return(self, result):
       """A value context has closed, absorb the data it gave us."""
       assert self._url
@@ -1251,9 +1251,9 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   #end class _ContextUrl
 
   class _ContextSitemapIndex(_ContextBase):
-    
+
     """Context handler for the document node in an index file."""
-    
+
     def __init__(self):
       InputSitemap._ContextBase.__init__(self, ('sitemap',))
       self._loclist = []                    # List of accumulated Sitemap URLs
@@ -1271,7 +1271,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
         self._loclist = []
         return temp
     #end def Close
-  
+
     def Return(self, result):
       """Getting a new loc URL, add it to the collection."""
       if result:
@@ -1280,9 +1280,9 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   #end class _ContextSitemapIndex
 
   class _ContextSitemap(_ContextBase):
-    
+
     """Context handler for a Sitemap entry in an index file."""
-    
+
     def __init__(self):
       InputSitemap._ContextBase.__init__(self, ('loc', 'lastmod'))
       self._loc = None                      # The URL to the Sitemap
@@ -1310,10 +1310,10 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   #end class _ContextSitemap
 
   class _ContextValue(_ContextBase):
-    
+
     """Context handler for a single value.  We return just the value.  The
     higher level context has to remember what tag led into us."""
-    
+
     def __init__(self):
       InputSitemap._ContextBase.__init__(self, ())
       self._text        = None
@@ -1355,7 +1355,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
 
     if not ValidateAttributes('SITEMAP', attributes, ['path']):
       return
-    
+
     # Init the first file path
     path = attributes.get('path')
     if path:
@@ -1388,7 +1388,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
     self._contexts_idx = [InputSitemap._ContextSitemapIndex(),
                           InputSitemap._ContextSitemap(),
                           InputSitemap._ContextValue()]
-    
+
     self._contexts_stm = [InputSitemap._ContextUrlSet(),
                           InputSitemap._ContextUrl(consumer),
                           InputSitemap._ContextValue()]
@@ -1408,7 +1408,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
   def _ProcessFile(self, path):
     """Do per-file reading/parsing/consuming for the file path passed in."""
     assert path
-    
+
     # Open our file
     (frame, file) = OpenFileForRead(path, 'SITEMAP')
     if not file:
