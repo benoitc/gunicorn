@@ -5,16 +5,20 @@
 
 from __future__ import with_statement
 
+try:
+    import urllib.parse as urlparse
+except ImportError:
+    import urlparse
 import t
 
 import inspect
 import os
 import random
-import urlparse
 
 from gunicorn.config import Config
 from gunicorn.http.errors import ParseException
 from gunicorn.http.parser import RequestParser
+from gunicorn.py3compat import urlparse
 
 dirname = os.path.dirname(__file__)
 random.seed()
