@@ -85,7 +85,7 @@ class Config(object):
     @property
     def address(self):
         bind = self.settings['bind'].get()
-        return util.parse_address(util.to_bytestring(bind))
+        return util.parse_address(bind)
 
     @property
     def uid(self):
