@@ -18,7 +18,6 @@ import random
 from gunicorn.config import Config
 from gunicorn.http.errors import ParseException
 from gunicorn.http.parser import RequestParser
-from gunicorn.py3compat import urlparse
 
 dirname = os.path.dirname(__file__)
 random.seed()
