@@ -31,7 +31,6 @@ def make_settings(ignore=None):
         setting = s()
         if setting.name in ignore:
             continue
-        print(dir(setting))
         settings[setting.name] = setting.copy()
     return settings
 
