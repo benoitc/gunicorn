@@ -5,13 +5,9 @@
 
 import sys
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from gunicorn.http.errors import NoMoreData, ChunkMissingTerminator, \
 InvalidChunkSize
+from gunicorn.py3compat import StringIO
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):

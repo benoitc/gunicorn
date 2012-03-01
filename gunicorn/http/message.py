@@ -4,17 +4,18 @@
 # See the NOTICE for more information.
 
 import re
-import urlparse
 
 try:
-    from cStringIO import StringIO
+    import urllib.parse as urlparse
 except ImportError:
-    from StringIO import StringIO
+    import urlparse
+
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
+from gunicorn.py3compat import StringIO
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768

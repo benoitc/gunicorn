@@ -5,10 +5,7 @@
 
 import os
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from gunicorn.py3compat import StringIO
 
 # Classes that can undo reading data from
 # a given type of data source.
