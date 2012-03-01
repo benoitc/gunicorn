@@ -6,3 +6,6 @@
 version_info = (0, 14, 2)
 __version__ = ".".join(map(str, version_info))
 SERVER_SOFTWARE = "gunicorn/%s" % __version__
+
+from libmodernize.main import main
+main()

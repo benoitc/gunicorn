@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 
 import time
 
 class TestIter(object):
-    
+
     def __iter__(self):
         lines = ['line 1\n', 'line 2\n']
         for line in lines:
@@ -22,6 +22,6 @@ def app(environ, start_response):
         ('Content-type','text/plain'),
         ('Transfer-Encoding', "chunked"),
     ]
-    print 'request received'
+    print('request received')
     start_response(status, response_headers)
     return TestIter()

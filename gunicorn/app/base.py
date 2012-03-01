@@ -64,7 +64,7 @@ class Application(object):
             try:
                 execfile(opts.config, cfg, cfg)
             except Exception:
-                print "Failed to read config file: %s" % opts.config
+                print("Failed to read config file: %s" % opts.config)
                 traceback.print_exc()
                 sys.exit(1)
 
