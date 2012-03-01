@@ -7,7 +7,7 @@ import sys
 
 from gunicorn.http.errors import NoMoreData, ChunkMissingTerminator, \
 InvalidChunkSize
-from gunicorn.py3compat import StringIO
+from gunicorn.py3compat import StringIO, MAXSIZE
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
@@ -187,11 +187,11 @@ class Body(object):
 
     def getsize(self, size):
         if size is None:
-            return sys.maxint
+            return MAXSIZE
         elif not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
         elif size < 0:
-            return sys.maxint
+            return MAXSIZE
         return size
 
     def read(self, size=None):
