@@ -268,7 +268,7 @@ class badrequest(object):
         p = RequestParser(Config(), self.send())
         try:
             [req for req in p]
-        except Exception, inst:
+        except Exception as inst:
             exp = cases.pop(0)
             if not issubclass(exp, Exception):
                 raise TypeError("Test case is not an exception calss: %s" % exp)

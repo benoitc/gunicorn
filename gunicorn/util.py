@@ -350,6 +350,6 @@ def seed():
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
-    except IOError, e:
+    except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()

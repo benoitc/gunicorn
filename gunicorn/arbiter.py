@@ -180,7 +180,7 @@ class Arbiter(object):
                 self.halt()
             except KeyboardInterrupt:
                 self.halt()
-            except HaltServer, inst:
+            except HaltServer as inst:
                 self.halt(reason=inst.reason, exit_status=inst.exit_status)
             except SystemExit:
                 raise
@@ -270,7 +270,7 @@ class Arbiter(object):
         """
         try:
             os.write(self.PIPE[1], '.')
-        except IOError, e:
+        except IOError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
@@ -295,10 +295,10 @@ class Arbiter(object):
                 return
             while os.read(self.PIPE[0], 1):
                 pass
-        except select.error, e:
+        except select.error as e:
             if e[0] not in [errno.EAGAIN, errno.EINTR]:
                 raise
-        except OSError, e:
+        except OSError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
         except KeyboardInterrupt:
@@ -415,7 +415,7 @@ class Arbiter(object):
                     if not worker:
                         continue
                     worker.tmp.close()
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ECHILD:
                 pass
 
@@ -496,7 +496,7 @@ class Arbiter(object):
          """
         try:
             os.kill(pid, sig)
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ESRCH:
                 try:
                     worker = self.WORKERS.pop(pid)
