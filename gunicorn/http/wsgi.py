@@ -222,7 +222,7 @@ class Response(object):
         elif self.should_close():
             connection = "close"
         else:
-            connection = "keepalive"
+            connection = "keep-alive"
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
@@ -240,6 +240,7 @@ class Response(object):
             return
         tosend = self.default_headers()
         tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
+        print tosend
         util.write(self.sock, "%s\r\n" % "".join(tosend))
         self.headers_sent = True
 
