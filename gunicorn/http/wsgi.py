@@ -7,10 +7,15 @@ import logging
 import os
 import re
 import sys
-from urllib import unquote
+
+try:
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
 
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
+from gunicorn import py3compat
 
 try:
     # Python 3.3 has os.sendfile().
@@ -178,7 +183,8 @@ class Response(object):
         if exc_info:
             try:
                 if self.status and self.headers_sent:
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                    py3compat.raise_with_tb(exc_info[0], exc_info[1],
+                        exc_info[2])
             finally:
                 exc_info = None
         elif self.status is not None:

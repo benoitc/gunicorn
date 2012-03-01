@@ -68,8 +68,12 @@ import re
 import stat
 import time
 import types
-import urllib
-import urlparse
+try:
+    import urllib.parse as urlparse
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
+    import urlparse
 import xml.sax
 
 # True and False were introduced in Python2.2.2
