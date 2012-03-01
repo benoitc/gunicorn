@@ -64,7 +64,7 @@ class Config(object):
         keys = self.settings.keys()
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
-        keys.sort(key=sorter)
+        keys = sorted(keys, key=sorter)
         for k in keys:
             self.settings[k].add_option(parser)
         return parser

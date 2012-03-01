@@ -48,6 +48,8 @@ def make_options():
     def sorter(k):
         return (g_settings[k].section, g_settings[k].order)
 
+    keys = sorted(keys, key=sorter)
+
     opts = [
         make_option('--adminmedia', dest='admin_media_path', default='',
         help='Specifies the directory from which to serve admin media.')
