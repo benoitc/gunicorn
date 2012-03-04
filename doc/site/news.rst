@@ -8,6 +8,11 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.1 / 2012-04-02
+-------------------
+
+- fixing source archive, reducing its size
+
 0.14.0 / 2012-02-27
 -------------------
 
