@@ -14,6 +14,7 @@ import tornado.httpserver
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer
 from gunicorn.workers.base import Worker
+from gunicorn import __version__ as gversion
 
 
 class TornadoWorker(Worker):
@@ -25,7 +26,7 @@ class TornadoWorker(Worker):
 
         def clear(self):
             old_clear(self)
-            self._headers["Server"] = "RTB"
+            self._headers["Server"] += " (Gunicorn/%s)" % gversion
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
 
