@@ -212,6 +212,13 @@ def validate_string(val):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
+def validate_class(val):
+    if inspect.isfunction(val) or inspect.ismethod(val):
+        val = val()
+    if inspect.isclass(val):
+        return val
+    return validate_string(val)
+
 def validate_callable(arity):
     def _validate_callable(val):
         if not callable(val):
@@ -338,7 +345,7 @@ class WorkerClass(Setting):
     section = "Worker Processes"
     cli = ["-k", "--worker-class"]
     meta = "STRING"
-    validator = validate_string
+    validator = validate_class
     default = "sync"
     desc = """\
         The type of workers to use.
@@ -672,7 +679,7 @@ class LoggerClass(Setting):
     section = "Logging"
     cli = ["--logger-class"]
     meta = "STRING"
-    validator = validate_string
+    validator = validate_class
     default = "simple"
     desc = """\
         The logger you want to use to log events in gunicorn.
