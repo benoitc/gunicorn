@@ -23,6 +23,7 @@ import socket
 import sys
 import textwrap
 import time
+import inspect
 
 
 MAXFD = 1024
@@ -103,6 +104,8 @@ relative import to an absolute import.
         return sys.modules[name]
 
 def load_class(uri, default="sync", section="gunicorn.workers"):
+    if inspect.isclass(uri):
+        return uri
     if uri.startswith("egg:"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
