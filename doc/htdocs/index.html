@@ -79,38 +79,15 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb">
-        <h3>Version 0.14.1 / 2012-03-04</h3>
+        <h3>Version 0.14.2 / 2012-03-16</h3>
         <ul>
-          <li>new source archive stripped. Useless files have been
-          removed from it</li>
-        </ul>
-        <h3>Version 0.14.0 / 2012-02-27</h3>
-        <ul>
-          <li>check if Request line is too large: You can now pass the
-          parameter <code>--limit-request-line</code> or set the
-          <code>limit_request_line</code> in your configuration file to set the max
-          size of the request line in bytes.</li>
-          <li>limit the number of headers fields and their size. Add
-          <code>--limit-request-fieldsw</code> and
-          <code>limit-request-field-size</code> settings</li>
-          <li>add <code>p</code> variable to the log access format to log
-          pidfile</li>
-          <li>add <code>{HeaderName}o</code> variable to the logo access format to
-          log the response header HeaderName</li>
-          <li>request header is now logged with the variable
-          <code>{HeaderName}i</code> in the  access log file</lI>
-          <li>improve error logging</li>
-          <li>support logging.configFile</li>
-          <li><strong>support django 1.4</strong> in both
-          <code>gunicorn_django</code> &amp; <code>run_gunicorn</code> command</li>
-          <li>improve reload in django run_gunicorn command (should just
-          work now)</li>
-          <li>allows people to set the <code>X-Forwarded-For</code> header key and
-          disable it by setting an empty string.</li>
-          <li>fix support of Tornado</li>
-          <li>many <a
-            href="https://github.com/benoitc/gunicorn/compare/0.13.4...0.14.0">other
-            fixes.</a></li></li>
+          <li>add validate_class validator: allows to use a class or a
+          method to initialize the app during in-code configuration</li>
+          <li>add support for max_requests in tornado worker</li>
+          <li>add support for disabling x_forwarded_for_header in
+          tornado worker</li>
+          <li>gevent_wsgi is now an alias of gevent_pywsgi</li>
+          <li>Fix gevent_pywsgi worker</li>
         </ul>
       </div>
       <div id="footer">

@@ -8,7 +8,17 @@ _TOC_TOP_
 
 _TOC_BOT_
 
-0.14.1 / 2012-04-02
+0.14.2 / 2012-03-16
+-------------------
+
+- add validate_class validator: allows to use a class or a method to
+  initialize the app during in-code configuration
+- add support for max_requests in tornado worker
+- add support for disabling x_forwarded_for_header in tornado worker
+- gevent_wsgi is now an alias of gevent_pywsgi
+- Fix gevent_pywsgi worker
+
+0.14.1 / 2012-03-02
 -------------------
 
 - fixing source archive, reducing its size
