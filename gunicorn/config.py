@@ -481,7 +481,7 @@ class LimitRequestFieldSize(Setting):
     type = "int"
     default = 8190
     desc= """\
-        Limit he allowed size of an HTTP request header field.
+        Limit the allowed size of an HTTP request header field.
 
         Value is a number from 0 (unlimited) to 8190. to set the limit
         on the allowed size of an HTTP request header field.
