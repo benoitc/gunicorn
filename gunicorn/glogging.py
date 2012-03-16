@@ -175,7 +175,12 @@ class Logger(object):
                 }
 
         # add request headers
-        atoms.update(dict([("{%s}i" % k.lower(),v) for k, v in req.headers]))
+        if hasattr(req, 'headers'):
+            req_headers = req.headers
+        else:
+            req_headers = req
+
+        atoms.update(dict([("{%s}i" % k.lower(),v) for k, v in req_headers]))
 
         # add response headers
         atoms.update(dict([("{%s}o" % k.lower(),v) for k, v in resp.headers]))
