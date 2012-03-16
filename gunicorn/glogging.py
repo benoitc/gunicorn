@@ -107,9 +107,7 @@ class Logger(object):
             if cfg.errorlog != "-":
                 # if an error log file is set redirect stdout & stderr to
                 # this log file.
-                stdout_log = LazyWriter(cfg.errorlog, 'a')
-                sys.stdout = stdout_log
-                sys.stderr = stdout_log
+                sys.stdout = sys.stderr = LazyWriter(cfg.errorlog, 'a')
 
             # set gunicorn.error handler
             self._set_handler(self.error_log, cfg.errorlog,
