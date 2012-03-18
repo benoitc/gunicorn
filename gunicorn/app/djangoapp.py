@@ -18,7 +18,7 @@ def find_settings_module(path):
         project_path = None
         lvl = 0
         for root, dirs, files in os.walk(path):
-            if "settings.py" in files:
+            if "settings.py" in files or "settings.pyc" in files:
                 project_path = root
 
             lvl += 1
