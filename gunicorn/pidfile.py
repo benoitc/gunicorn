@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -20,7 +20,7 @@ class Pidfile(object):
     def __init__(self, fname):
         self.fname = fname
         self.pid = None
-        
+
     def create(self, pid):
         oldpid = self.validate()
         if oldpid:
@@ -30,7 +30,7 @@ class Pidfile(object):
                 "(or pid file '%s' is stale)" % (os.getpid(), self.fname))
 
         self.pid = pid
-        
+
         # Write pidfile
         fdir = os.path.dirname(self.fname)
         if fdir and not os.path.isdir(fdir):
@@ -43,14 +43,14 @@ class Pidfile(object):
             self.fname = fname
         os.close(fd)
 
-        # set permissions to -rw-r--r-- 
+        # set permissions to -rw-r--r--
         os.chmod(self.fname, 420)
-        
+
     def rename(self, path):
         self.unlink()
         self.fname = path
         self.create(self.pid)
-        
+
     def unlink(self):
         """ delete pidfile"""
         try:
@@ -61,7 +61,7 @@ class Pidfile(object):
                 os.unlink(self.fname)
         except:
             pass
-       
+
     def validate(self):
         """ Validate pidfile and make it stale if needed"""
         if not self.fname:

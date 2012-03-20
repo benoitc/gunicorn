@@ -83,13 +83,16 @@ Here is our recommendation for tuning the `number of workers`_.
 How can I change the number of workers dynamically?
 ---------------------------------------------------
 
-    To increase the worker count by one::
+TTIN and TTOU signals can be sent to the master to increase or decrease
+the number of workers.
 
-        $ kill -TTIN $masterpid
-    
-    To decrease the worker count by one::
+To increase the worker count by one::
 
-        $ kill -TTOU $masterpid
+    $ kill -TTIN $masterpid
+
+To decrease the worker count by one::
+
+    $ kill -TTOU $masterpid
 
 .. _design: /design.html
 .. _worker_class: /configure.html#worker-class

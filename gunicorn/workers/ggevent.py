@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -23,7 +23,6 @@ from gevent import pywsgi
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
-from gunicorn.workers.base import Worker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
@@ -42,13 +41,12 @@ class GeventWorker(AsyncWorker):
     server_class = None
     wsgi_handler = None
 
-    @classmethod  
+    @classmethod
     def setup(cls):
         from gevent import monkey
         monkey.noisy = False
         monkey.patch_all()
-        
-        
+
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
@@ -70,9 +68,9 @@ class GeventWorker(AsyncWorker):
                 if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
-        
+
                 gevent.sleep(1.0)
-                
+
         except KeyboardInterrupt:
             pass
 
@@ -98,14 +96,30 @@ class GeventWorker(AsyncWorker):
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()
 
+
+class GeventResponse(object):
+
+    status = None
+    headers = None
+    response_length = None
+
+
+    def __init__(self, status, headers, clength):
+        self.status = status
+        self.headers = headers
+        self.response_length = clength
+
 class PyWSGIHandler(pywsgi.WSGIHandler):
 
     def log_request(self):
         start = datetime.fromtimestamp(self.time_start)
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
-        self.server.log.access(self, self.environ, response_time)
-        
+        resp = GeventResponse(self.status, self.response_headers,
+                self.response_length)
+        req_headers = [h.split(":", 1) for h in self.headers.headers]
+        self.server.log.access(resp, req_headers, self.environ, response_time)
+
     def get_environ(self):
         env = super(PyWSGIHandler, self).get_environ()
         env['gunicorn.sock'] = self.socket

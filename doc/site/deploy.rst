@@ -113,6 +113,12 @@ this::
 Then you just need to use one of the three Gunicorn scripts that was installed
 into ``~/venvs/webapp/bin``.
 
+Note: You can force the installation of Gunicorn in your Virtualenv by
+passing ``-I`` or ``--ignore-installed`` option to pip::
+
+     $ source ~/venvs/webapp/bin/activate
+     $ pip install -I gunicorn
+
 Monitoring
 ----------
 

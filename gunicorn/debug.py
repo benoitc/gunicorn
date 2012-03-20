@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-"""The debug module contains utilities and functions for better 
+"""The debug module contains utilities and functions for better
 debugging Gunicorn."""
 
 import sys
@@ -69,5 +69,5 @@ def unspew():
     """Remove the trace hook installed by spew.
     """
     sys.settrace(None)
-    
+
 

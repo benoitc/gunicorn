@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import errno
@@ -35,7 +35,7 @@ def sendfile(fdout, fdin, offset, nbytes):
                               ctypes.c_int]
         _nbytes = ctypes.c_uint64(nbytes)
         result = _sendfile(fdin, fdout, offset, _nbytes, None, 0)
-        
+
         if result == -1:
             e = ctypes.get_errno()
             if e == errno.EAGAIN and _nbytes.value is not None:
@@ -60,7 +60,7 @@ def sendfile(fdout, fdin, offset, nbytes):
                 ctypes.POINTER(ctypes.c_uint64), ctypes.c_size_t]
 
         _offset = ctypes.c_uint64(offset)
-        sent = _sendfile(fdout, fdin, _offset, nbytes) 
+        sent = _sendfile(fdout, fdin, _offset, nbytes)
         if sent == -1:
             e = ctypes.get_errno()
             raise OSError(e, os.strerror(e))

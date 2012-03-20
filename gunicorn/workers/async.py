@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -21,13 +21,13 @@ class AsyncWorker(base.Worker):
     def __init__(self, *args, **kwargs):
         super(AsyncWorker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
-    
+
     def timeout_ctx(self):
         raise NotImplementedError()
 
     def handle(self, client, addr):
         try:
-            parser = http.RequestParser(client)
+            parser = http.RequestParser(self.cfg, client)
             try:
                 while True:
                     req = None
@@ -69,7 +69,7 @@ class AsyncWorker(base.Worker):
                     resp.write(item)
                 resp.close()
                 request_time = datetime.now() - request_start
-                self.log.access(resp, environ, request_time)
+                self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
                   respiter.close()

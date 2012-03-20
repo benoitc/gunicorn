@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import sys
@@ -18,7 +18,7 @@ class ChunkedReader(object):
         self.req = req
         self.parser = self.parse_chunked(unreader)
         self.buf = StringIO()
-    
+
     def read(self, size):
         if not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
@@ -40,11 +40,11 @@ class ChunkedReader(object):
         self.buf.truncate(0)
         self.buf.write(rest)
         return ret
-    
+
     def parse_trailers(self, unreader, data):
         buf = StringIO()
         buf.write(data)
-        
+
         idx = buf.getvalue().find("\r\n\r\n")
         done = buf.getvalue()[:2] == "\r\n"
         while idx < 0 and not done:
@@ -73,7 +73,7 @@ class ChunkedReader(object):
                 rest += unreader.read()
             if rest[:2] != '\r\n':
                 raise ChunkMissingTerminator(rest[:2])
-            (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])          
+            (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
     def parse_chunk_size(self, unreader, data=None):
         buf = StringIO()
@@ -87,7 +87,7 @@ class ChunkedReader(object):
 
         data = buf.getvalue()
         line, rest_chunk = data[:idx], data[idx+2:]
-    
+
         chunk_size = line.split(";", 1)[0].strip()
         try:
             chunk_size = int(chunk_size, 16)
@@ -112,18 +112,18 @@ class LengthReader(object):
     def __init__(self, unreader, length):
         self.unreader = unreader
         self.length = length
-    
+
     def read(self, size):
         if not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
-        
+
         size = min(self.length, size)
         if size < 0:
             raise ValueError("Size must be positive.")
         if size == 0:
             return ""
-        
-        
+
+
         buf = StringIO()
         data = self.unreader.read()
         while data:
@@ -131,7 +131,7 @@ class LengthReader(object):
             if buf.tell() >= size:
                 break
             data = self.unreader.read()
-        
+
         buf = buf.getvalue()
         ret, rest = buf[:size], buf[size:]
         self.unreader.unread(rest)
@@ -143,7 +143,7 @@ class EOFReader(object):
         self.unreader = unreader
         self.buf = StringIO()
         self.finished = False
-    
+
     def read(self, size):
         if not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
@@ -151,7 +151,7 @@ class EOFReader(object):
             raise ValueError("Size must be positive.")
         if size == 0:
             return ""
-       
+
         if self.finished:
             data = self.buf.getvalue()
             ret, rest = data[:size], data[size:]
@@ -179,10 +179,10 @@ class Body(object):
     def __init__(self, reader):
         self.reader = reader
         self.buf = StringIO()
-    
+
     def __iter__(self):
         return self
-    
+
     def next(self):
         ret = self.readline()
         if not ret:
@@ -197,7 +197,7 @@ class Body(object):
         elif size < 0:
             return sys.maxint
         return size
-    
+
     def read(self, size=None):
         size = self.getsize(size)
         if size == 0:
@@ -221,12 +221,12 @@ class Body(object):
         self.buf.truncate(0)
         self.buf.write(rest)
         return ret
-    
+
     def readline(self, size=None):
         size = self.getsize(size)
         if size == 0:
             return ""
-       
+
         line = self.buf.getvalue()
         idx = line.find("\n")
         if idx >= 0:
@@ -234,7 +234,7 @@ class Body(object):
             self.buf.truncate(0)
             self.buf.write(line[idx+1:])
             return ret
-            
+
         self.buf.truncate(0)
         ch = ""
         buf = [line]
@@ -246,7 +246,7 @@ class Body(object):
             lsize += 1
             buf.append(ch)
         return "".join(buf)
-            
+
     def readlines(self, size=None):
         ret = []
         data = self.read()

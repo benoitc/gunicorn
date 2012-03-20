@@ -38,7 +38,7 @@ $ source bin/activate
 (tutorial) $ mkdir myapp
 (tutorial) $ cd myapp/
 (tutorial) $ vi myapp.py
-(tutorial) $ cat myapp.py 
+(tutorial) $ cat myapp.py
 
 def app(environ, start_response):
     data = "Hello, World!\n"
@@ -55,13 +55,13 @@ def app(environ, start_response):
 2010-06-05 23:27:07 [16802] [INFO] Worker spawned (pid: 16802)
 2010-06-05 23:27:07 [16803] [INFO] Worker spawned (pid: 16803)
 2010-06-05 23:27:07 [16804] [INFO] Worker spawned (pid: 16804)
-</pre>      
+</pre>
       </div>
       <div class="blurb">
         <h3>About</h3>
         <p>
           Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's
-          a pre-fork worker model ported from Ruby's 
+          a pre-fork worker model ported from Ruby's
           <a href="http://unicorn.bogomips.org/">Unicorn</a> project. The
           Gunicorn server is broadly compatible with various web frameworks,
           simply implemented, light on server resources, and fairly speedy.
@@ -78,13 +78,18 @@ def app(environ, start_response):
           <li>Compatible with Python 2.x >= 2.5</li>
         </ul>
       </div>
-      <div class="blurb"> 
-        <h3>Version 0.13.4 / 2011-09-23</h3>
+      <div class="blurb">
+        <h3>Version 0.14.2 / 2012-03-16</h3>
         <ul>
-          <li>fix util.closerange function used to prevent leaking fds
-          on python 2.5 (typo)</li> 
+          <li>add validate_class validator: allows to use a class or a
+          method to initialize the app during in-code configuration</li>
+          <li>add support for max_requests in tornado worker</li>
+          <li>add support for disabling x_forwarded_for_header in
+          tornado worker</li>
+          <li>gevent_wsgi is now an alias of gevent_pywsgi</li>
+          <li>Fix gevent_pywsgi worker</li>
         </ul>
-      </div> 
+      </div>
       <div id="footer">
         <p>Site Content License <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
         <p>Hosted on <a href="http://github.com/">GitHub</a></p>

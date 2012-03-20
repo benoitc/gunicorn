@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
@@ -28,9 +28,9 @@ class EventletWorker(AsyncWorker):
     def init_process(self):
         hubs.use_hub()
         super(EventletWorker, self).init_process()
-        
+
     def timeout_ctx(self):
-        return eventlet.Timeout(self.cfg.keepalive, False) 
+        return eventlet.Timeout(self.cfg.keepalive, False)
 
     def run(self):
         self.socket = GreenSocket(family_or_realsock=self.socket.sock)

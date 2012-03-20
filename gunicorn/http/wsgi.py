@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import logging
@@ -55,11 +55,9 @@ def create(req, sock, client, server, cfg):
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version)),
-        "CONTENT_TYPE": "",
-        "CONTENT_LENGTH": ""
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
     }
-    
+
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
@@ -98,7 +96,7 @@ def create(req, sock, client, server, cfg):
         environ[key] = hdr_value
 
     environ['wsgi.url_scheme'] = url_scheme
-        
+
     if isinstance(forward, basestring):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
@@ -121,7 +119,7 @@ def create(req, sock, client, server, cfg):
 
         remote = (host, port)
     else:
-        remote = forward 
+        remote = forward
 
     environ['REMOTE_ADDR'] = remote[0]
     environ['REMOTE_PORT'] = str(remote[1])
@@ -159,6 +157,7 @@ class Response(object):
         self.headers_sent = False
         self.response_length = None
         self.sent = 0
+        self.upgrade = False
 
     def force_close(self):
         self.must_close = True
@@ -194,11 +193,11 @@ class Response(object):
             elif util.is_hoppish(name):
                 if lname == "connection":
                     # handle websocket
-                    if value.lower().strip() != "upgrade":
-                        continue
-                else:
-                    # ignore hopbyhop headers
-                    continue
+                    if value.lower().strip() == "upgrade":
+                        self.upgrade = True
+
+                # ignore hopbyhop headers
+                continue
             self.headers.append((name.strip(), str(value).strip()))
 
 
@@ -217,9 +216,14 @@ class Response(object):
         return True
 
     def default_headers(self):
-        connection = "keep-alive"
-        if self.should_close():
+        # set the connection header
+        if self.upgrade:
+            connection = "upgrade"
+        elif self.should_close():
             connection = "close"
+        else:
+            connection = "keep-alive"
+
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
                 self.req.version[1], self.status),

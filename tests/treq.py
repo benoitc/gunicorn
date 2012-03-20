@@ -12,6 +12,7 @@ import os
 import random
 import urlparse
 
+from gunicorn.config import Config
 from gunicorn.http.errors import ParseException
 from gunicorn.http.parser import RequestParser
 
@@ -78,27 +79,27 @@ class request(object):
     def send_bytes(self):
         for d in self.data:
             yield d
-    
+
     def send_random(self):
         maxs = len(self.data) / 10
         read = 0
         while read < len(self.data):
             chunk = random.randint(1, maxs)
             yield self.data[read:read+chunk]
-            read += chunk                
+            read += chunk
 
     # These functions define the sizes that the
     # read functions will read with.
 
     def size_all(self):
         return -1
-    
+
     def size_bytes(self):
         return 1
-    
+
     def size_small_random(self):
-        return random.randint(0, 4)
-    
+        return random.randint(1, 4)
+
     def size_random(self):
         return random.randint(1, 4096)
 
@@ -130,7 +131,7 @@ class request(object):
         if len(body):
             raise AssertionError("Failed to read entire body: %r" % body)
         elif len(data):
-            raise AssertionError("Read beyond expected body: %r" % data)        
+            raise AssertionError("Read beyond expected body: %r" % data)
         data = req.body.read(sizes())
         if data:
             raise AssertionError("Read after body finished: %r" % data)
@@ -152,7 +153,7 @@ class request(object):
         if len(body):
             raise AssertionError("Failed to read entire body: %r" % body)
         elif len(data):
-            raise AssertionError("Read beyond expected body: %r" % data)        
+            raise AssertionError("Read beyond expected body: %r" % data)
         data = req.body.readline(sizes())
         if data:
             raise AssertionError("Read data after body finished: %r" % data)
@@ -174,7 +175,7 @@ class request(object):
         data = req.body.readlines(sizes())
         if data:
             raise AssertionError("Read data after body finished: %r" % data)
-    
+
     def match_iter(self, req, body, sizes):
         """\
         This skips sizes because there's its not part of the iter api.
@@ -196,7 +197,7 @@ class request(object):
 
     # Construct a series of test cases from the permutations of
     # send, size, and match functions.
-    
+
     def gen_cases(self):
         def get_funs(p):
             return [v for k, v in inspect.getmembers(self) if k.startswith(p)]
@@ -224,7 +225,7 @@ class request(object):
 
     def check(self, sender, sizer, matcher):
         cases = self.expect[:]
-        p = RequestParser(sender())
+        p = RequestParser(Config(), sender())
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
         t.eq(len(cases), 0)
@@ -232,9 +233,6 @@ class request(object):
     def same(self, req, sizer, matcher, exp):
         t.eq(req.method, exp["method"])
         t.eq(req.uri, exp["uri"]["raw"])
-        t.eq(req.scheme, exp["uri"]["scheme"])
-        t.eq(req.host, exp["uri"]["host"])
-        t.eq(req.port, exp["uri"]["port"])
         t.eq(req.path, exp["uri"]["path"])
         t.eq(req.query, exp["uri"]["query"])
         t.eq(req.fragment, exp["uri"]["fragment"])
@@ -263,58 +261,18 @@ class badrequest(object):
         while read < len(self.data):
             chunk = random.randint(1, maxs)
             yield self.data[read:read+chunk]
-            read += chunk                
-
-    def size(self):
-        return random.randint(0, 4)
-
-    def match(self, req, body):
-        data = req.body.read(self.size())
-        count = 1000
-        while len(body):
-            if body[:len(data)] != data:
-                raise AssertionError("Invalid body data read: %r != %r" % (
-                                        data, body[:len(data)]))
-            body = body[len(data):]
-            data = req.body.read(self.size())
-            if not data:
-                count -= 1
-            if count <= 0:
-                raise AssertionError("Unexpected apparent EOF")
-
-        if len(body):
-            raise AssertionError("Failed to read entire body: %r" % body)
-        elif len(data):
-            raise AssertionError("Read beyond expected body: %r" % data)        
-        data = req.body.read(sizes())
-        if data:
-            raise AssertionError("Read after body finished: %r" % data)
-
-    def same(self, req, sizer, matcher, exp):
-        t.eq(req.method, exp["method"])
-        t.eq(req.uri, exp["uri"]["raw"])
-        t.eq(req.scheme, exp["uri"]["scheme"])
-        t.eq(req.host, exp["uri"]["host"])
-        t.eq(req.port, exp["uri"]["port"])
-        t.eq(req.path, exp["uri"]["path"])
-        t.eq(req.query, exp["uri"]["query"])
-        t.eq(req.fragment, exp["uri"]["fragment"])
-        t.eq(req.version, exp["version"])
-        t.eq(req.headers, exp["headers"])
-        self.match(req, exp["body"])
-        t.eq(req.trailers, exp.get("trailers", []))
+            read += chunk
 
     def check(self):
         cases = self.expect[:]
-        p = RequestParser(self.send())
+        p = RequestParser(Config(), self.send())
         try:
-            for req in p:
-                self.same(req, cases.pop(0))
+            [req for req in p]
         except Exception, inst:
             exp = cases.pop(0)
             if not issubclass(exp, Exception):
                 raise TypeError("Test case is not an exception calss: %s" % exp)
-            if not isinstance(inst, exp):
-                raise TypeError("Invalid error result: %s: %s" % (exp, inst))
-        t.eq(len(cases), 0)
+            t.istype(inst, exp)
+            return
+
 

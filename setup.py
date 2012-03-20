@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 
@@ -45,9 +45,9 @@ setup(
     zip_safe = False,
     packages = find_packages(exclude=['examples', 'tests']),
     include_package_data = True,
-    
+
     entry_points="""
-    
+
     [console_scripts]
     gunicorn=gunicorn.app.wsgiapp:run
     gunicorn_django=gunicorn.app.djangoapp:run
@@ -57,7 +57,7 @@ setup(
     sync=gunicorn.workers.sync:SyncWorker
     eventlet=gunicorn.workers.geventlet:EventletWorker
     gevent=gunicorn.workers.ggevent:GeventWorker
-    gevent_wsgi=gunicorn.workers.ggevent_wsgi:GeventWSGIWorker
+    gevent_wsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
     gevent_pywsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
     tornado=gunicorn.workers.gtornado:TornadoWorker
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import os
@@ -10,7 +10,7 @@ from gunicorn import util
 from gunicorn.app.base import Application
 
 class WSGIApplication(Application):
-    
+
     def init(self, parser, opts, args):
         if len(args) != 1:
             parser.error("No application module specified.")

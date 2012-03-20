@@ -8,6 +8,43 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.2 / 2012-03-16
+-------------------
+
+- add validate_class validator: allows to use a class or a method to
+  initialize the app during in-code configuration
+- add support for max_requests in tornado worker
+- add support for disabling x_forwarded_for_header in tornado worker
+- gevent_wsgi is now an alias of gevent_pywsgi
+- Fix gevent_pywsgi worker
+
+0.14.1 / 2012-03-02
+-------------------
+
+- fixing source archive, reducing its size
+
+0.14.0 / 2012-02-27
+-------------------
+
+- check if Request line is too large: You can now pass the parameter
+  ``--limit-request-line`` or set the ``limit_request_line`` in your
+  configuration file to set the max size of the request line in bytes.
+- limit the number of headers fields and their size. Add
+  ``--limit-request-field`` and ``limit-request-field-size`` settings
+- add ``p`` variable to the log access format to log pidfile
+- add ``{HeaderName}o`` variable to the logo access format to log the
+  response header HeaderName
+- request header is now logged with the variable ``{HeaderName}i`` in the
+  access log file
+- improve error logging
+- support logging.configFile
+- support django 1.4 in both gunicorn_django & run_gunicorn command
+- improve reload in django run_gunicorn command (should just work now)
+- allows people to set the ``X-Forwarded-For`` header key and disable it by
+  setting an empty string.
+- fix support of Tornado
+- many other fixes.
+
 0.13.4 / 2011-09-23
 -------------------
 
@@ -54,7 +91,7 @@ _TOC_BOT_
 - Fix Django command `run_gunicorn` in settings reloading
 - Fix Tornado_ worker exiting
 - Fix the use of sendfile in wsgi.file_wrapper
-  
+
 
 0.12.2 / 2011-05-18
 -------------------
@@ -80,16 +117,16 @@ _TOC_BOT_
 0.12.0 / 2010-12-22
 -------------------
 
-- Add support for logging configuration using a ini file. 
-  It uses the standard Python logging's module Configuration 
+- Add support for logging configuration using a ini file.
+  It uses the standard Python logging's module Configuration
   file format and allows anyone to use his custom file handler
 - Add IPV6 support
 - Add multidomain application example
-- Improve gunicorn_django command when importing settings module 
+- Improve gunicorn_django command when importing settings module
   using DJANGO_SETTINGS_MODULE environment variable
 - Send appropriate error status on http parsing
-- Fix pidfile, set permissions so other user can read 
-  it and use it. 
+- Fix pidfile, set permissions so other user can read
+  it and use it.
 - Fix temporary file leaking
 - Fix setpgrp issue, can now be launched via ubuntu upstart
 - Set the number of workers to zero on WINCH
@@ -128,9 +165,9 @@ _TOC_BOT_
 0.10.1 / 2010-08-06
 -------------------
 
-* Improve gevent's workers. Add "egg:gunicorn#gevent_wsgi" worker using 
-  `gevent.wsgi <http://www.gevent.org/gevent.wsgi.html>`_ and 
-  "egg:gunicorn#gevent_pywsgi" worker using `gevent.pywsgi 
+* Improve gevent's workers. Add "egg:gunicorn#gevent_wsgi" worker using
+  `gevent.wsgi <http://www.gevent.org/gevent.wsgi.html>`_ and
+  "egg:gunicorn#gevent_pywsgi" worker using `gevent.pywsgi
   <http://www.gevent.org/gevent.pywsgi.html>`_ .
   **"egg:gunicorn#gevent"** using our own HTTP parser is still here and
   is **recommended** for normal uses. Use the "gevent.wsgi" parser if you
@@ -138,7 +175,7 @@ _TOC_BOT_
 * Add pre/post request hooks
 * Exit more quietly
 * Fix gevent dns issue
-  
+
 0.10.0 / 2010-07-08
 -------------------
 
@@ -171,7 +208,7 @@ _TOC_BOT_
 0.9.0 / 2010-05-24
 ------------------
 
-* Added *when_ready* hook. Called just after the server is started 
+* Added *when_ready* hook. Called just after the server is started
 * Added *preload* setting. Load application code before the worker processes
   are forked.
 * Refactored Config
@@ -266,7 +303,7 @@ _TOC_BOT_
 * Fix umask
 * Added Debian packaging
 
-0.5 / 2010-02-20 
+0.5 / 2010-02-20
 ----------------
 
 * Added `configuration file <configuration.html>`_ handler.

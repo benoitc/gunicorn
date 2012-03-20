@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import os
@@ -16,10 +16,10 @@ except ImportError:
 class Unreader(object):
     def __init__(self):
         self.buf = StringIO()
-    
+
     def chunk(self):
         raise NotImplementedError()
-    
+
     def read(self, size=None):
         if size is not None and not isinstance(size, (int, long)):
             raise TypeError("size parameter must be an int or long.")
@@ -48,7 +48,7 @@ class Unreader(object):
         self.buf.truncate(0)
         self.buf.write(data[size:])
         return data[:size]
-    
+
     def unread(self, data):
         self.buf.seek(0, os.SEEK_END)
         self.buf.write(data)
@@ -58,7 +58,7 @@ class SocketUnreader(Unreader):
         super(SocketUnreader, self).__init__()
         self.sock = sock
         self.mxchunk = max_chunk
-    
+
     def chunk(self):
         return self.sock.recv(self.mxchunk)
 

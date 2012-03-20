@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import os
@@ -20,7 +20,7 @@ class PasterBaseApplication(Application):
         cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
         gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
         cfg = {}
-        
+
         host, port = lc.pop('host', ''), lc.pop('port', '')
         if host and port:
             cfg['bind'] = '%s:%s' % (host, port)
@@ -61,11 +61,11 @@ class PasterBaseApplication(Application):
                 config_file = os.path.abspath(self.cfgfname)
                 fileConfig(config_file, dict(__file__=config_file,
                                              here=os.path.dirname(config_file)))
-        
+
 
 
 class PasterApplication(PasterBaseApplication):
-    
+
     def init(self, parser, opts, args):
         if len(args) != 1:
             parser.error("No application name specified.")
@@ -81,14 +81,14 @@ class PasterApplication(PasterBaseApplication):
 
         sys.path.insert(0, self.relpath)
         pkg_resources.working_set.add_entry(self.relpath)
-        
+
         return self.app_config()
-        
+
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
-    
+
 class PasterServerApplication(PasterBaseApplication):
-    
+
     def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
         self.app = app
@@ -127,7 +127,7 @@ class PasterServerApplication(PasterBaseApplication):
     def load_config(self):
         if not hasattr(self, "cfgfname"):
             return
-        
+
         cfg = self.app_config()
         for k,v in cfg.items():
             try:
@@ -153,14 +153,14 @@ def run():
 def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     """\
     A paster server.
-    
+
     Then entry point in your paster ini file should looks like this:
-    
+
     [server:main]
     use = egg:gunicorn#main
     host = 127.0.0.1
     port = 5000
-    
+
     """
     from gunicorn.app.pasterapp import PasterServerApplication
     PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()

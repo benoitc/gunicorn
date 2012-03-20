@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import os
@@ -13,7 +13,7 @@ class WorkerTmp(object):
     def __init__(self, cfg):
         old_umask = os.umask(cfg.umask)
         fd, name = tempfile.mkstemp(prefix="wgunicorn-")
-        
+
         # allows the process to write to the file
         util.chown(name, cfg.uid, cfg.gid)
         os.umask(old_umask)
@@ -28,7 +28,7 @@ class WorkerTmp(object):
 
         self.spinner = 0
 
-    def notify(self): 
+    def notify(self):
         try:
             self.spinner = (self.spinner+1) % 2
             os.fchmod(self._tmp.fileno(), self.spinner)
@@ -42,6 +42,6 @@ class WorkerTmp(object):
 
     def fileno(self):
         return self._tmp.fileno()
-       
+
     def close(self):
         return self._tmp.close()

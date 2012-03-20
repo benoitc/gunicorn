@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import re
@@ -13,10 +13,16 @@ except ImportError:
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
+LimitRequestLine, LimitRequestHeaders
+
+MAX_REQUEST_LINE = 8190
+MAX_HEADERS = 32768
+MAX_HEADERFIELD_SIZE = 8190
 
 class Message(object):
-    def __init__(self, unreader):
+    def __init__(self, cfg, unreader):
+        self.cfg = cfg
         self.unreader = unreader
         self.version = None
         self.headers = []
@@ -25,10 +31,23 @@ class Message(object):
 
         self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 
+        # set headers limits
+        self.limit_request_fields = max(cfg.limit_request_fields, MAX_HEADERS)
+        if self.limit_request_fields <= 0:
+            self.limit_request_fields = MAX_HEADERS
+        self.limit_request_field_size = max(cfg.limit_request_field_size,
+                MAX_HEADERFIELD_SIZE)
+        if self.limit_request_field_size <= 0:
+            self.limit_request_field_size = MAX_HEADERFIELD_SIZE
+
+        # set max header buffer size
+        self.max_buffer_headers = self.limit_request_fields * \
+                (self.limit_request_field_size + 2) + 4
+
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
         self.set_body_reader()
-    
+
     def parse(self):
         raise NotImplementedError()
 
@@ -41,6 +60,9 @@ class Message(object):
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
         while len(lines):
+            if len(headers) > self.limit_request_fields:
+                raise LimitRequestHeaders("limit request headers fields")
+
             # Parse initial header name : value pair.
             curr = lines.pop(0)
             if curr.find(":") < 0:
@@ -49,13 +71,14 @@ class Message(object):
             name = name.rstrip(" \t").upper()
             if self.hdrre.search(name):
                 raise InvalidHeaderName(name)
+
             name, value = name.strip(), [value.lstrip()]
-            
+
             # Consume value continuation lines
             while len(lines) and lines[0].startswith((" ", "\t")):
                 value.append(lines.pop(0))
             value = ''.join(value).rstrip()
-            
+
             headers.append((name, value))
         return headers
 
@@ -96,20 +119,22 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, unreader):
+    def __init__(self, cfg, unreader):
         self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
         self.versre = re.compile("HTTP/(\d+).(\d+)")
-    
+
         self.method = None
         self.uri = None
-        self.scheme = None
-        self.host = None
-        self.port = 80
         self.path = None
         self.query = None
         self.fragment = None
 
-        super(Request, self).__init__(unreader)
+        # get max request line size
+        self.limit_request_line = max(cfg.limit_request_line,
+                MAX_REQUEST_LINE)
+        if self.limit_request_line <= 0:
+            self.limit_request_line = MAX_REQUEST_LINE
+        super(Request, self).__init__(cfg, unreader)
 
 
     def get_data(self, unreader, buf, stop=False):
@@ -119,42 +144,54 @@ class Request(Message):
                 raise StopIteration()
             raise NoMoreData(buf.getvalue())
         buf.write(data)
-    
+
     def parse(self, unreader):
         buf = StringIO()
-
         self.get_data(unreader, buf, stop=True)
-        
-        # Request line
-        idx = buf.getvalue().find("\r\n")
-        while idx < 0:
-            self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n")
-        self.parse_request_line(buf.getvalue()[:idx])
-        rest = buf.getvalue()[idx+2:] # Skip \r\n
-        buf = StringIO()
-        buf.write(rest)
-       
-        
-        # Headers
-        idx = buf.getvalue().find("\r\n\r\n")
 
-        done = buf.getvalue()[:2] == "\r\n"
-        while idx < 0 and not done:
+        # Request line
+        data = buf.getvalue()
+        while True:
+            idx = data.find("\r\n")
+            if idx >= 0:
+                break
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n\r\n")
-            done = buf.getvalue()[:2] == "\r\n"
-             
+            data = buf.getvalue()
+
+            if len(data) - 2 > self.limit_request_line:
+                raise LimitRequestLine(len(data), self.cfg.limit_request_line)
+
+        self.parse_request_line(data[:idx])
+        buf = StringIO()
+        buf.write(data[idx+2:]) # Skip \r\n
+
+        # Headers
+        data = buf.getvalue()
+        idx = data.find("\r\n\r\n")
+
+        done = data[:2] == "\r\n"
+        while True:
+            idx = data.find("\r\n\r\n")
+            done = data[:2] == "\r\n"
+
+            if idx < 0 and not done:
+                self.get_data(unreader, buf)
+                data = buf.getvalue()
+                if len(data) > self.max_buffer_headers:
+                    raise LimitRequestHeaders("max buffer headers")
+            else:
+                break
+
         if done:
-            self.unreader.unread(buf.getvalue()[2:])
+            self.unreader.unread(data[2:])
             return ""
 
-        self.headers = self.parse_headers(buf.getvalue()[:idx])
+        self.headers = self.parse_headers(data[:idx])
 
-        ret = buf.getvalue()[idx+4:]
+        ret = data[idx+4:]
         buf = StringIO()
         return ret
-    
+
     def parse_request_line(self, line):
         bits = line.split(None, 2)
         if len(bits) != 3:
@@ -166,15 +203,17 @@ class Request(Message):
         self.method = bits[0].upper()
 
         # URI
-        self.uri = bits[1]
-        parts = urlparse.urlsplit(bits[1])
-        self.scheme = parts.scheme or ''
-        self.host = parts.netloc or None
-        if parts.port is None:
-            self.port = 80
+        # When the path starts with //, urlsplit considers it as a
+        # relative uri while the RDF says it shouldnt
+        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
+        # considers it as an absolute url.
+        # fix issue #297
+        if bits[1].startswith("//"):
+            self.uri = bits[1][1:]
         else:
-            self.host = self.host.rsplit(":", 1)[0]
-            self.port = parts.port
+            self.uri = bits[1]
+
+        parts = urlparse.urlsplit(self.uri)
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
