@@ -86,8 +86,8 @@ class Arbiter(object):
         self.cfg = app.cfg
         self.log = self.cfg.logger_class(app.cfg)
 
-        if 'GUNICORN_FD' in os.environ:
-            self.log.reopen_files()
+        # reopen files
+        self.log.reopen_files()
 
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
