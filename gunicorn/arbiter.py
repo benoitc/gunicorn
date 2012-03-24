@@ -480,7 +480,7 @@ class Arbiter(object):
 
     def kill_workers(self, sig):
         """\
-        Lill all workers with the signal `sig`
+        Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
         for pid in self.WORKERS.keys():
