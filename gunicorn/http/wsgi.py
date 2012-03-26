@@ -195,6 +195,9 @@ class Response(object):
                     # handle websocket
                     if value.lower().strip() == "upgrade":
                         self.upgrade = True
+                elif lname == "upgrade":
+                    if value.lower().strip() == "websocket":
+                        self.headers.append((name.strip(), str(value).strip()))
 
                 # ignore hopbyhop headers
                 continue
