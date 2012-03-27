@@ -676,7 +676,7 @@ class AccessLog(Setting):
     desc = """\
         The Access log file to write to.
 
-        "-" means log to stdout.
+        "-" means log to stderr.
         """
 
 class AccessLogFormat(Setting):
@@ -720,7 +720,7 @@ class ErrorLog(Setting):
     desc = """\
         The Error log file to write to.
 
-        "-" means log to stdout.
+        "-" means log to stderr.
         """
 
 class Loglevel(Setting):
