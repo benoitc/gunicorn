@@ -126,12 +126,6 @@ class Worker(object):
         sys.exit(0)
 
     def handle_error(self, client, exc):
-        self.log.exception("Error handling request")
-
-        status_int = 500
-        reason = "Internal Server Error"
-        mesg = ""
-
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
 
@@ -150,6 +144,18 @@ class Worker(object):
                 mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
                 mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+
+            self.log.debug("Invalid request from ip={ip}: {error}"\
+                           "".format(ip=client.getpeername()[0],
+                                     error=repr(exc),
+                                    )
+                          )
+        else:
+            self.log.exception("Error handling request")
+
+            status_int = 500
+            reason = "Internal Server Error"
+            mesg = ""
 
         if self.debug:
             tb =  traceback.format_exc()
