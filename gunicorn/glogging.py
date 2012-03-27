@@ -205,11 +205,11 @@ class Logger(object):
         for log in (self.error_log, self.access_log):
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
-                    handler.acquire()
-                    handler.stream.close()
-                    handler.stream = open(handler.baseFilename,
-                            handler.mode)
-                    handler.release()
+                    if handler.stream:
+                        handler.acquire()
+                        handler.stream.close()
+                        handler.stream = handler._open()
+                        handler.release()
 
     def close_on_exec(self):
         for log in (self.error_log, self.access_log):
