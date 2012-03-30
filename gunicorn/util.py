@@ -14,11 +14,11 @@ except ImportError:
     # Python on Solaris compiled with Sun Studio doesn't have ctypes
     ctypes = None
 
-#import fcntl
+import fcntl
 import os
-#import pkg_resources
+import pkg_resources
 import random
-#import resource
+import resource
 import socket
 import sys
 import textwrap
