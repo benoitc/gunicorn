@@ -14,11 +14,11 @@ except ImportError:
     # Python on Solaris compiled with Sun Studio doesn't have ctypes
     ctypes = None
 
-import fcntl
+#import fcntl
 import os
-import pkg_resources
+#import pkg_resources
 import random
-import resource
+#import resource
 import socket
 import sys
 import textwrap
@@ -246,27 +246,53 @@ def writelines(sock, lines, chunked=False):
         write(sock, line, chunked)
 
 def write_error(sock, status_int, reason, mesg):
-    html = textwrap.dedent("""\
-    <html>
-      <head>
-        <title>%(reason)s</title>
-      </head>
-      <body>
-        <h1>%(reason)s</h1>
-        %(mesg)s
-      </body>
-    </html>
-    """) % {"reason": reason, "mesg": mesg}
+    page = ErrorPage(status=status_int, reason=reason, message=mesg)
+    write_nonblock(sock, page.error_http())
 
-    http = textwrap.dedent("""\
-    HTTP/1.1 %s %s\r
-    Connection: close\r
-    Content-Type: text/html\r
-    Content-Length: %d\r
-    \r
-    %s
-    """) % (str(status_int), reason, len(html), html)
-    write_nonblock(sock, http)
+class ErrorPage(object):
+
+    def __init__(self, status=500, reason="Internal Server Error", message=""):
+        self.status = status
+        self.reason = reason
+        self.message = message
+
+    def error_status(self):
+        return "%s %s" % (str(self.status), self.reason)
+
+    def error_headers(self, content_length=None):
+        if content_length is None:
+            content_length = len(self.error_body())
+        return [
+            ("Connection", "close"),
+            ("Content-Type", "text/html"),
+            ("Content-Length", str(content_length)),
+        ]
+
+    def error_body(self):
+        return textwrap.dedent("""\
+        <html>
+            <head>
+                <title>%(reason)s</title>
+            </head>
+            <body>
+                <h1>%(reason)s</h1>
+                %(message)s
+            </body>
+        </html>
+        """) % {"reason": self.reason, "message": self.message}
+
+    def error_http(self):
+        status = self.error_status()
+        headers = "".join(["%s: %s\r" % h for h in self.error_headers()])
+        body = self.error_body()
+        return "HTTP/1.1 %s\r%s\r%s" % (status, headers, body)
+
+    def __call__(self, environ, start_response):
+        start_response(self.error_status(), self.error_headers())
+        yield self.error_body()
+
+    def __str__(self):
+        return self.error_http()
 
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
