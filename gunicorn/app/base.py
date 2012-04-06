@@ -69,8 +69,9 @@ class Application(object):
                 sys.exit(1)
 
             for k, v in cfg.items():
-                # Ignore unknown names
                 if k not in self.cfg.settings:
+                    if not k.startswith('_'):
+                        print "Warning - unrecognised configuration directive: %s" % k
                     continue
                 try:
                     self.cfg.set(k.lower(), v)
