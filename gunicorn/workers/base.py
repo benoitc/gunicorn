@@ -147,7 +147,7 @@ class Worker(object):
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
                            "".format(ip=client.getpeername()[0],
-                                     error=repr(exc),
+                                     error=str(exc),
                                     )
                           )
         else:
@@ -158,7 +158,7 @@ class Worker(object):
             mesg = ""
 
         if self.debug:
-            tb =  traceback.format_exc()
+            tb = traceback.format_exc()
             mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
 
         try:
