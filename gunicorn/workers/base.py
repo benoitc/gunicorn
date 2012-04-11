@@ -14,7 +14,8 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine, LimitRequestHeaders
+LimitRequestLine, LimitRequestHeaders, \
+InvalidProxyLine, ForbiddenProxyRequest
 
 
 class Worker(object):
@@ -126,36 +127,41 @@ class Worker(object):
         sys.exit(0)
 
     def handle_error(self, client, exc):
-        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+        status_int = 400
+        reason = "Bad Request"
+        unknownexc = False
 
-            status_int = 400
-            reason = "Bad Request"
-
-            if isinstance(exc, InvalidRequestLine):
-                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
-            elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
-            elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
-            elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
-            elif isinstance(exc, LimitRequestLine):
-                mesg = "<p>%s</p>" % str(exc)
-            elif isinstance(exc, LimitRequestHeaders):
-                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
-
-            self.log.debug("Invalid request from ip={ip}: {error}"\
-                           "".format(ip=client.getpeername()[0],
-                                     error=str(exc),
-                                    )
-                          )
+        if isinstance(exc, InvalidRequestLine):
+            mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+        elif isinstance(exc, InvalidRequestMethod):
+            mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+        elif isinstance(exc, InvalidHTTPVersion):
+            mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+        elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
+            mesg = "<p>Invalid Header '%s'</p>" % str(exc)
+        elif isinstance(exc, LimitRequestLine):
+            mesg = "<p>%s</p>" % str(exc)
+        elif isinstance(exc, LimitRequestHeaders):
+            mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+        elif isinstance(exc, InvalidProxyLine):
+            mesg = "<p>Invalid Proxy Line '%s'</p>" % str(exc)
+        elif isinstance(exc, ForbiddenProxyRequest):
+            mesg = "<p>Request forbidden</p>"
+            status_int = 403
+            reason = "Forbidden"
         else:
             self.log.exception("Error handling request")
 
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
+            unknownexc = True
+
+        if not unknownexc:
+            self.log.debug("Invalid request from ip={ip}: {error}"\
+                            "".format(ip=client.getpeername()[0],
+                                      error=str(exc))
+            )
 
         if self.debug:
             tb = traceback.format_exc()

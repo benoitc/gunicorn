@@ -55,7 +55,17 @@ class AsyncWorker(base.Worker):
         try:
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
+
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
+            # rewrite client info (proxy mode)
+            client_info = req.parser.client_info
+            if "proxy_mode" in client_info:
+                environ["PROXY_PROTOCOL"] = client_info["proxy_mode"]
+                environ["REMOTE_ADDR"] = client_info["client_addr"]
+                environ["REMOTE_PORT"] = str(client_info["client_port"])
+                environ["PROXY_ADDR"] = client_info["proxy_addr"]
+                environ["PROXY_PORT"] = str(client_info["proxy_port"])
+
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")

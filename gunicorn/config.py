@@ -463,7 +463,7 @@ class LimitRequestFields(Setting):
     validator = validate_pos_int
     type = "int"
     default = 100
-    desc= """\
+    desc = """\
         Limit the number of HTTP headers fields in a request.
 
         Value is a number from 0 (unlimited) to 32768. This parameter is
@@ -480,7 +480,7 @@ class LimitRequestFieldSize(Setting):
     validator = validate_pos_int
     type = "int"
     default = 8190
-    desc= """\
+    desc = """\
         Limit the allowed size of an HTTP request header field.
 
         Value is a number from 0 (unlimited) to 8190. to set the limit
@@ -517,7 +517,7 @@ class Spew(Setting):
 class ConfigCheck(Setting):
     name = "check_config"
     section = "Debugging"
-    cli = ["--check-config",]
+    cli = ["--check-config", ]
     validator = validate_bool
     action = "store_true"
     default = False
@@ -961,4 +961,41 @@ class WorkerExit(Setting):
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
+        """
+
+class AutoProxyProtocol(Setting):
+    name = "autoproxy"
+    section = "Server Mechanics"
+    cli = ["--autoproxy"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+        Automatically detect PROXY protocol (PROXY mode).
+        
+        Allow using Http and Proxy together. It's may be useful for work with
+        stunnel as https frondend and gunicorn as http server.
+
+        PROXY protocol:
+        http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+        
+        Example for stunnel config::
+        
+            [https]
+            protocol = proxy # use proxy protocol!
+            accept  = 443
+            connect = 80
+            TIMEOUTclose = 0
+            cert = /etc/ssl/certs/stunnel.pem
+            key = /etc/ssl/certs/stunnel.key
+        """
+
+class ProxyHostAllow(Setting):
+    name = "proxy_hosts"
+    section = "Server Mechanics"
+    cli = ["--proxy-hosts"]
+    validator = validate_string
+    default = "127.0.0.1"
+    desc = """\
+        Allow proxy hosts list for PROXY mode (space separate).
         """
