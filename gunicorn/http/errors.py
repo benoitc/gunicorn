@@ -20,6 +20,22 @@ class InvalidRequestLine(ParseException):
     def __str__(self):
         return "Invalid HTTP request line: %r" % self.req
 
+class InvalidProxyLine(ParseException):
+    def __init__(self, req):
+        self.req = req
+        self.code = 400
+
+    def __str__(self):
+        return "Invalid PROXY line: %r" % self.req
+
+class ForbiddenProxyRequest(ParseException):
+    def __init__(self, host):
+        self.host = host
+        self.code = 403
+
+    def __str__(self):
+        return "Proxy request from %s not allowed" % self.host
+
 class InvalidRequestMethod(ParseException):
     def __init__(self, method):
         self.method = method
