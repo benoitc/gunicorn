@@ -20,6 +20,7 @@ except ImportError:
 from gevent.pool import Pool
 from gevent.server import StreamServer
 from gevent import pywsgi
+from gevent import core
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
