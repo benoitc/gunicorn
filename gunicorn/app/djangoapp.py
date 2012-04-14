@@ -22,8 +22,6 @@ def find_settings_module(path):
                 project_path = root
 
             lvl += 1
-            if lvl > 2:
-                break
     elif os.path.isfile(path):
         project_path = os.path.dirname(path)
         settings_name, _  = os.path.splitext(os.path.basename(path))
