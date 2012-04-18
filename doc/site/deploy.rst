@@ -137,7 +137,7 @@ used to monitor gunicorn. A simple configuration is::
 
     [watcher:mywebapp]
     cmd = gunicorn -w 3 test:app
-    working_dir = /Users/benoitc/work//gunicorn/examples
+    working_dir = /Users/benoitc/work/gunicorn/examples
     send_hup = true
 
 Then you can easily manage Gunicorn using the ``circusctl`` command.
