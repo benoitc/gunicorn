@@ -140,7 +140,7 @@ used to monitor gunicorn. A simple configuration is::
     working_dir = /Users/benoitc/work/gunicorn/examples
     send_hup = true
 
-Then you can easily manage Gunicorn using the ``circusctl`` command.
+Then you can easily manage Gunicorn using the `circusctl <http://circus.readthedocs.org/en/latest/commands/#cli>`_ command.
 
 Runit
 +++++
