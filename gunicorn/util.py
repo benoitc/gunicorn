@@ -343,7 +343,7 @@ def seed():
     try:
         random.seed(os.urandom(64))
     except NotImplementedError:
-        random.seed(random.random())
+        random.seed('%s.%s' % (time.time(), os.getpid()))
 
 
 def check_is_writeable(path):
