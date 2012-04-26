@@ -65,6 +65,7 @@ class SyncWorker(base.Worker):
                 raise
 
     def handle(self, client, addr):
+        req = None
         try:
             parser = http.RequestParser(self.cfg, client)
             req = parser.next()
@@ -77,7 +78,7 @@ class SyncWorker(base.Worker):
             else:
                 self.log.debug("Ignoring EPIPE")
         except Exception, e:
-            self.handle_error(client, e)
+            self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
 
@@ -113,7 +114,7 @@ class SyncWorker(base.Worker):
             raise
         except Exception, e:
             # Only send back traceback in HTTP in debug mode.
-            self.handle_error(client, e)
+            self.handle_error(req, client, addr, e)
             return
         finally:
             try:
