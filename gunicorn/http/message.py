@@ -93,7 +93,7 @@ class Message(object):
                 except ValueError:
                     response_length = None
             elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == u("chunked")
+                chunked = value.lower() == "chunked"
             elif name == "SEC-WEBSOCKET-KEY1":
                 response_length = 8
 
