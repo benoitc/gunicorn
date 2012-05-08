@@ -184,6 +184,15 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autorestart=true
     redirect_stderr=True
 
+Logging
+-------
+
+Logging can be configured by using various flags detailed in the
+`configuration documentation`_ or by creating a `logging configuration file`_.
+Send the ``USR1`` signal to rotate logs if you are using the logrotate
+utility::
+
+    kill -USR1 $(cat /var/run/gunicorn.pid)
 
 .. _Nginx: http://www.nginx.org
 .. _slowloris: http://ha.ckers.org/slowloris/
@@ -192,4 +201,6 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
 .. _Supervisor: http://supervisord.org
 .. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
+.. _`configuration documentation`: http://gunicorn.org/configure.html#logging
+.. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
