@@ -228,23 +228,18 @@ class Body(object):
             return ""
 
         line = self.buf.getvalue()
-        idx = line.find("\n")
-        if idx >= 0:
-            ret = line[:idx+1]
-            self.buf.truncate(0)
-            self.buf.write(line[idx+1:])
-            return ret
-
         self.buf.truncate(0)
-        if len(line) >= size:
-            return line
+        if len(line) < size:
+            line += self.reader.read(size - len(line))
+        buf = line[size:]
+        line = line[:size]
 
-        line += self.reader.read(size - len(line))
         idx = line.find("\n")
         if idx >= 0:
             ret = line[:idx+1]
-            self.buf.write(line[idx+1:])
+            self.buf.write(line[idx+1:] + buf)
             return ret
+        self.buf.write(buf)
         return line
 
     def readlines(self, size=None):
