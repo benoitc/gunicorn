@@ -236,16 +236,16 @@ class Body(object):
             return ret
 
         self.buf.truncate(0)
-        ch = ""
-        buf = [line]
-        lsize = len(line)
-        while lsize < size and ch != "\n":
-            ch = self.reader.read(1)
-            if not len(ch):
-                break
-            lsize += 1
-            buf.append(ch)
-        return "".join(buf)
+        if len(line) >= size:
+            return line
+
+        line += self.reader.read(size - len(line))
+        idx = line.find("\n")
+        if idx >= 0:
+            ret = line[:idx+1]
+            self.buf.write(line[idx+1:])
+            return ret
+        return line
 
     def readlines(self, size=None):
         ret = []
