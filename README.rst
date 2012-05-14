@@ -11,8 +11,7 @@ Feel free to join us in `#gunicorn`_ on freenode_.
 Installation
 ------------
 
-Gunicorn requires **Python 2.x >= 2.5**. Python 3.x support is planned.
-
+Gunicorn requires **Python 2.x (>= 2.6), 3.x (>= 3.2)**.
 Install from sources::
 
   $ python setup.py install
@@ -85,7 +84,7 @@ Example with test app::
 
     $ cd examples
     $ gunicorn --workers=2 test:app
-    
+
 gunicorn_django
 +++++++++++++++
 
@@ -112,7 +111,7 @@ file::
         ...
         "gunicorn",
     )
-  
+
 Then you can run::
 
     python manage.py run_gunicorn
