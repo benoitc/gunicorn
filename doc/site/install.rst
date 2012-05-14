@@ -11,7 +11,7 @@ _TOC_BOT_
 Requirements
 ------------
 
-- **Python 2.x >= 2.5** (Python 3.x will be supported soon)
+- **Python 2.x (>= 2.6), 3.x (>= 3.2)**
 - setuptools >= 0.6c6
 - nosetests (for the test suite only)
 
@@ -156,14 +156,14 @@ and adding them to your system's software sources::
   deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
 
 Replace 'lucid' with your Ubuntu distribution series.
-  
+
 Signing key
 +++++++++++
 
 ::
 
   1024R/5370FF2A
-  
+
 Fingerprint
 +++++++++++
 
