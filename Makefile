@@ -4,6 +4,12 @@ build:
 	bin/pip install coverage
 	bin/pip install nose
 
+py3:
+	virtualenv --no-site-packages -p python3 .
+	bin/python setup.py develop
+	bin/pip install coverage
+	bin/pip install nose
+
 test:
 	bin/nosetests
 
