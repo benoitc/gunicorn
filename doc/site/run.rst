@@ -36,7 +36,7 @@ Example with test app::
     $ cat test.py
     # -*- coding: utf-8 -
     #
-    # This file is part of gunicorn released under the MIT license. 
+    # This file is part of gunicorn released under the MIT license.
     # See the NOTICE for more information.
 
     def app(environ, start_response):
@@ -49,7 +49,7 @@ Example with test app::
         ]
         start_response(status, response_headers)
         return iter([data])
-    
+
     $ gunicorn --workers=2 test:app
 
 gunicorn_django
@@ -67,6 +67,11 @@ Example with your Django project::
 
     $ cd path/to/yourdjangoproject
     $ gunicorn_django --workers=2
+
+.. note:: If you run Django 1.4 and superior, it's higly recommanded to
+    simply run your application with the `WSGI interface
+    <https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/>`_ using
+    the `gunicorn`_ command.
 
 gunicorn_paster
 +++++++++++++++
