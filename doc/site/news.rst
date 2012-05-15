@@ -8,6 +8,19 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.3 / 2012-05-15
+-------------------
+
+- improvement: performance of http.body.Body.readline()
+- improvement: log HTTP errors in access log like Apache
+- improvment: display traceback when the worker fails to boot
+- improvement: makes gunicorn work with gevent 1.0
+- examples: websocket example now supports hybi13
+- fix: reopen log files after initialization
+- fix: websockets support
+- fix: django1.4 support
+- fix: only load the paster application 1 time
+
 0.14.2 / 2012-03-16
 -------------------
 

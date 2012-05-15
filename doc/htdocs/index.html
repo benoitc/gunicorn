@@ -79,15 +79,19 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb">
-        <h3>Version 0.14.2 / 2012-03-16</h3>
+        <h3>Version 0.14.3 / 2012-05-15</h3>
         <ul>
-          <li>add validate_class validator: allows to use a class or a
-          method to initialize the app during in-code configuration</li>
-          <li>add support for max_requests in tornado worker</li>
-          <li>add support for disabling x_forwarded_for_header in
-          tornado worker</li>
-          <li>gevent_wsgi is now an alias of gevent_pywsgi</li>
-          <li>Fix gevent_pywsgi worker</li>
+          <li>improvement: performance of http.body.Body.readline()</li>
+          <li>improvement: log HTTP errors in access log like
+          Apache</li>
+          <li>improvment: display traceback when the worker fails to
+          boot</li>
+          <li>improvement: makes gunicorn work with gevent 1.0</li>
+          <li>examples: websocket example now supports hybi13</li>
+          <li>fix: reopen log files after initialization</li>
+          <li>fix: websockets support</li>
+          <li>fix: django1.4 support</li>
+          <li>fix: only load the paster application 1 time</li>
         </ul>
       </div>
       <div id="footer">
