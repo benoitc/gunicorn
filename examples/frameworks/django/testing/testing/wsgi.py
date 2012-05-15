@@ -14,7 +14,13 @@ framework.
 
 """
 import os
+import sys
 
+# make sure the current project is in PYTHONPATH
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                "..")))
+
+# set the environment settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "testing.settings")
 
 # This application object is used by any WSGI server configured to use this
