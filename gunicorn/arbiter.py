@@ -98,7 +98,7 @@ class Arbiter(object):
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
-            for config, value in sorted(self.cfg.settings.iteritems()):
+            for config, value in sorted(self.cfg.settings.items()):
                 self.log.debug("  %s: %s", config, value.value)
 
         if self.cfg.preload_app:
