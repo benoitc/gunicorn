@@ -85,8 +85,8 @@ class Worker(object):
         # For waking ourselves up
         self.PIPE = os.pipe()
         for fd in self.PIPE:
-            self.pidfile = Pidfile(self.cfg.pidfile)
-            self.pidfile.create(self.pid)
+            util.set_non_blocking(fd)
+            util.close_on_exec(fd)
 
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
