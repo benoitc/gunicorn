@@ -125,8 +125,9 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 
                 return pkg_resources.load_entry_point("gunicorn",
                             section, uri)
-            except ImportError:
-                raise RuntimeError("class uri invalid or not found")
+            except ImportError, e:
+                raise RuntimeError("class uri invalid or not found: " +
+                        "[%s]" % str(e))
         klass = components.pop(-1)
         mod = __import__('.'.join(components))
         for comp in components[1:]:
@@ -343,7 +344,7 @@ def seed():
     try:
         random.seed(os.urandom(64))
     except NotImplementedError:
-        random.seed(random.random())
+        random.seed('%s.%s' % (time.time(), os.getpid()))
 
 
 def check_is_writeable(path):

@@ -129,6 +129,18 @@ Monitoring
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
+Circus
+++++++
+
+`Circus <http://circus.readthedocs.org/en/latest/index.html>`_ can be
+used to monitor gunicorn. A simple configuration is::
+
+    [watcher:mywebapp]
+    cmd = gunicorn -w 3 test:app
+    working_dir = /Users/benoitc/work/gunicorn/examples
+    send_hup = true
+
+Then you can easily manage Gunicorn using the `circusctl <http://circus.readthedocs.org/en/latest/commands/#cli>`_ command.
 
 Runit
 +++++
@@ -172,6 +184,15 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autorestart=true
     redirect_stderr=True
 
+Logging
+-------
+
+Logging can be configured by using various flags detailed in the
+`configuration documentation`_ or by creating a `logging configuration file`_.
+Send the ``USR1`` signal to rotate logs if you are using the logrotate
+utility::
+
+    kill -USR1 $(cat /var/run/gunicorn.pid)
 
 .. _Nginx: http://www.nginx.org
 .. _slowloris: http://ha.ckers.org/slowloris/
@@ -180,4 +201,6 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
 .. _Supervisor: http://supervisord.org
 .. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
+.. _`configuration documentation`: http://gunicorn.org/configure.html#logging
+.. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv

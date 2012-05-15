@@ -273,7 +273,7 @@ def validate_post_request(val):
     elif largs == 2:
         return wrap_post_request(val)
     else:
-         raise TypeError("Value must have an arity of: 3")
+        raise TypeError("Value must have an arity of: 3")
 
 
 

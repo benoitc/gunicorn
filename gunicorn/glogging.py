@@ -157,7 +157,7 @@ class Logger(object):
 
         status = resp.status.split(None, 1)[0]
         atoms = {
-                'h': environ['REMOTE_ADDR'],
+                'h': environ.get('REMOTE_ADDR', '-'),
                 'l': '-',
                 'u': '-', # would be cool to get username from basic auth header
                 't': self.now(),

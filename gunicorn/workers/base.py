@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from datetime import datetime
 import os
 import signal
 import sys
@@ -11,12 +12,11 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders, \
 InvalidProxyLine, ForbiddenProxyRequest
-
+from gunicorn.http.wsgi import default_environ, Response
 
 class Worker(object):
 
@@ -126,42 +126,55 @@ class Worker(object):
         self.alive = False
         sys.exit(0)
 
-    def handle_error(self, client, exc):
-        status_int = 400
-        reason = "Bad Request"
-        unknownexc = False
+    def handle_error(self, req, client, addr, exc):
+        request_start = datetime.now()
+        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+            InvalidProxyLine, ForbiddenProxyRequest)):
 
-        if isinstance(exc, InvalidRequestLine):
-            mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
-        elif isinstance(exc, InvalidRequestMethod):
-            mesg = "<p>Invalid Method '%s'</p>" % str(exc)
-        elif isinstance(exc, InvalidHTTPVersion):
-            mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
-        elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-            mesg = "<p>Invalid Header '%s'</p>" % str(exc)
-        elif isinstance(exc, LimitRequestLine):
-            mesg = "<p>%s</p>" % str(exc)
-        elif isinstance(exc, LimitRequestHeaders):
-            mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
-        elif isinstance(exc, InvalidProxyLine):
-            mesg = "<p>Invalid Proxy Line '%s'</p>" % str(exc)
-        elif isinstance(exc, ForbiddenProxyRequest):
-            mesg = "<p>Request forbidden</p>"
-            status_int = 403
-            reason = "Forbidden"
+            status_int = 400
+            reason = "Bad Request"
+
+            if isinstance(exc, InvalidRequestLine):
+                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidRequestMethod):
+                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidHTTPVersion):
+                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+            elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
+                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
+            elif isinstance(exc, LimitRequestLine):
+                mesg = "<p>%s</p>" % str(exc)
+            elif isinstance(exc, LimitRequestHeaders):
+                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidProxyLine):
+                mesg = "<p>Invalid Proxy Line '%s'</p>" % str(exc)
+            elif isinstance(exc, ForbiddenProxyRequest):
+                mesg = "<p>Request forbidden</p>"
+                status_int = 403
+                reason = "Forbidden"
+
+            self.log.debug("Invalid request from ip={ip}: {error}"\
+                           "".format(ip=client.getpeername()[0],
+                                     error=repr(exc),
+                                    )
+                          )
         else:
             self.log.exception("Error handling request")
 
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
-            unknownexc = True
 
-        if not unknownexc:
-            self.log.debug("Invalid request from ip={ip}: {error}"\
-                            "".format(ip=client.getpeername()[0],
-                                      error=str(exc))
-            )
+        if req is not None:
+            request_time = datetime.now() - request_start
+            environ = default_environ(req, client, self.cfg)
+            environ['REMOTE_ADDR'] = addr[0]
+            environ['REMOTE_PORT'] = str(addr[1])
+            resp = Response(req, client)
+            resp.status = "%s %s" % (status_int, reason)
+            resp.response_length = len(mesg)
+            self.log.access(resp, req, environ, request_time)
 
         if self.debug:
             tb = traceback.format_exc()

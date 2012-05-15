@@ -87,7 +87,7 @@ class GeventWorker(AsyncWorker):
         except gevent.GreenletExit:
             pass
 
-    if hasattr(gevent.core, 'dns_shutdown'):
+    if gevent.version_info[0] == 0:
 
         def init_process(self):
             #gevent 0.13 and older doesn't reinitialize dns for us after forking
