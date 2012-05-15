@@ -41,10 +41,8 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = map(
-        lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
-    )
+    SIGNALS = list(getattr(signal, "SIG%s" % x) for x in \
+            "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split())
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -135,12 +133,16 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         if self.PIPE:
-            map(os.close, self.PIPE)
+            [os.close(fd) for fd in self.PIPE]
+
         self.PIPE = pair = os.pipe()
-        map(util.set_non_blocking, pair)
-        map(util.close_on_exec, pair)
+        for fd in pair:
+            util.set_non_blocking(fd)
+            util.close_on_exec(fd)
+
         self.log.close_on_exec()
-        map(lambda s: signal.signal(s, self.signal), self.SIGNALS)
+        for s in self.SIGNALS:
+            signal.signal(s, self.signal)
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):

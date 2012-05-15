@@ -20,10 +20,8 @@ from gunicorn import py3compat
 
 class Worker(object):
 
-    SIGNALS = map(
-        lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
-    )
+    SIGNALS = list(getattr(signal, "SIG%s" % x) for x in \
+        "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split())
 
     PIPE = []
 
@@ -86,8 +84,9 @@ class Worker(object):
 
         # For waking ourselves up
         self.PIPE = os.pipe()
-        map(util.set_non_blocking, self.PIPE)
-        map(util.close_on_exec, self.PIPE)
+        for fd in self.PIPE:
+            self.pidfile = Pidfile(self.cfg.pidfile)
+            self.pidfile.create(self.pid)
 
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
@@ -104,7 +103,10 @@ class Worker(object):
         self.run()
 
     def init_signals(self):
-        map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
+        # reset signaling
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
+
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
