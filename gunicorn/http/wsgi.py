@@ -84,7 +84,7 @@ def create(req, sock, client, server, cfg):
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
-                sock.send("HTTP/1.1 100 Continue\r\n\r\n")
+                sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
         elif hdr_name == x_forwarded_for_header:
             forward = hdr_value
         elif (hdr_name.upper() in secure_headers and
@@ -281,7 +281,7 @@ class Response(object):
             return
 
         self.sent += tosend
-        util.write(self.sock, py3compat.s2b(arg), self.chunked)
+        util.write(self.sock, arg, self.chunked)
 
     def sendfile_all(self, fileno, sockno, offset, nbytes):
         # Send file in at most 1GB blocks as some operating

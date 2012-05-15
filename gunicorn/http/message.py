@@ -201,7 +201,7 @@ class Request(Message):
         # Method
         if not self.methre.match(bits[0]):
             raise InvalidRequestMethod(bits[0])
-        self.method = bits[0].upper()
+        self.method = b2s(bits[0].upper())
 
         # URI
         # When the path starts with //, urlsplit considers it as a
