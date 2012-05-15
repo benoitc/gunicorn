@@ -67,7 +67,7 @@ class SyncWorker(base.Worker):
     def handle(self, client, addr):
         req = None
         try:
-            client.settimeout(self.timeout)
+            client.settimeout(self.cfg.timeout)
             parser = http.RequestParser(self.cfg, client)
             req = parser.next()
             self.handle_request(req, client, addr)
@@ -76,7 +76,7 @@ class SyncWorker(base.Worker):
         except socket.timeout:
             self.log.debug("Processing request timeout"
                            " (socket non activity more than %s sec)"
-                           "" % self.timeout)
+                           "" % self.cfg.timeout)
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
