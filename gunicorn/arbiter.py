@@ -93,6 +93,7 @@ class Arbiter(object):
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
+        self.kill_timeout = self.cfg.kill_timeout
         self.proc_name = self.cfg.proc_name
         self.worker_class = self.cfg.worker_class
 
@@ -320,12 +321,19 @@ class Arbiter(object):
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
-        limit = time.time() + self.timeout
+        if self.kill_timeout == 0:
+            limit = time.time() + 5
+        elif self.kill_timeout < 0:
+            limit = time.time() + (-self.kill_timeout)
+        else:
+            limit = time.time() + self.kill_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
             self.reap_workers()
-        self.kill_workers(signal.SIGKILL)
+            time.sleep(1)
+        if self.kill_timeout > 0:
+            self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
         """\
