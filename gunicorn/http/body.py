@@ -5,19 +5,15 @@
 
 import sys
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from gunicorn.http.errors import NoMoreData, ChunkMissingTerminator, \
 InvalidChunkSize
+from gunicorn.py3compat import BytesIO, MAXSIZE
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
         self.req = req
         self.parser = self.parse_chunked(unreader)
-        self.buf = StringIO()
+        self.buf = BytesIO()
 
     def read(self, size):
         if not isinstance(size, (int, long)):
@@ -42,15 +38,15 @@ class ChunkedReader(object):
         return ret
 
     def parse_trailers(self, unreader, data):
-        buf = StringIO()
+        buf = BytesIO()
         buf.write(data)
 
-        idx = buf.getvalue().find("\r\n\r\n")
-        done = buf.getvalue()[:2] == "\r\n"
+        idx = buf.getvalue().find(b"\r\n\r\n")
+        done = buf.getvalue()[:2] == b"\r\n"
         while idx < 0 and not done:
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n\r\n")
-            done = buf.getvalue()[:2] == "\r\n"
+            idx = buf.getvalue().find(b"\r\n\r\n")
+            done = buf.getvalue()[:2] == b"\r\n"
         if done:
             unreader.unread(buf.getvalue()[2:])
             return ""
@@ -71,24 +67,24 @@ class ChunkedReader(object):
             rest = rest[size:]
             while len(rest) < 2:
                 rest += unreader.read()
-            if rest[:2] != '\r\n':
+            if rest[:2] != b'\r\n':
                 raise ChunkMissingTerminator(rest[:2])
             (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
     def parse_chunk_size(self, unreader, data=None):
-        buf = StringIO()
+        buf = BytesIO()
         if data is not None:
             buf.write(data)
 
-        idx = buf.getvalue().find("\r\n")
+        idx = buf.getvalue().find(b"\r\n")
         while idx < 0:
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n")
+            idx = buf.getvalue().find(b"\r\n")
 
         data = buf.getvalue()
         line, rest_chunk = data[:idx], data[idx+2:]
 
-        chunk_size = line.split(";", 1)[0].strip()
+        chunk_size = line.split(b";", 1)[0].strip()
         try:
             chunk_size = int(chunk_size, 16)
         except ValueError:
@@ -115,16 +111,16 @@ class LengthReader(object):
 
     def read(self, size):
         if not isinstance(size, (int, long)):
-            raise TypeError("size must be an integral type")
+            raise TypeError(b"size must be an integral type")
 
         size = min(self.length, size)
         if size < 0:
-            raise ValueError("Size must be positive.")
+            raise ValueError(b"Size must be positive.")
         if size == 0:
             return ""
 
 
-        buf = StringIO()
+        buf = BytesIO()
         data = self.unreader.read()
         while data:
             buf.write(data)
@@ -141,7 +137,7 @@ class LengthReader(object):
 class EOFReader(object):
     def __init__(self, unreader):
         self.unreader = unreader
-        self.buf = StringIO()
+        self.buf = BytesIO()
         self.finished = False
 
     def read(self, size):
@@ -178,7 +174,7 @@ class EOFReader(object):
 class Body(object):
     def __init__(self, reader):
         self.reader = reader
-        self.buf = StringIO()
+        self.buf = BytesIO()
 
     def __iter__(self):
         return self
@@ -191,11 +187,11 @@ class Body(object):
 
     def getsize(self, size):
         if size is None:
-            return sys.maxint
+            return MAXSIZE
         elif not isinstance(size, (int, long)):
             raise TypeError("size must be an integral type")
         elif size < 0:
-            return sys.maxint
+            return MAXSIZE
         return size
 
     def read(self, size=None):
@@ -225,7 +221,7 @@ class Body(object):
     def readline(self, size=None):
         size = self.getsize(size)
         if size == 0:
-            return ""
+            return b("")
 
         line = self.buf.getvalue()
         self.buf.truncate(0)
@@ -234,7 +230,7 @@ class Body(object):
         extra_buf_data = line[size:]
         line = line[:size]
 
-        idx = line.find("\n")
+        idx = line.find(b"\n")
         if idx >= 0:
             ret = line[:idx+1]
             self.buf.write(line[idx+1:])
@@ -247,10 +243,10 @@ class Body(object):
         ret = []
         data = self.read()
         while len(data):
-            pos = data.find("\n")
+            pos = data.find(b"\n")
             if pos < 0:
                 ret.append(data)
-                data = ""
+                data = b("")
             else:
                 line, data = data[:pos+1], data[pos+1:]
                 ret.append(line)

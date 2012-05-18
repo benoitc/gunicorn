@@ -16,14 +16,14 @@ class MsgForm(forms.Form):
 
 def home(request):
     from django.conf import settings
-    print settings.SOME_VALUE
+    print(settings.SOME_VALUE)
     subject = None
     message = None
     size = 0
-    print request.META
+    print(request.META)
     if request.POST:
         form = MsgForm(request.POST, request.FILES)
-        print request.FILES
+        print(request.FILES)
         if form.is_valid():
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']

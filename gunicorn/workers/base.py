@@ -16,13 +16,12 @@ from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.wsgi import default_environ, Response
+from gunicorn import py3compat
 
 class Worker(object):
 
-    SIGNALS = map(
-        lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
-    )
+    SIGNALS = list(getattr(signal, "SIG%s" % x) for x in \
+        "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split())
 
     PIPE = []
 
@@ -41,7 +40,7 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
-        self.max_requests = cfg.max_requests or sys.maxint
+        self.max_requests = cfg.max_requests or py3compat.MAXSIZE
         self.alive = True
         self.log = log
         self.debug = cfg.debug
@@ -85,8 +84,9 @@ class Worker(object):
 
         # For waking ourselves up
         self.PIPE = os.pipe()
-        map(util.set_non_blocking, self.PIPE)
-        map(util.close_on_exec, self.PIPE)
+        for fd in self.PIPE:
+            util.set_non_blocking(fd)
+            util.close_on_exec(fd)
 
         # Prevent fd inherientence
         util.close_on_exec(self.socket)
@@ -103,7 +103,10 @@ class Worker(object):
         self.run()
 
     def init_signals(self):
-        map(lambda s: signal.signal(s, signal.SIG_DFL), self.SIGNALS)
+        # reset signaling
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
+
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)

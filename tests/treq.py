@@ -5,12 +5,15 @@
 
 from __future__ import with_statement
 
+try:
+    import urllib.parse as urlparse
+except ImportError:
+    import urlparse
 import t
 
 import inspect
 import os
 import random
-import urlparse
 
 from gunicorn.config import Config
 from gunicorn.http.errors import ParseException
@@ -268,7 +271,7 @@ class badrequest(object):
         p = RequestParser(Config(), self.send())
         try:
             [req for req in p]
-        except Exception, inst:
+        except Exception as inst:
             exp = cases.pop(0)
             if not issubclass(exp, Exception):
                 raise TypeError("Test case is not an exception calss: %s" % exp)
