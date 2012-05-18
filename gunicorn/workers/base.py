@@ -128,7 +128,8 @@ class Worker(object):
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+            LimitRequestLine, LimitRequestHeaders,)):
 
             status_int = 400
             reason = "Bad Request"
@@ -169,7 +170,7 @@ class Worker(object):
             self.log.access(resp, req, environ, request_time)
 
         if self.debug:
-            tb =  traceback.format_exc()
+            tb = traceback.format_exc()
             mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
 
         try:
