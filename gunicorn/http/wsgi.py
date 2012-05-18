@@ -7,10 +7,15 @@ import logging
 import os
 import re
 import sys
-from urllib import unquote
+
+try:
+    from urllib.parse import unquote
+except ImportError:
+    from urllib import unquote
 
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
+from gunicorn import py3compat
 
 try:
     # Python 3.3 has os.sendfile().
@@ -74,11 +79,12 @@ def create(req, sock, client, server, cfg):
     secure_headers = cfg.secure_scheme_headers
     x_forwarded_for_header = cfg.x_forwarded_for_header
 
+    print(req.headers)
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
-                sock.send("HTTP/1.1 100 Continue\r\n\r\n")
+                sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
         elif hdr_name == x_forwarded_for_header:
             forward = hdr_value
         elif (hdr_name.upper() in secure_headers and
@@ -102,7 +108,7 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, basestring):
+    if isinstance(forward, py3compat.string_types):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
@@ -129,7 +135,7 @@ def create(req, sock, client, server, cfg):
     environ['REMOTE_ADDR'] = remote[0]
     environ['REMOTE_PORT'] = str(remote[1])
 
-    if isinstance(server, basestring):
+    if isinstance(server, py3compat.string_types):
         server =  server.split(":")
         if len(server) == 1:
             if url_scheme == "http":
@@ -178,7 +184,8 @@ class Response(object):
         if exc_info:
             try:
                 if self.status and self.headers_sent:
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                    py3compat.raise_with_tb(exc_info[0], exc_info[1],
+                        exc_info[2])
             finally:
                 exc_info = None
         elif self.status is not None:
@@ -191,7 +198,8 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            assert isinstance(name, basestring), "%r is not a string" % name
+            assert (isinstance(name, py3compat.string_types),
+                    "%r is not a string" % name)
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
@@ -248,12 +256,13 @@ class Response(object):
             return
         tosend = self.default_headers()
         tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
-        util.write(self.sock, "%s\r\n" % "".join(tosend))
+        util.write(self.sock, py3compat.s2b("%s\r\n" % "".join(tosend)))
         self.headers_sent = True
 
     def write(self, arg):
         self.send_headers()
-        assert isinstance(arg, basestring), "%r is not a string." % arg
+        assert(isinstance(arg, py3compat.string_types),
+                "%r is not a string." % arg)
 
         arglen = len(arg)
         tosend = arglen
@@ -311,12 +320,12 @@ class Response(object):
             self.send_headers()
 
             if self.is_chunked():
-                self.sock.sendall("%X\r\n" % nbytes)
+                self.sock.sendall(py3compat.s2b("%X\r\n" % nbytes))
 
             self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
 
             if self.is_chunked():
-                self.sock.sendall("\r\n")
+                self.sock.sendall(b"\r\n")
 
             os.lseek(fileno, fd_offset, os.SEEK_SET)
         else:
@@ -327,4 +336,4 @@ class Response(object):
         if not self.headers_sent:
             self.send_headers()
         if self.chunked:
-            util.write_chunk(self.sock, "")
+            util.write_chunk(self.sock, b"")

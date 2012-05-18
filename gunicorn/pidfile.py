@@ -9,6 +9,7 @@ import errno
 import os
 import tempfile
 
+from gunicorn.py3compat import s2b
 
 class Pidfile(object):
     """\
@@ -36,7 +37,7 @@ class Pidfile(object):
         if fdir and not os.path.isdir(fdir):
             raise RuntimeError("%s doesn't exist. Can't create pidfile." % fdir)
         fd, fname = tempfile.mkstemp(dir=fdir)
-        os.write(fd, "%s\n" % self.pid)
+        os.write(fd, s2b("%s\n" % self.pid))
         if self.fname:
             os.rename(fname, self.fname)
         else:
@@ -76,11 +77,11 @@ class Pidfile(object):
                 try:
                     os.kill(wpid, 0)
                     return wpid
-                except OSError, e:
-                    if e[0] == errno.ESRCH:
+                except OSError as e:
+                    if e.args[0] == errno.ESRCH:
                         return
                     raise
-        except IOError, e:
-            if e[0] == errno.ENOENT:
+        except IOError as e:
+            if e.args[0] == errno.ENOENT:
                 return
             raise

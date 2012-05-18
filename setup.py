@@ -10,17 +10,18 @@ import sys
 
 from gunicorn import __version__
 
+
+readme_path = os.path.join(os.path.dirname(__file__), 'README.rst')
+with open(readme_path, "r") as f:
+    long_description = f.read()
+
+
 setup(
     name = 'gunicorn',
     version = __version__,
 
     description = 'WSGI HTTP Server for UNIX',
-    long_description = file(
-        os.path.join(
-            os.path.dirname(__file__),
-            'README.rst'
-        )
-    ).read(),
+    long_description = long_description,
     author = 'Benoit Chesneau',
     author_email = 'benoitc@e-engura.com',
     license = 'MIT',

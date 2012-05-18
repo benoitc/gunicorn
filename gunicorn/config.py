@@ -10,11 +10,12 @@ import optparse
 import os
 import pwd
 import textwrap
-import types
 
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
 from gunicorn import util
+from gunicorn import py3compat
+
 
 KNOWN_SETTINGS = []
 
@@ -64,7 +65,7 @@ class Config(object):
         keys = self.settings.keys()
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
-        keys.sort(key=sorter)
+        keys = sorted(keys, key=sorter)
         for k in keys:
             self.settings[k].add_option(parser)
         return parser
@@ -84,7 +85,7 @@ class Config(object):
     @property
     def address(self):
         bind = self.settings['bind'].get()
-        return util.parse_address(util.to_bytestring(bind))
+        return util.parse_address(bind)
 
     @property
     def uid(self):
@@ -115,17 +116,17 @@ class Config(object):
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
-        super_new = super(SettingMeta, cls).__new__
+        super_new = type.__new__
         parents = [b for b in bases if isinstance(b, SettingMeta)]
         if not parents:
             return super_new(cls, name, bases, attrs)
-
         attrs["order"] = len(KNOWN_SETTINGS)
         attrs["validator"] = wrap_method(attrs["validator"])
 
         new_class = super_new(cls, name, bases, attrs)
         new_class.fmt_desc(attrs.get("desc", ""))
         KNOWN_SETTINGS.append(new_class)
+
         return new_class
 
     def fmt_desc(cls, desc):
@@ -134,7 +135,6 @@ class SettingMeta(type):
         setattr(cls, "short", desc.splitlines()[0])
 
 class Setting(object):
-    __metaclass__ = SettingMeta
 
     name = None
     value = None
@@ -178,10 +178,12 @@ class Setting(object):
         assert callable(self.validator), "Invalid validator: %s" % self.name
         self.value = self.validator(val)
 
+Setting = SettingMeta('Settings', (Setting,), {})
+
 def validate_bool(val):
-    if isinstance(val, types.BooleanType):
+    if isinstance(val, bool):
         return val
-    if not isinstance(val, basestring):
+    if not isinstance(val, string_type):
         raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
@@ -196,7 +198,7 @@ def validate_dict(val):
     return val
 
 def validate_pos_int(val):
-    if not isinstance(val, (types.IntType, types.LongType)):
+    if not isinstance(val, py3compat.integer_types):
         val = int(val, 0)
     else:
         # Booleans are ints!
@@ -208,7 +210,7 @@ def validate_pos_int(val):
 def validate_string(val):
     if val is None:
         return None
-    if not isinstance(val, basestring):
+    if not isinstance(val, py3compat.string_types):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
