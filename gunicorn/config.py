@@ -449,8 +449,8 @@ class LimitRequestLine(Setting):
         restriction on the length of a request-URI allowed for a request
         on the server. A server needs this value to be large enough to
         hold any of its resource names, including any information that
-        might be passed in the query part of a GET request. By default
-        this value is 4094 and can't be larger than 8190.
+        might be passed in the query part of a GET request. Value is a number
+        from 0 (unlimited) to 8190.
 
         This parameter can be used to prevent any DDOS attack.
         """
@@ -466,10 +466,10 @@ class LimitRequestFields(Setting):
     desc= """\
         Limit the number of HTTP headers fields in a request.
 
-        Value is a number from 0 (unlimited) to 32768. This parameter is
-        used to limit the number of headers in a request to prevent DDOS
-        attack. Used with the `limit_request_field_size` it allows more
-        safety.
+        This parameter is used to limit the number of headers in a request to
+        prevent DDOS attack. Used with the `limit_request_field_size` it allows
+        more safety. By default this value is 100 and can't be larger than
+        32768.
         """
 
 class LimitRequestFieldSize(Setting):
