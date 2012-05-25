@@ -81,6 +81,9 @@ class Message(object):
             while len(lines) and lines[0].startswith((" ", "\t")):
                 curr = lines.pop(0)
                 header_length += len(curr)
+                if header_length > self.limit_request_field_size > 0:
+                    raise LimitRequestHeaders("limit request headers "
+                            + "fields size")
                 value.append(curr)
             value = ''.join(value).rstrip()
 
