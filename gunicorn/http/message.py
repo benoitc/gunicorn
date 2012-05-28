@@ -6,6 +6,8 @@
 import re
 import urlparse
 from socket import inet_pton, AF_INET, AF_INET6
+import socket.error
+from errno import ENOTCONN
 
 try:
     from cStringIO import StringIO
@@ -175,7 +177,13 @@ class Request(Message):
 
             # check for allow list
             if isinstance(self.unreader, SocketUnreader):
-                remote_host = self.unreader.sock.getpeername()[0]
+                try:
+                    remote_host = self.unreader.sock.getpeername()[0]
+                except socket.error as e:
+                    if e[0] == ENOTCONN:
+                        raise ForbiddenProxyRequest("host disconnected")
+                    raise
+
                 if remote_host not in self.cfg.proxy_hosts.split():
                     raise ForbiddenProxyRequest(remote_host)
 
