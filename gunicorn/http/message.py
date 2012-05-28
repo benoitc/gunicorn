@@ -6,7 +6,7 @@
 import re
 import urlparse
 from socket import inet_pton, AF_INET, AF_INET6
-import socket.error
+import socket
 from errno import ENOTCONN
 
 try:
