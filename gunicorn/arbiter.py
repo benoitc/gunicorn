@@ -93,6 +93,7 @@ class Arbiter(object):
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
+        self.graceful_timeout = self.cfg.graceful_timeout
         self.proc_name = self.cfg.proc_name
         self.worker_class = self.cfg.worker_class
 
@@ -320,7 +321,8 @@ class Arbiter(object):
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
-        limit = time.time() + self.timeout
+
+        limit = time.time() + self.graceful_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
@@ -343,7 +345,7 @@ class Arbiter(object):
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
         util.closerange(3, self.LISTENER.fileno())
-        util.closerange(self.LISTENER.fileno()+1, util.get_maxfd())
+        util.closerange(self.LISTENER.fileno() + 1, util.get_maxfd())
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
     def reload(self):
@@ -436,7 +438,7 @@ class Arbiter(object):
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
-                                    self.app, self.timeout/2.0,
+                                    self.app, self.timeout / 2.0,
                                     self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
         pid = os.fork()

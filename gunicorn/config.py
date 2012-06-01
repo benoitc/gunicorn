@@ -463,7 +463,7 @@ class LimitRequestFields(Setting):
     validator = validate_pos_int
     type = "int"
     default = 100
-    desc= """\
+    desc = """\
         Limit the number of HTTP headers fields in a request.
 
         This parameter is used to limit the number of headers in a request to
@@ -480,7 +480,7 @@ class LimitRequestFieldSize(Setting):
     validator = validate_pos_int
     type = "int"
     default = 8190
-    desc= """\
+    desc = """\
         Limit the allowed size of an HTTP request header field.
 
         Value is a number from 0 (unlimited) to 8190. to set the limit
@@ -517,7 +517,7 @@ class Spew(Setting):
 class ConfigCheck(Setting):
     name = "check_config"
     section = "Debugging"
-    cli = ["--check-config",]
+    cli = ["--check-config", ]
     validator = validate_bool
     action = "store_true"
     default = False
@@ -961,4 +961,20 @@ class WorkerExit(Setting):
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
+        """
+
+class GracefulTimeout(Setting):
+    name = "graceful_timeout"
+    section = "Worker Processes"
+    cli = ["--graceful-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 30
+    desc = """\
+        Timeout for graceful workers restart.
+        
+        Generally set to thirty seconds. How max time worker can handle 
+        request after got restart signal. If the time is up worker will
+        be force killed.
         """
