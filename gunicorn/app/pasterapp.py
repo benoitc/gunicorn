@@ -137,8 +137,9 @@ class PasterServerApplication(PasterBaseApplication):
                 raise
 
     def load(self):
-        if self.app is None and hasattr(self, "cfgfname"):
+        if hasattr(self, "cfgfname"):
             return loadapp(self.cfgurl, relative_to=self.relpath)
+
         return self.app
 
 
