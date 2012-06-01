@@ -320,7 +320,7 @@ class Arbiter(object):
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
-        limit = time.time() + self.timeout
+        limit = time.time() + self.cfg.graceful_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)

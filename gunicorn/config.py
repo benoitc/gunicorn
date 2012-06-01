@@ -418,6 +418,22 @@ class Timeout(Setting):
         is not tied to the length of time required to handle a single request.
         """
 
+class GracefulTimeout(Setting):
+    name = "graceful_timeout"
+    section = "Worker Processes"
+    cli = ["--graceful-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 30
+    desc = """\
+        Timeout for graceful workers restart.
+
+        Generally set to thirty seconds. How max time worker can handle
+        request after got restart signal. If the time is up worker will
+        be force killed.
+        """
+
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"
