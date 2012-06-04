@@ -375,8 +375,6 @@ class Arbiter(object):
         util._setproctitle("master [%s]" % self.proc_name)
 
         # manage workers
-        self.log.reopen_files()
-
         self.manage_workers()
 
     def murder_workers(self):
