@@ -92,6 +92,7 @@ class GeventWorker(AsyncWorker):
         def init_process(self):
             #gevent 0.13 and older doesn't reinitialize dns for us after forking
             #here's the workaround
+            import gevent.core
             gevent.core.dns_shutdown(fail_requests=1)
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()
