@@ -80,6 +80,8 @@ class Worker(object):
         """
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
+        os.setsid()
+
         # Reseed the random number generator
         util.seed()
 
