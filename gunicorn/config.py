@@ -980,9 +980,9 @@ class WorkerExit(Setting):
         """
 
 class AutoProxyProtocol(Setting):
-    name = "autoproxy"
+    name = "auto_proxy"
     section = "Server Mechanics"
-    cli = ["--autoproxy"]
+    cli = ["--auto-proxy"]
     validator = validate_bool
     default = False
     action = "store_true"
@@ -998,10 +998,9 @@ class AutoProxyProtocol(Setting):
         Example for stunnel config::
         
             [https]
-            protocol = proxy # use proxy protocol!
+            protocol = proxy
             accept  = 443
             connect = 80
-            TIMEOUTclose = 0
             cert = /etc/ssl/certs/stunnel.pem
             key = /etc/ssl/certs/stunnel.key
         """

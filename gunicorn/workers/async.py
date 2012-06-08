@@ -64,8 +64,8 @@ class AsyncWorker(base.Worker):
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
             # rewrite client info (proxy mode)
             client_info = req.parser.client_info
-            if "proxy_mode" in client_info:
-                environ["PROXY_PROTOCOL"] = client_info["proxy_mode"]
+            if "proxy_protocol" in client_info:
+                environ["PROXY_PROTOCOL"] = client_info["proxy_protocol"]
                 environ["REMOTE_ADDR"] = client_info["client_addr"]
                 environ["REMOTE_PORT"] = str(client_info["client_port"])
                 environ["PROXY_ADDR"] = client_info["proxy_addr"]
@@ -87,7 +87,7 @@ class AsyncWorker(base.Worker):
                 self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
-                  respiter.close()
+                    respiter.close()
             if resp.should_close():
                 raise StopIteration()
         finally:

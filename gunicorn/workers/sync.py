@@ -94,8 +94,8 @@ class SyncWorker(base.Worker):
                     self.address, self.cfg)
             # rewrite client info (proxy mode)
             client_info = req.parser.client_info
-            if "proxy_mode" in client_info:
-                environ["PROXY_PROTOCOL"] = client_info["proxy_mode"]
+            if "proxy_protocol" in client_info:
+                environ["PROXY_PROTOCOL"] = client_info["proxy_protocol"]
                 environ["REMOTE_ADDR"] = client_info["client_addr"]
                 environ["REMOTE_PORT"] = str(client_info["client_port"])
                 environ["PROXY_ADDR"] = client_info["proxy_addr"]

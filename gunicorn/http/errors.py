@@ -34,7 +34,7 @@ class ForbiddenProxyRequest(ParseException):
         self.code = 403
 
     def __str__(self):
-        return "Proxy request from host '%s' not allow" % self.host
+        return "Proxy request from %s not allowed" % self.host
 
 class InvalidRequestMethod(ParseException):
     def __init__(self, method):

@@ -5,7 +5,6 @@
 
 import re
 import urlparse
-from socket import inet_pton, AF_INET, AF_INET6
 import socket
 from errno import ENOTCONN
 
@@ -159,48 +158,23 @@ class Request(Message):
             raise NoMoreData(buf.getvalue())
         buf.write(data)
 
-    def _read_request_line(self, unreader, buf):
-        data = buf.getvalue()
-        while True:
-            idx = data.find("\r\n")
-            if idx >= 0:
-                break
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
-
-            if len(data) - 2 > self.limit_request_line > 0:
-                raise LimitRequestLine(len(data), self.limit_request_line)
-
-        return (data[:idx], # request line
-                data[idx + 2:]) #  residue in the buffer, skip \r\n
-
     def parse(self, unreader):
         buf = StringIO()
         self.get_data(unreader, buf, stop=True)
 
-        # Request line
-        line, rbuf = self._read_request_line(unreader, buf)
+        # get request line
+        line, rbuf = self.read_line(unreader, buf)
 
         # check proxy protocol
-        if self.cfg.autoproxy and self.parser.req_count == 1 \
-            and line.startswith("PROXY"):
-
-            # check for allow list
-            if isinstance(self.unreader, SocketUnreader):
-                try:
-                    remote_host = self.unreader.sock.getpeername()[0]
-                except socket.error as e:
-                    if e[0] == ENOTCONN:
-                        raise ForbiddenProxyRequest("host disconnected")
-                    raise
-
-                if remote_host not in self.cfg.proxy_hosts.split():
-                    raise ForbiddenProxyRequest(remote_host)
-
+        if self.parser.req_count == 1 and self.cfg.auto_proxy \
+           and line.startswith("PROXY") and self.proxy_protocol_access_check():
+            # parse proxy line
             self.parse_proxy_protocol(line)
+
+            # get next request line
             buf = StringIO()
             buf.write(rbuf)
-            line, rbuf = self._read_request_line(unreader, buf)
+            line, rbuf = self.read_line(unreader, buf)
 
         self.parse_request_line(line)
         buf = StringIO()
@@ -233,6 +207,36 @@ class Request(Message):
         buf = StringIO()
         return ret
 
+    def read_line(self, unreader, buf):
+        data = buf.getvalue()
+        while True:
+            idx = data.find("\r\n")
+            if idx >= 0:
+                break
+            self.get_data(unreader, buf)
+            data = buf.getvalue()
+
+            if len(data) - 2 > self.limit_request_line > 0:
+                raise LimitRequestLine(len(data), self.limit_request_line)
+
+        return (data[:idx], # request line
+                data[idx + 2:]) #  residue in the buffer, skip \r\n
+
+    def proxy_protocol_access_check(self):
+        # check in allow list
+        if isinstance(self.unreader, SocketUnreader):
+            try:
+                remote_host = self.unreader.sock.getpeername()[0]
+            except socket.error as e:
+                if e[0] == ENOTCONN:
+                    raise ForbiddenProxyRequest("UNKNOW")
+                raise
+
+            if remote_host not in self.cfg.proxy_hosts.split():
+                raise ForbiddenProxyRequest(remote_host)
+
+        return True
+
     def parse_proxy_protocol(self, line):
         bits = line.split()
 
@@ -243,33 +247,35 @@ class Request(Message):
         proto = bits[1]
         s_addr = bits[2]
         d_addr = bits[3]
+
+        # Validation
+        if proto not in ["TCP4", "TCP6"]:
+            raise InvalidProxyLine("Invalid protocol, request line: %s" % line)
+        if proto == "TCP4":
+            try:
+                socket.inet_pton(socket.AF_INET, s_addr)
+                socket.inet_pton(socket.AF_INET, d_addr)
+            except socket.error:
+                raise InvalidProxyLine(line)
+        elif proto == "TCP6":
+            try:
+                socket.inet_pton(socket.AF_INET6, s_addr)
+                socket.inet_pton(socket.AF_INET6, d_addr)
+            except socket.error:
+                raise InvalidProxyLine(line)
+
         try:
             s_port = int(bits[4])
             d_port = int(bits[5])
         except ValueError:
-            raise InvalidProxyLine(line)
+            raise InvalidProxyLine("Invalid port: %s" % line)
 
-        # Validation
-        if proto not in ["TCP4", "TCP6", "UNKNOWN"]:
-            raise InvalidProxyLine(line)
-        if proto == "TCP4":
-            try:
-                inet_pton(AF_INET, s_addr)
-                inet_pton(AF_INET, d_addr)
-            except Exception:
-                raise InvalidProxyLine(line)
-        elif proto == "TCP6":
-            try:
-                inet_pton(AF_INET6, s_addr)
-                inet_pton(AF_INET6, d_addr)
-            except Exception:
-                raise InvalidProxyLine(line)
-        if (65535 <= s_port < 0) or (65535 <= d_port <= 0):
-            raise InvalidProxyLine(line)
+        if not ((0 <= s_port <= 65535) and (0 <= d_port <= 65535)):
+            raise InvalidProxyLine("Invalid port: %s" % line)
 
         # Set data
         self.parser.client_info.update({
-            "proxy_mode": proto,
+            "proxy_protocol": proto,
             "client_addr": s_addr,
             "client_port": s_port,
             "proxy_addr": d_addr,
