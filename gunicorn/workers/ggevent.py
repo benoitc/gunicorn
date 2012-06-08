@@ -77,7 +77,7 @@ class GeventWorker(AsyncWorker):
         try:
             # Try to stop connections until timeout
             self.notify()
-            server.stop(timeout=self.timeout)
+            server.stop(timeout=self.cfg.graceful_timeout)
         except:
             pass
 

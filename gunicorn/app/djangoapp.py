@@ -16,14 +16,17 @@ def find_settings_module(path):
 
     if os.path.isdir(path):
         project_path = None
-        lvl = 0
-        for root, dirs, files in os.walk(path):
-            if "settings.py" in files:
-                project_path = root
+        if not os.path.isfile(os.path.join(path, "settings.py")):
+            for d in os.listdir(path):
+                if d in ('..', '.'):
+                    continue
 
-            lvl += 1
-            if lvl > 2:
-                break
+                root = os.path.join(path, d)
+                if os.path.isfile(os.path.join(root, "settings.py")):
+                    project_path = root
+                    break
+        else:
+            project_path = path
     elif os.path.isfile(path):
         project_path = os.path.dirname(path)
         settings_name, _  = os.path.splitext(os.path.basename(path))

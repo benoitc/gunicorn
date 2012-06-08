@@ -130,7 +130,8 @@ class Worker(object):
         request_start = datetime.now()
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            InvalidProxyLine, ForbiddenProxyRequest)):
+            LimitRequestLine, LimitRequestHeaders,
+            InvalidProxyLine, ForbiddenProxyRequest,)):
 
             status_int = 400
             reason = "Bad Request"

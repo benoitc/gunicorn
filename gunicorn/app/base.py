@@ -119,12 +119,7 @@ class Application(object):
             debug.spew()
         if self.cfg.daemon:
             util.daemonize()
-        else:
-            try:
-                os.setpgrp()
-            except OSError, e:
-                if e[0] != errno.EPERM:
-                    raise
+
         try:
             Arbiter(self).run()
         except RuntimeError, e:

@@ -70,6 +70,8 @@ class SyncWorker(base.Worker):
             parser = http.RequestParser(self.cfg, client)
             req = parser.next()
             self.handle_request(req, client, addr)
+        except http.errors.NoMoreData, e:
+            self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration, e:
             self.log.debug("Closing connection. %s", e)
         except socket.error, e:

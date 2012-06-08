@@ -37,17 +37,19 @@ class Message(object):
         self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 
         # set headers limits
-        self.limit_request_fields = max(cfg.limit_request_fields, MAX_HEADERS)
-        if self.limit_request_fields <= 0:
+        self.limit_request_fields = cfg.limit_request_fields
+        if (self.limit_request_fields <= 0
+            or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
-        self.limit_request_field_size = max(cfg.limit_request_field_size,
-                MAX_HEADERFIELD_SIZE)
-        if self.limit_request_field_size <= 0:
+        self.limit_request_field_size = cfg.limit_request_field_size
+        if (self.limit_request_field_size < 0
+            or self.limit_request_field_size > MAX_HEADERFIELD_SIZE):
             self.limit_request_field_size = MAX_HEADERFIELD_SIZE
 
         # set max header buffer size
+        max_header_field_size = self.limit_request_field_size or MAX_HEADERFIELD_SIZE
         self.max_buffer_headers = self.limit_request_fields * \
-                (self.limit_request_field_size + 2) + 4
+            (max_header_field_size + 2) + 4
 
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
@@ -65,11 +67,12 @@ class Message(object):
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
         while len(lines):
-            if len(headers) > self.limit_request_fields:
+            if len(headers) >= self.limit_request_fields:
                 raise LimitRequestHeaders("limit request headers fields")
 
             # Parse initial header name : value pair.
             curr = lines.pop(0)
+            header_length = len(curr)
             if curr.find(":") < 0:
                 raise InvalidHeader(curr.strip())
             name, value = curr.split(":", 1)
@@ -81,9 +84,16 @@ class Message(object):
 
             # Consume value continuation lines
             while len(lines) and lines[0].startswith((" ", "\t")):
-                value.append(lines.pop(0))
+                curr = lines.pop(0)
+                header_length += len(curr)
+                if header_length > self.limit_request_field_size > 0:
+                    raise LimitRequestHeaders("limit request headers "
+                            + "fields size")
+                value.append(curr)
             value = ''.join(value).rstrip()
 
+            if header_length > self.limit_request_field_size > 0:
+                raise LimitRequestHeaders("limit request headers fields size")
             headers.append((name, value))
         return headers
 
@@ -135,9 +145,9 @@ class Request(Message):
         self.fragment = None
 
         # get max request line size
-        self.limit_request_line = max(cfg.limit_request_line,
-                MAX_REQUEST_LINE)
-        if self.limit_request_line <= 0:
+        self.limit_request_line = cfg.limit_request_line
+        if (self.limit_request_line < 0
+            or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
         super(Request, self).__init__(cfg, unreader, parser)
 
@@ -158,8 +168,8 @@ class Request(Message):
             self.get_data(unreader, buf)
             data = buf.getvalue()
 
-            if len(data) - 2 > self.limit_request_line:
-                raise LimitRequestLine(len(data), self.cfg.limit_request_line)
+            if len(data) - 2 > self.limit_request_line > 0:
+                raise LimitRequestLine(len(data), self.limit_request_line)
 
         return (data[:idx], # request line
                 data[idx + 2:]) #  residue in the buffer, skip \r\n

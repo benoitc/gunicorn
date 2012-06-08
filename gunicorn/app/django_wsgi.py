@@ -23,7 +23,6 @@ try:
     django14 = True
 except ImportError:
     from django.core.handlers.wsgi import WSGIHandler
-    from django.core.servers.basehttp import AdminMediaHandler
     django14 = False
 
 from gunicorn import util
@@ -109,7 +108,9 @@ def reload_django_settings():
 
 def make_command_wsgi_application(admin_mediapath):
     reload_django_settings()
-    if django14:
-        return make_wsgi_application()
 
-    return AdminMediaHandler(make_wsgi_application(), admin_mediapath)
+    try:
+        from django.core.servers.basehttp import AdminMediaHandler
+        return AdminMediaHandler(make_wsgi_application(), admin_mediapath)
+    except ImportError:
+        return make_wsgi_application()

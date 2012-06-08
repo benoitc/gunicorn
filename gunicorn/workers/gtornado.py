@@ -56,9 +56,11 @@ class TornadoWorker(Worker):
         PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
 
         # Assume the app is a WSGI callable if its not an
-        # instance of tornardo.web.Application
+        # instance of tornado.web.Application or is an
+        # instance of tornado.wsgi.WSGIApplication
         app = self.wsgi
-        if not isinstance(app, tornado.web.Application):
+        if not isinstance(app, tornado.web.Application) or \
+           isinstance(app, tornado.wsgi.WSGIApplicaion):
             app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the

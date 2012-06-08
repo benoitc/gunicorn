@@ -47,5 +47,5 @@ class EventletWorker(AsyncWorker):
             eventlet.sleep(1.0)
 
         self.notify()
-        with eventlet.Timeout(self.timeout, False):
+        with eventlet.Timeout(self.cfg.graceful_timeout, False):
             eventlet.kill(self.acceptor, eventlet.StopServe)
