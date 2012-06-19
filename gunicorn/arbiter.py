@@ -359,7 +359,7 @@ class Arbiter(object):
             self.LISTENER = create_socket(self.cfg, self.log)
             self.log.info("Listening at: %s", self.LISTENER)
 
-        # spawn new workers with new app & conf
+        # do some actions on reload
         self.cfg.on_reload(self)
 
         # unlink pidfile
@@ -373,6 +373,10 @@ class Arbiter(object):
 
         # set new proc_name
         util._setproctitle("master [%s]" % self.proc_name)
+
+        # spawn new workers
+        for i in range(self.cfg.workers):
+            self.spawn_worker()
 
         # manage workers
         self.manage_workers()
