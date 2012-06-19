@@ -148,8 +148,8 @@ class Worker(object):
                 mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
-                           "".format(ip=client.getpeername()[0],
-                                     error=repr(exc),
+                           "".format(ip=addr[0],
+                                     error=str(exc),
                                     )
                           )
         else:
@@ -176,7 +176,7 @@ class Worker(object):
         try:
             util.write_error(client, status_int, reason, mesg)
         except:
-            self.log.warning("Failed to send error message.")
+            self.log.debug("Failed to send error message.")
 
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
