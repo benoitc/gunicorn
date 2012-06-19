@@ -353,10 +353,3 @@ def check_is_writeable(path):
     except IOError, e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()
-
-def is_process_running(process_id):
-    try:
-        os.kill(process_id, 0)
-        return True
-    except OSError:
-        return False

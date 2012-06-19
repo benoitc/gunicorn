@@ -23,7 +23,6 @@ from gevent import pywsgi
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
-from gunicorn.util import is_process_running
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
@@ -36,7 +35,6 @@ BASE_WSGI_ENV = {
     'wsgi.multiprocess': False,
     'wsgi.run_once': False
 }
-
 
 class GeventWorker(AsyncWorker):
 
@@ -63,12 +61,11 @@ class GeventWorker(AsyncWorker):
         else:
             server = StreamServer(self.socket, handle=self.handle, spawn=pool)
 
-        gevent.spawn(server.start)
+        server.start()
         try:
             while self.alive:
                 self.notify()
-
-                if not is_process_running(self.ppid):
+                if self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
 
