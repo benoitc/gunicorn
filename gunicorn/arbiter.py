@@ -389,6 +389,8 @@ class Arbiter(object):
         """\
         Kill unused/idle workers
         """
+        if not self.timeout:
+            return
         for (pid, worker) in self.WORKERS.items():
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
