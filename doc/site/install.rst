@@ -94,8 +94,10 @@ want to consider one of the alternate worker types.
 Debian GNU/Linux
 ----------------
 
-If you are using Debian GNU/Linux is is recommended that you use system
-packages to install Gunicorn. This has a number of advantages:
+If you are using Debian GNU/Linux and it is recommended that you use
+system packages to install Gunicorn except maybe when you want to use
+different versions of gunicorn with virtualenv. This has a number of
+advantages:
 
  * Zero-effort installation: Automatically starts multiple Gunicorn instances
    based on configurations defined in ``/etc/gunicorn.d``.
@@ -156,14 +158,14 @@ and adding them to your system's software sources::
   deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
 
 Replace 'lucid' with your Ubuntu distribution series.
-  
+
 Signing key
 +++++++++++
 
 ::
 
   1024R/5370FF2A
-  
+
 Fingerprint
 +++++++++++
 
