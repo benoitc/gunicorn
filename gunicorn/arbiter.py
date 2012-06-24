@@ -87,7 +87,8 @@ class Arbiter(object):
         self.log = self.cfg.logger_class(app.cfg)
 
         # reopen files
-        self.log.reopen_files()
+        if 'GUNICORN_FD' in os.environ:
+            self.log.reopen_files()
 
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
@@ -352,6 +353,9 @@ class Arbiter(object):
         # reload conf
         self.app.reload()
         self.setup(self.app)
+
+        # reopen log files
+        self.log.reopen_files()
 
         # do we need to change listener ?
         if old_address != self.cfg.address:
