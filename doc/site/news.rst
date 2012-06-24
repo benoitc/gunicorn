@@ -8,6 +8,20 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.4 / 2012-06-24
+-------------------
+
+- new --graceful-timeout option
+- fix multiple issues with request limit
+- more fixes in django settings resolutions
+- fix gevent.core import
+- fix keepalive=0 in eventlet worker
+- fix handle_error display with the unix worker
+- fix tornado.wsgi.WSGIApplication calling error
+
+- **breaking change**: take the control on graceful reload back.
+  graceful can't be overrided anymore using the on_reload function.
+
 0.14.3 / 2012-05-15
 -------------------
 

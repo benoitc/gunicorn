@@ -225,6 +225,17 @@ you're sure of the repercussions for sync workers. For the non sync
 workers it just means that the worker process is still communicating and
 is not tied to the length of time required to handle a single request.</p>
 </div>
+<div class="section" id="graceful-timeout">
+<h4><a class="toc-backref" href="#contents">graceful_timeout</a></h4>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">--graceful-timeout</span> INT</tt></li>
+<li><tt class="docutils literal">30</tt></li>
+</ul>
+<p>Timeout for graceful workers restart.</p>
+<p>Generally set to thirty seconds. How max time worker can handle
+request after got restart signal. If the time is up worker will
+be force killed.</p>
+</div>
 <div class="section" id="keepalive">
 <h4><a class="toc-backref" href="#contents">keepalive</a></h4>
 <ul class="simple">
@@ -250,8 +261,8 @@ method, URI, and protocol version, this directive places a
 restriction on the length of a request-URI allowed for a request
 on the server. A server needs this value to be large enough to
 hold any of its resource names, including any information that
-might be passed in the query part of a GET request. By default
-this value is 4094 and can't be larger than 8190.</p>
+might be passed in the query part of a GET request. Value is a number
+from 0 (unlimited) to 8190.</p>
 <p>This parameter can be used to prevent any DDOS attack.</p>
 </div>
 <div class="section" id="limit-request-fields">
@@ -261,10 +272,10 @@ this value is 4094 and can't be larger than 8190.</p>
 <li><tt class="docutils literal">100</tt></li>
 </ul>
 <p>Limit the number of HTTP headers fields in a request.</p>
-<p>Value is a number from 0 (unlimited) to 32768. This parameter is
-used to limit the number of headers in a request to prevent DDOS
-attack. Used with the <cite>limit_request_field_size</cite> it allows more
-safety.</p>
+<p>This parameter is used to limit the number of headers in a request to
+prevent DDOS attack. Used with the <cite>limit_request_field_size</cite> it allows
+more safety. By default this value is 100 and can't be larger than
+32768.</p>
 </div>
 <div class="section" id="limit-request-field-size">
 <h4><a class="toc-backref" href="#contents">limit_request_field_size</a></h4>
@@ -344,7 +355,7 @@ background.</p>
 <h4><a class="toc-backref" href="#contents">user</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-u</span> USER, <span class="pre">--user</span> USER</tt></li>
-<li><tt class="docutils literal">501</tt></li>
+<li><tt class="docutils literal">1000</tt></li>
 </ul>
 <p>Switch worker processes to run as this user.</p>
 <p>A valid user id (as an integer) or the name of a user that can be
@@ -355,7 +366,7 @@ the worker process user.</p>
 <h4><a class="toc-backref" href="#contents">group</a></h4>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">-g</span> GROUP, <span class="pre">--group</span> GROUP</tt></li>
-<li><tt class="docutils literal">20</tt></li>
+<li><tt class="docutils literal">1000</tt></li>
 </ul>
 <p>Switch worker process to run as this group.</p>
 <p>A valid group id (as an integer) or the name of a user that can be
@@ -419,7 +430,7 @@ address of the client connection to gunicorn via a proxy.</p>
 <li><tt class="docutils literal">None</tt></li>
 </ul>
 <p>The Access log file to write to.</p>
-<p>&quot;-&quot; means log to stdout.</p>
+<p>&quot;-&quot; means log to stderr.</p>
 </div>
 <div class="section" id="access-log-format">
 <h4><a class="toc-backref" href="#contents">access_log_format</a></h4>
@@ -452,7 +463,7 @@ p: process ID
 <li><tt class="docutils literal">-</tt></li>
 </ul>
 <p>The Error log file to write to.</p>
-<p>&quot;-&quot; means log to stdout.</p>
+<p>&quot;-&quot; means log to stderr.</p>
 </div>
 <div class="section" id="loglevel">
 <h4><a class="toc-backref" href="#contents">loglevel</a></h4>
@@ -560,8 +571,7 @@ def on_starting(server):
 <ul>
 <li><pre class="first literal-block">
 def on_reload(server):
-    for i in range(server.app.cfg.workers):
-        server.spawn_worker()
+    pass
 </pre>
 </li>
 </ul>
@@ -688,62 +698,63 @@ the just-exited Worker.</p>
 <li><a class="reference internal" href="#worker-connections" id="id15">worker_connections</a></li>
 <li><a class="reference internal" href="#max-requests" id="id16">max_requests</a></li>
 <li><a class="reference internal" href="#timeout" id="id17">timeout</a></li>
-<li><a class="reference internal" href="#keepalive" id="id18">keepalive</a></li>
+<li><a class="reference internal" href="#graceful-timeout" id="id18">graceful_timeout</a></li>
+<li><a class="reference internal" href="#keepalive" id="id19">keepalive</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#security" id="id19">Security</a><ul>
-<li><a class="reference internal" href="#limit-request-line" id="id20">limit_request_line</a></li>
-<li><a class="reference internal" href="#limit-request-fields" id="id21">limit_request_fields</a></li>
-<li><a class="reference internal" href="#limit-request-field-size" id="id22">limit_request_field_size</a></li>
+<li><a class="reference internal" href="#security" id="id20">Security</a><ul>
+<li><a class="reference internal" href="#limit-request-line" id="id21">limit_request_line</a></li>
+<li><a class="reference internal" href="#limit-request-fields" id="id22">limit_request_fields</a></li>
+<li><a class="reference internal" href="#limit-request-field-size" id="id23">limit_request_field_size</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#debugging" id="id23">Debugging</a><ul>
-<li><a class="reference internal" href="#debug" id="id24">debug</a></li>
-<li><a class="reference internal" href="#spew" id="id25">spew</a></li>
-<li><a class="reference internal" href="#check-config" id="id26">check_config</a></li>
+<li><a class="reference internal" href="#debugging" id="id24">Debugging</a><ul>
+<li><a class="reference internal" href="#debug" id="id25">debug</a></li>
+<li><a class="reference internal" href="#spew" id="id26">spew</a></li>
+<li><a class="reference internal" href="#check-config" id="id27">check_config</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-mechanics" id="id27">Server Mechanics</a><ul>
-<li><a class="reference internal" href="#preload-app" id="id28">preload_app</a></li>
-<li><a class="reference internal" href="#daemon" id="id29">daemon</a></li>
-<li><a class="reference internal" href="#pidfile" id="id30">pidfile</a></li>
-<li><a class="reference internal" href="#user" id="id31">user</a></li>
-<li><a class="reference internal" href="#group" id="id32">group</a></li>
-<li><a class="reference internal" href="#umask" id="id33">umask</a></li>
-<li><a class="reference internal" href="#tmp-upload-dir" id="id34">tmp_upload_dir</a></li>
-<li><a class="reference internal" href="#secure-scheme-headers" id="id35">secure_scheme_headers</a></li>
-<li><a class="reference internal" href="#x-forwarded-for-header" id="id36">x_forwarded_for_header</a></li>
+<li><a class="reference internal" href="#server-mechanics" id="id28">Server Mechanics</a><ul>
+<li><a class="reference internal" href="#preload-app" id="id29">preload_app</a></li>
+<li><a class="reference internal" href="#daemon" id="id30">daemon</a></li>
+<li><a class="reference internal" href="#pidfile" id="id31">pidfile</a></li>
+<li><a class="reference internal" href="#user" id="id32">user</a></li>
+<li><a class="reference internal" href="#group" id="id33">group</a></li>
+<li><a class="reference internal" href="#umask" id="id34">umask</a></li>
+<li><a class="reference internal" href="#tmp-upload-dir" id="id35">tmp_upload_dir</a></li>
+<li><a class="reference internal" href="#secure-scheme-headers" id="id36">secure_scheme_headers</a></li>
+<li><a class="reference internal" href="#x-forwarded-for-header" id="id37">x_forwarded_for_header</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#logging" id="id37">Logging</a><ul>
-<li><a class="reference internal" href="#accesslog" id="id38">accesslog</a></li>
-<li><a class="reference internal" href="#access-log-format" id="id39">access_log_format</a></li>
-<li><a class="reference internal" href="#errorlog" id="id40">errorlog</a></li>
-<li><a class="reference internal" href="#loglevel" id="id41">loglevel</a></li>
-<li><a class="reference internal" href="#logger-class" id="id42">logger_class</a></li>
-<li><a class="reference internal" href="#logconfig" id="id43">logconfig</a></li>
+<li><a class="reference internal" href="#logging" id="id38">Logging</a><ul>
+<li><a class="reference internal" href="#accesslog" id="id39">accesslog</a></li>
+<li><a class="reference internal" href="#access-log-format" id="id40">access_log_format</a></li>
+<li><a class="reference internal" href="#errorlog" id="id41">errorlog</a></li>
+<li><a class="reference internal" href="#loglevel" id="id42">loglevel</a></li>
+<li><a class="reference internal" href="#logger-class" id="id43">logger_class</a></li>
+<li><a class="reference internal" href="#logconfig" id="id44">logconfig</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#process-naming" id="id44">Process Naming</a><ul>
-<li><a class="reference internal" href="#proc-name" id="id45">proc_name</a></li>
-<li><a class="reference internal" href="#default-proc-name" id="id46">default_proc_name</a></li>
+<li><a class="reference internal" href="#process-naming" id="id45">Process Naming</a><ul>
+<li><a class="reference internal" href="#proc-name" id="id46">proc_name</a></li>
+<li><a class="reference internal" href="#default-proc-name" id="id47">default_proc_name</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#django" id="id47">Django</a><ul>
-<li><a class="reference internal" href="#django-settings" id="id48">django_settings</a></li>
-<li><a class="reference internal" href="#pythonpath" id="id49">pythonpath</a></li>
+<li><a class="reference internal" href="#django" id="id48">Django</a><ul>
+<li><a class="reference internal" href="#django-settings" id="id49">django_settings</a></li>
+<li><a class="reference internal" href="#pythonpath" id="id50">pythonpath</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#server-hooks" id="id50">Server Hooks</a><ul>
-<li><a class="reference internal" href="#on-starting" id="id51">on_starting</a></li>
-<li><a class="reference internal" href="#on-reload" id="id52">on_reload</a></li>
-<li><a class="reference internal" href="#when-ready" id="id53">when_ready</a></li>
-<li><a class="reference internal" href="#pre-fork" id="id54">pre_fork</a></li>
-<li><a class="reference internal" href="#post-fork" id="id55">post_fork</a></li>
-<li><a class="reference internal" href="#pre-exec" id="id56">pre_exec</a></li>
-<li><a class="reference internal" href="#pre-request" id="id57">pre_request</a></li>
-<li><a class="reference internal" href="#post-request" id="id58">post_request</a></li>
-<li><a class="reference internal" href="#worker-exit" id="id59">worker_exit</a></li>
+<li><a class="reference internal" href="#server-hooks" id="id51">Server Hooks</a><ul>
+<li><a class="reference internal" href="#on-starting" id="id52">on_starting</a></li>
+<li><a class="reference internal" href="#on-reload" id="id53">on_reload</a></li>
+<li><a class="reference internal" href="#when-ready" id="id54">when_ready</a></li>
+<li><a class="reference internal" href="#pre-fork" id="id55">pre_fork</a></li>
+<li><a class="reference internal" href="#post-fork" id="id56">post_fork</a></li>
+<li><a class="reference internal" href="#pre-exec" id="id57">pre_exec</a></li>
+<li><a class="reference internal" href="#pre-request" id="id58">pre_request</a></li>
+<li><a class="reference internal" href="#post-request" id="id59">post_request</a></li>
+<li><a class="reference internal" href="#worker-exit" id="id60">worker_exit</a></li>
 </ul>
 </li>
 </ul>

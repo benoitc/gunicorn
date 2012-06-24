@@ -145,18 +145,6 @@ they launch will be the process they need to monior. Daemonizing
 will fork-exec which creates an unmonitored process and generally just
 confuses the monitor services.</p>
 </div>
-<div class="section" id="circus">
-<h3><a class="toc-backref" href="#contents">Circus</a></h3>
-<p><a class="reference external" href="http://circus.readthedocs.org/en/latest/index.html">Circus</a> can be
-used to monitor gunicorn. A simple configuration is:</p>
-<pre class="literal-block">
-[watcher:mywebapp]
-cmd = gunicorn -w 3 test:app
-working_dir = /Users/benoitc/work/gunicorn/examples
-send_hup = true
-</pre>
-<p>Then you can easily manage Gunicorn using the <a class="reference external" href="http://circus.readthedocs.org/en/latest/commands/#cli">circusctl</a> command.</p>
-</div>
 <div class="section" id="runit">
 <h3><a class="toc-backref" href="#contents">Runit</a></h3>
 <p>A popular method for deploying Gunicorn is to have it monitored by <a class="reference external" href="http://smarden.org/runit/">runit</a>.
