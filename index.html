@@ -79,19 +79,17 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb">
-        <h3>Version 0.14.3 / 2012-05-15</h3>
+        <h3>Version 0.14.4 / 2012-06-24</h3>
         <ul>
-          <li>improvement: performance of http.body.Body.readline()</li>
-          <li>improvement: log HTTP errors in access log like
-          Apache</li>
-          <li>improvment: display traceback when the worker fails to
-          boot</li>
-          <li>improvement: makes gunicorn work with gevent 1.0</li>
-          <li>examples: websocket example now supports hybi13</li>
-          <li>fix: reopen log files after initialization</li>
-          <li>fix: websockets support</li>
-          <li>fix: django1.4 support</li>
-          <li>fix: only load the paster application 1 time</li>
+          <li>new --graceful-timeout option</li>
+          <li>fix multiple issues with request limit</li>
+          <li>more fixes in django settings resolutions</li>
+          <li>fix gevent.core import</li>
+          <li>fix keepalive=0 in eventlet worker</li>
+          <li>fix handle_error display with the unix worker</li>
+          <li>fix tornado.wsgi.WSGIApplication calling error</li>
+          <li><strong>breaking change</strong>: take the control on graceful reload back.
+          graceful can't be overrided anymore using the on_reload function.</li>
         </ul>
       </div>
       <div id="footer">
