@@ -127,6 +127,7 @@ class Worker(object):
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
+        addr = addr or ('', -1) # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
             LimitRequestLine, LimitRequestHeaders,)):
