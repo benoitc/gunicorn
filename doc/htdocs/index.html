@@ -79,15 +79,22 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb">
-        <h3>Version 0.14.2 / 2012-03-16</h3>
+        <h3>Version 0.14.5 / 2012-06-24</h3>
         <ul>
-          <li>add validate_class validator: allows to use a class or a
-          method to initialize the app during in-code configuration</li>
-          <li>add support for max_requests in tornado worker</li>
-          <li>add support for disabling x_forwarded_for_header in
-          tornado worker</li>
-          <li>gevent_wsgi is now an alias of gevent_pywsgi</li>
-          <li>Fix gevent_pywsgi worker</li>
+          <li>fix logging during daemonisation</li>
+        </ul>
+        <br>
+        <h3>Version 0.14.4 / 2012-06-24</h3>
+        <ul>
+          <li>new --graceful-timeout option</li>
+          <li>fix multiple issues with request limit</li>
+          <li>more fixes in django settings resolutions</li>
+          <li>fix gevent.core import</li>
+          <li>fix keepalive=0 in eventlet worker</li>
+          <li>fix handle_error display with the unix worker</li>
+          <li>fix tornado.wsgi.WSGIApplication calling error</li>
+          <li><strong>breaking change</strong>: take the control on graceful reload back.
+          graceful can't be overrided anymore using the on_reload function.</li>
         </ul>
       </div>
       <div id="footer">

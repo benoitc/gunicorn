@@ -273,7 +273,7 @@ def validate_post_request(val):
     elif largs == 2:
         return wrap_post_request(val)
     else:
-         raise TypeError("Value must have an arity of: 3")
+        raise TypeError("Value must have an arity of: 3")
 
 
 
@@ -418,6 +418,22 @@ class Timeout(Setting):
         is not tied to the length of time required to handle a single request.
         """
 
+class GracefulTimeout(Setting):
+    name = "graceful_timeout"
+    section = "Worker Processes"
+    cli = ["--graceful-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = "int"
+    default = 30
+    desc = """\
+        Timeout for graceful workers restart.
+
+        Generally set to thirty seconds. How max time worker can handle
+        request after got restart signal. If the time is up worker will
+        be force killed.
+        """
+
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"
@@ -449,8 +465,8 @@ class LimitRequestLine(Setting):
         restriction on the length of a request-URI allowed for a request
         on the server. A server needs this value to be large enough to
         hold any of its resource names, including any information that
-        might be passed in the query part of a GET request. By default
-        this value is 4094 and can't be larger than 8190.
+        might be passed in the query part of a GET request. Value is a number
+        from 0 (unlimited) to 8190.
 
         This parameter can be used to prevent any DDOS attack.
         """
@@ -466,10 +482,10 @@ class LimitRequestFields(Setting):
     desc= """\
         Limit the number of HTTP headers fields in a request.
 
-        Value is a number from 0 (unlimited) to 32768. This parameter is
-        used to limit the number of headers in a request to prevent DDOS
-        attack. Used with the `limit_request_field_size` it allows more
-        safety.
+        This parameter is used to limit the number of headers in a request to
+        prevent DDOS attack. Used with the `limit_request_field_size` it allows
+        more safety. By default this value is 100 and can't be larger than
+        32768.
         """
 
 class LimitRequestFieldSize(Setting):
@@ -676,7 +692,7 @@ class AccessLog(Setting):
     desc = """\
         The Access log file to write to.
 
-        "-" means log to stdout.
+        "-" means log to stderr.
         """
 
 class AccessLogFormat(Setting):
@@ -720,7 +736,7 @@ class ErrorLog(Setting):
     desc = """\
         The Error log file to write to.
 
-        "-" means log to stdout.
+        "-" means log to stderr.
         """
 
 class Loglevel(Setting):
@@ -851,8 +867,7 @@ class OnReload(Setting):
     validator = validate_callable(1)
     type = "callable"
     def on_reload(server):
-        for i in range(server.app.cfg.workers):
-            server.spawn_worker()
+        pass
     default = staticmethod(on_reload)
     desc = """\
         Called to recycle workers during a reload via SIGHUP.

@@ -30,7 +30,7 @@ class EventletWorker(AsyncWorker):
         super(EventletWorker, self).init_process()
 
     def timeout_ctx(self):
-        return eventlet.Timeout(self.cfg.keepalive, False)
+        return eventlet.Timeout(self.cfg.keepalive or None, False)
 
     def run(self):
         self.socket = GreenSocket(family_or_realsock=self.socket.sock)
@@ -47,5 +47,5 @@ class EventletWorker(AsyncWorker):
             eventlet.sleep(1.0)
 
         self.notify()
-        with eventlet.Timeout(self.timeout, False):
+        with eventlet.Timeout(self.cfg.graceful_timeout, False):
             eventlet.kill(self.acceptor, eventlet.StopServe)

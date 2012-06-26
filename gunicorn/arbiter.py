@@ -86,6 +86,7 @@ class Arbiter(object):
         self.cfg = app.cfg
         self.log = self.cfg.logger_class(app.cfg)
 
+        # reopen files
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
@@ -320,7 +321,7 @@ class Arbiter(object):
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
-        limit = time.time() + self.timeout
+        limit = time.time() + self.cfg.graceful_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
@@ -353,13 +354,16 @@ class Arbiter(object):
         self.app.reload()
         self.setup(self.app)
 
+        # reopen log files
+        self.log.reopen_files()
+
         # do we need to change listener ?
         if old_address != self.cfg.address:
             self.LISTENER.close()
             self.LISTENER = create_socket(self.cfg, self.log)
             self.log.info("Listening at: %s", self.LISTENER)
 
-        # spawn new workers with new app & conf
+        # do some actions on reload
         self.cfg.on_reload(self)
 
         # unlink pidfile
@@ -374,9 +378,11 @@ class Arbiter(object):
         # set new proc_name
         util._setproctitle("master [%s]" % self.proc_name)
 
-        # manage workers
-        self.log.reopen_files()
+        # spawn new workers
+        for i in range(self.cfg.workers):
+            self.spawn_worker()
 
+        # manage workers
         self.manage_workers()
 
     def murder_workers(self):
@@ -455,7 +461,8 @@ class Arbiter(object):
         except SystemExit:
             raise
         except:
-            self.log.exception("Exception in worker process:")
+            self.log.debug("Exception in worker process:\n%s",
+                    traceback.format_exc())
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
@@ -480,7 +487,7 @@ class Arbiter(object):
 
     def kill_workers(self, sig):
         """\
-        Lill all workers with the signal `sig`
+        Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
         for pid in self.WORKERS.keys():

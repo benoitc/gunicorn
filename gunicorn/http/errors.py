@@ -6,7 +6,7 @@
 class ParseException(Exception):
     pass
 
-class NoMoreData(ParseException, StopIteration):
+class NoMoreData(ParseException):
     def __init__(self, buf=None):
         self.buf = buf
     def __str__(self):

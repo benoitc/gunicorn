@@ -41,8 +41,9 @@ def uri(data):
 def load_py(fname):
     config = globals().copy()
     config["uri"] = uri
+    config["cfg"] = Config()
     execfile(fname, config)
-    return config["request"]
+    return config
 
 class request(object):
     def __init__(self, fname, expect):
@@ -198,7 +199,7 @@ class request(object):
     # Construct a series of test cases from the permutations of
     # send, size, and match functions.
 
-    def gen_cases(self):
+    def gen_cases(self, cfg):
         def get_funs(p):
             return [v for k, v in inspect.getmembers(self) if k.startswith(p)]
         senders = get_funs("send_")
@@ -217,15 +218,15 @@ class request(object):
             szn = sz.func_name[5:]
             snn = sn.func_name[5:]
             def test_req(sn, sz, mt):
-                self.check(sn, sz, mt)
+                self.check(cfg, sn, sz, mt)
             desc = "%s: MT: %s SZ: %s SN: %s" % (self.name, mtn, szn, snn)
             test_req.description = desc
             ret.append((test_req, sn, sz, mt))
         return ret
 
-    def check(self, sender, sizer, matcher):
+    def check(self, cfg, sender, sizer, matcher):
         cases = self.expect[:]
-        p = RequestParser(Config(), sender())
+        p = RequestParser(cfg, sender())
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
         t.eq(len(cases), 0)
@@ -242,13 +243,9 @@ class request(object):
         t.eq(req.trailers, exp.get("trailers", []))
 
 class badrequest(object):
-    def __init__(self, fname, expect):
+    def __init__(self, fname):
         self.fname = fname
         self.name = os.path.basename(fname)
-
-        self.expect = expect
-        if not isinstance(self.expect, list):
-            self.expect = [self.expect]
 
         with open(self.fname) as handle:
             self.data = handle.read()
@@ -263,16 +260,7 @@ class badrequest(object):
             yield self.data[read:read+chunk]
             read += chunk
 
-    def check(self):
-        cases = self.expect[:]
-        p = RequestParser(Config(), self.send())
-        try:
-            [req for req in p]
-        except Exception, inst:
-            exp = cases.pop(0)
-            if not issubclass(exp, Exception):
-                raise TypeError("Test case is not an exception calss: %s" % exp)
-            t.istype(inst, exp)
-            return
-
+    def check(self, cfg):
+        p = RequestParser(cfg, self.send())
+        [req for req in p]
 

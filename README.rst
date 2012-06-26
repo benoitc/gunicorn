@@ -8,6 +8,12 @@ resource usage, and fairly speedy.
 
 Feel free to join us in `#gunicorn`_ on freenode_.
 
+.. image::
+    https://secure.travis-ci.org/benoitc/gunicorn.png?branch=master
+    :alt: Build Status
+        :target: https://secure.travis-ci.org/benoitc/gunicorn
+
+
 Installation
 ------------
 

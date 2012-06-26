@@ -185,19 +185,31 @@ redirect_stderr=True
 </pre>
 </div>
 </div>
+<div class="section" id="logging">
+<h2><a class="toc-backref" href="#contents">Logging</a></h2>
+<p>Logging can be configured by using various flags detailed in the
+<a class="reference external" href="http://gunicorn.org/configure.html#logging">configuration documentation</a> or by creating a <a class="reference external" href="https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf">logging configuration file</a>.
+Send the <tt class="docutils literal">USR1</tt> signal to rotate logs if you are using the logrotate
+utility:</p>
+<pre class="literal-block">
+kill -USR1 $(cat /var/run/gunicorn.pid)
+</pre>
+</div>
 </div>
       </div>
       <div id="toc">
       <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#nginx-configuration" id="id3">Nginx Configuration</a></li>
-<li><a class="reference internal" href="#using-virtualenv" id="id4">Using Virtualenv</a></li>
-<li><a class="reference internal" href="#monitoring" id="id5">Monitoring</a><ul>
-<li><a class="reference internal" href="#runit" id="id6">Runit</a></li>
-<li><a class="reference internal" href="#supervisor" id="id7">Supervisor</a></li>
+<li><a class="reference internal" href="#nginx-configuration" id="id4">Nginx Configuration</a></li>
+<li><a class="reference internal" href="#using-virtualenv" id="id5">Using Virtualenv</a></li>
+<li><a class="reference internal" href="#monitoring" id="id6">Monitoring</a><ul>
+<li><a class="reference internal" href="#circus" id="id7">Circus</a></li>
+<li><a class="reference internal" href="#runit" id="id8">Runit</a></li>
+<li><a class="reference internal" href="#supervisor" id="id9">Supervisor</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#logging" id="id10">Logging</a></li>
 </ul>
 </div>
       </div>

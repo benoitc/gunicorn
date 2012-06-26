@@ -17,7 +17,7 @@ except ImportError:
 from django.conf import settings
 from django.core.management.validation import get_validation_errors
 from django.utils import translation
-from django.core.servers.basehttp import AdminMediaHandler
+
 try:
     from django.core.servers.basehttp import get_internal_wsgi_application
     django14 = True
@@ -108,4 +108,9 @@ def reload_django_settings():
 
 def make_command_wsgi_application(admin_mediapath):
     reload_django_settings()
-    return AdminMediaHandler(make_wsgi_application(), admin_mediapath)
+
+    try:
+        from django.core.servers.basehttp import AdminMediaHandler
+        return AdminMediaHandler(make_wsgi_application(), admin_mediapath)
+    except ImportError:
+        return make_wsgi_application()

@@ -86,6 +86,12 @@ directory.</p>
 $ cd path/to/yourdjangoproject
 $ gunicorn_django --workers=2
 </pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you run Django 1.4 and superior, it's higly recommanded to
+simply run your application with the <a class="reference external" href="https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/">WSGI interface</a> using
+the <a class="reference internal" href="#gunicorn">gunicorn</a> command.</p>
+</div>
 </div>
 <div class="section" id="gunicorn-paster">
 <h3><a class="toc-backref" href="#contents">gunicorn_paster</a></h3>

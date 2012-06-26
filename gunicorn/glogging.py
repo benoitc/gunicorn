@@ -157,7 +157,7 @@ class Logger(object):
 
         status = resp.status.split(None, 1)[0]
         atoms = {
-                'h': environ['REMOTE_ADDR'],
+                'h': environ.get('REMOTE_ADDR', '-'),
                 'l': '-',
                 'u': '-', # would be cool to get username from basic auth header
                 't': self.now(),
@@ -206,18 +206,24 @@ class Logger(object):
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
-                    handler.stream.close()
-                    handler.stream = open(handler.baseFilename,
-                            handler.mode)
-                    handler.release()
+                    try:
+                        if handler.stream:
+                            handler.stream.close()
+                            handler.stream = open(handler.baseFilename,
+                                    handler.mode)
+                    finally:
+                        handler.release()
 
     def close_on_exec(self):
         for log in (self.error_log, self.access_log):
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
-                    util.close_on_exec(handler.stream.fileno())
-                    handler.release()
+                    try:
+                        if handler.stream:
+                            util.close_on_exec(handler.stream.fileno())
+                    finally:
+                        handler.release()
 
 
     def _get_gunicorn_handler(self, log):

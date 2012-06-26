@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from datetime import datetime
 import os
 import signal
 import sys
@@ -11,11 +12,10 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
-
+from gunicorn.http.wsgi import default_environ, Response
 
 class Worker(object):
 
@@ -125,15 +125,12 @@ class Worker(object):
         self.alive = False
         sys.exit(0)
 
-    def handle_error(self, client, exc):
-        self.log.exception("Error handling request")
-
-        status_int = 500
-        reason = "Internal Server Error"
-        mesg = ""
-
+    def handle_error(self, req, client, addr, exc):
+        request_start = datetime.now()
+        addr = addr or ('', -1) # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,)):
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+            LimitRequestLine, LimitRequestHeaders,)):
 
             status_int = 400
             reason = "Bad Request"
@@ -151,14 +148,36 @@ class Worker(object):
             elif isinstance(exc, LimitRequestHeaders):
                 mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
 
+            self.log.debug("Invalid request from ip={ip}: {error}"\
+                           "".format(ip=addr[0],
+                                     error=str(exc),
+                                    )
+                          )
+        else:
+            self.log.exception("Error handling request")
+
+            status_int = 500
+            reason = "Internal Server Error"
+            mesg = ""
+
+        if req is not None:
+            request_time = datetime.now() - request_start
+            environ = default_environ(req, client, self.cfg)
+            environ['REMOTE_ADDR'] = addr[0]
+            environ['REMOTE_PORT'] = str(addr[1])
+            resp = Response(req, client)
+            resp.status = "%s %s" % (status_int, reason)
+            resp.response_length = len(mesg)
+            self.log.access(resp, req, environ, request_time)
+
         if self.debug:
-            tb =  traceback.format_exc()
+            tb = traceback.format_exc()
             mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
 
         try:
             util.write_error(client, status_int, reason, mesg)
         except:
-            self.log.warning("Failed to send error message.")
+            self.log.debug("Failed to send error message.")
 
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.

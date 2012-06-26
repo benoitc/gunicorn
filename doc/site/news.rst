@@ -8,6 +8,38 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.5 / 2012-06-24
+-------------------
+
+- fix logging during daemonisation
+
+0.14.4 / 2012-06-24
+-------------------
+
+- new --graceful-timeout option
+- fix multiple issues with request limit
+- more fixes in django settings resolutions
+- fix gevent.core import
+- fix keepalive=0 in eventlet worker
+- fix handle_error display with the unix worker
+- fix tornado.wsgi.WSGIApplication calling error
+
+- **breaking change**: take the control on graceful reload back.
+  graceful can't be overrided anymore using the on_reload function.
+
+0.14.3 / 2012-05-15
+-------------------
+
+- improvement: performance of http.body.Body.readline()
+- improvement: log HTTP errors in access log like Apache
+- improvment: display traceback when the worker fails to boot
+- improvement: makes gunicorn work with gevent 1.0
+- examples: websocket example now supports hybi13
+- fix: reopen log files after initialization
+- fix: websockets support
+- fix: django1.4 support
+- fix: only load the paster application 1 time
+
 0.14.2 / 2012-03-16
 -------------------
 

@@ -113,8 +113,10 @@ installed, this is the most likely reason.</p>
 </div>
 <div class="section" id="debian-gnu-linux">
 <h2><a class="toc-backref" href="#contents">Debian GNU/Linux</a></h2>
-<p>If you are using Debian GNU/Linux is is recommended that you use system
-packages to install Gunicorn. This has a number of advantages:</p>
+<p>If you are using Debian GNU/Linux and it is recommended that you use
+system packages to install Gunicorn except maybe when you want to use
+different versions of gunicorn with virtualenv. This has a number of
+advantages:</p>
 <blockquote>
 <ul class="simple">
 <li>Zero-effort installation: Automatically starts multiple Gunicorn instances
@@ -158,25 +160,29 @@ $ sudo apt-get install gunicorn
 </div>
 <div class="section" id="ubuntu">
 <h2><a class="toc-backref" href="#contents">Ubuntu</a></h2>
-<p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a> karmic, you can update your system with packages from
-our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal">ppa:bchesneau/gunicorn</tt> to your system's Software
-Sources.</p>
+<p>If you use <a class="reference external" href="http://www.ubuntu.com/">Ubuntu</a>, you can update your system with packages from
+our <a class="reference external" href="https://launchpad.net/~bchesneau/+archive/gunicorn">PPA</a> by adding <tt class="docutils literal">ppa:gunicorn/ppa</tt> to your system's Software
+Sources. Use the <tt class="docutils literal"><span class="pre">apt-add-repository</span></tt> command from the
+<tt class="docutils literal"><span class="pre">python-software-properties</span></tt> package to add the Gunicorn software source.</p>
+<blockquote>
+$ sudo apt-add-repository ppa:gunicorn/ppa</blockquote>
 <p>Or this PPA can be added to your system manually by copying the lines below
 and adding them to your system's software sources:</p>
 <pre class="literal-block">
-deb http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
-deb-src http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
+deb http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
+deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
 </pre>
+<p>Replace 'lucid' with your Ubuntu distribution series.</p>
 <div class="section" id="signing-key">
 <h3><a class="toc-backref" href="#contents">Signing key</a></h3>
 <pre class="literal-block">
-1024R/15E5EB06
+1024R/5370FF2A
 </pre>
 </div>
 <div class="section" id="fingerprint">
 <h3><a class="toc-backref" href="#contents">Fingerprint</a></h3>
 <pre class="literal-block">
-49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
+FC7B41B54C9B8476D9EC22A2C6773E575370FF2A
 </pre>
 </div>
 </div>

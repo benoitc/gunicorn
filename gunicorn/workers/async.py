@@ -26,6 +26,7 @@ class AsyncWorker(base.Worker):
         raise NotImplementedError()
 
     def handle(self, client, addr):
+        req = None
         try:
             parser = http.RequestParser(self.cfg, client)
             try:
@@ -36,8 +37,12 @@ class AsyncWorker(base.Worker):
                     if not req:
                         break
                     self.handle_request(req, client, addr)
+            except http.errors.NoMoreData, e:
+                self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration, e:
                 self.log.debug("Closing connection. %s", e)
+            except Exception, e:
+                self.handle_error(req, client, addr, e)
         except socket.error, e:
             if e[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
@@ -47,14 +52,14 @@ class AsyncWorker(base.Worker):
                 else:
                     self.log.debug("Ignoring EPIPE")
         except Exception, e:
-            self.handle_error(client, e)
+            self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
 
     def handle_request(self, req, sock, addr):
+        request_start = datetime.now()
         try:
             self.cfg.pre_request(self, req)
-            request_start = datetime.now()
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:

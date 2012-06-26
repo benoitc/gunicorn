@@ -94,8 +94,10 @@ want to consider one of the alternate worker types.
 Debian GNU/Linux
 ----------------
 
-If you are using Debian GNU/Linux is is recommended that you use system
-packages to install Gunicorn. This has a number of advantages:
+If you are using Debian GNU/Linux and it is recommended that you use
+system packages to install Gunicorn except maybe when you want to use
+different versions of gunicorn with virtualenv. This has a number of
+advantages:
 
  * Zero-effort installation: Automatically starts multiple Gunicorn instances
    based on configurations defined in ``/etc/gunicorn.d``.
@@ -142,29 +144,34 @@ install it in the usual way::
 Ubuntu
 ------
 
-If you use Ubuntu_ karmic, you can update your system with packages from
-our PPA_ by adding ``ppa:bchesneau/gunicorn`` to your system's Software
-Sources.
+If you use Ubuntu_, you can update your system with packages from
+our PPA_ by adding ``ppa:gunicorn/ppa`` to your system's Software
+Sources. Use the ``apt-add-repository`` command from the
+``python-software-properties`` package to add the Gunicorn software source.
+
+    $ sudo apt-add-repository ppa:gunicorn/ppa
 
 Or this PPA can be added to your system manually by copying the lines below
 and adding them to your system's software sources::
 
-  deb http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main 
-  deb-src http://ppa.launchpad.net/bchesneau/gunicorn/ubuntu karmic main
-  
+  deb http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
+  deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
+
+Replace 'lucid' with your Ubuntu distribution series.
+
 Signing key
 +++++++++++
 
 ::
 
-  1024R/15E5EB06
-  
+  1024R/5370FF2A
+
 Fingerprint
 +++++++++++
 
 ::
 
-  49AEEDFF5CDCD82CEA8AB4DABC981A8115E5EB06
+  FC7B41B54C9B8476D9EC22A2C6773E575370FF2A
 
 .. _`GitHub Downloads`: http://github.com/benoitc/gunicorn/downloads
 .. _`design docs`: design.html
