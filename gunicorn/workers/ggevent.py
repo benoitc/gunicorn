@@ -65,9 +65,15 @@ class GeventWorker(AsyncWorker):
         try:
             while self.alive:
                 self.notify()
+
                 if self.ppid != os.getppid():
-                    self.log.info("Parent changed, shutting down: %s", self)
-                    break
+
+                    # allow subprocess to also leverage gevent (without tricking gunicorn into thinking a switch occurred)
+                    os_pppid = int(os.popen("ps -p %d -oppid=" % os.getppid()).read().strip())  # grandparent pid
+                    if self.ppid != os_pppid:
+
+                        self.log.info("Parent changed, shutting down: %s", self)
+                        break
 
                 gevent.sleep(1.0)
 
