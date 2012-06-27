@@ -1,0 +1,15 @@
+PROXY TCP4 192.168.0.1 192.168.0.11 56324 443\r\n
+GET /stuff/here?foo=bar HTTP/1.1\r\n
+Server: http://127.0.0.1:5984\r\n
+Content-Type: application/json\r\n
+Content-Length: 14\r\n
+Connection: keep-alive\r\n
+\r\n
+{"nom": "nom"}
+POST /post_chunked_all_your_base HTTP/1.1\r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+1e\r\n
+all your base are belong to us\r\n
+0\r\n
+\r\n
