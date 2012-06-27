@@ -16,6 +16,12 @@ class Parser(object):
             self.unreader = IterUnreader(source)
         self.mesg = None
 
+        # request counter (for multiple request from client in one connetion)
+        self.req_count = 0
+        # for save some client info in multiple request in one connection
+        # (need for proxy mode)
+        self.client_info = {}
+
     def __iter__(self):
         return self
 
@@ -31,7 +37,9 @@ class Parser(object):
                 data = self.mesg.body.read(8192)
 
         # Parse the next request
-        self.mesg = self.mesg_class(self.cfg, self.unreader)
+        self.req_count += 1
+
+        self.mesg = self.mesg_class(self.cfg, self.unreader, parser=self)
         if not self.mesg:
             raise StopIteration()
         return self.mesg

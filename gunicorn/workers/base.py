@@ -14,7 +14,8 @@ from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine, LimitRequestHeaders
+LimitRequestLine, LimitRequestHeaders, \
+InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 
 class Worker(object):
@@ -130,7 +131,8 @@ class Worker(object):
         addr = addr or ('', -1) # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            LimitRequestLine, LimitRequestHeaders,)):
+            LimitRequestLine, LimitRequestHeaders,
+            InvalidProxyLine, ForbiddenProxyRequest,)):
 
             status_int = 400
             reason = "Bad Request"
@@ -147,6 +149,12 @@ class Worker(object):
                 mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
                 mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+            elif isinstance(exc, InvalidProxyLine):
+                mesg = "<p>Invalid Proxy Line '%s'</p>" % str(exc)
+            elif isinstance(exc, ForbiddenProxyRequest):
+                mesg = "<p>Request forbidden</p>"
+                status_int = 403
+                reason = "Forbidden"
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
                            "".format(ip=addr[0],
