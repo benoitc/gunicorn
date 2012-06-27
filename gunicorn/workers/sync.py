@@ -95,12 +95,13 @@ class SyncWorker(base.Worker):
             # rewrite client info (proxy mode)
             client_info = req.parser.client_info
             if "proxy_protocol" in client_info:
-                environ["PROXY_PROTOCOL"] = client_info["proxy_protocol"]
-                environ["REMOTE_ADDR"] = client_info["client_addr"]
-                environ["REMOTE_PORT"] = str(client_info["client_port"])
-                environ["PROXY_ADDR"] = client_info["proxy_addr"]
-                environ["PROXY_PORT"] = str(client_info["proxy_port"])
-
+                environ.update({
+                    "PROXY_PROTOCOL": client_info["proxy_protocol"],
+                    "REMOTE_ADDR": client_info["client_addr"],
+                    "REMOTE_PORT":  str(client_info["client_port"]),
+                    "PROXY_ADDR": client_info["proxy_addr"],
+                    "PROXY_PORT": str(client_info["proxy_port"])
+                })
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.
