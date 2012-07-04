@@ -30,13 +30,18 @@ class AsyncWorker(base.Worker):
         try:
             parser = http.RequestParser(self.cfg, client)
             try:
-                while True:
-                    req = None
-                    with self.timeout_ctx():
-                        req = parser.next()
-                    if not req:
-                        break
+                if not self.cfg.keepalive:
+                    req = parser.next()
                     self.handle_request(req, client, addr)
+                else:
+                    # keepalive loop
+                    while True:
+                        req = None
+                        with self.timeout_ctx():
+                            req = parser.next()
+                        if not req:
+                            break
+                        self.handle_request(req, client, addr)
             except http.errors.NoMoreData, e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration, e:
@@ -66,6 +71,10 @@ class AsyncWorker(base.Worker):
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
                 self.alive = False
+
+            if not self.cfg.keepalive:
+                resp.force_close()
+
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
