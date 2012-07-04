@@ -165,11 +165,12 @@ class Request(Message):
             idx = data.find("\r\n")
             if idx >= 0:
                 break
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
 
             if len(data) - 2 > self.limit_request_line > 0:
                 raise LimitRequestLine(len(data), self.limit_request_line)
+
+            self.get_data(unreader, buf)
+            data = buf.getvalue()
 
         self.parse_request_line(data[:idx])
         buf = StringIO()
