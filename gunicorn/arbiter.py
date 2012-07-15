@@ -293,12 +293,8 @@ class Arbiter(object):
 
         timeout = 1.0
         if self.WORKERS:
-            older_update = sys.float_info.max
-            for worker in self.WORKERS.values():
-                if worker.tmp.last_update() < older_update:
-                    older_update = worker.tmp.last_update()
-
-            timeout = self.timeout - (time.time() - older_update)
+            oldest_update = min(worker.tmp.last_time() for worker in self.WORKERS.values())
+            timeout = self.timeout - (time.time() - oldest_update)
             # The timeout can be reached, so don't wait for a negative value
             timeout = max(timeout, 1.0)
  
