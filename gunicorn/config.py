@@ -212,6 +212,14 @@ def validate_string(val):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
+def validate_string_to_list(val):
+    val = validate_string(val)
+
+    if not val:
+        return []
+
+    return [v.strip() for v in val.split(" ") if v]
+
 def validate_class(val):
     if inspect.isfunction(val) or inspect.ismethod(val):
         val = val()
@@ -680,6 +688,17 @@ class XForwardedFor(Setting):
     desc = """\
         Set the X-Forwarded-For header that identify the originating IP
         address of the client connection to gunicorn via a proxy.
+        """
+
+class ForwardedAllowIPS(Setting):
+    name = "forwarded_allow_ips"
+    section = "Server Mechanics"
+    meta = "STRING"
+    validator = validate_string_to_list
+    default = "127.0.0.1"
+    desc = """\
+        Front-end's IPs from which allowed to handle X-Forwarded-* headers.
+        (space separate).
         """
 
 class AccessLog(Setting):

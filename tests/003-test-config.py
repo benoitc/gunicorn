@@ -56,7 +56,8 @@ class NoConfigApp(Application):
 def test_defaults():
     c = config.Config()
     for s in config.KNOWN_SETTINGS:
-        t.eq(s.default, c.settings[s.name].get())
+        t.eq(c.settings[s.name].validator(s.default),
+             c.settings[s.name].get())
 
 def test_property_access():
     c = config.Config()
@@ -129,6 +130,17 @@ def test_str_validation():
     t.eq(c.proc_name, "foo")
     t.raises(TypeError, c.set, "proc_name", 2)
 
+def test_str_to_list_validation():
+    c = config.Config()
+    t.eq(c.forwarded_allow_ips, ["127.0.0.1"])
+    c.set("forwarded_allow_ips", "127.0.0.1 192.168.0.1")
+    t.eq(c.forwarded_allow_ips, ["127.0.0.1", "192.168.0.1"])
+    c.set("forwarded_allow_ips", "")
+    t.eq(c.forwarded_allow_ips, [])
+    c.set("forwarded_allow_ips", None)
+    t.eq(c.forwarded_allow_ips, [])
+    t.raises(TypeError, c.set, "forwarded_allow_ips", 1)
+
 def test_callable_validation():
     c = config.Config()
     def func(a, b):
@@ -153,7 +165,8 @@ def test_app_config():
     with AltArgs():
         app = NoConfigApp()
     for s in config.KNOWN_SETTINGS:
-        t.eq(s.default, app.cfg.settings[s.name].get())
+        t.eq(app.cfg.settings[s.name].validator(s.default),
+             app.cfg.settings[s.name].get())
 
 def test_load_config():
     with AltArgs(["prog_name", "-c", cfg_file()]):
