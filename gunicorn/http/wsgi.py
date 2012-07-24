@@ -66,22 +66,24 @@ def create(req, sock, client, server, cfg):
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
-    client = client or "127.0.0.1"
-    forward = client
+    forward = client or "127.0.0.1"
     url_scheme = "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
     secure_headers = cfg.secure_scheme_headers
     x_forwarded_for_header = cfg.x_forwarded_for_header
+    if client and client[0] not in cfg.forwarded_allow_ips:
+        x_forwarded_for_header = None
+        secure_headers = {}
 
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send("HTTP/1.1 100 Continue\r\n\r\n")
-        elif hdr_name == x_forwarded_for_header:
+        elif x_forwarded_for_header and hdr_name == x_forwarded_for_header:
             forward = hdr_value
-        elif (hdr_name.upper() in secure_headers and
+        elif secure_headers and (hdr_name.upper() in secure_headers and
               hdr_value == secure_headers[hdr_name.upper()]):
             url_scheme = "https"
         elif hdr_name == "HOST":
