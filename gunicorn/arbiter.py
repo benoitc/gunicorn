@@ -113,15 +113,15 @@ class Arbiter(object):
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
         self.log.info("Starting gunicorn %s", __version__)
-        self.cfg.on_starting(self)
         self.pid = os.getpid()
+        if self.cfg.pidfile is not None:
+            self.pidfile = Pidfile(self.cfg.pidfile)
+            self.pidfile.create(self.pid)
+        self.cfg.on_starting(self)
         self.init_signals()
         if not self.LISTENER:
             self.LISTENER = create_socket(self.cfg, self.log)
 
-        if self.cfg.pidfile is not None:
-            self.pidfile = Pidfile(self.cfg.pidfile)
-            self.pidfile.create(self.pid)
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", self.LISTENER,
             self.pid)
