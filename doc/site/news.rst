@@ -8,6 +8,14 @@ _TOC_TOP_
 
 _TOC_BOT_
 
+0.14.6 / 2012-07-26
+-------------------
+
+- fix gevent &amp; subproces
+- fix request line length check
+- fix keepalive = 0
+- fix tornado worker
+
 0.14.5 / 2012-06-24
 -------------------
 
