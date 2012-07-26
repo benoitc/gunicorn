@@ -79,23 +79,14 @@ def app(environ, start_response):
         </ul>
       </div>
       <div class="blurb">
-        <h3>Version 0.14.5 / 2012-06-24</h3>
+        <h3>Version 0.14.6 / 2012-07-26</h3>
         <ul>
-          <li>fix logging during daemonisation</li>
+	  <li>fix gevent &amp;amp; subproces</li>
+          <li>fix request line length check</li>
+          <li>fix keepalive = 0</li>
+          <li>fix tornado worker</li>
         </ul>
         <br>
-        <h3>Version 0.14.4 / 2012-06-24</h3>
-        <ul>
-          <li>new --graceful-timeout option</li>
-          <li>fix multiple issues with request limit</li>
-          <li>more fixes in django settings resolutions</li>
-          <li>fix gevent.core import</li>
-          <li>fix keepalive=0 in eventlet worker</li>
-          <li>fix handle_error display with the unix worker</li>
-          <li>fix tornado.wsgi.WSGIApplication calling error</li>
-          <li><strong>breaking change</strong>: take the control on graceful reload back.
-          graceful can't be overrided anymore using the on_reload function.</li>
-        </ul>
       </div>
       <div id="footer">
         <p>Site Content License <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>.</p>
