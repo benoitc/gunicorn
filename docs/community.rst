@@ -15,13 +15,13 @@ The archive for this list can also be `browsed online
 <http://lists.gunicorn.org/user>`_ .
 
 Irc
-===
+---
 
 The Gunicorn channel is on the `Freenode <http://freenode.net/>`_ IRC
 network. You can chat with other on `#gunicorn channel <http://webchat.freenode.net/?channels=gunicorn>`_.
 
 Issue Tracking
-==============
+--------------
 
 Bug reports, enhancement requests and tasks generally go in the `Github
 issue tracker <http://github.com/benoitc/gunicorn/issues>`_.

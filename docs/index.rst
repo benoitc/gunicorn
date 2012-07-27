@@ -15,13 +15,13 @@ Features
 Contents
 ========
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   install
-   run
-   configure
-   deploy
-   design
-   community
-   faq
-   news
+    install
+    run
+    configure
+    deploy
+    design
+    community
+    faq
+    news
