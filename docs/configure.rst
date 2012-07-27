@@ -1,5 +1,5 @@
 Overview
---------
+========
 
 Gunicorn pulls configuration information from three distinct places.
 
@@ -67,7 +67,7 @@ On a side note, Python's older than 2.6 can use sysconf to get the
 number of processors::
 
     import os
-    
+
     def numCPUs():
         if not hasattr(os, "sysconf"):
             raise RuntimeError("No sysconf detected.")
@@ -87,12 +87,4 @@ usual::
 There is also a ``--version`` flag available to the command line scripts that
 isn't mentioned in the list of settings.
 
-Settings
---------
-
-This is an exhaustive list of settings for Gunicorn. Some settings are only
-able to be set from a configuration file. The setting name is what should be
-used in the configuration file. The command line arguments are listed as well
-for reference on setting at the command line.
-
-%(settings)s
+.. include:: settings.rst
