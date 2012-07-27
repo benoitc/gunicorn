@@ -73,7 +73,8 @@ def create(req, sock, client, server, cfg):
     secure_headers = cfg.secure_scheme_headers
     x_forwarded_for_header = cfg.x_forwarded_for_header
     if client and client[0] not in cfg.forwarded_allow_ips:
-        x_forwarded_for_header = secure_headers = None
+        x_forwarded_for_header = None
+        secure_headers = {}
 
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":

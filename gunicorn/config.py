@@ -218,7 +218,7 @@ def validate_string_to_list(val):
     if not val:
         return []
 
-    return [v.strip() for v in val.split(" ") if v]
+    return [v.strip() for v in val.split(",") if v]
 
 def validate_class(val):
     if inspect.isfunction(val) or inspect.ismethod(val):
@@ -698,7 +698,7 @@ class ForwardedAllowIPS(Setting):
     default = "127.0.0.1"
     desc = """\
         Front-end's IPs from which allowed to handle X-Forwarded-* headers.
-        (space separate).
+        (comma separate).
         """
 
 class AccessLog(Setting):

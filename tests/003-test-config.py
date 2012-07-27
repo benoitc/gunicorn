@@ -133,7 +133,7 @@ def test_str_validation():
 def test_str_to_list_validation():
     c = config.Config()
     t.eq(c.forwarded_allow_ips, ["127.0.0.1"])
-    c.set("forwarded_allow_ips", "127.0.0.1 192.168.0.1")
+    c.set("forwarded_allow_ips", "127.0.0.1,192.168.0.1")
     t.eq(c.forwarded_allow_ips, ["127.0.0.1", "192.168.0.1"])
     c.set("forwarded_allow_ips", "")
     t.eq(c.forwarded_allow_ips, [])
