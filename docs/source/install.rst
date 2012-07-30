@@ -1,7 +1,10 @@
-.. _install:
+Installation
+============
+
+Follow the following steps to install gunicorn.
 
 Requirements
-============
+------------
 
 - **Python 2.x >= 2.5** (Python 3.x will be supported soon)
 - setuptools >= 0.6c6

@@ -1,3 +1,6 @@
+FAQ
+###
+
 WSGI Bits
 =========
 
@@ -107,7 +110,7 @@ of open file descriptors for a given process. For the confused out there,
 remember that Unices treat sockets as files.
 
 ::
-    
+
     $ sudo ulimit -n 2048
 
 How can I increase the maximum socket backlog?

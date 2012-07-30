@@ -1,3 +1,6 @@
+Deploying Gunicorn
+##################
+
 Nginx Configuration
 ===================
 
@@ -110,7 +113,7 @@ passing ``-I`` or ``--ignore-installed`` option to pip::
      $ pip install -I gunicorn
 
 Monitoring
-----------
+==========
 
 .. note::
     Make sure that when using either of these service monitors you do not
@@ -120,7 +123,7 @@ Monitoring
     confuses the monitor services.
 
 Circus
-++++++
+------
 
 `Circus <http://circus.readthedocs.org/en/latest/index.html>`_ can be
 used to monitor gunicorn. A simple configuration is::
@@ -133,7 +136,7 @@ used to monitor gunicorn. A simple configuration is::
 Then you can easily manage Gunicorn using the `circusctl <http://circus.readthedocs.org/en/latest/commands/#cli>`_ command.
 
 Runit
-+++++
+-----
 
 A popular method for deploying Gunicorn is to have it monitored by runit_.
 Here is an `example service`_ definition::
@@ -161,7 +164,7 @@ If it doesn't start automatically, run the script directly to troubleshoot.
 
 
 Supervisor
-++++++++++
+----------
 
 Another useful tool to monitor and control Gunicorn is Supervisor_. A
 `simple configuration`_ is::
@@ -175,7 +178,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     redirect_stderr=True
 
 Logging
--------
+=======
 
 Logging can be configured by using various flags detailed in the
 `configuration documentation`_ or by creating a `logging configuration file`_.

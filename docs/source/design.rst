@@ -1,3 +1,8 @@
+Design
+######
+
+A brief description of the architecture of Gunicorn
+
 Server Model
 ============
 

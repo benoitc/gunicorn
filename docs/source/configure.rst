@@ -1,5 +1,5 @@
-Overview
-========
+Configuration Overview
+======================
 
 Gunicorn pulls configuration information from three distinct places.
 
