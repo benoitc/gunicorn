@@ -27,8 +27,10 @@ import sys, os
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 
 CUR_DIR = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(CUR_DIR)
+# for gunicorn_ext.py
 sys.path.append(os.path.join(CUR_DIR, os.pardir))
+# To make sure we get this version of gunicorn
+sys.path.insert(0, os.path.join(CUR_DIR, os.pardir, os.pardir))
 
 import gunicorn
 extensions = ['gunicorn_ext']
@@ -68,7 +70,7 @@ release = version = gunicorn.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = []
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
