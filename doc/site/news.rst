@@ -11,7 +11,7 @@ _TOC_BOT_
 0.14.6 / 2012-07-26
 -------------------
 
-- fix gevent &amp; subproces
+- fix gevent & subproces
 - fix request line length check
 - fix keepalive = 0
 - fix tornado worker
