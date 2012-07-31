@@ -74,9 +74,7 @@ class SyncWorker(base.Worker):
         except StopIteration, e:
             self.log.debug("Closing connection. %s", e)
         except socket.timeout:
-            self.log.debug("Processing request timeout"
-                           " (socket non activity more than %s sec)"
-                           "" % self.cfg.timeout)
+            self.handle_error(req, client, addr, e)
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
