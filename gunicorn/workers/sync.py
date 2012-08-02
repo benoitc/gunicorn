@@ -73,7 +73,7 @@ class SyncWorker(base.Worker):
             self.handle_request(req, client, addr)
         except StopIteration, e:
             self.log.debug("Closing connection. %s", e)
-        except socket.timeout:
+        except socket.timeout as e:
             self.handle_error(req, client, addr, e)
         except socket.error, e:
             if e[0] != errno.EPIPE:
