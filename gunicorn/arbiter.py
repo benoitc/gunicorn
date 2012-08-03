@@ -461,7 +461,7 @@ class Arbiter(object):
         except SystemExit:
             raise
         except:
-            self.log.debug("Exception in worker process:\n%s",
+            self.log.exception("Exception in worker process:\n%s",
                     traceback.format_exc())
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
