@@ -7,3 +7,7 @@ python:
 
 install: python setup.py install
 script: nosetests
+
+branches:
+  only:
+    - master
