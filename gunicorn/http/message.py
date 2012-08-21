@@ -164,14 +164,18 @@ class Request(Message):
         while True:
             idx = data.find("\r\n")
             if idx >= 0:
+                # check if the request line is too large
+                if idx > self.limit_request_line > 0:
+                    raise LimitRequestLine(idx, self.limit_request_line)
                 break
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
 
-            # check if the request line is too large
+            # check if chunk is too large before read next chunk
             if len(data) - 2 > self.limit_request_line and \
                     self.limit_request_line> 0 :
                 raise LimitRequestLine(len(data), self.limit_request_line)
+
+            self.get_data(unreader, buf)
+            data = buf.getvalue()
 
         self.parse_request_line(data[:idx])
         buf = StringIO()
