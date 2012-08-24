@@ -99,6 +99,8 @@ class Message(object):
             if name == "CONTENT-LENGTH":
                 try:
                     response_length = int(value)
+                    if response_length < 0:
+                        response_length = None
                 except ValueError:
                     response_length = None
             elif name == "TRANSFER-ENCODING":
