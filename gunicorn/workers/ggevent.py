@@ -8,6 +8,7 @@ from __future__ import with_statement
 import os
 import sys
 from datetime import datetime
+import time
 
 # workaround on osx, disable kqueue
 if sys.platform == "darwin":
@@ -77,9 +78,21 @@ class GeventWorker(AsyncWorker):
             pass
 
         try:
-            # Try to stop connections until timeout
-            self.notify()
-            server.stop(timeout=self.cfg.graceful_timeout)
+            # Stop accepting requests
+            server.kill()
+
+            # Handle current requests until graceful_timeout
+            ts = time.time()
+            while time.time() - ts <= self.cfg.graceful_timeout:
+                if server.pool.free_count() == server.pool.size:
+                    return # all requests was handled
+
+                self.notify()
+                gevent.sleep(1.0)
+
+            # Force kill all active the handlers
+            self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
+            server.stop(timeout=1)
         except:
             pass
 
