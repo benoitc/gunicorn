@@ -9,6 +9,11 @@ import sys
 from gunicorn.app.base import Application
 from gunicorn import util
 
+def is_setting_mod(path):
+    return (os.path.isfile(os.path.join(path, "settings.py")) or
+            os.path.isfile(os.path.join(path, "settings.pyc")))
+
+
 def find_settings_module(path):
     path = os.path.abspath(path)
     project_path = None
@@ -16,13 +21,13 @@ def find_settings_module(path):
 
     if os.path.isdir(path):
         project_path = None
-        if not os.path.isfile(os.path.join(path, "settings.py")):
+        if not is_setting_mod(path):
             for d in os.listdir(path):
                 if d in ('..', '.'):
                     continue
 
                 root = os.path.join(path, d)
-                if os.path.isfile(os.path.join(root, "settings.py")):
+                if is_setting_mod(root):
                     project_path = root
                     break
         else:
