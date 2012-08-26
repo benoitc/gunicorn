@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import traceback
 from datetime import datetime
 import time
 
@@ -23,6 +24,7 @@ from gevent.server import StreamServer
 from gevent import pywsgi
 
 import gunicorn
+from gunicorn import util
 from gunicorn.workers.async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
@@ -135,6 +137,39 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
                 self.response_length)
         req_headers = [h.split(":", 1) for h in self.headers.headers]
         self.server.log.access(resp, req_headers, self.environ, response_time)
+
+    def log_error(self, msg, *args):
+        try:
+            message = msg % args
+        except (TypeError, ValueError):
+            self.server.log.warning("Formatting error:\n%s" \
+                % traceback.format_exc())
+            message = "%r %r" % (msg, args)
+        self.server.log.error(message)
+
+    def handle_error(self, type, value, tb):
+        if not self.response_length:
+            try:
+                self.write_error()
+            except Exception, e:
+                # we won't break the error handling flow
+                self.log_error("Issue with writing the error to user:\n%s", e)
+        return super(PyWSGIHandler, self).handle_error(type, value, tb)
+
+    def write_error(self):
+        message = ""
+        # it's only one way to access gunicorn config here,
+        # so be careful with custom logger implementation
+        cfg = getattr(self.server.log, "cfg", None)
+        if cfg and cfg.debug:
+            tb = traceback.format_exc()
+            message = "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
+        error_page = util.ErrorPage(message=message)
+        result = error_page(self.environ, self.start_response)
+        for data in result:
+            if data:
+                self.write(data)
+        self.close_connection = True
 
     def get_environ(self):
         env = super(PyWSGIHandler, self).get_environ()
