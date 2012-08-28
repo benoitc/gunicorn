@@ -13,7 +13,7 @@ except ImportError:
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, LengthRequired, \
 LimitRequestLine, LimitRequestHeaders
 
 MAX_REQUEST_LINE = 8190
@@ -100,9 +100,9 @@ class Message(object):
                 try:
                     response_length = int(value)
                     if response_length < 0:
-                        response_length = None
+                        raise LengthRequired(self)
                 except ValueError:
-                    response_length = None
+                    raise LengthRequired(self)
             elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
             elif name == "SEC-WEBSOCKET-KEY1":

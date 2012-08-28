@@ -77,3 +77,11 @@ class LimitRequestHeaders(ParseException):
 
     def __str__(self):
         return self.msg
+
+class LengthRequired(ParseException):
+    def __init__(self, req=None):
+        self.req = req
+        self.code = 411
+
+    def __str__(self):
+        return "411 Length Required"
