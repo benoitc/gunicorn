@@ -24,6 +24,7 @@ import sys
 import textwrap
 import time
 import inspect
+import logging
 
 
 MAXFD = 1024
@@ -319,7 +320,13 @@ def to_bytestring(s):
 def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
-def daemonize():
+def redirect_daemon_to_error_log(logger):
+    if isinstance(logger.error_log.handlers[0], logging.FileHandler):
+        daemon_log_fd = logger.error_log.handlers[0].stream.fileno()
+        os.dup2(daemon_log_fd, 1)
+        os.dup2(daemon_log_fd, 2) 
+
+def daemonize(logger=None):
     """\
     Standard daemonization of a process.
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
@@ -333,12 +340,14 @@ def daemonize():
             os._exit(0)
 
         os.umask(0)
-        maxfd = get_maxfd()
-        closerange(0, maxfd)
 
-        os.open(REDIRECT_TO, os.O_RDWR)
-        os.dup2(0, 1)
-        os.dup2(0, 2)
+        devnull = os.open(REDIRECT_TO, os.O_RDWR)
+        os.dup2(devnull, 0)
+        if logger is None:
+            os.dup2(devnull, 1)
+            os.dup2(devnull, 2)
+        else:
+            redirect_daemon_to_error_log(logger)
 
 def seed():
     try:

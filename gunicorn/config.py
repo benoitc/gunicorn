@@ -579,6 +579,19 @@ class Daemon(Setting):
         background.
         """
 
+class DaemonLogging(Setting):
+    name = "daemon_logging"
+    section = "Logging"
+    cli = ["--daemon-logging"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Redirected daemon output to error log.
+
+        Default is to redirect it to /dev/null.
+        """
+
 class Pidfile(Setting):
     name = "pidfile"
     section = "Server Mechanics"
