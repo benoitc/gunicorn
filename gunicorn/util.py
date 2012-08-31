@@ -321,10 +321,13 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 def redirect_daemon_to_error_log(logger):
-    if isinstance(logger.error_log.handlers[0], logging.FileHandler):
-        daemon_log_fd = logger.error_log.handlers[0].stream.fileno()
-        os.dup2(daemon_log_fd, 1)
-        os.dup2(daemon_log_fd, 2) 
+    # Get first handler that is associated with a file
+    for handler in logger.error_log.handlers:
+        if isinstance(handler, logging.FileHandler):
+            daemon_log_fd = handler.stream.fileno()
+            os.dup2(daemon_log_fd, 1)
+            os.dup2(daemon_log_fd, 2)
+            break 
 
 def daemonize(logger=None):
     """\
