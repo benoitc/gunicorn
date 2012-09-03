@@ -1,0 +1,4 @@
+POST /stuff/here?foo=bar HTTP/1.0\r\n
+CONTENT-LENGTH: bla-bla-bla\r\n
+\r\n
+{"test": "-1}
