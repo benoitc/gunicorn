@@ -13,7 +13,7 @@ except ImportError:
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, LengthRequired, \
+InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 
 MAX_REQUEST_LINE = 8190
@@ -94,27 +94,27 @@ class Message(object):
 
     def set_body_reader(self):
         chunked = False
-        response_length = None
+        content_length = None
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
-                try:
-                    response_length = int(value)
-                    if response_length < 0:
-                        raise LengthRequired(self)
-                except ValueError:
-                    raise LengthRequired(self)
+                content_length = value
             elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
             elif name == "SEC-WEBSOCKET-KEY1":
-                response_length = 8
-
-            if response_length is not None or chunked:
-                break
+                content_length = 8
 
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
-        elif response_length is not None:
-            self.body = Body(LengthReader(self.unreader, response_length))
+        elif content_length is not None:
+            try:
+                content_length = int(content_length)
+            except ValueError:
+                raise InvalidHeader("CONTENT-LENGTH", req=self)
+
+            if content_length < 0:
+                raise InvalidHeader("CONTENT-LENGTH", req=self)
+
+            self.body = Body(LengthReader(self.unreader, content_length))
         else:
             self.body = Body(EOFReader(self.unreader))
 

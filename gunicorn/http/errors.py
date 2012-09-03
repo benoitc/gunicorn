@@ -35,18 +35,19 @@ class InvalidHTTPVersion(ParseException):
         return "Invalid HTTP Version: %s" % self.version
 
 class InvalidHeader(ParseException):
-    def __init__(self, hdr):
+    def __init__(self, hdr, req=None):
         self.hdr = hdr
+        self.req = req
 
     def __str__(self):
-        return "Invalid HTTP Header: %r" % self.hdr
+        return "Invalid HTTP Header: %s" % self.hdr
 
 class InvalidHeaderName(ParseException):
     def __init__(self, hdr):
         self.hdr = hdr
 
     def __str__(self):
-        return "Invalid HTTP header name: %r" % self.hdr
+        return "Invalid HTTP header name: %s" % self.hdr
 
 class InvalidChunkSize(ParseException):
     def __init__(self, data):
@@ -77,11 +78,3 @@ class LimitRequestHeaders(ParseException):
 
     def __str__(self):
         return self.msg
-
-class LengthRequired(ParseException):
-    def __init__(self, req=None):
-        self.req = req
-        self.code = 411
-
-    def __str__(self):
-        return "411 Length Required"

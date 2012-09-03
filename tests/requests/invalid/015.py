@@ -1,3 +1,3 @@
-from gunicorn.http.errors import LengthRequired
+from gunicorn.http.errors import InvalidHeader
 
-request = LengthRequired
+request = InvalidHeader

@@ -14,7 +14,7 @@ from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine, LimitRequestHeaders, LengthRequired
+LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.wsgi import default_environ, Response
 
 class Worker(object):
@@ -130,7 +130,7 @@ class Worker(object):
         addr = addr or ('', -1) # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            LimitRequestLine, LimitRequestHeaders, LengthRequired)):
+            LimitRequestLine, LimitRequestHeaders,)):
 
             status_int = 400
             reason = "Bad Request"
@@ -142,16 +142,13 @@ class Worker(object):
             elif isinstance(exc, InvalidHTTPVersion):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
+                mesg = "<p>%s</p>" % str(exc)
+                if not req and hasattr(exc, "req"):
+                    req = exc.req # for access log
             elif isinstance(exc, LimitRequestLine):
                 mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
                 mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
-            elif isinstance(exc, LengthRequired):
-                status_int = 411
-                reason = "Length Required"
-                mesg = str(exc)
-                req = not req and exc.req # need for access log
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
                            "".format(ip=addr[0],
