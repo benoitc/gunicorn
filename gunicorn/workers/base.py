@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import traceback
+import socket
 
 
 from gunicorn import util
@@ -153,6 +154,10 @@ class Worker(object):
                                      error=str(exc),
                                     )
                           )
+        elif isinstance(exc, socket.timeout):
+            status_int = 408
+            reason = "Request Timeout"
+            mesg = "<p>The server timed out handling for the request</p>"
         else:
             self.log.exception("Error handling request")
 
