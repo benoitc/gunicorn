@@ -6,7 +6,7 @@
 class ParseException(Exception):
     pass
 
-class NoMoreData(ParseException):
+class NoMoreData(IOError):
     def __init__(self, buf=None):
         self.buf = buf
     def __str__(self):
@@ -48,14 +48,14 @@ class InvalidHeaderName(ParseException):
     def __str__(self):
         return "Invalid HTTP header name: %r" % self.hdr
 
-class InvalidChunkSize(ParseException):
+class InvalidChunkSize(IOError):
     def __init__(self, data):
         self.data = data
 
     def __str__(self):
         return "Invalid chunk size: %r" % self.data
 
-class ChunkMissingTerminator(ParseException):
+class ChunkMissingTerminator(IOError):
     def __init__(self, term):
         self.term = term
 
