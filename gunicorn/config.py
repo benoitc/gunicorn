@@ -996,3 +996,38 @@ class WorkerExit(Setting):
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
         """
+
+class ProxyProtocol(Setting):
+    name = "proxy_protocol"
+    section = "Server Mechanics"
+    cli = ["--proxy-protocol"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+        Enable detect PROXY protocol (PROXY mode).
+
+        Allow using Http and Proxy together. It's may be useful for work with
+        stunnel as https frondend and gunicorn as http server.
+
+        PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+
+        Example for stunnel config::
+
+        [https]
+        protocol = proxy
+        accept  = 443
+        connect = 80
+        cert = /etc/ssl/certs/stunnel.pem
+        key = /etc/ssl/certs/stunnel.key
+        """
+
+class ProxyAllowFrom(Setting):
+    name = "proxy_allow_ips"
+    section = "Server Mechanics"
+    cli = ["--proxy-allow-from"]
+    validator = validate_string_to_list
+    default = "127.0.0.1"
+    desc = """\
+        Front-end's IPs from which allowed accept proxy requests (comma separate).
+        """

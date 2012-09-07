@@ -16,6 +16,9 @@ class Parser(object):
             self.unreader = IterUnreader(source)
         self.mesg = None
 
+        # request counter (for keepalive connetions)
+        self.req_count = 0
+
     def __iter__(self):
         return self
 
@@ -31,7 +34,8 @@ class Parser(object):
                 data = self.mesg.body.read(8192)
 
         # Parse the next request
-        self.mesg = self.mesg_class(self.cfg, self.unreader)
+        self.req_count += 1
+        self.mesg = self.mesg_class(self.cfg, self.unreader, self.req_count)
         if not self.mesg:
             raise StopIteration()
         return self.mesg

@@ -5,16 +5,20 @@
 
 import re
 import urlparse
+import socket
+from errno import ENOTCONN
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
 
+from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
+from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -131,7 +135,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, cfg, unreader):
+    def __init__(self, cfg, unreader, req_number=1):
         self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
         self.versre = re.compile("HTTP/(\d+).(\d+)")
 
@@ -146,6 +150,10 @@ class Request(Message):
         if (self.limit_request_line < 0
             or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
+
+        self.req_number = req_number
+        self.proxy_protocol_info = None
+
         super(Request, self).__init__(cfg, unreader)
 
 
@@ -161,27 +169,19 @@ class Request(Message):
         buf = StringIO()
         self.get_data(unreader, buf, stop=True)
 
-        # Request line
-        data = buf.getvalue()
-        while True:
-            idx = data.find("\r\n")
-            if idx >= 0:
-                # check if the request line is too large
-                if idx > self.limit_request_line > 0:
-                    raise LimitRequestLine(idx, self.limit_request_line)
-                break
+        # get request line
+        line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
-            # check if chunk is too large before read next chunk
-            if len(data) - 2 > self.limit_request_line and \
-                    self.limit_request_line> 0 :
-                raise LimitRequestLine(len(data), self.limit_request_line)
+        # proxy protocol
+        if self.proxy_protocol(line):
+            # get next request line
+            buf = StringIO()
+            buf.write(rbuf)
+            line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
-
-        self.parse_request_line(data[:idx])
+        self.parse_request_line(line)
         buf = StringIO()
-        buf.write(data[idx+2:]) # Skip \r\n
+        buf.write(rbuf)
 
         # Headers
         data = buf.getvalue()
@@ -209,6 +209,103 @@ class Request(Message):
         ret = data[idx+4:]
         buf = StringIO()
         return ret
+
+    def read_line(self, unreader, buf, limit=0):
+        data = buf.getvalue()
+
+        while True:
+            idx = data.find("\r\n")
+            if idx >= 0:
+                # check if the request line is too large
+                if idx > limit > 0:
+                    raise LimitRequestLine(idx, limit)
+                break
+            self.get_data(unreader, buf)
+            data = buf.getvalue()
+
+            if len(data) - 2 > limit > 0:
+                raise LimitRequestLine(len(data), limit)
+
+        return (data[:idx], # request line,
+                data[idx + 2:]) #  residue in the buffer, skip \r\n
+
+    def proxy_protocol(self, line):
+        """\
+        Detect, check and parse proxy protocol.
+
+        :raises: ForbiddenProxyRequest, InvalidProxyLine.
+        :return: True for proxy protocol line else False
+        """
+        if not self.cfg.proxy_protocol:
+            return False
+
+        if self.req_number != 1:
+            return False
+
+        if not line.startswith("PROXY"):
+            return False
+
+        self.proxy_protocol_access_check()
+        self.parse_proxy_protocol(line)
+
+        return True
+
+    def proxy_protocol_access_check(self):
+        # check in allow list
+        if isinstance(self.unreader, SocketUnreader):
+            try:
+                remote_host = self.unreader.sock.getpeername()[0]
+            except socket.error as e:
+                if e[0] == ENOTCONN:
+                    raise ForbiddenProxyRequest("UNKNOW")
+                raise
+            if remote_host not in self.cfg.proxy_allow_ips:
+                raise ForbiddenProxyRequest(remote_host)
+
+    def parse_proxy_protocol(self, line):
+        bits = line.split()
+
+        if len(bits) != 6:
+            raise InvalidProxyLine(line)
+
+        # Extract data
+        proto = bits[1]
+        s_addr = bits[2]
+        d_addr = bits[3]
+
+        # Validation
+        if proto not in ["TCP4", "TCP6"]:
+            raise InvalidProxyLine("protocol '%s' not supported" % proto)
+        if proto == "TCP4":
+            try:
+                socket.inet_pton(socket.AF_INET, s_addr)
+                socket.inet_pton(socket.AF_INET, d_addr)
+            except socket.error:
+                raise InvalidProxyLine(line)
+        elif proto == "TCP6":
+            try:
+                socket.inet_pton(socket.AF_INET6, s_addr)
+                socket.inet_pton(socket.AF_INET6, d_addr)
+            except socket.error:
+                raise InvalidProxyLine(line)
+
+        try:
+            s_port = int(bits[4])
+            d_port = int(bits[5])
+        except ValueError:
+            raise InvalidProxyLine("invalid port %s" % line)
+
+        if not ((0 <= s_port <= 65535) and (0 <= d_port <= 65535)):
+            raise InvalidProxyLine("invalid port %s" % line)
+
+        # Set data
+        self.proxy_protocol_info = {
+            "proxy_protocol": proto,
+            "client_addr": s_addr,
+            "client_port": s_port,
+            "proxy_addr": d_addr,
+            "proxy_port": d_port
+        }
 
     def parse_request_line(self, line):
         bits = line.split(None, 2)
