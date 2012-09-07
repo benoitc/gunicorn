@@ -67,6 +67,7 @@ class SyncWorker(base.Worker):
     def handle(self, client, addr):
         req = None
         try:
+            client.settimeout(self.cfg.timeout)
             parser = http.RequestParser(self.cfg, client)
             req = parser.next()
             self.handle_request(req, client, addr)
@@ -74,6 +75,8 @@ class SyncWorker(base.Worker):
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration, e:
             self.log.debug("Closing connection. %s", e)
+        except socket.timeout as e:
+            self.handle_error(req, client, addr, e)
         except socket.error, e:
             if e[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
