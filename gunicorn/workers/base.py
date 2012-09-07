@@ -142,7 +142,9 @@ class Worker(object):
             elif isinstance(exc, InvalidHTTPVersion):
                 mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>Invalid Header '%s'</p>" % str(exc)
+                mesg = "<p>%s</p>" % str(exc)
+                if not req and hasattr(exc, "req"):
+                    req = exc.req # for access log
             elif isinstance(exc, LimitRequestLine):
                 mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
