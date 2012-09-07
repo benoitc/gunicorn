@@ -78,3 +78,21 @@ class LimitRequestHeaders(ParseException):
 
     def __str__(self):
         return self.msg
+
+
+class InvalidProxyLine(ParseException):
+    def __init__(self, line):
+        self.line = line
+        self.code = 400
+
+    def __str__(self):
+        return "Invalid PROXY line: %s" % self.line
+
+
+class ForbiddenProxyRequest(ParseException):
+    def __init__(self, host):
+        self.host = host
+        self.code = 403
+
+    def __str__(self):
+        return "Proxy request from %s not allowed" % self.host

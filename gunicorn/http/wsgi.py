@@ -57,6 +57,19 @@ def default_environ(req, sock, cfg):
         "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
     }
 
+def proxy_environ(req):
+    info = req.proxy_protocol_info
+
+    if not info:
+        return {}
+
+    return {
+        "PROXY_PROTOCOL": info["proxy_protocol"],
+        "REMOTE_ADDR": info["client_addr"],
+        "REMOTE_PORT":  str(info["client_port"]),
+        "PROXY_ADDR": info["proxy_addr"],
+        "PROXY_PORT": str(info["proxy_port"]),
+    }
 
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
@@ -148,6 +161,8 @@ def create(req, sock, client, server, cfg):
         path_info = path_info.split(script_name, 1)[1]
     environ['PATH_INFO'] = unquote(path_info)
     environ['SCRIPT_NAME'] = script_name
+
+    environ.update(proxy_environ(req))
 
     return resp, environ
 
