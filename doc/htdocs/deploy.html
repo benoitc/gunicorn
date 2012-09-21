@@ -67,15 +67,13 @@ http {
 
         keepalive_timeout 5;
 
-        # path for static files
-        root /path/to/app/current/public;
 
-        location / {
-            # checks for static file, if not found proxy to app
-            try_files $uri &#64;proxy_to_app;
+        location ^~ /static {
+            # path for static files
+            alias /path/to/app/current/public/static;
         }
 
-        location &#64;proxy_to_app {
+        location / {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $http_host;
             proxy_redirect off;
