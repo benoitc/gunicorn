@@ -18,6 +18,13 @@ except ImportError:
 
 from gunicorn import util
 
+
+def loggers():
+    """ get list of all loggers """
+    root = logging.root
+    existing = root.manager.loggerDict.keys()
+    return [logging.getLogger(name) for name in existing]
+
 class LazyWriter(object):
 
     """
@@ -202,7 +209,7 @@ class Logger(object):
 
 
     def reopen_files(self):
-        for log in (self.error_log, self.access_log):
+        for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
@@ -215,7 +222,7 @@ class Logger(object):
                         handler.release()
 
     def close_on_exec(self):
-        for log in (self.error_log, self.access_log):
+        for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.acquire()
