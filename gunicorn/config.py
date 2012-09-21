@@ -229,9 +229,23 @@ def validate_class(val):
 
 def validate_callable(arity):
     def _validate_callable(val):
+        if isinstance(val, basestring):
+            try:
+                mod_name, obj_name = val.rsplit(".", 1)
+            except ValueError:
+                raise TypeError("Value '%s' is not import string. "
+                                "Format: module[.submodules...].object" % val)
+            try:
+                mod = __import__(mod_name, fromlist=[obj_name])
+                val = getattr(mod, obj_name)
+            except ImportError as e:
+                raise TypeError(str(e))
+            except AttributeError:
+                raise TypeError("Can not load '%s' from '%s'"
+                    "" % (obj_name, mod_name))
         if not callable(val):
             raise TypeError("Value is not callable: %s" % val)
-        if arity != len(inspect.getargspec(val)[0]):
+        if arity != -1 and arity != len(inspect.getargspec(val)[0]):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
@@ -265,21 +279,13 @@ def validate_group(val):
             raise ConfigError("No such group: '%s'" % val)
 
 def validate_post_request(val):
-
-    # decorator
-    def wrap_post_request(fun):
-        def _wrapped(instance, req, environ):
-            return fun(instance, req)
-        return _wrapped
-
-    if not callable(val):
-        raise TypeError("Value isn't a callable: %s" % val)
+    val = validate_callable(-1)(val)
 
     largs = len(inspect.getargspec(val)[0])
     if largs == 3:
         return val
     elif largs == 2:
-        return wrap_post_request(val)
+        return lambda worker, req, _: val(worker, req)
     else:
         raise TypeError("Value must have an arity of: 3")
 

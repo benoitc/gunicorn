@@ -150,6 +150,28 @@ def test_callable_validation():
     t.raises(TypeError, c.set, "pre_fork", 1)
     t.raises(TypeError, c.set, "pre_fork", lambda x: True)
 
+def test_callable_validation_for_string():
+    from os.path import isdir as testfunc
+    t.eq(
+        config.validate_callable(-1)("os.path.isdir"),
+        testfunc
+    )
+
+    # invalid values tests
+    t.raises(
+        TypeError,
+        config.validate_callable(-1), ""
+    )
+    t.raises(
+        TypeError,
+        config.validate_callable(-1), "os.path.not_found_func"
+    )
+    t.raises(
+        TypeError,
+        config.validate_callable(-1), "notfoundmodule.func"
+    )
+
+
 def test_cmd_line():
     with AltArgs(["prog_name", "-b", "blargh"]):
         app = NoConfigApp()
