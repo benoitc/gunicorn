@@ -18,6 +18,34 @@ except ImportError:
 
 from gunicorn import util
 
+CONFIG_DEFAULTS = dict(
+        version = 1,
+        disable_existing_loggers = False,
+
+        loggers = {
+            "root": { "level": "INFO", "handlers": ["console"] },
+            "gunicorn.error": {
+                "level": "INFO",
+                "handlers": ["console"],
+                "propagate": True,
+                "qualname": "gunicorn.error"
+            }
+        },
+        handlers = {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "generic",
+                "stream": "sys.stdout"
+            }
+        },
+        formatters = {
+            "generic": {
+                "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+                "class": "logging.Formatter"
+            }
+        }
+)
 
 def loggers():
     """ get list of all loggers """
@@ -126,7 +154,8 @@ class Logger(object):
                     fmt=logging.Formatter(self.access_fmt))
         else:
             if os.path.exists(cfg.logconfig):
-                fileConfig(cfg.logconfig)
+                fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
+                        disable_existing_loggers=False)
             else:
                 raise RuntimeError("Error: log config '%s' not found" % cfg.logconfig)
 
