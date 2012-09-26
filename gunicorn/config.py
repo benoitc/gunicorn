@@ -668,6 +668,7 @@ class SecureSchemeHeader(Setting):
     validator = validate_dict
     default = {
         "X-FORWARDED-PROTOCOL": "ssl",
+        "X-FORWARDED-PROTO": "https",
         "X-FORWARDED-SSL": "on"
     }
     desc = """\
