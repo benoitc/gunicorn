@@ -183,4 +183,4 @@ Fingerprint
 .. _Debian: http://www.debian.org/
 .. _`Debian Backports`: http://backports.debian.org/
 .. _Ubuntu: http://www.ubuntu.com/
-.. _PPA: https://launchpad.net/~bchesneau/+archive/gunicorn
+.. _PPA: https://launchpad.net/~gunicorn/+archive/ppa
