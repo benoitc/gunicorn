@@ -153,6 +153,28 @@ And then as per usual::
     $ cd yourpasteproject
     $ paster serve development.ini workers=2
 
+**Gunicorn paster from script**
+
+If you'd like to run Gunicorn paster from a script instead of the command line (for example: a runapp.py to start a Pyramid app),
+you can use this example to help get you started::
+
+    import os
+    import multiprocessing
+
+    from paste.deploy import appconfig, loadapp 
+    from gunicorn.app.pasterapp import paste_server 
+
+    if __name__ == "__main__":
+
+        iniFile = 'config:development.ini'
+        port = int(os.environ.get("PORT", 5000))
+        workers = multiprocessing.cpu_count() * 2 + 1
+        worker_class = 'gevent'
+   
+        app = loadapp(iniFile, relative_to='.')
+        paste_server(app, host='0.0.0.0', port=port, workers=workers, worker_class=worker_class)
+
+
 LICENSE
 -------
 
