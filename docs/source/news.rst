@@ -1,12 +1,6 @@
-template: doc.html
-title: News
-
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+=========
+Changelog
+=========
 
 0.14.6 / 2012-07-26
 -------------------

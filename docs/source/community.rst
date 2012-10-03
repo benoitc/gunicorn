@@ -1,12 +1,8 @@
-template: doc.html
-title: Community
+=========
+Community
+=========
 
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+Use these channels to communicate about the project.
 
 Mailing list
 ============

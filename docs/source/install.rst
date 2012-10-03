@@ -1,22 +1,18 @@
-template: doc.html
-title: Install
+============
+Installation
+============
 
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+Follow the following steps to install Gunicorn.
 
 Requirements
-------------
+============
 
 - **Python 2.x >= 2.5** (Python 3.x will be supported soon)
 - setuptools >= 0.6c6
 - nosetests (for the test suite only)
 
 With easy_install
------------------
+=================
 
 If you don't already have ``easy_install`` available you'll want to download
 and run the ``ez_setup.py`` script::
@@ -38,7 +34,7 @@ To install or upgrade to the latest released version of Gunicorn::
         $ pip install -f http://github.com/tilgovi/gunicorn/tarball/py24 gunicorn
 
 From Source
------------
+===========
 
 You can install Gunicorn from source just as you would install any other
 Python package. Gunicorn uses setuptools which will automatically fetch all
@@ -67,7 +63,7 @@ well as make changes to the source::
     $ python setup.py develop
 
 Async Workers
--------------
+=============
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during request
@@ -92,7 +88,7 @@ want to consider one of the alternate worker types.
     installed, this is the most likely reason.
 
 Debian GNU/Linux
-----------------
+================
 
 If you are using Debian GNU/Linux and it is recommended that you use
 system packages to install Gunicorn except maybe when you want to use
@@ -114,7 +110,7 @@ advantages:
    entirely from the system in seconds.
 
 Stable ("squeeze")
-++++++++++++++++++
+------------------
 
 The version of Gunicorn in the Debian_ "stable" distribution is 0.10.0 (July
 2010). It is not recommended that you use this version.
@@ -133,7 +129,7 @@ You can then install the latest version using::
     $ sudo apt-get -t squeeze-backports install gunicorn
 
 Testing ("wheezy") / Unstable ("sid")
-+++++++++++++++++++++++++++++++++++++
+-------------------------------------
 
 "wheezy" and "sid" contain the latest released version of Gunicorn. You can
 install it in the usual way::
@@ -142,7 +138,7 @@ install it in the usual way::
 
 
 Ubuntu
-------
+======
 
 If you use Ubuntu_, you can update your system with packages from
 our PPA_ by adding ``ppa:gunicorn/ppa`` to your system's Software
@@ -160,14 +156,14 @@ and adding them to your system's software sources::
 Replace 'lucid' with your Ubuntu distribution series.
 
 Signing key
-+++++++++++
+-----------
 
 ::
 
   1024R/5370FF2A
 
 Fingerprint
-+++++++++++
+-----------
 
 ::
 

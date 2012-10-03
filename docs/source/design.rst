@@ -1,12 +1,8 @@
-template: doc.html
-title: Design
+======
+Design
+======
 
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+A brief description of an architecture of Gunicorn.
 
 Server Model
 ============

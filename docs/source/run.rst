@@ -1,15 +1,12 @@
-template: doc.html
-title: Run
+================
+Running Gunicorn
+================
 
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+You can run Gunicorn by using commands or integrate with Django or Paster. For
+deploying Gunicorn in production see :doc:`deploy`.
 
 Commands
---------
+========
 
 After installing Gunicorn you will have access to three command line scripts
 that can be used for serving the various supported web frameworks:
@@ -19,7 +16,7 @@ that can be used for serving the various supported web frameworks:
   * ``gunicorn_paster``
 
 gunicorn
-++++++++
+--------
 
 The first and most basic script is used to serve 'bare' WSGI applications
 that don't require a translation layer. Basic usage::
@@ -53,7 +50,7 @@ Example with test app::
     $ gunicorn --workers=2 test:app
 
 gunicorn_django
-+++++++++++++++
+---------------
 
 You might not have guessed it, but this script is used to serve Django
 applications. Basic usage::
@@ -74,7 +71,7 @@ Example with your Django project::
     the `gunicorn`_ command.
 
 gunicorn_paster
-+++++++++++++++
+---------------
 
 Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
 apologize for the lack of script name creativity. And some usage::
@@ -87,14 +84,14 @@ Simple example::
     $ gunicorn_paste --workers=2 development.ini
 
 Integration
------------
+===========
 
 Alternatively, we also provide integration for both Django and Paster
 applications in case your deployment strategy would be better served by such
 invocation styles.
 
 Django ./manage.py
-++++++++++++++++++
+------------------
 
 You can add a ``run_gunicorn`` command to your ``./manage.py`` simply by adding
 gunicorn to your ``INSTALLED_APPS``::
@@ -109,7 +106,7 @@ Then you can run::
     python manage.py run_gunicorn
 
 paster serve
-++++++++++++
+------------
 
 If you're wanting to keep on keeping on with the usual paster serve command,
 you can specify the Gunicorn server settings in your configuration file::

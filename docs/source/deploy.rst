@@ -1,15 +1,11 @@
-template: doc.html
-title: Deploy
+==================
+Deploying Gunicorn
+==================
 
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
+We strongly recommend to use Gunicorn behind a proxy server.
 
 Nginx Configuration
--------------------
+===================
 
 Although there are many HTTP proxies available, we strongly advise that you
 use Nginx_. If you choose another proxy server you need to make sure that it
@@ -20,16 +16,16 @@ You can use slowloris_ to check if your proxy is behaving properly.
 An `example configuration`_ file for fast clients with Nginx_::
 
     worker_processes 1;
- 
+
     user nobody nogroup;
     pid /tmp/nginx.pid;
     error_log /tmp/nginx.error.log;
- 
+
     events {
         worker_connections 1024;
         accept_mutex off;
     }
- 
+
     http {
         include mime.types;
         default_type application/octet-stream;
@@ -41,17 +37,17 @@ An `example configuration`_ file for fast clients with Nginx_::
             # For a TCP configuration:
             # server 192.168.0.7:8000 fail_timeout=0;
         }
- 
+
         server {
             listen 80 default;
             client_max_body_size 4G;
             server_name _;
- 
+
             keepalive_timeout 5;
- 
+
             # path for static files
             root /path/to/app/current/public;
- 
+
             location / {
                 # checks for static file, if not found proxy to app
                 try_files $uri @proxy_to_app;
@@ -61,10 +57,10 @@ An `example configuration`_ file for fast clients with Nginx_::
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header Host $http_host;
                 proxy_redirect off;
- 
+
                 proxy_pass   http://app_server;
             }
- 
+
             error_page 500 502 503 504 /500.html;
             location = /500.html {
                 root /path/to/app/current/public;
@@ -95,7 +91,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   ...
 
 Using Virtualenv
-----------------
+================
 
 To serve an app from a Virtualenv_ it is generally easiest to just install
 Gunicorn directly into the Virtualenv. This will create a set of Gunicorn
@@ -120,7 +116,7 @@ passing ``-I`` or ``--ignore-installed`` option to pip::
      $ pip install -I gunicorn
 
 Monitoring
-----------
+==========
 
 .. note::
     Make sure that when using either of these service monitors you do not
@@ -130,7 +126,7 @@ Monitoring
     confuses the monitor services.
 
 Circus
-++++++
+------
 
 `Circus <http://circus.readthedocs.org/en/latest/index.html>`_ can be
 used to monitor gunicorn. A simple configuration is::
@@ -143,37 +139,36 @@ used to monitor gunicorn. A simple configuration is::
 Then you can easily manage Gunicorn using the `circusctl <http://circus.readthedocs.org/en/latest/commands/#cli>`_ command.
 
 Runit
-+++++
+-----
 
 A popular method for deploying Gunicorn is to have it monitored by runit_.
 Here is an `example service`_ definition::
 
     #!/bin/sh
-    
+
     GUNICORN=/usr/local/bin/gunicorn
     ROOT=/path/to/project
     PID=/var/run/gunicorn.pid
-    
+
     APP=main:application
-    
+
     if [ -f $PID ]; then rm $PID; fi
-    
+
     cd $ROOT
     exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
 
 Save this as ``/etc/sv/[app_name]/run``, and make it executable
 (``chmod u+x /etc/sv/[app_name]/run``).
 Then run ``ln -s /etc/sv/[app_name] /etc/service/[app_name]``.
-If runit is installed, gunicorn should start running automatically as soon 
+If runit is installed, gunicorn should start running automatically as soon
 as you create the symlink.
 
 If it doesn't start automatically, run the script directly to troubleshoot.
 
-
 Supervisor
-++++++++++
+----------
 
-Another useful tool to monitor and control Gunicorn is Supervisor_. A 
+Another useful tool to monitor and control Gunicorn is Supervisor_. A
 `simple configuration`_ is::
 
     [program:gunicorn]
@@ -185,7 +180,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     redirect_stderr=True
 
 Logging
--------
+=======
 
 Logging can be configured by using various flags detailed in the
 `configuration documentation`_ or by creating a `logging configuration file`_.

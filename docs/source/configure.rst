@@ -1,16 +1,6 @@
-template: doc.html
-title: Configure
-insert_settings: true
-
-_TOC_TOP_
-
-.. contents::
-    :backlinks: top
-
-_TOC_BOT_
-
-Overview
---------
+======================
+Configuration Overview
+======================
 
 Gunicorn pulls configuration information from three distinct places.
 
@@ -31,7 +21,7 @@ Once again, in order of least to most authoritative:
     3. Command Line
 
 Framework Settings
-------------------
+==================
 
 Currently, only Paster applications have access to framework specific
 settings. If you have ideas for providing settings to WSGI applications or
@@ -41,7 +31,7 @@ let us know.
 .. _issue: http://github.com/benoitc/gunicorn/issues
 
 Paster Applications
-+++++++++++++++++++
+-------------------
 
 In your INI file, you can specify to use Gunicorn as the server like such::
 
@@ -57,7 +47,7 @@ the base configuration. Remember that these will be overridden by the config
 file and/or the command line.
 
 Configuration File
-------------------
+==================
 
 The configuration file should be a valid Python source file. It only needs to
 be readable from the file system. More specifically, it does not need to be
@@ -78,14 +68,14 @@ On a side note, Python's older than 2.6 can use sysconf to get the
 number of processors::
 
     import os
-    
+
     def numCPUs():
         if not hasattr(os, "sysconf"):
             raise RuntimeError("No sysconf detected.")
         return os.sysconf("SC_NPROCESSORS_ONLN")
 
 Command Line
-------------
+============
 
 If an option is specified on the command line, it overrides all other values
 that may have been specified in the app specific settings, or in the optional
@@ -99,7 +89,7 @@ There is also a ``--version`` flag available to the command line scripts that
 isn't mentioned in the list of settings.
 
 Settings
---------
+========
 
 This is an exhaustive list of settings for Gunicorn. Some settings are only
 able to be set from a configuration file. The setting name is what should be

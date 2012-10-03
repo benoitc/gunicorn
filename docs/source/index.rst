@@ -1,22 +1,33 @@
-.. Gunicorn documentation master file, created by
-   sphinx-quickstart on Wed Oct  3 04:59:09 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+======================
+Gunicorn - wsgi server
+======================
 
-Welcome to Gunicorn's documentation!
-====================================
+Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
+worker model ported from Ruby's Unicorn project. The Gunicorn server is broadly
+compatible with various web frameworks, simply implemented, light on server
+resources, and fairly speedy.
 
-Contents:
+Features
+--------
+
+* Natively supports WSGI, Django, and Paster
+* Automatic worker process management
+* Simple Python configuration
+* Multiple worker configurations
+* Various server hooks for extensibility
+* Compatible with Python 2.x >= 2.5
+
+Contents
+========
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+    install
+    run
+    configure
+    deploy
+    design
+    community
+    faq
+    news
