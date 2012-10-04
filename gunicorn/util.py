@@ -146,6 +146,9 @@ def set_owner_process(uid,gid):
             # groups like on osx or fedora
             os.setgid(-ctypes.c_int(-gid).value)
 
+        # Also drop supplemental groups
+        os.setgroups([])
+
     if uid:
         os.setuid(uid)
 
