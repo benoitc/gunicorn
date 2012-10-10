@@ -115,10 +115,15 @@ class Application(object):
 
             sys.exit(0)
 
+        self.log = self.cfg.logger_class(self.cfg)
+
         if self.cfg.spew:
             debug.spew()
         if self.cfg.daemon:
-            util.daemonize()
+            if self.cfg.daemon_logging:
+                util.daemonize(self.log)
+            else:
+                util.daemonize()
 
         try:
             Arbiter(self).run()
