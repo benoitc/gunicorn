@@ -126,7 +126,9 @@ class Logger(object):
 
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
+        self.error_log.propagate = False
         self.access_log = logging.getLogger("gunicorn.access")
+        self.access_log.propagate = False
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
@@ -139,9 +141,9 @@ class Logger(object):
             self.access_log.setLevel(logging.INFO)
 
 
-            if cfg.errorlog != "-":
-                # if an error log file is set redirect stdout & stderr to
-                # this log file.
+            if cfg.errorlog != "-" and not cfg.daemon_logging:
+                # if an error log file is set redirect stdout & stderr to this
+                # log file. Overriden by redirecting file descriptors of daemon.
                 sys.stdout = sys.stderr = LazyWriter(cfg.errorlog, 'a')
 
             # set gunicorn.error handler

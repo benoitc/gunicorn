@@ -84,7 +84,7 @@ class Arbiter(object):
     def setup(self, app):
         self.app = app
         self.cfg = app.cfg
-        self.log = self.cfg.logger_class(app.cfg)
+        self.log = app.log
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:
@@ -246,6 +246,8 @@ class Arbiter(object):
         """
         self.kill_workers(signal.SIGUSR1)
         self.log.reopen_files()
+        if self.cfg.daemon_logging:
+            util.redirect_daemon_to_error_log(self.log)
 
     def handle_usr2(self):
         """\
