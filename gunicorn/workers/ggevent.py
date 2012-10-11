@@ -20,7 +20,7 @@ except ImportError:
     raise RuntimeError("You need gevent installed to use this worker.")
 from gevent.pool import Pool
 from gevent.server import StreamServer
-from gevent import pywsgi
+from gevent import pywsgi, socket
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
@@ -42,11 +42,10 @@ class GeventWorker(AsyncWorker):
     server_class = None
     wsgi_handler = None
 
-    @classmethod
-    def setup(cls):
-        from gevent import monkey
-        monkey.noisy = False
-        monkey.patch_all()
+    def __init__(self, age, ppid, sock, app, timeout, cfg, log):
+        sock = socket.socket(_sock=sock)
+        super(GeventWorker, self).__init__(age, ppid, sock, app, timeout, cfg,
+                                           log)
 
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
