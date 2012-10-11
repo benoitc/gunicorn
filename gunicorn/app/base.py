@@ -20,6 +20,7 @@ class Application(object):
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
+    arbiter_class = Arbiter
 
     def __init__(self, usage=None):
         self.usage = usage
@@ -121,7 +122,7 @@ class Application(object):
             util.daemonize()
 
         try:
-            Arbiter(self).run()
+            self.arbiter_class(self).run()
         except RuntimeError, e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
