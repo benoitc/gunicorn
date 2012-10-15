@@ -79,7 +79,7 @@ class GeventWorker(AsyncWorker):
 
         try:
             # Stop accepting requests
-            server.kill()
+            server.close()
 
             # Handle current requests until graceful_timeout
             ts = time.time()
