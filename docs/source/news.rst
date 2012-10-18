@@ -1,8 +1,27 @@
 Changelog
 =========
 
+0.15.0 / 2012-10-18
+-------------------
+
+- new documentation site on http://docs.gunicorn.org
+- new website on http://gunicorn.org
+- add `haproxy PROXY protocol <http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt>`_ support
+- add  ForwardedAllowIPS option: allows to filter Front-end's IPs
+  allowed to handle X-Forwarded-* headers.
+- add callable hooks for paster config
+- add x-forwarded-proto as secure scheme default (Heroku is using this)
+- allows gunicorn to load a pre-compiled application
+- support file reopening & reexec for all loggers
+- initialize the logging config file with defaults.
+- set timeout for client socket (slow client DoS).
+- NoMoreData, ChunkMissingTerminator, InvalidChunkSize are now
+  IOError exceptions
+- fix graceful shutdown in gevent
+- fix limit request line check
+
 0.14.6 / 2012-07-26
---------------------
+-------------------
 
 
 - fix gevent & subproces
