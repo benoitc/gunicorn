@@ -21,11 +21,12 @@ Contents
 ========
 
 .. toctree::
-    :maxdepth: 2
+    :titlesonly:
 
     install
     run
     configure
+    settings
     deploy
     design
     community
