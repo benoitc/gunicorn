@@ -17,6 +17,16 @@ Features
 * Various server hooks for extensibility
 * Compatible with Python 2.x >= 2.5
 
+
+.. note::
+    main Gunicorn website on http://gunicorn.org 
+
+
+.. note::
+    gunicorn source code is hosted on `Github <http://github.com/benoitc/gunicorn.git>`_
+
+
+
 Contents
 ========
 
@@ -26,7 +36,6 @@ Contents
     install
     run
     configure
-    settings
     deploy
     design
     community

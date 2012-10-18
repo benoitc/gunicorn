@@ -79,8 +79,8 @@ Changelog
 - fix support of Tornado
 - many other fixes.
 
-Other years
-===========
+History
+=======
 
 .. toctree::
    :titlesonly:
