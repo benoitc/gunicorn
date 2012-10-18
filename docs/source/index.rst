@@ -31,7 +31,7 @@ Features
 
 
 Contents
-========
+--------
 
 .. toctree::
     :titlesonly:
