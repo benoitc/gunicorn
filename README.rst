@@ -13,6 +13,10 @@ Feel free to join us in `#gunicorn`_ on freenode_.
     :alt: Build Status
         :target: https://secure.travis-ci.org/benoitc/gunicorn
 
+Documentation
+-------------
+
+http://docs.gunicorn.org
 
 Installation
 ------------
