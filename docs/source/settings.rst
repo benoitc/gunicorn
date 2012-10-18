@@ -269,7 +269,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``1000``
+* ``501``
 
 Switch worker processes to run as this user.
 
@@ -281,7 +281,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``1000``
+* ``20``
 
 Switch worker process to run as this group.
 
