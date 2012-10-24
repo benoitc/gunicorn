@@ -125,18 +125,40 @@ Monitoring
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
-Circus
+Gaffer
 ------
 
-`Circus <http://circus.readthedocs.org/en/latest/index.html>`_ can be
+Using Gafferd and gafferctl
++++++++++++++++++++++++++++
+
+`Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>`_ can be
 used to monitor gunicorn. A simple configuration is::
 
-    [watcher:mywebapp]
+    [process: gunicorn]
     cmd = gunicorn -w 3 test:app
-    working_dir = /Users/benoitc/work/gunicorn/examples
-    send_hup = true
+    cwd = /path/to/project
 
-Then you can easily manage Gunicorn using the `circusctl <http://circus.readthedocs.org/en/latest/commands/#cli>`_ command.
+Then you can easily manage Gunicorn using `gafferctl <http://gaffer.readthedocs.org/en/latest/gafferctl.html>`_.
+
+
+Using a Procfile
+++++++++++++++++
+
+Create a ``Procfile`` in your project::
+
+    gunicorn = gunicorn -w 3 test:app
+
+You can any other applications that should be launched at the same time.
+
+Then you can start your gunicorn application using `gafferp <http://gaffer.readthedocs.org/en/latest/gafferp.html>`_.::
+
+    gafferp start
+
+If gafferd is launched you can also load your Procfile in it directly::
+
+    gafferp load
+
+All your applications will be then supervised by gafferd.
 
 Runit
 -----
