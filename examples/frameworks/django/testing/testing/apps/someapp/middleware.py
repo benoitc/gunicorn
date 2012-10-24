@@ -4,7 +4,7 @@ import gevent
 
 def child_process(queue):
     while True:
-        print queue.get()
+        print(queue.get())
         requests.get('http://requestb.in/15s95oz1')
 
 class GunicornSubProcessTestMiddleware(object):

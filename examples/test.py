@@ -14,8 +14,7 @@ def app(environ, start_response):
     """Simplest possible application object"""
     data = 'Hello, World!\n'
     status = '200 OK'
-#    print("print to stdout in test app")
-#    sys.stderr.write("stderr, print to stderr in test app\n")
+
     response_headers = [
         ('Content-type','text/plain'),
         ('Content-Length', str(len(data))),

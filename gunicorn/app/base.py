@@ -31,7 +31,7 @@ class Application(object):
     def do_load_config(self):
         try:
             self.load_config()
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
             sys.stderr.flush()
             sys.exit(1)
@@ -64,7 +64,7 @@ class Application(object):
             try:
                 execfile(opts.config, cfg, cfg)
             except Exception:
-                print "Failed to read config file: %s" % opts.config
+                print("Failed to read config file: %s" % opts.config)
                 traceback.print_exc()
                 sys.exit(1)
 
@@ -122,7 +122,7 @@ class Application(object):
 
         try:
             Arbiter(self).run()
-        except RuntimeError, e:
+        except RuntimeError as e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
             sys.exit(1)

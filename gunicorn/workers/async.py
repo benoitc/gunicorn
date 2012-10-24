@@ -43,25 +43,25 @@ class AsyncWorker(base.Worker):
                         if not req:
                             break
                         self.handle_request(req, client, addr)
-            except http.errors.NoMoreData, e:
+            except http.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
-            except StopIteration, e:
+            except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
             except socket.error:
                 raise # pass to next try-except level
-            except Exception, e:
+            except Exception as e:
                 self.handle_error(req, client, addr, e)
         except socket.timeout as e:
             self.handle_error(req, client, addr, e)
-        except socket.error, e:
-            if e[0] not in (errno.EPIPE, errno.ECONNRESET):
+        except socket.error as e:
+            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
             else:
-                if e[0] == errno.ECONNRESET:
+                if e.args[0] == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except Exception, e:
+        except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)

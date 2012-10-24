@@ -256,7 +256,7 @@ class Request(Message):
             try:
                 remote_host = self.unreader.sock.getpeername()[0]
             except socket.error as e:
-                if e[0] == ENOTCONN:
+                if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
             if remote_host not in self.cfg.proxy_allow_ips:

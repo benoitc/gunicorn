@@ -118,7 +118,7 @@ class PasterServerApplication(PasterBaseApplication):
             for k, v in cfg.items():
                 if k.lower() in self.cfg.settings and v is not None:
                     self.cfg.set(k.lower(), v)
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("\nConfig error: %s\n" % str(e))
             sys.stderr.flush()
             sys.exit(1)

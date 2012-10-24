@@ -125,7 +125,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 
                 return pkg_resources.load_entry_point("gunicorn",
                             section, uri)
-            except ImportError, e:
+            except ImportError as e:
                 raise RuntimeError("class uri invalid or not found: " +
                         "[%s]" % str(e))
         klass = components.pop(-1)
@@ -350,6 +350,6 @@ def seed():
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
-    except IOError, e:
+    except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()

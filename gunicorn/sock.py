@@ -44,7 +44,7 @@ class BaseSocket(object):
     def close(self):
         try:
             self.sock.close()
-        except socket.error, e:
+        except socket.error as e:
             self.log.info("Error while closing socket %s", str(e))
         time.sleep(0.3)
         del self.sock
@@ -117,7 +117,7 @@ def create_socket(conf, log):
         fd = int(os.environ.pop('GUNICORN_FD'))
         try:
             return sock_type(conf, log, fd=fd)
-        except socket.error, e:
+        except socket.error as e:
             if e[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
             else:
@@ -130,7 +130,7 @@ def create_socket(conf, log):
     for i in range(5):
         try:
             return sock_type(conf, log)
-        except socket.error, e:
+        except socket.error as e:
             if e[0] == errno.EADDRINUSE:
                 log.error("Connection in use: %s", str(addr))
             if e[0] == errno.EADDRNOTAVAIL:
