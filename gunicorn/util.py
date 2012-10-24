@@ -25,6 +25,7 @@ import textwrap
 import time
 import inspect
 
+from gunicorn.six import text_type
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
@@ -223,7 +224,10 @@ except ImportError:
                 pass
 
 def write_chunk(sock, data):
-    chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
+    if instance(data, text_type):
+        data = data.decode('utf-8')
+    chunk_size = "%X\r\n" % len(data)
+    chunk = b"".join([chunk_size.decode('utf-8'), data, b"\r\n"])
     sock.sendall(chunk)
 
 def write(sock, data, chunked=False):
@@ -259,7 +263,7 @@ def write_error(sock, status_int, reason, mesg):
     </html>
     """) % {"reason": reason, "mesg": mesg}
 
-    http = textwrap.dedent("""\
+    headers = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
     Connection: close\r
     Content-Type: text/html\r
@@ -267,7 +271,7 @@ def write_error(sock, status_int, reason, mesg):
     \r
     %s
     """) % (str(status_int), reason, len(html), html)
-    write_nonblock(sock, http)
+    write_nonblock(sock, http.encode('latin1'))
 
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])

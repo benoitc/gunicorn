@@ -38,7 +38,7 @@ class Application(object):
         return match[0]['app'](environ, start_response)
 
     def error404(self, environ, start_response):
-        html = """\
+        html = b"""\
         <html>
           <head>
             <title>404 - Not Found</title>

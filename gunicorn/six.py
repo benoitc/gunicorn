@@ -364,3 +364,37 @@ _add_doc(reraise, """Reraise an exception.""")
 def with_metaclass(meta, base=object):
     """Create a base class with a metaclass."""
     return meta("NewBase", (base,), {})
+
+
+# specific to gunicorn
+if PY3:
+    import io
+    StringIO = io.BytesIO
+
+    def bytes_to_str(b):
+        return str(b, 'latin1')
+
+    import urllib.parse
+
+    unquote = urllib.parse.unquote
+    urlsplit = urllib.parse.urlsplit
+
+else:
+    try:
+        import cStringIO as StringIO
+    except ImportError:
+        import StringIO
+
+    StringIO = StringIO
+
+
+    def bytestring(s):
+        if isinstance(s, unicode):
+            return s.encode('utf-8')
+        return s
+
+    import urlparse as orig_urlparse
+    urlsplit = orig_urlparse.urlsplit
+
+    import urllib
+    urlunquote = urllib.unquote

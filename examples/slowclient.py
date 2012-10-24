@@ -9,7 +9,7 @@ import time
 
 def app(environ, start_response):
     """Application which cooperatively pauses 10 seconds before responding"""
-    data = 'Hello, World!\n'
+    data = b'Hello, World!\n'
     status = '200 OK'
     response_headers = [
         ('Content-type','text/plain'),

@@ -5,13 +5,9 @@
 
 import sys
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
-from gunicorn.http.errors import NoMoreData, ChunkMissingTerminator, \
-InvalidChunkSize
+from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
+        InvalidChunkSize)
+from gunicorn.six import StringIO, bytes_to_str
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
@@ -25,7 +21,7 @@ class ChunkedReader(object):
         if size <= 0:
             raise ValueError("Size must be positive.")
         if size == 0:
-            return ""
+            return b""
 
         if self.parser:
             while self.buf.tell() < size:
@@ -45,16 +41,17 @@ class ChunkedReader(object):
         buf = StringIO()
         buf.write(data)
 
-        idx = buf.getvalue().find("\r\n\r\n")
-        done = buf.getvalue()[:2] == "\r\n"
+        idx = buf.getvalue().find(b"\r\n\r\n")
+        done = buf.getvalue()[:2] == b"\r\n"
         while idx < 0 and not done:
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n\r\n")
-            done = buf.getvalue()[:2] == "\r\n"
+            idx = buf.getvalue().find(b"\r\n\r\n")
+            done = buf.getvalue()[:2] == b"\r\n"
         if done:
             unreader.unread(buf.getvalue()[2:])
-            return ""
-        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx])
+            return b""
+        self.req.trailers = self.req.parse_headers(
+                bytes_to_str(buf.getvalue()[:idx]))
         unreader.unread(buf.getvalue()[idx+4:])
 
     def parse_chunked(self, unreader):
@@ -71,7 +68,7 @@ class ChunkedReader(object):
             rest = rest[size:]
             while len(rest) < 2:
                 rest += unreader.read()
-            if rest[:2] != '\r\n':
+            if rest[:2] != b'\r\n':
                 raise ChunkMissingTerminator(rest[:2])
             (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
@@ -80,15 +77,15 @@ class ChunkedReader(object):
         if data is not None:
             buf.write(data)
 
-        idx = buf.getvalue().find("\r\n")
+        idx = buf.getvalue().find(b"\r\n")
         while idx < 0:
             self.get_data(unreader, buf)
-            idx = buf.getvalue().find("\r\n")
+            idx = buf.getvalue().find(b"\r\n")
 
         data = buf.getvalue()
         line, rest_chunk = data[:idx], data[idx+2:]
 
-        chunk_size = line.split(";", 1)[0].strip()
+        chunk_size = line.split(b";", 1)[0].strip()
         try:
             chunk_size = int(chunk_size, 16)
         except ValueError:
@@ -121,7 +118,7 @@ class LengthReader(object):
         if size < 0:
             raise ValueError("Size must be positive.")
         if size == 0:
-            return ""
+            return b""
 
 
         buf = StringIO()
@@ -201,7 +198,7 @@ class Body(object):
     def read(self, size=None):
         size = self.getsize(size)
         if size == 0:
-            return ""
+            return b""
 
         if size < self.buf.tell():
             data = self.buf.getvalue()
@@ -225,7 +222,7 @@ class Body(object):
     def readline(self, size=None):
         size = self.getsize(size)
         if size == 0:
-            return ""
+            return b""
 
         line = self.buf.getvalue()
         self.buf.truncate(0)
@@ -234,7 +231,7 @@ class Body(object):
         extra_buf_data = line[size:]
         line = line[:size]
 
-        idx = line.find("\n")
+        idx = line.find(b"\n")
         if idx >= 0:
             ret = line[:idx+1]
             self.buf.write(line[idx+1:])
@@ -247,12 +244,11 @@ class Body(object):
         ret = []
         data = self.read()
         while len(data):
-            pos = data.find("\n")
+            pos = data.find(b"\n")
             if pos < 0:
                 ret.append(data)
-                data = ""
+                data = b""
             else:
                 line, data = data[:pos+1], data[pos+1:]
                 ret.append(line)
         return ret
-
