@@ -40,8 +40,8 @@ class SyncWorker(base.Worker):
                 # process.
                 continue
 
-            except socket.error, e:
-                if e[0] not in (errno.EAGAIN, errno.ECONNABORTED):
+            except socket.error as e:
+                if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED):
                     raise
 
             # If our parent changed then we shut down.
@@ -54,10 +54,10 @@ class SyncWorker(base.Worker):
                 ret = select.select([self.socket], [], self.PIPE, self.timeout)
                 if ret[0]:
                     continue
-            except select.error, e:
-                if e[0] == errno.EINTR:
+            except select.error as e:
+                if e.args[0] == errno.EINTR:
                     continue
-                if e[0] == errno.EBADF:
+                if e.args[0] == errno.EBADF:
                     if self.nr < 0:
                         continue
                     else:
@@ -71,18 +71,18 @@ class SyncWorker(base.Worker):
             parser = http.RequestParser(self.cfg, client)
             req = parser.next()
             self.handle_request(req, client, addr)
-        except http.errors.NoMoreData, e:
+        except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
-        except StopIteration, e:
+        except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except socket.timeout as e:
             self.handle_error(req, client, addr, e)
-        except socket.error, e:
-            if e[0] != errno.EPIPE:
+        except socket.error as e:
+            if e.args[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")
             else:
                 self.log.debug("Ignoring EPIPE")
-        except Exception, e:
+        except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
@@ -117,7 +117,7 @@ class SyncWorker(base.Worker):
                     respiter.close()
         except socket.error:
             raise
-        except Exception, e:
+        except Exception as e:
             # Only send back traceback in HTTP in debug mode.
             self.handle_error(req, client, addr, e)
             return
