@@ -7,7 +7,7 @@ import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
         InvalidChunkSize)
-from gunicorn.six import StringIO, bytes_to_str
+from gunicorn.six import StringIO, bytes_to_str, integer_types
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
@@ -16,7 +16,7 @@ class ChunkedReader(object):
         self.buf = StringIO()
 
     def read(self, size):
-        if not isinstance(size, (int, long)):
+        if not isinstance(size, integer_types):
             raise TypeError("size must be an integral type")
         if size <= 0:
             raise ValueError("Size must be positive.")
@@ -111,7 +111,7 @@ class LengthReader(object):
         self.length = length
 
     def read(self, size):
-        if not isinstance(size, (int, long)):
+        if not isinstance(size, integer_types):
             raise TypeError("size must be an integral type")
 
         size = min(self.length, size)
@@ -142,7 +142,7 @@ class EOFReader(object):
         self.finished = False
 
     def read(self, size):
-        if not isinstance(size, (int, long)):
+        if not isinstance(size, integer_types):
             raise TypeError("size must be an integral type")
         if size < 0:
             raise ValueError("Size must be positive.")
@@ -189,7 +189,7 @@ class Body(object):
     def getsize(self, size):
         if size is None:
             return sys.maxint
-        elif not isinstance(size, (int, long)):
+        elif not isinstance(size, integer_types):
             raise TypeError("size must be an integral type")
         elif size < 0:
             return sys.maxint

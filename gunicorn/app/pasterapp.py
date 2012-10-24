@@ -6,7 +6,11 @@
 import os
 import pkg_resources
 import sys
-import ConfigParser
+
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER

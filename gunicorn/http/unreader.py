@@ -5,10 +5,7 @@
 
 import os
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from gunicorn.six import integer_types, StringIO
 
 # Classes that can undo reading data from
 # a given type of data source.
@@ -21,7 +18,7 @@ class Unreader(object):
         raise NotImplementedError()
 
     def read(self, size=None):
-        if size is not None and not isinstance(size, (int, long)):
+        if size is not None and not isinstance(size, integer_types):
             raise TypeError("size parameter must be an int or long.")
         if size == 0:
             return ""

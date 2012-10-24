@@ -294,6 +294,10 @@ if PY3:
     print_ = getattr(builtins, "print")
     del builtins
 
+    def execfile_(file, globals=globals(), locals=locals()):
+        with open(file, "r") as fh:
+            exec_(fh.read()+"\n", globals, locals)
+
 else:
     def exec_(code, globs=None, locs=None):
         """Execute code in a namespace."""
@@ -312,6 +316,7 @@ else:
     raise tp, value, tb
 """)
 
+    execfile_ = execfile
 
     def print_(*args, **kwargs):
         """The new-style print function."""

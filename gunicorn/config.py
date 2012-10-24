@@ -15,6 +15,7 @@ import types
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
 from gunicorn import util
+from gunicorn.six import string_types
 
 KNOWN_SETTINGS = []
 
@@ -181,7 +182,7 @@ class Setting(object):
 def validate_bool(val):
     if isinstance(val, types.BooleanType):
         return val
-    if not isinstance(val, basestring):
+    if not isinstance(val, string_types):
         raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
@@ -208,7 +209,7 @@ def validate_pos_int(val):
 def validate_string(val):
     if val is None:
         return None
-    if not isinstance(val, basestring):
+    if not isinstance(val, string_types):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
@@ -229,7 +230,7 @@ def validate_class(val):
 
 def validate_callable(arity):
     def _validate_callable(val):
-        if isinstance(val, basestring):
+        if isinstance(val, string_types):
             try:
                 mod_name, obj_name = val.rsplit(".", 1)
             except ValueError:

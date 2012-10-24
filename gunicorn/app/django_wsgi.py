@@ -10,9 +10,11 @@ import re
 import sys
 import time
 try:
-    from cStringIO import StringIO
+    from io import StringIO
+    from imp import reload
 except ImportError:
     from StringIO import StringIO
+
 
 from django.conf import settings
 from django.core.management.validation import get_validation_errors

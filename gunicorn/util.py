@@ -25,7 +25,7 @@ import textwrap
 import time
 import inspect
 
-from gunicorn.six import text_type
+from gunicorn.six import text_type, string_types
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
@@ -75,7 +75,7 @@ except ImportError:
         if not hasattr(package, 'rindex'):
             raise ValueError("'package' not set to a string")
         dot = len(package)
-        for x in xrange(level, 1, -1):
+        for x in range(level, 1, -1):
             try:
                 dot = package.rindex('.', 0, dot)
             except ValueError:
@@ -217,14 +217,14 @@ try:
 except ImportError:
     def closerange(fd_low, fd_high):
         # Iterate through and close all file descriptors.
-        for fd in xrange(fd_low, fd_high):
+        for fd in range(fd_low, fd_high):
             try:
                 os.close(fd)
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
                 pass
 
 def write_chunk(sock, data):
-    if instance(data, text_type):
+    if isinstance(data, text_type):
         data = data.decode('utf-8')
     chunk_size = "%X\r\n" % len(data)
     chunk = b"".join([chunk_size.decode('utf-8'), data, b"\r\n"])
@@ -263,7 +263,7 @@ def write_error(sock, status_int, reason, mesg):
     </html>
     """) % {"reason": reason, "mesg": mesg}
 
-    headers = textwrap.dedent("""\
+    http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
     Connection: close\r
     Content-Type: text/html\r
@@ -313,7 +313,7 @@ def http_date(timestamp=None):
 
 def to_bytestring(s):
     """ convert to bytestring an unicode """
-    if not isinstance(s, basestring):
+    if not isinstance(s, string_types):
         return s
     if isinstance(s, unicode):
         return s.encode('utf-8')

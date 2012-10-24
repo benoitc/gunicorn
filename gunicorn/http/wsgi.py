@@ -8,7 +8,8 @@ import os
 import re
 import sys
 
-from gunicorn.six import unquote, string_types, binary_type, reraise
+from gunicorn.six import (unquote, string_types, binary_type, reraise,
+        text_type)
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -117,7 +118,7 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, basestring):
+    if isinstance(forward, string_types):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
@@ -144,7 +145,7 @@ def create(req, sock, client, server, cfg):
     environ['REMOTE_ADDR'] = remote[0]
     environ['REMOTE_PORT'] = str(remote[1])
 
-    if isinstance(server, basestring):
+    if isinstance(server, string_types):
         server =  server.split(":")
         if len(server) == 1:
             if url_scheme == "http":
@@ -208,7 +209,7 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            assert isinstance(name, basestring), "%r is not a string" % name
+            assert isinstance(name, string_types), "%r is not a string" % name
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)

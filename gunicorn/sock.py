@@ -10,7 +10,7 @@ import sys
 import time
 
 from gunicorn import util
-
+from gunicorn.six import string_types
 
 class BaseSocket(object):
 
@@ -108,7 +108,7 @@ def create_socket(conf, log):
             sock_type = TCP6Socket
         else:
             sock_type = TCPSocket
-    elif isinstance(addr, basestring):
+    elif isinstance(addr, string_types):
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)

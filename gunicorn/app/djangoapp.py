@@ -49,7 +49,7 @@ def make_default_env(cfg):
             sys.path.insert(0, pythonpath)
 
     try:
-        _ = os.environ['DJANGO_SETTINGS_MODULE']
+        os.environ['DJANGO_SETTINGS_MODULE']
     except KeyError:
         # not settings env set, try to build one.
         project_path, settings_name = find_settings_module(os.getcwd())
