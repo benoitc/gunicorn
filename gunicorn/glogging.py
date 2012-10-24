@@ -11,11 +11,7 @@ import sys
 import traceback
 import threading
 
-try:
-    from logging.config import fileConfig
-except ImportError:
-    from gunicorn.logging_config import fileConfig
-
+from logging.config import fileConfig
 from gunicorn import util
 
 CONFIG_DEFAULTS = dict(
