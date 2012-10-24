@@ -8,7 +8,7 @@ import os
 import re
 import sys
 
-from gunicorn.six import unquote, string_types, binary_type
+from gunicorn.six import unquote, string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -195,7 +195,7 @@ class Response(object):
         if exc_info:
             try:
                 if self.status and self.headers_sent:
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                    reraise(exc_info[0], exc_info[1], exc_info[2])
             finally:
                 exc_info = None
         elif self.status is not None:
