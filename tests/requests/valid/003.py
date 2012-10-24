@@ -12,5 +12,5 @@ request = {
         ("KEEP-ALIVE", "300"),
         ("CONNECTION", "keep-alive")
     ],
-    "body": ""
+    "body": b""
 }

@@ -36,5 +36,5 @@ request = {
     "uri": uri("/"),
     "version": (1, 1),
     "headers": [("X-SSL-CERT", certificate)],
-    "body": ""
+    "body": b""
 }

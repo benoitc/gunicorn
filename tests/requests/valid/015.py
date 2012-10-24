@@ -7,5 +7,5 @@ request = {
         ("USER-AGENT", "ApacheBench/2.3"),
         ("ACCEPT", "*/*")
     ],
-    "body": ""
+    "body": b""
 }

@@ -13,6 +13,7 @@ import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
+from gunicorn import six
 
 ALREADY_HANDLED = object()
 
@@ -32,14 +33,14 @@ class AsyncWorker(base.Worker):
             parser = http.RequestParser(self.cfg, client)
             try:
                 if not self.cfg.keepalive:
-                    req = parser.next()
+                    req = six.next(parser)
                     self.handle_request(req, client, addr)
                 else:
                     # keepalive loop
                     while True:
                         req = None
                         with self.timeout_ctx():
-                            req = parser.next()
+                            req = six.next(parser)
                         if not req:
                             break
                         self.handle_request(req, client, addr)

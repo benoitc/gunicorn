@@ -3,12 +3,13 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-class ParseException(Exception):
+class ParseException(BaseException):
     pass
 
 class NoMoreData(IOError):
     def __init__(self, buf=None):
         self.buf = buf
+
     def __str__(self):
         return "No more data after: %r" % self.buf
 

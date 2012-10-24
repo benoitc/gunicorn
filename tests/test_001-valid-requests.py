@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import t
@@ -9,6 +9,8 @@ import treq
 import glob
 import os
 dirname = os.path.dirname(__file__)
+
+from py.test import skip
 reqdir = os.path.join(dirname, "requests", "valid")
 
 def a_case(fname):

@@ -14,6 +14,7 @@ import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
+from gunicorn import six
 
 class SyncWorker(base.Worker):
 
@@ -69,7 +70,7 @@ class SyncWorker(base.Worker):
         try:
             client.settimeout(self.cfg.timeout)
             parser = http.RequestParser(self.cfg, client)
-            req = parser.next()
+            req = six.next(parser)
             self.handle_request(req, client, addr)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)

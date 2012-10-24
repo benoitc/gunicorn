@@ -5,5 +5,5 @@ request = {
     "headers": [
         ("ACCEPT", "*/*")
     ],
-    "body": ""
+    "body": b""
 }

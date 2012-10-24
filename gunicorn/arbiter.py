@@ -99,7 +99,10 @@ class Arbiter(object):
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
-            for config, value in sorted(self.cfg.settings.iteritems()):
+
+
+            for config, value in sorted(self.cfg.settings.items(),
+                    key=lambda setting: setting[1]):
                 self.log.debug("  %s: %s", config, value.value)
 
         if self.cfg.preload_app:
@@ -436,7 +439,7 @@ class Arbiter(object):
             self.spawn_workers()
 
         workers = self.WORKERS.items()
-        workers.sort(key=lambda w: w[1].age)
+        workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGQUIT)

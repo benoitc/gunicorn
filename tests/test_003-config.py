@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 from __future__ import with_statement
-
-from nose.plugins.skip import SkipTest
 
 import t
 
@@ -23,14 +21,6 @@ def cfg_file():
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
-def PasterApp():
-    try:
-        from paste.deploy import loadapp, loadwsgi
-    except ImportError:
-        raise SkipTest()
-    from gunicorn.app.pasterapp import PasterApplication
-    return PasterApplication("no_usage")
-
 class AltArgs(object):
     def __init__(self, args=None):
         self.args = args or []
@@ -38,17 +28,17 @@ class AltArgs(object):
 
     def __enter__(self):
         sys.argv = self.args
-    
+
     def __exit__(self, exc_type, exc_inst, traceback):
         sys.argv = self.orig
 
 class NoConfigApp(Application):
     def __init__(self):
         super(NoConfigApp, self).__init__("no_usage")
-    
+
     def init(self, parser, opts, args):
         pass
-    
+
     def load(self):
         pass
 
@@ -63,25 +53,25 @@ def test_property_access():
     c = config.Config()
     for s in config.KNOWN_SETTINGS:
         getattr(c, s.name)
-    
+
     # Class was loaded
     t.eq(c.worker_class, SyncWorker)
-    
+
     # Debug affects workers
     t.eq(c.workers, 1)
     c.set("workers", 3)
     t.eq(c.workers, 3)
-    
+
     # Address is parsed
     t.eq(c.address, ("127.0.0.1", 8000))
-    
+
     # User and group defaults
     t.eq(os.geteuid(), c.uid)
     t.eq(os.getegid(), c.gid)
-    
+
     # Proc name
     t.eq("gunicorn", c.proc_name)
-    
+
     # Not a config property
     t.raises(AttributeError, getattr, c, "foo")
     # Force to be not an error
@@ -93,10 +83,10 @@ def test_property_access():
 
     # Attempt to set a cfg not via c.set
     t.raises(AttributeError, setattr, c, "proc_name", "baz")
-    
+
     # No setting for name
     t.raises(AttributeError, c.set, "baz", "bar")
-    
+
 def test_bool_validation():
     c = config.Config()
     t.eq(c.debug, False)
@@ -196,30 +186,9 @@ def test_load_config():
     t.eq(app.cfg.bind, "unix:/tmp/bar/baz")
     t.eq(app.cfg.workers, 3)
     t.eq(app.cfg.proc_name, "fooey")
-    
+
 def test_cli_overrides_config():
     with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
         app = NoConfigApp()
         t.eq(app.cfg.bind, "blarney")
         t.eq(app.cfg.proc_name, "fooey")
-
-def test_paster_config():
-    with AltArgs(["prog_name", paster_ini()]):
-        app = PasterApp()
-        t.eq(app.cfg.bind, "192.168.0.1:80")
-        t.eq(app.cfg.proc_name, "brim")
-        t.eq("ignore_me" in app.cfg.settings, False)
-
-def test_cfg_over_paster():
-    with AltArgs(["prog_name", "-c", cfg_file(), paster_ini()]):
-        app = PasterApp()
-        t.eq(app.cfg.bind, "unix:/tmp/bar/baz")
-        t.eq(app.cfg.proc_name, "fooey")
-        t.eq(app.cfg.default_proc_name, "blurgh")
-
-def test_cli_cfg_paster():
-    with AltArgs(["prog_name", "-c", cfg_file(), "-b", "whee", paster_ini()]):
-        app = PasterApp()
-        t.eq(app.cfg.bind, "whee")
-        t.eq(app.cfg.proc_name, "fooey")
-        t.eq(app.cfg.default_proc_name, "blurgh")

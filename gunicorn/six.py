@@ -281,9 +281,13 @@ _add_doc(u, """Text literal""")
 
 
 if PY3:
+
+    def execfile_(fname, *args):
+        return exec(compile(open(fname, 'rb').read(), fname, 'exec'), *args)
+
+
     import builtins
     exec_ = getattr(builtins, "exec")
-
 
     def reraise(tp, value, tb=None):
         if value.__traceback__ is not tb:
@@ -293,10 +297,6 @@ if PY3:
 
     print_ = getattr(builtins, "print")
     del builtins
-
-    def execfile_(file, globals=globals(), locals=locals()):
-        with open(file, "r") as fh:
-            exec_(fh.read()+"\n", globals, locals)
 
 else:
     def exec_(code, globs=None, locs=None):
@@ -373,33 +373,26 @@ def with_metaclass(meta, base=object):
 
 # specific to gunicorn
 if PY3:
-    import io
-    StringIO = io.BytesIO
-
     def bytes_to_str(b):
+        if isinstance(b, text_type):
+            return b
         return str(b, 'latin1')
 
     import urllib.parse
 
     unquote = urllib.parse.unquote
     urlsplit = urllib.parse.urlsplit
+    urlparse = urllib.parse.urlparse
 
 else:
-    try:
-        import cStringIO as StringIO
-    except ImportError:
-        import StringIO
-
-    StringIO = StringIO
-
-
-    def bytestring(s):
+    def bytes_to_str(s):
         if isinstance(s, unicode):
             return s.encode('utf-8')
         return s
 
     import urlparse as orig_urlparse
     urlsplit = orig_urlparse.urlsplit
+    urlparse = orig_urlparse.urlparse
 
     import urllib
     urlunquote = urllib.unquote

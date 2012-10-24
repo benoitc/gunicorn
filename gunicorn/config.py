@@ -15,7 +15,7 @@ import types
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
 from gunicorn import util
-from gunicorn.six import string_types
+from gunicorn.six import string_types, integer_types, bytes_to_str
 
 KNOWN_SETTINGS = []
 
@@ -62,10 +62,12 @@ class Config(object):
         }
         parser = optparse.OptionParser(**kwargs)
 
-        keys = self.settings.keys()
+        keys = list(self.settings)
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
-        keys.sort(key=sorter)
+
+
+        keys = sorted(self.settings, key=self.settings.__getitem__)
         for k in keys:
             self.settings[k].add_option(parser)
         return parser
@@ -85,7 +87,7 @@ class Config(object):
     @property
     def address(self):
         bind = self.settings['bind'].get()
-        return util.parse_address(util.to_bytestring(bind))
+        return util.parse_address(bytes_to_str(bind))
 
     @property
     def uid(self):
@@ -179,8 +181,15 @@ class Setting(object):
         assert callable(self.validator), "Invalid validator: %s" % self.name
         self.value = self.validator(val)
 
+    def __lt__(self, other):
+        return (self.section == other.section and
+                self.order < other.order)
+    __cmp__ = __lt__
+
+Setting = SettingMeta('Setting', (Setting,), {})
+
 def validate_bool(val):
-    if isinstance(val, types.BooleanType):
+    if isinstance(val, bool):
         return val
     if not isinstance(val, string_types):
         raise TypeError("Invalid type for casting: %s" % val)
@@ -197,7 +206,7 @@ def validate_dict(val):
     return val
 
 def validate_pos_int(val):
-    if not isinstance(val, (types.IntType, types.LongType)):
+    if not isinstance(val, integer_types):
         val = int(val, 0)
     else:
         # Booleans are ints!

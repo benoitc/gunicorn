@@ -311,15 +311,6 @@ def http_date(timestamp=None):
             hh, mm, ss)
     return s
 
-def to_bytestring(s):
-    """ convert to bytestring an unicode """
-    if not isinstance(s, string_types):
-        return s
-    if isinstance(s, unicode):
-        return s.encode('utf-8')
-    else:
-        return s
-
 def is_hoppish(header):
     return header.lower().strip() in hop_headers
 

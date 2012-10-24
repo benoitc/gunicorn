@@ -13,7 +13,7 @@ from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.six import StringIO, urlsplit, bytes_to_str
+from gunicorn.six import BytesIO, urlsplit, bytes_to_str
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -148,7 +148,6 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-
         super(Request, self).__init__(cfg, unreader)
 
 
@@ -161,7 +160,7 @@ class Request(Message):
         buf.write(data)
 
     def parse(self, unreader):
-        buf = StringIO()
+        buf = BytesIO()
         self.get_data(unreader, buf, stop=True)
 
         # get request line
@@ -170,12 +169,12 @@ class Request(Message):
         # proxy protocol
         if self.proxy_protocol(bytes_to_str(line)):
             # get next request line
-            buf = StringIO()
+            buf = BytesIO()
             buf.write(rbuf)
             line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
         self.parse_request_line(bytes_to_str(line))
-        buf = StringIO()
+        buf = BytesIO()
         buf.write(rbuf)
 
         # Headers
@@ -202,7 +201,7 @@ class Request(Message):
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx+4:]
-        buf = StringIO()
+        buf = BytesIO()
         return ret
 
     def read_line(self, unreader, buf, limit=0):

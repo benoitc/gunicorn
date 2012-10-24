@@ -3,5 +3,5 @@ request = {
     "uri": uri("/first"),
     "version": (1, 0),
     "headers": [],
-    "body": ""
+    "body": b""
 }

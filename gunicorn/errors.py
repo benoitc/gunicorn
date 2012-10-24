@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 
 
-class HaltServer(Exception):
+class HaltServer(BaseException):
     def __init__(self, reason, exit_status=1):
         self.reason = reason
         self.exit_status = exit_status
@@ -12,5 +12,5 @@ class HaltServer(Exception):
     def __str__(self):
         return "<HaltServer %r %d>" % (self.reason, self.exit_status)
 
-class ConfigError(Exception):
+class ConfigError(BaseException):
     """ Exception raised on config error """

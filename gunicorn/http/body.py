@@ -7,16 +7,16 @@ import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
         InvalidChunkSize)
-from gunicorn.six import StringIO, bytes_to_str, integer_types
+from gunicorn import six
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
         self.req = req
         self.parser = self.parse_chunked(unreader)
-        self.buf = StringIO()
+        self.buf = six.BytesIO()
 
     def read(self, size):
-        if not isinstance(size, integer_types):
+        if not isinstance(size, six.integer_types):
             raise TypeError("size must be an integral type")
         if size <= 0:
             raise ValueError("Size must be positive.")
@@ -26,19 +26,19 @@ class ChunkedReader(object):
         if self.parser:
             while self.buf.tell() < size:
                 try:
-                    self.buf.write(self.parser.next())
+                    self.buf.write(six.next(self.parser))
                 except StopIteration:
                     self.parser = None
                     break
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
-        self.buf.truncate(0)
+        self.buf = six.BytesIO()
         self.buf.write(rest)
         return ret
 
     def parse_trailers(self, unreader, data):
-        buf = StringIO()
+        buf = six.BytesIO()
         buf.write(data)
 
         idx = buf.getvalue().find(b"\r\n\r\n")
@@ -50,8 +50,7 @@ class ChunkedReader(object):
         if done:
             unreader.unread(buf.getvalue()[2:])
             return b""
-        self.req.trailers = self.req.parse_headers(
-                bytes_to_str(buf.getvalue()[:idx]))
+        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx])
         unreader.unread(buf.getvalue()[idx+4:])
 
     def parse_chunked(self, unreader):
@@ -73,7 +72,7 @@ class ChunkedReader(object):
             (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
     def parse_chunk_size(self, unreader, data=None):
-        buf = StringIO()
+        buf = six.BytesIO()
         if data is not None:
             buf.write(data)
 
@@ -111,7 +110,7 @@ class LengthReader(object):
         self.length = length
 
     def read(self, size):
-        if not isinstance(size, integer_types):
+        if not isinstance(size, six.integer_types):
             raise TypeError("size must be an integral type")
 
         size = min(self.length, size)
@@ -121,7 +120,7 @@ class LengthReader(object):
             return b""
 
 
-        buf = StringIO()
+        buf = six.BytesIO()
         data = self.unreader.read()
         while data:
             buf.write(data)
@@ -138,21 +137,21 @@ class LengthReader(object):
 class EOFReader(object):
     def __init__(self, unreader):
         self.unreader = unreader
-        self.buf = StringIO()
+        self.buf = six.BytesIO()
         self.finished = False
 
     def read(self, size):
-        if not isinstance(size, integer_types):
+        if not isinstance(size, six.integer_types):
             raise TypeError("size must be an integral type")
         if size < 0:
             raise ValueError("Size must be positive.")
         if size == 0:
-            return ""
+            return b""
 
         if self.finished:
             data = self.buf.getvalue()
             ret, rest = data[:size], data[size:]
-            self.buf.truncate(0)
+            self.buf = six.BytesIO()
             self.buf.write(rest)
             return ret
 
@@ -168,31 +167,32 @@ class EOFReader(object):
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
-        self.buf.truncate(0)
+        self.buf = six.BytesIO()
         self.buf.write(rest)
         return ret
 
 class Body(object):
     def __init__(self, reader):
         self.reader = reader
-        self.buf = StringIO()
+        self.buf = six.BytesIO()
 
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         ret = self.readline()
         if not ret:
             raise StopIteration()
         return ret
+    next = __next__
 
     def getsize(self, size):
         if size is None:
-            return sys.maxint
-        elif not isinstance(size, integer_types):
+            return six.MAXSIZE
+        elif not isinstance(size, six.integer_types):
             raise TypeError("size must be an integral type")
         elif size < 0:
-            return sys.maxint
+            return six.MAXSIZE
         return size
 
     def read(self, size=None):
@@ -203,7 +203,7 @@ class Body(object):
         if size < self.buf.tell():
             data = self.buf.getvalue()
             ret, rest = data[:size], data[size:]
-            self.buf.truncate(0)
+            self.buf = six.BytesIO()
             self.buf.write(rest)
             return ret
 
@@ -215,7 +215,7 @@ class Body(object):
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
-        self.buf.truncate(0)
+        self.buf = six.BytesIO()
         self.buf.write(rest)
         return ret
 
@@ -225,7 +225,7 @@ class Body(object):
             return b""
 
         line = self.buf.getvalue()
-        self.buf.truncate(0)
+        self.buf = six.BytesIO()
         if len(line) < size:
             line += self.reader.read(size - len(line))
         extra_buf_data = line[size:]
