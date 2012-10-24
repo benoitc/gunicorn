@@ -282,10 +282,6 @@ _add_doc(u, """Text literal""")
 
 if PY3:
 
-    def execfile_(fname, *args):
-        return exec(compile(open(fname, 'rb').read(), fname, 'exec'), *args)
-
-
     import builtins
     exec_ = getattr(builtins, "exec")
 
@@ -296,6 +292,11 @@ if PY3:
 
 
     print_ = getattr(builtins, "print")
+
+    def execfile_(fname, *args):
+        return exec_(compile(open(fname, 'rb').read(), fname, 'exec'), *args)
+
+
     del builtins
 
 else:
@@ -395,4 +396,4 @@ else:
     urlparse = orig_urlparse.urlparse
 
     import urllib
-    urlunquote = urllib.unquote
+    unquote = urllib.unquote

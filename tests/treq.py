@@ -79,8 +79,8 @@ class request(object):
             yield lines
 
     def send_bytes(self):
-        for d in str(self.data, "latin1"):
-            yield bytes(d, "latin1")
+        for d in str(self.data.decode("latin1")):
+            yield bytes(d.encode("latin1"))
 
     def send_random(self):
         maxs = round(len(self.data) / 10)

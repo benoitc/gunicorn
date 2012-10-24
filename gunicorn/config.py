@@ -137,8 +137,6 @@ class SettingMeta(type):
         setattr(cls, "short", desc.splitlines()[0])
 
 class Setting(object):
-    __metaclass__ = SettingMeta
-
     name = None
     value = None
     section = None
