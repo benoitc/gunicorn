@@ -118,7 +118,7 @@ def create_socket(conf, log):
         try:
             return sock_type(conf, log, fd=fd)
         except socket.error as e:
-            if e[0] == errno.ENOTCONN:
+            if e.args[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
             else:
                 raise
@@ -131,9 +131,9 @@ def create_socket(conf, log):
         try:
             return sock_type(conf, log)
         except socket.error as e:
-            if e[0] == errno.EADDRINUSE:
+            if e.args[0] == errno.EADDRINUSE:
                 log.error("Connection in use: %s", str(addr))
-            if e[0] == errno.EADDRNOTAVAIL:
+            if e.args[0] == errno.EADDRNOTAVAIL:
                 log.error("Invalid address: %s", str(addr))
                 sys.exit(1)
             if i < 5:
