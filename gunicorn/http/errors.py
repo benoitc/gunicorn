@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-class ParseException(BaseException):
+class ParseException(Exception):
     pass
 
 class NoMoreData(IOError):
