@@ -706,6 +706,10 @@ class ForwardedAllowIPS(Setting):
     desc = """\
         Front-end's IPs from which allowed to handle X-Forwarded-* headers.
         (comma separate).
+
+        Set to "*" to disable checking of Front-end IPs (useful for setups
+        where you don't know in advance the IP address of Front-end, but
+        you still trust the environment)
         """
 
 class AccessLog(Setting):
