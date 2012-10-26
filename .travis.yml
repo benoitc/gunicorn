@@ -3,10 +3,15 @@ language: python
 python:
   - 2.6
   - 2.7
+  - 3.2
+  - 3.3
   - pypy
 
-install: python setup.py install
-script: nosetests
+install:
+  - pip install -r requirements_dev.txt --use-mirrors
+  - python setup.py install
+
+script: py.test tests/
 
 branches:
   only:
