@@ -7,7 +7,7 @@ Follow the following steps to install Gunicorn.
 Requirements
 ============
 
-- **Python 2.x >= 2.5** (Python 3.x will be supported soon)
+- **Python 2.x >= 2.6** (Python 3.x will be supported soon)
 - setuptools >= 0.6c6
 - nosetests (for the test suite only)
 

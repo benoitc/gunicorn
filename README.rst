@@ -21,7 +21,7 @@ http://docs.gunicorn.org
 Installation
 ------------
 
-Gunicorn requires **Python 2.x >= 2.5**. Python 3.x support is planned.
+Gunicorn requires **Python 2.x >= 2.6**. Python 3.x support is planned.
 
 Install from sources::
 

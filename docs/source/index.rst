@@ -18,7 +18,7 @@ Features
 * Simple Python configuration
 * Multiple worker configurations
 * Various server hooks for extensibility
-* Compatible with Python 2.x >= 2.5
+* Compatible with Python 2.x >= 2.6
 
 
 .. note::
