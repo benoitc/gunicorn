@@ -225,9 +225,9 @@ except ImportError:
 
 def write_chunk(sock, data):
     if isinstance(data, text_type):
-        data = data.decode('utf-8')
+        data = data.encode('utf-8')
     chunk_size = "%X\r\n" % len(data)
-    chunk = b"".join([chunk_size.decode('utf-8'), data, b"\r\n"])
+    chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
     sock.sendall(chunk)
 
 def write(sock, data, chunked=False):

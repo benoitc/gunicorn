@@ -275,7 +275,7 @@ class Response(object):
         self.send_headers()
 
         if isinstance(arg, text_type):
-            arg = arg.decode('utf-8')
+            arg = arg.encode('utf-8')
 
         assert isinstance(arg, binary_type), "%r is not a byte." % arg
 

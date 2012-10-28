@@ -1,6 +1,7 @@
 # Create your views here.
 
 import csv
+import io
 import os
 from django import forms
 from django.http import HttpResponse
@@ -28,10 +29,15 @@ def home(request):
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
             f = request.FILES['f']
+
+
             if not hasattr(f, "fileno"):
                 size = len(f.read())
             else:
-                size = int(os.fstat(f.fileno())[6])
+                try:
+                    size = int(os.fstat(f.fileno())[6])
+                except io.UnsupportedOperation:
+                    size = len(f.read())
     else:
         form = MsgForm()
 
