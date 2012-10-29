@@ -3,7 +3,7 @@ req1 = {
     "uri": uri("/first"),
     "version": (1, 0),
     "headers": [("CONNECTION", "Keep-Alive")],
-    "body": ""
+    "body": b""
 }
 
 req2 = {
@@ -11,7 +11,7 @@ req2 = {
     "uri": uri("/second"),
     "version": (1, 1),
     "headers": [],
-    "body": ""
+    "body": b""
 }
 
 request = [req1, req2]

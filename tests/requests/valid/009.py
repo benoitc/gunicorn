@@ -7,5 +7,5 @@ request = {
         ("TRANSFER-ENCODING", "identity"),
         ("CONTENT-LENGTH", "5")
     ],
-    "body": "World"
+    "body": b"World"
 }

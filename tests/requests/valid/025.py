@@ -6,7 +6,7 @@ req1 = {
         ("CONTENT-LENGTH", "-1"),
         ("TRANSFER-ENCODING", "chunked")
     ],
-    "body": "hello world"
+    "body": b"hello world"
 }
 
 req2 = {
@@ -17,7 +17,7 @@ req2 = {
         ("TRANSFER-ENCODING", "chunked"),
         ("CONTENT-LENGTH", "-1"),
     ],
-    "body": "hello world"
+    "body": b"hello world"
 }
 
 request = [req1, req2]

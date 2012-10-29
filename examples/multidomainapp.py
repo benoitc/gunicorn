@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 import re
@@ -20,15 +20,15 @@ class SubDomainApp:
                 return app(environ, start_response)
         else:
             start_response("404 Not Found", [])
-            return [""]
+            return [b""]
 
 def hello(environ, start_response):
     start_response("200 OK", [("Content-Type", "text/plain")])
-    return ["Hello, world\n"]
+    return [b"Hello, world\n"]
 
 def bye(environ, start_response):
     start_response("200 OK", [("Content-Type", "text/plain")])
-    return ["Goodbye!\n"]
+    return [b"Goodbye!\n"]
 
 app = SubDomainApp([
     ("localhost", hello),

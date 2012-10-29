@@ -5,5 +5,5 @@ request = {
     "headers": [
         ("AAAAAAAAAAAAA", "++++++++++")
     ],
-    "body": ""
+    "body": b""
 }

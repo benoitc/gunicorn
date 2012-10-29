@@ -5,47 +5,47 @@
 
 import os
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from gunicorn import six
 
 # Classes that can undo reading data from
 # a given type of data source.
 
 class Unreader(object):
     def __init__(self):
-        self.buf = StringIO()
+        self.buf = six.BytesIO()
 
     def chunk(self):
         raise NotImplementedError()
 
     def read(self, size=None):
-        if size is not None and not isinstance(size, (int, long)):
+        if size is not None and not isinstance(size, six.integer_types):
             raise TypeError("size parameter must be an int or long.")
-        if size == 0:
-            return ""
-        if size < 0:
-            size = None
+
+        if size is not None:
+            if size == 0:
+                return b""
+            if size < 0:
+                size = None
 
         self.buf.seek(0, os.SEEK_END)
 
         if size is None and self.buf.tell():
             ret = self.buf.getvalue()
-            self.buf.truncate(0)
+            self.buf = six.BytesIO()
             return ret
         if size is None:
-            return self.chunk()
+            d =  self.chunk()
+            return d
 
         while self.buf.tell() < size:
             chunk = self.chunk()
             if not len(chunk):
                 ret = self.buf.getvalue()
-                self.buf.truncate(0)
+                self.buf = six.BytesIO()
                 return ret
             self.buf.write(chunk)
         data = self.buf.getvalue()
-        self.buf.truncate(0)
+        self.buf = six.BytesIO()
         self.buf.write(data[size:])
         return data[:size]
 
@@ -69,9 +69,9 @@ class IterUnreader(Unreader):
 
     def chunk(self):
         if not self.iter:
-            return ""
+            return b""
         try:
-            return self.iter.next()
+            return six.next(self.iter)
         except StopIteration:
             self.iter = None
-            return ""
+            return b""

@@ -1,15 +1,13 @@
 build:
 	virtualenv --no-site-packages .
 	bin/python setup.py develop
-	bin/pip install coverage
-	bin/pip install nose
+	bin/pip install -r requirements_dev.txt
 
 test:
-	bin/nosetests
+	bin/python setup.py test
 
 coverage:
-	bin/nosetests --with-coverage --cover-html --cover-html-dir=html \
-		--cover-package=gunicorn
+	bin/python setup.py test --cov
 
 clean:
 	@rm -rf .Python bin lib include man build html

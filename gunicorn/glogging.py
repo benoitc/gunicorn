@@ -6,17 +6,15 @@
 import datetime
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
+from logging.config import fileConfig
 import os
 import sys
 import traceback
 import threading
 
-try:
-    from logging.config import fileConfig
-except ImportError:
-    from gunicorn.logging_config import fileConfig
 
 from gunicorn import util
+from gunicorn.six import string_types
 
 CONFIG_DEFAULTS = dict(
         version = 1,
@@ -179,7 +177,7 @@ class Logger(object):
         self.error_log.exception(msg, *args)
 
     def log(self, lvl, msg, *args, **kwargs):
-        if isinstance(lvl, basestring):
+        if isinstance(lvl, string_types):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 

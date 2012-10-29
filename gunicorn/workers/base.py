@@ -18,6 +18,7 @@ InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
+from gunicorn.six import MAXSIZE
 
 class Worker(object):
 
@@ -43,7 +44,7 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
-        self.max_requests = cfg.max_requests or sys.maxint
+        self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
         self.debug = cfg.debug

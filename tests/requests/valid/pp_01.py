@@ -12,5 +12,5 @@ request = {
         ("CONTENT-TYPE", "application/json"),
         ("CONTENT-LENGTH", "14")
     ],
-    "body": '{"nom": "nom"}'
+    "body": b'{"nom": "nom"}'
 }

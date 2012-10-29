@@ -5,7 +5,7 @@ req1 = {
     "headers": [
         ("TRANSFER-ENCODING", "chunked")
     ],
-    "body": "hello world"
+    "body": b"hello world"
 }
 
 req2 = {
@@ -13,7 +13,7 @@ req2 = {
     "uri": uri("/second"),
     "version": (1, 1),
     "headers": [],
-    "body": ""
+    "body": b""
 }
 
 request = [req1, req2]

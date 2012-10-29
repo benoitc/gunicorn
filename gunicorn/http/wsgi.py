@@ -7,8 +7,9 @@ import logging
 import os
 import re
 import sys
-from urllib import unquote
 
+from gunicorn.six import (unquote, string_types, binary_type, reraise,
+        text_type)
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -118,7 +119,7 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, basestring):
+    if isinstance(forward, string_types):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
         if forward.find(",") >= 0:
@@ -145,7 +146,7 @@ def create(req, sock, client, server, cfg):
     environ['REMOTE_ADDR'] = remote[0]
     environ['REMOTE_PORT'] = str(remote[1])
 
-    if isinstance(server, basestring):
+    if isinstance(server, string_types):
         server =  server.split(":")
         if len(server) == 1:
             if url_scheme == "http":
@@ -196,7 +197,7 @@ class Response(object):
         if exc_info:
             try:
                 if self.status and self.headers_sent:
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                    reraise(exc_info[0], exc_info[1], exc_info[2])
             finally:
                 exc_info = None
         elif self.status is not None:
@@ -209,7 +210,7 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            assert isinstance(name, basestring), "%r is not a string" % name
+            assert isinstance(name, string_types), "%r is not a string" % name
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
@@ -266,12 +267,18 @@ class Response(object):
             return
         tosend = self.default_headers()
         tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
-        util.write(self.sock, "%s\r\n" % "".join(tosend))
+
+        header_str = "%s\r\n" % "".join(tosend)
+        util.write(self.sock, header_str.encode('latin1'))
         self.headers_sent = True
 
     def write(self, arg):
         self.send_headers()
-        assert isinstance(arg, basestring), "%r is not a string." % arg
+
+        if isinstance(arg, text_type):
+            arg = arg.encode('utf-8')
+
+        assert isinstance(arg, binary_type), "%r is not a byte." % arg
 
         arglen = len(arg)
         tosend = arglen
@@ -329,12 +336,13 @@ class Response(object):
             self.send_headers()
 
             if self.is_chunked():
-                self.sock.sendall("%X\r\n" % nbytes)
+                chunk_size = "%X\r\n" % nbytes
+                self.sock.sendall(chunk_size.encode('utf-8'))
 
             self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
 
             if self.is_chunked():
-                self.sock.sendall("\r\n")
+                self.sock.sendall(b"\r\n")
 
             os.lseek(fileno, fd_offset, os.SEEK_SET)
         else:
@@ -345,4 +353,4 @@ class Response(object):
         if not self.headers_sent:
             self.send_headers()
         if self.chunked:
-            util.write_chunk(self.sock, "")
+            util.write_chunk(self.sock, b"")

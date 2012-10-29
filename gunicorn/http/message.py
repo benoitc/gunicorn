@@ -4,14 +4,8 @@
 # See the NOTICE for more information.
 
 import re
-import urlparse
 import socket
 from errno import ENOTCONN
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 
 from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
@@ -19,6 +13,7 @@ from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
+from gunicorn.six import BytesIO, urlsplit, bytes_to_str
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -61,7 +56,7 @@ class Message(object):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = [line + "\r\n" for line in data.split("\r\n")]
+        lines = [bytes_to_str(line) + "\r\n" for line in data.split(b"\r\n")]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -153,7 +148,6 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-
         super(Request, self).__init__(cfg, unreader)
 
 
@@ -166,31 +160,31 @@ class Request(Message):
         buf.write(data)
 
     def parse(self, unreader):
-        buf = StringIO()
+        buf = BytesIO()
         self.get_data(unreader, buf, stop=True)
 
         # get request line
         line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
         # proxy protocol
-        if self.proxy_protocol(line):
+        if self.proxy_protocol(bytes_to_str(line)):
             # get next request line
-            buf = StringIO()
+            buf = BytesIO()
             buf.write(rbuf)
             line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
-        self.parse_request_line(line)
-        buf = StringIO()
+        self.parse_request_line(bytes_to_str(line))
+        buf = BytesIO()
         buf.write(rbuf)
 
         # Headers
         data = buf.getvalue()
-        idx = data.find("\r\n\r\n")
+        idx = data.find(b"\r\n\r\n")
 
-        done = data[:2] == "\r\n"
+        done = data[:2] == b"\r\n"
         while True:
-            idx = data.find("\r\n\r\n")
-            done = data[:2] == "\r\n"
+            idx = data.find(b"\r\n\r\n")
+            done = data[:2] == b"\r\n"
 
             if idx < 0 and not done:
                 self.get_data(unreader, buf)
@@ -202,19 +196,19 @@ class Request(Message):
 
         if done:
             self.unreader.unread(data[2:])
-            return ""
+            return b""
 
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx+4:]
-        buf = StringIO()
+        buf = BytesIO()
         return ret
 
     def read_line(self, unreader, buf, limit=0):
         data = buf.getvalue()
 
         while True:
-            idx = data.find("\r\n")
+            idx = data.find(b"\r\n")
             if idx >= 0:
                 # check if the request line is too large
                 if idx > limit > 0:
@@ -256,7 +250,7 @@ class Request(Message):
             try:
                 remote_host = self.unreader.sock.getpeername()[0]
             except socket.error as e:
-                if e[0] == ENOTCONN:
+                if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
             if remote_host not in self.cfg.proxy_allow_ips:
@@ -328,7 +322,7 @@ class Request(Message):
         else:
             self.uri = bits[1]
 
-        parts = urlparse.urlsplit(self.uri)
+        parts = urlsplit(self.uri)
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""

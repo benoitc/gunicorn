@@ -5,5 +5,5 @@ request = {
     "headers": [
         ("TRANSFER-ENCODING", "chunked"),
     ],
-    "body": "all your base are belong to us"
+    "body": b"all your base are belong to us"
 }
