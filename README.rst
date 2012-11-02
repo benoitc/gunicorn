@@ -138,7 +138,7 @@ apologize for the lack of script name creativity. And some usage::
 Simple example::
 
     $ cd yourpasteproject
-    $ gunicorn_paste --workers=2 development.ini
+    $ gunicorn_paster --workers=2 development.ini
 
 If you're wanting to keep on keeping on with the usual paster serve command,
 you can specify the Gunicorn server settings in your configuration file::
