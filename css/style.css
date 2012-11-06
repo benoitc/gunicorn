@@ -292,12 +292,14 @@ a:hover {
     margin: 0 0 9px;
 }
 
-.tab-box a {
+.tab-box a,
+.latest a {
     color: #3F3F27;
     text-decoration: underline;
 }
 
-.tab-box a:hover {
+.tab-box a:hover,
+.latest a:hover {
     color: #1D692D;
 }
 
