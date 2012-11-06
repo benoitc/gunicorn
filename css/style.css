@@ -60,6 +60,15 @@ a:hover {
     border-bottom: 1px solid #2A8729;
 }
 
+.latest {
+    width: 150px;
+    top: 0;
+    display: block;
+    float: right;
+    font-weight: bold;
+}
+
+
 .logo-div {
     width: 1000px;
     margin: 0 auto;
