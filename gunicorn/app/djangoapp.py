@@ -71,7 +71,8 @@ class DjangoApplication(Application):
 
     def init(self, parser, opts, args):
         if args:
-            if "." in args[0]:
+            if ("." in args[0] and not (os.path.isfile(args[0])
+                    or os.path.isdir(args[0]))):
                 self.cfg.set("django_settings", args[0])
             else:
                 # not settings env set, try to build one.
