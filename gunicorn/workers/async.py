@@ -29,7 +29,6 @@ class AsyncWorker(base.Worker):
     def handle(self, client, addr):
         req = None
         try:
-            client.settimeout(self.cfg.timeout)
             parser = http.RequestParser(self.cfg, client)
             try:
                 if not self.cfg.keepalive:
@@ -48,12 +47,8 @@ class AsyncWorker(base.Worker):
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
-            except socket.error:
-                raise # pass to next try-except level
             except Exception as e:
                 self.handle_error(req, client, addr, e)
-        except socket.timeout as e:
-            self.handle_error(req, client, addr, e)
         except socket.error as e:
             if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
