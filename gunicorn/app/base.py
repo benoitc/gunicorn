@@ -115,6 +115,14 @@ class Application(object):
         if self.cfg.daemon:
             util.daemonize()
 
+        # set python paths
+        if self.cfg.pythonpath and self.cfg.pythonpath is not None:
+            paths = self.cfg.pythonpath.split(",")
+            for path in paths:
+                pythonpath = os.path.abspath(self.cfg.pythonpath)
+                if pythonpath not in sys.path:
+                    sys.path.insert(0, pythonpath)
+
         try:
             Arbiter(self).run()
         except RuntimeError as e:

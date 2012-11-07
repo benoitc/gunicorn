@@ -867,9 +867,9 @@ class DjangoSettings(Setting):
         DJANGO_SETTINGS_MODULE environment variable will be used.
         """
 
-class DjangoPythonPath(Setting):
+class PythonPath(Setting):
     name = "pythonpath"
-    section = "Django"
+    section = "Server Mechanics"
     cli = ["--pythonpath"]
     meta = "STRING"
     validator = validate_string

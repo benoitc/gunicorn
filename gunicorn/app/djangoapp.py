@@ -44,9 +44,11 @@ def make_default_env(cfg):
         os.environ['DJANGO_SETTINGS_MODULE'] = cfg.django_settings
 
     if cfg.pythonpath and cfg.pythonpath is not None:
-        pythonpath = os.path.abspath(cfg.pythonpath)
-        if pythonpath not in sys.path:
-            sys.path.insert(0, pythonpath)
+        paths = cfg.pythonpath.split(",")
+        for path in paths:
+            pythonpath = os.path.abspath(cfg.pythonpath)
+            if pythonpath not in sys.path:
+                sys.path.insert(0, pythonpath)
 
     try:
         os.environ['DJANGO_SETTINGS_MODULE']
