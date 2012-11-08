@@ -89,6 +89,9 @@ class LazyWriter(object):
     def flush(self):
         self.open().flush()
 
+    def isatty(self):
+        return bool(self.fileobj and self.fileobj.isatty())
+
 class SafeAtoms(dict):
 
     def __init__(self, atoms):
