@@ -47,6 +47,8 @@ class AsyncWorker(base.Worker):
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
+            except socket.error:
+                raise # pass to next try-except level
             except Exception as e:
                 self.handle_error(req, client, addr, e)
         except socket.error as e:
