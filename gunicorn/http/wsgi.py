@@ -55,7 +55,7 @@ def default_environ(req, sock, cfg):
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(map(str, req.version))
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version])
     }
 
 def proxy_environ(req):
