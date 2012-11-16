@@ -211,6 +211,7 @@ class Response(object):
         for name, value in headers:
             assert isinstance(name, string_types), "%r is not a string" % name
 
+            value = str(value).strip()
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
@@ -221,11 +222,11 @@ class Response(object):
                         self.upgrade = True
                 elif lname == "upgrade":
                     if value.lower().strip() == "websocket":
-                        self.headers.append((name.strip(), value.strip()))
+                        self.headers.append((name.strip(), value))
 
                 # ignore hopbyhop headers
                 continue
-            self.headers.append((name.strip(), str(value.strip())))
+            self.headers.append((name.strip(), value))
 
 
     def is_chunked(self):
