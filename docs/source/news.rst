@@ -1,6 +1,18 @@
 Changelog
 =========
 
+0.16.0 / develop
+----------------
+
+- **Added support for Python 3.2 & 3.3**
+- Expose --pythonpath command to all gunicorn commands
+- Honor $PORT environment variable, useful for deployement on heroku
+- Removed support for Python 2.5
+- Make sure we reopen teh logs on the console
+- Fix django settings module detection from path
+- Reverted timeout for client socket. Fix issue on blocking issues.
+- Fixed gevent worker
+
 0.15.0 / 2012-10-18
 -------------------
 
