@@ -311,7 +311,7 @@ class Bind(Setting):
     cli = ["-b", "--bind"]
     meta = "ADDRESS"
     validator = validate_string
-    default = "127.0.0.1:8000"
+    default = "0.0.0.0:{0}".format(os.environ.get('PORT', '8000'))
     desc = """\
         The socket to bind.
 
