@@ -4,5 +4,5 @@
 # See the NOTICE for more information.
 
 version_info = (0, 16, 0)
-__version__ = ".".join(map(str, version_info))
+__version__ = ".".join([str(v) for v in version_info])
 SERVER_SOFTWARE = "gunicorn/%s" % __version__
