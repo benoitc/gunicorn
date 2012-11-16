@@ -348,3 +348,10 @@ def check_is_writeable(path):
     except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()
+
+def to_bytestring(value):
+    """Converts a string argument to a byte string"""
+    if isinstance(value, bytes):
+        return value
+    assert isinstance(value, text_type)
+    return value.encode("utf-8")

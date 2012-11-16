@@ -210,6 +210,7 @@ class Response(object):
     def process_headers(self, headers):
         for name, value in headers:
             assert isinstance(name, string_types), "%r is not a string" % name
+
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
@@ -220,11 +221,11 @@ class Response(object):
                         self.upgrade = True
                 elif lname == "upgrade":
                     if value.lower().strip() == "websocket":
-                        self.headers.append((name.strip(), str(value).strip()))
+                        self.headers.append((name.strip(), value.strip()))
 
                 # ignore hopbyhop headers
                 continue
-            self.headers.append((name.strip(), str(value).strip()))
+            self.headers.append((name.strip(), str(value.strip())))
 
 
     def is_chunked(self):
@@ -265,10 +266,10 @@ class Response(object):
         if self.headers_sent:
             return
         tosend = self.default_headers()
-        tosend.extend(["%s: %s\r\n" % (n, v) for n, v in self.headers])
+        tosend.extend(["%s: %s\r\n" % (k,v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
-        util.write(self.sock, header_str.encode('latin1'))
+        util.write(self.sock, util.to_bytestring(header_str))
         self.headers_sent = True
 
     def write(self, arg):
