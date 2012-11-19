@@ -80,6 +80,8 @@ class DjangoApplication(Application):
                 # not settings env set, try to build one.
                 project_path, settings_name = find_settings_module(
                         os.path.abspath(args[0]))
+                if project_path not in sys.path:
+                    sys.path.insert(0, project_path)
 
                 if not project_path:
                     raise RuntimeError("django project not found")
