@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.16.0 / develop
-----------------
+0.16.0 / 2012-11-19
+-------------------
 
 - **Added support for Python 3.2 & 3.3**
 - Expose --pythonpath command to all gunicorn commands
