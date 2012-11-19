@@ -6,5 +6,5 @@ include THANKS
 include requirements_dev.txt
 recursive-include tests *
 recursive-include examples *
-recursive-include doc *
+recursive-include docs *
 recursive-include examples/frameworks *
