@@ -8,7 +8,7 @@ Changelog
 - Expose --pythonpath command to all gunicorn commands
 - Honor $PORT environment variable, useful for deployement on heroku
 - Removed support for Python 2.5
-- Make sure we reopen teh logs on the console
+- Make sure we reopen the logs on the console
 - Fix django settings module detection from path
 - Reverted timeout for client socket. Fix issue on blocking issues.
 - Fixed gevent worker
