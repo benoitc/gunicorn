@@ -10,7 +10,7 @@ import sys
 import time
 
 from gunicorn import util
-
+from gunicorn.six import string_types
 
 class BaseSocket(object):
 
@@ -44,7 +44,7 @@ class BaseSocket(object):
     def close(self):
         try:
             self.sock.close()
-        except socket.error, e:
+        except socket.error as e:
             self.log.info("Error while closing socket %s", str(e))
         time.sleep(0.3)
         del self.sock
@@ -108,7 +108,7 @@ def create_socket(conf, log):
             sock_type = TCP6Socket
         else:
             sock_type = TCPSocket
-    elif isinstance(addr, basestring):
+    elif isinstance(addr, string_types):
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
@@ -117,8 +117,8 @@ def create_socket(conf, log):
         fd = int(os.environ.pop('GUNICORN_FD'))
         try:
             return sock_type(conf, log, fd=fd)
-        except socket.error, e:
-            if e[0] == errno.ENOTCONN:
+        except socket.error as e:
+            if e.args[0] == errno.ENOTCONN:
                 log.error("GUNICORN_FD should refer to an open socket.")
             else:
                 raise
@@ -130,10 +130,10 @@ def create_socket(conf, log):
     for i in range(5):
         try:
             return sock_type(conf, log)
-        except socket.error, e:
-            if e[0] == errno.EADDRINUSE:
+        except socket.error as e:
+            if e.args[0] == errno.EADDRINUSE:
                 log.error("Connection in use: %s", str(addr))
-            if e[0] == errno.EADDRNOTAVAIL:
+            if e.args[0] == errno.EADDRNOTAVAIL:
                 log.error("Invalid address: %s", str(addr))
                 sys.exit(1)
             if i < 5:

@@ -25,6 +25,7 @@ import textwrap
 import time
 import inspect
 
+from gunicorn.six import text_type, string_types
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
@@ -74,7 +75,7 @@ except ImportError:
         if not hasattr(package, 'rindex'):
             raise ValueError("'package' not set to a string")
         dot = len(package)
-        for x in xrange(level, 1, -1):
+        for x in range(level, 1, -1):
             try:
                 dot = package.rindex('.', 0, dot)
             except ValueError:
@@ -125,7 +126,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 
                 return pkg_resources.load_entry_point("gunicorn",
                             section, uri)
-            except ImportError, e:
+            except ImportError as e:
                 raise RuntimeError("class uri invalid or not found: " +
                         "[%s]" % str(e))
         klass = components.pop(-1)
@@ -216,14 +217,17 @@ try:
 except ImportError:
     def closerange(fd_low, fd_high):
         # Iterate through and close all file descriptors.
-        for fd in xrange(fd_low, fd_high):
+        for fd in range(fd_low, fd_high):
             try:
                 os.close(fd)
             except OSError:	# ERROR, fd wasn't open to begin with (ignored)
                 pass
 
 def write_chunk(sock, data):
-    chunk = "".join(("%X\r\n" % len(data), data, "\r\n"))
+    if isinstance(data, text_type):
+        data = data.encode('utf-8')
+    chunk_size = "%X\r\n" % len(data)
+    chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
     sock.sendall(chunk)
 
 def write(sock, data, chunked=False):
@@ -267,7 +271,7 @@ def write_error(sock, status_int, reason, mesg):
     \r
     %s
     """) % (str(status_int), reason, len(html), html)
-    write_nonblock(sock, http)
+    write_nonblock(sock, http.encode('latin1'))
 
 def normalize_name(name):
     return  "-".join([w.lower().capitalize() for w in name.split("-")])
@@ -307,15 +311,6 @@ def http_date(timestamp=None):
             hh, mm, ss)
     return s
 
-def to_bytestring(s):
-    """ convert to bytestring an unicode """
-    if not isinstance(s, basestring):
-        return s
-    if isinstance(s, unicode):
-        return s.encode('utf-8')
-    else:
-        return s
-
 def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
@@ -350,6 +345,13 @@ def seed():
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
-    except IOError, e:
+    except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()
+
+def to_bytestring(value):
+    """Converts a string argument to a byte string"""
+    if isinstance(value, bytes):
+        return value
+    assert isinstance(value, text_type)
+    return value.encode("utf-8")

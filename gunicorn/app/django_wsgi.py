@@ -10,9 +10,11 @@ import re
 import sys
 import time
 try:
-    from cStringIO import StringIO
+    from io import StringIO
+    from imp import reload
 except ImportError:
     from StringIO import StringIO
+
 
 from django.conf import settings
 from django.core.management.validation import get_validation_errors
@@ -72,10 +74,10 @@ def reload_django_settings():
                 app_mod = util.import_module(app[:-2])
                 appdir = os.path.dirname(app_mod.__file__)
                 app_subdirs = os.listdir(appdir)
-                app_subdirs.sort()
                 name_pattern = re.compile(r'[a-zA-Z]\w*')
-                for d in app_subdirs:
-                    if name_pattern.match(d) and os.path.isdir(os.path.join(appdir, d)):
+                for d in sorted(app_subdirs):
+                    if (name_pattern.match(d) and
+                            os.path.isdir(os.path.join(appdir, d))):
                         new_installed_apps.append('%s.%s' % (app[:-2], d))
             else:
                 new_installed_apps.append(app)

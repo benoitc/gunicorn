@@ -41,10 +41,8 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = map(
-        lambda x: getattr(signal, "SIG%s" % x),
-        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()
-    )
+    SIGNALS = [getattr(signal, "SIG%s" % x) \
+            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -99,7 +97,10 @@ class Arbiter(object):
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
-            for config, value in sorted(self.cfg.settings.iteritems()):
+
+
+            for config, value in sorted(self.cfg.settings.items(),
+                    key=lambda setting: setting[1]):
                 self.log.debug("  %s: %s", config, value.value)
 
         if self.cfg.preload_app:
@@ -135,13 +136,20 @@ class Arbiter(object):
         Initialize master signal handling. Most of the signals
         are queued. Child signals only wake up the master.
         """
+        # close old PIPE
         if self.PIPE:
-            map(os.close, self.PIPE)
+            [os.close(p) for p in self.PIPE]
+
+        # initialize the pipe
         self.PIPE = pair = os.pipe()
-        map(util.set_non_blocking, pair)
-        map(util.close_on_exec, pair)
+        for p in pair:
+            util.set_non_blocking(p)
+            util.close_on_exec(p)
+
         self.log.close_on_exec()
-        map(lambda s: signal.signal(s, self.signal), self.SIGNALS)
+
+        # intialiatze all signals
+        [signal.signal(s, self.signal) for s in self.SIGNALS]
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
@@ -181,7 +189,7 @@ class Arbiter(object):
                 self.halt()
             except KeyboardInterrupt:
                 self.halt()
-            except HaltServer, inst:
+            except HaltServer as inst:
                 self.halt(reason=inst.reason, exit_status=inst.exit_status)
             except SystemExit:
                 raise
@@ -270,8 +278,8 @@ class Arbiter(object):
         Wake up the arbiter by writing to the PIPE
         """
         try:
-            os.write(self.PIPE[1], '.')
-        except IOError, e:
+            os.write(self.PIPE[1], b'.')
+        except IOError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
@@ -296,10 +304,10 @@ class Arbiter(object):
                 return
             while os.read(self.PIPE[0], 1):
                 pass
-        except select.error, e:
-            if e[0] not in [errno.EAGAIN, errno.EINTR]:
+        except select.error as e:
+            if e.args[0] not in [errno.EAGAIN, errno.EINTR]:
                 raise
-        except OSError, e:
+        except OSError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
         except KeyboardInterrupt:
@@ -423,7 +431,7 @@ class Arbiter(object):
                     if not worker:
                         continue
                     worker.tmp.close()
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ECHILD:
                 pass
 
@@ -436,7 +444,7 @@ class Arbiter(object):
             self.spawn_workers()
 
         workers = self.WORKERS.items()
-        workers.sort(key=lambda w: w[1].age)
+        workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGQUIT)
@@ -504,7 +512,7 @@ class Arbiter(object):
          """
         try:
             os.kill(pid, sig)
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ESRCH:
                 try:
                     worker = self.WORKERS.pop(pid)

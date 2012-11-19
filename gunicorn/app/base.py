@@ -3,17 +3,15 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import errno
 import os
 import sys
 import traceback
 
-
-from gunicorn.glogging import Logger
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config
 from gunicorn import debug
+from gunicorn.six import execfile_
 
 class Application(object):
     """\
@@ -31,7 +29,7 @@ class Application(object):
     def do_load_config(self):
         try:
             self.load_config()
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
             sys.stderr.flush()
             sys.exit(1)
@@ -62,9 +60,9 @@ class Application(object):
                 "__package__": None
             }
             try:
-                execfile(opts.config, cfg, cfg)
+                execfile_(opts.config, cfg, cfg)
             except Exception:
-                print "Failed to read config file: %s" % opts.config
+                print("Failed to read config file: %s" % opts.config)
                 traceback.print_exc()
                 sys.exit(1)
 
@@ -104,15 +102,12 @@ class Application(object):
     def run(self):
         if self.cfg.check_config:
             try:
-
                 self.load()
             except:
                 sys.stderr.write("\nError while loading the application:\n\n")
                 traceback.print_exc()
-
                 sys.stderr.flush()
                 sys.exit(1)
-
             sys.exit(0)
 
         if self.cfg.spew:
@@ -120,9 +115,17 @@ class Application(object):
         if self.cfg.daemon:
             util.daemonize()
 
+        # set python paths
+        if self.cfg.pythonpath and self.cfg.pythonpath is not None:
+            paths = self.cfg.pythonpath.split(",")
+            for path in paths:
+                pythonpath = os.path.abspath(self.cfg.pythonpath)
+                if pythonpath not in sys.path:
+                    sys.path.insert(0, pythonpath)
+
         try:
             Arbiter(self).run()
-        except RuntimeError, e:
+        except RuntimeError as e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
             sys.exit(1)

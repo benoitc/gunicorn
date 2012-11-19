@@ -6,17 +6,15 @@
 import datetime
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
+from logging.config import fileConfig
 import os
 import sys
 import traceback
 import threading
 
-try:
-    from logging.config import fileConfig
-except ImportError:
-    from gunicorn.logging_config import fileConfig
 
 from gunicorn import util
+from gunicorn.six import string_types
 
 CONFIG_DEFAULTS = dict(
         version = 1,
@@ -76,6 +74,16 @@ class LazyWriter(object):
                 self.lock.release()
         return self.fileobj
 
+    def close(self):
+        if self.fileobj:
+            self.lock.acquire()
+            try:
+                if self.fileobj:
+                    self.fileobj.close()
+                    self.fileobj = None
+            finally:
+                self.lock.release()
+
     def write(self, text):
         fileobj = self.open()
         fileobj.write(text)
@@ -88,6 +96,9 @@ class LazyWriter(object):
 
     def flush(self):
         self.open().flush()
+
+    def isatty(self):
+        return bool(self.fileobj and self.fileobj.isatty())
 
 class SafeAtoms(dict):
 
@@ -179,7 +190,7 @@ class Logger(object):
         self.error_log.exception(msg, *args)
 
     def log(self, lvl, msg, *args, **kwargs):
-        if isinstance(lvl, basestring):
+        if isinstance(lvl, string_types):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 
@@ -238,6 +249,10 @@ class Logger(object):
 
 
     def reopen_files(self):
+        if self.cfg.errorlog != "-":
+            # Close stderr & stdout if they are redirected to error log file
+            sys.stderr.close()
+            sys.stdout.close()
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):

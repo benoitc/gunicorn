@@ -15,6 +15,7 @@ import types
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
 from gunicorn import util
+from gunicorn.six import string_types, integer_types, bytes_to_str
 
 KNOWN_SETTINGS = []
 
@@ -61,10 +62,12 @@ class Config(object):
         }
         parser = optparse.OptionParser(**kwargs)
 
-        keys = self.settings.keys()
+        keys = list(self.settings)
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
-        keys.sort(key=sorter)
+
+
+        keys = sorted(self.settings, key=self.settings.__getitem__)
         for k in keys:
             self.settings[k].add_option(parser)
         return parser
@@ -84,7 +87,7 @@ class Config(object):
     @property
     def address(self):
         bind = self.settings['bind'].get()
-        return util.parse_address(util.to_bytestring(bind))
+        return util.parse_address(bytes_to_str(bind))
 
     @property
     def uid(self):
@@ -134,8 +137,6 @@ class SettingMeta(type):
         setattr(cls, "short", desc.splitlines()[0])
 
 class Setting(object):
-    __metaclass__ = SettingMeta
-
     name = None
     value = None
     section = None
@@ -178,10 +179,17 @@ class Setting(object):
         assert callable(self.validator), "Invalid validator: %s" % self.name
         self.value = self.validator(val)
 
+    def __lt__(self, other):
+        return (self.section == other.section and
+                self.order < other.order)
+    __cmp__ = __lt__
+
+Setting = SettingMeta('Setting', (Setting,), {})
+
 def validate_bool(val):
-    if isinstance(val, types.BooleanType):
+    if isinstance(val, bool):
         return val
-    if not isinstance(val, basestring):
+    if not isinstance(val, string_types):
         raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
@@ -196,7 +204,7 @@ def validate_dict(val):
     return val
 
 def validate_pos_int(val):
-    if not isinstance(val, (types.IntType, types.LongType)):
+    if not isinstance(val, integer_types):
         val = int(val, 0)
     else:
         # Booleans are ints!
@@ -208,7 +216,7 @@ def validate_pos_int(val):
 def validate_string(val):
     if val is None:
         return None
-    if not isinstance(val, basestring):
+    if not isinstance(val, string_types):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
@@ -229,7 +237,7 @@ def validate_class(val):
 
 def validate_callable(arity):
     def _validate_callable(val):
-        if isinstance(val, basestring):
+        if isinstance(val, string_types):
             try:
                 mod_name, obj_name = val.rsplit(".", 1)
             except ValueError:
@@ -311,7 +319,12 @@ class Bind(Setting):
     cli = ["-b", "--bind"]
     meta = "ADDRESS"
     validator = validate_string
-    default = "127.0.0.1:8000"
+
+    if 'PORT' in os.environ:
+        default = '0.0.0.0:{0}'.format(os.environ.get('PORT'))
+    else:
+        default = '127.0.0.1:8000'
+
     desc = """\
         The socket to bind.
 
@@ -863,9 +876,9 @@ class DjangoSettings(Setting):
         DJANGO_SETTINGS_MODULE environment variable will be used.
         """
 
-class DjangoPythonPath(Setting):
+class PythonPath(Setting):
     name = "pythonpath"
-    section = "Django"
+    section = "Server Mechanics"
     cli = ["--pythonpath"]
     meta = "STRING"
     validator = validate_string

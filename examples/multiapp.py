@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 #
 # Run this application with:
@@ -17,7 +17,7 @@
 try:
     from routes import Mapper
 except:
-    print "This example requires Routes to be installed"
+    print("This example requires Routes to be installed")
 
 # Obviously you'd import your app callables
 # from different places...
@@ -38,7 +38,7 @@ class Application(object):
         return match[0]['app'](environ, start_response)
 
     def error404(self, environ, start_response):
-        html = """\
+        html = b"""\
         <html>
           <head>
             <title>404 - Not Found</title>

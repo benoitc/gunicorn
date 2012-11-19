@@ -13,7 +13,7 @@ req1 = {
         ("CONTENT-LENGTH", "14"),
         ("CONNECTION", "keep-alive")
     ],
-    "body": '{"nom": "nom"}'
+    "body": b'{"nom": "nom"}'
 }
 
 
@@ -24,7 +24,7 @@ req2 = {
     "headers": [
         ("TRANSFER-ENCODING", "chunked"),
         ],
-    "body": "all your base are belong to us"
+    "body": b"all your base are belong to us"
 }
 
 request = [req1, req2]

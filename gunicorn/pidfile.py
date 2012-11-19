@@ -76,11 +76,11 @@ class Pidfile(object):
                 try:
                     os.kill(wpid, 0)
                     return wpid
-                except OSError, e:
-                    if e[0] == errno.ESRCH:
+                except OSError as e:
+                    if e.args[0] == errno.ESRCH:
                         return
                     raise
-        except IOError, e:
-            if e[0] == errno.ENOENT:
+        except IOError as e:
+            if e.args[0] == errno.ENOENT:
                 return
             raise

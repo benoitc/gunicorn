@@ -6,5 +6,5 @@ request = {
         ("IF-MATCH", "bazinga!"),
         ("IF-MATCH", "large-sound")
     ],
-    "body": ""
+    "body": b""
 }

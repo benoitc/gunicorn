@@ -20,6 +20,17 @@ Once again, in order of least to most authoritative:
     2. Configuration File
     3. Command Line
 
+
+.. note::
+
+    To check your configuration when using the command line or the
+    configuration file you can run the following command::
+
+        $ gunicorn --check-config
+
+    It will also allows you to know if your applican can be launched.
+
+
 Framework Settings
 ==================
 

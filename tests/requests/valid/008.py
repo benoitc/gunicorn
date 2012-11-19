@@ -5,5 +5,5 @@ request = {
     "headers": [
         ("CONTENT-LENGTH", "5")
     ],
-    "body": "HELLO"
+    "body": b"HELLO"
 }
