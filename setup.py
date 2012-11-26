@@ -56,7 +56,7 @@ class PyTest(Command):
 
     def run(self):
         import sys,subprocess
-        basecmd = [sys.executable, '-m', 'py.test']
+        basecmd = [sys.executable, '-m', 'pytest']
         if self.cov:
             basecmd += ['--cov', 'gunicorn']
         errno = subprocess.call(basecmd + ['tests'])
