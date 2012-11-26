@@ -62,7 +62,7 @@ class Arbiter(object):
         try:
             a = os.stat(os.environ['PWD'])
             b = os.stat(os.getcwd())
-            if a.ino == b.ino and a.dev == b.dev:
+            if a.st_ino == b.st_ino and a.st_dev == b.st_dev:
                 cwd = os.environ['PWD']
             else:
                 cwd = os.getcwd()
