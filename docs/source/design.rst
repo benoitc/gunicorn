@@ -91,7 +91,7 @@ Always remember, there is such a thing as too many workers. After a point your
 worker processes will start thrashing system resources decreasing the throughput
 of the entire system.
 
-.. _Greenlets: http://bitbucket.org/ambroff/greenlet
+.. _Greenlets: https://github.com/python-greenlet/greenlet
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
 .. _Slowloris: http://ha.ckers.org/slowloris/
