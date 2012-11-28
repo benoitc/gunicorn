@@ -65,7 +65,7 @@ Example with your Django project::
     $ cd path/to/yourdjangoproject
     $ gunicorn_django --workers=2
 
-.. note:: If you run Django 1.4 and superior, it's higly recommanded to
+.. note:: If you run Django 1.4 or newer, it's highly recommended to
     simply run your application with the `WSGI interface
     <https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/>`_ using
     the `gunicorn`_ command.
