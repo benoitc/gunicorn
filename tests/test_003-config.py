@@ -214,3 +214,12 @@ def test_post_request():
 
     c.set("post_request", post_request_2)
     t.eq(2, c.post_request(1, 2, 3, 4))
+
+
+def test_nworkers_changed():
+    c = config.Config()
+    def nworkers_changed_3(server, new_value, old_value):
+        return 3
+
+    c.set("nworkers_changed", nworkers_changed_3)
+    t.eq(3, c.nworkers_changed(1, 2, 3))
