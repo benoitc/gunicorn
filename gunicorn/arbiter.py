@@ -79,6 +79,15 @@ class Arbiter(object):
             0: sys.executable
         }
 
+    @property
+    def num_workers(self):
+        return self._num_workers
+
+    @num_workers.setter
+    def num_workers(self, value):
+        self._num_workers = value
+        self.cfg.nworkers_changed(self, value)
+
     def setup(self, app):
         self.app = app
         self.cfg = app.cfg
