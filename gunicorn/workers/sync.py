@@ -21,8 +21,9 @@ class SyncWorker(base.Worker):
     def run(self):
         # self.socket appears to lose its blocking status after
         # we fork in the arbiter. Reset it here.
-        self.socket.setblocking(0)
+        [s.setblocking(0) for s in self.sockets]
 
+        ready = self.sockets
         while self.alive:
             self.notify()
 
@@ -30,20 +31,23 @@ class SyncWorker(base.Worker):
             # that no connection is waiting we fall down to the
             # select which is where we'll wait for a bit for new
             # workers to come give us some love.
-            try:
-                client, addr = self.socket.accept()
-                client.setblocking(1)
-                util.close_on_exec(client)
-                self.handle(client, addr)
 
-                # Keep processing clients until no one is waiting. This
-                # prevents the need to select() for every client that we
-                # process.
-                continue
+            for sock in ready:
+                try:
+                    client, addr = sock.accept()
+                    client.setblocking(1)
+                    util.close_on_exec(client)
+                    self.handle(sock, client, addr)
 
-            except socket.error as e:
-                if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED):
-                    raise
+                    # Keep processing clients until no one is waiting. This
+                    # prevents the need to select() for every client that we
+                    # process.
+                    continue
+
+                except socket.error as e:
+                    if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
+                            errno.EWOULDBLOCK):
+                        raise
 
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
@@ -52,25 +56,28 @@ class SyncWorker(base.Worker):
 
             try:
                 self.notify()
-                ret = select.select([self.socket], [], self.PIPE, self.timeout)
+                ret = select.select(self.sockets, [], self.PIPE, self.timeout)
                 if ret[0]:
+                    ready = ret[0]
                     continue
             except select.error as e:
                 if e.args[0] == errno.EINTR:
+                    ready = self.sockets
                     continue
                 if e.args[0] == errno.EBADF:
                     if self.nr < 0:
+                        ready = self.sockets
                         continue
                     else:
                         return
                 raise
 
-    def handle(self, client, addr):
+    def handle(self, listener, client, addr):
         req = None
         try:
             parser = http.RequestParser(self.cfg, client)
             req = six.next(parser)
-            self.handle_request(req, client, addr)
+            self.handle_request(listener, req, client, addr)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
@@ -85,13 +92,13 @@ class SyncWorker(base.Worker):
         finally:
             util.close(client)
 
-    def handle_request(self, req, client, addr):
+    def handle_request(self, listener, req, client, addr):
         environ = {}
         try:
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
-                    self.address, self.cfg)
+                    listener.getsockname(), self.cfg)
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.
@@ -124,4 +131,3 @@ class SyncWorker(base.Worker):
                 self.cfg.post_request(self, req, environ)
             except:
                 pass
-

@@ -50,7 +50,6 @@ class TornadoWorker(Worker):
             self.ioloop.stop()
 
     def run(self):
-        self.socket.setblocking(0)
         self.ioloop = IOLoop.instance()
         self.alive = True
         PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
@@ -77,16 +76,15 @@ class TornadoWorker(Worker):
         sys.modules["tornado.httpserver"] = httpserver
 
         server = tornado.httpserver.HTTPServer(app, io_loop=self.ioloop)
-        if hasattr(server, "add_socket"):  # tornado > 2.0
-            server.add_socket(self.socket)
-        elif hasattr(server, "_sockets"):  # tornado 2.0
-            server._sockets[self.socket.fileno()] = self.socket
-        else:  # tornado 1.2 or earlier
-            server._socket = self.socket
+        for s in self.sockets:
+            s.setblocking(0)
+            if hasattr(server, "add_socket"):  # tornado > 2.0
+                server.add_socket(s)
+            elif hasattr(server, "_sockets"):  # tornado 2.0
+                server._sockets[s.fileno()] = s
 
         server.no_keep_alive = self.cfg.keepalive <= 0
         server.xheaders = bool(self.cfg.x_forwarded_for_header)
-
         server.start(num_processes=1)
 
         self.ioloop.start()

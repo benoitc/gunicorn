@@ -16,7 +16,7 @@ import traceback
 
 from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
-from gunicorn.sock import create_socket
+from gunicorn.sock import create_sockets
 from gunicorn import util
 
 from gunicorn import __version__, SERVER_SOFTWARE
@@ -35,7 +35,7 @@ class Arbiter(object):
 
     START_CTX = {}
 
-    LISTENER = None
+    LISTENERS = []
     WORKERS = {}
     PIPE = []
 
@@ -120,12 +120,12 @@ class Arbiter(object):
             self.pidfile.create(self.pid)
         self.cfg.on_starting(self)
         self.init_signals()
-        if not self.LISTENER:
-            self.LISTENER = create_socket(self.cfg, self.log)
+        if not self.LISTENERS:
+            self.LISTENERS = create_sockets(self.cfg, self.log)
 
+        listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
-        self.log.info("Listening at: %s (%s)", self.LISTENER,
-            self.pid)
+        self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s",
                 self.cfg.settings['worker_class'].get())
 
@@ -321,11 +321,13 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
-        try:
-            self.LISTENER.close()
-        except Exception:
-            pass
-        self.LISTENER = None
+        for l in self.LISTENERS:
+            try:
+                l.close()
+            except Exception:
+                pass
+
+        self.LISTENERS = []
         sig = signal.SIGQUIT
         if not graceful:
             sig = signal.SIGTERM
@@ -348,11 +350,16 @@ class Arbiter(object):
             self.master_name = "Old Master"
             return
 
-        os.environ['GUNICORN_FD'] = str(self.LISTENER.fileno())
+        fds = [l.fileno() for l in self.LISTENERS]
+        os.environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
+
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
-        util.closerange(3, self.LISTENER.fileno())
-        util.closerange(self.LISTENER.fileno()+1, util.get_maxfd())
+
+        # close all file descriptors except bound sockets
+        util.closerange(3, fds[0])
+        util.closerange(fds[-1]+1, util.get_maxfd())
+
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
     def reload(self):
@@ -367,9 +374,11 @@ class Arbiter(object):
 
         # do we need to change listener ?
         if old_address != self.cfg.address:
-            self.LISTENER.close()
-            self.LISTENER = create_socket(self.cfg, self.log)
-            self.log.info("Listening at: %s", self.LISTENER)
+            # close all listeners
+            [l.close for l in self.LISTENERS]
+            # init new listeners
+            self.LISTENERS = create_sockeSt(self.cfg, self.log)
+            self.log.info("Listening at: %s", ",".join(str(self.LISTENERS)))
 
         # do some actions on reload
         self.cfg.on_reload(self)
@@ -451,7 +460,7 @@ class Arbiter(object):
 
     def spawn_worker(self):
         self.worker_age += 1
-        worker = self.worker_class(self.worker_age, self.pid, self.LISTENER,
+        worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
                                     self.app, self.timeout/2.0,
                                     self.cfg, self.log)
         self.cfg.pre_fork(self, worker)

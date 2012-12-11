@@ -8,6 +8,7 @@ from __future__ import with_statement
 import os
 import sys
 from datetime import datetime
+from functools import partial
 import time
 
 # workaround on osx, disable kqueue
@@ -51,18 +52,23 @@ class GeventWorker(AsyncWorker):
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
+
     def run(self):
-        self.socket.setblocking(1)
+        servers = []
+        for s in self.sockets:
+            s.setblocking(1)
+            pool = Pool(self.worker_connections)
+            if self.server_class is not None:
+                server = self.server_class(
+                    s, application=self.wsgi, spawn=pool, log=self.log,
+                    handler_class=self.wsgi_handler)
+            else:
+                hfun = partial(self.handle, s)
+                server = StreamServer(s, handle=hfun, spawn=pool)
 
-        pool = Pool(self.worker_connections)
-        if self.server_class is not None:
-            server = self.server_class(
-                self.socket, application=self.wsgi, spawn=pool, log=self.log,
-                handler_class=self.wsgi_handler)
-        else:
-            server = StreamServer(self.socket, handle=self.handle, spawn=pool)
+            server.start()
+            servers.append(server)
 
-        server.start()
         pid = os.getpid()
         try:
             while self.alive:
@@ -79,13 +85,19 @@ class GeventWorker(AsyncWorker):
 
         try:
             # Stop accepting requests
-            server.kill()
+            [server.stop_accepting() for server in servers]
 
             # Handle current requests until graceful_timeout
             ts = time.time()
             while time.time() - ts <= self.cfg.graceful_timeout:
-                if server.pool.free_count() == server.pool.size:
-                    return # all requests was handled
+                accepting = 0
+                for server in servers:
+                    if server.pool.free_count() != server.pool.size:
+                        accepting += 1
+
+                # if no server is accepting a connection, we can exit
+                if not accepting:
+                    return
 
                 self.notify()
                 gevent.sleep(1.0)

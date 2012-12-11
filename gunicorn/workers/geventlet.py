@@ -3,10 +3,9 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
-
+from functools import partial
 import os
+
 try:
     import eventlet
 except ImportError:
@@ -33,10 +32,13 @@ class EventletWorker(AsyncWorker):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
 
     def run(self):
-        self.socket = GreenSocket(family_or_realsock=self.socket.sock)
-        self.socket.setblocking(1)
-        self.acceptor = eventlet.spawn(eventlet.serve, self.socket,
-                self.handle, self.worker_connections)
+        acceptors = []
+        for sock in self.sockets:
+            s = GreenSocket(family_or_realsock=sock)
+            s.setblocking(1)
+            hfun = partial(self.handle, s)
+            acceptor = eventlet.spawn(eventlet.serve, s, hfun,
+                    self.worker_connections)
 
         while self.alive:
             self.notify()
@@ -48,4 +50,4 @@ class EventletWorker(AsyncWorker):
 
         self.notify()
         with eventlet.Timeout(self.cfg.graceful_timeout, False):
-            eventlet.kill(self.acceptor, eventlet.StopServe)
+            [eventlet.kill(a, eventlet.StopServe) for a in acceptors]
