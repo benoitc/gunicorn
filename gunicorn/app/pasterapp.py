@@ -29,7 +29,7 @@ class PasterBaseApplication(Application):
         if host and port:
             cfg['bind'] = '%s:%s' % (host, port)
         elif host:
-            cfg['bind'] = host
+            cfg['bind'] = host.split(',')
 
         cfg['workers'] = int(lc.get('workers', 1))
         cfg['umask'] = int(lc.get('umask', 0))
@@ -55,18 +55,10 @@ class PasterBaseApplication(Application):
             parser = ConfigParser.ConfigParser()
             parser.read([self.cfgfname])
             if parser.has_section('loggers'):
-                if sys.version_info >= (2, 6):
-                    from logging.config import fileConfig
-                else:
-                    # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
-                    # and less strict whitespace (which were incorporated into 2.6's)
-                    from gunicorn.logging_config import fileConfig
-
+                from logging.config import fileConfig
                 config_file = os.path.abspath(self.cfgfname)
                 fileConfig(config_file, dict(__file__=config_file,
                                              here=os.path.dirname(config_file)))
-
-
 
 class PasterApplication(PasterBaseApplication):
 
@@ -111,7 +103,7 @@ class PasterServerApplication(PasterBaseApplication):
             bind = "%s:%s" % (host, port)
         else:
             bind = host
-        cfg["bind"] = bind
+        cfg["bind"] = bind.split(',')
 
         if gcfg:
             for k, v in gcfg.items():

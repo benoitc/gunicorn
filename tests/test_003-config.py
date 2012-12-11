@@ -63,7 +63,7 @@ def test_property_access():
     t.eq(c.workers, 3)
 
     # Address is parsed
-    t.eq(c.address, ("127.0.0.1", 8000))
+    t.eq(c.address, [("127.0.0.1", 8000)])
 
     # User and group defaults
     t.eq(os.geteuid(), c.uid)
@@ -165,7 +165,7 @@ def test_callable_validation_for_string():
 def test_cmd_line():
     with AltArgs(["prog_name", "-b", "blargh"]):
         app = NoConfigApp()
-        t.eq(app.cfg.bind, "blargh")
+        t.eq(app.cfg.bind, ["blargh"])
     with AltArgs(["prog_name", "-w", "3"]):
         app = NoConfigApp()
         t.eq(app.cfg.workers, 3)
@@ -183,12 +183,12 @@ def test_app_config():
 def test_load_config():
     with AltArgs(["prog_name", "-c", cfg_file()]):
         app = NoConfigApp()
-    t.eq(app.cfg.bind, "unix:/tmp/bar/baz")
+    t.eq(app.cfg.bind, ["unix:/tmp/bar/baz"])
     t.eq(app.cfg.workers, 3)
     t.eq(app.cfg.proc_name, "fooey")
 
 def test_cli_overrides_config():
     with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
         app = NoConfigApp()
-        t.eq(app.cfg.bind, "blarney")
+        t.eq(app.cfg.bind, ["blarney"])
         t.eq(app.cfg.proc_name, "fooey")

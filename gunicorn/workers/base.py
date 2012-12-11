@@ -26,7 +26,7 @@ class Worker(object):
 
     PIPE = []
 
-    def __init__(self, age, ppid, socket, app, timeout, cfg, log):
+    def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -34,7 +34,7 @@ class Worker(object):
         """
         self.age = age
         self.ppid = ppid
-        self.socket = socket
+        self.sockets = sockets
         self.app = app
         self.timeout = timeout
         self.cfg = cfg
@@ -45,7 +45,6 @@ class Worker(object):
         self.alive = True
         self.log = log
         self.debug = cfg.debug
-        self.address = self.socket.getsockname()
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
@@ -90,7 +89,7 @@ class Worker(object):
             util.close_on_exec(p)
 
         # Prevent fd inherientence
-        util.close_on_exec(self.socket)
+        [util.close_on_exec(s) for s in self.sockets]
         util.close_on_exec(self.tmp.fileno())
 
         self.log.close_on_exec()

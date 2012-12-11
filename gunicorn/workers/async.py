@@ -26,14 +26,14 @@ class AsyncWorker(base.Worker):
     def timeout_ctx(self):
         raise NotImplementedError()
 
-    def handle(self, client, addr):
+    def handle(self, listener, client, addr):
         req = None
         try:
             parser = http.RequestParser(self.cfg, client)
             try:
                 if not self.cfg.keepalive:
                     req = six.next(parser)
-                    self.handle_request(req, client, addr)
+                    self.handle_request(listener, req, client, addr)
                 else:
                     # keepalive loop
                     while True:
@@ -42,7 +42,7 @@ class AsyncWorker(base.Worker):
                             req = six.next(parser)
                         if not req:
                             break
-                        self.handle_request(req, client, addr)
+                        self.handle_request(listener, req, client, addr)
             except http.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
@@ -64,11 +64,12 @@ class AsyncWorker(base.Worker):
         finally:
             util.close(client)
 
-    def handle_request(self, req, sock, addr):
+    def handle_request(self, listener, req, sock, addr):
         request_start = datetime.now()
         try:
             self.cfg.pre_request(self, req)
-            resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
+            resp, environ = wsgi.create(req, sock, addr,
+                    listener.getsockname(), self.cfg)
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")

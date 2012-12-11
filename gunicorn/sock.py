@@ -14,10 +14,11 @@ from gunicorn.six import string_types
 
 class BaseSocket(object):
 
-    def __init__(self, conf, log, fd=None):
+    def __init__(self, address, conf, log, fd=None):
         self.log = log
         self.conf = conf
-        self.address = conf.address
+
+        self.cfg_addr = address
         if fd is None:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
         else:
@@ -39,7 +40,7 @@ class BaseSocket(object):
         return sock
 
     def bind(self, sock):
-        sock.bind(self.address)
+        sock.bind(self.cfg_addr)
 
     def close(self):
         try:
@@ -72,37 +73,28 @@ class UnixSocket(BaseSocket):
 
     FAMILY = socket.AF_UNIX
 
-    def __init__(self, conf, log, fd=None):
+    def __init__(self, address, log, fd=None):
         if fd is None:
             try:
-                os.remove(conf.address)
+                os.remove(address)
             except OSError:
                 pass
-        super(UnixSocket, self).__init__(conf, log, fd=fd)
+        super(UnixSocket, self).__init__(addr, log, fd=fd)
 
     def __str__(self):
-        return "unix:%s" % self.address
+        return "unix:%s" % self.cfg_addr
 
     def bind(self, sock):
         old_umask = os.umask(self.conf.umask)
-        sock.bind(self.address)
-        util.chown(self.address, self.conf.uid, self.conf.gid)
+        sock.bind(self.cfg_addr)
+        util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
 
     def close(self):
         super(UnixSocket, self).close()
-        os.unlink(self.address)
+        os.unlink(self.cfg_addr)
 
-def create_socket(conf, log):
-    """
-    Create a new socket for the given address. If the
-    address is a tuple, a TCP socket is created. If it
-    is a string, a Unix socket is created. Otherwise
-    a TypeError is raised.
-    """
-    # get it only once
-    addr = conf.address
-
+def _sock_type(addr):
     if isinstance(addr, tuple):
         if util.is_ipv6(addr[0]):
             sock_type = TCP6Socket
@@ -112,33 +104,63 @@ def create_socket(conf, log):
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
+    return sock_type
 
+def create_sockets(conf, log):
+    """
+    Create a new socket for the given address. If the
+    address is a tuple, a TCP socket is created. If it
+    is a string, a Unix socket is created. Otherwise
+    a TypeError is raised.
+    """
+    # get it only once
+    laddr = conf.address
+    listeners = []
+
+    # sockets are already bound
     if 'GUNICORN_FD' in os.environ:
-        fd = int(os.environ.pop('GUNICORN_FD'))
-        try:
-            return sock_type(conf, log, fd=fd)
-        except socket.error as e:
-            if e.args[0] == errno.ENOTCONN:
-                log.error("GUNICORN_FD should refer to an open socket.")
+        fds = os.environ.pop('GUNICORN_FD').split(',')
+        for i, fd in enumerate(fds):
+            fd = int(fd)
+            addr = laddr[i]
+            sock_type = _sock_type(addr)
+
+            try:
+                listeners.append(sock_type(addr, conf, log, fd=fd))
+            except socket.error as e:
+                if e.args[0] == errno.ENOTCONN:
+                    log.error("GUNICORN_FD should refer to an open socket.")
+                else:
+                    raise
+        return listeners
+
+    # no sockets is bound, first initialization of gunicorn in this env.
+    for addr in laddr:
+        sock_type = _sock_type(addr)
+
+        # If we fail to create a socket from GUNICORN_FD
+        # we fall through and try and open the socket
+        # normally.
+        sock = None
+        for i in range(5):
+            try:
+               sock = sock_type(addr, conf, log)
+            except socket.error as e:
+                if e.args[0] == errno.EADDRINUSE:
+                    log.error("Connection in use: %s", str(addr))
+                if e.args[0] == errno.EADDRNOTAVAIL:
+                    log.error("Invalid address: %s", str(addr))
+                    sys.exit(1)
+                if i < 5:
+                    log.error("Retrying in 1 second.")
+                    time.sleep(1)
             else:
-                raise
+                break
 
-    # If we fail to create a socket from GUNICORN_FD
-    # we fall through and try and open the socket
-    # normally.
+        if sock is None:
+            log.error("Can't connect to %s", str(addr))
+            sys.exit(1)
 
-    for i in range(5):
-        try:
-            return sock_type(conf, log)
-        except socket.error as e:
-            if e.args[0] == errno.EADDRINUSE:
-                log.error("Connection in use: %s", str(addr))
-            if e.args[0] == errno.EADDRNOTAVAIL:
-                log.error("Invalid address: %s", str(addr))
-                sys.exit(1)
-            if i < 5:
-                log.error("Retrying in 1 second.")
-                time.sleep(1)
+        listeners.append(sock)
 
-    log.error("Can't connect to %s", str(addr))
-    sys.exit(1)
+    return listeners

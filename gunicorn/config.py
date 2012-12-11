@@ -86,8 +86,8 @@ class Config(object):
 
     @property
     def address(self):
-        bind = self.settings['bind'].get()
-        return util.parse_address(bytes_to_str(bind))
+        s = self.settings['bind'].get()
+        return [util.parse_address(bytes_to_str(bind)) for bind in s]
 
     @property
     def uid(self):
@@ -220,6 +220,16 @@ def validate_string(val):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
+def validate_list_string(val):
+    if not val:
+        return []
+
+    # legacy syntax
+    if isinstance(val, string_types):
+        val = [val]
+
+    return [validate_string(v) for v in val]
+
 def validate_string_to_list(val):
     val = validate_string(val)
 
@@ -315,15 +325,16 @@ class ConfigFile(Setting):
 
 class Bind(Setting):
     name = "bind"
+    action = "append"
     section = "Server Socket"
     cli = ["-b", "--bind"]
     meta = "ADDRESS"
-    validator = validate_string
+    validator = validate_list_string
 
     if 'PORT' in os.environ:
-        default = '0.0.0.0:{0}'.format(os.environ.get('PORT'))
+        default = ['0.0.0.0:{0}'.format(os.environ.get('PORT'))]
     else:
-        default = '127.0.0.1:8000'
+        default = ['127.0.0.1:8000']
 
     desc = """\
         The socket to bind.
