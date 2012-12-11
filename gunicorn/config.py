@@ -224,6 +224,10 @@ def validate_list_string(val):
     if not val:
         return []
 
+    # legacy syntax
+    if isinstance(val, string_types):
+        val = [val]
+
     return [validate_string(v) for v in val]
 
 def validate_string_to_list(val):
