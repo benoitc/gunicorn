@@ -1024,16 +1024,19 @@ class WorkerExit(Setting):
 class NumWorkersChanged(Setting):
     name = "nworkers_changed"
     section = "Server Hooks"
-    validator = validate_callable(2)
+    validator = validate_callable(3)
     type = "callable"
-    def nworkers_changed(server, nworkers):
+    def nworkers_changed(server, new_value, old_value):
         pass
     default = staticmethod(nworkers_changed)
     desc = """\
         Called just after num_workers has been changed.
 
         The callable needs to accept an instance variable of the Arbiter and
-        an integer of number of workers after change.
+        two integers of number of workers after and before change.
+
+        If the number of workers is set for the first time, old_value would be
+        None.
         """
 
 class ProxyProtocol(Setting):

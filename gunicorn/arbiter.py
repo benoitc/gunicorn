@@ -51,6 +51,7 @@ class Arbiter(object):
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
 
+        self._num_workers = None
         self.setup(app)
 
         self.pidfile = None
@@ -85,8 +86,9 @@ class Arbiter(object):
 
     @num_workers.setter
     def num_workers(self, value):
+        old_value = self._num_workers
         self._num_workers = value
-        self.cfg.nworkers_changed(self, value)
+        self.cfg.nworkers_changed(self, value, old_value)
 
     def setup(self, app):
         self.app = app
