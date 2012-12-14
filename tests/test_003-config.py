@@ -192,3 +192,25 @@ def test_cli_overrides_config():
         app = NoConfigApp()
         t.eq(app.cfg.bind, ["blarney"])
         t.eq(app.cfg.proc_name, "fooey")
+
+
+def test_post_request():
+    c = config.Config()
+
+    def post_request_4(worker, req, environ, resp):
+        return 4
+
+    def post_request_3(worker, req, environ):
+        return 3
+
+    def post_request_2(worker, req):
+        return 2
+
+    c.set("post_request", post_request_4)
+    t.eq(4, c.post_request(1, 2, 3, 4))
+
+    c.set("post_request", post_request_3)
+    t.eq(3, c.post_request(1, 2, 3, 4))
+
+    c.set("post_request", post_request_2)
+    t.eq(2, c.post_request(1, 2, 3, 4))
