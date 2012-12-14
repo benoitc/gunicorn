@@ -55,18 +55,10 @@ class PasterBaseApplication(Application):
             parser = ConfigParser.ConfigParser()
             parser.read([self.cfgfname])
             if parser.has_section('loggers'):
-                if sys.version_info >= (2, 6):
-                    from logging.config import fileConfig
-                else:
-                    # Use our custom fileConfig -- 2.5.1's with a custom Formatter class
-                    # and less strict whitespace (which were incorporated into 2.6's)
-                    from gunicorn.logging_config import fileConfig
-
+                from logging.config import fileConfig
                 config_file = os.path.abspath(self.cfgfname)
                 fileConfig(config_file, dict(__file__=config_file,
                                              here=os.path.dirname(config_file)))
-
-
 
 class PasterApplication(PasterBaseApplication):
 
