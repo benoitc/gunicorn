@@ -55,16 +55,22 @@ class GeventWorker(AsyncWorker):
 
     def run(self):
         servers = []
+        ssl_args = {}
+
+        if self.cfg.is_ssl:
+            ssl_args = dict(server_side=True,
+                    do_handshake_on_connect=False, **self.cfg.ssl_options)
+
         for s in self.sockets:
             s.setblocking(1)
             pool = Pool(self.worker_connections)
             if self.server_class is not None:
                 server = self.server_class(
                     s, application=self.wsgi, spawn=pool, log=self.log,
-                    handler_class=self.wsgi_handler)
+                    handler_class=self.wsgi_handler, **ssl_args)
             else:
                 hfun = partial(self.handle, s)
-                server = StreamServer(s, handle=hfun, spawn=pool)
+                server = StreamServer(s, handle=hfun, spawn=pool, **ssl_args)
 
             server.start()
             servers.append(server)

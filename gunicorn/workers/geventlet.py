@@ -31,6 +31,14 @@ class EventletWorker(AsyncWorker):
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
 
+    def handle(self, listener, client, addr):
+        if self.cfg.is_ssl:
+            client = eventlet.wrap_ssl(client, server_side=True,
+                    do_handshake_on_connect=False,
+                    **self.cfg.ssl_options)
+
+        super(EventletWorker, self).handle(listener, client, addr)
+
     def run(self):
         acceptors = []
         for sock in self.sockets:

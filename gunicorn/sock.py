@@ -117,6 +117,14 @@ def create_sockets(conf, log):
     laddr = conf.address
     listeners = []
 
+    # check ssl config early to raise the error on startup
+    # only the certfile is needed since it can contains the keyfile
+    if conf.certfile and not os.path.exists(conf.certfile):
+        raise ValueError('certfile "%s" does not exist' % conf.certfile)
+
+    if conf.keyfile and not os.path.exists(conf.keyfile):
+        raise ValueError('certfile "%s" does not exist' % conf.keyfile)
+
     # sockets are already bound
     if 'GUNICORN_FD' in os.environ:
         fds = os.environ.pop('GUNICORN_FD').split(',')

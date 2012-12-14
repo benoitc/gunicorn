@@ -75,7 +75,8 @@ class TornadoWorker(Worker):
         httpserver.HTTPConnection.finish = finish
         sys.modules["tornado.httpserver"] = httpserver
 
-        server = tornado.httpserver.HTTPServer(app, io_loop=self.ioloop)
+        server = tornado.httpserver.HTTPServer(app, io_loop=self.ioloop,
+                ssl_options=self.cfg.ssl_options)
         for s in self.sockets:
             s.setblocking(0)
             if hasattr(server, "add_socket"):  # tornado > 2.0

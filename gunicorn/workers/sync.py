@@ -9,6 +9,7 @@ import errno
 import os
 import select
 import socket
+import ssl
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -75,6 +76,11 @@ class SyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
+            if self.cfg.is_ssl:
+                client = ssl.wrap_socket(client, server_side=True,
+                        do_handshake_on_connect=False,
+                        **self.cfg.ssl_options)
+
             parser = http.RequestParser(self.cfg, client)
             req = six.next(parser)
             self.handle_request(listener, req, client, addr)
@@ -82,6 +88,13 @@ class SyncWorker(base.Worker):
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
+        except ssl.SSLError as e:
+            if e.args[0] == ssl.SSL_ERROR_EOF:
+                self.log.debug("ssl connection closed")
+                client.close()
+            else:
+                self.log.debug("Error processing SSL request.")
+                self.handle_error(req, client, addr, e)
         except socket.error as e:
             if e.args[0] != errno.EPIPE:
                 self.log.exception("Error processing request.")

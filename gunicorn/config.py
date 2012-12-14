@@ -115,6 +115,21 @@ class Config(object):
             logger_class.install()
         return logger_class
 
+    @property
+    def is_ssl(self):
+        return self.certfile or self.keyfile
+
+    @property
+    def ssl_options(self):
+        opts = {}
+        if self.certfile:
+            opts['certfile'] = self.certfile
+
+        if self.keyfile:
+            opts['keyfile'] = self.keyfile
+
+        return opts
+
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -1066,3 +1081,25 @@ class ProxyAllowFrom(Setting):
     desc = """\
         Front-end's IPs from which allowed accept proxy requests (comma separate).
         """
+
+class KeyFile(Setting):
+    name = "keyfile"
+    section = "Ssl"
+    cli = ["--keyfile"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    SSL key file
+    """
+
+class CertFile(Setting):
+    name = "certfile"
+    section = "Ssl"
+    cli = ["--certfile"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    SSL certificate file
+    """

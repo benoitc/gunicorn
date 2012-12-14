@@ -3,11 +3,10 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 from datetime import datetime
 import errno
 import socket
+import ssl
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -47,9 +46,18 @@ class AsyncWorker(base.Worker):
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
+            except ssl.SSLError:
+                raise # pass to next try-except level
             except socket.error:
                 raise # pass to next try-except level
             except Exception as e:
+                self.handle_error(req, client, addr, e)
+        except ssl.SSLError as e:
+            if e.args[0] == ssl.SSL_ERROR_EOF:
+                self.log.debug("ssl connection closed")
+                client.close()
+            else:
+                self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except socket.error as e:
             if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
