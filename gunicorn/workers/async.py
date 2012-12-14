@@ -66,6 +66,7 @@ class AsyncWorker(base.Worker):
 
     def handle_request(self, req, sock, addr):
         request_start = datetime.now()
+        resp = environ = None
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr, self.address, self.cfg)
@@ -94,7 +95,7 @@ class AsyncWorker(base.Worker):
                 raise StopIteration()
         finally:
             try:
-                self.cfg.post_request(self, req, environ)
-            except:
-                pass
+                self.cfg.post_request(self, req, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
         return True

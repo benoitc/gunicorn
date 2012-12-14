@@ -86,7 +86,7 @@ class SyncWorker(base.Worker):
             util.close(client)
 
     def handle_request(self, req, client, addr):
-        environ = {}
+        resp = environ = None
         try:
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
@@ -121,7 +121,6 @@ class SyncWorker(base.Worker):
             return
         finally:
             try:
-                self.cfg.post_request(self, req, environ)
-            except:
-                pass
-
+                self.cfg.post_request(self, req, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
