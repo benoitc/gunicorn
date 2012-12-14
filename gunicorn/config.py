@@ -293,9 +293,9 @@ def validate_post_request(val):
     if largs == 4:
         return val
     elif largs == 3:
-        return lambda worker, req, env, _: val(worker, req, env)
+        return lambda worker, req, env, _r: val(worker, req, env)
     elif largs == 2:
-        return lambda worker, req, _: val(worker, req)
+        return lambda worker, req, _e, _r: val(worker, req)
     else:
         raise TypeError("Value must have an arity of: 3")
 
