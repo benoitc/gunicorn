@@ -29,7 +29,7 @@ class PasterBaseApplication(Application):
         if host and port:
             cfg['bind'] = '%s:%s' % (host, port)
         elif host:
-            cfg['bind'] = host
+            cfg['bind'] = host.split(',')
 
         cfg['workers'] = int(lc.get('workers', 1))
         cfg['umask'] = int(lc.get('umask', 0))
@@ -103,7 +103,7 @@ class PasterServerApplication(PasterBaseApplication):
             bind = "%s:%s" % (host, port)
         else:
             bind = host
-        cfg["bind"] = bind
+        cfg["bind"] = bind.split(',')
 
         if gcfg:
             for k, v in gcfg.items():
