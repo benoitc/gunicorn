@@ -290,12 +290,14 @@ def validate_post_request(val):
     val = validate_callable(-1)(val)
 
     largs = len(inspect.getargspec(val)[0])
-    if largs == 3:
+    if largs == 4:
         return val
+    elif largs == 3:
+        return lambda worker, req, env, _r: val(worker, req, env)
     elif largs == 2:
-        return lambda worker, req, _: val(worker, req)
+        return lambda worker, req, _e, _r: val(worker, req)
     else:
-        raise TypeError("Value must have an arity of: 3")
+        raise TypeError("Value must have an arity of: 4")
 
 
 
@@ -992,7 +994,7 @@ class PostRequest(Setting):
     section = "Server Hooks"
     validator = validate_post_request
     type = "callable"
-    def post_request(worker, req, environ):
+    def post_request(worker, req, environ, resp):
         pass
     default = staticmethod(post_request)
     desc = """\
