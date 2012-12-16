@@ -358,6 +358,13 @@ class Bind(Setting):
 
         A string of the form: 'HOST', 'HOST:PORT', 'unix:PATH'. An IP is a valid
         HOST.
+
+        Multiple addresses can be bound. ex.::
+
+            $ gunicorn -b 127.0.0.1:8000 -b [::1]:8000 test:app
+
+        will bind the `test:app` application on localhost both on ipv6
+        and ipv4 interfaces.
         """
 
 class Backlog(Setting):
