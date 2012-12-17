@@ -79,13 +79,13 @@ class UnixSocket(BaseSocket):
 
     FAMILY = socket.AF_UNIX
 
-    def __init__(self, address, log, fd=None):
+    def __init__(self, address, conf, log, fd=None):
         if fd is None:
             try:
                 os.remove(address)
             except OSError:
                 pass
-        super(UnixSocket, self).__init__(addr, log, fd=fd)
+        super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
