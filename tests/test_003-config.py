@@ -192,3 +192,12 @@ def test_cli_overrides_config():
         app = NoConfigApp()
         t.eq(app.cfg.bind, "blarney")
         t.eq(app.cfg.proc_name, "fooey")
+
+def test_nworkers_changed():
+    c = config.Config()
+
+    def nworkers_changed_3(server, new_value, old_value):
+        return 3
+
+    c.set("nworkers_changed", nworkers_changed_3)
+    t.eq(3, c.nworkers_changed(1, 2, 3))
