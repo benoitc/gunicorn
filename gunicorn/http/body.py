@@ -18,7 +18,7 @@ class ChunkedReader(object):
     def read(self, size):
         if not isinstance(size, six.integer_types):
             raise TypeError("size must be an integral type")
-        if size <= 0:
+        if size < 0:
             raise ValueError("Size must be positive.")
         if size == 0:
             return b""
