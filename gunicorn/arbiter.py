@@ -377,7 +377,7 @@ class Arbiter(object):
             # close all listeners
             [l.close for l in self.LISTENERS]
             # init new listeners
-            self.LISTENERS = create_sockeSt(self.cfg, self.log)
+            self.LISTENERS = create_sockets(self.cfg, self.log)
             self.log.info("Listening at: %s", ",".join(str(self.LISTENERS)))
 
         # do some actions on reload
