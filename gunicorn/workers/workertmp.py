@@ -20,7 +20,7 @@ class WorkerTmp(object):
 
         # unlink the file so we don't leak tempory files
         try:
-            os.unlink(name)
+            util.unlink(name)
             self._tmp = os.fdopen(fd, 'w+b', 1)
         except:
             os.close(fd)
