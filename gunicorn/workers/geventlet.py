@@ -48,6 +48,8 @@ class EventletWorker(AsyncWorker):
             acceptor = eventlet.spawn(eventlet.serve, s, hfun,
                     self.worker_connections)
 
+            acceptors.append(acceptor)
+
         while self.alive:
             self.notify()
             if self.ppid != os.getppid():
