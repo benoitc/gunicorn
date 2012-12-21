@@ -159,6 +159,54 @@ def chown(path, uid, gid):
         os.chown(path, uid, -ctypes.c_int(-gid).value)
 
 
+if sys.platform.startswith("win"):
+    def _waitfor(func, pathname, waitall=False):
+        # Peform the operation
+        func(pathname)
+        # Now setup the wait loop
+        if waitall:
+            dirname = pathname
+        else:
+            dirname, name = os.path.split(pathname)
+            dirname = dirname or '.'
+        # Check for `pathname` to be removed from the filesystem.
+        # The exponential backoff of the timeout amounts to a total
+        # of ~1 second after which the deletion is probably an error
+        # anyway.
+        # Testing on a i7@4.3GHz shows that usually only 1 iteration is
+        # required when contention occurs.
+        timeout = 0.001
+        while timeout < 1.0:
+            # Note we are only testing for the existance of the file(s) in
+            # the contents of the directory regardless of any security or
+            # access rights.  If we have made it this far, we have sufficient
+            # permissions to do that much using Python's equivalent of the
+            # Windows API FindFirstFile.
+            # Other Windows APIs can fail or give incorrect results when
+            # dealing with files that are pending deletion.
+            L = os.listdir(dirname)
+            if not (L if waitall else name in L):
+                return
+            # Increase the timeout and try again
+            time.sleep(timeout)
+            timeout *= 2
+        warnings.warn('tests may fail, delete still pending for ' + pathname,
+                      RuntimeWarning, stacklevel=4)
+
+    def _unlink(filename):
+        _waitfor(os.unlink, filename)
+else:
+    _unlink = os.unlink
+
+def unlink(filename):
+    try:
+        _unlink(filename)
+    except OSError as error:
+        # The filename need not exist.
+        if error.errno not in (errno.ENOENT, errno.ENOTDIR):
+            raise
+
+
 def is_ipv6(addr):
     try:
         socket.inet_pton(socket.AF_INET6, addr)
