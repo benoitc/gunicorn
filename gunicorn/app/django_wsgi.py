@@ -46,6 +46,7 @@ def make_wsgi_application():
         return get_internal_wsgi_application()
     return WSGIHandler()
 
+
 def reload_django_settings():
         mod = util.import_module(os.environ['DJANGO_SETTINGS_MODULE'])
 
@@ -63,7 +64,7 @@ def reload_django_settings():
             if setting == setting.upper():
                 setting_value = getattr(mod, setting)
                 if setting in tuple_settings and type(setting_value) == str:
-                    setting_value = (setting_value,) # In case the user forgot the comma.
+                    setting_value = (setting_value,)  # In case the user forgot the comma.
                 setattr(settings, setting, setting_value)
 
         # Expand entries in INSTALLED_APPS like "django.contrib.*" to a list

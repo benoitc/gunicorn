@@ -3,11 +3,10 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import sys
-
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
         InvalidChunkSize)
 from gunicorn import six
+
 
 class ChunkedReader(object):
     def __init__(self, req, unreader):
@@ -51,7 +50,7 @@ class ChunkedReader(object):
             unreader.unread(buf.getvalue()[2:])
             return b""
         self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx])
-        unreader.unread(buf.getvalue()[idx+4:])
+        unreader.unread(buf.getvalue()[idx + 4:])
 
     def parse_chunked(self, unreader):
         (size, rest) = self.parse_chunk_size(unreader)
@@ -82,7 +81,7 @@ class ChunkedReader(object):
             idx = buf.getvalue().find(b"\r\n")
 
         data = buf.getvalue()
-        line, rest_chunk = data[:idx], data[idx+2:]
+        line, rest_chunk = data[:idx], data[idx + 2:]
 
         chunk_size = line.split(b";", 1)[0].strip()
         try:
@@ -104,6 +103,7 @@ class ChunkedReader(object):
             raise NoMoreData()
         buf.write(data)
 
+
 class LengthReader(object):
     def __init__(self, unreader, length):
         self.unreader = unreader
@@ -119,7 +119,6 @@ class LengthReader(object):
         if size == 0:
             return b""
 
-
         buf = six.BytesIO()
         data = self.unreader.read()
         while data:
@@ -133,6 +132,7 @@ class LengthReader(object):
         self.unreader.unread(rest)
         self.length -= size
         return ret
+
 
 class EOFReader(object):
     def __init__(self, unreader):
@@ -170,6 +170,7 @@ class EOFReader(object):
         self.buf = six.BytesIO()
         self.buf.write(rest)
         return ret
+
 
 class Body(object):
     def __init__(self, reader):
@@ -233,8 +234,8 @@ class Body(object):
 
         idx = line.find(b"\n")
         if idx >= 0:
-            ret = line[:idx+1]
-            self.buf.write(line[idx+1:])
+            ret = line[:idx + 1]
+            self.buf.write(line[idx + 1:])
             self.buf.write(extra_buf_data)
             return ret
         self.buf.write(extra_buf_data)
@@ -249,6 +250,6 @@ class Body(object):
                 ret.append(data)
                 data = b""
             else:
-                line, data = data[:pos+1], data[pos+1:]
+                line, data = data[:pos + 1], data[pos + 1:]
                 ret.append(line)
         return ret

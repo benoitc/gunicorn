@@ -8,6 +8,7 @@ import tempfile
 
 from gunicorn import util
 
+
 class WorkerTmp(object):
 
     def __init__(self, cfg):
@@ -30,7 +31,7 @@ class WorkerTmp(object):
 
     def notify(self):
         try:
-            self.spinner = (self.spinner+1) % 2
+            self.spinner = (self.spinner + 1) % 2
             os.fchmod(self._tmp.fileno(), self.spinner)
         except AttributeError:
             # python < 2.6

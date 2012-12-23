@@ -19,6 +19,7 @@ MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 MAX_HEADERFIELD_SIZE = 8190
 
+
 class Message(object):
     def __init__(self, cfg, unreader):
         self.cfg = cfg
@@ -150,7 +151,6 @@ class Request(Message):
         self.proxy_protocol_info = None
         super(Request, self).__init__(cfg, unreader)
 
-
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
         if not data:
@@ -200,7 +200,7 @@ class Request(Message):
 
         self.headers = self.parse_headers(data[:idx])
 
-        ret = data[idx+4:]
+        ret = data[idx + 4:]
         buf = BytesIO()
         return ret
 
@@ -220,8 +220,8 @@ class Request(Message):
             if len(data) - 2 > limit > 0:
                 raise LimitRequestLine(len(data), limit)
 
-        return (data[:idx], # request line,
-                data[idx + 2:]) #  residue in the buffer, skip \r\n
+        return (data[:idx],  # request line,
+                data[idx + 2:])  # residue in the buffer, skip \r\n
 
     def proxy_protocol(self, line):
         """\
@@ -337,5 +337,3 @@ class Request(Message):
         super(Request, self).set_body_reader()
         if isinstance(self.body.reader, EOFReader):
             self.body = Body(LengthReader(self.unreader, 0))
-
-

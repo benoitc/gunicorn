@@ -17,11 +17,11 @@ from gunicorn import util
 from gunicorn.six import string_types
 
 CONFIG_DEFAULTS = dict(
-        version = 1,
-        disable_existing_loggers = False,
+        version=1,
+        disable_existing_loggers=False,
 
-        loggers = {
-            "root": { "level": "INFO", "handlers": ["console"] },
+        loggers={
+            "root": {"level": "INFO", "handlers": ["console"]},
             "gunicorn.error": {
                 "level": "INFO",
                 "handlers": ["console"],
@@ -29,14 +29,14 @@ CONFIG_DEFAULTS = dict(
                 "qualname": "gunicorn.error"
             }
         },
-        handlers = {
+        handlers={
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
                 "stream": "sys.stdout"
             }
         },
-        formatters = {
+        formatters={
             "generic": {
                 "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
@@ -45,11 +45,13 @@ CONFIG_DEFAULTS = dict(
         }
 )
 
+
 def loggers():
     """ get list of all loggers """
     root = logging.root
     existing = root.manager.loggerDict.keys()
     return [logging.getLogger(name) for name in existing]
+
 
 class LazyWriter(object):
 
@@ -100,6 +102,7 @@ class LazyWriter(object):
     def isatty(self):
         return bool(self.fileobj and self.fileobj.isatty())
 
+
 class SafeAtoms(dict):
 
     def __init__(self, atoms):
@@ -149,7 +152,6 @@ class Logger(object):
             self.error_log.setLevel(loglevel)
             self.access_log.setLevel(logging.INFO)
 
-
             if cfg.errorlog != "-":
                 # if an error log file is set redirect stdout & stderr to
                 # this log file.
@@ -169,7 +171,6 @@ class Logger(object):
                         disable_existing_loggers=False)
             else:
                 raise RuntimeError("Error: log config '%s' not found" % cfg.logconfig)
-
 
     def critical(self, msg, *args, **kwargs):
         self.error_log.critical(msg, *args, **kwargs)
@@ -206,7 +207,7 @@ class Logger(object):
         atoms = {
                 'h': environ.get('REMOTE_ADDR', '-'),
                 'l': '-',
-                'u': '-', # would be cool to get username from basic auth header
+                'u': '-',  # would be cool to get username from basic auth header
                 't': self.now(),
                 'r': "%s %s %s" % (environ['REQUEST_METHOD'],
                     environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
@@ -225,10 +226,10 @@ class Logger(object):
         else:
             req_headers = req
 
-        atoms.update(dict([("{%s}i" % k.lower(),v) for k, v in req_headers]))
+        atoms.update(dict([("{%s}i" % k.lower(), v) for k, v in req_headers]))
 
         # add response headers
-        atoms.update(dict([("{%s}o" % k.lower(),v) for k, v in resp.headers]))
+        atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp.headers]))
 
         # wrap atoms:
         # - make sure atoms will be test case insensitively
@@ -246,7 +247,6 @@ class Logger(object):
         month = util.monthname[now.month]
         return '[%02d/%s/%04d:%02d:%02d:%02d]' % (now.day, month,
                 now.year, now.hour, now.minute, now.second)
-
 
     def reopen_files(self):
         if self.cfg.errorlog != "-":
@@ -276,7 +276,6 @@ class Logger(object):
                     finally:
                         handler.release()
 
-
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
             if getattr(h, "_gunicorn", False) == True:
@@ -297,4 +296,3 @@ class Logger(object):
         h.setFormatter(fmt)
         h._gunicorn = True
         log.addHandler(h)
-

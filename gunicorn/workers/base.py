@@ -19,6 +19,7 @@ from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
 
+
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
@@ -129,7 +130,7 @@ class Worker(object):
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
-        addr = addr or ('', -1) # unix socket case
+        addr = addr or ('', -1)  # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
             LimitRequestLine, LimitRequestHeaders,
@@ -147,7 +148,7 @@ class Worker(object):
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "<p>%s</p>" % str(exc)
                 if not req and hasattr(exc, "req"):
-                    req = exc.req # for access log
+                    req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
                 mesg = "<p>%s</p>" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):

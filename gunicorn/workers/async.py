@@ -16,6 +16,7 @@ from gunicorn import six
 
 ALREADY_HANDLED = object()
 
+
 class AsyncWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
@@ -47,9 +48,9 @@ class AsyncWorker(base.Worker):
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
             except ssl.SSLError:
-                raise # pass to next try-except level
+                raise  # pass to next try-except level
             except socket.error:
-                raise # pass to next try-except level
+                raise  # pass to next try-except level
             except Exception as e:
                 self.handle_error(req, client, addr, e)
         except ssl.SSLError as e:
@@ -100,7 +101,7 @@ class AsyncWorker(base.Worker):
                 self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
-                  respiter.close()
+                    respiter.close()
             if resp.should_close():
                 raise StopIteration()
         finally:

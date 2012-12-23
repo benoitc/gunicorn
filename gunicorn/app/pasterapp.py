@@ -18,6 +18,7 @@ SERVER = loadwsgi.SERVER
 from gunicorn.app.base import Application
 from gunicorn.config import Config
 
+
 class PasterBaseApplication(Application):
 
     def app_config(self):
@@ -60,6 +61,7 @@ class PasterBaseApplication(Application):
                 fileConfig(config_file, dict(__file__=config_file,
                                              here=os.path.dirname(config_file)))
 
+
 class PasterApplication(PasterBaseApplication):
 
     def init(self, parser, opts, args):
@@ -82,6 +84,7 @@ class PasterApplication(PasterBaseApplication):
 
     def load(self):
         return loadapp(self.cfgurl, relative_to=self.relpath)
+
 
 class PasterServerApplication(PasterBaseApplication):
 
@@ -119,13 +122,12 @@ class PasterServerApplication(PasterBaseApplication):
             sys.stderr.flush()
             sys.exit(1)
 
-
     def load_config(self):
         if not hasattr(self, "cfgfname"):
             return
 
         cfg = self.app_config()
-        for k,v in cfg.items():
+        for k, v in cfg.items():
             try:
                 self.cfg.set(k.lower(), v)
             except:
@@ -146,6 +148,7 @@ def run():
     """
     from gunicorn.app.pasterapp import PasterApplication
     PasterApplication("%prog [OPTIONS] pasteconfig.ini").run()
+
 
 def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     """\

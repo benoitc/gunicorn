@@ -55,7 +55,7 @@ class Pidfile(object):
         """ delete pidfile"""
         try:
             with open(self.fname, "r") as f:
-                pid1 =  int(f.read() or 0)
+                pid1 = int(f.read() or 0)
 
             if pid1 == self.pid:
                 os.unlink(self.fname)

@@ -13,13 +13,13 @@ import sys
 import time
 import traceback
 
-
 from gunicorn.errors import HaltServer
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
 from gunicorn import util
 
 from gunicorn import __version__, SERVER_SOFTWARE
+
 
 class Arbiter(object):
     """
@@ -82,6 +82,7 @@ class Arbiter(object):
 
     def _get_num_workers(self):
         return self._num_workers
+
     def _set_num_workers(self, value):
         old_value = self._num_workers
         self._num_workers = value
@@ -106,8 +107,6 @@ class Arbiter(object):
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
-
-
             for config, value in sorted(self.cfg.settings.items(),
                     key=lambda setting: setting[1]):
                 self.log.debug("  %s: %s", config, value.value)
@@ -322,7 +321,6 @@ class Arbiter(object):
         except KeyboardInterrupt:
             sys.exit()
 
-
     def stop(self, graceful=True):
         """\
         Stop workers
@@ -367,7 +365,7 @@ class Arbiter(object):
 
         # close all file descriptors except bound sockets
         util.closerange(3, fds[0])
-        util.closerange(fds[-1]+1, util.get_maxfd())
+        util.closerange(fds[-1] + 1, util.get_maxfd())
 
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 
@@ -470,7 +468,7 @@ class Arbiter(object):
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
-                                    self.app, self.timeout/2.0,
+                                    self.app, self.timeout / 2.0,
                                     self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
         pid = os.fork()

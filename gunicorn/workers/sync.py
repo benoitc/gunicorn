@@ -17,6 +17,7 @@ import gunicorn.util as util
 import gunicorn.workers.base as base
 from gunicorn import six
 
+
 class SyncWorker(base.Worker):
 
     def run(self):

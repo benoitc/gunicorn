@@ -28,6 +28,7 @@ if sys.version_info < (2, 6) or \
 _libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
 _sendfile = _libc.sendfile
 
+
 def sendfile(fdout, fdin, offset, nbytes):
     if sys.platform == 'darwin':
         _sendfile.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64,

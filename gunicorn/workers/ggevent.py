@@ -38,6 +38,7 @@ BASE_WSGI_ENV = {
     'wsgi.run_once': False
 }
 
+
 class GeventWorker(AsyncWorker):
 
     server_class = None
@@ -51,7 +52,6 @@ class GeventWorker(AsyncWorker):
 
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
-
 
     def run(self):
         servers = []
@@ -80,7 +80,7 @@ class GeventWorker(AsyncWorker):
             while self.alive:
                 self.notify()
 
-                if  pid == os.getpid() and self.ppid != os.getppid():
+                if pid == os.getpid() and self.ppid != os.getppid():
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
 
@@ -137,11 +137,11 @@ class GeventResponse(object):
     headers = None
     response_length = None
 
-
     def __init__(self, status, headers, clength):
         self.status = status
         self.headers = headers
         self.response_length = clength
+
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
 
@@ -160,8 +160,10 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         env['RAW_URI'] = self.path
         return env
 
+
 class PyWSGIServer(pywsgi.WSGIServer):
     base_env = BASE_WSGI_ENV
+
 
 class GeventPyWSGIWorker(GeventWorker):
     "The Gevent StreamServer based workers."

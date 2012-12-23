@@ -9,6 +9,7 @@ import sys
 from gunicorn.app.base import Application
 from gunicorn import util
 
+
 def is_setting_mod(path):
     return (os.path.isfile(os.path.join(path, "settings.py")) or
             os.path.isfile(os.path.join(path, "settings.pyc")))
@@ -34,7 +35,7 @@ def find_settings_module(path):
             project_path = path
     elif os.path.isfile(path):
         project_path = os.path.dirname(path)
-        settings_name, _  = os.path.splitext(os.path.basename(path))
+        settings_name, _ = os.path.splitext(os.path.basename(path))
 
     return project_path, settings_name
 
@@ -91,7 +92,6 @@ class DjangoApplication(Application):
                         settings_name))
                 self.cfg.set("pythonpath", pythonpath)
 
-
     def load(self):
         # set settings
         make_default_env(self.cfg)
@@ -114,7 +114,6 @@ class DjangoApplicationCommand(Application):
 
         self.do_load_config()
 
-
     def init(self, *args):
         if 'settings' in self.options:
             self.options['django_settings'] = self.options.pop('settings')
@@ -132,6 +131,7 @@ class DjangoApplicationCommand(Application):
         # load wsgi application and return it.
         mod = util.import_module("gunicorn.app.django_wsgi")
         return mod.make_command_wsgi_application(self.admin_media_path)
+
 
 def run():
     """\

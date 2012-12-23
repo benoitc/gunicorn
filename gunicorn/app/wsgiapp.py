@@ -9,6 +9,7 @@ import sys
 from gunicorn import util
 from gunicorn.app.base import Application
 
+
 class WSGIApplication(Application):
 
     def init(self, parser, opts, args):
@@ -22,6 +23,7 @@ class WSGIApplication(Application):
 
     def load(self):
         return util.import_app(self.app_uri)
+
 
 def run():
     """\
