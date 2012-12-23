@@ -24,14 +24,16 @@ import sys
 import textwrap
 import time
 import inspect
+import errno
+import warnings
 
 from gunicorn.six import text_type, string_types
 
 MAXFD = 1024
 if (hasattr(os, "devnull")):
-   REDIRECT_TO = os.devnull
+    REDIRECT_TO = os.devnull
 else:
-   REDIRECT_TO = "/dev/null"
+    REDIRECT_TO = "/dev/null"
 
 timeout_default = object()
 
@@ -83,7 +85,6 @@ except ImportError:
                                   "package")
         return "%s.%s" % (package[:dot], name)
 
-
     def import_module(name, package=None):
         """Import a module.
 
@@ -104,6 +105,7 @@ relative import to an absolute import.
         __import__(name)
         return sys.modules[name]
 
+
 def load_class(uri, default="sync", section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
@@ -111,7 +113,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
         # uses entry points
         entry_str = uri.split("egg:")[1]
         try:
-            dist, name = entry_str.rsplit("#",1)
+            dist, name = entry_str.rsplit("#", 1)
         except ValueError:
             dist = entry_str
             name = default
@@ -135,7 +137,8 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             mod = getattr(mod, comp)
         return getattr(mod, klass)
 
-def set_owner_process(uid,gid):
+
+def set_owner_process(uid, gid):
     """ set user and group of workers processes """
     if gid:
         try:
@@ -149,6 +152,7 @@ def set_owner_process(uid,gid):
 
     if uid:
         os.setuid(uid)
+
 
 def chown(path, uid, gid):
     try:
@@ -198,6 +202,7 @@ if sys.platform.startswith("win"):
 else:
     _unlink = os.unlink
 
+
 def unlink(filename):
     try:
         _unlink(filename)
@@ -210,9 +215,10 @@ def unlink(filename):
 def is_ipv6(addr):
     try:
         socket.inet_pton(socket.AF_INET6, addr)
-    except socket.error: # not a valid address
+    except socket.error:  # not a valid address
         return False
     return True
+
 
 def parse_address(netloc, default_port=8000):
     if netloc.startswith("unix:"):
@@ -239,20 +245,24 @@ def parse_address(netloc, default_port=8000):
         port = default_port
     return (host, port)
 
+
 def get_maxfd():
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
     if (maxfd == resource.RLIM_INFINITY):
         maxfd = MAXFD
     return maxfd
 
+
 def close_on_exec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
+
 def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+
 
 def close(sock):
     try:
@@ -268,8 +278,9 @@ except ImportError:
         for fd in range(fd_low, fd_high):
             try:
                 os.close(fd)
-            except OSError:	# ERROR, fd wasn't open to begin with (ignored)
+            except OSError:  # ERROR, fd wasn't open to begin with (ignored)
                 pass
+
 
 def write_chunk(sock, data):
     if isinstance(data, text_type):
@@ -278,10 +289,12 @@ def write_chunk(sock, data):
     chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
     sock.sendall(chunk)
 
+
 def write(sock, data, chunked=False):
     if chunked:
         return write_chunk(sock, data)
     sock.sendall(data)
+
 
 def write_nonblock(sock, data, chunked=False):
     timeout = sock.gettimeout()
@@ -294,9 +307,11 @@ def write_nonblock(sock, data, chunked=False):
     else:
         return write(sock, data, chunked)
 
+
 def writelines(sock, lines, chunked=False):
     for line in list(lines):
         write(sock, line, chunked)
+
 
 def write_error(sock, status_int, reason, mesg):
     html = textwrap.dedent("""\
@@ -321,8 +336,10 @@ def write_error(sock, status_int, reason, mesg):
     """) % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
 
+
 def normalize_name(name):
-    return  "-".join([w.lower().capitalize() for w in name.split("-")])
+    return "-".join([w.lower().capitalize() for w in name.split("-")])
+
 
 def import_app(module):
     parts = module.split(":", 1)
@@ -336,7 +353,7 @@ def import_app(module):
     except ImportError:
         if module.endswith(".py") and os.path.exists(module):
             raise ImportError("Failed to find application, did "
-                "you mean '%s:%s'?" % (module.rsplit(".",1)[0], obj))
+                "you mean '%s:%s'?" % (module.rsplit(".", 1)[0], obj))
         else:
             raise
 
@@ -347,6 +364,7 @@ def import_app(module):
     if not callable(app):
         raise TypeError("Application object must be callable.")
     return app
+
 
 def http_date(timestamp=None):
     """Return the current date and time formatted for a message header."""
@@ -359,8 +377,10 @@ def http_date(timestamp=None):
             hh, mm, ss)
     return s
 
+
 def is_hoppish(header):
     return header.lower().strip() in hop_headers
+
 
 def daemonize():
     """\
@@ -383,6 +403,7 @@ def daemonize():
         os.dup2(0, 1)
         os.dup2(0, 2)
 
+
 def seed():
     try:
         random.seed(os.urandom(64))
@@ -396,6 +417,7 @@ def check_is_writeable(path):
     except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
     f.close()
+
 
 def to_bytestring(value):
     """Converts a string argument to a byte string"""

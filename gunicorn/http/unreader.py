@@ -10,6 +10,7 @@ from gunicorn import six
 # Classes that can undo reading data from
 # a given type of data source.
 
+
 class Unreader(object):
     def __init__(self):
         self.buf = six.BytesIO()
@@ -34,7 +35,7 @@ class Unreader(object):
             self.buf = six.BytesIO()
             return ret
         if size is None:
-            d =  self.chunk()
+            d = self.chunk()
             return d
 
         while self.buf.tell() < size:
@@ -53,6 +54,7 @@ class Unreader(object):
         self.buf.seek(0, os.SEEK_END)
         self.buf.write(data)
 
+
 class SocketUnreader(Unreader):
     def __init__(self, sock, max_chunk=8192):
         super(SocketUnreader, self).__init__()
@@ -61,6 +63,7 @@ class SocketUnreader(Unreader):
 
     def chunk(self):
         return self.sock.recv(self.mxchunk)
+
 
 class IterUnreader(Unreader):
     def __init__(self, iterable):

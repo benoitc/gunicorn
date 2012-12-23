@@ -15,12 +15,13 @@ from eventlet.greenio import GreenSocket
 
 from gunicorn.workers.async import AsyncWorker
 
+
 class EventletWorker(AsyncWorker):
 
     @classmethod
     def setup(cls):
         import eventlet
-        if eventlet.version_info < (0,9,7):
+        if eventlet.version_info < (0, 9, 7):
             raise RuntimeError("You need eventlet >= 0.9.7")
         eventlet.monkey_patch(os=False)
 

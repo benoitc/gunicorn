@@ -12,6 +12,7 @@ import time
 from gunicorn import util
 from gunicorn.six import string_types
 
+
 class BaseSocket(object):
 
     def __init__(self, address, conf, log, fd=None):
@@ -50,6 +51,7 @@ class BaseSocket(object):
         time.sleep(0.3)
         del self.sock
 
+
 class TCPSocket(BaseSocket):
 
     FAMILY = socket.AF_INET
@@ -60,12 +62,13 @@ class TCPSocket(BaseSocket):
         else:
             scheme = "http"
 
-        addr =  self.sock.getsockname()
+        addr = self.sock.getsockname()
         return "%s://%s:%d" % (scheme, addr[0], addr[1])
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return super(TCPSocket, self).set_options(sock, bound=bound)
+
 
 class TCP6Socket(TCPSocket):
 
@@ -74,6 +77,7 @@ class TCP6Socket(TCPSocket):
     def __str__(self):
         (host, port, fl, sc) = self.sock.getsockname()
         return "http://[%s]:%d" % (host, port)
+
 
 class UnixSocket(BaseSocket):
 
@@ -100,6 +104,7 @@ class UnixSocket(BaseSocket):
         super(UnixSocket, self).close()
         os.unlink(self.cfg_addr)
 
+
 def _sock_type(addr):
     if isinstance(addr, tuple):
         if util.is_ipv6(addr[0]):
@@ -111,6 +116,7 @@ def _sock_type(addr):
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
     return sock_type
+
 
 def create_sockets(conf, log):
     """
@@ -158,7 +164,7 @@ def create_sockets(conf, log):
         sock = None
         for i in range(5):
             try:
-               sock = sock_type(addr, conf, log)
+                sock = sock_type(addr, conf, log)
             except socket.error as e:
                 if e.args[0] == errno.EADDRINUSE:
                     log.error("Connection in use: %s", str(addr))

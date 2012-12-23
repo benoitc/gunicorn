@@ -26,6 +26,7 @@ NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
 log = logging.getLogger(__name__)
 
+
 class FileWrapper:
 
     def __init__(self, filelike, blksize=8192):
@@ -58,6 +59,7 @@ def default_environ(req, sock, cfg):
         "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version])
     }
 
+
 def proxy_environ(req):
     info = req.proxy_protocol_info
 
@@ -71,6 +73,7 @@ def proxy_environ(req):
         "PROXY_ADDR": info["proxy_addr"],
         "PROXY_PORT": str(info["proxy_port"]),
     }
+
 
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock)
@@ -127,7 +130,7 @@ def create(req, sock, client, server, cfg):
 
         # find host and port on ipv6 address
         if '[' in forward and ']' in forward:
-            host =  forward.split(']')[0][1:].lower()
+            host = forward.split(']')[0][1:].lower()
         elif ":" in forward and forward.count(":") == 1:
             host = forward.split(":")[0].lower()
         else:
@@ -147,7 +150,7 @@ def create(req, sock, client, server, cfg):
     environ['REMOTE_PORT'] = str(remote[1])
 
     if isinstance(server, string_types):
-        server =  server.split(":")
+        server = server.split(":")
         if len(server) == 1:
             if url_scheme == "http":
                 server.append("80")
@@ -167,6 +170,7 @@ def create(req, sock, client, server, cfg):
     environ.update(proxy_environ(req))
 
     return resp, environ
+
 
 class Response(object):
 
@@ -229,14 +233,13 @@ class Response(object):
                 continue
             self.headers.append((name.strip(), value))
 
-
     def is_chunked(self):
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
         if self.response_length is not None:
             return False
-        elif self.req.version <= (1,0):
+        elif self.req.version <= (1, 0):
             return False
         elif self.status.startswith("304") or self.status.startswith("204"):
             # Do not use chunked responses when the response is guaranteed to
@@ -268,7 +271,7 @@ class Response(object):
         if self.headers_sent:
             return
         tosend = self.default_headers()
-        tosend.extend(["%s: %s\r\n" % (k,v) for k, v in self.headers])
+        tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
         util.write(self.sock, util.to_bytestring(header_str))
@@ -315,9 +318,9 @@ class Response(object):
                 nbytes -= BLKSIZE
         else:
             sent = 0
-            sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
+            sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
             while sent != nbytes:
-                sent += sendfile(sockno, fileno, offset+sent, nbytes-sent)
+                sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
 
     def write_file(self, respiter):
         if sendfile is not None and \

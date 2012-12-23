@@ -19,10 +19,12 @@ from gunicorn.six import string_types, integer_types, bytes_to_str
 
 KNOWN_SETTINGS = []
 
+
 def wrap_method(func):
     def _wrapped(instance, *args, **kwargs):
         return func(*args, **kwargs)
     return _wrapped
+
 
 def make_settings(ignore=None):
     settings = {}
@@ -33,6 +35,7 @@ def make_settings(ignore=None):
             continue
         settings[setting.name] = setting.copy()
     return settings
+
 
 class Config(object):
 
@@ -63,9 +66,9 @@ class Config(object):
         parser = optparse.OptionParser(**kwargs)
 
         keys = list(self.settings)
+
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
-
 
         keys = sorted(self.settings, key=self.settings.__getitem__)
         for k in keys:
@@ -151,6 +154,7 @@ class SettingMeta(type):
         setattr(cls, "desc", desc)
         setattr(cls, "short", desc.splitlines()[0])
 
+
 class Setting(object):
     name = None
     value = None
@@ -201,6 +205,7 @@ class Setting(object):
 
 Setting = SettingMeta('Setting', (Setting,), {})
 
+
 def validate_bool(val):
     if isinstance(val, bool):
         return val
@@ -213,10 +218,12 @@ def validate_bool(val):
     else:
         raise ValueError("Invalid boolean: %s" % val)
 
+
 def validate_dict(val):
     if not isinstance(val, dict):
         raise TypeError("Value is not a dictionary: %s " % val)
     return val
+
 
 def validate_pos_int(val):
     if not isinstance(val, integer_types):
@@ -228,12 +235,14 @@ def validate_pos_int(val):
         raise ValueError("Value must be positive: %s" % val)
     return val
 
+
 def validate_string(val):
     if val is None:
         return None
     if not isinstance(val, string_types):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
+
 
 def validate_list_string(val):
     if not val:
@@ -245,6 +254,7 @@ def validate_list_string(val):
 
     return [validate_string(v) for v in val]
 
+
 def validate_string_to_list(val):
     val = validate_string(val)
 
@@ -253,12 +263,14 @@ def validate_string_to_list(val):
 
     return [v.strip() for v in val.split(",") if v]
 
+
 def validate_class(val):
     if inspect.isfunction(val) or inspect.ismethod(val):
         val = val()
     if inspect.isclass(val):
         return val
     return validate_string(val)
+
 
 def validate_callable(arity):
     def _validate_callable(val):
@@ -297,6 +309,7 @@ def validate_user(val):
         except KeyError:
             raise ConfigError("No such user: '%s'" % val)
 
+
 def validate_group(val):
     if val is None:
         return os.getegid()
@@ -310,6 +323,7 @@ def validate_group(val):
             return grp.getgrnam(val).gr_gid
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
+
 
 def validate_post_request(val):
     val = validate_callable(-1)(val)
@@ -325,7 +339,6 @@ def validate_post_request(val):
         raise TypeError("Value must have an arity of: 4")
 
 
-
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
@@ -339,6 +352,7 @@ class ConfigFile(Setting):
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
         """
+
 
 class Bind(Setting):
     name = "bind"
@@ -367,6 +381,7 @@ class Bind(Setting):
         and ipv4 interfaces.
         """
 
+
 class Backlog(Setting):
     name = "backlog"
     section = "Server Socket"
@@ -386,6 +401,7 @@ class Backlog(Setting):
         Must be a positive integer. Generally set in the 64-2048 range.
         """
 
+
 class Workers(Setting):
     name = "workers"
     section = "Worker Processes"
@@ -401,6 +417,7 @@ class Workers(Setting):
         want to vary this a bit to find the best for your particular
         application's work load.
         """
+
 
 class WorkerClass(Setting):
     name = "worker_class"
@@ -430,6 +447,7 @@ class WorkerClass(Setting):
         can also load the gevent class with ``egg:gunicorn#gevent``
         """
 
+
 class WorkerConnections(Setting):
     name = "worker_connections"
     section = "Worker Processes"
@@ -443,6 +461,7 @@ class WorkerConnections(Setting):
 
         This setting only affects the Eventlet and Gevent worker types.
         """
+
 
 class MaxRequests(Setting):
     name = "max_requests"
@@ -463,6 +482,7 @@ class MaxRequests(Setting):
         restarts are disabled.
         """
 
+
 class Timeout(Setting):
     name = "timeout"
     section = "Worker Processes"
@@ -480,6 +500,7 @@ class Timeout(Setting):
         is not tied to the length of time required to handle a single request.
         """
 
+
 class GracefulTimeout(Setting):
     name = "graceful_timeout"
     section = "Worker Processes"
@@ -496,6 +517,7 @@ class GracefulTimeout(Setting):
         be force killed.
         """
 
+
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"
@@ -509,6 +531,7 @@ class Keepalive(Setting):
 
         Generally set in the 1-5 seconds range.
         """
+
 
 class LimitRequestLine(Setting):
     name = "limit_request_line"
@@ -533,6 +556,7 @@ class LimitRequestLine(Setting):
         This parameter can be used to prevent any DDOS attack.
         """
 
+
 class LimitRequestFields(Setting):
     name = "limit_request_fields"
     section = "Security"
@@ -541,7 +565,7 @@ class LimitRequestFields(Setting):
     validator = validate_pos_int
     type = "int"
     default = 100
-    desc= """\
+    desc = """\
         Limit the number of HTTP headers fields in a request.
 
         This parameter is used to limit the number of headers in a request to
@@ -549,6 +573,7 @@ class LimitRequestFields(Setting):
         more safety. By default this value is 100 and can't be larger than
         32768.
         """
+
 
 class LimitRequestFieldSize(Setting):
     name = "limit_request_field_size"
@@ -558,12 +583,13 @@ class LimitRequestFieldSize(Setting):
     validator = validate_pos_int
     type = "int"
     default = 8190
-    desc= """\
+    desc = """\
         Limit the allowed size of an HTTP request header field.
 
         Value is a number from 0 (unlimited) to 8190. to set the limit
         on the allowed size of an HTTP request header field.
         """
+
 
 class Debug(Setting):
     name = "debug"
@@ -579,6 +605,7 @@ class Debug(Setting):
         handling that's sent to clients.
         """
 
+
 class Spew(Setting):
     name = "spew"
     section = "Debugging"
@@ -592,16 +619,18 @@ class Spew(Setting):
         This is the nuclear option.
         """
 
+
 class ConfigCheck(Setting):
     name = "check_config"
     section = "Debugging"
-    cli = ["--check-config",]
+    cli = ["--check-config", ]
     validator = validate_bool
     action = "store_true"
     default = False
     desc = """\
         Check the configuration..
         """
+
 
 class PreloadApp(Setting):
     name = "preload_app"
@@ -619,6 +648,7 @@ class PreloadApp(Setting):
         restarting workers.
         """
 
+
 class Daemon(Setting):
     name = "daemon"
     section = "Server Mechanics"
@@ -633,6 +663,7 @@ class Daemon(Setting):
         background.
         """
 
+
 class Pidfile(Setting):
     name = "pidfile"
     section = "Server Mechanics"
@@ -645,6 +676,7 @@ class Pidfile(Setting):
 
         If not set, no PID file will be written.
         """
+
 
 class User(Setting):
     name = "user"
@@ -661,6 +693,7 @@ class User(Setting):
         the worker process user.
         """
 
+
 class Group(Setting):
     name = "group"
     section = "Server Mechanics"
@@ -675,6 +708,7 @@ class Group(Setting):
         retrieved with a call to pwd.getgrnam(value) or None to not change
         the worker processes group.
         """
+
 
 class Umask(Setting):
     name = "umask"
@@ -694,6 +728,7 @@ class Umask(Setting):
         "0xFF", "0022" are valid for decimal, hex, and octal representations)
         """
 
+
 class TmpUploadDir(Setting):
     name = "tmp_upload_dir"
     section = "Server Mechanics"
@@ -709,6 +744,7 @@ class TmpUploadDir(Setting):
         workers. If not specified, Gunicorn will choose a system generated
         temporary directory.
         """
+
 
 class SecureSchemeHeader(Setting):
     name = "secure_scheme_headers"
@@ -734,6 +770,8 @@ class SecureSchemeHeader(Setting):
         It is important that your front-end proxy configuration ensures that
         the headers defined here can not be passed directly from the client.
         """
+
+
 class XForwardedFor(Setting):
     name = "x_forwarded_for_header"
     section = "Server Mechanics"
@@ -744,6 +782,7 @@ class XForwardedFor(Setting):
         Set the X-Forwarded-For header that identify the originating IP
         address of the client connection to gunicorn via a proxy.
         """
+
 
 class ForwardedAllowIPS(Setting):
     name = "forwarded_allow_ips"
@@ -760,6 +799,7 @@ class ForwardedAllowIPS(Setting):
         you still trust the environment)
         """
 
+
 class AccessLog(Setting):
     name = "accesslog"
     section = "Logging"
@@ -772,6 +812,7 @@ class AccessLog(Setting):
 
         "-" means log to stderr.
         """
+
 
 class AccessLogFormat(Setting):
     name = "access_log_format"
@@ -804,6 +845,7 @@ class AccessLogFormat(Setting):
         {Header}o: response header
         """
 
+
 class ErrorLog(Setting):
     name = "errorlog"
     section = "Logging"
@@ -816,6 +858,7 @@ class ErrorLog(Setting):
 
         "-" means log to stderr.
         """
+
 
 class Loglevel(Setting):
     name = "loglevel"
@@ -835,6 +878,7 @@ class Loglevel(Setting):
         * error
         * critical
         """
+
 
 class LoggerClass(Setting):
     name = "logger_class"
@@ -869,6 +913,7 @@ Gunicorn uses the standard Python logging module's Configuration
 file format.
 """
 
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"
@@ -886,6 +931,7 @@ class Procname(Setting):
 
         It defaults to 'gunicorn'.
         """
+
 
 class DefaultProcName(Setting):
     name = "default_proc_name"
@@ -911,6 +957,7 @@ class DjangoSettings(Setting):
         DJANGO_SETTINGS_MODULE environment variable will be used.
         """
 
+
 class PythonPath(Setting):
     name = "pythonpath"
     section = "Server Mechanics"
@@ -925,11 +972,13 @@ class PythonPath(Setting):
         '/home/djangoprojects/myproject'.
         """
 
+
 class OnStarting(Setting):
     name = "on_starting"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
+
     def on_starting(server):
         pass
     default = staticmethod(on_starting)
@@ -939,11 +988,13 @@ class OnStarting(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+
 class OnReload(Setting):
     name = "on_reload"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
+
     def on_reload(server):
         pass
     default = staticmethod(on_reload)
@@ -953,11 +1004,13 @@ class OnReload(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
+
     def when_ready(server):
         pass
     default = staticmethod(when_ready)
@@ -967,11 +1020,13 @@ class WhenReady(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+
 class Prefork(Setting):
     name = "pre_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
+
     def pre_fork(server, worker):
         pass
     default = staticmethod(pre_fork)
@@ -982,11 +1037,13 @@ class Prefork(Setting):
         new Worker.
         """
 
+
 class Postfork(Setting):
     name = "post_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
+
     def post_fork(server, worker):
         pass
     default = staticmethod(post_fork)
@@ -997,11 +1054,13 @@ class Postfork(Setting):
         new Worker.
         """
 
+
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = "callable"
+
     def pre_exec(server):
         pass
     default = staticmethod(pre_exec)
@@ -1011,11 +1070,13 @@ class PreExec(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+
 class PreRequest(Setting):
     name = "pre_request"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
+
     def pre_request(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
     default = staticmethod(pre_request)
@@ -1026,11 +1087,13 @@ class PreRequest(Setting):
         the Request.
         """
 
+
 class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
     validator = validate_post_request
     type = "callable"
+
     def post_request(worker, req, environ, resp):
         pass
     default = staticmethod(post_request)
@@ -1041,11 +1104,13 @@ class PostRequest(Setting):
         the Request.
         """
 
+
 class WorkerExit(Setting):
     name = "worker_exit"
     section = "Server Hooks"
     validator = validate_callable(2)
     type = "callable"
+
     def worker_exit(server, worker):
         pass
     default = staticmethod(worker_exit)
@@ -1056,11 +1121,13 @@ class WorkerExit(Setting):
         the just-exited Worker.
         """
 
+
 class NumWorkersChanged(Setting):
     name = "nworkers_changed"
     section = "Server Hooks"
     validator = validate_callable(3)
     type = "callable"
+
     def nworkers_changed(server, new_value, old_value):
         pass
     default = staticmethod(nworkers_changed)
@@ -1073,6 +1140,7 @@ class NumWorkersChanged(Setting):
         If the number of workers is set for the first time, old_value would be
         None.
         """
+
 
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
@@ -1099,6 +1167,7 @@ class ProxyProtocol(Setting):
         key = /etc/ssl/certs/stunnel.key
         """
 
+
 class ProxyAllowFrom(Setting):
     name = "proxy_allow_ips"
     section = "Server Mechanics"
@@ -1108,6 +1177,7 @@ class ProxyAllowFrom(Setting):
     desc = """\
         Front-end's IPs from which allowed accept proxy requests (comma separate).
         """
+
 
 class KeyFile(Setting):
     name = "keyfile"
@@ -1119,6 +1189,7 @@ class KeyFile(Setting):
     desc = """\
     SSL key file
     """
+
 
 class CertFile(Setting):
     name = "certfile"

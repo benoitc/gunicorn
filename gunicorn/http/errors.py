@@ -3,8 +3,10 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+
 class ParseException(Exception):
     pass
+
 
 class NoMoreData(IOError):
     def __init__(self, buf=None):
@@ -12,6 +14,7 @@ class NoMoreData(IOError):
 
     def __str__(self):
         return "No more data after: %r" % self.buf
+
 
 class InvalidRequestLine(ParseException):
     def __init__(self, req):
@@ -21,6 +24,7 @@ class InvalidRequestLine(ParseException):
     def __str__(self):
         return "Invalid HTTP request line: %r" % self.req
 
+
 class InvalidRequestMethod(ParseException):
     def __init__(self, method):
         self.method = method
@@ -28,12 +32,14 @@ class InvalidRequestMethod(ParseException):
     def __str__(self):
         return "Invalid HTTP method: %r" % self.method
 
+
 class InvalidHTTPVersion(ParseException):
     def __init__(self, version):
         self.version = version
 
     def __str__(self):
         return "Invalid HTTP Version: %s" % self.version
+
 
 class InvalidHeader(ParseException):
     def __init__(self, hdr, req=None):
@@ -43,6 +49,7 @@ class InvalidHeader(ParseException):
     def __str__(self):
         return "Invalid HTTP Header: %s" % self.hdr
 
+
 class InvalidHeaderName(ParseException):
     def __init__(self, hdr):
         self.hdr = hdr
@@ -50,12 +57,14 @@ class InvalidHeaderName(ParseException):
     def __str__(self):
         return "Invalid HTTP header name: %s" % self.hdr
 
+
 class InvalidChunkSize(IOError):
     def __init__(self, data):
         self.data = data
 
     def __str__(self):
         return "Invalid chunk size: %r" % self.data
+
 
 class ChunkMissingTerminator(IOError):
     def __init__(self, term):
@@ -72,6 +81,7 @@ class LimitRequestLine(ParseException):
 
     def __str__(self):
         return "Request Line is too large (%s > %s)" % (self.size, self.max_size)
+
 
 class LimitRequestHeaders(ParseException):
     def __init__(self, msg):

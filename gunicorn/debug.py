@@ -16,7 +16,6 @@ __all__ = ['spew', 'unspew']
 _token_spliter = re.compile('\W+')
 
 
-
 class Spew(object):
     """
     """
@@ -69,5 +68,3 @@ def unspew():
     """Remove the trace hook installed by spew.
     """
     sys.settrace(None)
-
-
