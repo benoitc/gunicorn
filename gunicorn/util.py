@@ -224,6 +224,13 @@ def parse_address(netloc, default_port=8000):
     if netloc.startswith("unix:"):
         return netloc.split("unix:")[1]
 
+    if netloc.startswith("unix://"):
+        return netloc.split("unix://")[1]
+
+    if netloc.startswith("tcp://"):
+        netloc = netloc.split("tcp://")[1]
+
+
     # get host
     if '[' in netloc and ']' in netloc:
         host = netloc.split(']')[0][1:].lower()
@@ -244,7 +251,6 @@ def parse_address(netloc, default_port=8000):
     else:
         port = default_port
     return (host, port)
-
 
 def get_maxfd():
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]

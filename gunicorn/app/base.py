@@ -33,7 +33,6 @@ class Application(object):
             self.load_config()
         except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
-            traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 

@@ -22,6 +22,7 @@ from gunicorn import six
 from gunicorn import util
 
 KNOWN_SETTINGS = []
+PLATFORM = sys.platform
 
 
 def wrap_method(func):
@@ -70,9 +71,9 @@ class Config(object):
             "prog": self.prog
         }
         parser = argparse.ArgumentParser(**kwargs)
+        parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = list(self.settings)
-
         def sorter(k):
             return (self.settings[k].section, self.settings[k].order)
 
@@ -80,7 +81,8 @@ class Config(object):
         for k in keys:
             self.settings[k].add_option(parser)
 
-        parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
+
+
         return parser
 
     @property
@@ -175,6 +177,10 @@ class Setting(object):
     default = None
     short = None
     desc = None
+    nargs = None
+    const = None
+
+
 
     def __init__(self):
         if self.default is not None:
@@ -201,6 +207,12 @@ class Setting(object):
 
         if kwargs["action"] != "store":
             kwargs.pop("type")
+
+        if self.nargs is not None:
+            kwargs["nargs"] = self.nargs
+
+        if self.const is not None:
+            kwargs["const"] = self.const
 
         parser.add_argument(*args, **kwargs)
 
@@ -1216,4 +1228,49 @@ class CertFile(Setting):
     default = None
     desc = """\
     SSL certificate file
+    """
+
+
+class SyslogTo(Setting):
+    name = "syslog_addr"
+    section = "Logging"
+    cli = ["--log-syslog-to"]
+    meta = "SYSLOG_ADDR"
+    validator = validate_string
+
+    if PLATFORM == "darwin":
+        default = "unix:///var/run/syslog"
+    elif PLATFORM in ('freebsd', 'dragonfly', ):
+        default = "unix:///var/run/log"
+    elif PLATFORM == "openbsd":
+        default = "unix:///dev/log"
+    else:
+        default = "udp://localhost:514"
+
+    desc = """\
+    Address to send syslog messages
+    """
+
+class Syslog(Setting):
+    name = "syslog"
+    section = "Logging"
+    cli = ["--log-syslog"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+    Log to syslog.
+    """
+
+
+class SyslogPrefix(Setting):
+    name = "syslog_prefix"
+    section = "Logging"
+    cli = ["--log-syslog-prefix"]
+    meta = "SYSLOG_PREFIX"
+    validator = validate_string
+    default = None
+    desc = """\
+    makes gunicorn use the parameter as program-name in the
+    syslog entry header.
     """

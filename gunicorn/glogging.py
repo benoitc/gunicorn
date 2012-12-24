@@ -8,6 +8,7 @@ import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 from logging.config import fileConfig
 import os
+import socket
 import sys
 import traceback
 import threading
@@ -123,6 +124,41 @@ class SafeAtoms(dict):
             return '-'
 
 
+def parse_syslog_address(addr):
+
+    if addr.startswith("unix://"):
+        return (socket.SOCK_STREAM, addr.split("unix://")[1])
+
+    if addr.startswith("udp://"):
+        addr = addr.split("udp://")[1]
+        socktype = socket.SOCK_DGRAM
+    elif addr.startswith("tcp://"):
+        addr = addr.split("tcp://")[1]
+        socktype = socket.SOCK_STREAM
+    else:
+        raise RuntimeError("invalid syslog address")
+
+    if '[' in addr and ']' in addr:
+        host = addr.split(']')[0][1:].lower()
+    elif ':' in addr:
+        host = addr.split(':')[0].lower()
+    elif addr == "":
+        host = "localhost"
+    else:
+        host = addr.lower()
+
+    addr = addr.split(']')[-1]
+    if ":" in addr:
+        port = addr.split(':', 1)[1]
+        if not port.isdigit():
+            raise RuntimeError("%r is not a valid port number." % port)
+        port = int(port)
+    else:
+        port = 514
+
+    return (socktype, (host, port))
+
+
 class Logger(object):
 
     LOG_LEVELS = {
@@ -137,10 +173,12 @@ class Logger(object):
     datefmt = r"%Y-%m-%d %H:%M:%S"
 
     access_fmt = "%(message)s"
+    syslog_fmt = "[%(process)d] %(message)s"
 
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
+
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
@@ -165,6 +203,11 @@ class Logger(object):
             if cfg.accesslog is not None:
                 self._set_handler(self.access_log, cfg.accesslog,
                     fmt=logging.Formatter(self.access_fmt))
+
+
+            if cfg.syslog:
+                self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
+
         else:
             if os.path.exists(cfg.logconfig):
                 fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
@@ -293,6 +336,22 @@ class Logger(object):
             util.check_is_writeable(output)
             h = logging.FileHandler(output)
 
+        h.setFormatter(fmt)
+        h._gunicorn = True
+        log.addHandler(h)
+
+    def _set_syslog_handler(self, log, cfg, fmt):
+        # setup format
+        if not cfg.syslog_prefix:
+            prefix = cfg.proc_name.replace(":", ".")
+        prefix = "gunicorn.%s" % prefix
+        fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+
+        # parse syslog address
+        socktype, addr = parse_syslog_address(cfg.syslog_addr)
+
+        # finally setup the syslog handler
+        h = logging.handlers.SysLogHandler(address=addr, socktype=socktype)
         h.setFormatter(fmt)
         h._gunicorn = True
         log.addHandler(h)
