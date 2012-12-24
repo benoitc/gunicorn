@@ -105,13 +105,13 @@ class DjangoApplicationCommand(Application):
 
     def __init__(self, options, admin_media_path):
         self.usage = None
+        self.prog = None
         self.cfg = None
         self.config_file = options.get("config") or ""
         self.options = options
         self.admin_media_path = admin_media_path
         self.callable = None
         self.project_path = None
-
         self.do_load_config()
 
     def init(self, *args):

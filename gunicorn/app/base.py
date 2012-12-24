@@ -20,10 +20,11 @@ class Application(object):
     the various necessities for any given web framework.
     """
 
-    def __init__(self, usage=None):
+    def __init__(self, usage=None, prog=None):
         self.usage = usage
         self.cfg = None
         self.callable = None
+        self.prog = prog
         self.logger = None
         self.do_load_config()
 
@@ -32,12 +33,13 @@ class Application(object):
             self.load_config()
         except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
+            traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 
     def load_config(self):
         # init configuration
-        self.cfg = Config(self.usage)
+        self.cfg = Config(self.usage, prog=self.prog)
 
         # parse console args
         parser = self.cfg.parser()
@@ -52,7 +54,7 @@ class Application(object):
                 self.cfg.set(k.lower(), v)
 
         # Load up the config file if its found.
-        if args.config and os.path.exists(opts.config):
+        if args.config and os.path.exists(args.config):
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
@@ -63,7 +65,7 @@ class Application(object):
             try:
                 execfile_(args.config, cfg, cfg)
             except Exception:
-                print("Failed to read config file: %s" % opts.config)
+                print("Failed to read config file: %s" % args.config)
                 traceback.print_exc()
                 sys.exit(1)
 

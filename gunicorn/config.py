@@ -12,6 +12,7 @@ except ImportError: # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import sys
 import textwrap
 import types
 
@@ -42,9 +43,10 @@ def make_settings(ignore=None):
 
 class Config(object):
 
-    def __init__(self, usage=None):
+    def __init__(self, usage=None, prog=None):
         self.settings = make_settings()
         self.usage = usage
+        self.prog = prog or sys.argv[0]
 
     def __getattr__(self, name):
         if name not in self.settings:
@@ -65,6 +67,7 @@ class Config(object):
         kwargs = {
             "usage": self.usage,
             "version": "%(prog)s (version " +  __version__ + ")\n",
+            "prog": self.prog
         }
         parser = argparse.ArgumentParser(**kwargs)
 
@@ -189,7 +192,7 @@ class Setting(object):
             "dest": self.name,
             "action": self.action or "store",
             "type": self.type or str,
-            "default": self.default,
+            "default": None,
             "help": help_txt
         }
 
