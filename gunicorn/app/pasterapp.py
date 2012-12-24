@@ -147,7 +147,7 @@ def run():
     apllications like Pylons or Turbogears2
     """
     from gunicorn.app.pasterapp import PasterApplication
-    PasterApplication("%prog [OPTIONS] pasteconfig.ini").run()
+    PasterApplication("%(prog)s [OPTIONS] pasteconfig.ini").run()
 
 
 def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):

@@ -6,7 +6,10 @@
 import copy
 import grp
 import inspect
-import optparse
+try:
+    import argparse
+except ImportError: # python 2.6
+    from . import argparse_compat as argparse
 import os
 import pwd
 import textwrap
@@ -14,8 +17,8 @@ import types
 
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
+from gunicorn import six
 from gunicorn import util
-from gunicorn.six import string_types, integer_types, bytes_to_str
 
 KNOWN_SETTINGS = []
 
@@ -61,9 +64,9 @@ class Config(object):
     def parser(self):
         kwargs = {
             "usage": self.usage,
-            "version": __version__
+            "version": "%(prog)s (version " +  __version__ + ")\n",
         }
-        parser = optparse.OptionParser(**kwargs)
+        parser = argparse.ArgumentParser(**kwargs)
 
         keys = list(self.settings)
 
@@ -73,6 +76,8 @@ class Config(object):
         keys = sorted(self.settings, key=self.settings.__getitem__)
         for k in keys:
             self.settings[k].add_option(parser)
+
+        parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
         return parser
 
     @property
@@ -90,7 +95,7 @@ class Config(object):
     @property
     def address(self):
         s = self.settings['bind'].get()
-        return [util.parse_address(bytes_to_str(bind)) for bind in s]
+        return [util.parse_address(six.bytes_to_str(bind)) for bind in s]
 
     @property
     def uid(self):
@@ -176,17 +181,25 @@ class Setting(object):
         if not self.cli:
             return
         args = tuple(self.cli)
+
+        help_txt = "%s [%s]" % (self.short, self.default)
+        help_txt = help_txt.replace("%", "%%")
+
         kwargs = {
             "dest": self.name,
-            "metavar": self.meta or None,
             "action": self.action or "store",
-            "type": self.type or "string",
-            "default": None,
-            "help": "%s [%s]" % (self.short, self.default)
+            "type": self.type or str,
+            "default": self.default,
+            "help": help_txt
         }
+
+        if self.meta is not None:
+            kwargs['metavar'] = self.meta
+
         if kwargs["action"] != "store":
             kwargs.pop("type")
-        parser.add_option(*args, **kwargs)
+
+        parser.add_argument(*args, **kwargs)
 
     def copy(self):
         return copy.copy(self)
@@ -195,7 +208,7 @@ class Setting(object):
         return self.value
 
     def set(self, val):
-        assert callable(self.validator), "Invalid validator: %s" % self.name
+        assert six.callable(self.validator), "Invalid validator: %s" % self.name
         self.value = self.validator(val)
 
     def __lt__(self, other):
@@ -209,7 +222,7 @@ Setting = SettingMeta('Setting', (Setting,), {})
 def validate_bool(val):
     if isinstance(val, bool):
         return val
-    if not isinstance(val, string_types):
+    if not isinstance(val, six.string_types):
         raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
@@ -226,7 +239,7 @@ def validate_dict(val):
 
 
 def validate_pos_int(val):
-    if not isinstance(val, integer_types):
+    if not isinstance(val, six.integer_types):
         val = int(val, 0)
     else:
         # Booleans are ints!
@@ -239,7 +252,7 @@ def validate_pos_int(val):
 def validate_string(val):
     if val is None:
         return None
-    if not isinstance(val, string_types):
+    if not isinstance(val, six.string_types):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
@@ -249,7 +262,7 @@ def validate_list_string(val):
         return []
 
     # legacy syntax
-    if isinstance(val, string_types):
+    if isinstance(val, six.string_types):
         val = [val]
 
     return [validate_string(v) for v in val]
@@ -274,7 +287,7 @@ def validate_class(val):
 
 def validate_callable(arity):
     def _validate_callable(val):
-        if isinstance(val, string_types):
+        if isinstance(val, six.string_types):
             try:
                 mod_name, obj_name = val.rsplit(".", 1)
             except ValueError:
@@ -288,8 +301,8 @@ def validate_callable(arity):
             except AttributeError:
                 raise TypeError("Can not load '%s' from '%s'"
                     "" % (obj_name, mod_name))
-        if not callable(val):
-            raise TypeError("Value is not callable: %s" % val)
+        if not six.callable(val):
+            raise TypeError("Value is not six.callable: %s" % val)
         if arity != -1 and arity != len(inspect.getargspec(val)[0]):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
@@ -388,7 +401,7 @@ class Backlog(Setting):
     cli = ["--backlog"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 2048
     desc = """\
         The maximum number of pending connections.
@@ -408,7 +421,7 @@ class Workers(Setting):
     cli = ["-w", "--workers"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 1
     desc = """\
         The number of worker process for handling requests.
@@ -454,7 +467,7 @@ class WorkerConnections(Setting):
     cli = ["--worker-connections"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 1000
     desc = """\
         The maximum number of simultaneous clients.
@@ -469,7 +482,7 @@ class MaxRequests(Setting):
     cli = ["--max-requests"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 0
     desc = """\
         The maximum number of requests a worker will process before restarting.
@@ -489,7 +502,7 @@ class Timeout(Setting):
     cli = ["-t", "--timeout"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 30
     desc = """\
         Workers silent for more than this many seconds are killed and restarted.
@@ -507,7 +520,7 @@ class GracefulTimeout(Setting):
     cli = ["--graceful-timeout"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 30
     desc = """\
         Timeout for graceful workers restart.
@@ -524,7 +537,7 @@ class Keepalive(Setting):
     cli = ["--keep-alive"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 2
     desc = """\
         The number of seconds to wait for requests on a Keep-Alive connection.
@@ -539,7 +552,7 @@ class LimitRequestLine(Setting):
     cli = ["--limit-request-line"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 4094
     desc = """\
         The maximum size of HTTP request line in bytes.
@@ -563,7 +576,7 @@ class LimitRequestFields(Setting):
     cli = ["--limit-request-fields"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 100
     desc = """\
         Limit the number of HTTP headers fields in a request.
@@ -581,7 +594,7 @@ class LimitRequestFieldSize(Setting):
     cli = ["--limit-request-field_size"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 8190
     desc = """\
         Limit the allowed size of an HTTP request header field.
@@ -716,7 +729,7 @@ class Umask(Setting):
     cli = ["-m", "--umask"]
     meta = "INT"
     validator = validate_pos_int
-    type = "int"
+    type = int
     default = 0
     desc = """\
         A bit mask for the file mode on files written by Gunicorn.
@@ -977,7 +990,7 @@ class OnStarting(Setting):
     name = "on_starting"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = "callable"
+    type = six.callable
 
     def on_starting(server):
         pass
@@ -993,7 +1006,7 @@ class OnReload(Setting):
     name = "on_reload"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = "callable"
+    type = six.callable
 
     def on_reload(server):
         pass
@@ -1009,7 +1022,7 @@ class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = "callable"
+    type = six.callable
 
     def when_ready(server):
         pass
@@ -1025,7 +1038,7 @@ class Prefork(Setting):
     name = "pre_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = "callable"
+    type = six.callable
 
     def pre_fork(server, worker):
         pass
@@ -1042,7 +1055,7 @@ class Postfork(Setting):
     name = "post_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = "callable"
+    type = six.callable
 
     def post_fork(server, worker):
         pass
@@ -1059,7 +1072,7 @@ class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = "callable"
+    type = six.callable
 
     def pre_exec(server):
         pass
@@ -1075,7 +1088,7 @@ class PreRequest(Setting):
     name = "pre_request"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = "callable"
+    type = six.callable
 
     def pre_request(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
@@ -1092,7 +1105,7 @@ class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
     validator = validate_post_request
-    type = "callable"
+    type = six.callable
 
     def post_request(worker, req, environ, resp):
         pass
@@ -1109,7 +1122,7 @@ class WorkerExit(Setting):
     name = "worker_exit"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = "callable"
+    type = six.callable
 
     def worker_exit(server, worker):
         pass
@@ -1126,7 +1139,7 @@ class NumWorkersChanged(Setting):
     name = "nworkers_changed"
     section = "Server Hooks"
     validator = validate_callable(3)
-    type = "callable"
+    type = six.callable
 
     def nworkers_changed(server, new_value, old_value):
         pass

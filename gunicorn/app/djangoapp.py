@@ -139,4 +139,4 @@ def run():
     applications.
     """
     from gunicorn.app.djangoapp import DjangoApplication
-    DjangoApplication("%prog [OPTIONS] [SETTINGS_PATH]").run()
+    DjangoApplication("%(prog)s [OPTIONS] [SETTINGS_PATH]").run()

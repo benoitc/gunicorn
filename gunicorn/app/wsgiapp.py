@@ -31,4 +31,4 @@ def run():
     generic WSGI applications.
     """
     from gunicorn.app.wsgiapp import WSGIApplication
-    WSGIApplication("%prog [OPTIONS] APP_MODULE").run()
+    WSGIApplication("%(prog)s [OPTIONS] APP_MODULE").run()
