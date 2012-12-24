@@ -20,10 +20,11 @@ class Application(object):
     the various necessities for any given web framework.
     """
 
-    def __init__(self, usage=None):
+    def __init__(self, usage=None, prog=None):
         self.usage = usage
         self.cfg = None
         self.callable = None
+        self.prog = prog
         self.logger = None
         self.do_load_config()
 
@@ -32,19 +33,20 @@ class Application(object):
             self.load_config()
         except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
+            traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 
     def load_config(self):
         # init configuration
-        self.cfg = Config(self.usage)
+        self.cfg = Config(self.usage, prog=self.prog)
 
         # parse console args
         parser = self.cfg.parser()
-        opts, args = parser.parse_args()
+        args = parser.parse_args()
 
         # optional settings from apps
-        cfg = self.init(parser, opts, args)
+        cfg = self.init(parser, args, args.args)
 
         # Load up the any app specific configuration
         if cfg and cfg is not None:
@@ -52,18 +54,18 @@ class Application(object):
                 self.cfg.set(k.lower(), v)
 
         # Load up the config file if its found.
-        if opts.config and os.path.exists(opts.config):
+        if args.config and os.path.exists(args.config):
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
-                "__file__": opts.config,
+                "__file__": args.config,
                 "__doc__": None,
                 "__package__": None
             }
             try:
-                execfile_(opts.config, cfg, cfg)
+                execfile_(args.config, cfg, cfg)
             except Exception:
-                print("Failed to read config file: %s" % opts.config)
+                print("Failed to read config file: %s" % args.config)
                 traceback.print_exc()
                 sys.exit(1)
 
@@ -79,8 +81,10 @@ class Application(object):
 
         # Lastly, update the configuration with any command line
         # settings.
-        for k, v in opts.__dict__.items():
+        for k, v in args.__dict__.items():
             if v is None:
+                continue
+            if k == "args":
                 continue
             self.cfg.set(k.lower(), v)
 
