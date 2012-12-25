@@ -17,6 +17,33 @@ import threading
 from gunicorn import util
 from gunicorn.six import string_types
 
+
+# syslog facility codes
+SYSLOG_FACILITIES = {
+        "auth":     4,
+        "authpriv": 10,
+        "cron":     9,
+        "daemon":   3,
+        "ftp":      11,
+        "kern":     0,
+        "lpr":      6,
+        "mail":     2,
+        "news":     7,
+        "security": 4,  #  DEPRECATED
+        "syslog":   5,
+        "user":     1,
+        "uucp":     8,
+        "local0":   16,
+        "local1":   17,
+        "local2":   18,
+        "local3":   19,
+        "local4":   20,
+        "local5":   21,
+        "local6":   22,
+        "local7":   23
+        }
+
+
 CONFIG_DEFAULTS = dict(
         version=1,
         disable_existing_loggers=False,
@@ -347,13 +374,22 @@ class Logger(object):
             prefix = cfg.syslog_prefix
 
         prefix = "gunicorn.%s" % prefix
+
+        # set format
         fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+
+        # syslog facility
+        try:
+            facility = SYSLOG_FACILITIES[cfg.syslog_facility.lower()]
+        except KeyError:
+            raise RuntimeError("unknown facility name")
 
         # parse syslog address
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        h = logging.handlers.SysLogHandler(address=addr, socktype=socktype)
+        h = logging.handlers.SysLogHandler(address=addr, facility=facility,
+                socktype=socktype)
         h.setFormatter(fmt)
         h._gunicorn = True
         log.addHandler(h)

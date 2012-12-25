@@ -1277,3 +1277,15 @@ class SyslogPrefix(Setting):
     All entries will be prefixed by gunicorn.<prefix>. By default the program
     name is the name of the process.
     """
+
+
+class SyslogFacility(Setting):
+    name = "syslog_facility"
+    section = "Logging"
+    cli = ["--log-syslog-facility"]
+    meta = "SYSLOG_FACILITY"
+    validator = validate_string
+    default = "user"
+    desc = """\
+    Syslog facility name
+    """
