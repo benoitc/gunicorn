@@ -178,7 +178,6 @@ class Logger(object):
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
-
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
@@ -204,7 +203,7 @@ class Logger(object):
                 self._set_handler(self.access_log, cfg.accesslog,
                     fmt=logging.Formatter(self.access_fmt))
 
-
+            # set syslog handler
             if cfg.syslog:
                 self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
 
