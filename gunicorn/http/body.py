@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import sys
-
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
         InvalidChunkSize)
 from gunicorn import six
@@ -224,21 +222,25 @@ class Body(object):
         if size == 0:
             return b""
 
-        line = self.buf.getvalue()
+        data = self.buf.getvalue()
         self.buf = six.BytesIO()
-        if len(line) < size:
-            line += self.reader.read(size - len(line))
-        extra_buf_data = line[size:]
-        line = line[:size]
+        ret = []
+        while 1:
+            idx = data.find(b"\n", 0, size)
+            idx = idx + 1 if idx >= 0 else size if len(data) >= size else 0
+            if idx:
+                ret.append(data[:idx])
+                self.buf.write(data[idx:])
+                break
 
-        idx = line.find(b"\n")
-        if idx >= 0:
-            ret = line[:idx+1]
-            self.buf.write(line[idx+1:])
-            self.buf.write(extra_buf_data)
-            return ret
-        self.buf.write(extra_buf_data)
-        return line
+            ret.append(data)
+            size -= len(data)
+            data = self.reader.read(1024)
+            if not data:
+                break
+
+        return b"".join(ret)
+
 
     def readlines(self, size=None):
         ret = []
