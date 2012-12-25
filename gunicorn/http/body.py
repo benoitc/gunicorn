@@ -225,21 +225,25 @@ class Body(object):
         if size == 0:
             return b""
 
-        line = self.buf.getvalue()
+        data = self.buf.getvalue()
         self.buf = six.BytesIO()
-        if len(line) < size:
-            line += self.reader.read(size - len(line))
-        extra_buf_data = line[size:]
-        line = line[:size]
 
-        idx = line.find(b"\n")
-        if idx >= 0:
-            ret = line[:idx + 1]
-            self.buf.write(line[idx + 1:])
-            self.buf.write(extra_buf_data)
-            return ret
-        self.buf.write(extra_buf_data)
-        return line
+        ret = []
+        while 1:
+            idx = data.find(b"\n", 0, size)
+            idx = idx + 1 if idx >= 0 else size if len(data) >= size else 0
+            if idx:
+                ret.append(data[:idx])
+                self.buf.write(data[idx:])
+                break
+
+            ret.append(data)
+            size -= len(data)
+            data = self.reader.read(min(1024, size))
+            if not data:
+                break
+
+        return b"".join(ret)
 
     def readlines(self, size=None):
         ret = []
