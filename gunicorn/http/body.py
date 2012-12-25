@@ -226,9 +226,8 @@ class Body(object):
         self.buf = six.BytesIO()
         ret = []
         while 1:
-            idx = data.find(b"\n", 0, size)
-            idx = idx + 1 if idx >= 0 else size if len(data) >= size else 0
-            if idx:
+            idx = size if len(data) >= size else data.find(b"\n", 0, size) + 1
+            if idx > 0:
                 ret.append(data[:idx])
                 self.buf.write(data[idx:])
                 break
