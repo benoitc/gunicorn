@@ -1,6 +1,18 @@
 Changelog
 =========
 
+0.17.0 / 2012-12-25
+-------------------
+
+- allows gunicorn to bind to multiple address
+- add SSL support
+- add syslog support
+- add nworkers_changed hook
+- add response arg for post_request hook
+- parse command line with argparse (replace deprecated optparse)
+- fix PWD detection in arbiter
+- miscellenaeous PEP8 fixes
+
 0.16.1 / 2012-11-19
 -------------------
 
@@ -51,8 +63,8 @@ Changelog
 
 - fix logging during daemonisation
 
-0.14.4 / 2012-06-24 
-------------------- 
+0.14.4 / 2012-06-24
+-------------------
 
 - new --graceful-timeout option
 - fix multiple issues with request limit
@@ -65,7 +77,7 @@ Changelog
 - **breaking change**: take the control on graceful reload back.
   graceful can't be overrided anymore using the on_reload function.
 
-0.14.3 / 2012-05-15 
+0.14.3 / 2012-05-15
 -------------------
 
 - improvement: performance of http.body.Body.readline()
@@ -78,7 +90,7 @@ Changelog
 - fix: django1.4 support
 - fix: only load the paster application 1 time
 
-0.14.2 / 2012-03-16 
+0.14.2 / 2012-03-16
 -------------------
 
 - add validate_class validator: allows to use a class or a method to
@@ -88,12 +100,12 @@ Changelog
 - gevent_wsgi is now an alias of gevent_pywsgi
 - Fix gevent_pywsgi worker
 
-0.14.1 / 2012-03-02 
+0.14.1 / 2012-03-02
 -------------------
 
 - fixing source archive, reducing its size
 
-0.14.0 / 2012-02-27  
+0.14.0 / 2012-02-27
 -------------------
 
 - check if Request line is too large: You can now pass the parameter
