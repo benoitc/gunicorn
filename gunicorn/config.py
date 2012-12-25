@@ -1272,7 +1272,8 @@ class SyslogPrefix(Setting):
     validator = validate_string
     default = None
     desc = """\
-    makes gunicorn use the parameter as program-name in the
-    syslog entry header. All entries will be prefixed by gunicorn.<prefix>. By
-    default the program name is the name of the process.
+    makes gunicorn use the parameter as program-name in the syslog entries.
+
+    All entries will be prefixed by gunicorn.<prefix>. By default the program
+    name is the name of the process.
     """
