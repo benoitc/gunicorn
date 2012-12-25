@@ -344,6 +344,9 @@ class Logger(object):
         # setup format
         if not cfg.syslog_prefix:
             prefix = cfg.proc_name.replace(":", ".")
+        else:
+            prefix = cfg.syslog_prefix
+
         prefix = "gunicorn.%s" % prefix
         fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
 
