@@ -1251,6 +1251,7 @@ class SyslogTo(Setting):
     Address to send syslog messages
     """
 
+
 class Syslog(Setting):
     name = "syslog"
     section = "Logging"
