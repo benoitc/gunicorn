@@ -234,7 +234,7 @@ class Body(object):
 
             ret.append(data)
             size -= len(data)
-            data = self.reader.read(1024)
+            data = self.reader.read(min(1024, size))
             if not data:
                 break
 
