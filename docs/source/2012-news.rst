@@ -1,5 +1,5 @@
-Changelog
-=========
+Changelog - 2012
+================
 
 0.17.0 / 2012-12-25
 -------------------
@@ -126,13 +126,3 @@ Changelog
   setting an empty string.
 - fix support of Tornado
 - many other fixes.
-
-History
-=======
-
-.. toctree::
-   :titlesonly:
-
-   2012-news
-   2011-news
-   2010-news
