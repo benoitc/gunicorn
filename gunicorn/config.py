@@ -67,10 +67,13 @@ class Config(object):
     def parser(self):
         kwargs = {
             "usage": self.usage,
-            "version": "%(prog)s (version " +  __version__ + ")\n",
             "prog": self.prog
         }
         parser = argparse.ArgumentParser(**kwargs)
+        parser.add_argument("-v", "--version",
+                action="version", default=argparse.SUPPRESS,
+                version="%(prog)s (version " +  __version__ + ")\n",
+                help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = list(self.settings)
