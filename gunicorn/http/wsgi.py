@@ -84,7 +84,7 @@ def create(req, sock, client, server, cfg):
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
     forward = client or "127.0.0.1"
-    url_scheme = "http"
+    url_scheme = "https" if cfg.is_ssl else "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
     secure_headers = cfg.secure_scheme_headers
