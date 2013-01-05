@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.17.1 / 2013-01-05
+-------------------
+
+- add syslog facility name setting
+- fix ``--version`` command line argument
+- fix wsgi url_scheme for https
+
 0.17.0 / 2012-12-25
 -------------------
 
@@ -133,6 +140,7 @@ History
 .. toctree::
    :titlesonly:
 
+   2013-news
    2012-news
    2011-news
    2010-news

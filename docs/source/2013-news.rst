@@ -1,0 +1,9 @@
+Changelog - 2013
+================
+
+0.17.1 / 2013-01-05
+-------------------
+
+- add syslog facility name setting
+- fix ``--version`` command line argument
+- fix wsgi url_scheme for https
