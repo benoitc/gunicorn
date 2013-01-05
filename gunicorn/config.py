@@ -47,7 +47,7 @@ class Config(object):
     def __init__(self, usage=None, prog=None):
         self.settings = make_settings()
         self.usage = usage
-        self.prog = prog or sys.argv[0]
+        self.prog = prog or os.path.basename(sys.argv[0])
 
     def __getattr__(self, name):
         if name not in self.settings:
