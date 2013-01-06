@@ -280,9 +280,6 @@ class Response(object):
     def write(self, arg):
         self.send_headers()
 
-        if isinstance(arg, text_type):
-            arg = arg.encode('utf-8')
-
         assert isinstance(arg, binary_type), "%r is not a byte." % arg
 
         arglen = len(arg)
