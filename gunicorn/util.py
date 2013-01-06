@@ -23,6 +23,7 @@ import socket
 import sys
 import textwrap
 import time
+import traceback
 import inspect
 import errno
 import warnings
@@ -118,7 +119,12 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             dist = entry_str
             name = default
 
-        return pkg_resources.load_entry_point(dist, section, name)
+        try:
+            return pkg_resources.load_entry_point(dist, section, name)
+        except:
+            exc = traceback.format_exc()
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+                exc))
     else:
         components = uri.split('.')
         if len(components) == 1:
@@ -128,11 +134,19 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 
                 return pkg_resources.load_entry_point("gunicorn",
                             section, uri)
-            except ImportError as e:
-                raise RuntimeError("class uri invalid or not found: " +
-                        "[%s]" % str(e))
+            except:
+                exc = traceback.format_exc()
+                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+                    exc))
+
         klass = components.pop(-1)
-        mod = __import__('.'.join(components))
+        try:
+            mod = __import__('.'.join(components))
+        except:
+            exc = traceback.format_exc()
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+                exc))
+
         for comp in components[1:]:
             mod = getattr(mod, comp)
         return getattr(mod, klass)
