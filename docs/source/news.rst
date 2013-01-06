@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.17.2 / current
+----------------
+
+- optimize readline
+- make imports errors more visiblle when loading an app or a logging
+  class
+- fix tornado worker: don't pass ssl options if there are none
+- fix PEP3333: accept only bytetrings in the response body
+- fix support on CYGWIN platforms
+
 0.17.1 / 2013-01-05
 -------------------
 
