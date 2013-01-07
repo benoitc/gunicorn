@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.17.2 / current
-----------------
+0.17.2 / 2013-01-07
+-------------------
 
 - optimize readline
 - make imports errors more visiblle when loading an app or a logging
