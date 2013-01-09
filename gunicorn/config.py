@@ -370,12 +370,19 @@ def validate_post_request(val):
         raise TypeError("Value must have an arity of: 4")
 
 
+def validate_isfile(val):
+    val = validate_string(val)
+
+    if not os.path.isfile(val):
+        raise ValueError("No such file: '%s'" % val)
+    return val
+
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
     cli = ["-c", "--config"]
     meta = "FILE"
-    validator = validate_string
+    validator = validate_isfile
     default = None
     desc = """\
         The path to a Gunicorn config file.
