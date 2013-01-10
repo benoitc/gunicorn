@@ -67,6 +67,11 @@ class TCPSocket(BaseSocket):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+        if hasattr(socket, 'TCP_FASTOPEN') and self.cfg.allow_tcp_fast_open:
+            sock.setsockopt(socket.SOL_TCP, socket.TCP_FASTOPEN,
+                    self.cfg.tcp_fast_open_queue)
+
         return super(TCPSocket, self).set_options(sock, bound=bound)
 
 
