@@ -372,6 +372,8 @@ def validate_post_request(val):
 
 def validate_isfile(val):
     val = validate_string(val)
+    if val is None:
+        return val
 
     if not os.path.isfile(val):
         raise ValueError("No such file: '%s'" % val)
