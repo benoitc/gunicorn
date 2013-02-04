@@ -423,7 +423,7 @@ class Arbiter(object):
                 continue
 
             self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
-            self.kill_worker(pid, signal.SIGKILL)
+            self.kill_worker(pid, signal.SIGABRT)
 
     def reap_workers(self):
         """\
