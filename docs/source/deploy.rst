@@ -134,7 +134,7 @@ Using Gafferd and gafferctl
 `Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>`_ can be
 used to monitor gunicorn. A simple configuration is::
 
-    [process: gunicorn]
+    [process:gunicorn]
     cmd = gunicorn -w 3 test:app
     cwd = /path/to/project
 
