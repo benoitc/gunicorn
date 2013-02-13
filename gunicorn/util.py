@@ -123,7 +123,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             return pkg_resources.load_entry_point(dist, section, name)
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                 exc))
     else:
         components = uri.split('.')
@@ -136,7 +136,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
                             section, uri)
             except:
                 exc = traceback.format_exc()
-                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                     exc))
 
         klass = components.pop(-1)
@@ -144,7 +144,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             mod = __import__('.'.join(components))
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                 exc))
 
         for comp in components[1:]:
@@ -235,11 +235,11 @@ def is_ipv6(addr):
 
 
 def parse_address(netloc, default_port=8000):
-    if netloc.startswith("unix:"):
-        return netloc.split("unix:")[1]
-
     if netloc.startswith("unix://"):
         return netloc.split("unix://")[1]
+
+    if netloc.startswith("unix:"):
+        return netloc.split("unix:")[1]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
