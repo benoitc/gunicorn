@@ -4,16 +4,6 @@
 # See the NOTICE for more information.
 
 
-try:
-    import ctypes
-except MemoryError:
-    # selinux execmem denial
-    # https://bugzilla.redhat.com/show_bug.cgi?id=488396
-    ctypes = None
-except ImportError:
-    # Python on Solaris compiled with Sun Studio doesn't have ctypes
-    ctypes = None
-
 import fcntl
 import os
 import pkg_resources
@@ -155,26 +145,17 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 def set_owner_process(uid, gid):
     """ set user and group of workers processes """
     if gid:
-        try:
-            os.setgid(gid)
-        except OverflowError:
-            if not ctypes:
-                raise
-            # versions of python < 2.6.2 don't manage unsigned int for
-            # groups like on osx or fedora
-            os.setgid(-ctypes.c_int(-gid).value)
-
+        # versions of python < 2.6.2 don't manage unsigned int for
+        # groups like on osx or fedora
+        gid = abs(gid) & 0x7FFFFFFF
+        os.setgid(gid)
     if uid:
         os.setuid(uid)
 
 
 def chown(path, uid, gid):
-    try:
-        os.chown(path, uid, gid)
-    except OverflowError:
-        if not ctypes:
-            raise
-        os.chown(path, uid, -ctypes.c_int(-gid).value)
+    gid = abs(gid) & 0x7FFFFFFF  # see note above.
+    os.chown(path, uid, gid)
 
 
 if sys.platform.startswith("win"):
