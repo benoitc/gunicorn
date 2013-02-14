@@ -31,10 +31,7 @@ import warnings
 from gunicorn.six import text_type, string_types
 
 MAXFD = 1024
-if (hasattr(os, "devnull")):
-    REDIRECT_TO = os.devnull
-else:
-    REDIRECT_TO = "/dev/null"
+REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
 timeout_default = object()
 
