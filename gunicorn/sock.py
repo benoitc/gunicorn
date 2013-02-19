@@ -12,6 +12,8 @@ import time
 from gunicorn import util
 from gunicorn.six import string_types
 
+SD_LISTEN_FDS_START = 3
+
 
 class BaseSocket(object):
 
@@ -125,9 +127,30 @@ def create_sockets(conf, log):
     is a string, a Unix socket is created. Otherwise
     a TypeError is raised.
     """
+    listeners = []
+
+    if 'LISTEN_PID' in os.environ and int(os.environ.get('LISTEN_PID')) == os.getpid():
+        for i in range(int(os.environ.get('LISTEN_FDS', 0))):
+            fd = i + SD_LISTEN_FDS_START
+            try:
+                sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+                sockname = sock.getsockname()
+                if isinstance(sockname, str) and sockname.startswith('/'):
+                    listeners.append(UnixSocket(sockname, conf, log, fd=fd))
+                elif len(sockname) == 2 and '.' in sockname[0]:
+                    listeners.append(TCPSocket("%s:%s" % sockname, conf, log, fd=fd))
+                elif len(sockname) == 4 and ':' in sockname[0]:
+                    listeners.append(TCP6Socket("[%s]:%s" % sockname[:2], conf, log, fd=fd))
+            except socket.error:
+                pass
+        del os.environ['LISTEN_PID'], os.environ['LISTEN_FDS']
+
+        if listeners:
+            log.debug('Socket activation sockets: %s', ",".join([str(l) for l in listeners]))
+            return listeners
+
     # get it only once
     laddr = conf.address
-    listeners = []
 
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
