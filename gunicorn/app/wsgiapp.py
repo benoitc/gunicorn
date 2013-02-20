@@ -19,7 +19,9 @@ class WSGIApplication(Application):
         self.cfg.set("default_proc_name", args[0])
         self.app_uri = args[0]
 
-        sys.path.insert(0, os.getcwd())
+        cwd = util.getcwd()
+
+        sys.path.insert(0, cwd)
 
     def load(self):
         return util.import_app(self.app_uri)

@@ -17,6 +17,7 @@ SERVER = loadwsgi.SERVER
 
 from gunicorn.app.base import Application
 from gunicorn.config import Config
+from gunicorn import util
 
 
 class PasterBaseApplication(Application):
@@ -68,7 +69,8 @@ class PasterApplication(PasterBaseApplication):
         if len(args) != 1:
             parser.error("No application name specified.")
 
-        cfgfname = os.path.normpath(os.path.join(os.getcwd(), args[0]))
+        cwd = util.getcwd()
+        cfgfname = os.path.normpath(os.path.join(cwd, args[0]))
         cfgfname = os.path.abspath(cfgfname)
         if not os.path.exists(cfgfname):
             parser.error("Config file not found: %s" % cfgfname)
