@@ -55,7 +55,8 @@ def make_default_env(cfg):
         os.environ['DJANGO_SETTINGS_MODULE']
     except KeyError:
         # not settings env set, try to build one.
-        project_path, settings_name = find_settings_module(os.getcwd())
+        cwd = util.getcwd()
+        project_path, settings_name = find_settings_module(cwd)
 
         if not project_path:
             raise RuntimeError("django project not found")
