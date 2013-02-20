@@ -156,7 +156,7 @@ class Arbiter(object):
 
         self.log.close_on_exec()
 
-        # intialiatze all signals
+        # initialize all signals
         [signal.signal(s, self.signal) for s in self.SIGNALS]
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
