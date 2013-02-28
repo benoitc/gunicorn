@@ -91,8 +91,19 @@ class AsyncWorker(base.Worker):
                 resp.force_close()
 
             respiter = self.wsgi(environ, resp.start_response)
-            if respiter == ALREADY_HANDLED:
-                return False
+            # self.wsgi return a generator
+            # however, we don't know it iterable or not
+            # if app return a empty str or something like this and we use respiter.next()
+            # it would cause the StopIteration exception we don't expect
+            # and we have to get the first item in the respiter
+            # because the gunicorn support app to handle the socket
+            # and return ALREADY_HANDLED to tell the workers
+            for item in respiter:
+                if item == ALREADY_HANDLED:
+                    return False
+                else:
+                    resp.write(item)
+                break
             try:
                 for item in respiter:
                     resp.write(item)
