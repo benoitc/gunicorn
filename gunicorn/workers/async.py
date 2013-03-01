@@ -104,6 +104,13 @@ class AsyncWorker(base.Worker):
                     respiter.close()
             if resp.should_close():
                 raise StopIteration()
+        except Exception:
+            if resp.headers_sent:
+                # If the requests have already been sent, we should close the
+                # connection to indicate the error.
+                sock.shutdown(socket.SHUT_RDWR)
+                sock.close()
+            raise
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)
