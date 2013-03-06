@@ -28,7 +28,7 @@ Once again, in order of least to most authoritative:
 
         $ gunicorn --check-config
 
-    It will also allows you to know if your applican can be launched.
+    It also allows you to know if your application can be launched.
 
 
 Framework Settings
