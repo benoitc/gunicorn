@@ -306,8 +306,20 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
+        timeout = 1.0
+        if self.WORKERS and self.cfg.inactive_master:
+            oldest_update = min(worker.tmp.last_update() if worker.tmp.is_active() else sys.float_info.max
+                                for worker in self.WORKERS.values())
+            if oldest_update is not sys.float_info.max:
+                timeout = self.timeout - (time.time() - oldest_update)
+                # The timeout can be reached, so don't wait for a negative value
+                timeout = max(timeout, 1.0)
+            else:
+                # No active worker, nothing to wait for
+                timeout = None
+        self.log.info("Waiting for: %i seconds", timeout if timeout is not None else -1)
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
+            ready = select.select([self.PIPE[0]], [], [], timeout)
             if not ready[0]:
                 return
             while os.read(self.PIPE[0], 1):
@@ -417,7 +429,8 @@ class Arbiter(object):
             return
         for (pid, worker) in self.WORKERS.items():
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                if (self.cfg.inactive_master and not worker.tmp.is_active()) \
+                    or time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except ValueError:
                 continue
@@ -467,7 +480,7 @@ class Arbiter(object):
 
     def spawn_worker(self):
         self.worker_age += 1
-        worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
+        worker = self.worker_class(self.worker_age, self.pid, self.PIPE[1], self.LISTENERS,
                                     self.app, self.timeout / 2.0,
                                     self.cfg, self.log)
         self.cfg.pre_fork(self, worker)

@@ -27,7 +27,7 @@ class Worker(object):
 
     PIPE = []
 
-    def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
+    def __init__(self, age, ppid, ppipe, sockets, app, timeout, cfg, log):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -35,6 +35,7 @@ class Worker(object):
         """
         self.age = age
         self.ppid = ppid
+        self.parent_pipe = ppipe
         self.sockets = sockets
         self.app = app
         self.timeout = timeout
@@ -62,6 +63,21 @@ class Worker(object):
         this task, the master process will murder your workers.
         """
         self.tmp.notify()
+        
+    def set_active(self, active):
+        """\
+        The worker should call set_active(True) whenever it start handling a new connection,
+        and set_active(False) before waiting for a new connection.
+        """
+        self.tmp.set_active(active)
+        if active:
+            # Wake up the parent if going active
+            # Otherwise, let the parent goes to its next loop
+            try:
+                os.write(self.parent_pipe, b'.')
+            except IOError as e:
+                if e.errno not in [errno.EAGAIN, errno.EINTR]:
+                    raise
 
     def run(self):
         """\
