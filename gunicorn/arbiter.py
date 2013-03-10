@@ -299,16 +299,15 @@ class Arbiter(object):
         """
         timeout = 1.0
         if self.WORKERS and self.cfg.inactive_master:
-            oldest_update = min(worker.tmp.last_update() if worker.tmp.is_active() else sys.float_info.max
-                                for worker in self.WORKERS.values())
-            if oldest_update is not sys.float_info.max:
-                timeout = self.timeout - (time.time() - oldest_update)
+            last_active_updates = [worker.tmp.last_update() for worker in self.WORKERS.values() if worker.tmp.is_active()]
+            if last_active_updates:
+                timeout = self.timeout - (time.time() - min(last_active_updates))
                 # The timeout can be reached, so don't wait for a negative value
                 timeout = max(timeout, 1.0)
             else:
                 # No active worker, nothing to wait for
                 timeout = None
-        self.log.info("Waiting for: %i seconds", timeout if timeout is not None else -1)
+        
         try:
             ready = select.select([self.PIPE[0]], [], [], timeout)
             if not ready[0]:
