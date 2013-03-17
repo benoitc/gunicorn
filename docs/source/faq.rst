@@ -61,7 +61,7 @@ Worker Processes
 How do I know which type of worker to use?
 ------------------------------------------
 
-Read the design_ page for help on the various worker types.
+Read the :ref:`design` page for help on the various worker types.
 
 What types of workers are there?
 --------------------------------
