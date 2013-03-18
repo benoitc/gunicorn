@@ -4,16 +4,6 @@
 # See the NOTICE for more information.
 
 
-try:
-    import ctypes
-except MemoryError:
-    # selinux execmem denial
-    # https://bugzilla.redhat.com/show_bug.cgi?id=488396
-    ctypes = None
-except ImportError:
-    # Python on Solaris compiled with Sun Studio doesn't have ctypes
-    ctypes = None
-
 import fcntl
 import os
 import pkg_resources
@@ -120,7 +110,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             return pkg_resources.load_entry_point(dist, section, name)
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                 exc))
     else:
         components = uri.split('.')
@@ -133,7 +123,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
                             section, uri)
             except:
                 exc = traceback.format_exc()
-                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                     exc))
 
         klass = components.pop(-1)
@@ -141,7 +131,7 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
             mod = __import__('.'.join(components))
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri, 
+            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
                 exc))
 
         for comp in components[1:]:
@@ -152,26 +142,17 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
 def set_owner_process(uid, gid):
     """ set user and group of workers processes """
     if gid:
-        try:
-            os.setgid(gid)
-        except OverflowError:
-            if not ctypes:
-                raise
-            # versions of python < 2.6.2 don't manage unsigned int for
-            # groups like on osx or fedora
-            os.setgid(-ctypes.c_int(-gid).value)
-
+        # versions of python < 2.6.2 don't manage unsigned int for
+        # groups like on osx or fedora
+        gid = abs(gid) & 0x7FFFFFFF
+        os.setgid(gid)
     if uid:
         os.setuid(uid)
 
 
 def chown(path, uid, gid):
-    try:
-        os.chown(path, uid, gid)
-    except OverflowError:
-        if not ctypes:
-            raise
-        os.chown(path, uid, -ctypes.c_int(-gid).value)
+    gid = abs(gid) & 0x7FFFFFFF  # see note above.
+    os.chown(path, uid, gid)
 
 
 if sys.platform.startswith("win"):
@@ -232,11 +213,11 @@ def is_ipv6(addr):
 
 
 def parse_address(netloc, default_port=8000):
-    if netloc.startswith("unix:"):
-        return netloc.split("unix:")[1]
-
     if netloc.startswith("unix://"):
         return netloc.split("unix://")[1]
+
+    if netloc.startswith("unix:"):
+        return netloc.split("unix:")[1]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
