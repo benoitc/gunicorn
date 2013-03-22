@@ -27,6 +27,7 @@ class SyncWorker(base.Worker):
 
         ready = self.sockets
         while self.alive:
+            self.set_active(True)
             self.notify()
 
             # Accept a connection. If we get an error telling us
@@ -57,6 +58,7 @@ class SyncWorker(base.Worker):
                 return
 
             try:
+                self.set_active(False)
                 self.notify()
                 # If we are in inactive_master mode, we don't have to wake up to notify while inactive
                 ret = select.select(self.sockets, [], self.PIPE, None if self.cfg.inactive_master else self.timeout)
@@ -77,7 +79,6 @@ class SyncWorker(base.Worker):
 
     def handle(self, listener, client, addr):
         req = None
-        self.set_active(True)
         try:
             if self.cfg.is_ssl:
                 client = ssl.wrap_socket(client, server_side=True,
@@ -107,7 +108,6 @@ class SyncWorker(base.Worker):
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
-            self.set_active(False)
 
     def handle_request(self, listener, req, client, addr):
         environ = {}

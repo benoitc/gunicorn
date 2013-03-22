@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import traceback
+import time
 
 
 from gunicorn import util
@@ -48,6 +49,9 @@ class Worker(object):
         self.log = log
         self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
+        
+        # Mark as active
+        self.set_active(True)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -69,9 +73,11 @@ class Worker(object):
         The worker should call set_active(True) whenever it start handling a new connection,
         and set_active(False) before waiting for a new connection.
         """
+        # Last update must be saved before calling set active, cause it update the timestamp
+        last_update = self.tmp.last_update()
         self.tmp.set_active(active)
-        if active:
-            # Wake up the parent if going active
+        if active and (time.time() -  last_update> self.timeout):
+            # Wake up the parent if going active after a long sleep
             # Otherwise, let the parent goes to its next loop
             try:
                 os.write(self.parent_pipe, b'.')
