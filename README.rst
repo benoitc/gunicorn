@@ -82,7 +82,7 @@ You can see the complete list with the expected::
 gunicorn
 ++++++++
 
-The first and most basic script is used to server 'bare' WSGI applications
+The first and most basic script is used to serve 'bare' WSGI applications
 that don't require a translation layer. Basic usage::
 
     $ gunicorn [OPTIONS] APP_MODULE
@@ -99,7 +99,7 @@ Example with test app::
 gunicorn_django
 +++++++++++++++
 
-You might not have guessed it, but this script is used to server Django
+You might not have guessed it, but this script is used to serve Django
 applications. Basic usage::
 
     $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
