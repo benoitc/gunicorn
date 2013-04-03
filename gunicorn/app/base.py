@@ -123,7 +123,7 @@ class Application(object):
         if self.cfg.pythonpath and self.cfg.pythonpath is not None:
             paths = self.cfg.pythonpath.split(",")
             for path in paths:
-                pythonpath = os.path.abspath(self.cfg.pythonpath)
+                pythonpath = os.path.abspath(path)
                 if pythonpath not in sys.path:
                     sys.path.insert(0, pythonpath)
 
