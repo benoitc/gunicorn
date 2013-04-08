@@ -202,6 +202,8 @@ class Logger(object):
     access_fmt = "%(message)s"
     syslog_fmt = "[%(process)d] %(message)s"
 
+    atoms_wrapper_class = SafeAtoms
+
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
@@ -308,7 +310,7 @@ class Logger(object):
         # wrap atoms:
         # - make sure atoms will be test case insensitively
         # - if atom doesn't exist replace it by '-'
-        safe_atoms = SafeAtoms(self.atoms(resp, req, environ,
+        safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
             request_time))
 
         try:
