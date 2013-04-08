@@ -8,7 +8,8 @@ from gunicorn.glogging import Logger
 
 class Mock():
     def __init__(self, **kwargs):
-        [setattr(self, attr, value) for attr, value in kwargs.iteritems()]
+        for attr in kwargs:
+            setattr(self, attr, kwargs[attr])
 
 
 def test_atoms_defaults():
