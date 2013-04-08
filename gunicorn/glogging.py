@@ -202,6 +202,8 @@ class Logger(object):
     access_fmt = "%(message)s"
     syslog_fmt = "[%(process)d] %(message)s"
 
+    atoms_wrapper_class = SafeAtoms
+
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
         self.access_log = logging.getLogger("gunicorn.access")
@@ -264,30 +266,25 @@ class Logger(object):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 
-    def access(self, resp, req, environ, request_time):
-        """ Seee http://httpd.apache.org/docs/2.0/logs.html#combined
-        for format details
+    def atoms(self, resp, req, environ, request_time):
+        """ Gets atoms for log formating.
         """
-
-        if not self.cfg.accesslog and not self.cfg.logconfig:
-            return
-
         status = resp.status.split(None, 1)[0]
         atoms = {
-                'h': environ.get('REMOTE_ADDR', '-'),
-                'l': '-',
-                'u': '-',  # would be cool to get username from basic auth header
-                't': self.now(),
-                'r': "%s %s %s" % (environ['REQUEST_METHOD'],
-                    environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
-                's': status,
-                'b': resp.response_length and str(resp.response_length) or '-',
-                'f': environ.get('HTTP_REFERER', '-'),
-                'a': environ.get('HTTP_USER_AGENT', '-'),
-                'T': str(request_time.seconds),
-                'D': str(request_time.microseconds),
-                'p': "<%s>" % os.getpid()
-                }
+            'h': environ.get('REMOTE_ADDR', '-'),
+            'l': '-',
+            'u': '-',  # would be cool to get username from basic auth header
+            't': self.now(),
+            'r': "%s %s %s" % (environ['REQUEST_METHOD'],
+                environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
+            's': status,
+            'b': resp.response_length and str(resp.response_length) or '-',
+            'f': environ.get('HTTP_REFERER', '-'),
+            'a': environ.get('HTTP_USER_AGENT', '-'),
+            'T': str(request_time.seconds),
+            'D': str(request_time.microseconds),
+            'p': "<%s>" % os.getpid()
+        }
 
         # add request headers
         if hasattr(req, 'headers'):
@@ -300,10 +297,21 @@ class Logger(object):
         # add response headers
         atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp.headers]))
 
+        return atoms
+
+    def access(self, resp, req, environ, request_time):
+        """ See http://httpd.apache.org/docs/2.0/logs.html#combined
+        for format details
+        """
+
+        if not self.cfg.accesslog and not self.cfg.logconfig:
+            return
+
         # wrap atoms:
         # - make sure atoms will be test case insensitively
         # - if atom doesn't exist replace it by '-'
-        safe_atoms = SafeAtoms(atoms)
+        safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
+            request_time))
 
         try:
             self.access_log.info(self.cfg.access_log_format % safe_atoms)
