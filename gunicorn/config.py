@@ -460,9 +460,11 @@ class WorkerClass(Setting):
     desc = """\
         The type of workers to use.
 
-        The default class (sync) should handle most 'normal' types of workloads.
-        You'll want to read http://gunicorn.org/design.html for information on
-        when you might want to choose one of the other worker classes.
+        The default class (sync) should handle most 'normal' types of
+        workloads.  You'll want to read
+        http://docs.gunicorn.org/en/latest/design.html for information
+        on when you might want to choose one of the other worker
+        classes.
 
         A string referring to one of the following bundled classes:
 
