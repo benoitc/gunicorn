@@ -130,6 +130,9 @@ class LazyWriter(object):
     def isatty(self):
         return bool(self.fileobj and self.fileobj.isatty())
 
+    def fileno():
+        return self.fileobj.fileno()
+
 
 class SafeAtoms(dict):
 
