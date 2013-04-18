@@ -1,5 +1,5 @@
 *.gem
-*.swp
+*.sw*
 *.pyc
 *#*
 build
