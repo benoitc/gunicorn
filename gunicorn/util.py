@@ -209,6 +209,8 @@ def is_ipv6(addr):
         socket.inet_pton(socket.AF_INET6, addr)
     except socket.error:  # not a valid address
         return False
+    except ValueError: # ipv6 not supported on this platform
+        return False
     return True
 
 
