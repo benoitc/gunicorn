@@ -81,59 +81,6 @@ def loggers():
     return [logging.getLogger(name) for name in existing]
 
 
-class LazyWriter(object):
-
-    """
-    File-like object that opens a file lazily when it is first written
-    to.
-    """
-
-    def __init__(self, filename, mode='w'):
-        self.filename = filename
-        self.fileobj = None
-        self.lock = threading.Lock()
-        self.mode = mode
-
-    def open(self):
-        if self.fileobj is None:
-            self.lock.acquire()
-            try:
-                if self.fileobj is None:
-                    self.fileobj = open(self.filename, self.mode)
-            finally:
-                self.lock.release()
-        return self.fileobj
-
-    def close(self):
-        if self.fileobj:
-            self.lock.acquire()
-            try:
-                if self.fileobj:
-                    self.fileobj.close()
-                    self.fileobj = None
-            finally:
-                self.lock.release()
-
-    def write(self, text):
-        fileobj = self.open()
-        fileobj.write(text)
-        fileobj.flush()
-
-    def writelines(self, text):
-        fileobj = self.open()
-        fileobj.writelines(text)
-        fileobj.flush()
-
-    def flush(self):
-        self.open().flush()
-
-    def isatty(self):
-        return bool(self.fileobj and self.fileobj.isatty())
-
-    def fileno():
-        return self.fileobj.fileno()
-
-
 class SafeAtoms(dict):
 
     def __init__(self, atoms):
@@ -213,6 +160,8 @@ class Logger(object):
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
+        self.logfile = None
+        self.lock = threading.Lock()
         self.setup(cfg)
 
     def setup(self, cfg):
@@ -224,7 +173,12 @@ class Logger(object):
             if cfg.errorlog != "-":
                 # if an error log file is set redirect stdout & stderr to
                 # this log file.
-                sys.stdout = sys.stderr = LazyWriter(cfg.errorlog, 'a')
+                for stream in sys.stdout, sys.stderr:
+                    stream.flush()
+
+                self.logfile = open(cfg.errorlog, 'a+')
+                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
             # set gunicorn.error handler
             self._set_handler(self.error_log, cfg.errorlog,
@@ -330,9 +284,19 @@ class Logger(object):
 
     def reopen_files(self):
         if self.cfg.errorlog != "-":
-            # Close stderr & stdout if they are redirected to error log file
-            sys.stderr.close()
-            sys.stdout.close()
+            # if an error log file is set redirect stdout & stderr to
+            # this log file.
+            for stream in sys.stdout, sys.stderr:
+                stream.flush()
+
+            with self.lock:
+                if self.logfile is not None:
+                    self.logfile.close()
+
+                self.logfile = open(self.cfg.errorlog, 'a+')
+                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -346,6 +310,9 @@ class Logger(object):
                         handler.release()
 
     def close_on_exec(self):
+        for stream in sys.stdout, sys.stderr:
+            util.close_on_exec(stream.fileno())
+
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):

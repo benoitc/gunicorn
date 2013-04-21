@@ -22,4 +22,5 @@ def app(environ, start_response):
         ("Test", "test тест"),
     ]
     start_response(status, response_headers)
+    print("test")
     return iter([data])
