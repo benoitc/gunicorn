@@ -310,9 +310,6 @@ class Logger(object):
                         handler.release()
 
     def close_on_exec(self):
-        for stream in sys.stdout, sys.stderr:
-            util.close_on_exec(stream.fileno())
-
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
