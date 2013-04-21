@@ -95,7 +95,7 @@ Example with test app::
 
     $ cd examples
     $ gunicorn --workers=2 test:app
-    
+
 gunicorn_django
 +++++++++++++++
 
@@ -122,7 +122,7 @@ file::
         ...
         "gunicorn",
     )
-  
+
 Then you can run::
 
     python manage.py run_gunicorn
@@ -161,8 +161,8 @@ you can use this example to help get you started::
     import os
     import multiprocessing
 
-    from paste.deploy import appconfig, loadapp 
-    from gunicorn.app.pasterapp import paste_server 
+    from paste.deploy import appconfig, loadapp
+    from gunicorn.app.pasterapp import paste_server
 
     if __name__ == "__main__":
 
@@ -170,7 +170,7 @@ you can use this example to help get you started::
         port = int(os.environ.get("PORT", 5000))
         workers = multiprocessing.cpu_count() * 2 + 1
         worker_class = 'gevent'
-   
+
         app = loadapp(iniFile, relative_to='.')
         paste_server(app, host='0.0.0.0', port=port, workers=workers, worker_class=worker_class)
 
@@ -186,10 +186,10 @@ details.
 .. _freenode: http://freenode.net
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
-.. _FAQ: http://gunicorn.org/faq.html
+.. _FAQ: http://docs.gunicorn.org/en/latest/faq.html
 .. _libev: http://software.schmorp.de/pkg/libev.html
 .. _libevent: http://monkey.org/~provos/libevent
-.. _`production page`: http://gunicorn.org/deployment.html
-.. _`config file`: http://gunicorn.org/configuration.html
+.. _`production page`: http://docs.gunicorn.org/en/latest/deploy.html
+.. _`config file`: http://docs.gunicorn.org/en/latest/configure.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
