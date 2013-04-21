@@ -411,11 +411,32 @@ def daemonize():
 
         os.umask(0)
         maxfd = get_maxfd()
-        closerange(0, maxfd)
+
+        fds = []
+        if 'GUNICORN_INHERIT_FDS' in os.environ:
+            list_fds = os.environ['GUNICORN_INHERIT_FDS'].split(',')
+            try:
+                fds = [int(fd) for fd in list_fds]
+            except ValueError:
+                raise RuntimeError("Bad value in 'GUNICORN_INHERIT_FDS'")
+
+            for fd in range(0, max_fd):
+                if fd in fds:
+                    continue
+
+                try:
+                    os.close(fd)
+                except OSError:  # ERROR, fd wasn't open to begin with (ignored)
+                    pass
+        else:
+            closerange(0, maxfd)
 
         os.open(REDIRECT_TO, os.O_RDWR)
-        os.dup2(0, 1)
-        os.dup2(0, 2)
+        if 1 not in fds:
+            os.dup2(0, 1)
+
+        if 2 not in fds:
+            os.dup2(0, 2)
 
 
 def seed():
