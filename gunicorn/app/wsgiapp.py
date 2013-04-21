@@ -34,3 +34,7 @@ def run():
     """
     from gunicorn.app.wsgiapp import WSGIApplication
     WSGIApplication("%(prog)s [OPTIONS] APP_MODULE").run()
+
+
+if __name__ == '__main__':
+    run()
