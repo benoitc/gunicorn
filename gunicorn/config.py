@@ -84,8 +84,6 @@ class Config(object):
         for k in keys:
             self.settings[k].add_option(parser)
 
-
-
         return parser
 
     @property

@@ -53,7 +53,10 @@ class Application(object):
                 self.cfg.set(k.lower(), v)
 
         # Load up the config file if its found.
-        if args.config and os.path.exists(args.config):
+        if args.config:
+            if not os.path.exists(args.config):
+                raise RuntimeError("%r doesn't exist" % args.config)
+
             cfg = {
                 "__builtins__": __builtins__,
                 "__name__": "__config__",
