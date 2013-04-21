@@ -265,7 +265,7 @@ class Arbiter(object):
 
     def handle_winch(self):
         "SIGWINCH handling"
-        if os.getppid() == 1 or os.getpgrp() != os.getpid():
+        if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
             self.kill_workers(signal.SIGQUIT)
