@@ -403,7 +403,15 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 
-def daemonize():
+def disable_stdout_buffering():
+    _old_write = sys.stdout.write
+    def _write(*args, **kwargs):
+        _old_write(*args, **kwargs)
+        sys.stdout.flush()
+
+    sys.stdout.write = _write
+
+def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
@@ -417,13 +425,27 @@ def daemonize():
             os._exit(0)
 
         os.umask(0)
+
         maxfd = get_maxfd()
-        closerange(0, maxfd)
+        if not enable_stdio_inheritance:
+            closerange(0, maxfd)
 
-        os.open(REDIRECT_TO, os.O_RDWR)
-        os.dup2(0, 1)
-        os.dup2(0, 2)
-
+            os.open(REDIRECT_TO, os.O_RDWR)
+            os.dup2(0, 1)
+            os.dup2(0, 2)
+        else:
+            closerange(3, maxfd)
+            os.open(REDIRECT_TO, os.O_RDWR)
+            for stream in (sys.stdin, sys.stdout, sys.stderr):
+                fd = stream.fileno()
+                try:
+                    if stream.isatty():
+                        os.close(fd)
+                        if fd in (1, 2):
+                            os.dup2(0, fd)
+                except AttributeError:
+                    pass
+            disable_stdout_buffering()
 
 def seed():
     try:

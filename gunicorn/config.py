@@ -1292,3 +1292,17 @@ class SyslogFacility(Setting):
     desc = """\
     Syslog facility name
     """
+
+
+class EnableStdioInheritance(Setting):
+    name = "enable_stdio_inheritance"
+    section = "Logging"
+    cli = ["-R", "--enable-stdio-inheritance"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Enable stdio inheritance
+
+    Enable inheritance for stdio file descriptors in daemon mode.
+    """

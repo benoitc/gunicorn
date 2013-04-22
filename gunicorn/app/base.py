@@ -119,8 +119,9 @@ class Application(object):
 
         if self.cfg.spew:
             debug.spew()
+
         if self.cfg.daemon:
-            util.daemonize()
+            util.daemonize(self.cfg.enable_stdio_inheritance)
 
         # set python paths
         if self.cfg.pythonpath and self.cfg.pythonpath is not None:
