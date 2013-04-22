@@ -46,7 +46,7 @@ class WorkerTmp(object):
         except AttributeError:
             # python < 2.6
             self._tmp.truncate(0)
-            os.write(self._tmp.fileno(), "X")
+            os.write(self._tmp.fileno(), b"X")
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_ctime
