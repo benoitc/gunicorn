@@ -23,7 +23,8 @@ class SyncWorker(base.Worker):
     def run(self):
         # self.socket appears to lose its blocking status after
         # we fork in the arbiter. Reset it here.
-        [s.setblocking(0) for s in self.sockets]
+        for s in self.sockets:
+            s.setblocking(0)
 
         ready = self.sockets
         while self.alive:
