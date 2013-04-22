@@ -18,6 +18,7 @@ import inspect
 import errno
 import warnings
 
+from gunicorn.errors import AppImportError
 from gunicorn.six import text_type, string_types
 
 MAXFD = 1024
@@ -358,11 +359,17 @@ def import_app(module):
             raise
 
     mod = sys.modules[module]
-    app = eval(obj, mod.__dict__)
+
+    try:
+        app = eval(obj, mod.__dict__)
+    except NameError:
+        raise AppImportError("Failed to find application: %r" % module)
+
     if app is None:
-        raise ImportError("Failed to find application object: %r" % obj)
+        raise AppImportError("Failed to find application object: %r" % obj)
+
     if not callable(app):
-        raise TypeError("Application object must be callable.")
+        raise AppImportError("Application object must be callable.")
     return app
 
 

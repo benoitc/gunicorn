@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 
-from gunicorn.errors import HaltServer
+from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
 from gunicorn import util
@@ -33,6 +33,9 @@ class Arbiter(object):
     # to boot. If a worker process exist with
     # this error code, the arbiter will terminate.
     WORKER_BOOT_ERROR = 3
+
+    # A flag indicating if an application failed to be loaded
+    APP_LOAD_ERROR = 4
 
     START_CTX = {}
 
@@ -435,6 +438,9 @@ class Arbiter(object):
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+                    if exitcode == self.APP_LOAD_ERROR:
+                        reason = "App failed to load."
+                        raise HaltServer(reason, self.APP_LOAD_ERROR)
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
@@ -478,6 +484,13 @@ class Arbiter(object):
             sys.exit(0)
         except SystemExit:
             raise
+        except AppImportError as e:
+            self.log.debug("Exception while loading the application: \n%s",
+                    traceback.format_exc())
+
+            sys.stderr.write("%s\n" % e)
+            sys.stderr.flush()
+            sys.exit(self.APP_LOAD_ERROR)
         except:
             self.log.exception("Exception in worker process:\n%s",
                     traceback.format_exc())

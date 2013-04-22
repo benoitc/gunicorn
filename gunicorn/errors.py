@@ -15,3 +15,7 @@ class HaltServer(BaseException):
 
 class ConfigError(BaseException):
     """ Exception raised on config error """
+
+
+class AppImportError(Exception):
+    """ Exception raised when loading an application """
