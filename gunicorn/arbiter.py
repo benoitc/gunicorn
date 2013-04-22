@@ -7,6 +7,7 @@ from __future__ import with_statement
 
 import errno
 import os
+import random
 import select
 import signal
 import sys
@@ -501,6 +502,7 @@ class Arbiter(object):
 
         for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.spawn_worker()
+            time.sleep(0.1 * random.random())
 
     def kill_workers(self, sig):
         """\
