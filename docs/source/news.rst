@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.17.3 / 2013-04-23
+-------------------
+
+- add ``python -m gunicorn.app.wsgiapp`` support 
+- improve logger class inheritance
+- exit when the config file isn't found
+- add the -R option to enable stdio inheritance in daemon mode
+- don't close file descriptors > 3 in daemon mode
+- improve STDOUT/STDERR logging
+- fix pythonpath option
+- fix pidfile creation on Python 3
+- fix gevent worker exit
+- fix ipv6 detection when the platform isn't supporting it
+
 0.17.2 / 2013-01-07
 -------------------
 
