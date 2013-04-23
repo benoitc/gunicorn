@@ -201,6 +201,45 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autorestart=true
     redirect_stderr=True
 
+Systemd
+-------
+
+A tool that is starting to be common on linux systems is Systemd_. Here
+are configurations files to set the gunicorn launch in systemd and 
+the interfaces on which gunicorn will listen. The sockets will be managed by
+systemd:
+
+**gunicorn.service**::
+
+    [Unit]
+    Description=gunicorn daemon
+
+    [Service]
+    User=urban
+    WorkingDirectory=/home/urban/gunicorn/bin
+    ExecStart=/home/urban/gunicorn/bin/gunicorn --debug --log-level debug test:app
+
+    [Install]
+    WantedBy=multi-user.target
+
+**gunicorn.socket**::
+
+    [Unit]
+    Description=gunicorn socket
+
+    [Socket]
+    ListenStream=/run/unicorn.sock
+    ListenStream=0.0.0.0:9000
+    ListenStream=[::]:8000
+
+    [Install]
+    WantedBy=sockets.target
+
+After running curl http://localhost:9000/ gunicorn should start and you
+should see something like that in logs::
+
+    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/unicorn.sock,http://0.0.0.0:9000,http://[::]:8000
+
 Logging
 =======
 
@@ -221,3 +260,4 @@ utility::
 .. _`configuration documentation`: http://gunicorn.org/configure.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
+.. _Systemd: http://www.freedesktop.org/wiki/Software/systemd

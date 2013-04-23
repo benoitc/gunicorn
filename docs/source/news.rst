@@ -4,6 +4,7 @@ Changelog
 0.17.3 / 2013-04-23
 -------------------
 
+- add systemd sockets support 
 - add ``python -m gunicorn.app.wsgiapp`` support 
 - improve logger class inheritance
 - exit when the config file isn't found
