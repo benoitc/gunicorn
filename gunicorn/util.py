@@ -426,16 +426,87 @@ def daemonize(enable_stdio_inheritance=False):
 
         os.umask(0)
 
+        # In both the following any file descriptors above stdin
+        # stdout and stderr are left untouched. The inheritence
+        # option simply allows one to have output go to a file
+        # specified by way of shell redirection when not wanting
+        # to use --error-log option.
+
         if not enable_stdio_inheritance:
+            # Remap all of stdin, stdout and stderr on to
+            # /dev/null. The expectation is that users have
+            # specified the --error-log option.
+
             closerange(0, 3)
 
             fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+
             if fd_null != 0:
                 os.dup2(fd_null, 0)
+
             os.dup2(fd_null, 1)
             os.dup2(fd_null, 2)
+
         else:
-            disable_stdout_buffering()
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+
+            # Always redirect stdin to /dev/null as we would
+            # never expect to need to read interactive input.
+
+            if fd_null != 0:
+                os.close(0)
+                os.dup2(fd_null, 0)
+
+            # If stdout and stderr are still connected to
+            # their original file descriptors we check to see
+            # if they are associated with terminal devices.
+            # When they are we map them to /dev/null so that
+            # are still detached from any controlling terminal
+            # properly. If not we preserve them as they are.
+            #
+            # If stdin and stdout were not hooked up to the
+            # original file descriptors, then all bets are
+            # off and all we can really do is leave them as
+            # they were.
+            #
+            # This will allow 'gunicorn ... > output.log 2>&1'
+            # to work with stdout/stderr going to the file
+            # as expected.
+            #
+            # Note that if using --error-log option, the log
+            # file specified through shell redirection will
+            # only be used up until the log file specified
+            # by the option takes over. As it replaces stdout
+            # and stderr at the file descriptor level, then
+            # anything using stdout or stderr, including having
+            # cached a reference to them, will still work.
+
+            def redirect(stream, fd_expect):
+                try:
+                    fd = stream.fileno()
+                    if fd == fd_expect and stream.isatty():
+                        os.close(fd)
+                        os.dup2(fd_null, fd)
+                except AttributeError:
+                    pass
+
+            redirect(sys.stdout, 1)
+            redirect(sys.stderr, 2)
+
+            # The aim is to disable buffering for stdout but
+            # this will fail if stdout is still the original
+            # Python C object as you cannot replace a method
+            # of a Python C object and it causes too many
+            # problems to replace sys.stdout and sys.stderr
+            # with wrappers around the originals as this is
+            # too late as things can have references to them.
+            # Better just to tell people to set the user
+            # environment variable PYTHONUNBUFFERED if this
+            # becomes an issue. Can't use C level setbuf()
+            # as Python doesn't expose that for file objects
+            # in any way.
+
+            #disable_stdout_buffering()
 
 def seed():
     try:
