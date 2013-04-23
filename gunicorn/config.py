@@ -1305,4 +1305,7 @@ class EnableStdioInheritance(Setting):
     Enable stdio inheritance
 
     Enable inheritance for stdio file descriptors in daemon mode.
+
+    Note: To disable the python stdout buffering, you can to set the user
+    environment variable ``PYTHONUNBUFFERED`` .
     """

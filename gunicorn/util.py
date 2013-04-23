@@ -403,14 +403,6 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 
-def disable_stdout_buffering():
-    _old_write = sys.stdout.write
-    def _write(*args, **kwargs):
-        _old_write(*args, **kwargs)
-        sys.stdout.flush()
-
-    sys.stdout.write = _write
-
 def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
@@ -493,20 +485,6 @@ def daemonize(enable_stdio_inheritance=False):
             redirect(sys.stdout, 1)
             redirect(sys.stderr, 2)
 
-            # The aim is to disable buffering for stdout but
-            # this will fail if stdout is still the original
-            # Python C object as you cannot replace a method
-            # of a Python C object and it causes too many
-            # problems to replace sys.stdout and sys.stderr
-            # with wrappers around the originals as this is
-            # too late as things can have references to them.
-            # Better just to tell people to set the user
-            # environment variable PYTHONUNBUFFERED if this
-            # becomes an issue. Can't use C level setbuf()
-            # as Python doesn't expose that for file objects
-            # in any way.
-
-            #disable_stdout_buffering()
 
 def seed():
     try:

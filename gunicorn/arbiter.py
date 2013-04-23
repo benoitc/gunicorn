@@ -93,9 +93,6 @@ class Arbiter(object):
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
-            if self.cfg.enable_stdio_inheritance:
-                util.disable_stdout_buffering()
-
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
