@@ -944,6 +944,82 @@ Gunicorn uses the standard Python logging module's Configuration
 file format.
 """
 
+class SyslogTo(Setting):
+    name = "syslog_addr"
+    section = "Logging"
+    cli = ["--log-syslog-to"]
+    meta = "SYSLOG_ADDR"
+    validator = validate_string
+
+    if PLATFORM == "darwin":
+        default = "unix:///var/run/syslog"
+    elif PLATFORM in ('freebsd', 'dragonfly', ):
+        default = "unix:///var/run/log"
+    elif PLATFORM == "openbsd":
+        default = "unix:///dev/log"
+    else:
+        default = "udp://localhost:514"
+
+    desc = """\
+    Address to send syslog messages
+    """
+
+
+class Syslog(Setting):
+    name = "syslog"
+    section = "Logging"
+    cli = ["--log-syslog"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+    Log to syslog.
+    """
+
+
+class SyslogPrefix(Setting):
+    name = "syslog_prefix"
+    section = "Logging"
+    cli = ["--log-syslog-prefix"]
+    meta = "SYSLOG_PREFIX"
+    validator = validate_string
+    default = None
+    desc = """\
+    makes gunicorn use the parameter as program-name in the syslog entries.
+
+    All entries will be prefixed by gunicorn.<prefix>. By default the program
+    name is the name of the process.
+    """
+
+
+class SyslogFacility(Setting):
+    name = "syslog_facility"
+    section = "Logging"
+    cli = ["--log-syslog-facility"]
+    meta = "SYSLOG_FACILITY"
+    validator = validate_string
+    default = "user"
+    desc = """\
+    Syslog facility name
+    """
+
+
+class EnableStdioInheritance(Setting):
+    name = "enable_stdio_inheritance"
+    section = "Logging"
+    cli = ["-R", "--enable-stdio-inheritance"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Enable stdio inheritance
+
+    Enable inheritance for stdio file descriptors in daemon mode.
+
+    Note: To disable the python stdout buffering, you can to set the user
+    environment variable ``PYTHONUNBUFFERED`` .
+    """
+
 
 class Procname(Setting):
     name = "proc_name"
@@ -1231,81 +1307,4 @@ class CertFile(Setting):
     default = None
     desc = """\
     SSL certificate file
-    """
-
-
-class SyslogTo(Setting):
-    name = "syslog_addr"
-    section = "Logging"
-    cli = ["--log-syslog-to"]
-    meta = "SYSLOG_ADDR"
-    validator = validate_string
-
-    if PLATFORM == "darwin":
-        default = "unix:///var/run/syslog"
-    elif PLATFORM in ('freebsd', 'dragonfly', ):
-        default = "unix:///var/run/log"
-    elif PLATFORM == "openbsd":
-        default = "unix:///dev/log"
-    else:
-        default = "udp://localhost:514"
-
-    desc = """\
-    Address to send syslog messages
-    """
-
-
-class Syslog(Setting):
-    name = "syslog"
-    section = "Logging"
-    cli = ["--log-syslog"]
-    validator = validate_bool
-    action = 'store_true'
-    default = False
-    desc = """\
-    Log to syslog.
-    """
-
-
-class SyslogPrefix(Setting):
-    name = "syslog_prefix"
-    section = "Logging"
-    cli = ["--log-syslog-prefix"]
-    meta = "SYSLOG_PREFIX"
-    validator = validate_string
-    default = None
-    desc = """\
-    makes gunicorn use the parameter as program-name in the syslog entries.
-
-    All entries will be prefixed by gunicorn.<prefix>. By default the program
-    name is the name of the process.
-    """
-
-
-class SyslogFacility(Setting):
-    name = "syslog_facility"
-    section = "Logging"
-    cli = ["--log-syslog-facility"]
-    meta = "SYSLOG_FACILITY"
-    validator = validate_string
-    default = "user"
-    desc = """\
-    Syslog facility name
-    """
-
-
-class EnableStdioInheritance(Setting):
-    name = "enable_stdio_inheritance"
-    section = "Logging"
-    cli = ["-R", "--enable-stdio-inheritance"]
-    validator = validate_bool
-    default = False
-    action = "store_true"
-    desc = """\
-    Enable stdio inheritance
-
-    Enable inheritance for stdio file descriptors in daemon mode.
-
-    Note: To disable the python stdout buffering, you can to set the user
-    environment variable ``PYTHONUNBUFFERED`` .
     """
