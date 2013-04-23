@@ -93,6 +93,9 @@ class Arbiter(object):
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
+            if self.cfg.enable_stdio_inheritance:
+                util.disable_stdout_buffering()
+
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
@@ -351,10 +354,6 @@ class Arbiter(object):
 
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
-
-        # close all file descriptors except bound sockets
-        util.closerange(3, fds[0])
-        util.closerange(fds[-1] + 1, util.get_maxfd())
 
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
 

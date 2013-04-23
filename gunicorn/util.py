@@ -426,25 +426,15 @@ def daemonize(enable_stdio_inheritance=False):
 
         os.umask(0)
 
-        maxfd = get_maxfd()
         if not enable_stdio_inheritance:
-            closerange(0, maxfd)
+            closerange(0, 3)
 
-            os.open(REDIRECT_TO, os.O_RDWR)
-            os.dup2(0, 1)
-            os.dup2(0, 2)
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+            if fd_null != 0:
+                os.dup2(fd_null, 0)
+            os.dup2(fd_null, 1)
+            os.dup2(fd_null, 2)
         else:
-            closerange(3, maxfd)
-            os.open(REDIRECT_TO, os.O_RDWR)
-            for stream in (sys.stdin, sys.stdout, sys.stderr):
-                fd = stream.fileno()
-                try:
-                    if stream.isatty():
-                        os.close(fd)
-                        if fd in (1, 2):
-                            os.dup2(0, fd)
-                except AttributeError:
-                    pass
             disable_stdout_buffering()
 
 def seed():
