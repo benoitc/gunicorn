@@ -219,6 +219,9 @@ def parse_address(netloc, default_port=8000):
     if netloc.startswith("unix://"):
         return netloc.split("unix://")[1]
 
+    if netloc.startswith("unix:/"):
+        return netloc.split("unix:/")[1]
+
     if netloc.startswith("unix:"):
         return netloc.split("unix:")[1]
 
