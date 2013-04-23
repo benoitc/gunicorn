@@ -6,6 +6,7 @@
 import errno
 import os
 import socket
+import stat
 import sys
 import time
 
@@ -26,6 +27,7 @@ class BaseSocket(object):
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
         else:
             sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
+
         self.sock = self.set_options(sock, bound=(fd is not None))
 
     def __str__(self, name):
@@ -88,9 +90,15 @@ class UnixSocket(BaseSocket):
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
             try:
-                os.remove(addr)
-            except OSError:
-                pass
+                st = os.stat(addr)
+            except OSError as e:
+                if e.args[0] != errno.ENOENT:
+                    raise
+            else:
+                if stat.S_ISSOCK(st.st_mode):
+                    os.remove(addr)
+                else:
+                    raise ValueError("%r is not a socket" % addr)
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
