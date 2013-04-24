@@ -108,7 +108,7 @@ class Worker(object):
         [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
-        signal.signal(signal.SIGTERM, self.handle_exit)
+        signal.signal(signal.SIGABRT, self.handle_sigabrt)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
@@ -120,6 +120,22 @@ class Worker(object):
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
+
+    def handle_sigabrt(self, sig, frame):
+        """\
+        SIGTERM is sent by the arbiter in case the worker times
+        out, giving it chance to dump a stack trace before finally
+        sending a SIGKILL if the worker doesn't respond
+        """
+        trace = ''.join(traceback.format_stack(frame))
+        self.log.critical(
+            "WORKER TIMEOUT (pid:%s)\n" +
+            "Traceback (most recent call last):\n" +
+            "%s", 
+            self.pid, trace)
+
+        self.alive = False
+        sys.exit(0)
 
     def handle_quit(self, sig, frame):
         self.alive = False
