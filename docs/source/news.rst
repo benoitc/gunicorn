@@ -1,11 +1,16 @@
 Changelog
 =========
 
+0.17.4 / 2013-04-24
+-------------------
+
+- fix unix socket address parsing
+
 0.17.3 / 2013-04-23
 -------------------
 
-- add systemd sockets support 
-- add ``python -m gunicorn.app.wsgiapp`` support 
+- add systemd sockets support
+- add ``python -m gunicorn.app.wsgiapp`` support
 - improve logger class inheritance
 - exit when the config file isn't found
 - add the -R option to enable stdio inheritance in daemon mode
