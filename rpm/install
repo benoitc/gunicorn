@@ -8,6 +8,6 @@
 INSTALLED_FILES="\
 %{python_sitelib}/*
 %{_bindir}/*
-%doc doc
+%doc docs
 "
 echo "$INSTALLED_FILES" > INSTALLED_FILES
