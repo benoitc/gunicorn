@@ -40,6 +40,9 @@ class EventletWorker(AsyncWorker):
 
         super(EventletWorker, self).handle(listener, client, addr)
 
+        if not self.alive:
+            raise eventlet.StopServe()
+
     def run(self):
         acceptors = []
         for sock in self.sockets:
@@ -60,5 +63,10 @@ class EventletWorker(AsyncWorker):
             eventlet.sleep(1.0)
 
         self.notify()
-        with eventlet.Timeout(self.cfg.graceful_timeout, False):
-            [eventlet.kill(a, eventlet.StopServe) for a in acceptors]
+        try:
+            with eventlet.Timeout(self.cfg.graceful_timeout) as t:
+                [a.wait() for a in acceptors]
+        except eventlet.Timeout as te:
+            if te != t:
+                raise
+            [a.kill() for a in acceptors]
