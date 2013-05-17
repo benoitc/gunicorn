@@ -8,8 +8,7 @@ import os
 import re
 import sys
 
-from gunicorn.six import (unquote, string_types, binary_type, reraise,
-        text_type)
+from gunicorn.six import unquote_to_wsgi_str, string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -164,7 +163,7 @@ def create(req, sock, client, server, cfg):
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
-    environ['PATH_INFO'] = unquote(path_info)
+    environ['PATH_INFO'] = unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
     environ.update(proxy_environ(req))
