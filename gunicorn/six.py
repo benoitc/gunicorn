@@ -387,7 +387,10 @@ if PY3:
 
     import urllib.parse
 
-    unquote = urllib.parse.unquote
+    def unquote_to_wsgi_str(string):
+        return _unquote_to_bytes(string).decode('latin-1')
+
+    _unquote_to_bytes = urllib.parse.unquote_to_bytes
     urlsplit = urllib.parse.urlsplit
     urlparse = urllib.parse.urlparse
 
@@ -402,4 +405,4 @@ else:
     urlparse = orig_urlparse.urlparse
 
     import urllib
-    unquote = urllib.unquote
+    unquote_to_wsgi_str = urllib.unquote
