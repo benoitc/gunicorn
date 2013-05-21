@@ -109,33 +109,21 @@ advantages:
    rolled back in case of incompatibility. The package can also be purged
    entirely from the system in seconds.
 
-Stable ("squeeze")
+Stable ("wheezy")
 ------------------
 
-The version of Gunicorn in the Debian_ "stable" distribution is 0.10.0 (July
-2010). It is not recommended that you use this version.
+The version of Gunicorn in the Debian_ "wheezy" distribution is 0.14.5 (May
+2013). It is not recommended that you use this version. Use the From Source
+section to install the most recent version of Gunicorn.
 
-However, you can use the most recent version by using `Debian Backports`_.
-First, copy the following line to your ``/etc/apt/sources.list``::
 
-    deb http://backports.debian.org/debian-backports squeeze-backports main
-
-Then, update your local package lists::
-
-    $ sudo apt-get update
-
-You can then install the latest version using::
-
-    $ sudo apt-get -t squeeze-backports install gunicorn
-
-Testing ("wheezy") / Unstable ("sid")
+Testing ("jessie") / Unstable ("sid")
 -------------------------------------
 
-"wheezy" and "sid" contain the latest released version of Gunicorn. You can
+"jessie" and "sid" contain the most recent version of Gunicorn. You can
 install it in the usual way::
 
     $ sudo apt-get install gunicorn
-
 
 Ubuntu
 ======
