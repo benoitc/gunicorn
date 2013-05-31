@@ -21,9 +21,10 @@ from gunicorn import util
 
 
 class PasterBaseApplication(Application):
+    gcfg = None
 
     def app_config(self):
-        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath)
+        cx = loadwsgi.loadcontext(SERVER, self.cfgurl, relative_to=self.relpath, global_conf=self.gcfg)
         gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
         cfg = {}
 
@@ -92,6 +93,7 @@ class PasterServerApplication(PasterBaseApplication):
 
     def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         self.cfg = Config()
+        self.gcfg = gcfg # need to hold this for app_config 
         self.app = app
         self.callable = None
 
