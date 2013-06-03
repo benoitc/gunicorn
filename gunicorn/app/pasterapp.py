@@ -86,7 +86,7 @@ class PasterApplication(PasterBaseApplication):
         return self.app_config()
 
     def load(self):
-        return loadapp(self.cfgurl, relative_to=self.relpath)
+        return loadapp(self.cfgurl, relative_to=self.relpath, global_conf=self.gcfg)
 
 
 class PasterServerApplication(PasterBaseApplication):
@@ -140,7 +140,7 @@ class PasterServerApplication(PasterBaseApplication):
 
     def load(self):
         if hasattr(self, "cfgfname"):
-            return loadapp(self.cfgurl, relative_to=self.relpath)
+            return loadapp(self.cfgurl, relative_to=self.relpath, global_conf=self.gcfg)
 
         return self.app
 
