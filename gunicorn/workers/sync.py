@@ -142,8 +142,13 @@ class SyncWorker(base.Worker):
             if resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                client.shutdown(socket.SHUT_RDWR)
-                client.close()
+                try:
+                    client.shutdown(socket.SHUT_RDWR)
+                    client.close()
+                except socket.error:
+                    pass
+
+                return
             # Only send back traceback in HTTP in debug mode.
             self.handle_error(req, client, addr, e)
             return
