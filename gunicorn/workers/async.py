@@ -108,8 +108,12 @@ class AsyncWorker(base.Worker):
             if resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                sock.shutdown(socket.SHUT_RDWR)
-                sock.close()
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                    sock.close()
+                except socket.error:
+                    pass
+                return
             raise
         finally:
             try:
