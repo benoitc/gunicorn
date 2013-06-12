@@ -177,7 +177,7 @@ class Worker(object):
             environ = default_environ(req, client, self.cfg)
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
-            resp = Response(req, client)
+            resp = Response(req, client, self.cfg)
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)

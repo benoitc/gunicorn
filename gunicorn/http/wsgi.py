@@ -75,7 +75,7 @@ def proxy_environ(req):
 
 
 def create(req, sock, client, server, cfg):
-    resp = Response(req, sock)
+    resp = Response(req, sock, cfg)
 
     environ = default_environ(req, sock, cfg)
 
@@ -173,7 +173,7 @@ def create(req, sock, client, server, cfg):
 
 class Response(object):
 
-    def __init__(self, req, sock):
+    def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
         self.version = SERVER_SOFTWARE
@@ -185,6 +185,7 @@ class Response(object):
         self.response_length = None
         self.sent = 0
         self.upgrade = False
+        self.sendfile_enabled = not cfg.disable_sendfile
 
     def force_close(self):
         self.must_close = True
@@ -320,6 +321,7 @@ class Response(object):
 
     def write_file(self, respiter):
         if sendfile is not None and \
+                self.sendfile_enabled and \
                 hasattr(respiter.filelike, 'fileno') and \
                 hasattr(respiter.filelike, 'tell'):
 
