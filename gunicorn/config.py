@@ -1308,3 +1308,16 @@ class CertFile(Setting):
     desc = """\
     SSL certificate file
     """
+
+
+class DisableSendFile(Setting):
+    name = "disable_sendfile"
+    section = "Server Mechanics"
+    cli = ["--disable-sendfile"]
+    validator = validate_bool
+    default = None
+    action = "store_true"
+    desc = """\
+    Disable usage of sendfile
+    """
+
