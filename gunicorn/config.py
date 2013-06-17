@@ -199,7 +199,7 @@ class Setting(object):
             "dest": self.name,
             "action": self.action or "store",
             "type": self.type or str,
-            "default": None,
+            "default": self.default or None,
             "help": help_txt
         }
 
@@ -367,6 +367,12 @@ def validate_post_request(val):
     else:
         raise TypeError("Value must have an arity of: 4")
 
+def get_default_config_file():
+    config_path = os.path.join(os.path.abspath(os.getcwd()), 'gunicorn.conf.py')
+    if os.path.exists(config_path):
+        return config_path
+    return None
+
 
 class ConfigFile(Setting):
     name = "config"
@@ -374,14 +380,13 @@ class ConfigFile(Setting):
     cli = ["-c", "--config"]
     meta = "FILE"
     validator = validate_string
-    default = None
+    default = get_default_config_file()
     desc = """\
         The path to a Gunicorn config file.
 
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
         """
-
 
 class Bind(Setting):
     name = "bind"

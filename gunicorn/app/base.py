@@ -52,6 +52,15 @@ class Application(object):
             for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
 
+        # Lastly, update the configuration with any command line
+        # settings.
+        for k, v in args.__dict__.items():
+            if v is None:
+                continue
+            if k == "args":
+                continue
+            self.cfg.set(k.lower(), v)
+
         # Load up the config file if its found.
         if args.config:
             if not os.path.exists(args.config):
@@ -81,14 +90,6 @@ class Application(object):
                     sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
                     raise
 
-        # Lastly, update the configuration with any command line
-        # settings.
-        for k, v in args.__dict__.items():
-            if v is None:
-                continue
-            if k == "args":
-                continue
-            self.cfg.set(k.lower(), v)
 
     def init(self, parser, opts, args):
         raise NotImplementedError
