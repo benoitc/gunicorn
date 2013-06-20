@@ -1162,16 +1162,16 @@ class Postfork(Setting):
         """
 
 
-class PostInit(Setting):
-    name = "post_init"
+class PostWorkerInit(Setting):
+    name = "post_worker_init"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = six.callable
 
-    def post_init(worker):
+    def post_worker_init(worker):
         pass
 
-    default = staticmethod(post_init)
+    default = staticmethod(post_worker_init)
     desc = """\
         Called just after a worker has initialized the application.
 
