@@ -201,6 +201,26 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     autorestart=true
     redirect_stderr=True
 
+Upstart
+-------
+Using gunicorn with upstart is simple. In this example we will run the app "myapp"
+from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
+
+**/etc/init/myapp.conf**::
+
+    description "myapp"
+
+    start on (filesystem)
+    stop on runlevel [016]
+
+    respawn
+    console log
+    setuid nobody
+    setgid nogroup
+    chdir /path/to/app/directory
+
+    exec /path/to/virtualenv/bin/gunicorn myapp:app
+
 Systemd
 -------
 
