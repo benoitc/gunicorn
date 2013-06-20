@@ -1162,6 +1162,24 @@ class Postfork(Setting):
         """
 
 
+class PostInit(Setting):
+    name = "post_init"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def post_init(worker):
+        pass
+
+    default = staticmethod(post_init)
+    desc = """\
+        Called just after a worker has initialized the application.
+
+        The callable needs to accept one instance variable for the initialized
+        Worker.
+        """
+
+
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
