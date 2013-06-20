@@ -99,6 +99,8 @@ class Worker(object):
 
         self.wsgi = self.app.wsgi()
 
+        self.cfg.post_init(self)
+
         # Enter main run loop
         self.booted = True
         self.run()
