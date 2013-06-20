@@ -561,6 +561,19 @@ Called just after a worker has been forked.
 The callable needs to accept two instance variables for the Arbiter and
 new Worker.
 
+post_init
+~~~~~~~~~
+
+*  ::
+
+        def post_init(worker):
+            pass
+
+Called just after a worker has initialized the application.
+
+The callable needs to accept one instance variable for the initialized
+Worker.
+
 pre_exec
 ~~~~~~~~
 
