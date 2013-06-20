@@ -1162,7 +1162,7 @@ class Postfork(Setting):
         """
 
 
-class Postinit(Setting):
+class PostInit(Setting):
     name = "post_init"
     section = "Server Hooks"
     validator = validate_callable(1)
