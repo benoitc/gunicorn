@@ -199,7 +199,7 @@ class Setting(object):
             "dest": self.name,
             "action": self.action or "store",
             "type": self.type or str,
-            "default": self.default or None,
+            "default": None,
             "help": help_txt
         }
 
@@ -380,7 +380,7 @@ class ConfigFile(Setting):
     cli = ["-c", "--config"]
     meta = "FILE"
     validator = validate_string
-    default = get_default_config_file()
+    default = None
     desc = """\
         The path to a Gunicorn config file.
 

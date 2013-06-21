@@ -14,7 +14,8 @@ config
 ~~~~~~
 
 * ``-c FILE, --config FILE``
-* ``None``
+* ``gunicorn.conf.py`` if the file exists on the current directory otherwise
+  ``None`` is used.
 
 The path to a Gunicorn config file.
 
