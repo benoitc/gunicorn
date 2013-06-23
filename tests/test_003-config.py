@@ -193,6 +193,19 @@ def test_cli_overrides_config():
         t.eq(app.cfg.bind, ["blarney"])
         t.eq(app.cfg.proc_name, "fooey")
 
+def test_default_config_file():
+    default_config = os.path.join(os.path.abspath(os.getcwd()), 
+                                                  'gunicorn.conf.py')
+    with open(default_config, 'w+') as default:
+        default.write("bind='0.0.0.0:9090'")
+    
+    t.eq(config.get_default_config_file(), default_config)
+
+    with AltArgs(["prog_name"]):
+        app = NoConfigApp()
+        t.eq(app.cfg.bind, ["0.0.0.0:9090"])
+
+    os.unlink(default_config)
 
 def test_post_request():
     c = config.Config()
