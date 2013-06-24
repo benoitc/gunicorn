@@ -8,6 +8,7 @@ import sys
 
 from gunicorn import util
 from gunicorn.app.base import Application
+from gunicorn.app import djangoapp
 
 
 class WSGIApplication(Application):
@@ -24,6 +25,7 @@ class WSGIApplication(Application):
         sys.path.insert(0, cwd)
 
     def load(self):
+        djangoapp.make_default_env(self.cfg)
         return util.import_app(self.app_uri)
 
 
