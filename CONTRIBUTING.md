@@ -53,7 +53,7 @@ Fork the repo and make changes on your fork in a feature branch:
   intentions, and name it XXX-something where XXX is the number of the
 issue.
 
-Submit unit tests for your changes. Erlang has a great test framework built
+Submit unit tests for your changes. Python has a great test framework built
 in; use it! Take a look at existing tests for inspiration. Run the full
 test suite on your branch before submitting a pull request.
 
