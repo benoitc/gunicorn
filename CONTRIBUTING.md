@@ -119,7 +119,7 @@ So all decisions are pull requests, and the relevant maintainer makes
 the decision by accepting or refusing the pull request.  But how do we
 identify the relevant maintainer for a given pull request?
 
-Refuge follows the timeless, highly efficient and totally unfair system
+Gunicorn follows the timeless, highly efficient and totally unfair system
 known as [Benevolent dictator for
 life](http://en.wikipedia.org/wiki/Benevolent_Dictator_for_Life), with
 Benoit Chesneau (aka benoitc), in the role of BDFL.  This means that all
