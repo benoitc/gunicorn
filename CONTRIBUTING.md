@@ -102,7 +102,7 @@ in the repo, it's part of the project.*
 As a result, all decisions can be expressed as changes to the
 repository. An implementation change is a change to the source code. An
 API change is a change to the API specification. A philosophy change is
-a change to the philosophy manifesto. And so on.
+a change to the relevant documentation. And so on.
 
 All decisions affecting refuge, big and small, follow the same 3 steps:
 
