@@ -104,7 +104,7 @@ repository. An implementation change is a change to the source code. An
 API change is a change to the API specification. A philosophy change is
 a change to the relevant documentation. And so on.
 
-All decisions affecting refuge, big and small, follow the same 3 steps:
+All decisions affecting gunicorn, big and small, follow the same 3 steps:
 
 * Step 1: Open a pull request. Anyone can do this.
 
