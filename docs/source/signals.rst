@@ -7,7 +7,7 @@ Signals Handling
 A brief description of the signals handled by Gunicorn. We also document the
 signales used internally by Gunicorn to communicate with the workers. With the
 exception of TTIN/TTOU the signals handling match the behaviour of `nginx
-<http://wiki.nginx.org/CommandLine>`.
+<http://wiki.nginx.org/CommandLine>`_.
 
 Master process
 ==============
