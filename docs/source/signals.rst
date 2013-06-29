@@ -68,7 +68,7 @@ Upgrading to a new binary on the fly
 If you need to replace the gunicorn binary with a new one (when
 upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be
-lost.
+lost. Preloaded applications will also be reloaded.
 
 First, replace old binary with a new one, then send **USR2** signal to the
 master process. It renames its .pid file to .oldbin (e.g.
