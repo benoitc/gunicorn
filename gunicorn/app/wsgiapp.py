@@ -25,7 +25,11 @@ class WSGIApplication(Application):
         sys.path.insert(0, cwd)
 
     def load(self):
-        djangoapp.make_default_env(self.cfg)
+        try:
+            djangoapp.make_default_env(self.cfg)
+        except RuntimeError:
+            # ignore silently error while loading non django apps.
+            pass
         return util.import_app(self.app_uri)
 
 
