@@ -41,6 +41,7 @@ Contents
     configure
     deploy
     design
+    signals
     community
     faq
     news
