@@ -97,7 +97,7 @@ def create(req, sock, client, server, cfg):
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
-                sock.send("HTTP/1.1 100 Continue\r\n\r\n")
+                sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
         elif x_forwarded_for_header and hdr_name == x_forwarded_for_header:
             forward = hdr_value
         elif secure_headers and (hdr_name.upper() in secure_headers and
