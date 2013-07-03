@@ -856,7 +856,7 @@ class AccessLogFormat(Setting):
     cli = ["--access-logformat"]
     meta = "STRING"
     validator = validate_string
-    default = '"%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+    default = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
     desc = """\
         The Access log format .
 
