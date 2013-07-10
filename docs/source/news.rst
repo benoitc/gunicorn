@@ -1,6 +1,19 @@
 Changelog
 =========
 
+17.5 / 2013-07-03
+------------------
+
+- new: add signals documentation
+- new: add post_worker_init hook for workers
+- new: try to use gunicorn.conf.py in current folder as the default
+  config file.
+- fix graceful timeout with the Eventlet worker
+- fix: don't raise an error when closing the socket if already closed
+- fix: fix --settings parameter for django application and try to find
+  the django settings when using the ``gunicorn`` command.
+- fix: give the initial global_conf to paster application
+
 0.17.4 / 2013-04-24
 -------------------
 
