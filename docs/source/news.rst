@@ -14,6 +14,20 @@ Changelog
   the django settings when using the ``gunicorn`` command.
 - fix: give the initial global_conf to paster application
 
+New versionning:
+++++++++++++++++
+
+With this release, the versionning of Gunicorn is changing. Gunicorn is
+stable since a long time and there is no point to release a "1.0" now.
+It should have been done since a long time. 0.17 really meant it was the
+17th stable version. From the beginning we have only 2 kind of
+releases:
+
+major release: releases with major changes or huge features added
+services releases: fixes and minor features added So from now we will
+apply the following versionning ``<major>.<service>``. For example ``17.5`` is a
+service release.
+
 0.17.4 / 2013-04-24
 -------------------
 
