@@ -26,6 +26,11 @@ class SyncWorker(base.Worker):
         for s in self.sockets:
             s.setblocking(0)
 
+        if not self.timeout:
+            # if no timeout is given the worker will never wait and will
+            # use the CPU for nothing. This minimal timeout prevent it.
+            self.timeout = 0.5
+
         ready = self.sockets
         while self.alive:
             self.notify()
