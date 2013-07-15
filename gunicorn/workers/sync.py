@@ -119,7 +119,7 @@ class SyncWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
-                    listener.getsockname(), self.cfg)
+                    listener.getsockname(), self.cfg, self.log)
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.
