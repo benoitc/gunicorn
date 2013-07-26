@@ -58,9 +58,7 @@ class AsyncWorker(base.Worker):
                 self.log.debug("ssl connection closed")
                 client.close()
             elif e.args[0] == ssl.SSL_ERROR_SSL:
-                self.log.warning("*************************************************************************************")
-                self.log.warning("* Failed to make an SSL connection. Maybe someone is trying to connect to an HTTPS service using HTTP?")
-                self.log.warning("*************************************************************************************")                
+                self.log.info("Failed to make an SSL connection. Maybe someone is trying to connect to an HTTPS service using HTTP?")
                 client.close()
             else:
                 self.log.debug("Error processing SSL request.")
