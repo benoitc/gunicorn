@@ -194,6 +194,9 @@ class Response(object):
             return True
         if self.response_length is not None or self.chunked:
             return False
+        status = self.status.split()[0] if self.status else ''
+        if status.startswith('1') or status in ('204', '304'):
+            return False
         return True
 
     def start_response(self, status, headers, exc_info=None):
