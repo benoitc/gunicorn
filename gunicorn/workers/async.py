@@ -105,7 +105,7 @@ class AsyncWorker(base.Worker):
             if resp.should_close():
                 raise StopIteration()
         except Exception:
-            if resp.headers_sent:
+            if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
                 try:
