@@ -192,7 +192,12 @@ class Response(object):
     def should_close(self):
         if self.must_close or self.req.should_close():
             return True
-        return False
+        if self.status:
+            if self.status.startswith('204') or self.status.startswith('3'):
+                return False
+        if self.response_length is not None or self.chunked:
+            return False
+        return True
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
