@@ -81,7 +81,7 @@ apologize for the lack of script name creativity. And some usage::
 Simple example::
 
     $ cd yourpasteproject
-    $ gunicorn_paste --workers=2 development.ini
+    $ gunicorn_paster --workers=2 development.ini
 
 Integration
 ===========
