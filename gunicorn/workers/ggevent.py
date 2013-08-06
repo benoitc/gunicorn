@@ -97,7 +97,11 @@ class GeventWorker(AsyncWorker):
 
         try:
             # Stop accepting requests
-            [server.stop_accepting() for server in servers]
+            for server in servers:
+                if hasattr(server, 'close'): # gevent 1.0
+                    server.close()
+                if hasattr(server, 'kill'):  # gevent < 1.0
+                    server.kill()
 
             # Handle current requests until graceful_timeout
             ts = time.time()
