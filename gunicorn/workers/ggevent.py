@@ -50,6 +50,12 @@ class GeventWorker(AsyncWorker):
         monkey.noisy = False
         monkey.patch_all()
 
+    def notify(self):
+        super(GeventWorker, self).notify()
+        if self.ppid != os.getppid():
+            self.log.info("Parent changed, shutting down: %s", self)
+            sys.exit(0)
+
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
@@ -75,19 +81,19 @@ class GeventWorker(AsyncWorker):
             server.start()
             servers.append(server)
 
-        pid = os.getpid()
         try:
             while self.alive:
                 self.notify()
-
-                if pid == os.getpid() and self.ppid != os.getppid():
-                    self.log.info("Parent changed, shutting down: %s", self)
-                    break
-
                 gevent.sleep(1.0)
 
         except KeyboardInterrupt:
             pass
+        except:
+            try:
+                server.stop()
+            except:
+                pass
+            raise
 
         try:
             # Stop accepting requests
@@ -118,6 +124,8 @@ class GeventWorker(AsyncWorker):
         try:
             super(GeventWorker, self).handle_request(*args)
         except gevent.GreenletExit:
+            pass
+        except SystemExit:
             pass
 
     if gevent.version_info[0] == 0:
