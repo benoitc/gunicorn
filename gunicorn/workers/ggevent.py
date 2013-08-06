@@ -161,9 +161,12 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         start = datetime.fromtimestamp(self.time_start)
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
-        resp = GeventResponse(self.status, self.response_headers,
-                self.response_length)
-        req_headers = [h.split(":", 1) for h in self.headers.headers]
+        resp_headers = getattr(self, 'response_headers', {})
+        resp = GeventResponse(self.status, resp_headers, self.response_length)
+        if hasattr(self, 'headers'):
+            req_headers = [h.split(":", 1) for h in self.headers.headers]
+        else:
+            req_headers = []
         self.server.log.access(resp, req_headers, self.environ, response_time)
 
     def get_environ(self):
