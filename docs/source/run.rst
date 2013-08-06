@@ -122,3 +122,8 @@ And then as per usual::
 
     $ cd yourpasteproject
     $ paster serve development.ini workers=2
+
+However, in this configuration, Gunicorn does not reload the application when
+new workers are started. See the note about preloading_.
+
+.. _preloading: configure.html#preload-app
