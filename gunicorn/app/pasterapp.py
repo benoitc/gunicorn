@@ -16,7 +16,7 @@ from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER
 
 from gunicorn.app.base import Application
-from gunicorn.config import Config
+from gunicorn.config import Config, get_default_config_file
 from gunicorn import util
 
 
@@ -126,17 +126,12 @@ class PasterServerApplication(PasterBaseApplication):
             sys.stderr.flush()
             sys.exit(1)
 
-    def load_config(self):
-        if not hasattr(self, "cfgfname"):
-            return
-
-        cfg = self.app_config()
-        for k, v in cfg.items():
-            try:
-                self.cfg.set(k.lower(), v)
-            except:
-                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
-                raise
+        if cfg.get("config"):
+            self.load_config_from_file(cfg["config"])
+        else:
+            default_config = get_defalult_config_file()
+            if default_config is not None:
+                self.load_config_from_file(default_config)
 
     def load(self):
         if hasattr(self, "cfgfname"):

@@ -115,6 +115,8 @@ you can specify the Gunicorn server settings in your configuration file::
     use = egg:gunicorn#main
     host = 127.0.0.1
     port = 5000
+    # Uncomment the line below to use other advanced gunicorn settings
+    #config = %(here)/gunicorn.conf.py
 
 And then as per usual::
 
