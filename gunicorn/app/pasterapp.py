@@ -129,7 +129,7 @@ class PasterServerApplication(PasterBaseApplication):
         if cfg.get("config"):
             self.load_config_from_file(cfg["config"])
         else:
-            default_config = get_defalult_config_file()
+            default_config = get_default_config_file()
             if default_config is not None:
                 self.load_config_from_file(default_config)
 
