@@ -113,7 +113,7 @@ class AsyncWorker(base.Worker):
                     sock.close()
                 except socket.error:
                     pass
-                return
+                raise StopIteration()
             raise
         finally:
             try:

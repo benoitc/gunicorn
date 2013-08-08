@@ -152,8 +152,7 @@ class SyncWorker(base.Worker):
                     client.close()
                 except socket.error:
                     pass
-
-                return
+                raise StopIteration()
             # Only send back traceback in HTTP in debug mode.
             self.handle_error(req, client, addr, e)
             return
