@@ -192,10 +192,10 @@ class Response(object):
     def should_close(self):
         if self.must_close or self.req.should_close():
             return True
-        if self.status:
-            if self.status.startswith('204') or self.status.startswith('3'):
-                return False
         if self.response_length is not None or self.chunked:
+            return False
+        status = self.status.split()[0] if self.status else ''
+        if status.startswith('1') or status in ('204', '304'):
             return False
         return True
 
