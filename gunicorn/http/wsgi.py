@@ -194,8 +194,7 @@ class Response(object):
             return True
         if self.response_length is not None or self.chunked:
             return False
-        status = self.status.split()[0] if self.status else ''
-        if status.startswith('1') or status in ('204', '304'):
+        if self.status_code < 200 or self.status_code in (204, 304):
             return False
         return True
 
@@ -210,6 +209,15 @@ class Response(object):
             raise AssertionError("Response headers already set!")
 
         self.status = status
+
+        # get the status code from the response here so we can use it to check
+        # the need for the connection header later without parsing the string
+        # each time.
+        try:
+            self.status_code = int(self.status.split()[0])
+        except ValueError:
+            self.status_code = None
+
         self.process_headers(headers)
         self.chunked = self.is_chunked()
         return self.write
@@ -243,7 +251,7 @@ class Response(object):
             return False
         elif self.req.version <= (1, 0):
             return False
-        elif self.status.startswith("304") or self.status.startswith("204"):
+        elif self.status_code in (204, 304):
             # Do not use chunked responses when the response is guaranteed to
             # not have a response body.
             return False
