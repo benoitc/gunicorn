@@ -6,6 +6,8 @@ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
 compatible with various web frameworks, simply implemented, light on server
 resource usage, and fairly speedy.
 
+It submits some basic metrics via statsd (udp/8125).
+
 Feel free to join us in `#gunicorn`_ on freenode_.
 
 .. image::
