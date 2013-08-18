@@ -149,14 +149,14 @@ class Worker(object):
 
     def handle_info(self, sig, frame):
         "Log stats and optionally submit to statsd"
-        self.log.info("STAT requests={0}".format(self.nr))
         # Optional statsd instrumentation
         try:
-            statsd.gauge("gunicorn.requests", self.nr, tags="pid:{0}".format(self.pid()))
-            statsd.increment("gunicorn.rqs", self.nr - self.last_nr, tags="pid:{0}".format(self.pid()))
+            self.log.info("STAT requests={0}".format(self.nr))
+            statsd.gauge("gunicorn.worker.requests_since_boot", self.nr, tags=["pid:{0}".format(self.pid)])
+            statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr, tags=["pid:{0}".format(self.pid)])
             self.last_nr = self.nr
         except Exception:
-            pass
+            self.log.exception("Cannot send stats to statsd")
 
     def handle_exit(self, sig, frame):
         self.alive = False
