@@ -33,6 +33,9 @@ class Worker(object):
 
     PIPE = []
 
+    # Send metrics to stasd every N seconds
+    STATSD_INTERVAL = 5
+
     def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
         """\
         This is called pre-fork so it shouldn't do anything to the
@@ -137,24 +140,32 @@ class Worker(object):
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGINFO, self.handle_info)
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        signal.signal(signal.SIGALRM, self.handle_alarm)
+        # Don't let SIGQUIT, SIGUSR1, SIGINFO and SIGALRM disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGQUIT, False)
             signal.siginterrupt(signal.SIGUSR1, False)
             signal.siginterrupt(signal.SIGINFO, False)
+            signal.siginterrupt(signal.SIGALRM, False)
+
+        # Get the timer started
+        signal.alarm(self.STATSD_INTERVAL)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
 
     def handle_info(self, sig, frame):
-        "Log stats and optionally submit to statsd"
-        # Optional statsd instrumentation
+        "Log stats"
+        self.log.info("STAT requests={0}".format(self.nr))
+
+    def handle_alarm(self, sig, frame):
+        "Send stats to statsd"
         try:
-            self.log.info("STAT requests={0}".format(self.nr))
-            statsd.gauge("gunicorn.worker.requests_since_boot", self.nr, tags=["pid:{0}".format(self.pid)])
-            statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr, tags=["pid:{0}".format(self.pid)])
+            # Track requests per seconds per gunicorn instance, ignore actual workers
+            statsd.increment("gunicorn.rqs", self.nr - self.last_nr)
             self.last_nr = self.nr
+            signal.alarm(self.STATSD_INTERVAL)
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 
