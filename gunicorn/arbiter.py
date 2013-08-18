@@ -21,6 +21,11 @@ from gunicorn import util
 
 from gunicorn import __version__, SERVER_SOFTWARE
 
+# Optional statsd instrumentation
+try:
+    from statsd import statsd
+except ImportError:
+    pass
 
 class Arbiter(object):
     """
@@ -281,8 +286,17 @@ class Arbiter(object):
         SIGINFO handling.
         Signal INFO to all workers
         """
-        self.log.info("STAT worker:age: {0}".format([(pid, w.age) for pid, w in self.WORKERS.items()]))
-        [os.kill(pid, signal.SIGINFO) for pid in self.WORKERS.keys()]
+        try:
+            self.log.info("STAT worker.age: {0}".format([(pid, w.age) for pid, w in self.WORKERS.items()]))
+
+            # Optional statsd instrumentation
+            statsd.gauge("gunicorn.workers", len(self.WORKERS))
+            [statsd.gauge("gunicorn.worker.age", w.age, tags="pid:{0}".format(pid)) for pid, w in self.WORKERS.items()]
+
+            # Trigger worker metric dump
+            [os.kill(pid, signal.SIGINFO) for pid in self.WORKERS.keys()]
+        except Exception:
+            self.log.exception("Cannot get statistics")
 
     def wakeup(self):
         """\
