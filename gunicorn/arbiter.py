@@ -19,7 +19,7 @@ from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
 from gunicorn import util
 
-from gunicorn import __version__, SERVER_SOFTWARE
+from gunicorn import __version__, SERVER_SOFTWARE, STATSD_INTERVAL
 
 # Optional statsd instrumentation
 try:
@@ -51,7 +51,7 @@ class Arbiter(object):
     # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH INFO".split()]
+            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH INFO ALRM".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -163,6 +163,9 @@ class Arbiter(object):
         # initialize all signals
         [signal.signal(s, self.signal) for s in self.SIGNALS]
         signal.signal(signal.SIGCHLD, self.handle_chld)
+
+        # Start periodical instrumentation
+        signal.alarm(STATSD_INTERVAL)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -290,15 +293,16 @@ class Arbiter(object):
         SIGINFO handling.
         Signal INFO to all workers
         """
-        try:
-            self.log.info("STAT worker.age: {0}".format([(pid, w.age) for pid, w in self.WORKERS.items()]))
+        self.log.info("STAT worker.age: {0}".format([(pid, w.age) for pid, w in self.WORKERS.items()]))
+        # Trigger worker metric dump
+        [os.kill(pid, signal.SIGINFO) for pid in self.WORKERS.keys()]
 
+    def handle_alrm(self):
+        try:
             # Optional statsd instrumentation
             statsd.gauge("gunicorn.workers", len(self.WORKERS))
             [statsd.gauge("gunicorn.worker.age", w.age, tags="pid:{0}".format(pid)) for pid, w in self.WORKERS.items()]
-
-            # Trigger worker metric dump
-            [os.kill(pid, signal.SIGINFO) for pid in self.WORKERS.keys()]
+            signal.alarm(STATSD_INTERVAL)
         except Exception:
             self.log.exception("Cannot get statistics")
 
