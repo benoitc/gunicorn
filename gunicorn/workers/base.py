@@ -23,6 +23,7 @@ LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
+from gunicorn import STATSD_INTERVAL
 
 
 class Worker(object):
@@ -31,9 +32,6 @@ class Worker(object):
             for x in "HUP QUIT INT TERM USR1 USR2 INFO WINCH CHLD".split()]
 
     PIPE = []
-
-    # Send metrics to stasd every N seconds
-    STATSD_INTERVAL = 5
 
     def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
         """\
@@ -136,7 +134,7 @@ class Worker(object):
             signal.siginterrupt(signal.SIGALRM, False)
 
         # Get the timer started
-        signal.alarm(self.STATSD_INTERVAL)
+        signal.alarm(STATSD_INTERVAL)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
@@ -151,7 +149,7 @@ class Worker(object):
             # Track requests per seconds per gunicorn instance, ignore actual workers
             statsd.increment("gunicorn.rqs", self.nr - self.last_nr)
             self.last_nr = self.nr
-            signal.alarm(self.STATSD_INTERVAL)
+            signal.alarm(STATSD_INTERVAL)
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 

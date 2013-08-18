@@ -6,3 +6,7 @@
 version_info = (17, 5)
 __version__ = ".".join([str(v) for v in version_info])
 SERVER_SOFTWARE = "gunicorn/%s" % __version__
+
+# Instrumentation constants
+STATSD_INTERVAL = 5
+
