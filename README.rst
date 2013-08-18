@@ -6,8 +6,6 @@ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
 compatible with various web frameworks, simply implemented, light on server
 resource usage, and fairly speedy.
 
-It submits some basic metrics via statsd (udp/8125).
-
 Feel free to join us in `#gunicorn`_ on freenode_.
 
 .. image::
@@ -176,6 +174,14 @@ you can use this example to help get you started::
         app = loadapp(iniFile, relative_to='.')
         paste_server(app, host='0.0.0.0', port=port, workers=workers, worker_class=worker_class)
 
+Instrumentation
+---------------
+
+Instrumentation is provided through 2 basic mechanisms: `SIGINFO` and statsD_.
+The following metrics are sent:
+
+  * ``gunicorn.workers``: number of workers
+  * ``gunicorn.rqs``: requests per second handled by gunicorn across all workers
 
 LICENSE
 -------
@@ -194,4 +200,5 @@ details.
 .. _`production page`: http://docs.gunicorn.org/en/latest/deploy.html
 .. _`config file`: http://docs.gunicorn.org/en/latest/configure.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _statsD: https://github.com/etsy/statsD
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
