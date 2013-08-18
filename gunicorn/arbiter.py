@@ -279,9 +279,10 @@ class Arbiter(object):
     def handle_info(self):
         """\
         SIGINFO handling.
-        Log the number of workers by state
+        Signal INFO to all workers
         """
-        self.log.info("WORKERS: {0}".format([(k, v.age) for k, v in self.WORKERS.items()]))
+        self.log.info("STAT worker:age: {0}".format([(pid, w.age) for pid, w in self.WORKERS.items()]))
+        [os.kill(pid, signal.SIGINFO) for pid in self.WORKERS.keys()]
 
     def wakeup(self):
         """\

@@ -9,6 +9,11 @@ import signal
 import sys
 import traceback
 
+# Optional statsd instrumentation
+try:
+    from statsd import statsd
+except ImportError:
+    pass
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
@@ -23,7 +28,7 @@ from gunicorn.six import MAXSIZE
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+            for x in "HUP QUIT INT TERM USR1 USR2 INFO WINCH CHLD".split()]
 
     PIPE = []
 
@@ -41,12 +46,15 @@ class Worker(object):
         self.cfg = cfg
         self.booted = False
 
-        self.nr = 0
+        self.nr = 0  # number of requests
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
         self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
+
+        # instrumentation
+        self.last_nr = 0  # store nr at the last instrumentation call
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -89,7 +97,7 @@ class Worker(object):
             util.set_non_blocking(p)
             util.close_on_exec(p)
 
-        # Prevent fd inherientence
+        # Prevent fd inheritance
         [util.close_on_exec(s) for s in self.sockets]
         util.close_on_exec(self.tmp.fileno())
 
@@ -114,14 +122,27 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
+        signal.signal(signal.SIGINFO, self.handle_info)
         # Don't let SIGQUIT and SIGUSR1 disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGQUIT, False)
             signal.siginterrupt(signal.SIGUSR1, False)
+            signal.siginterrupt(signal.SIGINFO, False)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
+
+    def handle_info(self, sig, frame):
+        "Log stats and optionally submit to statsd"
+        self.log.info("STAT requests={0}".format(self.nr))
+        # Optional statsd instrumentation
+        try:
+            statsd.gauge("gunicorn.requests", self.nr, tags="pid:{0}".format(self.pid()))
+            statsd.increment("gunicorn.rqs", self.nr - self.last_nr, tags="pid:{0}".format(self.pid()))
+            self.last_nr = self.nr
+        except Exception:
+            pass
 
     def handle_quit(self, sig, frame):
         self.alive = False
