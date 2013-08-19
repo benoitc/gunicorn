@@ -177,8 +177,8 @@ you can use this example to help get you started::
 Instrumentation
 ---------------
 
-Instrumentation is provided through 2 basic mechanisms: `SIGINFO` and statsD_.
-The following metrics are sent:
+Instrumentation is provided through statsD_.
+The following metrics are collected:
 
   * ``gunicorn.workers``: number of workers
   * ``gunicorn.rqs``: requests per second handled by gunicorn across all workers
