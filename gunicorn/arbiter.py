@@ -80,6 +80,9 @@ class Arbiter(object):
             0: sys.executable
         }
 
+        # Instrumentation
+        self.last_usr_t = 0  # store time used by children
+
     def _get_num_workers(self):
         return self._num_workers
 
@@ -296,8 +299,17 @@ class Arbiter(object):
     def handle_alrm(self):
         try:
             # Optional statsd instrumentation
-            statsd.gauge("gunicorn.workers", len(self.WORKERS))
-            [statsd.gauge("gunicorn.worker.age", w.age, tags="pid:{0}".format(pid)) for pid, w in self.WORKERS.items()]
+            n_w = len(self.WORKERS)
+            statsd.gauge("gunicorn.workers", n_w)
+
+            # children user time over the past STATSD_INTERVAL will be normalized
+            # to 1 second. Dividing by the number of workers will then yield
+            # a utilization ratio per worker
+            usr_t = os.times()[0]
+            self.log.info("STAT arbiter.utilization={0}".format(usr_t - self.last_usr_t))
+            statsd.increment("gunicorn.arbiter.utilization", usr_t - self.last_usr_t)
+            self.last_usr_t = usr_t
+
             signal.alarm(STATSD_INTERVAL)
         except Exception:
             self.log.exception("Cannot get statistics")

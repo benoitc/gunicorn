@@ -56,6 +56,7 @@ class Worker(object):
 
         # instrumentation
         self.last_nr = 0  # store nr at the last instrumentation call
+        self.last_usr_t = 0  # store last user time from os.times()
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -124,7 +125,7 @@ class Worker(object):
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGINFO, self.handle_info)
-        signal.signal(signal.SIGALRM, self.handle_alarm)
+        signal.signal(signal.SIGALRM, self.handle_alrm)
         # Don't let SIGQUIT, SIGUSR1, SIGINFO and SIGALRM disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
@@ -143,12 +144,18 @@ class Worker(object):
         "Log stats"
         self.log.info("STAT requests={0}".format(self.nr))
 
-    def handle_alarm(self, sig, frame):
+    def handle_alrm(self, sig, frame):
         "Send stats to statsd"
         try:
             # Track requests per seconds per gunicorn instance, ignore actual workers
             statsd.increment("gunicorn.rqs", self.nr - self.last_nr)
             self.last_nr = self.nr
+
+            # Let statsd compute the ratio of user time / wallclock time
+            usr_t = os.times()[0]
+            statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
+            self.last_usr_t = usr_t
+
             signal.alarm(STATSD_INTERVAL)
         except Exception:
             self.log.exception("Cannot send stats to statsd")
