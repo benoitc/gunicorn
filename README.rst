@@ -150,6 +150,8 @@ The following metrics are sent:
 
   * ``gunicorn.workers``: number of workers
   * ``gunicorn.rqs``: requests per second handled by gunicorn across all workers
+  * ``gunicorn.arbiter.utilization``: fraction of user CPU time spent in the arbiter
+  * ``gunicorn.worker.utilization``: fraction of user CPU time spent in all workers. Divide by ``gunicorn.workers`` to get the per-worker utilization
 
 LICENSE
 -------
