@@ -29,7 +29,7 @@ from gunicorn import STATSD_INTERVAL
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM USR1 USR2 INFO WINCH CHLD".split()]
+            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
 
     PIPE = []
 
@@ -124,7 +124,6 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        signal.signal(signal.SIGINFO, self.handle_info)
         signal.signal(signal.SIGALRM, self.handle_alrm)
         # Don't let SIGQUIT, SIGUSR1, SIGINFO and SIGALRM disturb active requests
         # by interrupting system calls
@@ -139,10 +138,6 @@ class Worker(object):
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
-
-    def handle_info(self, sig, frame):
-        "Log stats"
-        self.log.info("STAT requests={0}".format(self.nr))
 
     def handle_alrm(self, sig, frame):
         "Send stats to statsd"
