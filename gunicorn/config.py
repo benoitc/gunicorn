@@ -398,7 +398,6 @@ def validate_post_request(val):
     else:
         raise TypeError("Value must have an arity of: 4")
 
-
 def validate_chdir(val):
     # valid if the value is a string
     val = validate_string(val)
@@ -429,6 +428,13 @@ def validate_file(val):
 
     return path
 
+def validate_hostport(val):
+    val = validate_string(val)
+    elements = val.split(":")
+    if len(elements) == 1:
+        raise TypeError("Value must consist of: hostname:port")
+    elif len(elements) == 2:
+        return (elements[0], int(elements[1]))    
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
@@ -1499,6 +1505,7 @@ class CertFile(Setting):
     SSL certificate file
     """
 
+<<<<<<< HEAD
 class SSLVersion(Setting):
     name = "ssl_version"
     section = "Ssl"
@@ -1560,4 +1567,15 @@ class Ciphers(Setting):
     default = 'TLSv1'
     desc = """\
     Ciphers to use (see stdlib ssl module's)
+=======
+class StatsdHost(Setting):
+    name = "statsd_host"
+    section = "Instrumentation"
+    cli = ["--statsd"]
+    meta = "STRING"
+    validator = validate_hostport
+    default = "localhost:8125"
+    desc = """\
+    Host and port of the statsD server to send metrics to
+>>>>>>> Add statsd configuration parameter
     """
