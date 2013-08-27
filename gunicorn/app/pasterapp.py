@@ -20,36 +20,49 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import util
 
 
+def paste_config(gconfig, config_url, relative_to, global_conf=None):
+    # add entry to pkg_resources
+    sys.path.insert(0, relative_to)
+    pkg_resources.working_set.add_entry(relative_to)
+
+    cx = loadwsgi.loadcontext(SERVER, config_url, relative_to=relative_to,
+            global_conf=global_conf)
+    gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
+    cfg = {}
+
+    host, port = lc.pop('host', ''), lc.pop('port', '')
+    if host and port:
+        cfg['bind'] = '%s:%s' % (host, port)
+    elif host:
+        cfg['bind'] = host.split(',')
+
+    cfg['workers'] = int(lc.get('workers', 1))
+    cfg['umask'] = int(lc.get('umask', 0))
+    cfg['default_proc_name'] = gc.get('__file__')
+
+    for k, v in gc.items():
+        if k not in gconfig.settings:
+            continue
+        cfg[k] = v
+
+    for k, v in lc.items():
+        if k not in gconfig.settings:
+            continue
+        cfg[k] = v
+
+    return cfg
+
+
+def load_pasteapp(config_url, relative_to, global_conf=None):
+    return loadapp(config_url, relative_to=relative_to,
+            global_conf=global_conf)
+
 class PasterBaseApplication(Application):
     gcfg = None
 
     def app_config(self):
-        cx = loadwsgi.loadcontext(SERVER, self.cfgurl,
-                relative_to=self.relpath, global_conf=self.gcfg)
-        gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
-        cfg = {}
-
-        host, port = lc.pop('host', ''), lc.pop('port', '')
-        if host and port:
-            cfg['bind'] = '%s:%s' % (host, port)
-        elif host:
-            cfg['bind'] = host.split(',')
-
-        cfg['workers'] = int(lc.get('workers', 1))
-        cfg['umask'] = int(lc.get('umask', 0))
-        cfg['default_proc_name'] = gc.get('__file__')
-
-        for k, v in gc.items():
-            if k not in self.cfg.settings:
-                continue
-            cfg[k] = v
-
-        for k, v in lc.items():
-            if k not in self.cfg.settings:
-                continue
-            cfg[k] = v
-
-        return cfg
+        return paste_config(self.cfg, self.cfgurl, self.relpath,
+                global_conf=self.gcfg)
 
     def load_config(self):
         super(PasterBaseApplication, self).load_config()
@@ -91,7 +104,7 @@ class PasterApplication(PasterBaseApplication):
         # default is the current dir
         os.chdir(self.cfg.chdir)
 
-        return loadapp(self.cfgurl, relative_to=self.relpath, global_conf=self.gcfg)
+        return load_pasteapp(self.cfgurl, self.relpath, global_conf=self.gcfg)
 
 
 class PasterServerApplication(PasterBaseApplication):
@@ -151,6 +164,13 @@ def run():
     The ``gunicorn_paster`` command for launcing Paster compatible
     apllications like Pylons or Turbogears2
     """
+    util.warn("""This command is deprecated.
+
+    You should now use the `--paste` option. Ex.:
+
+        gunicorn --paste development.ini
+    """)
+
     from gunicorn.app.pasterapp import PasterApplication
     PasterApplication("%(prog)s [OPTIONS] pasteconfig.ini").run()
 

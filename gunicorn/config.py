@@ -401,6 +401,24 @@ def validate_chdir(val):
 
     return path
 
+
+def validate_file(val):
+    if val is None:
+        return None
+
+    # valid if the value is a string
+    val = validate_string(val)
+
+     # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("%r not found" % val)
+
+    return path
+
+
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
             'gunicorn.conf.py')
@@ -1128,10 +1146,12 @@ class DjangoSettings(Setting):
     validator = validate_string
     default = None
     desc = """\
-        The Python path to a Django settings module.
+        The Python path to a Django settings module. (deprecated)
 
         e.g. 'myproject.settings.main'. If this isn't provided, the
         DJANGO_SETTINGS_MODULE environment variable will be used.
+
+        **DEPRECATED**: use the --env argument instead.
         """
 
 
@@ -1143,10 +1163,22 @@ class PythonPath(Setting):
     validator = validate_string
     default = None
     desc = """\
-        A directory to add to the Python path for Django.
+        A directory to add to the Python path.
 
         e.g.
         '/home/djangoprojects/myproject'.
+        """
+
+
+class Paste(Setting):
+    name = "paste"
+    section = "Server Mechanics"
+    cli = ["--paster"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        Load a paste.deploy config file.
         """
 
 
