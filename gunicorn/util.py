@@ -509,6 +509,7 @@ def to_bytestring(value):
     assert isinstance(value, text_type)
     return value.encode("utf-8")
 
+
 def is_fileobject(obj):
     if not hasattr(obj, "tell") or not hasattr(obj, "fileno"):
         return False
@@ -520,3 +521,16 @@ def is_fileobject(obj):
         return False
 
     return True
+
+
+def warn(msg):
+    sys.stderr.write("!!!\n")
+
+    lines = msg.splitlines()
+    for i, line in enumerate(lines):
+        if i == 0:
+            line = "WARNING: %s" % line
+        sys.stderr.write("!!! %s\n" % line)
+
+    sys.stderr.write("!!!\n\n")
+    sys.stderr.flush()

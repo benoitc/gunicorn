@@ -13,7 +13,6 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 from gunicorn.six import execfile_
 
-
 class Application(object):
     """\
     An application interface for configuring and loading
