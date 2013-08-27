@@ -28,11 +28,7 @@ class WSGIApplication(Application):
         # add the path to sys.path
         sys.path.insert(0, self.cfg.chdir)
 
-        try:
-            djangoapp.make_default_env(self.cfg)
-        except RuntimeError:
-            # ignore silently error while loading non django apps.
-            pass
+        # load the app
         return util.import_app(self.app_uri)
 
 
