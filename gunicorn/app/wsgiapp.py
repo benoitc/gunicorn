@@ -20,11 +20,14 @@ class WSGIApplication(Application):
         self.cfg.set("default_proc_name", args[0])
         self.app_uri = args[0]
 
-        cwd = util.getcwd()
-
-        sys.path.insert(0, cwd)
-
     def load(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
+        # add the path to sys.path
+        sys.path.insert(0, self.cfg.chdir)
+
         try:
             djangoapp.make_default_env(self.cfg)
         except RuntimeError:

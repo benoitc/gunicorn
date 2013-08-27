@@ -117,11 +117,18 @@ class Arbiter(object):
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
         self.log.info("Starting gunicorn %s", __version__)
+
         self.pid = os.getpid()
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.cfg.on_starting(self)
+
+        # set enviroment' variables
+        if self.cfg.env:
+            for k, v in self.cfg.env.items():
+                os.environ[k] = v
+
         self.init_signals()
         if not self.LISTENERS:
             self.LISTENERS = create_sockets(self.cfg, self.log)
@@ -346,16 +353,31 @@ class Arbiter(object):
             self.master_name = "Old Master"
             return
 
+        environ = self.cfg.env_orig.copy()
         fds = [l.fileno() for l in self.LISTENERS]
-        os.environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
+        environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
 
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
 
-        os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
+        # exec the process using the original environnement
+        os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
         old_address = self.cfg.address
+
+        # reset old environement
+        for k in self.cfg.env:
+            if k in self.cfg.env_orig:
+                # reset the key to the value it had before
+                # we launched gunicorn
+                os.environ[k] = self.cfg.env_orig[k]
+            else:
+                # delete the value set by gunicorn
+                try:
+                    del os.environ[k]
+                except KeyError:
+                    pass
 
         # reload conf
         self.app.reload()

@@ -18,7 +18,7 @@ try:
     from os import sendfile
 except ImportError:
     try:
-        from _sendfile import sendfile
+        from ._sendfile import sendfile
     except ImportError:
         sendfile = None
 
