@@ -752,6 +752,7 @@ class Env(Setting):
     cli = ["-e", "--env"]
     meta = "ENV"
     validator = validate_list_string
+    default = []
 
     desc = """\
         Set environment variable (key=value).
@@ -762,6 +763,7 @@ class Env(Setting):
 
         and test for the foo variable environement in your application.
         """
+
 
 class Pidfile(Setting):
     name = "pidfile"
