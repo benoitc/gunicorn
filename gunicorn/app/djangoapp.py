@@ -94,6 +94,10 @@ class DjangoApplication(Application):
                 self.cfg.set("pythonpath", pythonpath)
 
     def load(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
         # set settings
         make_default_env(self.cfg)
 
@@ -126,6 +130,10 @@ class DjangoApplicationCommand(Application):
         return cfg
 
     def load(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
         # set settings
         make_default_env(self.cfg)
 

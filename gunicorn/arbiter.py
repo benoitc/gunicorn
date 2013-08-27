@@ -117,6 +117,7 @@ class Arbiter(object):
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
         self.log.info("Starting gunicorn %s", __version__)
+
         self.pid = os.getpid()
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)

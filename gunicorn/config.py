@@ -51,9 +51,6 @@ class Config(object):
         self.env_orig = os.environ.copy()
 
     def __getattr__(self, name):
-        if name == "env_orig":
-            return self.env_orig
-
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         return self.settings[name].get()
@@ -390,8 +387,23 @@ def validate_post_request(val):
     else:
         raise TypeError("Value must have an arity of: 4")
 
+
+def validate_chdir(val):
+    # valid if the value is a string
+    val = validate_string(val)
+
+    # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("can't chdir to %r" % val)
+
+    return path
+
 def get_default_config_file():
-    config_path = os.path.join(os.path.abspath(os.getcwd()), 'gunicorn.conf.py')
+    config_path = os.path.join(os.path.abspath(os.getcwd()),
+            'gunicorn.conf.py')
     if os.path.exists(config_path):
         return config_path
     return None
@@ -705,6 +717,17 @@ class PreloadApp(Setting):
         speed up server boot times. Although, if you defer application loading
         to each worker process, you can reload your application code easily by
         restarting workers.
+        """
+
+
+class Chdir(Setting):
+    name = "chdir"
+    section = "Server Mechanics"
+    cli = ["--chdir"]
+    validator = validate_chdir
+    default = util.getcwd()
+    desc = """\
+        Chdir to specified directory before apps loading.
         """
 
 
