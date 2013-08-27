@@ -64,20 +64,16 @@ class EventletWorker(AsyncWorker):
     def run(self):
         acceptors = []
         for sock in self.sockets:
-            s = GreenSocket(family_or_realsock=sock)
-            s.setblocking(1)
-            hfun = partial(self.handle, s)
-            acceptor = eventlet.spawn(eventlet.serve, s, hfun,
+            sock.setblocking(1)
+            hfun = partial(self.handle, sock)
+            acceptor = eventlet.spawn(eventlet.serve, sock, hfun,
                     self.worker_connections)
 
             acceptors.append(acceptor)
+            eventlet.sleep(0.0)
 
         while self.alive:
             self.notify()
-            if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s", self)
-                break
-
             eventlet.sleep(1.0)
 
         self.notify()
