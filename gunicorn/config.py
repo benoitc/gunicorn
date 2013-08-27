@@ -48,8 +48,12 @@ class Config(object):
         self.settings = make_settings()
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
+        self.env_orig = os.environ.copy()
 
     def __getattr__(self, name):
+        if name == "env_orig":
+            return self.env_orig
+
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         return self.settings[name].get()
@@ -143,6 +147,23 @@ class Config(object):
             opts['keyfile'] = self.keyfile
 
         return opts
+
+    @property
+    def env(self):
+        env = {}
+        if not self.settings['raw_env']:
+            return env
+
+        for e in self.settings['raw_env'].get():
+            s = six.bytes_to_str(e)
+            try:
+                k, v = s.split('=')
+            except ValueError:
+                raise RuntimeError("environement setting %r invalid" % s)
+
+            env[k] = v
+
+        return env
 
 
 class SettingMeta(type):
@@ -699,6 +720,23 @@ class Daemon(Setting):
         background.
         """
 
+class Env(Setting):
+    name = "raw_env"
+    action = "append"
+    section = "Server Mechanic"
+    cli = ["-e", "--env"]
+    meta = "ENV"
+    validator = validate_list_string
+
+    desc = """\
+        Set environment variable (key=value).
+
+        Pass variables to the execution environment. Ex.::
+
+            $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
+
+        and test for the foo variable environement in your application.
+        """
 
 class Pidfile(Setting):
     name = "pidfile"

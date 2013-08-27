@@ -78,6 +78,12 @@ class Worker(object):
         super(MyWorkerClass, self).init_process() so that the ``run()``
         loop is initiated.
         """
+
+        # set enviroment' variables
+        if self.cfg.env:
+            for k, v in self.cfg.env.items():
+                os.environ[k] = v
+
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # Reseed the random number generator

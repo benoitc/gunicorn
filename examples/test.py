@@ -5,6 +5,7 @@
 #
 # Example code from Eventlet sources
 
+import os
 from wsgiref.validate import validator
 import sys
 
@@ -12,8 +13,11 @@ from gunicorn import __version__
 #@validator
 def app(environ, start_response):
     """Simplest possible application object"""
+
     data = b'Hello, World!\n'
     status = '200 OK'
+
+    print("foo=%s" % (os.environ['FOO']))
 
     response_headers = [
         ('Content-type','text/plain'),
