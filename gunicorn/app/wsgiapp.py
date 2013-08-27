@@ -59,7 +59,7 @@ class WSGIApplication(Application):
         if self.cfg.paste is not None:
             return self.load_pasteapp()
         else:
-            return self.load_wsgiapp
+            return self.load_wsgiapp()
 
 
 def run():
