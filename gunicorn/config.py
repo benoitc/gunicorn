@@ -150,11 +150,13 @@ class Config(object):
 
     @property
     def env(self):
+        raw_env = self.settings['raw_env'].get()
         env = {}
-        if not self.settings['raw_env']:
+
+        if not raw_env:
             return env
 
-        for e in self.settings['raw_env'].get():
+        for e in raw_env:
             s = six.bytes_to_str(e)
             try:
                 k, v = s.split('=')
