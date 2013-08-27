@@ -17,8 +17,6 @@ def app(environ, start_response):
     data = b'Hello, World!\n'
     status = '200 OK'
 
-    print("foo=%s" % (os.environ['FOO']))
-
     response_headers = [
         ('Content-type','text/plain'),
         ('Content-Length', str(len(data))),
@@ -26,5 +24,4 @@ def app(environ, start_response):
         ("Test", "test тест"),
     ]
     start_response(status, response_headers)
-    print("test")
     return iter([data])
