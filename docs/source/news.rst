@@ -4,7 +4,7 @@ Changelog
 18.0 / 2013-08-26
 -----------------
 
-- new: add ``-e/--env`` command line argument to pass an environement variables to
+- new: add ``-e/--env`` command line argument to pass an environment variables to
   gunicorn
 - new: add ``--chdir`` command line argument to specified directory
   before apps loading.  - new: add wsgi.file_wrapper support in async workers
@@ -20,7 +20,7 @@ Changelog
   log format string
 - fix: null timeout
 - fix: gevent worker
-- fix: don't reloead the paster app when using pserve
+- fix: don't reload the paster app when using pserve
 - fix: after closing for error do not keep alive the connection
 - fix: responses 1xx, 204 and 304 should not force the connection to be closed
 
