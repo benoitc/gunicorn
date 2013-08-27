@@ -1,6 +1,29 @@
 Changelog
 =========
 
+18.0 / 2013-08-26
+-----------------
+
+- new: add ``-e/--env`` command line argument to pass an environement variables to
+  gunicorn
+- new: add ``--chdir`` command line argument to specified directory
+  before apps loading.  - new: add wsgi.file_wrapper support in async workers
+- new: add ``--paste`` command line argument to set the paster config file
+- deprecated: the command ``gunicorn_django`` is now deprecated. You should now
+  run your application with the WSGI interface installed with your project (see
+  https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/gunicorn/) for
+  more infos.
+- deprecated:  the command ``gunicorn_paste`` is deprecated. You now should use
+  the new ``--paste`` argument to set the configuration file of your paster
+  application.
+- fix: Removes unmatched leading quote from the beginning of the default access
+  log format string
+- fix: null timeout
+- fix: gevent worker
+- fix: don't reloead the paster app when using pserve
+- fix: after closing for error do not keep alive the connection
+- fix: responses 1xx, 204 and 304 should not force the connection to be closed
+
 17.5 / 2013-07-03
 ------------------
 
