@@ -10,6 +10,7 @@ import sys
 
 from gunicorn.six import unquote_to_wsgi_str, string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
+import gunicorn.six as six
 import gunicorn.util as util
 
 try:
@@ -330,11 +331,13 @@ class Response(object):
                 sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
 
     def write_file(self, respiter):
-        if sendfile is not None and \
-                hasattr(respiter.filelike, 'fileno') and \
-                hasattr(respiter.filelike, 'tell'):
+        if sendfile is not None and util.is_fileobject(respiter.filelike):
+            # sometimes the fileno isn't a callable
+            if six.callable(respiter.filelike.fileno):
+                fileno = respiter.filelike.fileno()
+            else:
+                fileno = respiter.filelike.fileno
 
-            fileno = respiter.filelike.fileno()
             fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
             fo_offset = respiter.filelike.tell()
             nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
