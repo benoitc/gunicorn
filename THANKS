@@ -4,63 +4,64 @@ Gunicorn THANKS
 A number of people have contributed to Gunicorn by reporting problems,
 suggesting improvements or submitting changes. Some of these people are:
 
-Curt Micol <asenchi@asenchi.com>
-Eric Florenzano <floguy@gmail.com>
-Johan Bergström <bugs@bergstroem.nu>
-Xavier Grangier <grangier@gmail.com>
-Sergey Shepelev <temotor@gmail.com>
-Chris Dent <chris.dent@gmail.com>
-Matt Good <matt@matt-good.net>
-Randall Leeds <randall.leeds@gmail.com>
-thomasst <http://github.com/thomasst>
-Jonas Borgström <http://github.com/jborg>
-PA Parent <paparent@paparent.me>
-Travis Cline <travis.cline@gmail.com>
-Adrien Lemaire <lemaire.adrien@gmail.com>
-Oliver Tonnhofer <olt@bogosoft.com>
-Anand Chitipothu <anandology@gmail.com>
-Jannis Leidel <jannis@leidel.info>
-Josh Ourisman <josh@joshourisman.com>
-Chris Lamb <lamby@debian.org>
-Neil Chintomby <nchintomby@gmail.com>
-Alex Robbins <alexander.j.robbins@gmail.com>
-Graham Dumpleton <Graham.Dumpleton@gmail.com>
-Dan Sully <daniel-github@electricrain.com>
-Fabian Topfstedt <topfstedt@schneevonmorgen.com>
-Denis Bilenko <denis.bilenko@gmail.com>
-Michael Schurter <m@schmichael.com>
-Masahiro Nakagawa <repeatedly@gmail.com>
-Denis Bilenko <denis.bilenko@gmail.com>
-Phil Schanely <phil@daylife.com>
-Evan Mezeske <advanced.fractal.explorer@gmail.com>
-Darii Denis <denis.darii@gmail.com>
-Dan Callaghan <djc@djc.id.au>
-Kristian Glass <git@doismellburning.co.uk>
-Mazdak Rezvani <mazdak@mac.com>
-Maxim Kamenkov <mkamenkov@gmail.com>
-Konstantin Kapustin <sirkonst@gmail.com>
-Djoume Salvetti <djoume@freshbooks.com>
-ZheFu Peng (CMGS) <ilskdw@gmail.com>
-Caleb Brown <git@calebbrown.id.au>
-Marc Abramowitz <marc@marc-abramowitz.com>
-Vangelis Koukis <vkoukis@grnet.gr>
-Prateek Singh Paudel <pratykschingh@gmail.com>
-Andrew Gorcester <andrewsg@terra.(none)>
-Kenneth Reitz <me@kennethreitz.com>
-Eric Shull <eric@elevenbasetwo.com>
-Christos Stavrakakis <cstavr@grnet.gr>
-Dan Callaghan <djc@djc.id.au>
-sib <andrew.sibley@gmail.com>
-David Vincelli <david@freshbooks.com>
 Adnane Belmadiaf <adnane002@gmail.com>
-Dan Callaghan <dcallagh@redhat.com>
-Greg McGuire <greg-github@greganem.com>
-Kevin Luikens <kluikens@gmail.com>
-Chris Streeter <chris@chrisstreeter.com>
-Jean-Philippe Serafin <serafinjp@gmail.com>
-Krzysztof Urbaniak <urban@fail.pl>
+Adrien Lemaire <lemaire.adrien@gmail.com>
+Alex Robbins <alexander.j.robbins@gmail.com>
 Alexandre Zani <alexandre.zani@gmail.com>
+Anand Chitipothu <anandology@gmail.com>
 Andreas StÃŒhrk <andy-python@hammerhartes.de>
-Philip Cristiano <philipcristiano@gmail.com>
+Andrew Gorcester <andrewsg@terra.(none)>
+Caleb Brown <git@calebbrown.id.au>
+Chris Dent <chris.dent@gmail.com>
+Chris Lamb <lamby@debian.org>
+Chris Streeter <chris@chrisstreeter.com>
+Christos Stavrakakis <cstavr@grnet.gr>
+Curt Micol <asenchi@asenchi.com>
+Dan Callaghan <dcallagh@redhat.com>
+Dan Callaghan <djc@djc.id.au>
+Dan Callaghan <djc@djc.id.au>
+Dan Sully <daniel-github@electricrain.com>
+Darii Denis <denis.darii@gmail.com>
+David Vincelli <david@freshbooks.com>
+Denis Bilenko <denis.bilenko@gmail.com>
+Denis Bilenko <denis.bilenko@gmail.com>
+Djoume Salvetti <djoume@freshbooks.com>
+Eric Florenzano <floguy@gmail.com>
+Eric Shull <eric@elevenbasetwo.com>
+Evan Mezeske <advanced.fractal.explorer@gmail.com>
+Fabian Topfstedt <topfstedt@schneevonmorgen.com>
+Graham Dumpleton <Graham.Dumpleton@gmail.com>
+Greg McGuire <greg-github@greganem.com>
+Jannis Leidel <jannis@leidel.info>
+Jean-Philippe Serafin <serafinjp@gmail.com>
+Johan Bergström <bugs@bergstroem.nu>
+Jonas Borgström <http://github.com/jborg>
 Jorge Niedbalski R <niedbalski@gmail.com>
+Josh Ourisman <josh@joshourisman.com>
+Kenneth Reitz <me@kennethreitz.com>
+Kevin Luikens <kluikens@gmail.com>
+Konstantin Kapustin <sirkonst@gmail.com>
+Kristian Glass <git@doismellburning.co.uk>
+Krzysztof Urbaniak <urban@fail.pl>
+Marc Abramowitz <marc@marc-abramowitz.com>
+Masahiro Nakagawa <repeatedly@gmail.com>
+Matt Good <matt@matt-good.net>
+Maxim Kamenkov <mkamenkov@gmail.com>
+Mazdak Rezvani <mazdak@mac.com>
+Michael Schurter <m@schmichael.com>
 Moriyoshi Koizumi <mozo@mozo.jp>
+Neil Chintomby <nchintomby@gmail.com>
+Oliver Tonnhofer <olt@bogosoft.com>
+PA Parent <paparent@paparent.me>
+Phil Schanely <phil@daylife.com>
+Philip Cristiano <philipcristiano@gmail.com>
+Prateek Singh Paudel <pratykschingh@gmail.com>
+Randall Leeds <randall.leeds@gmail.com>
+Sergey Shepelev <temotor@gmail.com>
+Stephane Wirtel <stephane@wirtel.be>
+Travis Cline <travis.cline@gmail.com>
+Vangelis Koukis <vkoukis@grnet.gr>
+Xavier Grangier <grangier@gmail.com>
+ZheFu Peng (CMGS) <ilskdw@gmail.com>
+sib <andrew.sibley@gmail.com>
+thomasst <http://github.com/thomasst>
