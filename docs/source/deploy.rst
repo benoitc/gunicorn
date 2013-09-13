@@ -121,7 +121,7 @@ Monitoring
 .. note::
     Make sure that when using either of these service monitors you do not
     enable the Gunicorn's daemon mode. These monitors expect that the process
-    they launch will be the process they need to monior. Daemonizing
+    they launch will be the process they need to monitor. Daemonizing
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
