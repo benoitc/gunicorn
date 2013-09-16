@@ -94,6 +94,10 @@ class DjangoApplication(Application):
                 self.cfg.set("pythonpath", pythonpath)
 
     def load(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
         # set settings
         make_default_env(self.cfg)
 
@@ -126,6 +130,10 @@ class DjangoApplicationCommand(Application):
         return cfg
 
     def load(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
         # set settings
         make_default_env(self.cfg)
 
@@ -139,5 +147,14 @@ def run():
     The ``gunicorn_django`` command line runner for launching Django
     applications.
     """
+    util.warn("""This command is deprecated.
+
+    You should now run your application with the WSGI interface
+    installed with your project. Ex.:
+
+        gunicorn myproject.wsgi:application
+
+    See https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/gunicorn/
+    for more info.""")
     from gunicorn.app.djangoapp import DjangoApplication
     DjangoApplication("%(prog)s [OPTIONS] [SETTINGS_PATH]").run()

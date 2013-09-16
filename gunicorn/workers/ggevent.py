@@ -5,6 +5,7 @@
 
 from __future__ import with_statement
 
+import errno
 import os
 import sys
 from datetime import datetime
@@ -21,12 +22,30 @@ except ImportError:
     raise RuntimeError("You need gevent installed to use this worker.")
 from gevent.pool import Pool
 from gevent.server import StreamServer
+from gevent.socket import wait_write
 from gevent import pywsgi
 
 import gunicorn
 from gunicorn.workers.async import AsyncWorker
+from gunicorn.http.wsgi import sendfile as o_sendfile
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
+
+def _gevent_sendfile(fdout, fdin, offset, nbytes):
+    while True:
+        try:
+            return o_sendfile(fdout, fdin, offset, nbytes)
+        except OSError as e:
+            if e.args[0] == errno.EAGAIN:
+                wait_write(fdout)
+            else:
+                raise
+
+def patch_sendfile():
+    from gunicorn.http import wsgi
+
+    if o_sendfile is not None:
+        setattr(wsgi, "sendfile", _gevent_sendfile)
 
 BASE_WSGI_ENV = {
     'GATEWAY_INTERFACE': 'CGI/1.1',
@@ -49,6 +68,9 @@ class GeventWorker(AsyncWorker):
         from gevent import monkey
         monkey.noisy = False
         monkey.patch_all()
+
+        # monkey patch sendfile to make it none blocking
+        patch_sendfile()
 
     def notify(self):
         super(GeventWorker, self).notify()

@@ -5,6 +5,7 @@
 #
 # Example code from Eventlet sources
 
+import os
 from wsgiref.validate import validator
 import sys
 
@@ -12,6 +13,7 @@ from gunicorn import __version__
 #@validator
 def app(environ, start_response):
     """Simplest possible application object"""
+
     data = b'Hello, World!\n'
     status = '200 OK'
 
@@ -22,5 +24,4 @@ def app(environ, start_response):
         ("Test", "test тест"),
     ]
     start_response(status, response_headers)
-    print("test")
     return iter([data])

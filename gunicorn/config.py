@@ -48,6 +48,7 @@ class Config(object):
         self.settings = make_settings()
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
+        self.env_orig = os.environ.copy()
 
     def __getattr__(self, name):
         if name not in self.settings:
@@ -143,6 +144,25 @@ class Config(object):
             opts['keyfile'] = self.keyfile
 
         return opts
+
+    @property
+    def env(self):
+        raw_env = self.settings['raw_env'].get()
+        env = {}
+
+        if not raw_env:
+            return env
+
+        for e in raw_env:
+            s = six.bytes_to_str(e)
+            try:
+                k, v = s.split('=')
+            except ValueError:
+                raise RuntimeError("environement setting %r invalid" % s)
+
+            env[k] = v
+
+        return env
 
 
 class SettingMeta(type):
@@ -375,8 +395,40 @@ def validate_hostport(val):
     elif len(elements) == 2:
         return (elements[0], int(elements[1]))    
 
+def validate_chdir(val):
+    # valid if the value is a string
+    val = validate_string(val)
+
+    # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("can't chdir to %r" % val)
+
+    return path
+
+
+def validate_file(val):
+    if val is None:
+        return None
+
+    # valid if the value is a string
+    val = validate_string(val)
+
+     # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("%r not found" % val)
+
+    return path
+
+
 def get_default_config_file():
-    config_path = os.path.join(os.path.abspath(os.getcwd()), 'gunicorn.conf.py')
+    config_path = os.path.join(os.path.abspath(os.getcwd()),
+            'gunicorn.conf.py')
     if os.path.exists(config_path):
         return config_path
     return None
@@ -693,6 +745,17 @@ class PreloadApp(Setting):
         """
 
 
+class Chdir(Setting):
+    name = "chdir"
+    section = "Server Mechanics"
+    cli = ["--chdir"]
+    validator = validate_chdir
+    default = util.getcwd()
+    desc = """\
+        Chdir to specified directory before apps loading.
+        """
+
+
 class Daemon(Setting):
     name = "daemon"
     section = "Server Mechanics"
@@ -705,6 +768,25 @@ class Daemon(Setting):
 
         Detaches the server from the controlling terminal and enters the
         background.
+        """
+
+class Env(Setting):
+    name = "raw_env"
+    action = "append"
+    section = "Server Mechanic"
+    cli = ["-e", "--env"]
+    meta = "ENV"
+    validator = validate_list_string
+    default = []
+
+    desc = """\
+        Set environment variable (key=value).
+
+        Pass variables to the execution environment. Ex.::
+
+            $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
+
+        and test for the foo variable environement in your application.
         """
 
 
@@ -1071,10 +1153,12 @@ class DjangoSettings(Setting):
     validator = validate_string
     default = None
     desc = """\
-        The Python path to a Django settings module.
+        The Python path to a Django settings module. (deprecated)
 
         e.g. 'myproject.settings.main'. If this isn't provided, the
         DJANGO_SETTINGS_MODULE environment variable will be used.
+
+        **DEPRECATED**: use the --env argument instead.
         """
 
 
@@ -1086,10 +1170,22 @@ class PythonPath(Setting):
     validator = validate_string
     default = None
     desc = """\
-        A directory to add to the Python path for Django.
+        A directory to add to the Python path.
 
         e.g.
         '/home/djangoprojects/myproject'.
+        """
+
+
+class Paste(Setting):
+    name = "paste"
+    section = "Server Mechanics"
+    cli = ["--paster"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        Load a paste.deploy config file.
         """
 
 

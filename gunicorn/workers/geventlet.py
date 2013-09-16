@@ -12,9 +12,26 @@ except ImportError:
     raise RuntimeError("You need eventlet installed to use this worker.")
 from eventlet import hubs
 from eventlet.greenio import GreenSocket
+from eventlet.hubs import trampoline
 
+from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.async import AsyncWorker
 
+def _eventlet_sendfile(fdout, fdin, offset, nbytes):
+    while True:
+        try:
+            return o_sendfile(fdout, fdin, offset, nbytes)
+        except OSError as e:
+            if e.args[0] == errno.EAGAIN:
+                trampoline(fdout, write=True)
+            else:
+                raise
+
+def patch_sendfile():
+    from gunicorn.http import wsgi
+
+    if o_sendfile is not None:
+        setattr(wsgi, "sendfile", _eventlet_sendfile)
 
 class EventletWorker(AsyncWorker):
 
@@ -24,6 +41,7 @@ class EventletWorker(AsyncWorker):
         if eventlet.version_info < (0, 9, 7):
             raise RuntimeError("You need eventlet >= 0.9.7")
         eventlet.monkey_patch(os=False)
+        patch_sendfile()
 
     def init_process(self):
         hubs.use_hub()
@@ -46,20 +64,16 @@ class EventletWorker(AsyncWorker):
     def run(self):
         acceptors = []
         for sock in self.sockets:
-            s = GreenSocket(family_or_realsock=sock)
-            s.setblocking(1)
-            hfun = partial(self.handle, s)
-            acceptor = eventlet.spawn(eventlet.serve, s, hfun,
+            sock.setblocking(1)
+            hfun = partial(self.handle, sock)
+            acceptor = eventlet.spawn(eventlet.serve, sock, hfun,
                     self.worker_connections)
 
             acceptors.append(acceptor)
+            eventlet.sleep(0.0)
 
         while self.alive:
             self.notify()
-            if self.ppid != os.getppid():
-                self.log.info("Parent changed, shutting down: %s", self)
-                break
-
             eventlet.sleep(1.0)
 
         self.notify()
