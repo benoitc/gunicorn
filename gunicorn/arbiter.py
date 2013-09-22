@@ -120,9 +120,9 @@ class Arbiter(object):
         # instrumentation setup via statsD if needed
         self.use_statsd = self.cfg.statsd_host is not None
         if self.use_statsd:
-            self.log.info("Will send stats to {0}".format(self.cfg.statsd_host))
+            self.log.info("Arbiter will send stats to {0}".format(self.cfg.statsd_host))
         else:
-            self.log.info("Will not send stats")
+            self.log.info("Arbiter will not send stats")
 
     def start(self):
         """\

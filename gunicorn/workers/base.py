@@ -56,8 +56,10 @@ class Worker(object):
 
         # instrumentation
         self.use_statsd = cfg.statsd_host is not None
-        self.last_nr = 0  # store nr at the last instrumentation call
-        self.last_usr_t = 0  # store last user time from os.times()
+        if self.use_statsd:
+            self.log.info("Worker will send stats to {0}".format(cfg.statsd_host))
+            self.last_nr = 0  # store nr at the last instrumentation call
+            self.last_usr_t = 0  # store last user time from os.times()
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -159,12 +161,14 @@ class Worker(object):
         "Send stats to statsd"
         try:
             # Track requests per seconds per gunicorn instance, ignore actual workers
-            statsd.increment("gunicorn.rqs", self.nr - self.last_nr)
+            statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
+            self.log.info("STAT worker={0} gunicorn.worker.requests=+{1}".format(self.pid, self.nr - self.last_nr))
             self.last_nr = self.nr
 
             # Let statsd compute the ratio of user time / wallclock time
             usr_t = os.times()[0]
             statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
+            self.log.info("STAT worker={0} gunicorn.worker.utilization={1}".format(self.pid, usr_t - self.last_usr_t))
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
