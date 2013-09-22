@@ -9,9 +9,9 @@ resource usage, and fairly speedy.
 Feel free to join us in `#gunicorn`_ on freenode_.
 
 .. image::
-    https://secure.travis-ci.org/alq666/gunicorn.png?branch=master
+    https://secure.travis-ci.org/benoitc/gunicorn.png?branch=master
     :alt: Build Status
-    :target: https://travis-ci.org/alq666/gunicorn
+    :target: https://travis-ci.org/benoitc/gunicorn
 
 Documentation
 -------------
