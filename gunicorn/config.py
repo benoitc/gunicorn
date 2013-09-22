@@ -1574,7 +1574,7 @@ class StatsdHost(Setting):
     cli = ["--statsd"]
     meta = "STRING"
     validator = validate_hostport
-    default = "localhost:8125"
+    default = None
     desc = """\
     Host and port of the statsD server to send metrics to
 >>>>>>> Add statsd configuration parameter

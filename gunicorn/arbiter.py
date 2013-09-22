@@ -117,6 +117,13 @@ class Arbiter(object):
         if self.cfg.preload_app:
             self.app.wsgi()
 
+        # instrumentation setup via statsD if needed
+        self.use_statsd = self.cfg.statsd_host is not None
+        if self.use_statsd:
+            self.log.info("Will send stats to {0}".format(self.cfg.statsd_host))
+        else:
+            self.log.info("Will not send stats")
+
     def start(self):
         """\
         Initialize the arbiter. Start listening and set pidfile if needed.
@@ -168,7 +175,8 @@ class Arbiter(object):
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
         # Start periodical instrumentation
-        signal.alarm(STATSD_INTERVAL)
+        if self.use_statsd:
+            signal.alarm(STATSD_INTERVAL)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -306,6 +314,8 @@ class Arbiter(object):
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
+        except NameError:
+            self.log.warn("No statsD client found")
         except Exception:
             self.log.exception("Cannot get statistics")
 

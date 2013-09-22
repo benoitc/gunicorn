@@ -55,6 +55,7 @@ class Worker(object):
         self.tmp = WorkerTmp(cfg)
 
         # instrumentation
+        self.use_statsd = cfg.statsd_host is not None
         self.last_nr = 0  # store nr at the last instrumentation call
         self.last_usr_t = 0  # store last user time from os.times()
 
@@ -166,6 +167,8 @@ class Worker(object):
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
+        except NameError:
+            self.log.warn("No statsD client found")
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 
