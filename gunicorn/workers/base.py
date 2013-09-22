@@ -148,8 +148,9 @@ class Worker(object):
             signal.siginterrupt(signal.SIGINFO, False)
             signal.siginterrupt(signal.SIGALRM, False)
 
-        # Get the timer started
-        signal.alarm(STATSD_INTERVAL)
+        # Get the instrumentation timer started
+        if self.use_statsd:
+            signal.alarm(STATSD_INTERVAL)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
