@@ -12,6 +12,7 @@ except ImportError: # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import ssl
 import sys
 import textwrap
 import types
@@ -142,12 +143,17 @@ class Config(object):
     @property
     def ssl_options(self):
         opts = {}
-        if self.certfile:
-            opts['certfile'] = self.certfile
-
-        if self.keyfile:
-            opts['keyfile'] = self.keyfile
-
+        
+        for attr in('certfile', 'keyfile', 'cert_reqs', 'ssl_version', \
+                'ca_certs', 'suppress_ragged_eofs', 'do_handshake_on_connect',
+                'ciphers'):
+            
+            # suppress_ragged_eofs/do_handshake_on_connect are booleans that can
+            # be False hence we use hasattr instead of getattr(self, attr, None).
+            if hasattr(self, attr):
+                value = getattr(self, attr)
+                opts[attr] = value
+                
         return opts
 
     @property
@@ -1467,4 +1473,67 @@ class CertFile(Setting):
     default = None
     desc = """\
     SSL certificate file
+    """
+    
+class SSLVersion(Setting):
+    name = "ssl_version"
+    section = "Ssl"
+    cli = ["--ssl-version"]
+    validator = validate_pos_int
+    default = ssl.PROTOCOL_TLSv1
+    desc = """\
+    SSL version to use (see stdlib ssl module's)
+    """
+    
+class CertReqs(Setting):
+    name = "cert_reqs"
+    section = "Ssl"
+    cli = ["--cert-reqs"]
+    validator = validate_pos_int
+    default = ssl.CERT_NONE
+    desc = """\
+    Whether client certificate is required (see stdlib ssl module's)
+    """
+    
+class CACerts(Setting):
+    name = "ca_certs"
+    section = "Ssl"
+    cli = ["--ca-certs"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    CA certificates file
+    """
+    
+class SuppressRaggedEOFs(Setting):
+    name = "suppress_ragged_eofs"
+    section = "Ssl"
+    cli = ["--suppress-ragged-eofs"]
+    action = "store_true"
+    default = True
+    validator = validate_bool
+    desc = """\
+    Suppress ragged EOFs (see stdlib ssl module's)
+    """
+
+class DoHandshakeOnConnect(Setting):
+    name = "do_handshake_on_connect"
+    section = "Ssl"
+    cli = ["--do-handshake-on-connect"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+    Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+    """
+    
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "Ssl"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
     """
