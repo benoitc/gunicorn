@@ -190,10 +190,6 @@ class Worker(object):
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
 
-        if self.debug:
-            tb = traceback.format_exc()
-            mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
-
         try:
             util.write_error(client, status_int, reason, mesg)
         except:
