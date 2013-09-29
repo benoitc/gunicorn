@@ -133,6 +133,22 @@ class Worker(object):
         self.alive = False
 
     def handle_exit(self, sig, frame):
+        # Log stack trace of all threads just before terminating.
+        # Useful for tracking down long requests that may have stalled
+        # for any number of reasons which may include incompatible gevent libraries
+        # Snippet is taken from:
+        # http://stackoverflow.com/questions/132058/showing-the-stack-trace-from-a-running-python-application
+        import threading, sys, traceback
+        id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+        code = []
+        for threadId, stack in sys._current_frames().items():
+            code.append("\n# Thread: %s(%d)" % (id2name.get(threadId,""), threadId))
+            for filename, lineno, name, line in traceback.extract_stack(stack):
+                code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+                if line:
+                    code.append("  %s" % (line.strip()))
+        self.log.critical("\n".join(code))
+        
         self.alive = False
         sys.exit(0)
 
