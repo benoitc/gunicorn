@@ -67,7 +67,7 @@ class GeventWorker(AsyncWorker):
     def setup(cls):
         from gevent import monkey
         monkey.noisy = False
-        monkey.patch_all()
+        monkey.patch_all(subprocess=True)
 
         # monkey patch sendfile to make it none blocking
         patch_sendfile()
