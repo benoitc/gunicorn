@@ -86,7 +86,10 @@ class SafeAtoms(dict):
     def __init__(self, atoms):
         dict.__init__(self)
         for key, value in atoms.items():
-            self[key] = value.replace('"', '\\"')
+            if isinstance(value, basestring):
+                self[key] = value.replace('"', '\\"')
+            else:
+                self[key] = value
 
     def __getitem__(self, k):
         if k.startswith("{"):
@@ -238,8 +241,8 @@ class Logger(object):
             'b': resp.response_length and str(resp.response_length) or '-',
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
-            'T': str(request_time.seconds),
-            'D': str(request_time.microseconds),
+            'T': request_time.seconds,
+            'D': request_time.microseconds,
             'p': "<%s>" % os.getpid()
         }
 
