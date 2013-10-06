@@ -379,6 +379,8 @@ class Arbiter(object):
                 except KeyError:
                     pass
 
+        self.log.close_handlers()
+
         # reload conf
         self.app.reload()
         self.setup(self.app)
