@@ -8,7 +8,6 @@ import sys
 
 from gunicorn.errors import ConfigError
 from gunicorn.app.base import Application
-from gunicorn.app import djangoapp
 from gunicorn import util
 
 
