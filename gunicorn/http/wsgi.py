@@ -76,7 +76,7 @@ def proxy_environ(req):
 
 
 def create(req, sock, client, server, cfg):
-    resp = Response(req, sock)
+    resp = Response(req, sock, cfg)
 
     environ = default_environ(req, sock, cfg)
 
@@ -174,7 +174,7 @@ def create(req, sock, client, server, cfg):
 
 class Response(object):
 
-    def __init__(self, req, sock):
+    def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
         self.version = SERVER_SOFTWARE
@@ -186,6 +186,7 @@ class Response(object):
         self.response_length = None
         self.sent = 0
         self.upgrade = False
+        self.cfg = cfg
 
     def force_close(self):
         self.must_close = True
@@ -330,6 +331,23 @@ class Response(object):
             while sent != nbytes:
                 sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
 
+    def sendfile_use_send(self, fileno, fo_offset, nbytes):
+
+        # send file in blocks of 8182 bytes
+        BLKSIZE = 8192
+
+        sent = 0
+        while sent != nbytes:
+            data = os.read(fileno, BLKSIZE)
+            if not data:
+                break
+
+            sent += len(data)
+            if sent > nbytes:
+                data = data[:nbytes-sent]
+
+            util.write(self.sock, data, self.chunked)
+
     def write_file(self, respiter):
         if sendfile is not None and util.is_fileobject(respiter.filelike):
             # sometimes the fileno isn't a callable
@@ -350,14 +368,17 @@ class Response(object):
 
             self.send_headers()
 
-            if self.is_chunked():
-                chunk_size = "%X\r\n" % nbytes
-                self.sock.sendall(chunk_size.encode('utf-8'))
+            if self.cfg.is_ssl:
+                self.sendfile_use_send(fileno, fo_offset, nbytes)
+            else:
+                if self.is_chunked():
+                    chunk_size = "%X\r\n" % nbytes
+                    self.sock.sendall(chunk_size.encode('utf-8'))
 
-            self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
+                self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
 
-            if self.is_chunked():
-                self.sock.sendall(b"\r\n")
+                if self.is_chunked():
+                    self.sock.sendall(b"\r\n")
 
             os.lseek(fileno, fd_offset, os.SEEK_SET)
         else:
