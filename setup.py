@@ -55,7 +55,7 @@ class PyTest(Command):
         pass
 
     def run(self):
-        import sys,subprocess
+        import subprocess
         basecmd = [sys.executable, '-m', 'pytest']
         if self.cov:
             basecmd += ['--cov', 'gunicorn']
