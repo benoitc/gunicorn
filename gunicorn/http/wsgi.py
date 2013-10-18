@@ -122,32 +122,8 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, string_types):
-        # we only took the last one
-        # http://en.wikipedia.org/wiki/X-Forwarded-For
-        if forward.find(",") >= 0:
-            forward = forward.rsplit(",", 1)[1].strip()
-
-        # find host and port on ipv6 address
-        if '[' in forward and ']' in forward:
-            host = forward.split(']')[0][1:].lower()
-        elif ":" in forward and forward.count(":") == 1:
-            host = forward.split(":")[0].lower()
-        else:
-            host = forward
-
-        forward = forward.split(']')[-1]
-        if ":" in forward and forward.count(":") == 1:
-            port = forward.split(':', 1)[1]
-        else:
-            port = 80
-
-        remote = (host, port)
-    else:
-        remote = forward
-
-    environ['REMOTE_ADDR'] = remote[0]
-    environ['REMOTE_PORT'] = str(remote[1])
+    environ['REMOTE_ADDR'] = client[0]
+    environ['REMOTE_PORT'] = str(client[1])
 
     if isinstance(server, string_types):
         server = server.split(":")
