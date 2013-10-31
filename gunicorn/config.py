@@ -911,6 +911,7 @@ class SecureSchemeHeader(Setting):
 class XForwardedFor(Setting):
     name = "x_forwarded_for_header"
     section = "Server Mechanics"
+    cli = ["--x-forwarded-for-hdr"]
     meta = "STRING"
     validator = validate_string
     default = 'X-FORWARDED-FOR'
