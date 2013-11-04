@@ -122,6 +122,11 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
+    #If content-type is not set by client, set empty content-type.
+    #https://github.com/benoitc/gunicorn/issues/635
+    if not 'CONTENT_TYPE' in environ:
+        environ['CONTENT_TYPE'] = u''
+
     if isinstance(forward, string_types):
         # we only took the last one
         # http://en.wikipedia.org/wiki/X-Forwarded-For
