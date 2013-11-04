@@ -9,6 +9,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 from gunicorn.app.djangoapp import DjangoApplicationCommand
 from gunicorn.config import make_settings
+from gunicorn import util
+
 
 # monkey patch django.
 # This patch make sure that we use real threads to get the ident which
@@ -91,6 +93,18 @@ class Command(BaseCommand):
     requires_model_validation = False
 
     def handle(self, addrport=None, *args, **options):
+
+        # deprecation warning to announce future deletion in R21
+        util.warn("""This command is deprecated.
+
+        You should now run your application with the WSGI interface
+        installed with your project. Ex.:
+
+            gunicorn myproject.wsgi:application
+
+        See https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/gunicorn/
+        for more info.""")
+
         if args:
             raise CommandError('Usage is run_gunicorn %s' % self.args)
 
