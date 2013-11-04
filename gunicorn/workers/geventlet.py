@@ -66,6 +66,7 @@ class EventletWorker(AsyncWorker):
     def run(self):
         acceptors = []
         for sock in self.sockets:
+            sock = GreenSocket(sock)
             sock.setblocking(1)
             hfun = partial(self.handle, sock)
             acceptor = eventlet.spawn(eventlet.serve, sock, hfun,
