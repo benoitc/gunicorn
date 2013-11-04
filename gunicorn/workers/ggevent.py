@@ -12,6 +12,8 @@ from datetime import datetime
 from functools import partial
 import time
 
+_socket = __import__("socket")
+
 # workaround on osx, disable kqueue
 if sys.platform == "darwin":
     os.environ['EVENT_NOKQUEUE'] = "1"
@@ -22,7 +24,7 @@ except ImportError:
     raise RuntimeError("You need gevent installed to use this worker.")
 from gevent.pool import Pool
 from gevent.server import StreamServer
-from gevent.socket import wait_write
+from gevent.socket import wait_write, socket
 from gevent import pywsgi
 
 import gunicorn
@@ -63,13 +65,21 @@ class GeventWorker(AsyncWorker):
     server_class = None
     wsgi_handler = None
 
-    def patch(cls):
+    def patch(self):
         from gevent import monkey
         monkey.noisy = False
         monkey.patch_all()
 
         # monkey patch sendfile to make it none blocking
         patch_sendfile()
+
+        # patch sockets
+        sockets = []
+        for s in self.sockets:
+            sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
+                _sock=s))
+        self.sockets = sockets
+
 
     def notify(self):
         super(GeventWorker, self).notify()
