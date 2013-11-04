@@ -10,6 +10,12 @@ try:
     import eventlet
 except ImportError:
     raise RuntimeError("You need eventlet installed to use this worker.")
+
+# validate the eventlet version
+if eventlet.version_info < (0, 9, 7):
+    raise RuntimeError("You need eventlet >= 0.9.7")
+
+
 from eventlet import hubs
 from eventlet.greenio import GreenSocket
 from eventlet.hubs import trampoline
@@ -35,11 +41,7 @@ def patch_sendfile():
 
 class EventletWorker(AsyncWorker):
 
-    @classmethod
-    def setup(cls):
-        import eventlet
-        if eventlet.version_info < (0, 9, 7):
-            raise RuntimeError("You need eventlet >= 0.9.7")
+    def patch(self):
         eventlet.monkey_patch(os=False)
         patch_sendfile()
 
@@ -84,3 +86,8 @@ class EventletWorker(AsyncWorker):
             if te != t:
                 raise
             [a.kill() for a in acceptors]
+
+    def init_process(self):
+        # monkey patch here
+        self.patch()
+        super(EventletWorker, self).init_process()

@@ -63,8 +63,7 @@ class GeventWorker(AsyncWorker):
     server_class = None
     wsgi_handler = None
 
-    @classmethod
-    def setup(cls):
+    def patch(cls):
         from gevent import monkey
         monkey.noisy = False
         monkey.patch_all()
@@ -157,11 +156,22 @@ class GeventWorker(AsyncWorker):
     if gevent.version_info[0] == 0:
 
         def init_process(self):
+            # monkey patch here
+            self.patch()
+
             #gevent 0.13 and older doesn't reinitialize dns for us after forking
             #here's the workaround
             import gevent.core
             gevent.core.dns_shutdown(fail_requests=1)
             gevent.core.dns_init()
+            super(GeventWorker, self).init_process()
+
+    else:
+
+        def init_process(self):
+            # monkey patch here
+            self.patch()
+            # then initialize the process
             super(GeventWorker, self).init_process()
 
 
