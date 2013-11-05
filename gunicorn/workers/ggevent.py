@@ -68,7 +68,12 @@ class GeventWorker(AsyncWorker):
     def patch(self):
         from gevent import monkey
         monkey.noisy = False
-        monkey.patch_all(subprocess=True)
+
+        # if the new version is used make sure to patch subprocess
+        if gevent.version_info[0] == 0:
+            monkey.patch_all()
+        else:
+            monkey.patch_all(subprocess=True)
 
         # monkey patch sendfile to make it none blocking
         patch_sendfile()
@@ -181,6 +186,11 @@ class GeventWorker(AsyncWorker):
         def init_process(self):
             # monkey patch here
             self.patch()
+
+            # reinit the hub
+            from gevent.hub import reinit
+            hub.reinit()
+
             # then initialize the process
             super(GeventWorker, self).init_process()
 
