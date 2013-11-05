@@ -783,6 +783,22 @@ class Env(Setting):
         """
 
 
+class InactiveMaster(Setting):
+    name = "inactive_master"
+    section = "Server Mechanics"
+    cli = ["--inactive-master"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Lower the wakeups as much as possible.
+
+        When no workers are answering requests, the master does nothing.
+        If at least one worker is working, then the master will check for
+        workers timeout.
+        """
+
+
 class Pidfile(Setting):
     name = "pidfile"
     section = "Server Mechanics"

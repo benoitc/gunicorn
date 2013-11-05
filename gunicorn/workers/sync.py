@@ -33,6 +33,7 @@ class SyncWorker(base.Worker):
 
         ready = self.sockets
         while self.alive:
+            self.set_active(True)
             self.notify()
 
             # Accept a connection. If we get an error telling us
@@ -63,8 +64,10 @@ class SyncWorker(base.Worker):
                 return
 
             try:
+                self.set_active(False)
                 self.notify()
-                ret = select.select(self.sockets, [], self.PIPE, self.timeout)
+                # If we are in inactive_master mode, we don't have to wake up to notify while inactive
+                ret = select.select(self.sockets, [], self.PIPE, None if self.cfg.inactive_master else self.timeout)
                 if ret[0]:
                     ready = ret[0]
                     continue
