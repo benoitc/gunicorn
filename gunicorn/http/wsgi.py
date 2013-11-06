@@ -80,10 +80,7 @@ def create(req, sock, client, server, cfg):
 
     environ = default_environ(req, sock, cfg)
 
-    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
-    # may not qualify the remote addr:
-    # http://www.ietf.org/rfc/rfc3875
-    forward = client or "127.0.0.1"
+    forward = None
     url_scheme = "https" if cfg.is_ssl else "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
@@ -122,8 +119,41 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    environ['REMOTE_ADDR'] = client[0]
-    environ['REMOTE_PORT'] = str(client[1])
+    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+    # may not qualify the remote addr:
+    # http://www.ietf.org/rfc/rfc3875
+
+    if forward and cfg.settings['override_remote_addr'].value:
+
+        # we only took the last one
+        # http://en.wikipedia.org/wiki/X-Forwarded-For
+        if forward.find(",") >= 0:
+            forward = forward.rsplit(",", 1)[1].strip()
+
+        # find host and port on ipv6 address
+        if '[' in forward and ']' in forward:
+            host = forward.split(']')[0][1:].lower()
+        elif ":" in forward and forward.count(":") == 1:
+            host = forward.split(":")[0].lower()
+        else:
+            host = forward
+
+        forward = forward.split(']')[-1]
+        if ":" in forward and forward.count(":") == 1:
+            port = forward.split(':', 1)[1]
+        else:
+            port = 80
+
+        environ['REMOTE_ADDR'] = host
+        environ['REMOTE_PORT'] = port
+
+    else:
+        try:
+            environ['REMOTE_ADDR'] = client[0]
+            environ['REMOTE_PORT'] = str(client[1])
+        except IndexError:
+            # Client is empty if bound to a unix socket
+            environ['REMOTE_ADDR'] = 'unix:' + sock.getsockname()
 
     if isinstance(server, string_types):
         server = server.split(":")
