@@ -51,7 +51,8 @@ class Worker(object):
         self.tmp = WorkerTmp(cfg)
 
         # set woerker signal
-        self.worker_signal_pipe = socket.socketpair()
+        self.worker_signal_pipe = socket.socketpair(socket.AF_UNIX,
+                socket.SOCK_DGRAM)
         for p in self.worker_signal_pipe:
             util.set_non_blocking(p.fileno())
             util.close_on_exec(p.fileno())
@@ -74,7 +75,6 @@ class Worker(object):
         try:
             self.worker_signal_pipe[1].send(b"1")
         except socket.error as e:
-            print(e)
             if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
                             errno.EWOULDBLOCK):
                 self.alive = False
