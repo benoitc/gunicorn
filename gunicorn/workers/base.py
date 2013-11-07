@@ -13,7 +13,6 @@ import traceback
 
 
 from gunicorn import util
-from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
@@ -48,7 +47,6 @@ class Worker(object):
         self.alive = True
         self.log = log
         self.debug = cfg.debug
-        self.tmp = WorkerTmp(cfg)
 
         # set woerker signal
         self.worker_signal_pipe = socket.socketpair(socket.AF_UNIX,
@@ -118,7 +116,6 @@ class Worker(object):
 
         # Prevent fd inherientence
         [util.close_on_exec(s) for s in self.sockets]
-        util.close_on_exec(self.tmp.fileno())
 
         self.log.close_on_exec()
 
