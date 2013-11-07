@@ -72,7 +72,7 @@ class Worker(object):
         this task, the master process will murder your workers.
         """
         try:
-            self.worker_signal_pipe[1].send("1")
+            self.worker_signal_pipe[1].send(b"1")
         except socket.error as e:
             print(e)
             if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
