@@ -6,12 +6,13 @@
 from datetime import datetime
 import os
 import signal
+import socket
 import sys
+import time
 import traceback
 
 
 from gunicorn import util
-from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
@@ -46,7 +47,15 @@ class Worker(object):
         self.alive = True
         self.log = log
         self.debug = cfg.debug
-        self.tmp = WorkerTmp(cfg)
+
+        # set woerker signal
+        self.worker_signal_pipe = socket.socketpair(socket.AF_UNIX,
+                socket.SOCK_DGRAM)
+        for p in self.worker_signal_pipe:
+            util.set_non_blocking(p.fileno())
+            util.close_on_exec(p.fileno())
+
+        self.last_update = time.time()
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -61,7 +70,12 @@ class Worker(object):
         once every ``self.timeout`` seconds. If you fail in accomplishing
         this task, the master process will murder your workers.
         """
-        self.tmp.notify()
+        try:
+            self.worker_signal_pipe[1].send(b"1")
+        except socket.error as e:
+            if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
+                            errno.EWOULDBLOCK):
+                self.alive = False
 
     def run(self):
         """\
@@ -95,9 +109,13 @@ class Worker(object):
             util.set_non_blocking(p)
             util.close_on_exec(p)
 
+
+        # make sure that the signal socket isn't blocking
+        self.worker_signal_pipe[1].setblocking(False)
+        util.close_on_exec(self.worker_signal_pipe[1])
+
         # Prevent fd inherientence
         [util.close_on_exec(s) for s in self.sockets]
-        util.close_on_exec(self.tmp.fileno())
 
         self.log.close_on_exec()
 

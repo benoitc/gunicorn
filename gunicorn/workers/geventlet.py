@@ -45,6 +45,10 @@ class EventletWorker(AsyncWorker):
         eventlet.monkey_patch(os=False)
         patch_sendfile()
 
+        # patch the socket handling the signaling
+        self.worker_signal_pipe = (self.worker_signal_pipe[0],
+                GreenSocket(self.worker_signal_pipe[1]))
+
     def init_process(self):
         hubs.use_hub()
         super(EventletWorker, self).init_process()
