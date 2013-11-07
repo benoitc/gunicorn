@@ -10,6 +10,7 @@ import os
 import random
 import select
 import signal
+import socket
 import sys
 import time
 import traceback
@@ -308,12 +309,33 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
+
+        fds = [self.PIPE[0]]
+        for pid, w in self.WORKERS.items():
+            fds.append(w.worker_signal_pipe[0].fileno())
+
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
+            ready = select.select(fds, [], [], 1.0)
             if not ready[0]:
                 return
-            while os.read(self.PIPE[0], 1):
-                pass
+
+            # clear the internal pipe
+            if self.PIPE[0] in ready[0]:
+                while os.read(self.PIPE[0], 1):
+                    pass
+
+            # check if a worker notified us
+            for pid, w in self.WORKERS.items():
+                try:
+                    if w.worker_signal_pipe[0].fileno() in ready[0]:
+                        w.last_update = time.time()
+
+                        # read the socket
+                        while w.worker_signal_pipe[0].recv(1):
+                            pass
+                except socket.error:
+                    pass
+
         except select.error as e:
             if e.args[0] not in [errno.EAGAIN, errno.EINTR]:
                 raise
@@ -424,7 +446,7 @@ class Arbiter(object):
             return
         for (pid, worker) in self.WORKERS.items():
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                if time.time() - worker.last_update <= self.timeout:
                     continue
             except ValueError:
                 continue
