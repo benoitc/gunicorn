@@ -112,6 +112,10 @@ class Worker(object):
             util.close_on_exec(p)
 
 
+        # make sure that the signal socket isn't blocking
+        self.worker_signal_pipe[1].setblocking(False)
+        util.close_on_exec(self.worker_signal_pipe[1])
+
         # Prevent fd inherientence
         [util.close_on_exec(s) for s in self.sockets]
         util.close_on_exec(self.tmp.fileno())

@@ -85,6 +85,10 @@ class GeventWorker(AsyncWorker):
                 _sock=s))
         self.sockets = sockets
 
+        # patch the socket hamdling the signaling
+        self.worker_signal_pipe = (self.worker_signal_pipe[0],
+                socket(_socket.AF_UNIX, _socket.SOCK_DGRAM,
+                _sock=self.worker_signal_pipe[1]))
 
     def notify(self):
         super(GeventWorker, self).notify()
