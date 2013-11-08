@@ -27,7 +27,6 @@ if not ctypes:
         @property
         def value(self):
             self._buffer.seek(0)
-            print self._buffer.size
             v, = self.struct.unpack(self._buffer[:self._buffer.size()])
             return v
 
