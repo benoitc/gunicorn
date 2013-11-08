@@ -424,7 +424,7 @@ class Arbiter(object):
             return
         for (pid, worker) in self.WORKERS.items():
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                if time.time() - worker.last_update.value <= self.timeout:
                     continue
             except ValueError:
                 continue

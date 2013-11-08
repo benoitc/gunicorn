@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import signal
 import sys
+import time
 import traceback
 
 
@@ -18,6 +19,7 @@ LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
+from gunicorn.shared import Value
 
 
 class Worker(object):
@@ -47,6 +49,7 @@ class Worker(object):
         self.log = log
         self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
+        self.last_update = Value('i', int(time.time()))
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -61,7 +64,9 @@ class Worker(object):
         once every ``self.timeout`` seconds. If you fail in accomplishing
         this task, the master process will murder your workers.
         """
-        self.tmp.notify()
+        # store the last updated value
+        t = int(time.time())
+        self.last_update.value = t
 
     def run(self):
         """\
