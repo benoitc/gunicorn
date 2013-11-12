@@ -906,6 +906,7 @@ class XForwardedFor(Setting):
 class ForwardedAllowIPS(Setting):
     name = "forwarded_allow_ips"
     section = "Server Mechanics"
+    cli = ["--forwarded-allow-ips"]
     meta = "STRING"
     validator = validate_string_to_list
     default = "127.0.0.1"
