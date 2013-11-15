@@ -4,7 +4,7 @@ Configuration Overview
 
 Gunicorn pulls configuration information from three distinct places.
 
-The first place that Gunicorn will read configuration from is the framework
+The first place that Gunicorn will read configuration from the framework
 specific configuration file. Currently this only affects Paster applications.
 
 The second source of configuration information is a configuration file that is
