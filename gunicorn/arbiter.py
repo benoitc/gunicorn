@@ -300,7 +300,7 @@ class Arbiter(object):
             self.num_workers = 0
             self.kill_workers(signal.SIGQUIT)
         else:
-            self.log.info("SIGWINCH ignored. Not daemonized")
+            self.log.debug("SIGWINCH ignored. Not daemonized")
 
     def handle_alrm(self):
         try:

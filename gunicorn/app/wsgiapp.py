@@ -8,7 +8,6 @@ import sys
 
 from gunicorn.errors import ConfigError
 from gunicorn.app.base import Application
-from gunicorn.app import djangoapp
 from gunicorn import util
 
 
@@ -64,7 +63,7 @@ class WSGIApplication(Application):
 
 def run():
     """\
-    The ``gunicorn`` command line runner for launching Ghunicorn with
+    The ``gunicorn`` command line runner for launching Gunicorn with
     generic WSGI applications.
     """
     from gunicorn.app.wsgiapp import WSGIApplication

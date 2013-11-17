@@ -14,8 +14,7 @@ config
 ~~~~~~
 
 * ``-c FILE, --config FILE``
-* ``gunicorn.conf.py`` if the file exists on the current directory otherwise
-  ``None`` is used.
+* ``None``
 
 The path to a Gunicorn config file.
 
@@ -29,12 +28,19 @@ bind
 ~~~~
 
 * ``-b ADDRESS, --bind ADDRESS``
-* ``127.0.0.1:8000``
+* ``['127.0.0.1:8000']``
 
 The socket to bind.
 
 A string of the form: 'HOST', 'HOST:PORT', 'unix:PATH'. An IP is a valid
 HOST.
+
+Multiple addresses can be bound. ex.::
+
+    $ gunicorn -b 127.0.0.1:8000 -b [::1]:8000 test:app
+
+will bind the `test:app` application on localhost both on ipv6
+and ipv4 interfaces.
 
 backlog
 ~~~~~~~
@@ -74,9 +80,11 @@ worker_class
 
 The type of workers to use.
 
-The default class (sync) should handle most 'normal' types of workloads.
-You'll want to read http://gunicorn.org/design.html for information on
-when you might want to choose one of the other worker classes.
+The default class (sync) should handle most 'normal' types of
+workloads.  You'll want to read
+http://docs.gunicorn.org/en/latest/design.html for information
+on when you might want to choose one of the other worker
+classes.
 
 A string referring to one of the following bundled classes:
 
@@ -245,6 +253,14 @@ speed up server boot times. Although, if you defer application loading
 to each worker process, you can reload your application code easily by
 restarting workers.
 
+chdir
+~~~~~
+
+* ``--chdir``
+* ``/Users/benoitc/work/offset_pypy/src/gunicorn/docs``
+
+Chdir to specified directory before apps loading.
+
 daemon
 ~~~~~~
 
@@ -255,6 +271,26 @@ Daemonize the Gunicorn process.
 
 Detaches the server from the controlling terminal and enters the
 background.
+
+Server Mechanic
+---------------
+
+raw_env
+~~~~~~~
+
+* ``-e ENV, --env ENV``
+* ``[]``
+
+Set environment variable (key=value).
+
+Pass variables to the execution environment. Ex.::
+
+    $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
+
+and test for the foo variable environement in your application.
+
+Server Mechanics
+----------------
 
 pidfile
 ~~~~~~~
@@ -351,6 +387,10 @@ forwarded_allow_ips
 Front-end's IPs from which allowed to handle X-Forwarded-* headers.
 (comma separate).
 
+Set to "*" to disable checking of Front-end IPs (useful for setups
+where you don't know in advance the IP address of Front-end, but
+you still trust the environment)
+
 Logging
 -------
 
@@ -368,7 +408,7 @@ access_log_format
 ~~~~~~~~~~~~~~~~~
 
 * ``--access-logformat STRING``
-* ``"%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"``
+* ``%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"``
 
 The Access log format .
 
@@ -444,6 +484,54 @@ The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
 
+syslog_addr
+~~~~~~~~~~~
+
+* ``--log-syslog-to SYSLOG_ADDR``
+* ``unix:///var/run/syslog``
+
+Address to send syslog messages
+
+syslog
+~~~~~~
+
+* ``--log-syslog``
+* ``False``
+
+Log to syslog.
+
+syslog_prefix
+~~~~~~~~~~~~~
+
+* ``--log-syslog-prefix SYSLOG_PREFIX``
+* ``None``
+
+makes gunicorn use the parameter as program-name in the syslog entries.
+
+All entries will be prefixed by gunicorn.<prefix>. By default the program
+name is the name of the process.
+
+syslog_facility
+~~~~~~~~~~~~~~~
+
+* ``--log-syslog-facility SYSLOG_FACILITY``
+* ``user``
+
+Syslog facility name
+
+enable_stdio_inheritance
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``-R, --enable-stdio-inheritance``
+* ``False``
+
+Enable stdio inheritance
+
+Enable inheritance for stdio file descriptors in daemon mode.
+
+Note: To disable the python stdout buffering, you can to set the user
+environment variable ``PYTHONUNBUFFERED`` .
+
 Process Naming
 --------------
 
@@ -478,10 +566,12 @@ django_settings
 * ``--settings STRING``
 * ``None``
 
-The Python path to a Django settings module.
+The Python path to a Django settings module. (deprecated)
 
 e.g. 'myproject.settings.main'. If this isn't provided, the
 DJANGO_SETTINGS_MODULE environment variable will be used.
+
+**DEPRECATED**: use the --env argument instead.
 
 Server Mechanics
 ----------------
@@ -492,10 +582,18 @@ pythonpath
 * ``--pythonpath STRING``
 * ``None``
 
-A directory to add to the Python path for Django.
+A directory to add to the Python path.
 
 e.g.
 '/home/djangoprojects/myproject'.
+
+paste
+~~~~~
+
+* ``--paster STRING``
+* ``None``
+
+Load a paste.deploy config file.
 
 Server Hooks
 ------------
@@ -563,7 +661,7 @@ The callable needs to accept two instance variables for the Arbiter and
 new Worker.
 
 post_worker_init
-~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 *  ::
 
@@ -605,7 +703,7 @@ post_request
 
 *  ::
 
-        def post_request(worker, req, environ):
+        def post_request(worker, req, environ, resp):
             pass
 
 Called after a worker processes the request.
@@ -625,6 +723,22 @@ Called just after a worker has been exited.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
+
+nworkers_changed
+~~~~~~~~~~~~~~~~
+
+*  ::
+
+        def nworkers_changed(server, new_value, old_value):
+            pass
+
+Called just after num_workers has been changed.
+
+The callable needs to accept an instance variable of the Arbiter and
+two integers of number of workers after and before change.
+
+If the number of workers is set for the first time, old_value would be
+None.
 
 Server Mechanics
 ----------------
@@ -658,4 +772,23 @@ proxy_allow_ips
 * ``127.0.0.1``
 
 Front-end's IPs from which allowed accept proxy requests (comma separate).
+
+Ssl
+---
+
+keyfile
+~~~~~~~
+
+* ``--keyfile FILE``
+* ``None``
+
+SSL key file
+
+certfile
+~~~~~~~~
+
+* ``--certfile FILE``
+* ``None``
+
+SSL certificate file
 
