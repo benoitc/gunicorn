@@ -56,6 +56,7 @@ class Arbiter(object):
 
         self._num_workers = None
         self._last_logged_active_worker_count = None
+        self.log = None
 
         self.setup(app)
 
@@ -88,7 +89,9 @@ class Arbiter(object):
     def setup(self, app):
         self.app = app
         self.cfg = app.cfg
-        self.log = self.cfg.logger_class(app.cfg)
+
+        if self.log is None:
+            self.log = self.cfg.logger_class(app.cfg)
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:
