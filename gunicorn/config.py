@@ -12,6 +12,7 @@ except ImportError: # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import signal
 import sys
 import textwrap
 import types
@@ -302,6 +303,13 @@ def validate_list_string(val):
         val = [val]
 
     return [validate_string(v) for v in val]
+
+
+def validate_list_pos_int(val):
+    if not val:
+        return []
+
+    return [validate_pos_int(v) for v in val]
 
 
 def validate_string_to_list(val):
@@ -606,7 +614,19 @@ class GracefulTimeout(Setting):
         be force killed.
         """
 
+class GracefulSignals(Setting):
+    name = "graceful_signals"
+    section = "Worker Processes"
+    cli = ["--graceful-signals"]
+    validator = validate_list_pos_int
+    action = "append"
+    meta = "INT"
+    default = [signal.SIGQUIT]
 
+    desc = """\
+        A signal number that should perform a graceful shutdown.
+       """
+ 
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"
