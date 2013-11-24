@@ -149,6 +149,15 @@ Generally set to thirty seconds. How max time worker can handle
 request after got restart signal. If the time is up worker will
 be force killed.
 
+graceful_term_signals
+~~~~~~~~~~~~~~~~
+
+* ``--graceful-term-signal``
+
+By default, SIGQUIT performs a graceful shutdown and SIGTERM performs
+an immediate shutdown.  If *--graceful-term-signal* is specified, these
+signals are reversed.
+
 keepalive
 ~~~~~~~~~
 
