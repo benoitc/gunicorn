@@ -115,7 +115,7 @@ class Worker(object):
         # reset signaling
         [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
         # init new signaling
-        signal.signal(signal.SIGQUIT, self.handle_quit)
+        signal.signal(signal.SIGQUIT, self.handle_exit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
@@ -129,12 +129,10 @@ class Worker(object):
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
 
-    def handle_quit(self, sig, frame):
-        self.alive = False
-
     def handle_exit(self, sig, frame):
         self.alive = False
-        sys.exit(0)
+        if sig not in self.cfg.graceful_signals:
+            sys.exit(0)
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()

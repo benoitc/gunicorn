@@ -227,16 +227,20 @@ class Arbiter(object):
 
     def handle_quit(self):
         "SIGQUIT handling"
+        if signal.SIGQUIT not in self.cfg.graceful_signals:
+            self.stop(False)
         raise StopIteration
 
     def handle_int(self):
         "SIGINT handling"
-        self.stop(False)
+        if signal.SIGINT not in self.cfg.graceful_signals:
+            self.stop(False)
         raise StopIteration
 
     def handle_term(self):
         "SIGTERM handling"
-        self.stop(False)
+        if signal.SIGTERM not in self.cfg.graceful_signals:
+            self.stop(False)
         raise StopIteration
 
     def handle_ttin(self):

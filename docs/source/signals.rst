@@ -12,9 +12,10 @@ exception of TTIN/TTOU the signals handling match the behaviour of `nginx
 Master process
 ==============
 
-- **TERM**, **INT**: Quick shutdown
-- **QUIT**: Graceful shutdwn. I waits for workers to finish their
-  current request before finishing until the *graceful timeout*.
+- **TERM**, **INT**, **QUIT**: Shut down.  Signals listed in **graceful_signals**
+  will wait up to *graceful timeout* for workers to finish their current request.
+  Other signals will shut down immediately.  By default, **QUIT** is a graceful
+  shutdown signal.
 - **HUP**: Reload the configuration, start the new worker processes with a new
   configuration and gracefully shutdown older workers. If the application is
   not preloaded (using the ``--preload`` option), Gunicorn will also load the
