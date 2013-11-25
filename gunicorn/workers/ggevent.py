@@ -188,7 +188,7 @@ class GeventWorker(AsyncWorker):
             self.patch()
 
             # reinit the hub
-            from gevent.hub import reinit
+            from gevent import hub
             hub.reinit()
 
             # then initialize the process
