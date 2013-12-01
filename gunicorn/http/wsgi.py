@@ -27,7 +27,7 @@ NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 log = logging.getLogger(__name__)
 
 
-class FileWrapper:
+class FileWrapper(object):
 
     def __init__(self, filelike, blksize=8192):
         self.filelike = filelike
