@@ -19,12 +19,13 @@ class Application(object):
     the various necessities for any given web framework.
     """
 
-    def __init__(self, usage=None, prog=None):
+    def __init__(self, usage=None, prog=None, is_command_line=True):
         self.usage = usage
         self.cfg = None
         self.callable = None
         self.prog = prog
         self.logger = None
+        self.is_command_line = is_command_line
         self.do_load_config()
 
     def do_load_config(self):
@@ -70,33 +71,39 @@ class Application(object):
         # init configuration
         self.cfg = Config(self.usage, prog=self.prog)
 
-        # parse console args
-        parser = self.cfg.parser()
-        args = parser.parse_args()
+        if self.is_command_line:
+            # parse console args
+            parser = self.cfg.parser()
+            opts = parser.parse_args()
+            args = opts.args
+        else:
+            parser = None
+            opts = args = []
 
         # optional settings from apps
-        cfg = self.init(parser, args, args.args)
+        cfg = self.init(parser, opts, args)
 
         # Load up the any app specific configuration
         if cfg and cfg is not None:
             for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
 
-        if args.config:
-            self.load_config_from_file(args.config)
-        else:
-            default_config = get_default_config_file()
-            if default_config is not None:
-                self.load_config_from_file(default_config)
+        if self.is_command_line:
+            if opts.config:
+                self.load_config_from_file(opts.config)
+            else:
+                default_config = get_default_config_file()
+                if default_config is not None:
+                    self.load_config_from_file(default_config)
 
-        # Lastly, update the configuration with any command line
-        # settings.
-        for k, v in args.__dict__.items():
-            if v is None:
-                continue
-            if k == "args":
-                continue
-            self.cfg.set(k.lower(), v)
+            # Lastly, update the configuration with any command line
+            # settings.
+            for k, v in opts.__dict__.items():
+                if v is None:
+                    continue
+                if k == "args":
+                    continue
+                self.cfg.set(k.lower(), v)
 
     def init(self, parser, opts, args):
         raise NotImplementedError
