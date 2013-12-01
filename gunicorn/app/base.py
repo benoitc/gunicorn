@@ -13,98 +13,32 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 from gunicorn.six import execfile_
 
-class Application(object):
-    """\
+class BaseApplication(object):
+    """
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
-
-    def __init__(self, usage=None, prog=None, is_command_line=True):
+    def __init__(self, usage=None, prog=None):
         self.usage = usage
         self.cfg = None
         self.callable = None
         self.prog = prog
         self.logger = None
-        self.is_command_line = is_command_line
         self.do_load_config()
 
     def do_load_config(self):
         try:
+            self.load_default_config()
             self.load_config()
         except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
             sys.stderr.flush()
             sys.exit(1)
 
-    def load_config_from_file(self, filename):
-
-        if not os.path.exists(filename):
-            raise RuntimeError("%r doesn't exist" % filename)
-
-        cfg = {
-            "__builtins__": __builtins__,
-            "__name__": "__config__",
-            "__file__": filename,
-            "__doc__": None,
-            "__package__": None
-        }
-        try:
-            execfile_(filename, cfg, cfg)
-        except Exception:
-            print("Failed to read config file: %s" % filename)
-            traceback.print_exc()
-            sys.exit(1)
-
-        for k, v in cfg.items():
-            # Ignore unknown names
-            if k not in self.cfg.settings:
-                continue
-            try:
-                self.cfg.set(k.lower(), v)
-            except:
-                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
-                raise
-
-        return cfg
-
-    def load_config(self):
+    def load_default_config(self):
         # init configuration
         self.cfg = Config(self.usage, prog=self.prog)
-
-        if self.is_command_line:
-            # parse console args
-            parser = self.cfg.parser()
-            opts = parser.parse_args()
-            args = opts.args
-        else:
-            parser = None
-            opts = args = []
-
-        # optional settings from apps
-        cfg = self.init(parser, opts, args)
-
-        # Load up the any app specific configuration
-        if cfg and cfg is not None:
-            for k, v in cfg.items():
-                self.cfg.set(k.lower(), v)
-
-        if self.is_command_line:
-            if opts.config:
-                self.load_config_from_file(opts.config)
-            else:
-                default_config = get_default_config_file()
-                if default_config is not None:
-                    self.load_config_from_file(default_config)
-
-            # Lastly, update the configuration with any command line
-            # settings.
-            for k, v in opts.__dict__.items():
-                if v is None:
-                    continue
-                if k == "args":
-                    continue
-                self.cfg.set(k.lower(), v)
-
+    
     def init(self, parser, opts, args):
         raise NotImplementedError
 
@@ -151,4 +85,66 @@ class Application(object):
         except RuntimeError as e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
+            sys.exit(1)            
+
+class Application(BaseApplication):
+    def load_config_from_file(self, filename):
+        if not os.path.exists(filename):
+            raise RuntimeError("%r doesn't exist" % filename)
+
+        cfg = {
+            "__builtins__": __builtins__,
+            "__name__": "__config__",
+            "__file__": filename,
+            "__doc__": None,
+            "__package__": None
+        }
+        try:
+            execfile_(filename, cfg, cfg)
+        except Exception:
+            print("Failed to read config file: %s" % filename)
+            traceback.print_exc()
             sys.exit(1)
+
+        for k, v in cfg.items():
+            # Ignore unknown names
+            if k not in self.cfg.settings:
+                continue
+            try:
+                self.cfg.set(k.lower(), v)
+            except:
+                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                raise
+
+        return cfg
+
+    def load_config(self):
+        # parse console args
+        parser = self.cfg.parser()
+        args = parser.parse_args()
+
+        # optional settings from apps
+        cfg = self.init(parser, args, args.args)
+
+        # Load up the any app specific configuration
+        if cfg and cfg is not None:
+            for k, v in cfg.items():
+                self.cfg.set(k.lower(), v)
+
+        if args.config:
+            self.load_config_from_file(args.config)
+        else:
+            default_config = get_default_config_file()
+            if default_config is not None:
+                self.load_config_from_file(default_config)
+
+        # Lastly, update the configuration with any command line
+        # settings.
+        for k, v in args.__dict__.items():
+            if v is None:
+                continue
+            if k == "args":
+                continue
+            self.cfg.set(k.lower(), v)
+
+
