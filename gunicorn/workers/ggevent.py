@@ -174,6 +174,10 @@ class GeventWorker(AsyncWorker):
             # monkey patch here
             self.patch()
 
+            # reinit the hub
+            from gevent import core
+            core.reinit()
+
             #gevent 0.13 and older doesn't reinitialize dns for us after forking
             #here's the workaround
             import gevent.core
