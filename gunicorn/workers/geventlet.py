@@ -47,6 +47,7 @@ class EventletWorker(AsyncWorker):
 
     def init_process(self):
         hubs.use_hub()
+        self.patch()
         super(EventletWorker, self).init_process()
 
     def timeout_ctx(self):
@@ -87,8 +88,3 @@ class EventletWorker(AsyncWorker):
             if te != t:
                 raise
             [a.kill() for a in acceptors]
-
-    def init_process(self):
-        # monkey patch here
-        self.patch()
-        super(EventletWorker, self).init_process()
