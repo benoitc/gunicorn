@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 
 from functools import partial
-import os
+import errno
 
 try:
     import eventlet
