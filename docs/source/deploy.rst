@@ -199,7 +199,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     user=nobody
     autostart=true
     autorestart=true
-    redirect_stderr=True
+    redirect_stderr=true
 
 Upstart
 -------
