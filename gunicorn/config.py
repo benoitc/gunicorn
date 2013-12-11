@@ -12,6 +12,7 @@ except ImportError: # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import signal
 import sys
 import textwrap
 import types
@@ -163,6 +164,14 @@ class Config(object):
             env[k] = v
 
         return env
+
+    @property
+    def graceful_termination_signal(self):
+        return signal.SIGTERM if self.settings['graceful_term_signal'].get() else signal.SIGQUIT
+
+    @property
+    def immediate_termination_signal(self):
+        return signal.SIGQUIT if self.settings['graceful_term_signal'].get() else signal.SIGTERM
 
 
 class SettingMeta(type):
@@ -606,7 +615,20 @@ class GracefulTimeout(Setting):
         be force killed.
         """
 
+class GracefulTermSignal(Setting):
+    name = "graceful_term_signal"
+    section = "Worker Processes"
+    cli = ["--graceful-term-signal"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
 
+    desc = """\
+       If true, SIGTERM performs a graceful shutdown and SIGQUIT performs an
+       immediate shutdown.  if false, SIGQUIT performs a graceful shutdown and
+       SIGTERM performs an immediate shutdown.
+       """
+ 
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"

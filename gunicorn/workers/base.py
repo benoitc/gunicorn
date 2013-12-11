@@ -115,24 +115,24 @@ class Worker(object):
         # reset signaling
         [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
         # init new signaling
-        signal.signal(signal.SIGQUIT, self.handle_quit)
-        signal.signal(signal.SIGTERM, self.handle_exit)
-        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(self.cfg.graceful_termination_signal, self.handle_graceful_shutdown_signal)
+        signal.signal(self.cfg.immediate_termination_signal, self.handle_immediate_shutdown_signal)
+        signal.signal(signal.SIGINT, self.handle_immediate_shutdown_signal)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        # Don't let SIGUSR1 or the graceful termination signal disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGQUIT, False)
+            signal.siginterrupt(self.cfg.graceful_termination_signal, False)
             signal.siginterrupt(signal.SIGUSR1, False)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
 
-    def handle_quit(self, sig, frame):
+    def handle_graceful_shutdown_signal(self, sig, frame):
         self.alive = False
 
-    def handle_exit(self, sig, frame):
+    def handle_immediate_shutdown_signal(self, sig, frame):
         self.alive = False
         sys.exit(0)
 

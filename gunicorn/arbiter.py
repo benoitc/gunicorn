@@ -227,6 +227,8 @@ class Arbiter(object):
 
     def handle_quit(self):
         "SIGQUIT handling"
+        if self.cfg.graceful_term_signal:
+            self.stop(False)
         raise StopIteration
 
     def handle_int(self):
@@ -236,7 +238,8 @@ class Arbiter(object):
 
     def handle_term(self):
         "SIGTERM handling"
-        self.stop(False)
+        if not self.cfg.graceful_term_signal:
+            self.stop(False)
         raise StopIteration
 
     def handle_ttin(self):
@@ -279,7 +282,7 @@ class Arbiter(object):
         if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
-            self.kill_workers(signal.SIGQUIT)
+            self.kill_workers(self.cfg.graceful_termination_signal)
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
 
@@ -331,9 +334,9 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
         self.LISTENERS = []
-        sig = signal.SIGQUIT
+        sig = self.cfg.graceful_termination_signal
         if not graceful:
-            sig = signal.SIGTERM
+            sig = self.cfg.immediate_termination_signal
         limit = time.time() + self.cfg.graceful_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
