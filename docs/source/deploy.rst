@@ -83,10 +83,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
       proxy_redirect off;
       proxy_buffering off;
 
-      if (!-f $request_filename) {
-          proxy_pass http://app_server;
-          break;
-      }
+      proxy_pass http://app_server;
   }
   ...
 
