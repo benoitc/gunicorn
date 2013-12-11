@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 from optparse import make_option
+import sys
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -109,7 +110,9 @@ class Command(BaseCommand):
             raise CommandError('Usage is run_gunicorn %s' % self.args)
 
         if addrport:
+            sys.argv = sys.argv[:-1]
             options['bind'] = addrport
 
         admin_media_path = options.pop('admin_media_path', '')
+
         DjangoApplicationCommand(options, admin_media_path).run()
