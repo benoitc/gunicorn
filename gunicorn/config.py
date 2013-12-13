@@ -948,20 +948,20 @@ class AccessLogFormat(Setting):
         %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 
-        h: remote address
-        l: '-'
-        u: currently '-', may be user name in future releases
-        t: date of the request
-        r: status line (ex: GET / HTTP/1.1)
-        s: status
-        b: response length or '-'
-        f: referer
-        a: user agent
-        T: request time in seconds
-        D: request time in microseconds,
-        p: process ID
-        {Header}i: request header
-        {Header}o: response header
+        | h: remote address
+        | l: '-'
+        | u: currently '-', may be user name in future releases
+        | t: date of the request
+        | r: status line (ex: GET / HTTP/1.1)
+        | s: status
+        | b: response length or '-'
+        | f: referer
+        | a: user agent
+        | T: request time in seconds
+        | D: request time in microseconds,
+        | p: process ID
+        | {Header}i: request header
+        | {Header}o: response header
         """
 
 
@@ -1386,12 +1386,12 @@ class ProxyProtocol(Setting):
 
         Example for stunnel config::
 
-        [https]
-        protocol = proxy
-        accept  = 443
-        connect = 80
-        cert = /etc/ssl/certs/stunnel.pem
-        key = /etc/ssl/certs/stunnel.key
+            [https]
+            protocol = proxy
+            accept  = 443
+            connect = 80
+            cert = /etc/ssl/certs/stunnel.pem
+            key = /etc/ssl/certs/stunnel.key
         """
 
 
