@@ -252,7 +252,8 @@ class Request(Message):
                 if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
-            if remote_host not in self.cfg.proxy_allow_ips:
+            if ("*" not in self.cfg.proxy_allow_ips and
+                    remote_host not in self.cfg.proxy_allow_ips):
                 raise ForbiddenProxyRequest(remote_host)
 
     def parse_proxy_protocol(self, line):
