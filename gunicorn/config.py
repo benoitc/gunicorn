@@ -708,6 +708,18 @@ class Pidfile(Setting):
         If not set, no PID file will be written.
         """
 
+class WorkerTmpDir(Setting):
+    name = "worker_tmp_dir"
+    section = "Server Mechanics"
+    cli = ["--worker-tmp-dir"]
+    meta = "DIR"
+    validator = validate_string
+    default = None
+    desc = """\
+        A directory to use for the worker heartbeat temporary file.
+
+        If not set, the default temporary directory will be used.
+        """
 
 class User(Setting):
     name = "user"
