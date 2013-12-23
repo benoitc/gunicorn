@@ -388,6 +388,8 @@ def validate_post_request(val):
         raise TypeError("Value must have an arity of: 4")
 
 def validate_hostport(val):
+    if val is None:
+	return None
     val = validate_string(val)
     elements = val.split(":")
     if len(elements) == 1:
@@ -1444,5 +1446,5 @@ class StatsdHost(Setting):
     validator = validate_hostport
     default = None
     desc = """\
-    Host and port of the statsD server to send metrics to
+    Host and port of the statsD server to send metrics to, e.g. localhost:8125
     """
