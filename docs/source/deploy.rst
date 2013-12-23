@@ -83,10 +83,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
       proxy_redirect off;
       proxy_buffering off;
 
-      if (!-f $request_filename) {
-          proxy_pass http://app_server;
-          break;
-      }
+      proxy_pass http://app_server;
   }
   ...
 
@@ -199,7 +196,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     user=nobody
     autostart=true
     autorestart=true
-    redirect_stderr=True
+    redirect_stderr=true
 
 Upstart
 -------
@@ -235,12 +232,14 @@ systemd:
     Description=gunicorn daemon
 
     [Service]
-    User=urban
+    Type=forking
+    PIDFile=/home/urban/gunicorn/gunicorn.pid
+    User=someuser
     WorkingDirectory=/home/urban/gunicorn/bin
-    ExecStart=/home/urban/gunicorn/bin/gunicorn --debug --log-level debug test:app
-
-    [Install]
-    WantedBy=multi-user.target
+    ExecStart=/home/someuser/gunicorn/bin/gunicorn -p /home/urban/gunicorn/gunicorn.pid- test:app
+    ExecReload=/bin/kill -s HUP $MAINPID
+    ExecStop=/bin/kill -s QUIT $MAINPID
+    PrivateTmp=true
 
 **gunicorn.socket**::
 
@@ -248,7 +247,7 @@ systemd:
     Description=gunicorn socket
 
     [Socket]
-    ListenStream=/run/unicorn.sock
+    ListenStream=/run/gunicorn.sock
     ListenStream=0.0.0.0:9000
     ListenStream=[::]:8000
 
@@ -258,7 +257,7 @@ systemd:
 After running curl http://localhost:9000/ gunicorn should start and you
 should see something like that in logs::
 
-    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/unicorn.sock,http://0.0.0.0:9000,http://[::]:8000
+    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn.sock,http://0.0.0.0:9000,http://[::]:8000
 
 Logging
 =======
