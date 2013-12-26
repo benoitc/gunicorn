@@ -123,8 +123,13 @@ class Config(object):
     @property
     def logger_class(self):
         uri = self.settings['logger_class'].get()
-        logger_class = util.load_class(uri, default="simple",
-            section="gunicorn.loggers")
+        if uri == "simple":
+            # support the default
+            uri = "gunicorn.glogging.Logger"
+        else:
+            logger_class = util.load_class(uri,
+                    default="gunicorn.glogging.Logger",
+                    section="gunicorn.loggers")
 
         if hasattr(logger_class, "install"):
             logger_class.install()
@@ -1005,7 +1010,7 @@ class LoggerClass(Setting):
     cli = ["--logger-class"]
     meta = "STRING"
     validator = validate_class
-    default = "simple"
+    default = "gunicorn.glogging.Logger"
     desc = """\
         The logger you want to use to log events in gunicorn.
 

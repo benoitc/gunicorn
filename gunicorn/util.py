@@ -21,6 +21,7 @@ import warnings
 
 from gunicorn.errors import AppImportError
 from gunicorn.six import text_type, string_types
+from gunicorn.workers import SUPPORTED_WORKERS
 
 MAXFD = 1024
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
@@ -96,7 +97,8 @@ relative import to an absolute import.
         return sys.modules[name]
 
 
-def load_class(uri, default="sync", section="gunicorn.workers"):
+def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
+        section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -117,16 +119,21 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
     else:
         components = uri.split('.')
         if len(components) == 1:
-            try:
+            while True:
                 if uri.startswith("#"):
                     uri = uri[1:]
 
-                return pkg_resources.load_entry_point("gunicorn",
-                            section, uri)
-            except:
-                exc = traceback.format_exc()
-                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                    exc))
+                if uri in SUPPORTED_WORKERS:
+                    components = SUPPORTED_WORKERS[uri].split(".")
+                    break
+
+                try:
+                    return pkg_resources.load_entry_point("gunicorn",
+                                section, uri)
+                except:
+                    exc = traceback.format_exc()
+                    raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
+                        exc))
 
         klass = components.pop(-1)
         try:
