@@ -136,15 +136,14 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                         exc))
 
         klass = components.pop(-1)
+
         try:
-            mod = __import__('.'.join(components))
+            mod = import_module('.'.join(components))
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                exc))
-
-        for comp in components[1:]:
-            mod = getattr(mod, comp)
+            raise RuntimeError(
+                    "class uri %r invalid or not found: \n\n[%s]" %
+                    (uri, exc))
         return getattr(mod, klass)
 
 
