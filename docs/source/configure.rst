@@ -31,31 +31,20 @@ Once again, in order of least to most authoritative:
     It also allows you to know if your application can be launched.
 
 
-Framework Settings
-==================
+Command Line
+============
 
-Currently, only Paster applications have access to framework specific
-settings. If you have ideas for providing settings to WSGI applications or
-pulling information from Django's settings.py feel free to open an issue_ to
-let us know.
+If an option is specified on the command line, it overrides all other values
+that may have been specified in the app specific settings, or in the optional
+configuration file. Not all Gunicorn settings are available to be set from the
+command line. To see the full list of command line settings you can do the
+usual::
 
-.. _issue: http://github.com/benoitc/gunicorn/issues
+    $ gunicorn -h
 
-Paster Applications
--------------------
+There is also a ``--version`` flag available to the command line scripts that
+isn't mentioned in the list of :ref:`settings <settings>`.
 
-In your INI file, you can specify to use Gunicorn as the server like such::
-
-    [server:main]
-    use = egg:gunicorn#main
-    host = 192.168.0.1
-    port = 80
-    workers = 2
-    proc_name = brim
-
-Any parameters that Gunicorn knows about will automatically be inserted into
-the base configuration. Remember that these will be overridden by the config
-file and/or the command line.
 
 Configuration File
 ==================
@@ -85,18 +74,31 @@ number of processors::
             raise RuntimeError("No sysconf detected.")
         return os.sysconf("SC_NPROCESSORS_ONLN")
 
-Command Line
-============
+All the settings are mentionned in the :ref:`settings <settings>` list.
 
-If an option is specified on the command line, it overrides all other values
-that may have been specified in the app specific settings, or in the optional
-configuration file. Not all Gunicorn settings are available to be set from the
-command line. To see the full list of command line settings you can do the
-usual::
 
-    $ gunicorn -h
+Framework Settings
+==================
 
-There is also a ``--version`` flag available to the command line scripts that
-isn't mentioned in the list of settings.
+Currently, only Paster applications have access to framework specific
+settings. If you have ideas for providing settings to WSGI applications or
+pulling information from Django's settings.py feel free to open an issue_ to
+let us know.
 
-.. include:: settings.rst
+.. _issue: http://github.com/benoitc/gunicorn/issues
+
+Paster Applications
+-------------------
+
+In your INI file, you can specify to use Gunicorn as the server like such::
+
+    [server:main]
+    use = egg:gunicorn#main
+    host = 192.168.0.1
+    port = 80
+    workers = 2
+    proc_name = brim
+
+Any parameters that Gunicorn knows about will automatically be inserted into
+the base configuration. Remember that these will be overridden by the config
+file and/or the command line.
