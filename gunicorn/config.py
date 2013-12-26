@@ -771,7 +771,7 @@ class Daemon(Setting):
 class Env(Setting):
     name = "raw_env"
     action = "append"
-    section = "Server Mechanic"
+    section = "Server Mechanics"
     cli = ["-e", "--env"]
     meta = "ENV"
     validator = validate_list_string

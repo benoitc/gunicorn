@@ -274,9 +274,6 @@ Daemonize the Gunicorn process.
 Detaches the server from the controlling terminal and enters the
 background.
 
-Server Mechanic
----------------
-
 raw_env
 ~~~~~~~
 
@@ -291,9 +288,6 @@ Pass variables to the execution environment. Ex.::
 
 and test for the foo variable environement in your application.
 
-Server Mechanics
-----------------
-
 pidfile
 ~~~~~~~
 
@@ -303,6 +297,16 @@ pidfile
 A filename to use for the PID file.
 
 If not set, no PID file will be written.
+
+worker_tmp_dir
+~~~~~~~~~~~~~~
+
+* ``--worker-tmp-dir DIR``
+* ``None``
+
+A directory to use for the worker heartbeat temporary file.
+
+If not set, the default temporary directory will be used.
 
 user
 ~~~~
