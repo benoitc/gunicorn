@@ -257,7 +257,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/offset_pypy/src/gunicorn/docs``
+* ``/Users/benoitc/work/gunicorn_env/src/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -462,7 +462,7 @@ logger_class
 ~~~~~~~~~~~~
 
 * ``--logger-class STRING``
-* ``simple``
+* ``gunicorn.glogging.Logger``
 
 The logger you want to use to log events in gunicorn.
 
@@ -673,6 +673,19 @@ Called just after a worker has initialized the application.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
+worker_int
+~~~~~~~~~~
+
+*  ::
+
+        def worker_int(worker):
+            pass
+
+Called just after a worker exited on SIGINT or SIGTERM.
+
+The callable needs to accept one instance variable for the initialized
+Worker.
+
 pre_exec
 ~~~~~~~~
 
@@ -772,6 +785,10 @@ proxy_allow_ips
 * ``127.0.0.1``
 
 Front-end's IPs from which allowed accept proxy requests (comma separate).
+
+Set to "*" to disable checking of Front-end IPs (useful for setups
+where you don't know in advance the IP address of Front-end, but
+you still trust the environment)
 
 Ssl
 ---
