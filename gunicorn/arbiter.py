@@ -93,12 +93,12 @@ class Arbiter(object):
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
+        self.worker_class = self.cfg.worker_class
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
-        self.worker_class = self.cfg.worker_class
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
