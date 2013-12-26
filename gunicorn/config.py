@@ -1286,6 +1286,23 @@ class PostWorkerInit(Setting):
         Worker.
         """
 
+class WorkerInt(Setting):
+    name = "worker_int"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def worker_int(worker):
+        pass
+
+    default = staticmethod(worker_int)
+    desc = """\
+        Called just after a worker exited on SIGINT or SIGTERM.
+
+        The callable needs to accept one instance variable for the initialized
+        Worker.
+        """
+
 
 class PreExec(Setting):
     name = "pre_exec"

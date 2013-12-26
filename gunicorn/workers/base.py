@@ -134,6 +134,8 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
         sys.exit(0)
 
     def handle_error(self, req, client, addr, exc):
