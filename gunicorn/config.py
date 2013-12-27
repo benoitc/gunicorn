@@ -914,19 +914,6 @@ class SecureSchemeHeader(Setting):
         """
 
 
-class XForwardedFor(Setting):
-    name = "x_forwarded_for_header"
-    section = "Server Mechanics"
-    cli = ["--x-forwarded-for-hdr"]
-    meta = "STRING"
-    validator = validate_string
-    default = 'X-FORWARDED-FOR'
-    desc = """\
-        Set the X-Forwarded-For header that identify the originating IP
-        address of the client connection to gunicorn via a proxy.
-        """
-
-
 class ForwardedAllowIPS(Setting):
     name = "forwarded_allow_ips"
     section = "Server Mechanics"
@@ -935,7 +922,7 @@ class ForwardedAllowIPS(Setting):
     validator = validate_string_to_list
     default = "127.0.0.1"
     desc = """\
-        Front-end's IPs from which allowed to handle X-Forwarded-* headers.
+        Front-end's IPs from which allowed to handle set secure headers.
         (comma separate).
 
         Set to "*" to disable checking of Front-end IPs (useful for setups
