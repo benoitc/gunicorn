@@ -158,7 +158,9 @@ class Logger(object):
 
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
+        self.error_log.propagate = False
         self.access_log = logging.getLogger("gunicorn.access")
+        self.access_log.propagate = False
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
