@@ -927,6 +927,21 @@ class XForwardedFor(Setting):
         """
 
 
+class OverrideRemoteAddr(Setting):
+    name = "override_remote_addr"
+    section = "Server Mechanics"
+    cli = ["--override-remote-addr"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Override the REMOTE_ADDR using the X-Forwarded-For header
+
+        The settings XForwardedFor is also available to override
+        the name of the used header.
+        """
+
+
 class ForwardedAllowIPS(Setting):
     name = "forwarded_allow_ips"
     section = "Server Mechanics"
