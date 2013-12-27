@@ -983,7 +983,7 @@ class ErrorLog(Setting):
     cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
-    default = "-"
+    default = None
     desc = """\
         The Error log file to write to.
 
@@ -1039,10 +1039,11 @@ class LogConfig(Setting):
     validator = validate_string
     default = None
     desc = """\
-The log config file to use.
-Gunicorn uses the standard Python logging module's Configuration
-file format.
-"""
+    The log config file to use.
+    Gunicorn uses the standard Python logging module's Configuration
+    file format.
+    """
+
 
 class SyslogTo(Setting):
     name = "syslog_addr"
