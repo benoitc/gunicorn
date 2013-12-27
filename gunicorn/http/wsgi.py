@@ -80,18 +80,13 @@ def create(req, sock, client, server, cfg):
 
     environ = default_environ(req, sock, cfg)
 
-    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
-    # may not qualify the remote addr:
-    # http://www.ietf.org/rfc/rfc3875
-    forward = client or "127.0.0.1"
     url_scheme = "https" if cfg.is_ssl else "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
     secure_headers = cfg.secure_scheme_headers
-    x_forwarded_for_header = cfg.x_forwarded_for_header
-    if '*' not in cfg.forwarded_allow_ips and client\
-            and client[0] not in cfg.forwarded_allow_ips:
-        x_forwarded_for_header = None
+    if client and not isinstance(client, string_types):
+        if ('*' not in cfg.forwarded_allow_ips and
+                client[0] not in cfg.forwarded_allow_ips):
         secure_headers = {}
 
     for hdr_name, hdr_value in req.headers:
@@ -99,10 +94,8 @@ def create(req, sock, client, server, cfg):
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
-        elif x_forwarded_for_header and hdr_name == x_forwarded_for_header:
-            forward = hdr_value
-        elif secure_headers and (hdr_name.upper() in secure_headers and
-              hdr_value == secure_headers[hdr_name.upper()]):
+        elif secure_headers and (hdr_name in secure_headers and
+              hdr_value == secure_headers[hdr_name]):
             url_scheme = "https"
         elif hdr_name == "HOST":
             server = hdr_value
@@ -122,32 +115,14 @@ def create(req, sock, client, server, cfg):
 
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, string_types):
-        # we only took the last one
-        # http://en.wikipedia.org/wiki/X-Forwarded-For
-        if forward.find(",") >= 0:
-            forward = forward.rsplit(",", 1)[1].strip()
-
-        # find host and port on ipv6 address
-        if '[' in forward and ']' in forward:
-            host = forward.split(']')[0][1:].lower()
-        elif ":" in forward and forward.count(":") == 1:
-            host = forward.split(":")[0].lower()
-        else:
-            host = forward
-
-        forward = forward.split(']')[-1]
-        if ":" in forward and forward.count(":") == 1:
-            port = forward.split(':', 1)[1]
-        else:
-            port = 80
-
-        remote = (host, port)
+    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+    # may not qualify the remote addr:
+    # http://www.ietf.org/rfc/rfc3875
+    if isinstance(client, string_types):
+        environ['REMOTE_ADDR'] = client
     else:
-        remote = forward
-
-    environ['REMOTE_ADDR'] = remote[0]
-    environ['REMOTE_PORT'] = str(remote[1])
+        environ['REMOTE_ADDR'] = client[0]
+        environ['REMOTE_PORT'] = str(client[1])
 
     if isinstance(server, string_types):
         server = server.split(":")
