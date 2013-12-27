@@ -105,7 +105,16 @@ class SafeAtoms(dict):
 def parse_syslog_address(addr):
 
     if addr.startswith("unix://"):
-        return (socket.SOCK_STREAM, addr.split("unix://")[1])
+        sock_type = socket.SOCK_STREAM
+
+        # are we using a different socket type?
+        parts = addr.split("#", 1)
+        if len(parts) == 2:
+            addr = parts[0]
+            if part[1] == "dgram":
+                sock_type = socket.SOCK_DGRAM
+
+        return (sock_type, addr.split("unix://")[1])
 
     if addr.startswith("udp://"):
         addr = addr.split("udp://")[1]
