@@ -11,7 +11,6 @@ import os
 import socket
 import sys
 import traceback
-import threading
 
 from gunicorn import util
 from gunicorn.six import string_types
@@ -164,24 +163,12 @@ class Logger(object):
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
-        self.logfile = None
-        self.lock = threading.Lock()
         self.setup(cfg)
 
     def setup(self, cfg):
         loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(loglevel)
         self.access_log.setLevel(logging.INFO)
-
-        if cfg.errorlog != "-":
-            # if an error log file is set redirect stdout & stderr to
-            # this log file.
-            for stream in sys.stdout, sys.stderr:
-                stream.flush()
-
-            self.logfile = open(cfg.errorlog, 'a+')
-            os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-            os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
         # set gunicorn.error handler
         self._set_handler(self.error_log, cfg.errorlog,
@@ -287,20 +274,6 @@ class Logger(object):
                 now.year, now.hour, now.minute, now.second)
 
     def reopen_files(self):
-        if self.cfg.errorlog != "-":
-            # if an error log file is set redirect stdout & stderr to
-            # this log file.
-            for stream in sys.stdout, sys.stderr:
-                stream.flush()
-
-            with self.lock:
-                if self.logfile is not None:
-                    self.logfile.close()
-
-                self.logfile = open(self.cfg.errorlog, 'a+')
-                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
-
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
