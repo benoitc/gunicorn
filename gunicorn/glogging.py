@@ -13,7 +13,6 @@ import sys
 import traceback
 import threading
 
-
 from gunicorn import util
 from gunicorn.six import string_types
 
@@ -168,40 +167,40 @@ class Logger(object):
         self.setup(cfg)
 
     def setup(self, cfg):
-        if not cfg.logconfig:
-            loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
-            self.error_log.setLevel(loglevel)
-            self.access_log.setLevel(logging.INFO)
+        loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+        self.error_log.setLevel(loglevel)
+        self.access_log.setLevel(logging.INFO)
 
-            if cfg.errorlog != "-":
-                # if an error log file is set redirect stdout & stderr to
-                # this log file.
-                for stream in sys.stdout, sys.stderr:
-                    stream.flush()
+        if cfg.errorlog != "-":
+            # if an error log file is set redirect stdout & stderr to
+            # this log file.
+            for stream in sys.stdout, sys.stderr:
+                stream.flush()
 
-                self.logfile = open(cfg.errorlog, 'a+')
-                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+            self.logfile = open(cfg.errorlog, 'a+')
+            os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+            os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
-            # set gunicorn.error handler
-            self._set_handler(self.error_log, cfg.errorlog,
-                    logging.Formatter(self.error_fmt, self.datefmt))
+        # set gunicorn.error handler
+        self._set_handler(self.error_log, cfg.errorlog,
+                logging.Formatter(self.error_fmt, self.datefmt))
 
-            # set gunicorn.access handler
-            if cfg.accesslog is not None:
-                self._set_handler(self.access_log, cfg.accesslog,
-                    fmt=logging.Formatter(self.access_fmt))
+        # set gunicorn.access handler
+        if cfg.accesslog is not None:
+            self._set_handler(self.access_log, cfg.accesslog,
+                fmt=logging.Formatter(self.access_fmt))
 
-            # set syslog handler
-            if cfg.syslog:
-                self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
+        # set syslog handler
+        if cfg.syslog:
+            self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
 
-        else:
+        if cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
                         disable_existing_loggers=False)
             else:
-                raise RuntimeError("Error: log config '%s' not found" % cfg.logconfig)
+                raise RuntimeError("Error: log config '%s' not found" %
+                        cfg.logconfig)
 
     def critical(self, msg, *args, **kwargs):
         self.error_log.critical(msg, *args, **kwargs)
@@ -334,15 +333,16 @@ class Logger(object):
         if h:
             log.handlers.remove(h)
 
-        if output == "-":
-            h = logging.StreamHandler()
-        else:
-            util.check_is_writeable(output)
-            h = logging.FileHandler(output)
+        if output is not None:
+            if output == "-":
+                h = logging.StreamHandler()
+            else:
+                util.check_is_writeable(output)
+                h = logging.FileHandler(output)
 
-        h.setFormatter(fmt)
-        h._gunicorn = True
-        log.addHandler(h)
+            h.setFormatter(fmt)
+            h._gunicorn = True
+            log.addHandler(h)
 
     def _set_syslog_handler(self, log, cfg, fmt):
         # setup format
