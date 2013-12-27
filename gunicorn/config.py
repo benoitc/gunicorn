@@ -1074,7 +1074,7 @@ class Syslog(Setting):
     action = 'store_true'
     default = False
     desc = """\
-    Log to syslog.
+    Send *Gunicorn* logs to syslog.
     """
 
 
