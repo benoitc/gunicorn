@@ -269,5 +269,5 @@ Content-Disposition: form-data; name="foobar_manager_record_domain-8-TOTAL_FORMS
 Content-Disposition: form-data; name="foobar_manager_record_domain-8-INITIAL_FORMS"\r\n
 \r\n
 0\r\n
----------------------\r\n""".decode('latin1').replace('\n', '').replace('\r', '\r\n'),
+---------------------\r\n""".decode('utf-8').replace('\n', '').replace('\r', '\r\n'),
 }
