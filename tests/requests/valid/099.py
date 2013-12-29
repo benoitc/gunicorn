@@ -13,261 +13,262 @@ request = {
         ("CONTENT-TYPE", "multipart/form-data; boundary=---------------------------320761477111544"),
         ("CONTENT-LENGTH", "17914"),
     ],
-    "body": b"""-----------------------------320761477111544\r\n
-Content-Disposition: form-data; name="csrfmiddlewaretoken"\r\n
-\r\n
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="_save"\r\n
-\r\n
-Save\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="name"\r\n
-\r\n
-test.example.org\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="type"\r\n
-\r\n
-NATIVE\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="master"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-TOTAL_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-INITIAL_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-MAX_NUM_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-is_dynamic"\r\n
-\r\n
-on\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-id"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-__prefix__-id"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-__prefix__-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-TOTAL_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-INITIAL_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-MAX_NUM_FORMS"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-ttl"\r\n
-\r\n
-3600\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-primary"\r\n
-\r\n
-ns.example.org\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-hostmaster"\r\n
-\r\n
-hostmaster.test.example.org\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-serial"\r\n
-\r\n
-2013121701\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-refresh"\r\n
-\r\n
-10800\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-retry"\r\n
-\r\n
-3600\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-expire"\r\n
-\r\n
-604800\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-default_ttl"\r\n
-\r\n
-3600\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-id"\r\n
-\r\n
-16\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-0-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-ttl"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-primary"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-hostmaster"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-serial"\r\n
-\r\n
-1\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-refresh"\r\n
-\r\n
-10800\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-retry"\r\n
-\r\n
-3600\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-expire"\r\n
-\r\n
-604800\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-default_ttl"\r\n
-\r\n
-3600\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-id"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-MAX_NUM_FORMS"\r\n
-\r\n
-1000\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-id"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-name"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-ttl"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-content"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-MAX_NUM_FORMS"\r\n
-\r\n
-1000\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-id"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-domain"\r\n
-\r\n
-2\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-name"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-ttl"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-prio"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-content"\r\n
-\r\n
-\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-4-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-4-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
----------------------\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-5-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-5-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
----------------------\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-6-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-6-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
----------------------\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-7-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-7-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
----------------------\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-8-TOTAL_FORMS"\r\n
-\r\n
-0\r\n
------------------------------320761477111544\r\n
-Content-Disposition: form-data; name="foobar_manager_record_domain-8-INITIAL_FORMS"\r\n
-\r\n
-0\r\n
----------------------\r\n""".decode('utf-8').replace('\n', '').replace('\r', '\r\n'),
+    "body": b"""-----------------------------320761477111544
+Content-Disposition: form-data; name="csrfmiddlewaretoken"
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+-----------------------------320761477111544
+Content-Disposition: form-data; name="_save"
+
+Save
+-----------------------------320761477111544
+Content-Disposition: form-data; name="name"
+
+test.example.org
+-----------------------------320761477111544
+Content-Disposition: form-data; name="type"
+
+NATIVE
+-----------------------------320761477111544
+Content-Disposition: form-data; name="master"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-TOTAL_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-INITIAL_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-MAX_NUM_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-is_dynamic"
+
+on
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-id"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-0-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-__prefix__-id"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_dynamiczone_domain-__prefix__-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-TOTAL_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-INITIAL_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-MAX_NUM_FORMS"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-ttl"
+
+3600
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-primary"
+
+ns.example.org
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-hostmaster"
+
+hostmaster.test.example.org
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-serial"
+
+2013121701
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-refresh"
+
+10800
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-retry"
+
+3600
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-expire"
+
+604800
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-default_ttl"
+
+3600
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-id"
+
+16
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-0-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-ttl"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-primary"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-hostmaster"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-serial"
+
+1
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-refresh"
+
+10800
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-retry"
+
+3600
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-expire"
+
+604800
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-default_ttl"
+
+3600
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-id"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-__prefix__-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-INITIAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-MAX_NUM_FORMS"
+
+1000
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-id"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-name"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-ttl"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-2-__prefix__-content"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-INITIAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-MAX_NUM_FORMS"
+
+1000
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-id"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-domain"
+
+2
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-name"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-ttl"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-prio"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-3-__prefix__-content"
+
+
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-4-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-4-INITIAL_FORMS"
+
+0
+---------------------
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-5-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-5-INITIAL_FORMS"
+
+0
+---------------------
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-6-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-6-INITIAL_FORMS"
+
+0
+---------------------
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-7-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-7-INITIAL_FORMS"
+
+0
+---------------------
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-8-TOTAL_FORMS"
+
+0
+-----------------------------320761477111544
+Content-Disposition: form-data; name="foobar_manager_record_domain-8-INITIAL_FORMS"
+
+0
+---------------------
+""".decode('utf-8').replace('\n', '\r\n').encode('utf-8'),
 }
