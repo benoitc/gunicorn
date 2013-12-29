@@ -38,7 +38,7 @@ class BaseApplication(object):
     def load_default_config(self):
         # init configuration
         self.cfg = Config(self.usage, prog=self.prog)
-    
+
     def init(self, parser, opts, args):
         raise NotImplementedError
 
@@ -56,36 +56,12 @@ class BaseApplication(object):
         return self.callable
 
     def run(self):
-        if self.cfg.check_config:
-            try:
-                self.load()
-            except:
-                sys.stderr.write("\nError while loading the application:\n\n")
-                traceback.print_exc()
-                sys.stderr.flush()
-                sys.exit(1)
-            sys.exit(0)
-
-        if self.cfg.spew:
-            debug.spew()
-
-        if self.cfg.daemon:
-            util.daemonize(self.cfg.enable_stdio_inheritance)
-
-        # set python paths
-        if self.cfg.pythonpath and self.cfg.pythonpath is not None:
-            paths = self.cfg.pythonpath.split(",")
-            for path in paths:
-                pythonpath = os.path.abspath(path)
-                if pythonpath not in sys.path:
-                    sys.path.insert(0, pythonpath)
-
         try:
             Arbiter(self).run()
         except RuntimeError as e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
-            sys.exit(1)            
+            sys.exit(1)
 
 class Application(BaseApplication):
     def load_config_from_file(self, filename):
@@ -147,4 +123,30 @@ class Application(BaseApplication):
                 continue
             self.cfg.set(k.lower(), v)
 
+    def run(self):
+        if self.cfg.check_config:
+            try:
+                self.load()
+            except:
+                sys.stderr.write("\nError while loading the application:\n\n")
+                traceback.print_exc()
+                sys.stderr.flush()
+                sys.exit(1)
+            sys.exit(0)
+
+        if self.cfg.spew:
+            debug.spew()
+
+        if self.cfg.daemon:
+            util.daemonize(self.cfg.enable_stdio_inheritance)
+
+        # set python paths
+        if self.cfg.pythonpath and self.cfg.pythonpath is not None:
+            paths = self.cfg.pythonpath.split(",")
+            for path in paths:
+                pythonpath = os.path.abspath(path)
+                if pythonpath not in sys.path:
+                    sys.path.insert(0, pythonpath)
+
+        super(Application, self).run()
 
