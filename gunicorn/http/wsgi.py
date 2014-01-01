@@ -47,17 +47,16 @@ class WSGIErrorsWraper(io.RawIOBase):
 
     def __init__(self, cfg):
         errorlog = logging.getLogger("gunicorn.error")
+        handlers = errorlog.handlers
         self.streams = []
 
         if cfg.errorlog == "-":
             self.streams.append(sys.stderr)
+            handlers = handlers[1:]
 
-        for h in errorlog.handlers:
+        for h in handlers:
             if hasattr(h, "stream"):
                 self.streams.append(h.stream)
-
-        if not self.streams:
-            self.streams.append(sys.stderr)
 
     def write(self, data):
         for stream in self.streams:
@@ -191,8 +190,6 @@ def create(req, sock, client, server, cfg):
     # override the environ with the correct remote and server address if
     # we are behind a proxy using the proxy protocol.
     environ.update(proxy_environ(req))
-
-    print(environ)
     return resp, environ
 
 
