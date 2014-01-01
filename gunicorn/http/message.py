@@ -213,11 +213,10 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
+            elif len(data) - 2 > limit > 0:
+                raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
-
-            if len(data) - 2 > limit > 0:
-                raise LimitRequestLine(len(data), limit)
 
         return (data[:idx],  # request line,
                 data[idx + 2:])  # residue in the buffer, skip \r\n

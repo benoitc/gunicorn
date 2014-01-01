@@ -90,6 +90,25 @@ class request(object):
             yield self.data[read:read+chunk]
             read += chunk
 
+    def send_special_chunks(self):
+        """Meant to test the request line length check.
+
+        Sends the request data in two chunks, one having a
+        length of 1 byte, which ensures that no CRLF is included,
+        and a second chunk containing the rest of the request data.
+
+        If the request line length check is not done properly,
+        testing the ``tests/requests/valid/099.http`` request
+        fails with a ``LimitRequestLine`` exception.
+
+        """
+        chunk = self.data[:1]
+        read = 0
+        while read < len(self.data):
+            yield self.data[read:read+len(chunk)]
+            read += len(chunk)
+            chunk = self.data[read:]
+
     # These functions define the sizes that the
     # read functions will read with.
 
