@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import io
 import logging
 import os
 import re
@@ -42,10 +43,35 @@ class FileWrapper(object):
         raise IndexError
 
 
+class WSGIErrorsWraper(io.RawIOBase):
+
+    def __init__(self, cfg):
+        errorlog = logging.getLogger("gunicorn.error")
+        self.streams = []
+
+        if cfg.errorlog == "-":
+            self.streams.append(sys.stderr)
+
+        for h in errorlog.handlers:
+            if hasattr(h, "stream"):
+                self.streams.append(h.stream)
+
+        if not self.streams:
+            self.streams.append(sys.stderr)
+
+    def write(self, data):
+        for stream in self.streams:
+            try:
+                stream.write(data)
+            except UnicodeError:
+                stream.write(data.encode("UTF-8"))
+            stream.flush()
+
+
 def default_environ(req, sock, cfg):
     return {
         "wsgi.input": req.body,
-        "wsgi.errors": sys.stderr,
+        "wsgi.errors": WSGIErrorsWraper(cfg),
         "wsgi.version": (1, 0),
         "wsgi.multithread": False,
         "wsgi.multiprocess": (cfg.workers > 1),
