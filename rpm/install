@@ -18,6 +18,6 @@ cd ..
 INSTALLED_FILES="\
 %{python_sitelib}/*
 %{_bindir}/*
-%doc LICENSE NOTICE README.rst THANKS docs/build/html
+%doc LICENSE NOTICE README.rst THANKS docs/build/html examples/example_config.py
 "
 echo "$INSTALLED_FILES" > INSTALLED_FILES
