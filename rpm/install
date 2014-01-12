@@ -11,6 +11,6 @@
 INSTALLED_FILES="\
 %{python_sitelib}/*
 %{_bindir}/*
-%doc LICENSE NOTICE README.rst THANKS docs/build/html examples/example_config.py
+%doc LICENSE NOTICE README.rst THANKS build/sphinx/html examples/example_config.py
 "
 echo "$INSTALLED_FILES" > INSTALLED_FILES
