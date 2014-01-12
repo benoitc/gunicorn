@@ -31,9 +31,13 @@ pygments_style = 'sphinx'
 # -- Options for HTML output ---------------------------------------------------
 
 if not on_rtd:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    try:
+        import sphinx_rtd_theme
+    except ImportError:
+        html_theme = 'default'
+    else:
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 else:
     html_theme = 'default'
 
