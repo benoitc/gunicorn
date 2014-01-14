@@ -13,8 +13,8 @@ Master process
 ==============
 
 - **TERM**, **INT**: Quick shutdown
-- **QUIT**: Graceful shutdwn. I waits for workers to finish their
-  current request before finishing until the *graceful timeout*.
+- **QUIT**: Graceful shutdown. Waits for workers to finish their
+  current requests up to the *graceful timeout*.
 - **HUP**: Reload the configuration, start the new worker processes with a new
   configuration and gracefully shutdown older workers. If the application is
   not preloaded (using the ``--preload`` option), Gunicorn will also load the
