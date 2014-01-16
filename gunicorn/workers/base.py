@@ -12,6 +12,7 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
+from gunicorn.reloader import Reloader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
@@ -78,6 +79,14 @@ class Worker(object):
         super(MyWorkerClass, self).init_process() so that the ``run()``
         loop is initiated.
         """
+
+        # start the reloader
+        if self.cfg.reload:
+            def changed(fname):
+                self.log.info("Worker reloading: %s modified", fname)
+                os.kill(self.pid, signal.SIGTERM)
+                raise SystemExit()
+            Reloader(callback=changed).start()
 
         # set enviroment' variables
         if self.cfg.env:

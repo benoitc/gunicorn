@@ -706,6 +706,21 @@ class Debug(Setting):
         """
 
 
+class Reload(Setting):
+    name = "reload"
+    section = 'Debugging'
+    cli = ['--reload']
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = '''\
+        Restart workers when code changes.
+
+        This setting is intended for development. It will cause workers to be
+        restarted whenever application code changes.
+        '''
+
+
 class Spew(Setting):
     name = "spew"
     section = "Debugging"
