@@ -161,8 +161,8 @@ class PasterServerApplication(PasterBaseApplication):
 
 def run():
     """\
-    The ``gunicorn_paster`` command for launcing Paster compatible
-    apllications like Pylons or Turbogears2
+    The ``gunicorn_paster`` command for launching Paster compatible
+    applications like Pylons or Turbogears2
     """
     util.warn("""This command is deprecated.
 
