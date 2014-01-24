@@ -190,7 +190,12 @@ class Logger(object):
 
         # set syslog handler
         if cfg.syslog:
-            self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
+            self._set_syslog_handler(
+                self.error_log, cfg, self.syslog_fmt, "errors"
+            )
+            self._set_syslog_handler(
+                self.access_log, cfg, self.syslog_fmt, "access"
+            )
 
         if cfg.logconfig:
             if os.path.exists(cfg.logconfig):
@@ -328,14 +333,14 @@ class Logger(object):
             h._gunicorn = True
             log.addHandler(h)
 
-    def _set_syslog_handler(self, log, cfg, fmt):
+    def _set_syslog_handler(self, log, cfg, fmt, name):
         # setup format
         if not cfg.syslog_prefix:
             prefix = cfg.proc_name.replace(":", ".")
         else:
             prefix = cfg.syslog_prefix
 
-        prefix = "gunicorn.%s" % prefix
+        prefix = "gunicorn.%s.%s" % (prefix, name)
 
         # set format
         fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
