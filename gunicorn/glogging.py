@@ -111,7 +111,7 @@ def parse_syslog_address(addr):
         parts = addr.split("#", 1)
         if len(parts) == 2:
             addr = parts[0]
-            if part[1] == "dgram":
+            if parts[1] == "dgram":
                 sock_type = socket.SOCK_DGRAM
 
         return (sock_type, addr.split("unix://")[1])
