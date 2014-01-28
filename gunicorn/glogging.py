@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import datetime
+import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 from logging.config import fileConfig
@@ -277,10 +277,7 @@ class Logger(object):
 
     def now(self):
         """ return date in Apache Common Log Format """
-        now = datetime.datetime.now()
-        month = util.monthname[now.month]
-        return '[%02d/%s/%04d:%02d:%02d:%02d]' % (now.day, month,
-                now.year, now.hour, now.minute, now.second)
+        return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
 
     def reopen_files(self):
         for log in loggers():
