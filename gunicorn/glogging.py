@@ -191,7 +191,7 @@ class Logger(object):
         # set syslog handler
         if cfg.syslog:
             self._set_syslog_handler(
-                self.error_log, cfg, self.syslog_fmt, "errors"
+                self.error_log, cfg, self.syslog_fmt, "error"
             )
             self._set_syslog_handler(
                 self.access_log, cfg, self.syslog_fmt, "access"
