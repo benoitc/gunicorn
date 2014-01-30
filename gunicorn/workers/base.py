@@ -49,7 +49,7 @@ class Worker(object):
         self.log = log
         self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
-        
+
         # Mark as active
         self.set_active(True)
 
@@ -67,7 +67,7 @@ class Worker(object):
         this task, the master process will murder your workers.
         """
         self.tmp.notify()
-        
+
     def set_active(self, active):
         """\
         The worker should call set_active(True) whenever it start handling a new connection,
