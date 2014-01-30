@@ -813,6 +813,30 @@ class Env(Setting):
         """
 
 
+class ActiveMaster(Setting):
+    name = "active_master"
+    section = "Server Mechanics"
+    cli = ["--active-master"]
+    validator = validate_bool
+    action = "store"
+    default = True
+    desc = """\
+        Wake up to check workers every second.
+
+        In Gunicorn R19 and below, the master wakes up once a second to
+        check for worker timeouts. This behavior ensures that workers
+        which hang will be killed and restarted.
+
+        Starting with Gunicorn R19, if this value is set to false then
+        when no workers are answering requests, the master does nothing.
+        If at least one worker is working, then the master will check for
+        worker timeout only as needed, without additional wakeups.
+
+        In a future release, the default value for this will be changed to
+        false in order to minimize unnecessary wakeups.
+        """
+
+
 class Pidfile(Setting):
     name = "pidfile"
     section = "Server Mechanics"

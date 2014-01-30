@@ -28,6 +28,7 @@ class SyncWorker(base.Worker):
 
         ready = self.sockets
         while self.alive:
+            self.set_active(True)
             self.notify()
 
             # Accept a connection. If we get an error telling us
@@ -58,11 +59,18 @@ class SyncWorker(base.Worker):
                 return
 
             try:
+                self.set_active(False)
                 self.notify()
 
-                # if no timeout is given the worker will never wait and will
-                # use the CPU for nothing. This minimal timeout prevent it.
-                timeout = self.timeout or 0.5
+                # If we are in active_master mode, we have to wake up to notify
+                # the arbiter that we are not dead. Otherwise, we can sleep
+                # indefinitely.
+                if self.cfg.active_master:
+                    # if no timeout is given the worker will never wait and will
+                    # use the CPU for nothing. This minimal timeout prevent it.
+                    timeout = self.timeout or 0.5
+                else:
+                    timeout = None
 
                 ret = select.select(self.sockets, [], self.PIPE, timeout)
                 if ret[0]:
