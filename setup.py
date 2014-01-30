@@ -55,7 +55,7 @@ class PyTest(Command):
         pass
 
     def run(self):
-        import sys,subprocess
+        import subprocess
         basecmd = [sys.executable, '-m', 'pytest']
         if self.cov:
             basecmd += ['--cov', 'gunicorn']
@@ -88,17 +88,6 @@ setup(
     gunicorn=gunicorn.app.wsgiapp:run
     gunicorn_django=gunicorn.app.djangoapp:run
     gunicorn_paster=gunicorn.app.pasterapp:run
-
-    [gunicorn.workers]
-    sync=gunicorn.workers.sync:SyncWorker
-    eventlet=gunicorn.workers.geventlet:EventletWorker
-    gevent=gunicorn.workers.ggevent:GeventWorker
-    gevent_wsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
-    gevent_pywsgi=gunicorn.workers.ggevent:GeventPyWSGIWorker
-    tornado=gunicorn.workers.gtornado:TornadoWorker
-
-    [gunicorn.loggers]
-    simple=gunicorn.glogging:Logger
 
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server

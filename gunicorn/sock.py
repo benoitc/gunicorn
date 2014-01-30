@@ -6,6 +6,7 @@
 import errno
 import os
 import socket
+import stat
 import sys
 import time
 
@@ -26,6 +27,7 @@ class BaseSocket(object):
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
         else:
             sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
+
         self.sock = self.set_options(sock, bound=(fd is not None))
 
     def __str__(self, name):
@@ -88,9 +90,15 @@ class UnixSocket(BaseSocket):
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
             try:
-                os.remove(addr)
-            except OSError:
-                pass
+                st = os.stat(addr)
+            except OSError as e:
+                if e.args[0] != errno.ENOENT:
+                    raise
+            else:
+                if stat.S_ISSOCK(st.st_mode):
+                    os.remove(addr)
+                else:
+                    raise ValueError("%r is not a socket" % addr)
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
@@ -127,9 +135,13 @@ def create_sockets(conf, log):
     is a string, a Unix socket is created. Otherwise
     a TypeError is raised.
     """
-    listeners = []
 
-    if 'LISTEN_PID' in os.environ and int(os.environ.get('LISTEN_PID')) == os.getpid():
+    # Systemd support, use the sockets managed by systemd and passed to
+    # gunicorn.
+    # http://www.freedesktop.org/software/systemd/man/systemd.socket.html
+    listeners = []
+    if ('LISTEN_PID' in os.environ
+            and int(os.environ.get('LISTEN_PID')) == os.getpid()):
         for i in range(int(os.environ.get('LISTEN_FDS', 0))):
             fd = i + SD_LISTEN_FDS_START
             try:
@@ -138,15 +150,18 @@ def create_sockets(conf, log):
                 if isinstance(sockname, str) and sockname.startswith('/'):
                     listeners.append(UnixSocket(sockname, conf, log, fd=fd))
                 elif len(sockname) == 2 and '.' in sockname[0]:
-                    listeners.append(TCPSocket("%s:%s" % sockname, conf, log, fd=fd))
+                    listeners.append(TCPSocket("%s:%s" % sockname, conf, log,
+                        fd=fd))
                 elif len(sockname) == 4 and ':' in sockname[0]:
-                    listeners.append(TCP6Socket("[%s]:%s" % sockname[:2], conf, log, fd=fd))
+                    listeners.append(TCP6Socket("[%s]:%s" % sockname[:2], conf,
+                        log, fd=fd))
             except socket.error:
                 pass
         del os.environ['LISTEN_PID'], os.environ['LISTEN_FDS']
 
         if listeners:
-            log.debug('Socket activation sockets: %s', ",".join([str(l) for l in listeners]))
+            log.debug('Socket activation sockets: %s',
+                    ",".join([str(l) for l in listeners]))
             return listeners
 
     # get it only once

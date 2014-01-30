@@ -38,7 +38,7 @@ class InvalidHTTPVersion(ParseException):
         self.version = version
 
     def __str__(self):
-        return "Invalid HTTP Version: %s" % self.version
+        return "Invalid HTTP Version: %r" % self.version
 
 
 class InvalidHeader(ParseException):
@@ -47,7 +47,7 @@ class InvalidHeader(ParseException):
         self.req = req
 
     def __str__(self):
-        return "Invalid HTTP Header: %s" % self.hdr
+        return "Invalid HTTP Header: %r" % self.hdr
 
 
 class InvalidHeaderName(ParseException):
@@ -55,7 +55,7 @@ class InvalidHeaderName(ParseException):
         self.hdr = hdr
 
     def __str__(self):
-        return "Invalid HTTP header name: %s" % self.hdr
+        return "Invalid HTTP header name: %r" % self.hdr
 
 
 class InvalidChunkSize(IOError):
@@ -97,7 +97,7 @@ class InvalidProxyLine(ParseException):
         self.code = 400
 
     def __str__(self):
-        return "Invalid PROXY line: %s" % self.line
+        return "Invalid PROXY line: %r" % self.line
 
 
 class ForbiddenProxyRequest(ParseException):
@@ -106,4 +106,4 @@ class ForbiddenProxyRequest(ParseException):
         self.code = 403
 
     def __str__(self):
-        return "Proxy request from %s not allowed" % self.host
+        return "Proxy request from %r not allowed" % self.host

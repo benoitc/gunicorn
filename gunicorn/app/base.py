@@ -9,10 +9,9 @@ import traceback
 
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
-from gunicorn.config import Config
+from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 from gunicorn.six import execfile_
-
 
 class Application(object):
     """\
@@ -36,6 +35,37 @@ class Application(object):
             sys.stderr.flush()
             sys.exit(1)
 
+    def load_config_from_file(self, filename):
+
+        if not os.path.exists(filename):
+            raise RuntimeError("%r doesn't exist" % filename)
+
+        cfg = {
+            "__builtins__": __builtins__,
+            "__name__": "__config__",
+            "__file__": filename,
+            "__doc__": None,
+            "__package__": None
+        }
+        try:
+            execfile_(filename, cfg, cfg)
+        except Exception:
+            print("Failed to read config file: %s" % filename)
+            traceback.print_exc()
+            sys.exit(1)
+
+        for k, v in cfg.items():
+            # Ignore unknown names
+            if k not in self.cfg.settings:
+                continue
+            try:
+                self.cfg.set(k.lower(), v)
+            except:
+                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                raise
+
+        return cfg
+
     def load_config(self):
         # init configuration
         self.cfg = Config(self.usage, prog=self.prog)
@@ -52,34 +82,12 @@ class Application(object):
             for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
 
-        # Load up the config file if its found.
         if args.config:
-            if not os.path.exists(args.config):
-                raise RuntimeError("%r doesn't exist" % args.config)
-
-            cfg = {
-                "__builtins__": __builtins__,
-                "__name__": "__config__",
-                "__file__": args.config,
-                "__doc__": None,
-                "__package__": None
-            }
-            try:
-                execfile_(args.config, cfg, cfg)
-            except Exception:
-                print("Failed to read config file: %s" % args.config)
-                traceback.print_exc()
-                sys.exit(1)
-
-            for k, v in cfg.items():
-                # Ignore unknown names
-                if k not in self.cfg.settings:
-                    continue
-                try:
-                    self.cfg.set(k.lower(), v)
-                except:
-                    sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
-                    raise
+            self.load_config_from_file(args.config)
+        else:
+            default_config = get_default_config_file()
+            if default_config is not None:
+                self.load_config_from_file(default_config)
 
         # Lastly, update the configuration with any command line
         # settings.
@@ -119,8 +127,9 @@ class Application(object):
 
         if self.cfg.spew:
             debug.spew()
+
         if self.cfg.daemon:
-            util.daemonize()
+            util.daemonize(self.cfg.enable_stdio_inheritance)
 
         # set python paths
         if self.cfg.pythonpath and self.cfg.pythonpath is not None:

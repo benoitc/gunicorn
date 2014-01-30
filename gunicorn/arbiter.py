@@ -7,13 +7,14 @@ from __future__ import with_statement
 
 import errno
 import os
+import random
 import select
 import signal
 import sys
 import time
 import traceback
 
-from gunicorn.errors import HaltServer
+from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
 from gunicorn import util
@@ -32,6 +33,9 @@ class Arbiter(object):
     # to boot. If a worker process exist with
     # this error code, the arbiter will terminate.
     WORKER_BOOT_ERROR = 3
+
+    # A flag indicating if an application failed to be loaded
+    APP_LOAD_ERROR = 4
 
     START_CTX = {}
 
@@ -89,12 +93,12 @@ class Arbiter(object):
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
+        self.worker_class = self.cfg.worker_class
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
-        self.worker_class = self.cfg.worker_class
 
         if self.cfg.debug:
             self.log.debug("Current configuration:")
@@ -113,11 +117,18 @@ class Arbiter(object):
         Initialize the arbiter. Start listening and set pidfile if needed.
         """
         self.log.info("Starting gunicorn %s", __version__)
+
         self.pid = os.getpid()
         if self.cfg.pidfile is not None:
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.cfg.on_starting(self)
+
+        # set enviroment' variables
+        if self.cfg.env:
+            for k, v in self.cfg.env.items():
+                os.environ[k] = v
+
         self.init_signals()
         if not self.LISTENERS:
             self.LISTENERS = create_sockets(self.cfg, self.log)
@@ -270,7 +281,7 @@ class Arbiter(object):
             self.num_workers = 0
             self.kill_workers(signal.SIGQUIT)
         else:
-            self.log.info("SIGWINCH ignored. Not daemonized")
+            self.log.debug("SIGWINCH ignored. Not daemonized")
 
     def wakeup(self):
         """\
@@ -335,12 +346,6 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
-        for l in self.LISTENERS:
-            try:
-                l.close()
-            except Exception:
-                pass
-
         self.LISTENERS = []
         sig = signal.SIGQUIT
         if not graceful:
@@ -364,20 +369,31 @@ class Arbiter(object):
             self.master_name = "Old Master"
             return
 
+        environ = self.cfg.env_orig.copy()
         fds = [l.fileno() for l in self.LISTENERS]
-        os.environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
+        environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
 
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
 
-        # close all file descriptors except bound sockets
-        util.closerange(3, fds[0])
-        util.closerange(fds[-1] + 1, util.get_maxfd())
-
-        os.execvpe(self.START_CTX[0], self.START_CTX['args'], os.environ)
+        # exec the process using the original environnement
+        os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
         old_address = self.cfg.address
+
+        # reset old environement
+        for k in self.cfg.env:
+            if k in self.cfg.env_orig:
+                # reset the key to the value it had before
+                # we launched gunicorn
+                os.environ[k] = self.cfg.env_orig[k]
+            else:
+                # delete the value set by gunicorn
+                try:
+                    del os.environ[k]
+                except KeyError:
+                    pass
 
         # reload conf
         self.app.reload()
@@ -389,7 +405,7 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            [l.close for l in self.LISTENERS]
+            [l.close() for l in self.LISTENERS]
             # init new listeners
             self.LISTENERS = create_sockets(self.cfg, self.log)
             self.log.info("Listening at: %s", ",".join(str(self.LISTENERS)))
@@ -452,6 +468,9 @@ class Arbiter(object):
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+                    if exitcode == self.APP_LOAD_ERROR:
+                        reason = "App failed to load."
+                        raise HaltServer(reason, self.APP_LOAD_ERROR)
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
@@ -495,6 +514,13 @@ class Arbiter(object):
             sys.exit(0)
         except SystemExit:
             raise
+        except AppImportError as e:
+            self.log.debug("Exception while loading the application: \n%s",
+                    traceback.format_exc())
+
+            sys.stderr.write("%s\n" % e)
+            sys.stderr.flush()
+            sys.exit(self.APP_LOAD_ERROR)
         except:
             self.log.exception("Exception in worker process:\n%s",
                     traceback.format_exc())
@@ -519,6 +545,7 @@ class Arbiter(object):
 
         for i in range(self.num_workers - len(self.WORKERS.keys())):
             self.spawn_worker()
+            time.sleep(0.1 * random.random())
 
     def kill_workers(self, sig):
         """\

@@ -5,6 +5,7 @@
 
 
 import fcntl
+import io
 import os
 import pkg_resources
 import random
@@ -18,7 +19,9 @@ import inspect
 import errno
 import warnings
 
+from gunicorn.errors import AppImportError
 from gunicorn.six import text_type, string_types
+from gunicorn.workers import SUPPORTED_WORKERS
 
 MAXFD = 1024
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
@@ -94,7 +97,8 @@ relative import to an absolute import.
         return sys.modules[name]
 
 
-def load_class(uri, default="sync", section="gunicorn.workers"):
+def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
+        section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -115,27 +119,31 @@ def load_class(uri, default="sync", section="gunicorn.workers"):
     else:
         components = uri.split('.')
         if len(components) == 1:
-            try:
+            while True:
                 if uri.startswith("#"):
                     uri = uri[1:]
 
-                return pkg_resources.load_entry_point("gunicorn",
-                            section, uri)
-            except:
-                exc = traceback.format_exc()
-                raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                    exc))
+                if uri in SUPPORTED_WORKERS:
+                    components = SUPPORTED_WORKERS[uri].split(".")
+                    break
+
+                try:
+                    return pkg_resources.load_entry_point("gunicorn",
+                                section, uri)
+                except:
+                    exc = traceback.format_exc()
+                    raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
+                        exc))
 
         klass = components.pop(-1)
+
         try:
-            mod = __import__('.'.join(components))
+            mod = import_module('.'.join(components))
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                exc))
-
-        for comp in components[1:]:
-            mod = getattr(mod, comp)
+            raise RuntimeError(
+                    "class uri %r invalid or not found: \n\n[%s]" %
+                    (uri, exc))
         return getattr(mod, klass)
 
 
@@ -358,11 +366,17 @@ def import_app(module):
             raise
 
     mod = sys.modules[module]
-    app = eval(obj, mod.__dict__)
+
+    try:
+        app = eval(obj, mod.__dict__)
+    except NameError:
+        raise AppImportError("Failed to find application: %r" % module)
+
     if app is None:
-        raise ImportError("Failed to find application object: %r" % obj)
+        raise AppImportError("Failed to find application object: %r" % obj)
+
     if not callable(app):
-        raise TypeError("Application object must be callable.")
+        raise AppImportError("Application object must be callable.")
     return app
 
 
@@ -396,7 +410,7 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 
-def daemonize():
+def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
@@ -410,33 +424,73 @@ def daemonize():
             os._exit(0)
 
         os.umask(0)
-        maxfd = get_maxfd()
 
-        fds = []
-        if 'GUNICORN_INHERIT_FDS' in os.environ:
-            list_fds = os.environ['GUNICORN_INHERIT_FDS'].split(',')
-            try:
-                fds = [int(fd) for fd in list_fds]
-            except ValueError:
-                raise RuntimeError("Bad value in 'GUNICORN_INHERIT_FDS'")
+        # In both the following any file descriptors above stdin
+        # stdout and stderr are left untouched. The inheritence
+        # option simply allows one to have output go to a file
+        # specified by way of shell redirection when not wanting
+        # to use --error-log option.
 
-            for fd in range(0, max_fd):
-                if fd in fds:
-                    continue
+        if not enable_stdio_inheritance:
+            # Remap all of stdin, stdout and stderr on to
+            # /dev/null. The expectation is that users have
+            # specified the --error-log option.
 
-                try:
-                    os.close(fd)
-                except OSError:  # ERROR, fd wasn't open to begin with (ignored)
-                    pass
+            closerange(0, 3)
+
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+
+            if fd_null != 0:
+                os.dup2(fd_null, 0)
+
+            os.dup2(fd_null, 1)
+            os.dup2(fd_null, 2)
+
         else:
-            closerange(0, maxfd)
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
 
-        os.open(REDIRECT_TO, os.O_RDWR)
-        if 1 not in fds:
-            os.dup2(0, 1)
+            # Always redirect stdin to /dev/null as we would
+            # never expect to need to read interactive input.
 
-        if 2 not in fds:
-            os.dup2(0, 2)
+            if fd_null != 0:
+                os.close(0)
+                os.dup2(fd_null, 0)
+
+            # If stdout and stderr are still connected to
+            # their original file descriptors we check to see
+            # if they are associated with terminal devices.
+            # When they are we map them to /dev/null so that
+            # are still detached from any controlling terminal
+            # properly. If not we preserve them as they are.
+            #
+            # If stdin and stdout were not hooked up to the
+            # original file descriptors, then all bets are
+            # off and all we can really do is leave them as
+            # they were.
+            #
+            # This will allow 'gunicorn ... > output.log 2>&1'
+            # to work with stdout/stderr going to the file
+            # as expected.
+            #
+            # Note that if using --error-log option, the log
+            # file specified through shell redirection will
+            # only be used up until the log file specified
+            # by the option takes over. As it replaces stdout
+            # and stderr at the file descriptor level, then
+            # anything using stdout or stderr, including having
+            # cached a reference to them, will still work.
+
+            def redirect(stream, fd_expect):
+                try:
+                    fd = stream.fileno()
+                    if fd == fd_expect and stream.isatty():
+                        os.close(fd)
+                        os.dup2(fd_null, fd)
+                except AttributeError:
+                    pass
+
+            redirect(sys.stdout, 1)
+            redirect(sys.stderr, 2)
 
 
 def seed():
@@ -460,3 +514,29 @@ def to_bytestring(value):
         return value
     assert isinstance(value, text_type)
     return value.encode("utf-8")
+
+
+def is_fileobject(obj):
+    if not hasattr(obj, "tell") or not hasattr(obj, "fileno"):
+        return False
+
+    # check BytesIO case and maybe others
+    try:
+        obj.fileno()
+    except io.UnsupportedOperation:
+        return False
+
+    return True
+
+
+def warn(msg):
+    sys.stderr.write("!!!\n")
+
+    lines = msg.splitlines()
+    for i, line in enumerate(lines):
+        if i == 0:
+            line = "WARNING: %s" % line
+        sys.stderr.write("!!! %s\n" % line)
+
+    sys.stderr.write("!!!\n\n")
+    sys.stderr.flush()

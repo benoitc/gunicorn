@@ -9,15 +9,19 @@ from errno import ENOTCONN
 
 from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine, LimitRequestHeaders
+from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
+    InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
+    LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.six import BytesIO, urlsplit, bytes_to_str
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 MAX_HEADERFIELD_SIZE = 8190
+
+HEADER_RE = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
+METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
+VERSION_RE = re.compile(r"HTTP/(\d+).(\d+)")
 
 
 class Message(object):
@@ -28,8 +32,6 @@ class Message(object):
         self.headers = []
         self.trailers = []
         self.body = None
-
-        self.hdrre = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
@@ -72,7 +74,7 @@ class Message(object):
                 raise InvalidHeader(curr.strip())
             name, value = curr.split(":", 1)
             name = name.rstrip(" \t").upper()
-            if self.hdrre.search(name):
+            if HEADER_RE.search(name):
                 raise InvalidHeaderName(name)
 
             name, value = name.strip(), [value.lstrip()]
@@ -132,9 +134,6 @@ class Message(object):
 
 class Request(Message):
     def __init__(self, cfg, unreader, req_number=1):
-        self.methre = re.compile("[A-Z0-9$-_.]{3,20}")
-        self.versre = re.compile("HTTP/(\d+).(\d+)")
-
         self.method = None
         self.uri = None
         self.path = None
@@ -214,11 +213,10 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
+            elif len(data) - 2 > limit > 0:
+                raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
-
-            if len(data) - 2 > limit > 0:
-                raise LimitRequestLine(len(data), limit)
 
         return (data[:idx],  # request line,
                 data[idx + 2:])  # residue in the buffer, skip \r\n
@@ -253,7 +251,8 @@ class Request(Message):
                 if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
-            if remote_host not in self.cfg.proxy_allow_ips:
+            if ("*" not in self.cfg.proxy_allow_ips and
+                    remote_host not in self.cfg.proxy_allow_ips):
                 raise ForbiddenProxyRequest(remote_host)
 
     def parse_proxy_protocol(self, line):
@@ -307,7 +306,7 @@ class Request(Message):
             raise InvalidRequestLine(line)
 
         # Method
-        if not self.methre.match(bits[0]):
+        if not METH_RE.match(bits[0]):
             raise InvalidRequestMethod(bits[0])
         self.method = bits[0].upper()
 
@@ -328,7 +327,7 @@ class Request(Message):
         self.fragment = parts.fragment or ""
 
         # Version
-        match = self.versre.match(bits[2])
+        match = VERSION_RE.match(bits[2])
         if match is None:
             raise InvalidHTTPVersion(bits[2])
         self.version = (int(match.group(1)), int(match.group(2)))

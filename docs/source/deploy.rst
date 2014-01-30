@@ -83,10 +83,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
       proxy_redirect off;
       proxy_buffering off;
 
-      if (!-f $request_filename) {
-          proxy_pass http://app_server;
-          break;
-      }
+      proxy_pass http://app_server;
   }
   ...
 
@@ -121,7 +118,7 @@ Monitoring
 .. note::
     Make sure that when using either of these service monitors you do not
     enable the Gunicorn's daemon mode. These monitors expect that the process
-    they launch will be the process they need to monior. Daemonizing
+    they launch will be the process they need to monitor. Daemonizing
     will fork-exec which creates an unmonitored process and generally just
     confuses the monitor services.
 
@@ -199,7 +196,68 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
     user=nobody
     autostart=true
     autorestart=true
-    redirect_stderr=True
+    redirect_stderr=true
+
+Upstart
+-------
+Using gunicorn with upstart is simple. In this example we will run the app "myapp"
+from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
+
+**/etc/init/myapp.conf**::
+
+    description "myapp"
+
+    start on (filesystem)
+    stop on runlevel [016]
+
+    respawn
+    console log
+    setuid nobody
+    setgid nogroup
+    chdir /path/to/app/directory
+
+    exec /path/to/virtualenv/bin/gunicorn myapp:app
+
+Systemd
+-------
+
+A tool that is starting to be common on linux systems is Systemd_. Here
+are configurations files to set the gunicorn launch in systemd and 
+the interfaces on which gunicorn will listen. The sockets will be managed by
+systemd:
+
+**gunicorn.service**::
+
+    [Unit]
+    Description=gunicorn daemon
+
+    [Service]
+    Type=forking
+    PIDFile=/home/urban/gunicorn/gunicorn.pid
+    User=someuser
+    WorkingDirectory=/home/urban/gunicorn/bin
+    ExecStart=/home/someuser/gunicorn/bin/gunicorn -p /home/urban/gunicorn/gunicorn.pid- test:app
+    ExecReload=/bin/kill -s HUP $MAINPID
+    ExecStop=/bin/kill -s QUIT $MAINPID
+    PrivateTmp=true
+
+**gunicorn.socket**::
+
+    [Unit]
+    Description=gunicorn socket
+
+    [Socket]
+    ListenStream=/run/gunicorn.sock
+    ListenStream=0.0.0.0:9000
+    ListenStream=[::]:8000
+
+    [Install]
+    WantedBy=sockets.target
+
+After running curl http://localhost:9000/ gunicorn should start and you
+should see something like that in logs::
+
+    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn.sock,http://0.0.0.0:9000,http://[::]:8000
 
 Logging
 =======
@@ -221,3 +279,4 @@ utility::
 .. _`configuration documentation`: http://gunicorn.org/configure.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
+.. _Systemd: http://www.freedesktop.org/wiki/Software/systemd

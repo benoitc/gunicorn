@@ -81,7 +81,7 @@ apologize for the lack of script name creativity. And some usage::
 Simple example::
 
     $ cd yourpasteproject
-    $ gunicorn_paste --workers=2 development.ini
+    $ gunicorn_paster --workers=2 development.ini
 
 Integration
 ===========
@@ -115,8 +115,15 @@ you can specify the Gunicorn server settings in your configuration file::
     use = egg:gunicorn#main
     host = 127.0.0.1
     port = 5000
+    # Uncomment the line below to use other advanced gunicorn settings
+    #config = %(here)/gunicorn.conf.py
 
 And then as per usual::
 
     $ cd yourpasteproject
     $ paster serve development.ini workers=2
+
+However, in this configuration, Gunicorn does not reload the application when
+new workers are started. See the note about preloading_.
+
+.. _preloading: configure.html#preload-app

@@ -23,7 +23,8 @@ class SyncWorker(base.Worker):
     def run(self):
         # self.socket appears to lose its blocking status after
         # we fork in the arbiter. Reset it here.
-        [s.setblocking(0) for s in self.sockets]
+        for s in self.sockets:
+            s.setblocking(0)
 
         ready = self.sockets
         while self.alive:
@@ -65,7 +66,9 @@ class SyncWorker(base.Worker):
                 # the arbiter that we are not dead. Otherwise, we can sleep
                 # indefinitely.
                 if self.cfg.active_master:
-                    timeout = self.timeout
+                    # if no timeout is given the worker will never wait and will
+                    # use the CPU for nothing. This minimal timeout prevent it.
+                    timeout = self.timeout or 0.5
                 else:
                     timeout = None
 
@@ -90,8 +93,7 @@ class SyncWorker(base.Worker):
         try:
             if self.cfg.is_ssl:
                 client = ssl.wrap_socket(client, server_side=True,
-                        do_handshake_on_connect=False,
-                        **self.cfg.ssl_options)
+                    **self.cfg.ssl_options)
 
             parser = http.RequestParser(self.cfg, client)
             req = six.next(parser)
@@ -149,11 +151,15 @@ class SyncWorker(base.Worker):
         except socket.error:
             raise
         except Exception as e:
-            if resp.headers_sent:
+            if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                client.shutdown(socket.SHUT_RDWR)
-                client.close()
+                try:
+                    client.shutdown(socket.SHUT_RDWR)
+                    client.close()
+                except socket.error:
+                    pass
+                raise StopIteration()
             # Only send back traceback in HTTP in debug mode.
             self.handle_error(req, client, addr, e)
             return

@@ -12,6 +12,7 @@ except ImportError: # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import ssl
 import sys
 import textwrap
 import types
@@ -48,6 +49,7 @@ class Config(object):
         self.settings = make_settings()
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
+        self.env_orig = os.environ.copy()
 
     def __getattr__(self, name):
         if name not in self.settings:
@@ -122,8 +124,13 @@ class Config(object):
     @property
     def logger_class(self):
         uri = self.settings['logger_class'].get()
-        logger_class = util.load_class(uri, default="simple",
-            section="gunicorn.loggers")
+        if uri == "simple":
+            # support the default
+            uri = "gunicorn.glogging.Logger"
+        else:
+            logger_class = util.load_class(uri,
+                    default="gunicorn.glogging.Logger",
+                    section="gunicorn.loggers")
 
         if hasattr(logger_class, "install"):
             logger_class.install()
@@ -136,13 +143,37 @@ class Config(object):
     @property
     def ssl_options(self):
         opts = {}
-        if self.certfile:
-            opts['certfile'] = self.certfile
 
-        if self.keyfile:
-            opts['keyfile'] = self.keyfile
+        for attr in('certfile', 'keyfile', 'cert_reqs', 'ssl_version', \
+                'ca_certs', 'suppress_ragged_eofs', 'do_handshake_on_connect',
+                'ciphers'):
+
+            # suppress_ragged_eofs/do_handshake_on_connect are booleans that can
+            # be False hence we use hasattr instead of getattr(self, attr, None).
+            if hasattr(self, attr):
+                value = getattr(self, attr)
+                opts[attr] = value
 
         return opts
+
+    @property
+    def env(self):
+        raw_env = self.settings['raw_env'].get()
+        env = {}
+
+        if not raw_env:
+            return env
+
+        for e in raw_env:
+            s = six.bytes_to_str(e)
+            try:
+                k, v = s.split('=')
+            except ValueError:
+                raise RuntimeError("environement setting %r invalid" % s)
+
+            env[k] = v
+
+        return env
 
 
 class SettingMeta(type):
@@ -368,6 +399,45 @@ def validate_post_request(val):
         raise TypeError("Value must have an arity of: 4")
 
 
+def validate_chdir(val):
+    # valid if the value is a string
+    val = validate_string(val)
+
+    # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("can't chdir to %r" % val)
+
+    return path
+
+
+def validate_file(val):
+    if val is None:
+        return None
+
+    # valid if the value is a string
+    val = validate_string(val)
+
+     # transform relative paths
+    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
+
+    # test if the path exists
+    if not os.path.exists(path):
+        raise ConfigError("%r not found" % val)
+
+    return path
+
+
+def get_default_config_file():
+    config_path = os.path.join(os.path.abspath(os.getcwd()),
+            'gunicorn.conf.py')
+    if os.path.exists(config_path):
+        return config_path
+    return None
+
+
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
@@ -381,7 +451,6 @@ class ConfigFile(Setting):
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
         """
-
 
 class Bind(Setting):
     name = "bind"
@@ -637,6 +706,25 @@ class Debug(Setting):
         """
 
 
+class Reload(Setting):
+    name = "reload"
+    section = 'Debugging'
+    cli = ['--reload']
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = '''\
+        Restart workers when code changes.
+
+        This setting is intended for development. It will cause workers to be
+        restarted whenever application code changes.
+
+        The reloader is incompatible with application preloading. When using a
+        paste configuration be sure that the server block does not import any
+        application code or the reload will not work as designed.
+        '''
+
+
 class Spew(Setting):
     name = "spew"
     section = "Debugging"
@@ -680,6 +768,17 @@ class PreloadApp(Setting):
         """
 
 
+class Chdir(Setting):
+    name = "chdir"
+    section = "Server Mechanics"
+    cli = ["--chdir"]
+    validator = validate_chdir
+    default = util.getcwd()
+    desc = """\
+        Chdir to specified directory before apps loading.
+        """
+
+
 class Daemon(Setting):
     name = "daemon"
     section = "Server Mechanics"
@@ -692,6 +791,25 @@ class Daemon(Setting):
 
         Detaches the server from the controlling terminal and enters the
         background.
+        """
+
+class Env(Setting):
+    name = "raw_env"
+    action = "append"
+    section = "Server Mechanics"
+    cli = ["-e", "--env"]
+    meta = "ENV"
+    validator = validate_list_string
+    default = []
+
+    desc = """\
+        Set environment variable (key=value).
+
+        Pass variables to the execution environment. Ex.::
+
+            $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
+
+        and test for the foo variable environement in your application.
         """
 
 
@@ -732,6 +850,18 @@ class Pidfile(Setting):
         If not set, no PID file will be written.
         """
 
+class WorkerTmpDir(Setting):
+    name = "worker_tmp_dir"
+    section = "Server Mechanics"
+    cli = ["--worker-tmp-dir"]
+    meta = "DIR"
+    validator = validate_string
+    default = None
+    desc = """\
+        A directory to use for the worker heartbeat temporary file.
+
+        If not set, the default temporary directory will be used.
+        """
 
 class User(Setting):
     name = "user"
@@ -827,26 +957,15 @@ class SecureSchemeHeader(Setting):
         """
 
 
-class XForwardedFor(Setting):
-    name = "x_forwarded_for_header"
-    section = "Server Mechanics"
-    meta = "STRING"
-    validator = validate_string
-    default = 'X-FORWARDED-FOR'
-    desc = """\
-        Set the X-Forwarded-For header that identify the originating IP
-        address of the client connection to gunicorn via a proxy.
-        """
-
-
 class ForwardedAllowIPS(Setting):
     name = "forwarded_allow_ips"
     section = "Server Mechanics"
+    cli = ["--forwarded-allow-ips"]
     meta = "STRING"
     validator = validate_string_to_list
     default = "127.0.0.1"
     desc = """\
-        Front-end's IPs from which allowed to handle X-Forwarded-* headers.
+        Front-end's IPs from which allowed to handle set secure headers.
         (comma separate).
 
         Set to "*" to disable checking of Front-end IPs (useful for setups
@@ -875,7 +994,7 @@ class AccessLogFormat(Setting):
     cli = ["--access-logformat"]
     meta = "STRING"
     validator = validate_string
-    default = '"%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+    default = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
     desc = """\
         The Access log format .
 
@@ -884,20 +1003,20 @@ class AccessLogFormat(Setting):
         %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 
-        h: remote address
-        l: '-'
-        u: currently '-', may be user name in future releases
-        t: date of the request
-        r: status line (ex: GET / HTTP/1.1)
-        s: status
-        b: response length or '-'
-        f: referer
-        a: user agent
-        T: request time in seconds
-        D: request time in microseconds,
-        p: process ID
-        {Header}i: request header
-        {Header}o: response header
+        | h: remote address
+        | l: '-'
+        | u: currently '-', may be user name in future releases
+        | t: date of the request
+        | r: status line (ex: GET / HTTP/1.1)
+        | s: status
+        | b: response length or '-'
+        | f: referer
+        | a: user agent
+        | T: request time in seconds
+        | D: request time in microseconds,
+        | p: process ID
+        | {Header}i: request header
+        | {Header}o: response header
         """
 
 
@@ -907,7 +1026,7 @@ class ErrorLog(Setting):
     cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
-    default = "-"
+    default = None
     desc = """\
         The Error log file to write to.
 
@@ -941,7 +1060,7 @@ class LoggerClass(Setting):
     cli = ["--logger-class"]
     meta = "STRING"
     validator = validate_class
-    default = "simple"
+    default = "gunicorn.glogging.Logger"
     desc = """\
         The logger you want to use to log events in gunicorn.
 
@@ -963,10 +1082,95 @@ class LogConfig(Setting):
     validator = validate_string
     default = None
     desc = """\
-The log config file to use.
-Gunicorn uses the standard Python logging module's Configuration
-file format.
-"""
+    The log config file to use.
+    Gunicorn uses the standard Python logging module's Configuration
+    file format.
+    """
+
+
+class SyslogTo(Setting):
+    name = "syslog_addr"
+    section = "Logging"
+    cli = ["--log-syslog-to"]
+    meta = "SYSLOG_ADDR"
+    validator = validate_string
+
+    if PLATFORM == "darwin":
+        default = "unix:///var/run/syslog"
+    elif PLATFORM in ('freebsd', 'dragonfly', ):
+        default = "unix:///var/run/log"
+    elif PLATFORM == "openbsd":
+        default = "unix:///dev/log"
+    else:
+        default = "udp://localhost:514"
+
+    desc = """\
+    Address to send syslog messages.
+
+    Adress are a string of the form:
+    - 'unix://PATH#TYPE' : for unix domain socket. TYPE can be 'stream'
+      for the stream driver or 'dgram' for the dgram driver. 'stream' is
+      the default.
+    - 'udp://HOST:PORT' : for UDP sockets
+    - 'tcp://HOST:PORT' : for TCP sockets
+
+    """
+
+
+class Syslog(Setting):
+    name = "syslog"
+    section = "Logging"
+    cli = ["--log-syslog"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+    Send *Gunicorn* logs to syslog.
+    """
+
+
+class SyslogPrefix(Setting):
+    name = "syslog_prefix"
+    section = "Logging"
+    cli = ["--log-syslog-prefix"]
+    meta = "SYSLOG_PREFIX"
+    validator = validate_string
+    default = None
+    desc = """\
+    makes gunicorn use the parameter as program-name in the syslog entries.
+
+    All entries will be prefixed by gunicorn.<prefix>. By default the program
+    name is the name of the process.
+    """
+
+
+class SyslogFacility(Setting):
+    name = "syslog_facility"
+    section = "Logging"
+    cli = ["--log-syslog-facility"]
+    meta = "SYSLOG_FACILITY"
+    validator = validate_string
+    default = "user"
+    desc = """\
+    Syslog facility name
+    """
+
+
+class EnableStdioInheritance(Setting):
+    name = "enable_stdio_inheritance"
+    section = "Logging"
+    cli = ["-R", "--enable-stdio-inheritance"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Enable stdio inheritance
+
+    Enable inheritance for stdio file descriptors in daemon mode.
+
+    Note: To disable the python stdout buffering, you can to set the user
+    environment variable ``PYTHONUNBUFFERED`` .
+    """
 
 
 class Procname(Setting):
@@ -1006,10 +1210,12 @@ class DjangoSettings(Setting):
     validator = validate_string
     default = None
     desc = """\
-        The Python path to a Django settings module.
+        The Python path to a Django settings module. (deprecated)
 
         e.g. 'myproject.settings.main'. If this isn't provided, the
         DJANGO_SETTINGS_MODULE environment variable will be used.
+
+        **DEPRECATED**: use the --env argument instead.
         """
 
 
@@ -1021,10 +1227,22 @@ class PythonPath(Setting):
     validator = validate_string
     default = None
     desc = """\
-        A directory to add to the Python path for Django.
+        A directory to add to the Python path.
 
         e.g.
         '/home/djangoprojects/myproject'.
+        """
+
+
+class Paste(Setting):
+    name = "paste"
+    section = "Server Mechanics"
+    cli = ["--paster"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        Load a paste.deploy config file.
         """
 
 
@@ -1107,6 +1325,41 @@ class Postfork(Setting):
 
         The callable needs to accept two instance variables for the Arbiter and
         new Worker.
+        """
+
+
+class PostWorkerInit(Setting):
+    name = "post_worker_init"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def post_worker_init(worker):
+        pass
+
+    default = staticmethod(post_worker_init)
+    desc = """\
+        Called just after a worker has initialized the application.
+
+        The callable needs to accept one instance variable for the initialized
+        Worker.
+        """
+
+class WorkerInt(Setting):
+    name = "worker_int"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def worker_int(worker):
+        pass
+
+    default = staticmethod(worker_int)
+    desc = """\
+        Called just after a worker exited on SIGINT or SIGTERM.
+
+        The callable needs to accept one instance variable for the initialized
+        Worker.
         """
 
 
@@ -1214,12 +1467,12 @@ class ProxyProtocol(Setting):
 
         Example for stunnel config::
 
-        [https]
-        protocol = proxy
-        accept  = 443
-        connect = 80
-        cert = /etc/ssl/certs/stunnel.pem
-        key = /etc/ssl/certs/stunnel.key
+            [https]
+            protocol = proxy
+            accept  = 443
+            connect = 80
+            cert = /etc/ssl/certs/stunnel.pem
+            key = /etc/ssl/certs/stunnel.key
         """
 
 
@@ -1231,6 +1484,10 @@ class ProxyAllowFrom(Setting):
     default = "127.0.0.1"
     desc = """\
         Front-end's IPs from which allowed accept proxy requests (comma separate).
+
+        Set to "*" to disable checking of Front-end IPs (useful for setups
+        where you don't know in advance the IP address of Front-end, but
+        you still trust the environment)
         """
 
 
@@ -1257,62 +1514,65 @@ class CertFile(Setting):
     SSL certificate file
     """
 
-
-class SyslogTo(Setting):
-    name = "syslog_addr"
-    section = "Logging"
-    cli = ["--log-syslog-to"]
-    meta = "SYSLOG_ADDR"
-    validator = validate_string
-
-    if PLATFORM == "darwin":
-        default = "unix:///var/run/syslog"
-    elif PLATFORM in ('freebsd', 'dragonfly', ):
-        default = "unix:///var/run/log"
-    elif PLATFORM == "openbsd":
-        default = "unix:///dev/log"
-    else:
-        default = "udp://localhost:514"
-
+class SSLVersion(Setting):
+    name = "ssl_version"
+    section = "Ssl"
+    cli = ["--ssl-version"]
+    validator = validate_pos_int
+    default = ssl.PROTOCOL_TLSv1
     desc = """\
-    Address to send syslog messages
+    SSL version to use (see stdlib ssl module's)
     """
 
-
-class Syslog(Setting):
-    name = "syslog"
-    section = "Logging"
-    cli = ["--log-syslog"]
-    validator = validate_bool
-    action = 'store_true'
-    default = False
+class CertReqs(Setting):
+    name = "cert_reqs"
+    section = "Ssl"
+    cli = ["--cert-reqs"]
+    validator = validate_pos_int
+    default = ssl.CERT_NONE
     desc = """\
-    Log to syslog.
+    Whether client certificate is required (see stdlib ssl module's)
     """
 
-
-class SyslogPrefix(Setting):
-    name = "syslog_prefix"
-    section = "Logging"
-    cli = ["--log-syslog-prefix"]
-    meta = "SYSLOG_PREFIX"
+class CACerts(Setting):
+    name = "ca_certs"
+    section = "Ssl"
+    cli = ["--ca-certs"]
+    meta = "FILE"
     validator = validate_string
     default = None
     desc = """\
-    makes gunicorn use the parameter as program-name in the syslog entries.
-
-    All entries will be prefixed by gunicorn.<prefix>. By default the program
-    name is the name of the process.
+    CA certificates file
     """
 
-
-class SyslogFacility(Setting):
-    name = "syslog_facility"
-    section = "Logging"
-    cli = ["--log-syslog-facility"]
-    meta = "SYSLOG_FACILITY"
-    validator = validate_string
-    default = "user"
+class SuppressRaggedEOFs(Setting):
+    name = "suppress_ragged_eofs"
+    section = "Ssl"
+    cli = ["--suppress-ragged-eofs"]
+    action = "store_true"
+    default = True
+    validator = validate_bool
     desc = """\
-    Syslog facility name
+    Suppress ragged EOFs (see stdlib ssl module's)
+    """
+
+class DoHandshakeOnConnect(Setting):
+    name = "do_handshake_on_connect"
+    section = "Ssl"
+    cli = ["--do-handshake-on-connect"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+    Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+    """
+
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "Ssl"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
     """

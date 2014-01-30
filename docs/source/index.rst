@@ -18,11 +18,11 @@ Features
 * Simple Python configuration
 * Multiple worker configurations
 * Various server hooks for extensibility
-* Compatible with Python 2.x >= 2.6
+* Compatible with Python 2.x >= 2.6 or 3.x >= 3.1
 
 
 .. note::
-    main Gunicorn website on http://gunicorn.org 
+    main Gunicorn website on http://gunicorn.org
 
 
 .. note::
@@ -34,13 +34,15 @@ Contents
 --------
 
 .. toctree::
-    :titlesonly:
+    :maxdepth: 2
 
     install
     run
     configure
+    settings
     deploy
     design
+    signals
     community
     faq
     news

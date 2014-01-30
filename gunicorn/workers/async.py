@@ -81,6 +81,7 @@ class AsyncWorker(base.Worker):
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
                     listener.getsockname(), self.cfg)
+            environ["wsgi.multithread"] = True
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
@@ -94,8 +95,11 @@ class AsyncWorker(base.Worker):
             if respiter == ALREADY_HANDLED:
                 return False
             try:
-                for item in respiter:
-                    resp.write(item)
+                if isinstance(respiter, environ['wsgi.file_wrapper']):
+                    resp.write_file(respiter)
+                else:
+                    for item in respiter:
+                        resp.write(item)
                 resp.close()
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
@@ -105,11 +109,15 @@ class AsyncWorker(base.Worker):
             if resp.should_close():
                 raise StopIteration()
         except Exception:
-            if resp.headers_sent:
+            if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                sock.shutdown(socket.SHUT_RDWR)
-                sock.close()
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                    sock.close()
+                except socket.error:
+                    pass
+                raise StopIteration()
             raise
         finally:
             try:

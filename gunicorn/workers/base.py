@@ -13,6 +13,7 @@ import time
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
+from gunicorn.reloader import Reloader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
@@ -100,6 +101,20 @@ class Worker(object):
         super(MyWorkerClass, self).init_process() so that the ``run()``
         loop is initiated.
         """
+
+        # start the reloader
+        if self.cfg.reload:
+            def changed(fname):
+                self.log.info("Worker reloading: %s modified", fname)
+                os.kill(self.pid, signal.SIGTERM)
+                raise SystemExit()
+            Reloader(callback=changed).start()
+
+        # set enviroment' variables
+        if self.cfg.env:
+            for k, v in self.cfg.env.items():
+                os.environ[k] = v
+
         util.set_owner_process(self.cfg.uid, self.cfg.gid)
 
         # Reseed the random number generator
@@ -120,6 +135,8 @@ class Worker(object):
         self.init_signals()
 
         self.wsgi = self.app.wsgi()
+
+        self.cfg.post_worker_init(self)
 
         # Enter main run loop
         self.booted = True
@@ -148,6 +165,8 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
         sys.exit(0)
 
     def handle_error(self, req, client, addr, exc):
@@ -199,14 +218,10 @@ class Worker(object):
             environ = default_environ(req, client, self.cfg)
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
-            resp = Response(req, client)
+            resp = Response(req, client, self.cfg)
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
-
-        if self.debug:
-            tb = traceback.format_exc()
-            mesg += "<h2>Traceback:</h2>\n<pre>%s</pre>" % tb
 
         try:
             util.write_error(client, status_int, reason, mesg)

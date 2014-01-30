@@ -37,11 +37,6 @@ in tools like ``ps`` and ``top``. This helps for distinguishing the master
 process as well as between masters when running more than one app on a single
 machine. See the proc_name_ setting for more information.
 
-Gunicorn fails to start with upstart
-------------------------------------
-
-Make sure you run gunicorn with ``--daemon`` option.
-
 Why is there no HTTP Keep-Alive?
 --------------------------------
 
