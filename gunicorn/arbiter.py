@@ -298,16 +298,21 @@ class Arbiter(object):
         A readable PIPE means a signal occurred.
         """
         timeout = 1.0
-        if self.WORKERS and self.cfg.inactive_master:
-            last_active_updates = [worker.tmp.last_update() for worker in self.WORKERS.values() if worker.tmp.is_active()]
+        if self.WORKERS and not self.cfg.active_master:
+            last_active_updates = [
+                worker.tmp.last_update()
+                for worker in self.WORKERS.values()
+                if worker.tmp.is_active()
+            ]
             if last_active_updates:
-                timeout = self.timeout - (time.time() - min(last_active_updates))
+                oldest = (time.time() - min(last_active_updates))
+                timeout = self.timeout - oldest
                 # The timeout can be reached, so don't wait for a negative value
                 timeout = max(timeout, 1.0)
             else:
                 # No active worker, nothing to wait for
                 timeout = None
-        
+
         try:
             ready = select.select([self.PIPE[0]], [], [], timeout)
             if not ready[0]:
@@ -419,8 +424,9 @@ class Arbiter(object):
             return
         for (pid, worker) in self.WORKERS.items():
             try:
-                if (self.cfg.inactive_master and not worker.tmp.is_active()) \
-                    or time.time() - worker.tmp.last_update() <= self.timeout:
+                if not (self.cfg.active_master or worker.tmp.is_active()):
+                    continue
+                if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except ValueError:
                 continue

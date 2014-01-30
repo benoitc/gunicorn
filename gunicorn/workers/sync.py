@@ -60,8 +60,16 @@ class SyncWorker(base.Worker):
             try:
                 self.set_active(False)
                 self.notify()
-                # If we are in inactive_master mode, we don't have to wake up to notify while inactive
-                ret = select.select(self.sockets, [], self.PIPE, None if self.cfg.inactive_master else self.timeout)
+
+                # If we are in active_master mode, we have to wake up to notify
+                # the arbiter that we are not dead. Otherwise, we can sleep
+                # indefinitely.
+                if self.cfg.active_master:
+                    timeout = self.timeout
+                else:
+                    timeout = None
+
+                ret = select.select(self.sockets, [], self.PIPE, timeout)
                 if ret[0]:
                     ready = ret[0]
                     continue
