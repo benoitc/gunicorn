@@ -98,7 +98,8 @@ class Config(object):
 
     @property
     def workers(self):
-        return self.settings['workers'].get()
+        env_workers = int(os.environ.get('WEB_CONCURRENCY'))
+        return self.settings['workers'].get() or env_workers
 
     @property
     def address(self):
