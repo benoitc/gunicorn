@@ -87,6 +87,30 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   }
   ...
 
+When Nginx is handling SSL it is helpful to pass the protocol information
+to Gunicorn. Many web frameworks use this information to generate URLs.
+Without this information, the application may mistakenly generate 'http'
+URLs in 'https' responses, leading to mixed content warnings or broken
+applications. In this case, configure Nginx to pass an appropriate header::
+
+    ...
+    proxy_set_header X-Forwarded-Proto $scheme;
+    ...
+
+If you are running Nginx on a different host than Gunicorn you need to tell
+Gunicorn to trust the ``X-Forwarded-*`` headers sent by Nginx. By default,
+Gunicorn will only trust these headers if the connection comes from localhost.
+This is to prevent a malicious client from forging these headers::
+
+  gunicorn -w 3 --forwarded-allow-ips="10.170.3.217,10.170.3.220" test:app
+
+When the Gunicorn host is completely firewalled from the external network such
+that all connections come from a trusted proxy (e.g. Heroku) this value can
+be set to '*'. Using this value is **potentially dangerous** if connections to
+Gunicorn may come from outside the network as clients can use this header to
+forge the IP address Gunicorn sees, circumventing application rate limits and
+reporting incorrect addresses in log files.
+
 Using Virtualenv
 ================
 
