@@ -221,6 +221,21 @@ Turn on debugging in the server.
 This limits the number of worker processes to 1 and changes some error
 handling that's sent to clients.
 
+reload
+~~~~~~
+
+* ``--reload``
+* ``False``
+
+Restart workers when code changes.
+
+This setting is intended for development. It will cause workers to be
+restarted whenever application code changes.
+
+The reloader is incompatible with application preloading. When using a
+paste configuration be sure that the server block does not import any
+application code or the reload will not work as designed.
+
 spew
 ~~~~
 
@@ -377,20 +392,13 @@ when handling HTTPS requests.
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
 
-x_forwarded_for_header
-~~~~~~~~~~~~~~~~~~~~~~
-
-* ``X-FORWARDED-FOR``
-
-Set the X-Forwarded-For header that identify the originating IP
-address of the client connection to gunicorn via a proxy.
-
 forwarded_allow_ips
 ~~~~~~~~~~~~~~~~~~~
 
+* ``--forwarded-allow-ips STRING``
 * ``127.0.0.1``
 
-Front-end's IPs from which allowed to handle X-Forwarded-* headers.
+Front-end's IPs from which allowed to handle set secure headers.
 (comma separate).
 
 Set to "*" to disable checking of Front-end IPs (useful for setups
@@ -442,7 +450,7 @@ errorlog
 ~~~~~~~~
 
 * ``--error-logfile FILE, --log-file FILE``
-* ``-``
+* ``None``
 
 The Error log file to write to.
 
@@ -496,7 +504,15 @@ syslog_addr
 * ``--log-syslog-to SYSLOG_ADDR``
 * ``unix:///var/run/syslog``
 
-Address to send syslog messages
+Address to send syslog messages.
+
+Address is a string of the form:
+
+* 'unix://PATH#TYPE' : for unix domain socket. TYPE can be 'stream'
+  for the stream driver or 'dgram' for the dgram driver.
+  'stream' is the default.
+* 'udp://HOST:PORT' : for UDP sockets
+* 'tcp://HOST:PORT' : for TCP sockets
 
 syslog
 ~~~~~~
@@ -504,7 +520,7 @@ syslog
 * ``--log-syslog``
 * ``False``
 
-Log to syslog.
+Send *Gunicorn* logs to syslog.
 
 syslog_prefix
 ~~~~~~~~~~~~~
@@ -814,4 +830,52 @@ certfile
 * ``None``
 
 SSL certificate file
+
+ssl_version
+~~~~~~~~~~~
+
+* ``--ssl-version``
+* ``3``
+
+SSL version to use (see stdlib ssl module's)
+
+cert_reqs
+~~~~~~~~~
+
+* ``--cert-reqs``
+* ``0``
+
+Whether client certificate is required (see stdlib ssl module's)
+
+ca_certs
+~~~~~~~~
+
+* ``--ca-certs FILE``
+* ``None``
+
+CA certificates file
+
+suppress_ragged_eofs
+~~~~~~~~~~~~~~~~~~~~
+
+* ``--suppress-ragged-eofs``
+* ``True``
+
+Suppress ragged EOFs (see stdlib ssl module's)
+
+do_handshake_on_connect
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``--do-handshake-on-connect``
+* ``False``
+
+Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+
+ciphers
+~~~~~~~
+
+* ``--ciphers``
+* ``TLSv1``
+
+Ciphers to use (see stdlib ssl module's)
 
