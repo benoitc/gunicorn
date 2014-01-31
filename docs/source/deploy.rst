@@ -246,7 +246,7 @@ Systemd
 -------
 
 A tool that is starting to be common on linux systems is Systemd_. Here
-are configurations files to set the gunicorn launch in systemd and 
+are configurations files to set the gunicorn launch in systemd and
 the interfaces on which gunicorn will listen. The sockets will be managed by
 systemd:
 

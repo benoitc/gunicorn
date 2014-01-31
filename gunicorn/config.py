@@ -1083,12 +1083,13 @@ class SyslogTo(Setting):
     desc = """\
     Address to send syslog messages.
 
-    Adress are a string of the form:
-    - 'unix://PATH#TYPE' : for unix domain socket. TYPE can be 'stream'
-      for the stream driver or 'dgram' for the dgram driver. 'stream' is
-      the default.
-    - 'udp://HOST:PORT' : for UDP sockets
-    - 'tcp://HOST:PORT' : for TCP sockets
+    Address is a string of the form:
+
+    * 'unix://PATH#TYPE' : for unix domain socket. TYPE can be 'stream'
+      for the stream driver or 'dgram' for the dgram driver.
+      'stream' is the default.
+    * 'udp://HOST:PORT' : for UDP sockets
+    * 'tcp://HOST:PORT' : for TCP sockets
 
     """
 
