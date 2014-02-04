@@ -107,9 +107,9 @@ This is to prevent a malicious client from forging these headers::
 When the Gunicorn host is completely firewalled from the external network such
 that all connections come from a trusted proxy (e.g. Heroku) this value can
 be set to '*'. Using this value is **potentially dangerous** if connections to
-Gunicorn may come from outside the network as clients can use this header to
-forge the IP address Gunicorn sees, circumventing application rate limits and
-reporting incorrect addresses in log files.
+Gunicorn may come from untrusted proxies or directly from clients since the
+application may be tricked into serving SSL-only content over an insecure
+connection.
 
 Using Virtualenv
 ================
