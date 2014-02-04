@@ -1,4 +1,3 @@
-
 .. _settings:
 
 Settings
@@ -92,7 +91,7 @@ A string referring to one of the following bundled classes:
 
 * ``sync``
 * ``eventlet`` - Requires eventlet >= 0.9.7
-* ``gevent``   - Requires gevent >= 0.12.2 (?)
+* ``gevent``   - Requires gevent >= 0.13
 * ``tornado``  - Requires tornado >= 0.2
 
 Optionally, you can provide your own worker by giving gunicorn a
