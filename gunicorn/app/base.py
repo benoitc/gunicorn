@@ -13,12 +13,11 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 from gunicorn.six import execfile_
 
-class Application(object):
-    """\
+class BaseApplication(object):
+    """
     An application interface for configuring and loading
     the various necessities for any given web framework.
     """
-
     def __init__(self, usage=None, prog=None):
         self.usage = usage
         self.cfg = None
@@ -29,14 +28,43 @@ class Application(object):
 
     def do_load_config(self):
         try:
+            self.load_default_config()
             self.load_config()
         except Exception as e:
             sys.stderr.write("\nError: %s\n" % str(e))
             sys.stderr.flush()
             sys.exit(1)
 
-    def load_config_from_file(self, filename):
+    def load_default_config(self):
+        # init configuration
+        self.cfg = Config(self.usage, prog=self.prog)
 
+    def init(self, parser, opts, args):
+        raise NotImplementedError
+
+    def load(self):
+        raise NotImplementedError
+
+    def reload(self):
+        self.do_load_config()
+        if self.cfg.spew:
+            debug.spew()
+
+    def wsgi(self):
+        if self.callable is None:
+            self.callable = self.load()
+        return self.callable
+
+    def run(self):
+        try:
+            Arbiter(self).run()
+        except RuntimeError as e:
+            sys.stderr.write("\nError: %s\n\n" % e)
+            sys.stderr.flush()
+            sys.exit(1)
+
+class Application(BaseApplication):
+    def load_config_from_file(self, filename):
         if not os.path.exists(filename):
             raise RuntimeError("%r doesn't exist" % filename)
 
@@ -67,9 +95,6 @@ class Application(object):
         return cfg
 
     def load_config(self):
-        # init configuration
-        self.cfg = Config(self.usage, prog=self.prog)
-
         # parse console args
         parser = self.cfg.parser()
         args = parser.parse_args()
@@ -98,22 +123,6 @@ class Application(object):
                 continue
             self.cfg.set(k.lower(), v)
 
-    def init(self, parser, opts, args):
-        raise NotImplementedError
-
-    def load(self):
-        raise NotImplementedError
-
-    def reload(self):
-        self.do_load_config()
-        if self.cfg.spew:
-            debug.spew()
-
-    def wsgi(self):
-        if self.callable is None:
-            self.callable = self.load()
-        return self.callable
-
     def run(self):
         if self.cfg.check_config:
             try:
@@ -139,9 +148,5 @@ class Application(object):
                 if pythonpath not in sys.path:
                     sys.path.insert(0, pythonpath)
 
-        try:
-            Arbiter(self).run()
-        except RuntimeError as e:
-            sys.stderr.write("\nError: %s\n\n" % e)
-            sys.stderr.flush()
-            sys.exit(1)
+        super(Application, self).run()
+
