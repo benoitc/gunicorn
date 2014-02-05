@@ -127,6 +127,7 @@ class Worker(object):
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGABRT, self.handle_abrt)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         # Don't let SIGQUIT and SIGUSR1 disturb active requests
@@ -137,6 +138,11 @@ class Worker(object):
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
+
+    def handle_abrt(self, sig, frame):
+        self.alive = False
+        self.log.info("".join(traceback.format_stack(frame)))
+        sys.exit(0)
 
     def handle_quit(self, sig, frame):
         self.alive = False
