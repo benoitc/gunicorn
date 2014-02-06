@@ -18,10 +18,12 @@ import traceback
 import inspect
 import errno
 import warnings
+import cgi
 
 from gunicorn.errors import AppImportError
-from gunicorn.six import text_type, string_types
+from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
+
 
 MAXFD = 1024
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
@@ -328,11 +330,11 @@ def write_error(sock, status_int, reason, mesg):
         <title>%(reason)s</title>
       </head>
       <body>
-        <h1>%(reason)s</h1>
+        <h1><p>%(reason)s</p></h1>
         %(mesg)s
       </body>
     </html>
-    """) % {"reason": reason, "mesg": mesg}
+    """) % {"reason": reason, "mesg": cgi.escape(mesg)}
 
     http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
