@@ -167,7 +167,7 @@ class Config(object):
         for e in raw_env:
             s = six.bytes_to_str(e)
             try:
-                k, v = s.split('=')
+                k, v = s.split('=', 1)
             except ValueError:
                 raise RuntimeError("environement setting %r invalid" % s)
 
