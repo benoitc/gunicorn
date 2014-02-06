@@ -344,7 +344,7 @@ if PY3:
     print_ = getattr(builtins, "print")
 
     def execfile_(fname, *args):
-        return exec_(compile(open(fname, 'rb').read(), fname, 'exec'), *args)
+        return exec_(_get_codeobj(fname), *args)
 
 
     del builtins
@@ -367,7 +367,10 @@ else:
     raise tp, value, tb
 """)
 
-    execfile_ = execfile
+    def execfile_(fname, *args):
+        """ Overriding PY2 execfile() implementation to support .pyc files """
+        return exec_(_get_codeobj(fname), *args)
+
 
     def print_(*args, **kwargs):
         """The new-style print function."""
