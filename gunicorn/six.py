@@ -286,6 +286,50 @@ _add_doc(b, """Byte literal""")
 _add_doc(u, """Text literal""")
 
 
+def _check_if_pyc(fname):
+    """ Returns True if the extension is .pyc, False if .py and None if otherwise """
+    # Make common lambda
+    test = lambda ext: True if fname.rfind(ext) == len(fname) - len(ext) else False
+    # Run test
+    if test(".pyc"):
+        # TODO: Actually check if file content is .pyc compliant
+        return True
+    elif test(".py"):
+        # TODO: Actually check if file is .py by trying to import
+        return False
+    else:
+        return None
+
+
+def _get_codeobj(pyfile):
+    """ Returns the code object, given a python file """
+    result = _check_if_pyc(pyfile)
+    if result is True:
+        # This is a .pyc file. Treat accordingly.
+        with open(pyfile, "rb") as pycfile:
+            data = pycfile.read()
+
+        # .pyc format is as follows:
+        # 0 - 4 bytes: Magic number, which changes with each create of .pyc file.
+        #              First 2 bytes change with each marshal of .pyc file. Last 2 bytes is "\r\n".
+        # 4 - 8 bytes: Datetime value, when the .py was last changed.
+        # 8 - EOF: Marshalled code object data.
+        # So to get code object, just read the 8th byte onwards till EOF, and UN-marshal it.
+        import marshal
+        code_obj = marshal.loads(data[8:])
+
+    elif result is False:
+        # This is a .py file.
+        code_obj = compile(open(pyfile, 'rb').read(), pyfile, 'exec')
+
+    else:
+        # Dunno what this is...
+        raise Exception("Input file is unknown format: {0}".format(pyfile))
+
+    # Return code object
+    return code_obj
+
+
 if PY3:
 
     import builtins
