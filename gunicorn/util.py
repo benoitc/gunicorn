@@ -330,7 +330,7 @@ def write_error(sock, status_int, reason, mesg):
         <title>%(reason)s</title>
       </head>
       <body>
-        <h1>%(reason)s</h1>
+        <h1><p>%(reason)s</p></h1>
         %(mesg)s
       </body>
     </html>

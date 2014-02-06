@@ -88,7 +88,7 @@ class Worker(object):
                 raise SystemExit()
             Reloader(callback=changed).start()
 
-        # set enviroment' variables
+        # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
                 os.environ[k] = v
@@ -104,7 +104,7 @@ class Worker(object):
             util.set_non_blocking(p)
             util.close_on_exec(p)
 
-        # Prevent fd inherientence
+        # Prevent fd inheritance
         [util.close_on_exec(s) for s in self.sockets]
         util.close_on_exec(self.tmp.fileno())
 
@@ -159,24 +159,24 @@ class Worker(object):
             reason = "Bad Request"
 
             if isinstance(exc, InvalidRequestLine):
-                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+                mesg = "Invalid Request Line '%s'" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+                mesg = "Invalid Method '%s'" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+                mesg = "Invalid HTTP Version '%s'" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
                 if not req and hasattr(exc, "req"):
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
-                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+                mesg = "Error parsing headers: '%s'" % str(exc)
             elif isinstance(exc, InvalidProxyLine):
-                mesg = "<p>'%s'</p>" % str(exc)
+                mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
                 reason = "Forbidden"
-                mesg = "<p>Request forbidden</p>"
+                mesg = "Request forbidden"
                 status_int = 403
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
