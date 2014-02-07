@@ -143,6 +143,9 @@ class SyncWorker(base.Worker):
         except socket.error:
             raise
         except Exception as e:
+            # Only send back traceback in HTTP in debug mode.
+            self.handle_error(req, client, addr, e)
+
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
@@ -152,8 +155,6 @@ class SyncWorker(base.Worker):
                 except socket.error:
                     pass
                 raise StopIteration()
-            # Only send back traceback in HTTP in debug mode.
-            self.handle_error(req, client, addr, e)
             return
         finally:
             try:
