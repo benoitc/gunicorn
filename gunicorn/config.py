@@ -169,7 +169,7 @@ class Config(object):
             try:
                 k, v = s.split('=', 1)
             except ValueError:
-                raise RuntimeError("environement setting %r invalid" % s)
+                raise RuntimeError("environment setting %r invalid" % s)
 
             env[k] = v
 
