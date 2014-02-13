@@ -215,10 +215,8 @@ debug
 * ``--debug``
 * ``False``
 
-Turn on debugging in the server.
-
-This limits the number of worker processes to 1 and changes some error
-handling that's sent to clients.
+**DEPRECATED**: This no functionality was removed after v18.0.  This
+option is now a no-op.
 
 reload
 ~~~~~~
