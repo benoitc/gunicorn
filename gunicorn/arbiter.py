@@ -99,10 +99,12 @@ class Arbiter(object):
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
 
-        self.log.debug("Current configuration:")
-        for config, value in sorted(self.cfg.settings.items(),
-                key=lambda setting: setting[1]):
-            self.log.debug("  %s: %s", config, value.value)
+        self.log.debug('Current configuration:\n{0}'.format(
+            '\n'.join(
+                '  {0}: {1}'.format(config, value.value)
+                for config, value
+                in sorted(self.cfg.settings.items(),
+                          key=lambda setting: setting[1]))))
 
         if self.cfg.preload_app:
             self.app.wsgi()
