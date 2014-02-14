@@ -46,7 +46,6 @@ class Worker(object):
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
-        self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):

@@ -96,21 +96,16 @@ class Arbiter(object):
         self.worker_class = self.cfg.worker_class
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
-        self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
 
-        if self.cfg.debug:
-            self.log.debug("Current configuration:")
-            for config, value in sorted(self.cfg.settings.items(),
-                    key=lambda setting: setting[1]):
-                self.log.debug("  %s: %s", config, value.value)
+        self.log.debug("Current configuration:")
+        for config, value in sorted(self.cfg.settings.items(),
+                key=lambda setting: setting[1]):
+            self.log.debug("  %s: %s", config, value.value)
 
         if self.cfg.preload_app:
-            if not self.cfg.debug:
-                self.app.wsgi()
-            else:
-                self.log.warning("debug mode: app isn't preloaded.")
+            self.app.wsgi()
 
     def start(self):
         """\
