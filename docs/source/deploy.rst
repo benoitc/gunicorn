@@ -171,13 +171,13 @@ Create a ``Procfile`` in your project::
 
 You can any other applications that should be launched at the same time.
 
-Then you can start your gunicorn application using `gafferp <http://gaffer.readthedocs.org/en/latest/gafferp.html>`_.::
+Then you can start your gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
 
-    gafferp start
+    gaffer start
 
 If gafferd is launched you can also load your Procfile in it directly::
 
-    gafferp load
+    gaffer load
 
 All your applications will be then supervised by gafferd.
 
