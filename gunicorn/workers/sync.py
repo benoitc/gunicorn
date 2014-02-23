@@ -102,10 +102,13 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except socket.error as e:
-            if e.args[0] != errno.EPIPE:
-                self.log.exception("Error processing request.")
+            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
+                self.log.exception("Socket error processing request.")
             else:
-                self.log.debug("Ignoring EPIPE")
+                if e.args[0] == errno.ECONNRESET:
+                    self.log.debug("Ignoring connection reset")
+                else:
+                    self.log.debug("Ignoring EPIPE")
         except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
@@ -142,19 +145,18 @@ class SyncWorker(base.Worker):
                     respiter.close()
         except socket.error:
             raise
-        except Exception as e:
+        except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
+                self.log.exception("Error handling request")
                 try:
                     client.shutdown(socket.SHUT_RDWR)
                     client.close()
                 except socket.error:
                     pass
                 raise StopIteration()
-            # Only send back traceback in HTTP in debug mode.
-            self.handle_error(req, client, addr, e)
-            return
+            raise
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)
