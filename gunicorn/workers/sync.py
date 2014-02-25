@@ -50,7 +50,7 @@ class SyncWorker(base.Worker):
                 except socket.error as e:
                     if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
                             errno.EWOULDBLOCK):
-                        raise
+                        raise Exception("errno {0}: {1}".format(e.args[0], e.args[1]))
 
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
