@@ -172,7 +172,6 @@ class Arbiter(object):
         self.manage_workers()
         while True:
             try:
-                self.reap_workers()
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()
@@ -210,6 +209,7 @@ class Arbiter(object):
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
+        self.reap_workers()
         self.wakeup()
 
     def handle_hup(self):
@@ -306,7 +306,8 @@ class Arbiter(object):
         A readable PIPE means a signal occurred.
         """
         if self.WORKERS:
-            oldest = min(w.tmp.last_update() for w in self.WORKERS.values())
+            worker_values = list(self.WORKERS.values())
+            oldest = min(w.tmp.last_update() for w in worker_values)
             timeout = self.timeout - (time.time() - oldest)
             # The timeout can be reached, so don't wait for a negative value
             timeout = max(timeout, 1.0)
@@ -342,7 +343,6 @@ class Arbiter(object):
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
-            self.reap_workers()
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
@@ -426,7 +426,8 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        for (pid, worker) in self.WORKERS.items():
+        workers = list(self.WORKERS.items())
+        for (pid, worker) in workers:
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
@@ -538,7 +539,8 @@ class Arbiter(object):
         Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
-        for pid in self.WORKERS.keys():
+        worker_pids = list(self.WORKERS.keys())
+        for pid in worker_pids:
             self.kill_worker(pid, sig)
 
     def kill_worker(self, pid, sig):
