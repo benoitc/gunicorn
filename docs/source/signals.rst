@@ -12,8 +12,8 @@ exception of TTIN/TTOU the signals handling match the behaviour of `nginx
 Master process
 ==============
 
-- **TERM**, **INT**: Quick shutdown
-- **QUIT**: Graceful shutdown. Waits for workers to finish their
+- **QUIT**, **INT**: Quick shutdown
+- **TERM**: Graceful shutdown. Waits for workers to finish their
   current requests up to the *graceful timeout*.
 - **HUP**: Reload the configuration, start the new worker processes with a new
   configuration and gracefully shutdown older workers. If the application is
@@ -35,8 +35,8 @@ Sending signals directly to the worker processes should not normally be
 needed.  If the master process is running, any exited worker will be
 automatically respawned.
 
-- **TERM**, **INT**: Quick shutdown
-- **QUIT**: Graceful shutdown
+- **QUIT**, **INT**: Graceful shutdown
+- **TERM**: Quick shutdown
 - **USR1**: Reopen the log files
 
 Reload the configuration
@@ -94,16 +94,16 @@ processes will start to gracefully shut down.
 t this point you can still revert to the old server because it hasn't closed its listen sockets yet, by following these steps:
 
 - Send HUP signal to the old master process - it will start the worker processes without reloading a configuration file
-- Send QUIT signal to the new master process to gracefully shut down its worker processes
-- Send TERM signal to the new master process to force it quit
+- Send TERM signal to the new master process to gracefully shut down its worker processes
+- Send QUIT signal to the new master process to force it quit
 
 If for some reason new worker processes do not quit, send KILL signal to
-them After new master process quits, the old master process removes
+them after the new master process quits, the old master process removes
 .oldbin suffix from its .pid file, and everything is exactly as before
 the upgrade attempt.
 
 If an update is successful and you want to keep the new server, send
-QUIT signal to the old master process to leave only new server
+the TERM signal to the old master process to leave only new server
 running::
 
       PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND                                                 

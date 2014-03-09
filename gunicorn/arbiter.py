@@ -222,8 +222,8 @@ class Arbiter(object):
         self.log.info("Hang up: %s", self.master_name)
         self.reload()
 
-    def handle_quit(self):
-        "SIGQUIT handling"
+    def handle_term(self):
+        "SIGTERM handling"
         raise StopIteration
 
     def handle_int(self):
@@ -231,7 +231,7 @@ class Arbiter(object):
         self.stop(False)
         raise StopIteration
 
-    def handle_term(self):
+    def handle_quit(self):
         "SIGTERM handling"
         self.stop(False)
         raise StopIteration
