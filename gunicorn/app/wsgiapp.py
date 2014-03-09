@@ -18,7 +18,7 @@ class WSGIApplication(Application):
                 os.path.join(util.getcwd(), opts.paste)))
 
             if not os.path.exists(path):
-                raise ConfigError("%r not found" % val)
+                raise ConfigError("%r not found" % path)
 
             # paste application, load the config
             self.cfgurl = 'config:%s' % path
