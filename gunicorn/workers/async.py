@@ -7,6 +7,7 @@ from datetime import datetime
 import errno
 import socket
 import ssl
+import sys
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -48,9 +49,13 @@ class AsyncWorker(base.Worker):
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
             except ssl.SSLError:
-                raise  # pass to next try-except level
+                exc_info = sys.exc_info()
+                # pass to next try-except level
+                six.reraise(exc_info[0], exc_info[1], exc_info[2])
             except socket.error:
-                raise  # pass to next try-except level
+                exc_info = sys.exc_info()
+                # pass to next try-except level
+                six.reraise(exc_info[0], exc_info[1], exc_info[2])
             except Exception as e:
                 self.handle_error(req, client, addr, e)
         except ssl.SSLError as e:

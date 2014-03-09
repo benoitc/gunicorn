@@ -10,6 +10,7 @@ import os
 import select
 import socket
 import ssl
+import sys
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -144,7 +145,9 @@ class SyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
         except socket.error:
-            raise
+            exc_info = sys.exc_info()
+            # pass to next try-except level
+            six.reraise(exc_info[0], exc_info[1], exc_info[2])
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
