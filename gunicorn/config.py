@@ -1222,7 +1222,12 @@ class Paste(Setting):
     validator = validate_string
     default = None
     desc = """\
-        Load a paste.deploy config file.
+        Load a paste.deploy config file. The argument may contain a "#" symbol
+        followed by the name of an app section from the config file, e.g.
+        "production.ini#admin".
+
+        At this time, using alternate server blocks is not supported. Use the
+        command line arguments to control server configuration instead.
         """
 
 

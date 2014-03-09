@@ -14,14 +14,18 @@ from gunicorn import util
 class WSGIApplication(Application):
     def init(self, parser, opts, args):
         if opts.paste and opts.paste is not None:
+            app_name = 'main'
+            path = opts.paste
+            if '#' in path:
+                path, app_name = path.split('#')
             path = os.path.abspath(os.path.normpath(
-                os.path.join(util.getcwd(), opts.paste)))
+                os.path.join(util.getcwd(), path)))
 
             if not os.path.exists(path):
                 raise ConfigError("%r not found" % path)
 
             # paste application, load the config
-            self.cfgurl = 'config:%s' % path
+            self.cfgurl = 'config:%s#%s' % (path, app_name)
             self.relpath = os.path.dirname(path)
 
             from .pasterapp import paste_config

@@ -96,5 +96,9 @@ For example:
 
     gunicorn --paste development.ini -b :8080 --chdir /path/to/project
 
+Or use a different application:
+
+    gunicorn --paste development.ini#admin -b :8080 --chdir /path/to/project
+
 It is all here. No configuration files nor additional python modules to
 write !!
