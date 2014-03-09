@@ -121,18 +121,18 @@ to ensure that is to run this command from the same directory as your
 manage.py file.)
 
 You can use the
-[--env](http://docs.gunicorn.org/en/latest/settings.html#raw-env) option
+`--env <http://docs.gunicorn.org/en/latest/settings.html#raw-env>`_ option
 to set the path to load the settings. In case you need it you can also
 add your application path to PYTHONPATH using the
-[--pythonpath](http://docs.gunicorn.org/en/latest/settings.html#pythonpath)
+`--pythonpath <http://docs.gunicorn.org/en/latest/settings.html#pythonpath>`_
 option.
 
-paster serve
-++++++++++++
+Paste
++++++
 
 If you are a user/developer of a paste-compatible framework/app (as
 Pyramid, Pylons and Turbogears) you can use the gunicorn
-[--paste](http://docs.gunicorn.org/en/latest/settings.html#paste) option
+`--paste <http://docs.gunicorn.org/en/latest/settings.html#paste>`_ option
 to run your application.
 
 For example:

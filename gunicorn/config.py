@@ -1217,7 +1217,7 @@ class PythonPath(Setting):
 class Paste(Setting):
     name = "paste"
     section = "Server Mechanics"
-    cli = ["--paster"]
+    cli = ["--paste", "--paster"]
     meta = "STRING"
     validator = validate_string
     default = None
