@@ -97,12 +97,12 @@ Example with test app::
     $ gunicorn --workers=2 test:app
 
 Integration
-===========
+-----------
 
 We also provide integration for both Django and Paster applications.
 
 Django
-------
+++++++
 
 gunicorn just needs to be called with a the location of a WSGI
 application object.:
@@ -129,7 +129,7 @@ add your application path to PYTHONPATH using the
 option.
 
 paster serve
-------------
+++++++++++++
 
 If you are a user/developer of a paste-compatible framework/app (as
 Pyramid, Pylons and Turbogears) you can use the gunicorn
