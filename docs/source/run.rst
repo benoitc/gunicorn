@@ -8,18 +8,13 @@ deploying Gunicorn in production see :doc:`deploy`.
 Commands
 ========
 
-After installing Gunicorn you will have access to three command line scripts
-that can be used for serving the various supported web frameworks:
-
-  * ``gunicorn``
-  * ``gunicorn_django``
-  * ``gunicorn_paster``
+After installing Gunicorn you will have access to the command line script
+``gunicorn``.
 
 gunicorn
 --------
 
-The first and most basic script is used to serve 'bare' WSGI applications
-that don't require a translation layer. Basic usage::
+Basic usage::
 
     $ gunicorn [OPTIONS] APP_MODULE
 

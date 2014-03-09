@@ -46,9 +46,8 @@ Gevent_ you most likely need to install a newer version of libev_ or libevent_.
 Basic Usage
 -----------
 
-After installing Gunicorn you will have access to three command line scripts
-that can be used for serving the various supported web frameworks: ``gunicorn``,
-``gunicorn_django``, and ``gunicorn_paster``.
+After installing Gunicorn you will have access to the command line script
+``gunicorn``.
 
 Commonly Used Arguments
 +++++++++++++++++++++++
