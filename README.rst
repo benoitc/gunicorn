@@ -96,84 +96,52 @@ Example with test app::
     $ cd examples
     $ gunicorn --workers=2 test:app
 
-gunicorn_django
-+++++++++++++++
+Integration
+===========
 
-You might not have guessed it, but this script is used to serve Django
-applications. Basic usage::
+We also provide integration for both Django and Paster applications.
 
-    $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
+Django
+------
 
-By default ``SETTINGS_PATH`` will look for ``settings.py`` in the current
-directory.
+gunicorn just needs to be called with a the location of a WSGI
+application object.:
 
-Example with your Django project::
+    gunicorn [OPTIONS] APP_MODULE
 
-    $ cd path/to/yourdjangoproject
-    $ gunicorn_django --workers=2
+Where APP_MODULE is of the pattern MODULE_NAME:VARIABLE_NAME. The module
+name should be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.
 
-Alternatively, you can install some Gunicorn magic directly into your Django
-project and use the provided command for running the server.
+So for a typical Django project, invoking gunicorn would look like:
 
-First you'll need to add ``gunicorn`` to your ``INSTALLED_APPS`` in the settings
-file::
+    gunicorn myproject.wsgi:application
 
-    INSTALLED_APPS = (
-        ...
-        "gunicorn",
-    )
+(This requires that your project be on the Python path; the simplest way
+to ensure that is to run this command from the same directory as your
+manage.py file.)
 
-Then you can run::
+You can use the
+[--env](http://docs.gunicorn.org/en/latest/settings.html#raw-env) option
+to set the path to load the settings. In case you need it you can also
+add your application path to PYTHONPATH using the
+[--pythonpath](http://docs.gunicorn.org/en/latest/settings.html#pythonpath)
+option.
 
-    python manage.py run_gunicorn
+paster serve
+------------
 
-gunicorn_paster
-+++++++++++++++
+If you are a user/developer of a paste-compatible framework/app (as
+Pyramid, Pylons and Turbogears) you can use the gunicorn
+[--paste](http://docs.gunicorn.org/en/latest/settings.html#paste) option
+to run your application.
 
-Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
-apologize for the lack of script name creativity. And some usage::
+For example:
 
-    $ gunicorn_paster [OPTIONS] paste_config.ini
+    gunicorn --paste development.ini -b :8080 --chdir /path/to/project
 
-Simple example::
-
-    $ cd yourpasteproject
-    $ gunicorn_paster --workers=2 development.ini
-
-If you're wanting to keep on keeping on with the usual paster serve command,
-you can specify the Gunicorn server settings in your configuration file::
-
-    [server:main]
-    use = egg:gunicorn#main
-    host = 127.0.0.1
-    port = 5000
-
-And then as per usual::
-
-    $ cd yourpasteproject
-    $ paster serve development.ini workers=2
-
-**Gunicorn paster from script**
-
-If you'd like to run Gunicorn paster from a script instead of the command line (for example: a runapp.py to start a Pyramid app),
-you can use this example to help get you started::
-
-    import os
-    import multiprocessing
-
-    from paste.deploy import appconfig, loadapp
-    from gunicorn.app.pasterapp import paste_server
-
-    if __name__ == "__main__":
-
-        iniFile = 'config:development.ini'
-        port = int(os.environ.get("PORT", 5000))
-        workers = multiprocessing.cpu_count() * 2 + 1
-        worker_class = 'gevent'
-
-        app = loadapp(iniFile, relative_to='.')
-        paste_server(app, host='0.0.0.0', port=port, workers=workers, worker_class=worker_class)
-
+It is all here. No configuration files nor additional python modules to
+write !!
 
 LICENSE
 -------
