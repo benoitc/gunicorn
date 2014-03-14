@@ -32,9 +32,10 @@ class AsyncWorker(base.Worker):
         try:
             parser = http.RequestParser(self.cfg, client)
             try:
+                listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
                     req = six.next(parser)
-                    self.handle_request(listener, req, client, addr)
+                    self.handle_request(listener_name, req, client, addr)
                 else:
                     # keepalive loop
                     while True:
@@ -78,14 +79,14 @@ class AsyncWorker(base.Worker):
         finally:
             util.close(client)
 
-    def handle_request(self, listener, req, sock, addr):
+    def handle_request(self, listener_name, req, sock, addr):
         request_start = datetime.now()
         environ = {}
         resp = None
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
-                    listener.getsockname(), self.cfg)
+                    listener_name, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
