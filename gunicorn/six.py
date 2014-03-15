@@ -288,26 +288,37 @@ _add_doc(u, """Text literal""")
 
 def _check_if_pyc(fname):
     """ Returns True if the extension is .pyc, False if .py and None if otherwise """
-    # Make common lambda
-    test = lambda ext: True if fname.rfind(ext) == len(fname) - len(ext) else False
-    # Run test
-    if test(".pyc"):
-        # TODO: Actually check if file content is .pyc compliant
-        return True
-    elif test(".py"):
-        # TODO: Actually check if file is .py by trying to import
-        return False
-    else:
-        return None
+    from imp import find_module
+    from os.path import realpath, dirname, basename, splitext
+
+    # Normalize the file-path for the find_module()
+    filepath = realpath(fname)
+    dirpath = dirname(filepath)
+    module_name = splitext(basename(filepath))[0]
+
+    # Validate and fetch
+    try:
+        fileobj, fullpath, (_, _, pytype) = find_module(module_name, [ dirpath ])
+
+    except ImportError:
+        raise IOError("Cannot find config file. Path maybe incorrect! : {0}".format(filepath))
+
+    return (pytype, fileobj, fullpath)
 
 
 def _get_codeobj(pyfile):
     """ Returns the code object, given a python file """
-    result = _check_if_pyc(pyfile)
-    if result is True:
+    from imp import PY_COMPILED, PY_SOURCE
+
+    result, fileobj, fullpath = _check_if_pyc(pyfile)
+
+    # WARNING:
+    # fp.read() can blowup if the module is extremely large file.
+    # Lookout for overflow errors.
+    if result is PY_COMPILED:
         # This is a .pyc file. Treat accordingly.
-        with open(pyfile, "rb") as pycfile:
-            data = pycfile.read()
+        data = fileobj.read()
+        fileobj.close()
 
         # .pyc format is as follows:
         # 0 - 4 bytes: Magic number, which changes with each create of .pyc file.
@@ -318,13 +329,14 @@ def _get_codeobj(pyfile):
         import marshal
         code_obj = marshal.loads(data[8:])
 
-    elif result is False:
+    elif result is PY_SOURCE:
         # This is a .py file.
-        code_obj = compile(open(pyfile, 'rb').read(), pyfile, 'exec')
+        code_obj = compile(fileobj.read(), fullpath, 'exec')
+        fileobj.close()
 
     else:
-        # Dunno what this is...
-        raise Exception("Input file is unknown format: {0}".format(pyfile))
+        # Unsupported extension
+        raise Exception("Input file is unknown format: {0}".format(fullpath))
 
     # Return code object
     return code_obj
