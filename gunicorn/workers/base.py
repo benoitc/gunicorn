@@ -188,7 +188,7 @@ class Worker(object):
 
             status_int = 500
             reason = "Internal Server Error"
-            mesg = ""
+            mesg = "%s" % str(exc)
 
         if req is not None:
             request_time = datetime.now() - request_start
