@@ -315,11 +315,13 @@ def _get_codeobj(pyfile):
     # WARNING:
     # fp.read() can blowup if the module is extremely large file.
     # Lookout for overflow errors.
-    if result is PY_COMPILED:
-        # This is a .pyc file. Treat accordingly.
+    try:
         data = fileobj.read()
+    finally:
         fileobj.close()
 
+    # This is a .pyc file. Treat accordingly.
+    if result is PY_COMPILED:
         # .pyc format is as follows:
         # 0 - 4 bytes: Magic number, which changes with each create of .pyc file.
         #              First 2 bytes change with each marshal of .pyc file. Last 2 bytes is "\r\n".
@@ -331,8 +333,7 @@ def _get_codeobj(pyfile):
 
     elif result is PY_SOURCE:
         # This is a .py file.
-        code_obj = compile(fileobj.read(), fullpath, 'exec')
-        fileobj.close()
+        code_obj = compile(data, fullpath, 'exec')
 
     else:
         # Unsupported extension
