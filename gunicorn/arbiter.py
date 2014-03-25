@@ -45,8 +45,8 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+    SIGNALS = [getattr(signal, "SIG%s" % x)
+            for x in "HUP QUIT INT TERM TTIN TTOU TSTP USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -83,6 +83,10 @@ class Arbiter(object):
         self._num_workers = value
         self.cfg.nworkers_changed(self, value, old_value)
     num_workers = property(_get_num_workers, _set_num_workers)
+
+    def update_num_workers(self, num):
+        self.num_workers = num
+        self.manage_workers()
 
     def setup(self, app):
         self.app = app
@@ -241,8 +245,7 @@ class Arbiter(object):
         SIGTTIN handling.
         Increases the number of workers by one.
         """
-        self.num_workers += 1
-        self.manage_workers()
+        self.update_num_workers(self.num_workers + 1)
 
     def handle_ttou(self):
         """\
@@ -251,8 +254,19 @@ class Arbiter(object):
         """
         if self.num_workers <= 1:
             return
-        self.num_workers -= 1
-        self.manage_workers()
+        self.update_num_workers(self.num_workers - 1)
+
+    def handle_tstp(self):
+        """\
+        SIGTSTP handling.
+        Set the number of workers according to num_workers_path in configuration.
+        """
+        num_workers_path = self.cfg.num_workers_path
+        if num_workers_path and os.path.exists(num_workers_path):
+            with open(num_workers_path) as f:
+                num_workers = int(f.read().strip())
+                if num_workers > 0:
+                    self.update_num_workers(num_workers)
 
     def handle_usr1(self):
         """\
