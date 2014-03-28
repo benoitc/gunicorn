@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import io
 import logging
 import os
 import re
@@ -42,22 +43,53 @@ class FileWrapper(object):
         raise IndexError
 
 
-def default_environ(req, sock, cfg):
+class WSGIErrorsWraper(io.RawIOBase):
+
+    def __init__(self, cfg):
+        errorlog = logging.getLogger("gunicorn.error")
+        handlers = errorlog.handlers
+        self.streams = []
+
+        if cfg.errorlog == "-":
+            self.streams.append(sys.stderr)
+            handlers = handlers[1:]
+
+        for h in handlers:
+            if hasattr(h, "stream"):
+                self.streams.append(h.stream)
+
+    def write(self, data):
+        for stream in self.streams:
+            try:
+                stream.write(data)
+            except UnicodeError:
+                stream.write(data.encode("UTF-8"))
+            stream.flush()
+
+
+def base_environ(cfg):
     return {
-        "wsgi.input": req.body,
-        "wsgi.errors": sys.stderr,
+        "wsgi.errors": WSGIErrorsWraper(cfg),
         "wsgi.version": (1, 0),
         "wsgi.multithread": False,
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "wsgi.file_wrapper": FileWrapper,
-        "gunicorn.socket": sock,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
+    }
+
+
+def default_environ(req, sock, cfg):
+    env = base_environ(cfg)
+    env.update({
+        "wsgi.input": req.body,
+        "gunicorn.socket": sock,
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
         "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version])
-    }
+    })
+    return env
 
 
 def proxy_environ(req):
@@ -76,36 +108,34 @@ def proxy_environ(req):
 
 
 def create(req, sock, client, server, cfg):
-    resp = Response(req, sock)
+    resp = Response(req, sock, cfg)
 
+    # set initial environ
     environ = default_environ(req, sock, cfg)
 
-    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
-    # may not qualify the remote addr:
-    # http://www.ietf.org/rfc/rfc3875
-    forward = client or "127.0.0.1"
+    # default variables
+    host = None
     url_scheme = "https" if cfg.is_ssl else "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
 
+    # set secure_headers
     secure_headers = cfg.secure_scheme_headers
-    x_forwarded_for_header = cfg.x_forwarded_for_header
-    if '*' not in cfg.forwarded_allow_ips and client\
-            and client[0] not in cfg.forwarded_allow_ips:
-        x_forwarded_for_header = None
-        secure_headers = {}
+    if client and not isinstance(client, string_types):
+        if ('*' not in cfg.forwarded_allow_ips
+                and client[0] not in cfg.forwarded_allow_ips):
+            secure_headers = {}
 
+    # add the headers tot the environ
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
-        elif x_forwarded_for_header and hdr_name == x_forwarded_for_header:
-            forward = hdr_value
-        elif secure_headers and (hdr_name.upper() in secure_headers and
-              hdr_value == secure_headers[hdr_name.upper()]):
+        elif secure_headers and (hdr_name in secure_headers and
+              hdr_value == secure_headers[hdr_name]):
             url_scheme = "https"
-        elif hdr_name == "HOST":
-            server = hdr_value
+        elif hdr_name == 'HOST':
+            host = hdr_value
         elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
         elif hdr_name == "CONTENT-TYPE":
@@ -120,61 +150,59 @@ def create(req, sock, client, server, cfg):
             hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
+    # set the url schejeme
     environ['wsgi.url_scheme'] = url_scheme
 
-    if isinstance(forward, string_types):
-        # we only took the last one
-        # http://en.wikipedia.org/wiki/X-Forwarded-For
-        if forward.find(",") >= 0:
-            forward = forward.rsplit(",", 1)[1].strip()
-
-        # find host and port on ipv6 address
-        if '[' in forward and ']' in forward:
-            host = forward.split(']')[0][1:].lower()
-        elif ":" in forward and forward.count(":") == 1:
-            host = forward.split(":")[0].lower()
-        else:
-            host = forward
-
-        forward = forward.split(']')[-1]
-        if ":" in forward and forward.count(":") == 1:
-            port = forward.split(':', 1)[1]
-        else:
-            port = 80
-
-        remote = (host, port)
+    # set the REMOTE_* keys in environ
+    # authors should be aware that REMOTE_HOST and REMOTE_ADDR
+    # may not qualify the remote addr:
+    # http://www.ietf.org/rfc/rfc3875
+    if isinstance(client, string_types):
+        environ['REMOTE_ADDR'] = client
     else:
-        remote = forward
+        environ['REMOTE_ADDR'] = client[0]
+        environ['REMOTE_PORT'] = str(client[1])
 
-    environ['REMOTE_ADDR'] = remote[0]
-    environ['REMOTE_PORT'] = str(remote[1])
-
+    # handle the SERVER_*
+    # Normally only the application should use the Host header but since the
+    # WSGI spec doesn't support unix sockets, we are using it to create
+    # viable SERVER_* if possible.
     if isinstance(server, string_types):
         server = server.split(":")
         if len(server) == 1:
-            if url_scheme == "http":
-                server.append("80")
-            elif url_scheme == "https":
-                server.append("443")
+            # unix socket
+            if host and host is not None:
+                server = host.split(':')
+                if len(server) == 1:
+                    if url_scheme == "http":
+                        server.append(80),
+                    elif url_scheme == "https":
+                        server.append(443)
+                    else:
+                        server.append('')
             else:
+                # no host header given which means that we are not behind a
+                # proxy, so append an empty port.
                 server.append('')
     environ['SERVER_NAME'] = server[0]
     environ['SERVER_PORT'] = str(server[1])
 
+    # set the path and script name
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
     environ['PATH_INFO'] = unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
+    # override the environ with the correct remote and server address if
+    # we are behind a proxy using the proxy protocol.
     environ.update(proxy_environ(req))
-
     return resp, environ
 
 
 class Response(object):
 
-    def __init__(self, req, sock):
+    def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
         self.version = SERVER_SOFTWARE
@@ -186,6 +214,7 @@ class Response(object):
         self.response_length = None
         self.sent = 0
         self.upgrade = False
+        self.cfg = cfg
 
     def force_close(self):
         self.must_close = True
@@ -330,6 +359,23 @@ class Response(object):
             while sent != nbytes:
                 sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
 
+    def sendfile_use_send(self, fileno, fo_offset, nbytes):
+
+        # send file in blocks of 8182 bytes
+        BLKSIZE = 8192
+
+        sent = 0
+        while sent != nbytes:
+            data = os.read(fileno, BLKSIZE)
+            if not data:
+                break
+
+            sent += len(data)
+            if sent > nbytes:
+                data = data[:nbytes-sent]
+
+            util.write(self.sock, data, self.chunked)
+
     def write_file(self, respiter):
         if sendfile is not None and util.is_fileobject(respiter.filelike):
             # sometimes the fileno isn't a callable
@@ -350,14 +396,17 @@ class Response(object):
 
             self.send_headers()
 
-            if self.is_chunked():
-                chunk_size = "%X\r\n" % nbytes
-                self.sock.sendall(chunk_size.encode('utf-8'))
+            if self.cfg.is_ssl:
+                self.sendfile_use_send(fileno, fo_offset, nbytes)
+            else:
+                if self.is_chunked():
+                    chunk_size = "%X\r\n" % nbytes
+                    self.sock.sendall(chunk_size.encode('utf-8'))
 
-            self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
+                self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
 
-            if self.is_chunked():
-                self.sock.sendall(b"\r\n")
+                if self.is_chunked():
+                    self.sock.sendall(b"\r\n")
 
             os.lseek(fileno, fd_offset, os.SEEK_SET)
         else:

@@ -1,3 +1,4 @@
+.. _settings:
 
 Settings
 ========
@@ -90,7 +91,7 @@ A string referring to one of the following bundled classes:
 
 * ``sync``
 * ``eventlet`` - Requires eventlet >= 0.9.7
-* ``gevent``   - Requires gevent >= 0.12.2 (?)
+* ``gevent``   - Requires gevent >= 0.13
 * ``tornado``  - Requires tornado >= 0.2
 
 Optionally, you can provide your own worker by giving gunicorn a
@@ -214,10 +215,23 @@ debug
 * ``--debug``
 * ``False``
 
-Turn on debugging in the server.
+**DEPRECATED**: This no functionality was removed after v18.0.  This
+option is now a no-op.
 
-This limits the number of worker processes to 1 and changes some error
-handling that's sent to clients.
+reload
+~~~~~~
+
+* ``--reload``
+* ``False``
+
+Restart workers when code changes.
+
+This setting is intended for development. It will cause workers to be
+restarted whenever application code changes.
+
+The reloader is incompatible with application preloading. When using a
+paste configuration be sure that the server block does not import any
+application code or the reload will not work as designed.
 
 spew
 ~~~~
@@ -257,7 +271,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/offset_pypy/src/gunicorn/docs``
+* ``/Users/benoitc/work/gunicorn_env/src/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -271,9 +285,6 @@ Daemonize the Gunicorn process.
 
 Detaches the server from the controlling terminal and enters the
 background.
-
-Server Mechanic
----------------
 
 raw_env
 ~~~~~~~
@@ -289,9 +300,6 @@ Pass variables to the execution environment. Ex.::
 
 and test for the foo variable environement in your application.
 
-Server Mechanics
-----------------
-
 pidfile
 ~~~~~~~
 
@@ -301,6 +309,16 @@ pidfile
 A filename to use for the PID file.
 
 If not set, no PID file will be written.
+
+worker_tmp_dir
+~~~~~~~~~~~~~~
+
+* ``--worker-tmp-dir DIR``
+* ``None``
+
+A directory to use for the worker heartbeat temporary file.
+
+If not set, the default temporary directory will be used.
 
 user
 ~~~~
@@ -371,20 +389,13 @@ when handling HTTPS requests.
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
 
-x_forwarded_for_header
-~~~~~~~~~~~~~~~~~~~~~~
-
-* ``X-FORWARDED-FOR``
-
-Set the X-Forwarded-For header that identify the originating IP
-address of the client connection to gunicorn via a proxy.
-
 forwarded_allow_ips
 ~~~~~~~~~~~~~~~~~~~
 
+* ``--forwarded-allow-ips STRING``
 * ``127.0.0.1``
 
-Front-end's IPs from which allowed to handle X-Forwarded-* headers.
+Front-end's IPs from which allowed to handle set secure headers.
 (comma separate).
 
 Set to "*" to disable checking of Front-end IPs (useful for setups
@@ -417,26 +428,26 @@ By default:
 %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 
-h: remote address
-l: '-'
-u: currently '-', may be user name in future releases
-t: date of the request
-r: status line (ex: GET / HTTP/1.1)
-s: status
-b: response length or '-'
-f: referer
-a: user agent
-T: request time in seconds
-D: request time in microseconds,
-p: process ID
-{Header}i: request header
-{Header}o: response header
+| h: remote address
+| l: '-'
+| u: currently '-', may be user name in future releases
+| t: date of the request
+| r: status line (ex: GET / HTTP/1.1)
+| s: status
+| b: response length or '-'
+| f: referer
+| a: user agent
+| T: request time in seconds
+| D: request time in microseconds,
+| p: process ID
+| {Header}i: request header
+| {Header}o: response header
 
 errorlog
 ~~~~~~~~
 
 * ``--error-logfile FILE, --log-file FILE``
-* ``-``
+* ``None``
 
 The Error log file to write to.
 
@@ -462,7 +473,7 @@ logger_class
 ~~~~~~~~~~~~
 
 * ``--logger-class STRING``
-* ``simple``
+* ``gunicorn.glogging.Logger``
 
 The logger you want to use to log events in gunicorn.
 
@@ -490,7 +501,15 @@ syslog_addr
 * ``--log-syslog-to SYSLOG_ADDR``
 * ``unix:///var/run/syslog``
 
-Address to send syslog messages
+Address to send syslog messages.
+
+Address is a string of the form:
+
+* 'unix://PATH#TYPE' : for unix domain socket. TYPE can be 'stream'
+  for the stream driver or 'dgram' for the dgram driver.
+  'stream' is the default.
+* 'udp://HOST:PORT' : for UDP sockets
+* 'tcp://HOST:PORT' : for TCP sockets
 
 syslog
 ~~~~~~
@@ -498,7 +517,7 @@ syslog
 * ``--log-syslog``
 * ``False``
 
-Log to syslog.
+Send *Gunicorn* logs to syslog.
 
 syslog_prefix
 ~~~~~~~~~~~~~
@@ -673,6 +692,19 @@ Called just after a worker has initialized the application.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
+worker_int
+~~~~~~~~~~
+
+*  ::
+
+        def worker_int(worker):
+            pass
+
+Called just after a worker exited on SIGINT or SIGTERM.
+
+The callable needs to accept one instance variable for the initialized
+Worker.
+
 pre_exec
 ~~~~~~~~
 
@@ -758,12 +790,12 @@ PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
 
 Example for stunnel config::
 
-[https]
-protocol = proxy
-accept  = 443
-connect = 80
-cert = /etc/ssl/certs/stunnel.pem
-key = /etc/ssl/certs/stunnel.key
+    [https]
+    protocol = proxy
+    accept  = 443
+    connect = 80
+    cert = /etc/ssl/certs/stunnel.pem
+    key = /etc/ssl/certs/stunnel.key
 
 proxy_allow_ips
 ~~~~~~~~~~~~~~~
@@ -772,6 +804,10 @@ proxy_allow_ips
 * ``127.0.0.1``
 
 Front-end's IPs from which allowed accept proxy requests (comma separate).
+
+Set to "*" to disable checking of Front-end IPs (useful for setups
+where you don't know in advance the IP address of Front-end, but
+you still trust the environment)
 
 Ssl
 ---
@@ -791,4 +827,52 @@ certfile
 * ``None``
 
 SSL certificate file
+
+ssl_version
+~~~~~~~~~~~
+
+* ``--ssl-version``
+* ``3``
+
+SSL version to use (see stdlib ssl module's)
+
+cert_reqs
+~~~~~~~~~
+
+* ``--cert-reqs``
+* ``0``
+
+Whether client certificate is required (see stdlib ssl module's)
+
+ca_certs
+~~~~~~~~
+
+* ``--ca-certs FILE``
+* ``None``
+
+CA certificates file
+
+suppress_ragged_eofs
+~~~~~~~~~~~~~~~~~~~~
+
+* ``--suppress-ragged-eofs``
+* ``True``
+
+Suppress ragged EOFs (see stdlib ssl module's)
+
+do_handshake_on_connect
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``--do-handshake-on-connect``
+* ``False``
+
+Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+
+ciphers
+~~~~~~~
+
+* ``--ciphers``
+* ``TLSv1``
+
+Ciphers to use (see stdlib ssl module's)
 

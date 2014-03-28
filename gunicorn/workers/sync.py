@@ -10,6 +10,7 @@ import os
 import select
 import socket
 import ssl
+import sys
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -85,8 +86,7 @@ class SyncWorker(base.Worker):
         try:
             if self.cfg.is_ssl:
                 client = ssl.wrap_socket(client, server_side=True,
-                        do_handshake_on_connect=False,
-                        **self.cfg.ssl_options)
+                    **self.cfg.ssl_options)
 
             parser = http.RequestParser(self.cfg, client)
             req = six.next(parser)
@@ -103,10 +103,13 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except socket.error as e:
-            if e.args[0] != errno.EPIPE:
-                self.log.exception("Error processing request.")
+            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
+                self.log.exception("Socket error processing request.")
             else:
-                self.log.debug("Ignoring EPIPE")
+                if e.args[0] == errno.ECONNRESET:
+                    self.log.debug("Ignoring connection reset")
+                else:
+                    self.log.debug("Ignoring EPIPE")
         except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
@@ -142,20 +145,21 @@ class SyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
         except socket.error:
-            raise
-        except Exception as e:
+            exc_info = sys.exc_info()
+            # pass to next try-except level
+            six.reraise(exc_info[0], exc_info[1], exc_info[2])
+        except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
+                self.log.exception("Error handling request")
                 try:
                     client.shutdown(socket.SHUT_RDWR)
                     client.close()
                 except socket.error:
                     pass
                 raise StopIteration()
-            # Only send back traceback in HTTP in debug mode.
-            self.handle_error(req, client, addr, e)
-            return
+            raise
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)

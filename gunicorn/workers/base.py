@@ -9,21 +9,16 @@ import signal
 import sys
 import traceback
 
-# Optional statsd instrumentation
-try:
-    from statsd import statsd
-except ImportError:
-    pass
-
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
+from gunicorn.reloader import Reloader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
-from gunicorn import STATSD_INTERVAL
+from gunicorn.statsd import statsd, STATSD_INTERVAL
 
 
 class Worker(object):
@@ -51,7 +46,6 @@ class Worker(object):
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
-        self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
 
         # instrumentation
@@ -60,6 +54,7 @@ class Worker(object):
             self.log.info("Worker will send stats to {0}".format(cfg.statsd_host))
             self.last_nr = 0  # store nr at the last instrumentation call
             self.last_usr_t = 0  # store last user time from os.times()
+            self.statsd = statsd(cfg.statsd_host, self.log)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -92,7 +87,15 @@ class Worker(object):
         loop is initiated.
         """
 
-        # set enviroment' variables
+        # start the reloader
+        if self.cfg.reload:
+            def changed(fname):
+                self.log.info("Worker reloading: %s modified", fname)
+                os.kill(self.pid, signal.SIGTERM)
+                raise SystemExit()
+            Reloader(callback=changed).start()
+
+        # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
                 os.environ[k] = v
@@ -130,7 +133,7 @@ class Worker(object):
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
-        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGALRM, self.handle_alrm)
@@ -153,26 +156,26 @@ class Worker(object):
         "Send stats to statsd"
         try:
             # Track requests per seconds per gunicorn instance, ignore actual workers
-            statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
+            self.statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
             self.log.info("STAT worker={0} gunicorn.worker.requests=+{1}".format(self.pid, self.nr - self.last_nr))
             self.last_nr = self.nr
 
             # Let statsd compute the ratio of user time / wallclock time
             usr_t = os.times()[0]
-            statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
+            self.statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
             self.log.info("STAT worker={0} gunicorn.worker.utilization={1}".format(self.pid, usr_t - self.last_usr_t))
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
-        except NameError:
-            self.log.warn("No statsD client found")
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 
-    def handle_quit(self, sig, frame):
-        self.alive = False
-
     def handle_exit(self, sig, frame):
+        self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
+
+    def handle_quit(self, sig, frame):
         self.alive = False
         sys.exit(0)
 
@@ -188,24 +191,24 @@ class Worker(object):
             reason = "Bad Request"
 
             if isinstance(exc, InvalidRequestLine):
-                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+                mesg = "Invalid Request Line '%s'" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+                mesg = "Invalid Method '%s'" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+                mesg = "Invalid HTTP Version '%s'" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
                 if not req and hasattr(exc, "req"):
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
-                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+                mesg = "Error parsing headers: '%s'" % str(exc)
             elif isinstance(exc, InvalidProxyLine):
-                mesg = "<p>'%s'</p>" % str(exc)
+                mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
                 reason = "Forbidden"
-                mesg = "<p>Request forbidden</p>"
+                mesg = "Request forbidden"
                 status_int = 403
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
@@ -225,7 +228,7 @@ class Worker(object):
             environ = default_environ(req, client, self.cfg)
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
-            resp = Response(req, client)
+            resp = Response(req, client, self.cfg)
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)

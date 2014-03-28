@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import datetime
+import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 from logging.config import fileConfig
@@ -11,8 +11,6 @@ import os
 import socket
 import sys
 import traceback
-import threading
-
 
 from gunicorn import util
 from gunicorn.six import string_types
@@ -107,7 +105,16 @@ class SafeAtoms(dict):
 def parse_syslog_address(addr):
 
     if addr.startswith("unix://"):
-        return (socket.SOCK_STREAM, addr.split("unix://")[1])
+        sock_type = socket.SOCK_STREAM
+
+        # are we using a different socket type?
+        parts = addr.split("#", 1)
+        if len(parts) == 2:
+            addr = parts[0]
+            if parts[1] == "dgram":
+                sock_type = socket.SOCK_DGRAM
+
+        return (sock_type, addr.split("unix://")[1])
 
     if addr.startswith("udp://"):
         addr = addr.split("udp://")[1]
@@ -159,49 +166,44 @@ class Logger(object):
 
     def __init__(self, cfg):
         self.error_log = logging.getLogger("gunicorn.error")
+        self.error_log.propagate = False
         self.access_log = logging.getLogger("gunicorn.access")
+        self.access_log.propagate = False
         self.error_handlers = []
         self.access_handlers = []
         self.cfg = cfg
-        self.logfile = None
-        self.lock = threading.Lock()
         self.setup(cfg)
 
     def setup(self, cfg):
-        if not cfg.logconfig:
-            loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
-            self.error_log.setLevel(loglevel)
-            self.access_log.setLevel(logging.INFO)
+        loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+        self.error_log.setLevel(loglevel)
+        self.access_log.setLevel(logging.INFO)
 
-            if cfg.errorlog != "-":
-                # if an error log file is set redirect stdout & stderr to
-                # this log file.
-                for stream in sys.stdout, sys.stderr:
-                    stream.flush()
+        # set gunicorn.error handler
+        self._set_handler(self.error_log, cfg.errorlog,
+                logging.Formatter(self.error_fmt, self.datefmt))
 
-                self.logfile = open(cfg.errorlog, 'a+')
-                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+        # set gunicorn.access handler
+        if cfg.accesslog is not None:
+            self._set_handler(self.access_log, cfg.accesslog,
+                fmt=logging.Formatter(self.access_fmt))
 
-            # set gunicorn.error handler
-            self._set_handler(self.error_log, cfg.errorlog,
-                    logging.Formatter(self.error_fmt, self.datefmt))
+        # set syslog handler
+        if cfg.syslog:
+            self._set_syslog_handler(
+                self.error_log, cfg, self.syslog_fmt, "error"
+            )
+            self._set_syslog_handler(
+                self.access_log, cfg, self.syslog_fmt, "access"
+            )
 
-            # set gunicorn.access handler
-            if cfg.accesslog is not None:
-                self._set_handler(self.access_log, cfg.accesslog,
-                    fmt=logging.Formatter(self.access_fmt))
-
-            # set syslog handler
-            if cfg.syslog:
-                self._set_syslog_handler(self.error_log, cfg, self.syslog_fmt)
-
-        else:
+        if cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
                         disable_existing_loggers=False)
             else:
-                raise RuntimeError("Error: log config '%s' not found" % cfg.logconfig)
+                raise RuntimeError("Error: log config '%s' not found" %
+                        cfg.logconfig)
 
     def critical(self, msg, *args, **kwargs):
         self.error_log.critical(msg, *args, **kwargs)
@@ -280,26 +282,9 @@ class Logger(object):
 
     def now(self):
         """ return date in Apache Common Log Format """
-        now = datetime.datetime.now()
-        month = util.monthname[now.month]
-        return '[%02d/%s/%04d:%02d:%02d:%02d]' % (now.day, month,
-                now.year, now.hour, now.minute, now.second)
+        return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
 
     def reopen_files(self):
-        if self.cfg.errorlog != "-":
-            # if an error log file is set redirect stdout & stderr to
-            # this log file.
-            for stream in sys.stdout, sys.stderr:
-                stream.flush()
-
-            with self.lock:
-                if self.logfile is not None:
-                    self.logfile.close()
-
-                self.logfile = open(self.cfg.errorlog, 'a+')
-                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
-
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -334,24 +319,25 @@ class Logger(object):
         if h:
             log.handlers.remove(h)
 
-        if output == "-":
-            h = logging.StreamHandler()
-        else:
-            util.check_is_writeable(output)
-            h = logging.FileHandler(output)
+        if output is not None:
+            if output == "-":
+                h = logging.StreamHandler()
+            else:
+                util.check_is_writeable(output)
+                h = logging.FileHandler(output)
 
-        h.setFormatter(fmt)
-        h._gunicorn = True
-        log.addHandler(h)
+            h.setFormatter(fmt)
+            h._gunicorn = True
+            log.addHandler(h)
 
-    def _set_syslog_handler(self, log, cfg, fmt):
+    def _set_syslog_handler(self, log, cfg, fmt, name):
         # setup format
         if not cfg.syslog_prefix:
             prefix = cfg.proc_name.replace(":", ".")
         else:
             prefix = cfg.syslog_prefix
 
-        prefix = "gunicorn.%s" % prefix
+        prefix = "gunicorn.%s.%s" % (prefix, name)
 
         # set format
         fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
