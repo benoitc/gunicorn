@@ -213,11 +213,10 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
+            elif len(data) - 2 > limit > 0:
+                raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
-
-            if len(data) - 2 > limit > 0:
-                raise LimitRequestLine(len(data), limit)
 
         return (data[:idx],  # request line,
                 data[idx + 2:])  # residue in the buffer, skip \r\n
@@ -252,7 +251,8 @@ class Request(Message):
                 if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
-            if remote_host not in self.cfg.proxy_allow_ips:
+            if ("*" not in self.cfg.proxy_allow_ips and
+                    remote_host not in self.cfg.proxy_allow_ips):
                 raise ForbiddenProxyRequest(remote_host)
 
     def parse_proxy_protocol(self, line):

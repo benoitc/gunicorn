@@ -8,18 +8,13 @@ deploying Gunicorn in production see :doc:`deploy`.
 Commands
 ========
 
-After installing Gunicorn you will have access to three command line scripts
-that can be used for serving the various supported web frameworks:
-
-  * ``gunicorn``
-  * ``gunicorn_django``
-  * ``gunicorn_paster``
+After installing Gunicorn you will have access to the command line script
+``gunicorn``.
 
 gunicorn
 --------
 
-The first and most basic script is used to serve 'bare' WSGI applications
-that don't require a translation layer. Basic usage::
+Basic usage::
 
     $ gunicorn [OPTIONS] APP_MODULE
 
@@ -49,81 +44,53 @@ Example with test app::
 
     $ gunicorn --workers=2 test:app
 
-gunicorn_django
----------------
-
-You might not have guessed it, but this script is used to serve Django
-applications. Basic usage::
-
-    $ gunicorn_django [OPTIONS] [SETTINGS_PATH]
-
-By default ``SETTINGS_PATH`` will look for ``settings.py`` in the current
-directory.
-
-Example with your Django project::
-
-    $ cd path/to/yourdjangoproject
-    $ gunicorn_django --workers=2
-
-.. note:: If you run Django 1.4 or newer, it's highly recommended to
-    simply run your application with the `WSGI interface
-    <https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/>`_ using
-    the `gunicorn`_ command.
-
-gunicorn_paster
----------------
-
-Yeah, for Paster-compatible frameworks (Pylons, TurboGears 2, ...). We
-apologize for the lack of script name creativity. And some usage::
-
-    $ gunicorn_paster [OPTIONS] paste_config.ini
-
-Simple example::
-
-    $ cd yourpasteproject
-    $ gunicorn_paster --workers=2 development.ini
 
 Integration
 ===========
 
-Alternatively, we also provide integration for both Django and Paster
-applications in case your deployment strategy would be better served by such
-invocation styles.
+We also provide integration for both Django and Paster applications.
 
-Django ./manage.py
-------------------
+Django
+------
 
-You can add a ``run_gunicorn`` command to your ``./manage.py`` simply by adding
-gunicorn to your ``INSTALLED_APPS``::
+gunicorn just needs to be called with a the location of a WSGI
+application object.:
 
-    INSTALLED_APPS = (
-        ...
-        "gunicorn",
-    )
+    gunicorn [OPTIONS] APP_MODULE
 
-Then you can run::
+Where APP_MODULE is of the pattern MODULE_NAME:VARIABLE_NAME. The module
+name should be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.
 
-    python manage.py run_gunicorn
+So for a typical Django project, invoking gunicorn would look like:
 
-paster serve
-------------
+    gunicorn myproject.wsgi:application
 
-If you're wanting to keep on keeping on with the usual paster serve command,
-you can specify the Gunicorn server settings in your configuration file::
+(This requires that your project be on the Python path; the simplest way
+to ensure that is to run this command from the same directory as your
+manage.py file.)
 
-    [server:main]
-    use = egg:gunicorn#main
-    host = 127.0.0.1
-    port = 5000
-    # Uncomment the line below to use other advanced gunicorn settings
-    #config = %(here)/gunicorn.conf.py
+You can use the
+`--env <http://docs.gunicorn.org/en/latest/settings.html#raw-env>`_ option
+to set the path to load the settings. In case you need it you can also
+add your application path to PYTHONPATH using the
+`--pythonpath <http://docs.gunicorn.org/en/latest/settings.html#pythonpath>`_ option.
 
-And then as per usual::
+Paste
+-----
 
-    $ cd yourpasteproject
-    $ paster serve development.ini workers=2
+If you are a user/developer of a paste-compatible framework/app (as
+Pyramid, Pylons and Turbogears) you can use the gunicorn
+`--paste <http://docs.gunicorn.org/en/latest/settings.html#paste>`_ option
+to run your application.
 
-However, in this configuration, Gunicorn does not reload the application when
-new workers are started. See the note about preloading_.
+For example:
 
-.. _preloading: configure.html#preload-app
+    gunicorn --paste development.ini -b :8080 --chdir /path/to/project
+
+Or use a different application:
+
+    gunicorn --paste development.ini#admin -b :8080 --chdir /path/to/project
+
+It is all here. No configuration files nor additional python modules to
+write !!

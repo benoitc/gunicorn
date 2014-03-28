@@ -30,9 +30,9 @@ class TornadoWorker(Worker):
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
 
-    def handle_quit(self, sig, frame):
+    def handle_exit(self, sig, frame):
         if self.alive:
-            super(TornadoWorker, self).handle_quit(sig, frame)
+            super(TornadoWorker, self).handle_exit(sig, frame)
             self.stop()
 
     def handle_request(self):

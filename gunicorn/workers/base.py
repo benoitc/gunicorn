@@ -17,6 +17,7 @@ except ImportError:
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
+from gunicorn.reloader import Reloader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
 InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
 LimitRequestLine, LimitRequestHeaders
@@ -51,7 +52,6 @@ class Worker(object):
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
-        self.debug = cfg.debug
         self.tmp = WorkerTmp(cfg)
 
         # instrumentation
@@ -92,7 +92,15 @@ class Worker(object):
         loop is initiated.
         """
 
-        # set enviroment' variables
+        # start the reloader
+        if self.cfg.reload:
+            def changed(fname):
+                self.log.info("Worker reloading: %s modified", fname)
+                os.kill(self.pid, signal.SIGTERM)
+                raise SystemExit()
+            Reloader(callback=changed).start()
+
+        # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
                 os.environ[k] = v
@@ -130,7 +138,7 @@ class Worker(object):
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
-        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGALRM, self.handle_alrm)
@@ -169,10 +177,12 @@ class Worker(object):
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 
-    def handle_quit(self, sig, frame):
-        self.alive = False
-
     def handle_exit(self, sig, frame):
+        self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
+
+    def handle_quit(self, sig, frame):
         self.alive = False
         sys.exit(0)
 
@@ -188,24 +198,24 @@ class Worker(object):
             reason = "Bad Request"
 
             if isinstance(exc, InvalidRequestLine):
-                mesg = "<p>Invalid Request Line '%s'</p>" % str(exc)
+                mesg = "Invalid Request Line '%s'" % str(exc)
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "<p>Invalid Method '%s'</p>" % str(exc)
+                mesg = "Invalid Method '%s'" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "<p>Invalid HTTP Version '%s'</p>" % str(exc)
+                mesg = "Invalid HTTP Version '%s'" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
                 if not req and hasattr(exc, "req"):
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
-                mesg = "<p>%s</p>" % str(exc)
+                mesg = "%s" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
-                mesg = "<p>Error parsing headers: '%s'</p>" % str(exc)
+                mesg = "Error parsing headers: '%s'" % str(exc)
             elif isinstance(exc, InvalidProxyLine):
-                mesg = "<p>'%s'</p>" % str(exc)
+                mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
                 reason = "Forbidden"
-                mesg = "<p>Request forbidden</p>"
+                mesg = "Request forbidden"
                 status_int = 403
 
             self.log.debug("Invalid request from ip={ip}: {error}"\
@@ -225,7 +235,7 @@ class Worker(object):
             environ = default_environ(req, client, self.cfg)
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
-            resp = Response(req, client)
+            resp = Response(req, client, self.cfg)
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)

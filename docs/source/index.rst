@@ -22,7 +22,7 @@ Features
 
 
 .. note::
-    main Gunicorn website on http://gunicorn.org 
+    main Gunicorn website on http://gunicorn.org
 
 
 .. note::
@@ -34,11 +34,12 @@ Contents
 --------
 
 .. toctree::
-    :titlesonly:
+    :maxdepth: 2
 
     install
     run
     configure
+    settings
     deploy
     design
     signals

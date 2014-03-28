@@ -1,6 +1,12 @@
 Changelog
 =========
 
+18.2 / unreleased
+-----------------
+
+- new: logging to syslog now includes the access log.
+
+
 18.0 / 2013-08-26
 -----------------
 

@@ -3,6 +3,8 @@ import inspect
 import gunicorn.config as guncfg
 
 HEAD = """
+.. _settings:
+
 Settings
 ========
 

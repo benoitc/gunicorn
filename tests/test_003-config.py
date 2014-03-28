@@ -57,7 +57,7 @@ def test_property_access():
     # Class was loaded
     t.eq(c.worker_class, SyncWorker)
 
-    # Debug affects workers
+    # Workers defaults to 1
     t.eq(c.workers, 1)
     c.set("workers", 3)
     t.eq(c.workers, 3)
@@ -89,15 +89,15 @@ def test_property_access():
 
 def test_bool_validation():
     c = config.Config()
-    t.eq(c.debug, False)
-    c.set("debug", True)
-    t.eq(c.debug, True)
-    c.set("debug", "true")
-    t.eq(c.debug, True)
-    c.set("debug", "false")
-    t.eq(c.debug, False)
-    t.raises(ValueError, c.set, "debug", "zilch")
-    t.raises(TypeError, c.set, "debug", 4)
+    t.eq(c.preload_app, False)
+    c.set("preload_app", True)
+    t.eq(c.preload_app, True)
+    c.set("preload_app", "true")
+    t.eq(c.preload_app, True)
+    c.set("preload_app", "false")
+    t.eq(c.preload_app, False)
+    t.raises(ValueError, c.set, "preload_app", "zilch")
+    t.raises(TypeError, c.set, "preload_app", 4)
 
 def test_pos_int_validation():
     c = config.Config()
@@ -169,9 +169,9 @@ def test_cmd_line():
     with AltArgs(["prog_name", "-w", "3"]):
         app = NoConfigApp()
         t.eq(app.cfg.workers, 3)
-    with AltArgs(["prog_name", "--debug"]):
+    with AltArgs(["prog_name", "--preload"]):
         app = NoConfigApp()
-        t.eq(app.cfg.debug, True)
+        t.eq(app.cfg.preload_app, True)
 
 def test_app_config():
     with AltArgs():

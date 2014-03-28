@@ -1,0 +1,8 @@
+Changelog - 2014
+================
+
+18.2 / unreleased
+-----------------
+
+- new: logging to syslog now includes the access log.
+

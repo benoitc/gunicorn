@@ -101,24 +101,21 @@ class Arbiter(object):
         if 'GUNICORN_FD' in os.environ:
             self.log.reopen_files()
 
+        self.worker_class = self.cfg.worker_class
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
-        self.debug = self.cfg.debug
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
-        self.worker_class = self.cfg.worker_class
 
-        if self.cfg.debug:
-            self.log.debug("Current configuration:")
-            for config, value in sorted(self.cfg.settings.items(),
-                    key=lambda setting: setting[1]):
-                self.log.debug("  %s: %s", config, value.value)
+        self.log.debug('Current configuration:\n{0}'.format(
+            '\n'.join(
+                '  {0}: {1}'.format(config, value.value)
+                for config, value
+                in sorted(self.cfg.settings.items(),
+                          key=lambda setting: setting[1]))))
 
         if self.cfg.preload_app:
-            if not self.cfg.debug:
-                self.app.wsgi()
-            else:
-                self.log.warning("debug mode: app isn't preloaded.")
+            self.app.wsgi()
 
         # instrumentation setup via statsD if needed
         self.use_statsd = self.cfg.statsd_host is not None
@@ -194,7 +191,6 @@ class Arbiter(object):
         self.manage_workers()
         while True:
             try:
-                self.reap_workers()
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()
@@ -232,6 +228,7 @@ class Arbiter(object):
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
+        self.reap_workers()
         self.wakeup()
 
     def handle_hup(self):
@@ -244,8 +241,8 @@ class Arbiter(object):
         self.log.info("Hang up: %s", self.master_name)
         self.reload()
 
-    def handle_quit(self):
-        "SIGQUIT handling"
+    def handle_term(self):
+        "SIGTERM handling"
         raise StopIteration
 
     def handle_int(self):
@@ -253,7 +250,7 @@ class Arbiter(object):
         self.stop(False)
         raise StopIteration
 
-    def handle_term(self):
+    def handle_quit(self):
         "SIGTERM handling"
         self.stop(False)
         raise StopIteration
@@ -347,8 +344,16 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
+        if self.WORKERS:
+            worker_values = list(self.WORKERS.values())
+            oldest = min(w.tmp.last_update() for w in worker_values)
+            timeout = self.timeout - (time.time() - oldest)
+            # The timeout can be reached, so don't wait for a negative value
+            timeout = max(timeout, 1.0)
+        else:
+            timeout = 1.0
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
+            ready = select.select([self.PIPE[0]], [], [], timeout)
             if not ready[0]:
                 return
             while os.read(self.PIPE[0], 1):
@@ -377,7 +382,6 @@ class Arbiter(object):
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)
             time.sleep(0.1)
-            self.reap_workers()
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
@@ -461,7 +465,8 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        for (pid, worker) in self.WORKERS.items():
+        workers = list(self.WORKERS.items())
+        for (pid, worker) in workers:
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
@@ -573,7 +578,8 @@ class Arbiter(object):
         Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
-        for pid in self.WORKERS.keys():
+        worker_pids = list(self.WORKERS.keys())
+        for pid in worker_pids:
             self.kill_worker(pid, sig)
 
     def kill_worker(self, pid, sig):
