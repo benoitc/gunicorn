@@ -91,10 +91,20 @@ class Config(object):
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
+
+        ## are we using a threaded worker?
+        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+        if is_sync and self.threads > 1:
+            uri = "gunicorn.workers.gthread.ThreadedWorker"
+
         worker_class = util.load_class(uri)
         if hasattr(worker_class, "setup"):
             worker_class.setup()
         return worker_class
+
+    @property
+    def threads(self):
+        return self.settings['threads'].get()
 
     @property
     def workers(self):
@@ -548,6 +558,27 @@ class WorkerClass(Setting):
         alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``. Alternatively the syntax
         can also load the gevent class with ``egg:gunicorn#gevent``
+        """
+
+class WorkerThreads(Setting):
+    name = "threads"
+    section = "Worker Processes"
+    cli = ["--threads"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 1
+    desc = """\
+        The number of worker threads for handling requests.
+
+        Run each worker in prethreaded mode with the specified number of
+        threads per worker.
+
+        A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
+        want to vary this a bit to find the best for your particular
+        application's work load.
+
+        If it is not defined, the default is 1.
         """
 
 
