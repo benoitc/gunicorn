@@ -298,7 +298,7 @@ Pass variables to the execution environment. Ex.::
 
     $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
 
-and test for the foo variable environement in your application.
+and test for the foo variable environment in your application.
 
 pidfile
 ~~~~~~~
