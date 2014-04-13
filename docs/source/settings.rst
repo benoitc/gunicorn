@@ -438,7 +438,8 @@ By default:
 | f: referer
 | a: user agent
 | T: request time in seconds
-| D: request time in microseconds,
+| D: request time in microseconds
+| L: request time in decimal seconds
 | p: process ID
 | {Header}i: request header
 | {Header}o: response header
