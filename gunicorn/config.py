@@ -140,19 +140,24 @@ class Config(object):
     def is_ssl(self):
         return self.certfile or self.keyfile
 
-    @property
-    def ssl_options(self):
-        opts = {}
-
-        for attr in('certfile', 'keyfile', 'cert_reqs', 'ssl_version', \
-                'ca_certs', 'suppress_ragged_eofs', 'do_handshake_on_connect',
-                'ciphers'):
-
+    def _load_attrs(self, attrs, version=sys.version_info):
+        for attr in attrs:
             # suppress_ragged_eofs/do_handshake_on_connect are booleans that can
             # be False hence we use hasattr instead of getattr(self, attr, None).
-            if hasattr(self, attr):
-                value = getattr(self, attr)
-                opts[attr] = value
+            if hasattr(self, attr) and version >= sys.version_info:
+                yield (attr, getattr(self, attr))
+
+    @property
+    def ssl_options(self):
+
+        opts = {}
+
+        opts.update(self._load_attrs(('certfile', 'keyfile', 'cert_reqs', 'ssl_version',
+                'ca_certs', 'suppress_ragged_eofs', 'do_handshake_on_connect')))
+
+        # The `ciphers` kwarg was only available in Python 2.7, so don't make
+        # it available for us in older versions on Python.
+        opts.update(self._load_attrs(('ciphers'), version=(2, 7)))
 
         return opts
 
@@ -1560,4 +1565,6 @@ class Ciphers(Setting):
     default = 'TLSv1'
     desc = """\
     Ciphers to use (see stdlib ssl module's)
+
+    Note, this value is only available in Python 2.7+ and is ignored in older versions of Python.
     """
