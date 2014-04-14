@@ -17,15 +17,10 @@ import traceback
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
+from gunicorn.statsd import statsd, STATSD_INTERVAL
 from gunicorn import util
 
-from gunicorn import __version__, SERVER_SOFTWARE, STATSD_INTERVAL
-
-# Optional statsd instrumentation
-try:
-    from statsd import statsd
-except ImportError:
-    pass
+from gunicorn import __version__, SERVER_SOFTWARE
 
 class Arbiter(object):
     """
@@ -120,6 +115,7 @@ class Arbiter(object):
         # instrumentation setup via statsD if needed
         self.use_statsd = self.cfg.statsd_host is not None
         if self.use_statsd:
+            self.statsd = statsd(self.cfg.statsd_host, self.log)
             self.log.info("Arbiter will send stats to {0}".format(self.cfg.statsd_host))
         else:
             self.log.info("Arbiter will not send stats")
@@ -303,19 +299,17 @@ class Arbiter(object):
         try:
             # Optional statsd instrumentation
             n_w = len(self.WORKERS)
-            statsd.gauge("gunicorn.workers", n_w)
+            self.statsd.gauge("gunicorn.workers", n_w)
 
             # children user time over the past STATSD_INTERVAL will be normalized
             # to 1 second. Dividing by the number of workers will then yield
             # a utilization ratio per worker
             usr_t = os.times()[0]
             self.log.info("STAT arbiter.utilization={0}".format(usr_t - self.last_usr_t))
-            statsd.increment("gunicorn.arbiter.utilization", usr_t - self.last_usr_t)
+            self.statsd.increment("gunicorn.arbiter.utilization", usr_t - self.last_usr_t)
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
-        except NameError:
-            self.log.warn("No statsD client found")
         except Exception:
             self.log.exception("Cannot get statistics")
 

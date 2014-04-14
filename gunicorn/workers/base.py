@@ -9,12 +9,6 @@ import signal
 import sys
 import traceback
 
-# Optional statsd instrumentation
-try:
-    from statsd import statsd
-except ImportError:
-    pass
-
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import Reloader
@@ -24,7 +18,7 @@ LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
-from gunicorn import STATSD_INTERVAL
+from gunicorn.statsd import statsd, STATSD_INTERVAL
 
 
 class Worker(object):
@@ -60,6 +54,7 @@ class Worker(object):
             self.log.info("Worker will send stats to {0}".format(cfg.statsd_host))
             self.last_nr = 0  # store nr at the last instrumentation call
             self.last_usr_t = 0  # store last user time from os.times()
+            self.statsd = statsd(cfg.statsd_host, self.log)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -161,19 +156,17 @@ class Worker(object):
         "Send stats to statsd"
         try:
             # Track requests per seconds per gunicorn instance, ignore actual workers
-            statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
+            self.statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
             self.log.info("STAT worker={0} gunicorn.worker.requests=+{1}".format(self.pid, self.nr - self.last_nr))
             self.last_nr = self.nr
 
             # Let statsd compute the ratio of user time / wallclock time
             usr_t = os.times()[0]
-            statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
+            self.statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
             self.log.info("STAT worker={0} gunicorn.worker.utilization={1}".format(self.pid, usr_t - self.last_usr_t))
             self.last_usr_t = usr_t
 
             signal.alarm(STATSD_INTERVAL)
-        except NameError:
-            self.log.warn("No statsD client found")
         except Exception:
             self.log.exception("Cannot send stats to statsd")
 
