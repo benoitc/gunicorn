@@ -139,6 +139,17 @@ For example:
 
     gunicorn --paste development.ini -b :8080 --chdir /path/to/project
 
+Instrumentation
+---------------
+
+Instrumentation is provided through statsD_.
+The following metrics are collected:
+
+  * ``gunicorn.workers``: number of workers
+  * ``gunicorn.rqs``: requests per second handled by gunicorn across all workers
+  * ``gunicorn.arbiter.utilization``: fraction of user CPU time spent in the arbiter
+  * ``gunicorn.worker.utilization``: fraction of user CPU time spent in all workers. Divide by ``gunicorn.workers`` to get the per-worker utilization
+
 It is all here. No configuration files nor additional python modules to
 write !!
 
