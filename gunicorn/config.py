@@ -440,6 +440,8 @@ def validate_file(val):
 
 def validate_hostport(val):
     val = validate_string(val)
+    if val is None:
+        return None
     elements = val.split(":")
     if len(elements) == 1:
         raise TypeError("Value must consist of: hostname:port")
@@ -1515,17 +1517,6 @@ class CertFile(Setting):
     SSL certificate file
     """
 
-class StatsdHost(Setting):
-    name = "statsd_host"
-    section = "Instrumentation"
-    cli = ["--statsd"]
-    meta = "STRING"
-    validator = validate_hostport
-    default = None
-    desc = """\
-    Host and port of the statsD server to send metrics to, e.g. localhost:8125
-    """
-
 class SSLVersion(Setting):
     name = "ssl_version"
     section = "Ssl"
@@ -1588,3 +1579,15 @@ class Ciphers(Setting):
     desc = """\
     Ciphers to use (see stdlib ssl module's)
     """
+
+class StatsdHost(Setting):
+    name = "statsd_host"
+    section = "Instrumentation"
+    cli = ["--statsd"]
+    meta = "STRING"
+    validator = validate_hostport
+    default = None
+    desc = """\
+    Host and port of the statsD server to send metrics to, e.g. localhost:8125
+    """
+
