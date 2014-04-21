@@ -21,7 +21,7 @@ class statsd(object):
             host, port = dst
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.connect((host, int(port)))
-        except Exception, e:
+        except Exception:
             self.sock = None
             self.log.exception("Cannot connect to statsd server {0}".format(dst))
 
