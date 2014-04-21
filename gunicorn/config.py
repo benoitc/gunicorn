@@ -400,7 +400,7 @@ def validate_post_request(val):
 
 def validate_hostport(val):
     if val is None:
-	return None
+        return None
     val = validate_string(val)
     elements = val.split(":")
     if len(elements) == 1:
