@@ -140,7 +140,7 @@ Example::
     #!/usr/bin/env python
     import gunicorn.app.base
 
-    def my_index(environ, start_response):
+    def handler_app(environ, start_response):
         response_body = 'Works fine'
         status = '200 OK'
 
@@ -153,11 +153,11 @@ Example::
 
         return [response_body]
 
-    class MyApplication(gunicorn.app.base.BaseApplication):
+    class StandaloneApplication(gunicorn.app.base.BaseApplication):
         def __init__(self, app, options=None):
             self.options = dict(options or {})
             self.application = app
-            super(MyApplication, self).__init__()
+            super(StandaloneApplication, self).__init__()
 
         def load_config(self):
             tmp_config = map(
@@ -183,4 +183,4 @@ Example::
             'workers': 4,
             # 'pidfile': pidfile,
         }
-        MyApplication(my_index, options).run()    
+        StandaloneApplication(handler_app, options).run()    
