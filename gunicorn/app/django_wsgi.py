@@ -10,10 +10,10 @@ import re
 import sys
 import time
 try:
+    from StringIO import StringIO
+except:
     from io import StringIO
     from imp import reload
-except ImportError:
-    from StringIO import StringIO
 
 
 from django.conf import settings
