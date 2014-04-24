@@ -8,12 +8,16 @@
 # stdlib
 import inspect
 import ssl
+import sys
 from unittest import TestCase
 
 # gunicorn
 from gunicorn.config import KeyFile, CertFile, SSLVersion, CACerts, \
-     SuppressRaggedEOFs, DoHandshakeOnConnect, Ciphers, Setting, validate_bool, validate_string, \
+     SuppressRaggedEOFs, DoHandshakeOnConnect, Setting, validate_bool, validate_string, \
      validate_pos_int
+
+if sys.version_info >= (2, 7):
+    from gunicorn.config import Ciphers
 
 class SSLTestCase(TestCase):
     def test_settings_classes(self):
@@ -59,8 +63,10 @@ class SSLTestCase(TestCase):
         self.assertEquals(DoHandshakeOnConnect.action, 'store_true')
         self.assertEquals(DoHandshakeOnConnect.default, False)
 
-        self.assertTrue(issubclass(Ciphers, Setting))        
-        self.assertEquals(Ciphers.name, 'ciphers')
-        self.assertEquals(Ciphers.section, 'Ssl')
-        self.assertEquals(Ciphers.cli, ['--ciphers'])
-        self.assertEquals(Ciphers.default, 'TLSv1')
+
+        if sys.version_info >= (2, 7):
+            self.assertTrue(issubclass(Ciphers, Setting))        
+            self.assertEquals(Ciphers.name, 'ciphers')
+            self.assertEquals(Ciphers.section, 'Ssl')
+            self.assertEquals(Ciphers.cli, ['--ciphers'])
+            self.assertEquals(Ciphers.default, 'TLSv1')
