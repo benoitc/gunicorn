@@ -417,7 +417,7 @@ def daemonize(enable_stdio_inheritance=False):
         if os.fork():
             os._exit(0)
 
-        os.umask(2)
+        os.umask(0)
 
         # In both the following any file descriptors above stdin
         # stdout and stderr are left untouched. The inheritence
