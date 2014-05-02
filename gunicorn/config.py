@@ -143,17 +143,9 @@ class Config(object):
     @property
     def ssl_options(self):
         opts = {}
-
-        for attr in('certfile', 'keyfile', 'cert_reqs', 'ssl_version', \
-                'ca_certs', 'suppress_ragged_eofs', 'do_handshake_on_connect',
-                'ciphers'):
-
-            # suppress_ragged_eofs/do_handshake_on_connect are booleans that can
-            # be False hence we use hasattr instead of getattr(self, attr, None).
-            if hasattr(self, attr):
-                value = getattr(self, attr)
-                opts[attr] = value
-
+        for name, value in self.settings.items():
+            if value.section == 'Ssl':
+                opts[name] = value.get()
         return opts
 
     @property
@@ -1570,16 +1562,6 @@ class DoHandshakeOnConnect(Setting):
     Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
     """
 
-class Ciphers(Setting):
-    name = "ciphers"
-    section = "Ssl"
-    cli = ["--ciphers"]
-    validator = validate_string
-    default = 'TLSv1'
-    desc = """\
-    Ciphers to use (see stdlib ssl module's)
-    """
-
 class StatsdHost(Setting):
     name = "statsd_host"
     section = "Instrumentation"
@@ -1591,3 +1573,13 @@ class StatsdHost(Setting):
     Host and port of the statsD server to send metrics to, e.g. localhost:8125
     """
 
+if sys.version_info >= (2, 7):
+    class Ciphers(Setting):
+        name = "ciphers"
+        section = "Ssl"
+        cli = ["--ciphers"]
+        validator = validate_string
+        default = 'TLSv1'
+        desc = """\
+        Ciphers to use (see stdlib ssl module's)
+        """
