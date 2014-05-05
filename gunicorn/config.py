@@ -421,6 +421,15 @@ def validate_file(val):
 
     return path
 
+def validate_hostport(val):
+    val = validate_string(val)
+    if val is None:
+        return None
+    elements = val.split(":")
+    if len(elements) == 2:
+        return (elements[0], int(elements[1]))
+    else:
+        raise TypeError("Value must consist of: hostname:port")
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
@@ -1554,3 +1563,15 @@ if sys.version_info >= (2, 7):
         desc = """\
         Ciphers to use (see stdlib ssl module's)
         """
+
+# statsD monitoring
+class StatsdTo(Setting):
+    name = "statsd_to"
+    section = "Logging"
+    cli = ["--log-statsd-to"]
+    meta = "STATSD_ADDR"
+    default = "localhost:8125"
+    validator = validate_hostport
+    desc ="""\
+    host:port of the statsd server to log to
+    """
