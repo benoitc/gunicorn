@@ -27,6 +27,9 @@ class BaseApplication(object):
         self.do_load_config()
 
     def do_load_config(self):
+        """
+        Loads the configuration
+        """
         try:
             self.load_default_config()
             self.load_config()
@@ -43,6 +46,14 @@ class BaseApplication(object):
         raise NotImplementedError
 
     def load(self):
+        raise NotImplementedError
+
+    def load_config(self):
+        """
+        This method is used to load the configuration from one or several input(s).
+        Custom Command line, configuration file.
+        You have to override this method in your class.
+        """
         raise NotImplementedError
 
     def reload(self):
@@ -65,6 +76,10 @@ class BaseApplication(object):
 
 class Application(BaseApplication):
     def load_config_from_file(self, filename):
+        """
+        Loads the configuration file: the file is a python file, otherwise raise an RuntimeError
+        Exception or stop the process if the configuration file contains a syntax error.
+        """
         if not os.path.exists(filename):
             raise RuntimeError("%r doesn't exist" % filename)
 
