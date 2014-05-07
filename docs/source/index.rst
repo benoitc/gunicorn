@@ -43,6 +43,7 @@ Contents
     deploy
     design
     signals
+    custom
     community
     faq
     news
