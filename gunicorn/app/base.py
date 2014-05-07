@@ -19,11 +19,12 @@ class Application(object):
     the various necessities for any given web framework.
     """
 
-    def __init__(self, usage=None, prog=None):
+    def __init__(self, usage=None, prog=None, args=None):
         self.usage = usage
         self.cfg = None
         self.callable = None
         self.prog = prog
+        self.args = args
         self.logger = None
         self.do_load_config()
 
@@ -72,7 +73,7 @@ class Application(object):
 
         # parse console args
         parser = self.cfg.parser()
-        args = parser.parse_args()
+        args = parser.parse_args(self.args)
 
         # optional settings from apps
         cfg = self.init(parser, args, args.args)
