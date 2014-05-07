@@ -14,6 +14,9 @@ METRIC_VAR = "metric"
 VALUE_VAR = "value"
 MTYPE_VAR = "mtype"
 SAMPLING_VAR = "sampling"
+GAUGE_TYPE = "gauge"
+COUNTER_TYPE = "counter"
+HISTOGRAM_TYPE = "histogram"
 
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
@@ -22,6 +25,7 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
+        self.trace = cfg.debug
         try:
             host, port = cfg.statsd_to
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -49,59 +53,76 @@ class Statsd(Logger):
     def info(self, msg, *args, **kwargs):
         """Log a given statistic if metric, value, sampling are present
         """
-        Logger.info(self, msg, *args, **kwargs)
         metric = kwargs.get(METRIC_VAR, None)
         value = kwargs.get(VALUE_VAR, None)
         typ = kwargs.get(MTYPE_VAR, None)
+        sampling = kwargs.get(SAMPLING_VAR, 1.0)
         if metric and value and typ:
-            if typ == "gauge":
+            self._sanitize(kwargs)
+            if typ == GAUGE_TYPE:
                 self.gauge(metric, value)
-            elif typ == "counter":
-                sampling = kwargs.get(SAMPLING_VAR, 1.0)
+            elif typ == COUNTER_TYPE:
                 self.increment(metric, value, sampling)
+            elif typ == HISTOGRAM_TYPE:
+                self.histogram(metric, value, sampling)
             else:
                 pass
+        if self.trace:
+            Logger.debug(self, "statsd {0},{1},{2},{3}".format(metric, value, typ, sampling))
+        Logger.info(self, msg, *args, **kwargs)
 
     # skip the run-of-the-mill logs
     def debug(self, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.debug(self, msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.log(self, lvl, msg, *args, **kwargs)
 
     # access logging
     def access(self, resp, req, environ, request_time):
         """Measure request duration
+        request_time is a datetime.timedelta
         """
         Logger.access(self, resp, req, environ, request_time)
-        self.histogram("gunicorn.request.duration", request_time)
+        duration_in_s = request_time.seconds + float(request_time.microseconds)/10**6
+        self.histogram("gunicorn.request.duration", duration_in_s)
         self.increment("gunicorn.requests", 1)
+
+    def _sanitize(self, kwargs):
+        """Drop stasd keywords from the logger"""
+        for k in (METRIC_VAR, VALUE_VAR, MTYPE_VAR, SAMPLING_VAR):
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
 
     # statsD methods
     def gauge(self, name, value):
         try:
             if self.sock:
-                self.sock.send("%s:%s|g\n" % (name, value))
+                self.sock.send("{0}:{1}|g\n".format(name, value))
         except Exception:
             pass
 
     def increment(self, name, value, sampling_rate=1.0):
         try:
             if self.sock:
-                self.sock.send("%s:%s|c@%s\n" % (name, value, sampling_rate))
+                self.sock.send("{0}:{1}|c|@{2}\n".format(name, value, sampling_rate))
         except Exception:
             pass
 
     def decrement(self, name, value, sampling_rate=1.0):
         try:
             if self.sock:
-                self.sock.send("%s:-%s|c@%s\n" % (name, value, sampling_rate))
+                self.sock.send("{0}:-{1}|c|@{2}\n".format(name, value, sampling_rate))
         except Exception:
             pass
 
     def histogram(self, name, value, sampling_rate=1.0):
         try:
             if self.sock:
-                self.sock.send("%s:%s|h@%s\n" % (name, value, sampling_rate))
+                self.sock.send("{0}:{1}|h\n".format(name, value, sampling_rate))
         except Exception:
             pass
