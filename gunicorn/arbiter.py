@@ -463,8 +463,8 @@ class Arbiter(object):
                         continue
                     worker.tmp.close()
         except OSError as e:
-            if e.errno == errno.ECHILD:
-                pass
+            if e.errno != errno.ECHILD:
+                raise
 
     def manage_workers(self):
         """\
