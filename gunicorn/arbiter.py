@@ -294,6 +294,7 @@ class Arbiter(object):
         """ halt arbiter """
         self.stop()
         self.log.info("Shutting down: %s", self.master_name)
+        self.cfg.on_exit(self)
         if reason is not None:
             self.log.info("Reason: %s", reason)
         if self.pidfile is not None:
