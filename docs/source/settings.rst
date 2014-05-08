@@ -782,6 +782,17 @@ two integers of number of workers after and before change.
 If the number of workers is set for the first time, old_value would be
 None.
 
+on_exit
+~~~~~~~
+*  ::
+
+        def on_exit():
+            pass
+
+Called just before exiting gunicorn.
+
+The callable needs to accept a single instance variable for the Arbiter.
+
 Server Mechanics
 ----------------
 
