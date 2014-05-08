@@ -9,7 +9,6 @@ import signal
 import sys
 import traceback
 
-
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import Reloader
@@ -19,6 +18,7 @@ LimitRequestLine, LimitRequestHeaders
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
+from gunicorn.statsd import statsd, STATSD_INTERVAL
 
 
 class Worker(object):
@@ -42,11 +42,19 @@ class Worker(object):
         self.cfg = cfg
         self.booted = False
 
-        self.nr = 0
+        self.nr = 0  # number of requests
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
+
+        # instrumentation
+        self.use_statsd = cfg.statsd_host is not None
+        if self.use_statsd:
+            self.log.info("Worker will send stats to {0}".format(cfg.statsd_host))
+            self.last_nr = 0  # store nr at the last instrumentation call
+            self.last_usr_t = 0  # store last user time from os.times()
+            self.statsd = statsd(cfg.statsd_host, self.log)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -128,14 +136,39 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        signal.signal(signal.SIGALRM, self.handle_alrm)
+        # Don't let SIGQUIT, SIGUSR1, SIGINFO and SIGALRM disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGQUIT, False)
             signal.siginterrupt(signal.SIGUSR1, False)
+            signal.siginterrupt(signal.SIGINFO, False)
+            signal.siginterrupt(signal.SIGALRM, False)
+
+        # Get the instrumentation timer started
+        if self.use_statsd:
+            signal.alarm(STATSD_INTERVAL)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
+
+    def handle_alrm(self, sig, frame):
+        "Send stats to statsd"
+        try:
+            # Track requests per seconds per gunicorn instance, ignore actual workers
+            self.statsd.increment("gunicorn.worker.rqs", self.nr - self.last_nr)
+            self.log.info("STAT worker={0} gunicorn.worker.requests=+{1}".format(self.pid, self.nr - self.last_nr))
+            self.last_nr = self.nr
+
+            # Let statsd compute the ratio of user time / wallclock time
+            usr_t = os.times()[0]
+            self.statsd.increment("gunicorn.worker.utilization", usr_t - self.last_usr_t)
+            self.log.info("STAT worker={0} gunicorn.worker.utilization={1}".format(self.pid, usr_t - self.last_usr_t))
+            self.last_usr_t = usr_t
+
+            signal.alarm(STATSD_INTERVAL)
+        except Exception:
+            self.log.exception("Cannot send stats to statsd")
 
     def handle_exit(self, sig, frame):
         self.alive = False

@@ -142,6 +142,19 @@ For example:
 It is all here. No configuration files nor additional python modules to
 write !!
 
+Instrumentation
+---------------
+
+Instrumentation is provided through statsD_.
+The following metrics are collected:
+
+  * ``gunicorn.workers``: number of workers
+  * ``gunicorn.rqs``: requests per second handled by gunicorn across all workers
+  * ``gunicorn.arbiter.utilization``: fraction of user CPU time spent in the arbiter
+  * ``gunicorn.worker.utilization``: fraction of user CPU time spent in all workers. Divide by ``gunicorn.workers`` to get the per-worker utilization
+
+To enable statsD_ reporting, use the `--statsd=server:port` option and gunicorn will report metrics to a statsD_ server every 5 seconds.
+
 LICENSE
 -------
 
@@ -159,4 +172,5 @@ details.
 .. _`production page`: http://docs.gunicorn.org/en/latest/deploy.html
 .. _`config file`: http://docs.gunicorn.org/en/latest/configure.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _statsD: https://github.com/etsy/statsD
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE

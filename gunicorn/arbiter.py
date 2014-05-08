@@ -17,10 +17,10 @@ import traceback
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
+from gunicorn.statsd import statsd, STATSD_INTERVAL
 from gunicorn import util
 
 from gunicorn import __version__, SERVER_SOFTWARE
-
 
 class Arbiter(object):
     """
@@ -46,7 +46,7 @@ class Arbiter(object):
     # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH ALRM".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -74,6 +74,9 @@ class Arbiter(object):
             "cwd": cwd,
             0: sys.executable
         }
+
+        # Instrumentation
+        self.last_usr_t = 0  # store time used by children
 
     def _get_num_workers(self):
         return self._num_workers
@@ -108,6 +111,14 @@ class Arbiter(object):
 
         if self.cfg.preload_app:
             self.app.wsgi()
+
+        # instrumentation setup via statsD if needed
+        self.use_statsd = self.cfg.statsd_host is not None
+        if self.use_statsd:
+            self.statsd = statsd(self.cfg.statsd_host, self.log)
+            self.log.info("Arbiter will send stats to {0}".format(self.cfg.statsd_host))
+        else:
+            self.log.info("Arbiter will not send stats")
 
     def start(self):
         """\
@@ -158,6 +169,10 @@ class Arbiter(object):
         # initialize all signals
         [signal.signal(s, self.signal) for s in self.SIGNALS]
         signal.signal(signal.SIGCHLD, self.handle_chld)
+
+        # Start periodical instrumentation
+        if self.use_statsd:
+            signal.alarm(STATSD_INTERVAL)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -279,6 +294,24 @@ class Arbiter(object):
             self.kill_workers(signal.SIGQUIT)
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
+
+    def handle_alrm(self):
+        try:
+            # Optional statsd instrumentation
+            n_w = len(self.WORKERS)
+            self.statsd.gauge("gunicorn.workers", n_w)
+
+            # children user time over the past STATSD_INTERVAL will be normalized
+            # to 1 second. Dividing by the number of workers will then yield
+            # a utilization ratio per worker
+            usr_t = os.times()[0]
+            self.log.info("STAT arbiter.utilization={0}".format(usr_t - self.last_usr_t))
+            self.statsd.increment("gunicorn.arbiter.utilization", usr_t - self.last_usr_t)
+            self.last_usr_t = usr_t
+
+            signal.alarm(STATSD_INTERVAL)
+        except Exception:
+            self.log.exception("Cannot get statistics")
 
     def wakeup(self):
         """\
