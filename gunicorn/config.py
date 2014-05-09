@@ -78,10 +78,6 @@ class Config(object):
                 help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
-        keys = list(self.settings)
-        def sorter(k):
-            return (self.settings[k].section, self.settings[k].order)
-
         keys = sorted(self.settings, key=self.settings.__getitem__)
         for k in keys:
             self.settings[k].add_option(parser)

@@ -45,18 +45,13 @@ except ImportError:
 
 
 def make_options():
-    g_settings = make_settings(ignore=("version"))
-
-    keys = g_settings.keys()
-
-    def sorter(k):
-        return (g_settings[k].section, g_settings[k].order)
-
     opts = [
         make_option('--adminmedia', dest='admin_media_path', default='',
         help='Specifies the directory from which to serve admin media.')
     ]
 
+    g_settings = make_settings(ignore=("version"))
+    keys = g_settings.keys()
     for k in keys:
         if k in ('pythonpath', 'django_settings',):
             continue
