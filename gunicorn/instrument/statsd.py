@@ -35,21 +35,26 @@ class Statsd(Logger):
 
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.critical(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.critical", 1)
 
     def error(self, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.error(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.error", 1)
 
     def warning(self, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.warning(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.warning", 1)
 
     def exception(self, msg, *args, **kwargs):
+        self._sanitize(kwargs)
         Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
+    # Special treatement for info, the most common log level
     def info(self, msg, *args, **kwargs):
         """Log a given statistic if metric, value, sampling are present
         """
