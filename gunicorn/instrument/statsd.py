@@ -13,7 +13,6 @@ STATSD_DEFAULT_PORT = 8125
 METRIC_VAR = "metric"
 VALUE_VAR = "value"
 MTYPE_VAR = "mtype"
-SAMPLING_VAR = "sampling"
 GAUGE_TYPE = "gauge"
 COUNTER_TYPE = "counter"
 HISTOGRAM_TYPE = "histogram"
@@ -25,7 +24,6 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
-        self.trace = cfg.debug
         try:
             host, port = cfg.statsd_to
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -56,24 +54,21 @@ class Statsd(Logger):
 
     # Special treatement for info, the most common log level
     def info(self, msg, *args, **kwargs):
-        """Log a given statistic if metric, value, sampling are present
+        """Log a given statistic if metric, value and type are present
         """
         metric = kwargs.get(METRIC_VAR, None)
         value = kwargs.get(VALUE_VAR, None)
         typ = kwargs.get(MTYPE_VAR, None)
-        sampling = kwargs.get(SAMPLING_VAR, 1.0)
         if metric and value and typ:
             self._sanitize(kwargs)
             if typ == GAUGE_TYPE:
                 self.gauge(metric, value)
             elif typ == COUNTER_TYPE:
-                self.increment(metric, value, sampling)
+                self.increment(metric, value)
             elif typ == HISTOGRAM_TYPE:
-                self.histogram(metric, value, sampling)
+                self.histogram(metric, value)
             else:
                 pass
-        if self.trace:
-            Logger.debug(self, "statsd {0},{1},{2},{3}".format(metric, value, typ, sampling))
         Logger.info(self, msg, *args, **kwargs)
 
     # skip the run-of-the-mill logs
@@ -97,7 +92,7 @@ class Statsd(Logger):
 
     def _sanitize(self, kwargs):
         """Drop stasd keywords from the logger"""
-        for k in (METRIC_VAR, VALUE_VAR, MTYPE_VAR, SAMPLING_VAR):
+        for k in (METRIC_VAR, VALUE_VAR, MTYPE_VAR):
             try:
                 kwargs.pop(k)
             except KeyError:
@@ -125,9 +120,9 @@ class Statsd(Logger):
         except Exception:
             pass
 
-    def histogram(self, name, value, sampling_rate=1.0):
+    def histogram(self, name, value):
         try:
             if self.sock:
-                self.sock.send("{0}:{1}|ms".format(name, value, sampling_rate))
+                self.sock.send("{0}:{1}|ms".format(name, value))
         except Exception:
             pass
