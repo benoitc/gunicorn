@@ -106,6 +106,11 @@ class Arbiter(object):
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
 
+        # set enviroment' variables
+        if self.cfg.env:
+            for k, v in self.cfg.env.items():
+                os.environ[k] = v
+
         if self.cfg.preload_app:
             self.app.wsgi()
 
@@ -120,11 +125,6 @@ class Arbiter(object):
             self.pidfile = Pidfile(self.cfg.pidfile)
             self.pidfile.create(self.pid)
         self.cfg.on_starting(self)
-
-        # set enviroment' variables
-        if self.cfg.env:
-            for k, v in self.cfg.env.items():
-                os.environ[k] = v
 
         self.init_signals()
         if not self.LISTENERS:
