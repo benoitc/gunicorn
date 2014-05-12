@@ -159,13 +159,13 @@ To use this instrumentation mechanism, simply use a new logger::
 The `Statsd` logger overrides `gunicorn.glogging.Logger` to track
 all requests. The following metrics are generated:
 
-  * `gunicorn.requests`: request rate per second
-  * `gunicorn.request.duration`: histogram of request duration
-  * `gunicorn.workers`: number of workers managed by the arbiter (gauge)
-  * `gunicorn.log.critical`: rate of critical log messages
-  * `gunicorn.log.error`: rate of error log messages
-  * `gunicorn.log.warning`: rate of warning log messages
-  * `gunicorn.log.exception`: rate of exceptional log messages
+  * ``gunicorn.requests``: request rate per second
+  * ``gunicorn.request.duration``: histogram of request duration
+  * ``gunicorn.workers``: number of workers managed by the arbiter (gauge)
+  * ``gunicorn.log.critical``: rate of critical log messages
+  * ``gunicorn.log.error``: rate of error log messages
+  * ``gunicorn.log.warning``: rate of warning log messages
+  * ``gunicorn.log.exception``: rate of exceptional log messages
 
 To generate new metrics you can `log.info` with a few additional keywords::
 
