@@ -142,6 +142,35 @@ For example:
 It is all here. No configuration files nor additional python modules to
 write !!
 
+Instrumentation
+---------------
+
+Gunicorn provides an optional instrumentation of the arbiter and
+workers using the statsD_ protocol over UDP. Thanks to the 
+`gunicorn.instrument.statsd` module, Gunicorn becomes a statsD client
+The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
+metrics so that instrumentation does not cause Gunicorn to be heldeup by a slow
+statsD consumer.
+
+To use this instrumentation mechanism, simply use a new logger::
+
+    $ gunicorn --logging-class gunicorn.instrument.statsd.Statsd ...
+
+The `Statsd` logger overrides `gunicorn.glogging.Logger` to track
+all requests. The following metrics are generated:
+
+  * `gunicorn.requests`: request rate per second
+  * `gunicorn.request.duration`: histogram of request duration
+  * `gunicorn.workers`: number of workers managed by the arbiter (gauge)
+  * `gunicorn.log.critical`: rate of critical log messages
+  * `gunicorn.log.error`: rate of error log messages
+  * `gunicorn.log.warning`: rate of warning log messages
+  * `gunicorn.log.exception`: rate of exceptional log messages
+
+To generate new metrics you can `log.info` with a few additional keywords::
+
+    log.info("...", metric="my.metric", value=1.2, mtype="gauge")
+
 LICENSE
 -------
 
@@ -159,4 +188,5 @@ details.
 .. _`production page`: http://docs.gunicorn.org/en/latest/deploy.html
 .. _`config file`: http://docs.gunicorn.org/en/latest/configure.html
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _statsD: http://github.com/etsy/statsd
 .. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE

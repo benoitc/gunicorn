@@ -99,6 +99,7 @@ class Statsd(Logger):
                 pass
 
     # statsD methods
+    # you can use those directly if you want
     def gauge(self, name, value):
         try:
             if self.sock:
