@@ -123,10 +123,10 @@ class Config(object):
         if uri == "simple":
             # support the default
             uri = "gunicorn.glogging.Logger"
-        else:
-            logger_class = util.load_class(uri,
-                    default="gunicorn.glogging.Logger",
-                    section="gunicorn.loggers")
+
+        logger_class = util.load_class(uri,
+                default="gunicorn.glogging.Logger",
+                section="gunicorn.loggers")
 
         if hasattr(logger_class, "install"):
             logger_class.install()
