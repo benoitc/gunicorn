@@ -133,6 +133,8 @@ if hasattr(select, 'kqueue'):
             self.events = []
 
         def addfd(self, fd, mode, repeat=True):
+            fd = fd_(fd)
+
             if mode == 'r':
                 kmode = select.KQ_FILTER_READ
             else:
@@ -150,6 +152,8 @@ if hasattr(select, 'kqueue'):
             self.kq.control([ev], 0)
 
         def delfd(self, fd, mode):
+            fd = fd_(fd)
+
             if mode == 'r':
                 kmode = select.KQ_FILTER_READ
             else:
@@ -205,6 +209,8 @@ if hasattr(select, "epoll"):
             self.events = []
 
         def addfd(self, fd, mode, repeat=True):
+            fd = fd_(fd)
+
             if mode == 'r':
                 mode = (select.EPOLLIN, repeat)
             else:
@@ -234,6 +240,8 @@ if hasattr(select, "epoll"):
             addfd_(fd, mask)
 
         def delfd(self, fd, mode):
+            fd = fd_(fd)
+
             if mode == 'r':
                 mode = select.POLLIN | select.POLLPRI
             else:
@@ -273,9 +281,9 @@ if hasattr(select, "epoll"):
                 if events:
                     all_events = []
                     fds = {}
-                    for fd, ev in self.events:
+                    for fd, ev in events:
                         fd = fd_(fd)
-                        if ev == select.EPOLLIN:
+                        if ev & select.EPOLLIN:
                             mode = 'r'
                         else:
                             mode = 'w'
@@ -293,7 +301,7 @@ if hasattr(select, "epoll"):
                         for m, r in self.fds[fd]:
                             if not r:
                                 continue
-                            modes.append(m, r)
+                            modes.append((m, r))
 
                         if modes != self.fds[fd]:
                             self.fds[fd] = modes
@@ -401,7 +409,7 @@ if hasattr(select, "poll") or hasattr(select, "epoll"):
                     if fd not in self.fds:
                         continue
 
-                    if ev == select.POLLIN or ev == select.POLLPRI:
+                    if ev & select.POLLIN or ev & select.POLLPRI:
                         mode = 'r'
                     else:
                         mode = 'w'

@@ -95,7 +95,7 @@ class Config(object):
         ## are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
-            uri = "gunicorn.workers.gthread.ThreadedWorker"
+            uri = "gunicorn.workers.gthread.ThreadWorker"
 
         worker_class = util.load_class(uri)
         if hasattr(worker_class, "setup"):
