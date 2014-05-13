@@ -8,6 +8,7 @@
 allows you to register an fd, and retrieve events on it. """
 
 import select
+import sys
 
 from .util import fd_, close_on_exec
 
@@ -131,9 +132,12 @@ if hasattr(select, 'kqueue'):
             self.kq = select.kqueue()
             close_on_exec(self.kq.fileno())
             self.events = []
+            self.max_ev = 0
 
         def addfd(self, fd, mode, repeat=True):
             fd = fd_(fd)
+
+            self.max_ev += 1
 
             if mode == 'r':
                 kmode = select.KQ_FILTER_READ
@@ -148,11 +152,16 @@ if hasattr(select, 'kqueue'):
             if not repeat:
                 flags |= select.KQ_EV_ONESHOT
 
-            ev = select.kevent(fd_(fd), kmode, flags)
-            self.kq.control([ev], 0)
+            ev = select.kevent(fd, kmode, flags)
+            self.kq.control([ev], 0, 0)
 
         def delfd(self, fd, mode):
             fd = fd_(fd)
+
+            self.max_ev -= 1
+
+            if fd < 0:
+                return
 
             if mode == 'r':
                 kmode = select.KQ_FILTER_READ
@@ -166,7 +175,7 @@ if hasattr(select, 'kqueue'):
         def _wait(self, nsec=0):
             if len(self.events) == 0:
                 try:
-                    events = self.kq.control(None, 0, nsec)
+                    events = self.kq.control(None, self.max_ev, nsec)
                 except select.error as e:
                     if e.args[0] != errno.EINTR:
                         raise
@@ -328,7 +337,7 @@ if hasattr(select, "epoll"):
             self.poll.close()
 
 
-if hasattr(select, "poll") or hasattr(select, "epoll"):
+if hasattr(select, "poll") or hasattr(select, "devpoll"):
 
     class _PollerBase(object):
 
@@ -466,8 +475,8 @@ if hasattr(select, "poll") or hasattr(select, "epoll"):
 
 
 # choose the best implementation depending on the platform.
-if 'KqueuePoller' in globals():
-    DefaultPoller = KqueuePoller
+if 'KQueuePoller' in globals():
+    DefaultPoller = KQueuePoller
 elif 'EpollPoller' in globals():
     DefaultPoller = EpollPoller
 elif 'DevpollPoller' in globals():

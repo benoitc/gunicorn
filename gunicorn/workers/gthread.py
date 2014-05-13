@@ -52,8 +52,8 @@ class ThreadWorker(base.Worker):
     def __init__(self, *args, **kwargs):
         super(ThreadWorker, self).__init__(*args, **kwargs)
         # initialise the pool
-        self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
-        self.poller = fdevents.DefaultPoller()
+        self.tpool = None
+        self.poller = None
         self.futures = set()
         self._heap = []
         self.keepalived = {}
@@ -64,9 +64,15 @@ class ThreadWorker(base.Worker):
         fs.addr = addr
         self.futures.add(fs)
 
+    def init_process(self):
+        self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
+        self.poller = fdevents.DefaultPoller()
+        super(ThreadWorker, self).init_process()
+
     def run(self):
+        # init listeners, add them to the event loop
         for s in self.sockets:
-            s.setblocking(0)
+            s.setblocking(False)
             self.poller.addfd(s, 'r')
 
         listeners = dict([(s.fileno(), s) for s in self.sockets])
@@ -170,13 +176,14 @@ class ThreadWorker(base.Worker):
                     break
                 else:
                     # remove the socket from the poller
-                    self.poller.delfd(conn.sock.fileno(), 'r')
+                    self.poller.delfd(conn.sock, 'r')
                     # close the socket
                     util.close(conn.sock)
 
 
         # shutdown the pool
         self.tpool.shutdown(False)
+        self.poller.close()
 
         # wait for the workers
         futures.wait(self.futures, timeout=self.cfg.graceful_timeout)
