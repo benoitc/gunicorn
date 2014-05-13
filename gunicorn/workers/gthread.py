@@ -46,7 +46,7 @@ class TConn():
     __cmp__ = __lt__
 
 
-class ThreadWorker(base.worker):
+class ThreadWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
         super(ThreadWorker, self).__init__(*args, **kwargs)
