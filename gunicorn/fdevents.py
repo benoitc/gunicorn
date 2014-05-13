@@ -423,7 +423,7 @@ if hasattr(select, "poll") or hasattr(select, "epoll"):
                     for m, r in self.fds[fd]:
                         if not r:
                             continue
-                        modes.append(m, r)
+                        modes.append((m, r))
 
                     if not modes:
                         self.poll.unregister(fd)
@@ -442,6 +442,11 @@ if hasattr(select, "poll") or hasattr(select, "epoll"):
             if self.events:
                 return self.events.pop(0)
             return None
+
+        def wait(self, nsec=0):
+            events = self._wait(nsec)
+            self.events = []
+            return events
 
         def close(self):
             for fd in self.fds:
