@@ -17,7 +17,7 @@ class PollerBase(object):
     def addfd(self, fd, mode, repeat=True):
         """ add a filed escriptor to poll.
 
-        Parameters:
+       fdevent Parameters:
 
         * fd : file descriptor or file object
         * mode: 'r' to wait for read events, 'w' to wait for write events
