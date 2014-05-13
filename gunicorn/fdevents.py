@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 
 
-""" module implementing Poller depending on the platform. A pollster
+""" A module implementing Poller depending on the platform. A pollster
 allows you to register an fd, and retrieve events on it. """
 
 import select
@@ -70,8 +70,10 @@ class SelectPoller(PollerBase):
 
         if mode == 'r':
             self.read_fds[fd] = repeat
-        else:
+        elif mode == 'w':
             self.write_fds[fd] = repeat
+        else:
+            raise ValueError('unkown mode {0}'.format(mode))
 
     def delfd(self, fd, mode):
         if mode == 'r' and fd in self.read_fds:
@@ -87,9 +89,8 @@ class SelectPoller(PollerBase):
             try:
                 r, w, e = select.select(read_fds, write_fds, [], nsec)
             except select.error as e:
-                if e.args[0] == errno.EINTR:
-                    continue
-                raise
+                if e.args[0] != errno.EINTR:
+                    raise
 
             events = []
             for fd in r:
@@ -122,7 +123,7 @@ class SelectPoller(PollerBase):
         self.read_fds = []
         self.write_fds = []
 
-if hasattr(selec, 'kqueue')
+if hasattr(select, 'kqueue'):
 
     class KQueuePoller(object):
 
@@ -163,9 +164,8 @@ if hasattr(selec, 'kqueue')
                 try:
                     events = self.kq.control(None, 0, nsec)
                 except select.error as e:
-                    if e.args[0] == errno.EINTR:
-                        continue
-                    raise
+                    if e.args[0] != errno.EINTR:
+                        raise
 
                 # process events
                 all_events = []
@@ -267,9 +267,8 @@ if hasattr(select, "epoll"):
                 try:
                     events = self.poll.poll(nsec)
                 except select.error as e:
-                    if e.args[0] == errno.EINTR:
-                        continue
-                    raise
+                    if e.args[0] != errno.EINTR:
+                        raise
 
                 if events:
                     all_events = []
@@ -392,9 +391,8 @@ if hasattr(select, "poll") or hasattr(select, "epoll"):
                 try:
                     events = self.poll.poll(nsec)
                 except select.error as e:
-                    if e.args[0] == errno.EINTR:
-                        continue
-                    raise
+                    if e.args[0] != errno.EINTR:
+                        raise
 
                 all_events = []
                 for fd, ev in events:
