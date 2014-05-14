@@ -121,10 +121,11 @@ class GeventWorker(AsyncWorker):
         except KeyboardInterrupt:
             pass
         except:
-            try:
-                server.stop()
-            except:
-                pass
+            for server in servers:
+                try:
+                    server.stop()
+                except:
+                    pass
             raise
 
         try:
