@@ -15,7 +15,6 @@ import pwd
 import ssl
 import sys
 import textwrap
-import types
 
 from gunicorn import __version__
 from gunicorn.errors import ConfigError
