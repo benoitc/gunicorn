@@ -44,7 +44,11 @@ class PollerBase(object):
 
         return: (fd, mode)
         """
-        raise NotImplementedError
+        self._wait(nsec)
+        if self.events:
+            return self.events.pop(0)
+        return None
+
 
     def wait(self, nsec):
         """ return all events raised in the pollster when calling the
@@ -52,7 +56,9 @@ class PollerBase(object):
 
         return: [(fd, mode), ....]
         """
-        raise NotImplementedError
+        events = self._wait(nsec)
+        self.events = []
+        return events
 
     def close(self):
         """ close the pollster """
@@ -109,24 +115,13 @@ class SelectPoller(PollerBase):
             self.events.extend(events)
         return self.events
 
-    def waitfd(self, nsec):
-        self._wait(nsec)
-        if self.events:
-            return self.events.pop(0)
-        return None
-
-    def wait(self, nsec):
-        events = self._wait(nsec)
-        self.events = []
-        return events
-
     def close(self):
         self.read_fds = []
         self.write_fds = []
 
 if hasattr(select, 'kqueue'):
 
-    class KQueuePoller(object):
+    class KQueuePoller(PollerBase):
 
         def __init__(self):
             self.kq = select.kqueue()
@@ -194,22 +189,11 @@ if hasattr(select, 'kqueue'):
             # return all events
             return self.events
 
-        def waitfd(self, nsec=0):
-            self._wait(nsec)
-            if self.events:
-                return self.events.pop(0)
-            return None
-
-        def wait(self, nsec=0):
-            events = self._wait(nsec)
-            self.events = []
-            return events
-
         def close(self):
             self.kq.close()
 
 if hasattr(select, "epoll"):
-    class EpollPoller(object):
+    class EpollPoller(PollerBase):
 
         def __init__(self):
             self.poll = select.epoll()
@@ -324,22 +308,13 @@ if hasattr(select, "epoll"):
             # return all events
             return self.events
 
-        def waitfd(self, nsec=0):
-            self._wait(nsec)
-            return self.events.pop(0)
-
-        def wait(self, nsec=0):
-            events = self._wait(nsec)
-            self.events = []
-            return events
-
         def close(self):
             self.poll.close()
 
 
 if hasattr(select, "poll") or hasattr(select, "devpoll"):
 
-    class _PollerBase(object):
+    class _PollerBase(PollerBase):
 
         POLL_IMPL = None
 
@@ -445,17 +420,6 @@ if hasattr(select, "poll") or hasattr(select, "devpoll"):
 
                 self.events.extend(all_events)
             return self.events
-
-        def waitfd(self, nsec=0):
-            self._wait(nsec)
-            if self.events:
-                return self.events.pop(0)
-            return None
-
-        def wait(self, nsec=0):
-            events = self._wait(nsec)
-            self.events = []
-            return events
 
         def close(self):
             for fd in self.fds:
