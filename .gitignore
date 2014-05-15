@@ -2,6 +2,9 @@
 *.sw*
 *.pyc
 *#*
+venv*
+__pycache__
+MANIFEST
 build
 dist
 setuptools-*
@@ -14,12 +17,6 @@ distribute-0.6.8.tar.gz
 gunicorn.egg-info
 nohup.out
 .coverage
-doc/.sass-cache
-bin/
-lib/
-man/
-include/
-html/
 examples/frameworks/pylonstest/PasteScript*
 examples/frameworks/pylonstest/pylonstest.egg-info/
 examples/frameworks/django/testing/testdb.sql
