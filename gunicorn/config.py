@@ -962,27 +962,27 @@ class AccessLogFormat(Setting):
     validator = validate_string
     default = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
     desc = """\
-        The Access log format .
+        The access log format.
 
-        By default:
-
-        %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
-
-
-        | h: remote address
-        | l: '-'
-        | u: currently '-', may be user name in future releases
-        | t: date of the request
-        | r: status line (ex: GET / HTTP/1.1)
-        | s: status
-        | b: response length or '-'
-        | f: referer
-        | a: user agent
-        | T: request time in seconds
-        | D: request time in microseconds,
-        | p: process ID
-        | {Header}i: request header
-        | {Header}o: response header
+        ==========  ===========
+        Identifier  Description
+        ==========  ===========
+        h           remote address
+        l           '-'
+        u           currently '-', may be user name in future releases
+        t           date of the request
+        r           status line (e.g. ``GET / HTTP/1.1``)
+        s           status
+        b           response length or '-'
+        f           referer
+        a           user agent
+        T           request time in seconds
+        D           request time in microseconds
+        L           request time in decimal seconds
+        p           process ID
+        {Header}i   request header
+        {Header}o   response header
+        ==========  ===========
         """
 
 
