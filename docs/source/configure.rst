@@ -64,17 +64,7 @@ For instance::
     bind = "127.0.0.1:8000"
     workers = multiprocessing.cpu_count() * 2 + 1
 
-On a side note, Python's older than 2.6 can use sysconf to get the
-number of processors::
-
-    import os
-
-    def numCPUs():
-        if not hasattr(os, "sysconf"):
-            raise RuntimeError("No sysconf detected.")
-        return os.sysconf("SC_NPROCESSORS_ONLN")
-
-All the settings are mentionned in the :ref:`settings <settings>` list.
+All the settings are mentioned in the :ref:`settings <settings>` list.
 
 
 Framework Settings
