@@ -116,7 +116,7 @@ service release.
 
 - **Added support for Python 3.2 & 3.3**
 - Expose --pythonpath command to all gunicorn commands
-- Honor $PORT environment variable, useful for deployement on heroku
+- Honor $PORT environment variable, useful for deployment on heroku
 - Removed support for Python 2.5
 - Make sure we reopen the logs on the console
 - Fix django settings module detection from path
@@ -175,7 +175,7 @@ service release.
 
 - improvement: performance of http.body.Body.readline()
 - improvement: log HTTP errors in access log like Apache
-- improvment: display traceback when the worker fails to boot
+- improvement: display traceback when the worker fails to boot
 - improvement: makes gunicorn work with gevent 1.0
 - examples: websocket example now supports hybi13
 - fix: reopen log files after initialization

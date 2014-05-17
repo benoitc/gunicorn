@@ -26,7 +26,7 @@ Python package::
 
     $ pip install git+https://github.com/benoitc/gunicorn.git
 
-This will allow you To keep up to date with development on GitHub::
+This will allow you to keep up to date with development on GitHub::
 
     $ pip install -U git+https://github.com/benoitc/gunicorn.git
 
