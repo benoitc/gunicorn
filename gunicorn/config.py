@@ -425,6 +425,7 @@ def get_default_config_file():
     return None
 
 
+# Please remember to run "make html" in docs/ after update "desc" attributes.
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
@@ -527,7 +528,7 @@ class WorkerClass(Setting):
 
         * ``sync``
         * ``eventlet`` - Requires eventlet >= 0.9.7
-        * ``gevent``   - Requires gevent >= 0.12.2 (?)
+        * ``gevent``   - Requires gevent >= 0.13
         * ``tornado``  - Requires tornado >= 0.2
 
         Optionally, you can provide your own worker by giving gunicorn a
@@ -799,7 +800,7 @@ class Env(Setting):
 
             $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
 
-        and test for the foo variable environement in your application.
+        and test for the foo variable environment in your application.
         """
 
 
