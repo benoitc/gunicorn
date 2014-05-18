@@ -10,14 +10,6 @@ To install the latest released version of Gunicorn::
 
   $ pip install gunicorn
 
-.. note::
-    There is a limited support version of Gunicorn that is compatible
-    with Python 2.4. This fork is managed by Randall Leeds and can be
-    found `here on GitHub`_. To install this version via ``pip``, you
-    must specify the *py24* branch::
-
-      $ pip install git+https://github.com/tilgovi/gunicorn.git@py24
-
 From Source
 ===========
 
@@ -154,7 +146,6 @@ Replace *lucid* with your Ubuntu distribution series.
 
 .. _`design docs`: design.html
 .. _Eventlet: http://eventlet.net
-.. _`here on GitHub`: http://github.com/tilgovi/gunicorn
 .. _Gevent: http://gevent.org
 .. _libevent: http://monkey.org/~provos/libevent
 .. _Debian: http://www.debian.org/
