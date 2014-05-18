@@ -73,6 +73,9 @@ A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
 want to vary this a bit to find the best for your particular
 application's work load.
 
+By default, the value of the WEB_CONCURRENCY environment variable. If
+it is not defined, the default is 1.
+
 worker_class
 ~~~~~~~~~~~~
 
@@ -215,8 +218,10 @@ debug
 * ``--debug``
 * ``False``
 
-**DEPRECATED**: This no functionality was removed after v18.0.  This
-option is now a no-op.
+Turn on debugging in the server.
+
+**DEPRECATED**: This no functionality was removed after v18.0.
+This option is now a no-op.
 
 reload
 ~~~~~~
@@ -609,10 +614,15 @@ e.g.
 paste
 ~~~~~
 
-* ``--paster STRING``
+* ``--paste STRING, --paster STRING``
 * ``None``
 
-Load a paste.deploy config file.
+Load a paste.deploy config file. The argument may contain a "#" symbol
+followed by the name of an app section from the config file, e.g.
+"production.ini#admin".
+
+At this time, using alternate server blocks is not supported. Use the
+command line arguments to control server configuration instead.
 
 Server Hooks
 ------------
