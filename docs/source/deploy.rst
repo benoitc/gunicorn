@@ -169,7 +169,7 @@ Create a ``Procfile`` in your project::
 
     gunicorn = gunicorn -w 3 test:app
 
-You can any other applications that should be launched at the same time.
+You can launch any other applications that should be launched at the same time.
 
 Then you can start your gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
 
