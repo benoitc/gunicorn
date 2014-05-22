@@ -84,7 +84,7 @@ class SafeAtoms(dict):
     def __init__(self, atoms):
         dict.__init__(self)
         for key, value in atoms.items():
-            if isinstance(value, basestring):
+            if isinstance(value, string_types):
                 self[key] = value.replace('"', '\\"')
             else:
                 self[key] = value
