@@ -77,7 +77,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
 ``location`` block::
 
   ...
-  location / {
+  location @proxy_to_app {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header Host $http_host;
       proxy_redirect off;
