@@ -46,7 +46,7 @@ class Arbiter(object):
     # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH INFO".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -282,6 +282,11 @@ class Arbiter(object):
             self.kill_workers(signal.SIGQUIT)
         else:
             self.log.info("SIGWINCH ignored. Not daemonized")
+
+    def handle_info(self):
+        "SIGINFO handling"
+        self.log.info("Master received SIGINFO. Broadcasting it to workers.")
+        self.kill_workers(signal.SIGINFO)
 
     def wakeup(self):
         """\
