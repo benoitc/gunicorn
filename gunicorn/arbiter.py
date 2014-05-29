@@ -296,6 +296,7 @@ class Arbiter(object):
             self.log.info("Reason: %s", reason)
         if self.pidfile is not None:
             self.pidfile.unlink()
+        self.cfg.on_exit(self)
         sys.exit(exit_status)
 
     def sleep(self):

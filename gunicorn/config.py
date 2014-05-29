@@ -1422,6 +1422,21 @@ class NumWorkersChanged(Setting):
         None.
         """
 
+class OnExit(Setting):
+    name = "on_exit"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+
+    def on_exit(server):
+        pass
+
+    default = staticmethod(on_exit)
+    desc = """\
+        Called just before exiting gunicorn.
+
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
 
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
