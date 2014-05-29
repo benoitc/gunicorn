@@ -8,7 +8,6 @@ import os
 import signal
 import sys
 
-
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import Reloader
@@ -23,7 +22,7 @@ from gunicorn.six import MAXSIZE
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD INFO".split()]
 
     PIPE = []
 
@@ -33,6 +32,7 @@ class Worker(object):
         current process. If there's a need to make process wide
         changes you'll want to do that in ``self.init_process()``.
         """
+
         self.age = age
         self.ppid = ppid
         self.sockets = sockets
@@ -42,6 +42,8 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
+        self.requests = dict()
+        self.environ_key = "gunicorn.socket"
         self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
@@ -127,11 +129,13 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        signal.signal(signal.SIGINFO, self.handle_info)
+        # Don't let SIGQUIT, SIGUSR1 and SIGINFO disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGQUIT, False)
             signal.siginterrupt(signal.SIGUSR1, False)
+            signal.siginterrupt(signal.SIGINFO, False)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
@@ -144,6 +148,11 @@ class Worker(object):
     def handle_quit(self, sig, frame):
         self.alive = False
         sys.exit(0)
+
+    def handle_info(self, sig, frame):
+        self.log.info("Worker received SIGINFO")
+        for v in self.requests.values():
+            self.log.info(repr(v))
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()

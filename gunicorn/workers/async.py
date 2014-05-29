@@ -88,6 +88,7 @@ class AsyncWorker(base.Worker):
                     listener.getsockname(), self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
+            self.requests[environ[self.environ_key]] = environ
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
@@ -127,6 +128,7 @@ class AsyncWorker(base.Worker):
             raise
         finally:
             try:
+                del self.requests[environ[self.environ_key]]
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
