@@ -33,6 +33,7 @@ try:
 except ImportError:
     from .. import selectors
 
+
 class TConn():
 
     def __init__(self, cfg, listener, sock, addr):
@@ -47,12 +48,12 @@ class TConn():
         # set the socket to non blocking
         self.sock.setblocking(False)
 
-
     def init(self):
+        self.sock.setblocking(True)
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                client = ssl.wrap_socket(client, server_side=True,
+                self.sock = ssl.wrap_socket(client, server_side=True,
                         **self.cfg.ssl_options)
 
 
@@ -142,6 +143,8 @@ class ThreadWorker(base.Worker):
             s.setblocking(False)
             self.poller.register(s, selectors.EVENT_READ, self.accept)
 
+        timeout = self.cfg.timeout or 0.5
+
         while self.alive:
             # If our parent changed then we shut down.
             if self.ppid != os.getppid():
@@ -162,7 +165,7 @@ class ThreadWorker(base.Worker):
             # if we more connections than the max number of connections
             # accepted on a worker, wait until some complete or exit.
             if len(self.futures) >= self.worker_connections:
-                res = futures.wait(self.futures, timeout=self.cfg.timeout)
+                res = futures.wait(self.futures, timeout=timeout)
                 if not res:
                     self.log.info("max requests achieved")
                     break
@@ -184,7 +187,6 @@ class ThreadWorker(base.Worker):
 
             # make sure we close the sockets after the graceful timeout
             util.close(sock)
-
 
     def finish_request(self, fs):
         try:
@@ -226,8 +228,6 @@ class ThreadWorker(base.Worker):
         keepalive = False
         req = None
         try:
-            conn.sock.setblocking(1)
-
             req = six.next(conn.parser)
             if not req:
                 return (False, conn)
