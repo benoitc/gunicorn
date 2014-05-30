@@ -22,7 +22,7 @@ from gunicorn.six import MAXSIZE
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD INFO".split()]
+            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD ILL".split()]
 
     PIPE = []
 
@@ -129,13 +129,13 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        signal.signal(signal.SIGINFO, self.handle_info)
-        # Don't let SIGQUIT, SIGUSR1 and SIGINFO disturb active requests
+        signal.signal(signal.SIGILL, self.handle_ill)
+        # Don't let SIGQUIT, SIGUSR1 and SIGILL disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGQUIT, False)
             signal.siginterrupt(signal.SIGUSR1, False)
-            signal.siginterrupt(signal.SIGINFO, False)
+            signal.siginterrupt(signal.SIGILL, False)
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
@@ -149,10 +149,12 @@ class Worker(object):
         self.alive = False
         sys.exit(0)
 
-    def handle_info(self, sig, frame):
-        self.log.info("Worker received SIGINFO")
-        for v in self.requests.values():
-            self.log.info(repr(v))
+    def handle_ill(self, sig, frame):
+        self.log.info("Worker received SIGILL")
+        now = datetime.now()
+        for (request_start, environ) in self.requests.values():
+            request_time = now - request_start
+            self.log.info("Age: %s, Request: %s" % (request_time, environ))
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
