@@ -84,7 +84,6 @@ class ThreadWorker(base.Worker):
         self.futures = deque()
         self._keep = deque()
 
-
     def _wrap_future(self, fs, conn):
         fs.conn = conn
         self.futures.append(fs)
@@ -116,7 +115,6 @@ class ThreadWorker(base.Worker):
         # submit the connection to a worker
         fs = self.tpool.submit(self.handle, conn)
         self._wrap_future(fs, conn)
-
 
     def murder_keepalived(self):
         now = time.time()
@@ -178,7 +176,12 @@ class ThreadWorker(base.Worker):
         futures.wait(self.futures, timeout=self.cfg.graceful_timeout)
 
         # if we have still fures running, try to close them
-        for fs in self.futures:
+        while True:
+            try:
+                fs = self.futures.popleft()
+            except IndexError:
+                break
+
             sock = fs.conn.sock
 
             # the future is not running, cancel it
@@ -278,7 +281,6 @@ class ThreadWorker(base.Worker):
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
                 self.alive = False
-
 
             if not self.cfg.keepalive:
                 resp.force_close()
