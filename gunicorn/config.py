@@ -89,6 +89,16 @@ class Config(object):
         return parser
 
     @property
+    def worker_class_str(self):
+        uri = self.settings['worker_class'].get()
+
+        ## are we using a threaded worker?
+        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+        if is_sync and self.threads > 1:
+            return "threads"
+        return uri
+
+    @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 

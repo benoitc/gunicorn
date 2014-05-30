@@ -24,11 +24,18 @@ import time
 
 from .. import http
 from ..http import wsgi
-from .. import fdevents
 from .. import util
 from . import base
 from .. import six
 
+try:
+    from asyncio import selectors
+except ImportError:
+    from .. import selectors
+
+
+ACCEPT = 0
+KEEPALIVED = 1
 
 class TConn():
 
@@ -66,16 +73,15 @@ class ThreadWorker(base.Worker):
 
     def init_process(self):
         self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
-        self.poller = fdevents.DefaultPoller()
+        self.poller = selectors.DefaultSelector()
         super(ThreadWorker, self).init_process()
 
     def run(self):
         # init listeners, add them to the event loop
         for s in self.sockets:
             s.setblocking(False)
-            self.poller.addfd(s, 'r')
+            self.poller.register(s, selectors.EVENT_READ, ACCEPT)
 
-        listeners = dict([(s.fileno(), s) for s in self.sockets])
         while self.alive:
 
             # If our parent changed then we shut down.
@@ -86,13 +92,14 @@ class ThreadWorker(base.Worker):
             # notify the arbiter we are alive
             self.notify()
 
-            events = self.poller.wait(0.01)
+            events = self.poller.select(0.01)
             if events:
-                for (fd, mode) in events:
+                for key, mask in events:
                     fs = None
                     client = None
-                    if fd in listeners:
-                        listener = listeners[fd]
+                    if key.data == ACCEPT:
+                        listener = key.fileobj
+
                         # start to accept connections
                         try:
                             client, addr = listener.accept()
@@ -107,15 +114,19 @@ class ThreadWorker(base.Worker):
                             if e.args[0] not in (errno.EAGAIN,
                                     errno.ECONNABORTED, errno.EWOULDBLOCK):
                                 raise
-                    elif fd in self.keepalived:
+
+                    else:
                         # get the client connection
-                        client = self.keepalived[fd]
+                        client = key.data
 
                         # remove it from the heap
+
                         try:
                             del self._heap[operator.indexOf(self._heap, client)]
                         except (KeyError, IndexError):
                             pass
+
+                        self.poller.unregister(key.fileobj)
 
                         # add a job to the pool
                         fs = self.tpool.submit(self.handle, client.listener,
@@ -146,10 +157,10 @@ class ThreadWorker(base.Worker):
 
                             # register the connection
                             heapq.heappush(self._heap, tconn)
-                            self.keepalived[fs.sock.fileno()] = tconn
 
                             # add the socket to the event loop
-                            self.poller.addfd(fs.sock, 'r', False)
+                            self.poller.register(fs.sock, selectors.EVENT_READ,
+                                    tconn)
                         else:
                             # at this point the connection should be
                             # closed but we make sure it is.
@@ -176,7 +187,7 @@ class ThreadWorker(base.Worker):
                     break
                 else:
                     # remove the socket from the poller
-                    self.poller.delfd(conn.sock, 'r')
+                    self.poller.unregister(conn.sock)
                     # close the socket
                     util.close(conn.sock)
 
