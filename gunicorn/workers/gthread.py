@@ -33,10 +33,6 @@ try:
 except ImportError:
     from .. import selectors
 
-
-ACCEPT = 0
-KEEPALIVED = 1
-
 class TConn():
 
     def __init__(self, cfg, listener, sock, addr):
@@ -166,7 +162,7 @@ class ThreadWorker(base.Worker):
             # if we more connections than the max number of connections
             # accepted on a worker, wait until some complete or exit.
             if len(self.futures) >= self.worker_connections:
-                futures.wait(self.futures, timeout=self.cfg.timeout)
+                res = futures.wait(self.futures, timeout=self.cfg.timeout)
                 if not res:
                     self.log.info("max requests achieved")
                     break
@@ -234,7 +230,7 @@ class ThreadWorker(base.Worker):
 
             req = six.next(conn.parser)
             if not req:
-                return (False, None)
+                return (False, conn)
 
             # handle the request
             keepalive = self.handle_request(req, conn)
