@@ -269,11 +269,6 @@ def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
-def fd_(fd):
-    if hasattr(fd, "fileno"):
-        return int(fd.fileno())
-    return fd
-
 def close(sock):
     try:
         sock.close()
