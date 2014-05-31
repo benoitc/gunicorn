@@ -52,6 +52,7 @@ class Statsd(Logger):
     def info(self, msg, *args, **kwargs):
         """Log a given statistic if metric, value and type are present
         """
+        Logger.info(self, msg, *args, **kwargs)
         extra = kwargs.get("extra", None)
         if extra is not None:
             metric = extra.get(METRIC_VAR, None)
@@ -66,7 +67,6 @@ class Statsd(Logger):
                     self.histogram(metric, value)
                 else:
                     pass
-        Logger.info(self, msg, *args, **kwargs)
 
     # skip the run-of-the-mill logs
     def debug(self, msg, *args, **kwargs):
