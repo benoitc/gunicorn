@@ -119,10 +119,11 @@ class ThreadWorker(base.Worker):
     def murder_keepalived(self):
         now = time.time()
         while True:
-            if not len(self._keep):
+            try:
+                delta = self._keep[0].timeout - now
+            except IndexError:
                 break
 
-            delta = self._keep[0].timeout - now
             if delta > 0:
                 break
             else:
