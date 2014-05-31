@@ -3,8 +3,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-"""Bare-bones implementation of statsD's protocol, client-side
-"""
+"Bare-bones implementation of statsD's protocol, client-side"
+
 import socket
 from gunicorn.glogging import Logger
 
@@ -33,22 +33,18 @@ class Statsd(Logger):
 
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.critical(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.critical", 1)
 
     def error(self, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.error(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.error", 1)
 
     def warning(self, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.warning(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.warning", 1)
 
     def exception(self, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
@@ -56,28 +52,27 @@ class Statsd(Logger):
     def info(self, msg, *args, **kwargs):
         """Log a given statistic if metric, value and type are present
         """
-        metric = kwargs.get(METRIC_VAR, None)
-        value = kwargs.get(VALUE_VAR, None)
-        typ = kwargs.get(MTYPE_VAR, None)
-        if metric and value and typ:
-            self._sanitize(kwargs)
-            if typ == GAUGE_TYPE:
-                self.gauge(metric, value)
-            elif typ == COUNTER_TYPE:
-                self.increment(metric, value)
-            elif typ == HISTOGRAM_TYPE:
-                self.histogram(metric, value)
-            else:
-                pass
+        extra = kwargs.get("extra", None)
+        if extra is not None:
+            metric = extra.get(METRIC_VAR, None)
+            value = extra.get(VALUE_VAR, None)
+            typ = extra.get(MTYPE_VAR, None)
+            if metric and value and typ:
+                if typ == GAUGE_TYPE:
+                    self.gauge(metric, value)
+                elif typ == COUNTER_TYPE:
+                    self.increment(metric, value)
+                elif typ == HISTOGRAM_TYPE:
+                    self.histogram(metric, value)
+                else:
+                    pass
         Logger.info(self, msg, *args, **kwargs)
 
     # skip the run-of-the-mill logs
     def debug(self, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.debug(self, msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
-        self._sanitize(kwargs)
         Logger.log(self, lvl, msg, *args, **kwargs)
 
     # access logging
@@ -89,14 +84,7 @@ class Statsd(Logger):
         duration_in_s = request_time.seconds + float(request_time.microseconds)/10**6
         self.histogram("gunicorn.request.duration", duration_in_s)
         self.increment("gunicorn.requests", 1)
-
-    def _sanitize(self, kwargs):
-        """Drop stasd keywords from the logger"""
-        for k in (METRIC_VAR, VALUE_VAR, MTYPE_VAR):
-            try:
-                kwargs.pop(k)
-            except KeyError:
-                pass
+        self.increment("gunicorn.request.status.%d" % int(resp.status), 1)
 
     # statsD methods
     # you can use those directly if you want

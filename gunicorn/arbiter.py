@@ -479,9 +479,9 @@ class Arbiter(object):
             self.kill_worker(pid, signal.SIGQUIT)
 
         self.log.info("%d workers",
-                      metric="gunicorn.workers",
-                      value=len(self.WORKERS),
-                      mtype="gauge")
+                      extra={"metric": "gunicorn.workers",
+                          "value": len(self.WORKERS),
+                          "mtype": "gauge"})
 
     def spawn_worker(self):
         self.worker_age += 1
