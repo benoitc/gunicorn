@@ -581,8 +581,7 @@ class WorkerThreads(Setting):
     desc = """\
         The number of worker threads for handling requests.
 
-        Run each worker in prethreaded mode with the specified number of
-        threads per worker.
+        Run each worker with the specified number of threads.
 
         A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
         want to vary this a bit to find the best for your particular
