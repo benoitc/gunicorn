@@ -73,6 +73,9 @@ A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
 want to vary this a bit to find the best for your particular
 application's work load.
 
+By default, the value of the WEB_CONCURRENCY environment variable. If
+it is not defined, the default is 1.
+
 worker_class
 ~~~~~~~~~~~~
 
@@ -215,8 +218,10 @@ debug
 * ``--debug``
 * ``False``
 
-**DEPRECATED**: This no functionality was removed after v18.0.  This
-option is now a no-op.
+Turn on debugging in the server.
+
+**DEPRECATED**: This no functionality was removed after v18.0.
+This option is now a no-op.
 
 reload
 ~~~~~~
@@ -421,28 +426,27 @@ access_log_format
 * ``--access-logformat STRING``
 * ``%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"``
 
-The Access log format .
+The access log format.
 
-By default:
-
-%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
-
-
-| h: remote address
-| l: '-'
-| u: currently '-', may be user name in future releases
-| t: date of the request
-| r: status line (ex: GET / HTTP/1.1)
-| s: status
-| b: response length or '-'
-| f: referer
-| a: user agent
-| T: request time in seconds
-| D: request time in microseconds
-| L: request time in decimal seconds
-| p: process ID
-| {Header}i: request header
-| {Header}o: response header
+==========  ===========
+Identifier  Description
+==========  ===========
+h           remote address
+l           '-'
+u           currently '-', may be user name in future releases
+t           date of the request
+r           status line (e.g. ``GET / HTTP/1.1``)
+s           status
+b           response length or '-'
+f           referer
+a           user agent
+T           request time in seconds
+D           request time in microseconds
+L           request time in decimal seconds
+p           process ID
+{Header}i   request header
+{Header}o   response header
+==========  ===========
 
 errorlog
 ~~~~~~~~
@@ -610,10 +614,15 @@ e.g.
 paste
 ~~~~~
 
-* ``--paster STRING``
+* ``--paste STRING, --paster STRING``
 * ``None``
 
-Load a paste.deploy config file.
+Load a paste.deploy config file. The argument may contain a "#" symbol
+followed by the name of an app section from the config file, e.g.
+"production.ini#admin".
+
+At this time, using alternate server blocks is not supported. Use the
+command line arguments to control server configuration instead.
 
 Server Hooks
 ------------

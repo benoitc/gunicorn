@@ -1,13 +1,17 @@
 build:
-	virtualenv --no-site-packages .
-	bin/python setup.py develop
-	bin/pip install -r requirements_dev.txt
+	virtualenv venv
+	venv/bin/pip install -e .
+	venv/bin/pip install -r requirements_dev.txt
 
 test:
-	bin/python setup.py test
+	venv/bin/python setup.py test
 
 coverage:
-	bin/python setup.py test --cov
+	venv/bin/python setup.py test --cov
 
 clean:
-	@rm -rf .Python bin lib include man build html
+	@rm -rf .Python MANIFEST build dist venv* *.egg-info
+	@find . -type f -name "*.py[co]" -delete
+	@find . -type d -name "__pycache__" -delete
+
+.PHONY: build clean coverage test

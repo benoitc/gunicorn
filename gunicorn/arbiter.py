@@ -3,8 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import with_statement
-
 import errno
 import os
 import random
@@ -336,9 +334,9 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
         self.LISTENERS = []
-        sig = signal.SIGQUIT
+        sig = signal.SIGTERM
         if not graceful:
-            sig = signal.SIGTERM
+            sig = signal.SIGQUIT
         limit = time.time() + self.cfg.graceful_timeout
         while self.WORKERS and time.time() < limit:
             self.kill_workers(sig)

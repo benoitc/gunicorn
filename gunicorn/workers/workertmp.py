@@ -10,10 +10,8 @@ import tempfile
 from gunicorn import util
 
 PLATFORM = platform.system()
-if PLATFORM.startswith('CYGWIN'):
-    IS_CYGWIN = True
-else:
-    IS_CYGWIN = False
+IS_CYGWIN = PLATFORM.startswith('CYGWIN')
+
 
 class WorkerTmp(object):
 

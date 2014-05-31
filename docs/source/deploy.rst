@@ -77,7 +77,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
 ``location`` block::
 
   ...
-  location / {
+  location @proxy_to_app {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header Host $http_host;
       proxy_redirect off;
@@ -169,7 +169,7 @@ Create a ``Procfile`` in your project::
 
     gunicorn = gunicorn -w 3 test:app
 
-You can any other applications that should be launched at the same time.
+You can launch any other applications that should be launched at the same time.
 
 Then you can start your gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
 

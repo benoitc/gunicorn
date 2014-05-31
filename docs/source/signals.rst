@@ -35,8 +35,8 @@ Sending signals directly to the worker processes should not normally be
 needed.  If the master process is running, any exited worker will be
 automatically respawned.
 
-- **QUIT**, **INT**: Graceful shutdown
-- **TERM**: Quick shutdown
+- **QUIT**, **INT**: Quick shutdown
+- **TERM**: Graceful shutdown
 - **USR1**: Reopen the log files
 
 Reload the configuration
