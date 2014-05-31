@@ -31,7 +31,7 @@ from .. import six
 try:
     from asyncio import selectors
 except ImportError:
-    from .. import selectors
+    from trollius import selectors
 
 
 class TConn():
