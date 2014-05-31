@@ -478,9 +478,9 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGQUIT)
 
-        self.log.info("%d workers",
+        self.log.info("{0} workers".format(len(workers)),
                       extra={"metric": "gunicorn.workers",
-                          "value": len(self.WORKERS),
+                          "value": len(workers),
                           "mtype": "gauge"})
 
     def spawn_worker(self):

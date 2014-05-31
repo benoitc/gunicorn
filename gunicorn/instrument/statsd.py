@@ -84,7 +84,7 @@ class Statsd(Logger):
         duration_in_s = request_time.seconds + float(request_time.microseconds)/10**6
         self.histogram("gunicorn.request.duration", duration_in_s)
         self.increment("gunicorn.requests", 1)
-        self.increment("gunicorn.request.status.%d" % int(resp.status), 1)
+        self.increment("gunicorn.request.status.%d" % int(resp.status.split()[0]), 1)
 
     # statsD methods
     # you can use those directly if you want
