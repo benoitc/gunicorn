@@ -63,9 +63,6 @@ class PyTest(Command):
 
 
 REQUIREMENTS = []
-if sys.version_info[0] == 2:
-    REQUIREMENTS.append('futures')
-
 
 setup(
     name = 'gunicorn',

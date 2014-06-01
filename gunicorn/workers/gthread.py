@@ -11,7 +11,6 @@
 # closed.
 
 from collections import deque
-import concurrent.futures as futures
 from datetime import datetime
 import errno
 from functools import partial
@@ -28,10 +27,25 @@ from .. import util
 from . import base
 from .. import six
 
+
+try:
+    import concurrent.futures as futures
+except ImportError:
+    raise RuntimeError("""
+    You need 'concurrent' installed to use this worker with this python
+    version.
+    """)
+
 try:
     from asyncio import selectors
 except ImportError:
-    from trollius import selectors
+    try:
+        from trollius import selectors
+    except ImportError:
+        raise RuntimeError("""
+        You need 'trollius' installed to use this worker with this python
+        version.
+        """)
 
 
 class TConn():
