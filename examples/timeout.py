@@ -8,7 +8,8 @@ import time
 
 
 def app(environ, start_response):
-    """Application which cooperatively pauses 10 seconds before responding"""
+    """Application which pauses 35 seconds before responding. the worker
+    will timeout in default case."""
     data = b'Hello, World!\n'
     status = '200 OK'
     response_headers = [
