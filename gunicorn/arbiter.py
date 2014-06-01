@@ -131,8 +131,7 @@ class Arbiter(object):
         listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
-        self.log.info("Using worker: %s",
-                self.cfg.settings['worker_class'].get())
+        self.log.info("Using worker: %s", self.cfg.worker_class_str)
 
         self.cfg.when_ready(self)
 

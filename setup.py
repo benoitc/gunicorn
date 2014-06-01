@@ -10,6 +10,7 @@ import sys
 
 from gunicorn import __version__
 
+
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Environment :: Other Environment',
@@ -62,6 +63,8 @@ class PyTest(Command):
         raise SystemExit(errno)
 
 
+REQUIREMENTS = []
+
 setup(
     name = 'gunicorn',
     version = __version__,
@@ -80,6 +83,8 @@ setup(
 
     tests_require = tests_require,
     cmdclass = {'test': PyTest},
+
+    install_requires = REQUIREMENTS,
 
     entry_points="""
 
