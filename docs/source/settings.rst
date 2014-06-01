@@ -1,3 +1,4 @@
+
 .. _settings:
 
 Settings
@@ -276,7 +277,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn_env/src/gunicorn/docs``
+* ``/home/benoitc/work/gunicorn/env_py3/src/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -329,7 +330,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``501``
+* ``1000``
 
 Switch worker processes to run as this user.
 
@@ -341,7 +342,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``20``
+* ``1000``
 
 Switch worker process to run as this group.
 
@@ -379,7 +380,7 @@ temporary directory.
 secure_scheme_headers
 ~~~~~~~~~~~~~~~~~~~~~
 
-* ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
+* ``{'X-FORWARDED-SSL': 'on', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-PROTOCOL': 'ssl'}``
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. These tell gunicorn to set
@@ -504,7 +505,7 @@ syslog_addr
 ~~~~~~~~~~~
 
 * ``--log-syslog-to SYSLOG_ADDR``
-* ``unix:///var/run/syslog``
+* ``udp://localhost:514``
 
 Address to send syslog messages.
 
@@ -784,9 +785,10 @@ None.
 
 on_exit
 ~~~~~~~
+
 *  ::
 
-        def on_exit():
+        def on_exit(server):
             pass
 
 Called just before exiting gunicorn.
