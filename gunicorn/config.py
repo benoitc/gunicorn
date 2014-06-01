@@ -1336,6 +1336,26 @@ class WorkerInt(Setting):
         """
 
 
+class WorkerAbort(Setting):
+    name = "worker_abort"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def worker_abort(worker):
+        pass
+
+    default = staticmethod(worker_abort)
+    desc = """\
+        Called when a worker received the SIGABRT signal.
+
+        This call generally happen on timeout.
+
+        The callable needs to accept one instance variable for the initialized
+        Worker.
+        """
+
+
 class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
