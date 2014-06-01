@@ -48,7 +48,7 @@ except ImportError:
         """)
 
 
-class TConn():
+class TConn(object):
 
     def __init__(self, cfg, listener, sock, addr):
         self.cfg = cfg
