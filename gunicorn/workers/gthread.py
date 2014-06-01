@@ -153,7 +153,7 @@ class ThreadWorker(base.Worker):
             # notify the arbiter we are alive
             self.notify()
 
-            events = self.poller.select(0.01)
+            events = self.poller.select(0.2)
             for key, mask in events:
                 callback = key.data
                 callback(key.fileobj)
