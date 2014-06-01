@@ -120,11 +120,13 @@ class ThreadWorker(base.Worker):
         now = time.time()
         while True:
             try:
-                delta = self._keep[0].timeout - now
+                conn = self._keep.popleft()
             except IndexError:
                 break
 
+            delta = conn.timeout - now
             if delta > 0:
+                self._keep.appendleft(conn)
                 break
             else:
                 # remove the connection from the queue
