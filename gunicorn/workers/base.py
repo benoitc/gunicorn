@@ -42,9 +42,9 @@ class Worker(object):
         self.booted = False
 
         self.nr = 0
+        self.max_requests = cfg.max_requests or MAXSIZE
         self.requests = dict()
         self.environ_key = "gunicorn.socket"
-        self.max_requests = cfg.max_requests or MAXSIZE
         self.alive = True
         self.log = log
         self.debug = cfg.debug
@@ -141,11 +141,15 @@ class Worker(object):
         sys.exit(0)
 
     def handle_ill(self, sig, frame):
-        self.log.info("Worker received SIGILL")
-        now = datetime.now()
+        now = datetime.datetime.now()
+        time_stamp = now.strftime('%Y%m%d%H%M%S')
+        file_path = ("/tmp/gunicornsigill_%s_%s" % (time_stamp, self.pid))
+        self.log.info("Worker received SIGILL. Logging open requests to %s" % (file_path))
+        file = open(file_path, 'a')
         for (request_start, environ) in self.requests.values():
             request_time = now - request_start
-            self.log.info("Age: %s, Request: %s" % (request_time, environ))
+            file.write("[%s] Age: %s, Request: %s\n" % (self.pid, request_time, environ))
+        file.close()
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
