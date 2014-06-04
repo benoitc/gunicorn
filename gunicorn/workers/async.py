@@ -8,6 +8,7 @@ import errno
 import socket
 import ssl
 import sys
+import greenlet
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -88,7 +89,7 @@ class AsyncWorker(base.Worker):
                     listener.getsockname(), self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            self.requests[environ[self.environ_key]] = (request_start, environ)
+            self.requests[environ[self.environ_key]] = (request_start, environ, greenlet.getcurrent())
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
