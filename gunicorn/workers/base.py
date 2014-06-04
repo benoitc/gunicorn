@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import signal
 import sys
+from greenlet import greenlet
 import traceback
 
 from gunicorn import util
@@ -141,15 +142,20 @@ class Worker(object):
         sys.exit(0)
 
     def handle_ill(self, sig, frame):
-        now = datetime.datetime.now()
+        now = datetime.now()
         time_stamp = now.strftime('%Y%m%d%H%M%S')
         file_path = ("/tmp/gunicornsigill_%s_%s" % (time_stamp, self.pid))
         self.log.info("Worker received SIGILL. Logging open requests to %s" % (file_path))
-        file = open(file_path, 'a')
-        for (request_start, environ) in self.requests.values():
-            request_time = now - request_start
-            file.write("[%s] Age: %s, Request: %s\n" % (self.pid, request_time, environ))
-        file.close()
+
+        with open(file_path, 'a') as file:
+            for (request_start, environ, current_greenlet) in self.requests.values():
+                request_time = now - request_start
+                file.write("[%s] Age: %s, Thread: %s, Request: %s\n" % (self.pid, request_time.microseconds, current_greenlet, environ))
+                if isinstance(current_greenlet, greenlet):
+                    stack_str = "".join(traceback.format_stack(current_greenlet.gr_frame))
+                    file.write("Stack: %s\n" % (stack_str))
+                else:
+                    file.write("Thread: %s was not greenlet%s\n" % current_greenlet)
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
