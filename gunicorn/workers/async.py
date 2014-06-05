@@ -44,7 +44,7 @@ class AsyncWorker(base.Worker):
                             req = six.next(parser)
                         if not req:
                             break
-                        self.handle_request(listener, req, client, addr)
+                        self.handle_request(listener_name, req, client, addr)
             except http.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
