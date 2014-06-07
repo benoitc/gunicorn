@@ -337,8 +337,7 @@ def write_error(sock, status_int, reason, mesg):
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
-    %s
-    """) % (str(status_int), reason, len(html), html)
+    %s""") % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
 
 
