@@ -3,17 +3,9 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import t
-import os
-import sys
 import unittest
-if sys.version_info[0] < 3:
-    raise unittest.SkipTest("gaiohttp requires Python 3.3+")
-
-try:
-    import aiohttp
-except ImportError:
-    raise unittest.SkipTest("gaiohttp requires aiohttp")
+import pytest
+aiohttp = pytest.importorskip("aiohttp")
 
 
 from aiohttp.wsgi import WSGIServerHttpProtocol
