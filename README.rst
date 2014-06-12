@@ -33,7 +33,7 @@ Or from Pypi::
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during
-request processing. If you're on Python 3 you may also consider one othe asyncio workers. Check out the FAQ_ for more information on when you'll
+request processing. If you're on Python 3 you may also consider one othe Asyncio_ workers. Check out the FAQ_ for more information on when you'll
 want to consider one of the alternate worker types.
 
 To install eventlet::
@@ -153,6 +153,7 @@ details.
 .. _freenode: http://freenode.net
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
+.. _Asyncio: https://docs.python.org/3/library/asyncio.html
 .. _FAQ: http://docs.gunicorn.org/en/latest/faq.html
 .. _libev: http://software.schmorp.de/pkg/libev.html
 .. _libevent: http://monkey.org/~provos/libevent
