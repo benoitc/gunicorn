@@ -33,7 +33,7 @@ Or from Pypi::
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during
-request processing. Check out the FAQ_ for more information on when you'll
+request processing. If you're on Python 3 you may also consider one othe asyncio workers. Check out the FAQ_ for more information on when you'll
 want to consider one of the alternate worker types.
 
 To install eventlet::
@@ -63,7 +63,7 @@ Commonly Used Arguments
     to run. You'll definitely want to read the `production page`_ for the
     implications of this parameter. You can set this to ``egg:gunicorn#$(NAME)``
     where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``, or
-    ``tornado``. ``sync`` is the default.
+    ``tornado``, ``gthread``, ``gaiohttp`. ``sync`` is the default.
   * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
     adjust the name of Gunicorn process as they appear in the process system
     table (which affects tools like ``ps`` and ``top``).
