@@ -8,7 +8,7 @@ python:
 install:
   - "pip install -r requirements_dev.txt"
   - "python setup.py install"
-  - python check_py3k.py && pip install aiohttp || true
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install aiohttp; fi
 script: py.test -x tests/
 branches:
   only:
