@@ -60,7 +60,7 @@ connection job. On keepalive connections are put back in the loop
 waiting for an event. If no event happen after the keep alive timeout,
 the connection is closed.
 
-The worker `gaiohttp` is a full asyncio worker using [aiohttp](https://github.com/KeepSafe/aiohttp).
+The worker `gaiohttp` is a full asyncio worker using aiohttp_
 
 Choosing a Worker Type
 ======================
@@ -111,3 +111,4 @@ of the entire system.
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
 .. _Slowloris: http://ha.ckers.org/slowloris/
+.. _aiohttp: https://github.com/KeepSafe/aiohttp
