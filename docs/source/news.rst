@@ -5,8 +5,8 @@ Changelog
 -----------------
 
 Gunicorn 19.0 is a major release with new features and fixes. This
-version improve a lot the usage of Gunicorn with python 3 by adding two
-new workers to it: `gthread` a fully threaded async worker using futures
+version improve a lot the usage of Gunicorn with python 3 by adding `two
+new workers <http://docs.gunicorn.org/en/latest/design.html#asyncio-workers>`_ to it: `gthread` a fully threaded async worker using futures
 and `gaiohttp` a worker using asyncio.
 
 
@@ -51,7 +51,7 @@ core
   keep-alive requests after the listener has closed.
 - add on_exit hook called just before exiting gunicorn.
 - add support for python 3.4
-- fix: do not swallow unexpected errors when reaping 
+- fix: do not swallow unexpected errors when reaping
 - fix: remove incompatible SSL option with python 2.6
 - add new async gthread worker and `--threads` options allows to set multiple
   threads to listen on connection
@@ -61,7 +61,7 @@ core
 - add universal wheel support
 - use `email.utils.formatdate` in gunicorn.util.http_date
 - deprecate the `--debug` option
-- fix: log exceptions that occur after response start … 
+- fix: log exceptions that occur after response start …
 - allows loading of applications from `.pyc` files (#693)
 - fix: issue #691, raw_env config file parsing
 - use a dynamic timeout to wait for the optimal time. (Reduce power
@@ -80,7 +80,7 @@ core
 - fix logging: don't propagate log
 - improve logging: file option can be overriden by the gunicorn options
 `--error-logfile` and `--access-logfile` if they are given.
-- fix: dont' override SERVER_* by the Host header 
+- fix: dont' override SERVER_* by the Host header
 - fix: handle_error
 - add more option to configure SSL
 - fix: sendfile with SSL
@@ -90,7 +90,7 @@ core
 - fix: Error messages are now encoded in latin1
 - fix: request line length check
 - improvement: proxy_allow_ips: Allow proxy protocol if "*" specified
-- fix: run worker's `setup` method  before setting num_workers 
+- fix: run worker's `setup` method  before setting num_workers
 - fix: FileWrapper inherit from `object` now
 - fix: Error messages are now encoded in latin1
 - fix: don't spam the console on SIGWINCH.
@@ -104,7 +104,7 @@ gevent worker
 +++++++++++++
 
 - fix: make sure to stop all listeners
-- fix: monkey patching is now done in the worker 
+- fix: monkey patching is now done in the worker
 - fix: "global name 'hub' is not defined"
 - fix: reinit `hub` on old versions of gevent
 - support gevent 1.0
