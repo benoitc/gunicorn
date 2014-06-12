@@ -123,30 +123,6 @@ tornado worker
 
 - add gracefull stop support
 
-
-Breaking Changes
-++++++++++++++++
-
-- switch QUIT and TERM signals:
-
-With this change, when gunicorn receives a QUIT all the workers are
-killed immediately and exit and TERM is used for the graceful shutdown.
-
-Note: the old behaviour was based on the NGINX but the new one is more
-correct according the following doc:
-
-https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
-
-also it is complying with the way the signals are sent by heroku:
-
-https://devcenter.heroku.com/articles/python-faq#what-constraints-exist-when-developing-applications-on-heroku
-
-
-- `run_gunicorn`, `gunicorn_django` and `gunicorn_paster` are now
-  completely deprecated and will be removed in the next release. Use the
-  `gunicorn` command instead.
-
-
 18.0 / 2013-08-26
 -----------------
 
@@ -366,6 +342,7 @@ History
 .. toctree::
    :titlesonly:
 
+   2014-news
    2013-news
    2012-news
    2011-news

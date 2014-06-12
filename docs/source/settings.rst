@@ -104,6 +104,22 @@ alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``. Alternatively the syntax
 can also load the gevent class with ``egg:gunicorn#gevent``
 
+threads
+~~~~~~~
+
+* ``--threads INT``
+* ``1``
+
+The number of worker threads for handling requests.
+
+Run each worker with the specified number of threads.
+
+A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
+want to vary this a bit to find the best for your particular
+application's work load.
+
+If it is not defined, the default is 1.
+
 worker_connections
 ~~~~~~~~~~~~~~~~~~
 
@@ -380,7 +396,7 @@ temporary directory.
 secure_scheme_headers
 ~~~~~~~~~~~~~~~~~~~~~
 
-* ``{'X-FORWARDED-SSL': 'on', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-PROTOCOL': 'ssl'}``
+* ``{'X-FORWARDED-SSL': 'on', 'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https'}``
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. These tell gunicorn to set
@@ -712,6 +728,21 @@ worker_int
             pass
 
 Called just after a worker exited on SIGINT or SIGTERM.
+
+The callable needs to accept one instance variable for the initialized
+Worker.
+
+worker_abort
+~~~~~~~~~~~~
+
+*  ::
+
+        def worker_abort(worker):
+            pass
+
+Called when a worker received the SIGABRT signal.
+
+This call generally happen on timeout.
 
 The callable needs to accept one instance variable for the initialized
 Worker.
