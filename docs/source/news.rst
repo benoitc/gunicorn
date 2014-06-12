@@ -1,10 +1,150 @@
 Changelog
 =========
 
-18.2 / unreleased
+19.0 / 2014-06-12
 -----------------
 
-- new: logging to syslog now includes the access log.
+Gunicorn 19.0 is a major release with new features and fixes. This
+version improve a lot the usage of Gunicorn with python 3 by adding two
+new workers to it: `gthread` a fully threaded async worker using futures
+and `gaiohttp` a worker using asyncio.
+
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+
+Switch QUIT and TERM signals
+++++++++++++++++++++++++++++
+
+With this change, when gunicorn receives a QUIT all the workers are
+killed immediately and exit and TERM is used for the graceful shutdown.
+
+Note: the old behaviour was based on the NGINX but the new one is more
+correct according the following doc:
+
+https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
+
+also it is complying with the way the signals are sent by heroku:
+
+https://devcenter.heroku.com/articles/python-faq#what-constraints-exist-when-developing-applications-on-heroku
+
+Deprecations
++++++++++++++
+
+`run_gunicorn`, `gunicorn_django` and `gunicorn_paster` are now
+completely deprecated and will be removed in the next release. Use the
+`gunicorn` command instead.
+
+
+Changes:
+~~~~~~~~
+
+core
+++++
+
+- add aiohttp worker named `gaiohttp` using asyncio. Full async worker
+  on python 3.
+- fix HTTP-violating excess whitespace in write_error output
+- fix: try to log what happened in the worker after a timeout, add a
+  `worker_abort` hook on SIGABRT signal.
+- fix: save listener socket name in workers so we can handle buffered
+  keep-alive requests after the listener has closed.
+- add on_exit hook called just before exiting gunicorn.
+- add support for python 3.4
+- fix: do not swallow unexpected errors when reaping 
+- fix: remove incompatible SSL option with python 2.6
+- add new async gthread worker and `--threads` options allows to set multiple
+  threads to listen on connection
+- deprecate `gunicorn_django` and `gunicorn_paster`
+- switch QUIT and TERM signal
+- reap workers in SIGCHLD handler
+- add universal wheel support
+- use `email.utils.formatdate` in gunicorn.util.http_date
+- deprecate the `--debug` option
+- fix: log exceptions that occur after response start … 
+- allows loading of applications from `.pyc` files (#693)
+- fix: issue #691, raw_env config file parsing
+- use a dynamic timeout to wait for the optimal time. (Reduce power
+  usage)
+- fix python3 support when notifying the arbiter
+- add: honor $WEB_CONCURRENCY environment variable. Useful for heroku
+  setups.
+- add: include tz offset in access log
+- add: include access logs in the syslog handler.
+- add --reload option for code reloading
+- add the capability to load `gunicorn.base.Application` without the loading of the arguments of the command line. It allows you to [embed gunicorn in your own application](http://docs.gunicorn.org/en/latest/custom.html).
+- improve: set wsgi.multithread to True for async workers
+- fix logging: make sure to redirect wsgi.errors when needed
+- add: syslog logging can now be done to a unix socket
+- fix logging: don't try to redirect stdout/stderr to the logfile.
+- fix logging: don't propagate log
+- improve logging: file option can be overriden by the gunicorn options
+`--error-logfile` and `--access-logfile` if they are given.
+- fix: dont' override SERVER_* by the Host header 
+- fix: handle_error
+- add more option to configure SSL
+- fix: sendfile with SSL
+- add: worker_int callback (to react on SIGTERM)
+- fix: don't depend on entry point for internal classes, now absolute
+  modules path can be given.
+- fix: Error messages are now encoded in latin1
+- fix: request line length check
+- improvement: proxy_allow_ips: Allow proxy protocol if "*" specified
+- fix: run worker's `setup` method  before setting num_workers 
+- fix: FileWrapper inherit from `object` now
+- fix: Error messages are now encoded in latin1
+- fix: don't spam the console on SIGWINCH.
+- fix: logging -don't stringify T and D logging atoms (#621)
+- add support for the latest django version
+- deprecate `run_gunicorn` django option
+- fix: sys imported twice
+
+
+gevent worker
++++++++++++++
+
+- fix: make sure to stop all listeners
+- fix: monkey patching is now done in the worker 
+- fix: "global name 'hub' is not defined"
+- fix: reinit `hub` on old versions of gevent
+- support gevent 1.0
+- fix: add subprocess in monket patching
+- fix: add support for multiple listener
+
+eventlet worker
++++++++++++++++
+
+- fix: merge duplicate EventletWorker.init_process method (fixes #657)
+- fix: missing errno import for eventlet sendfile patch
+- fix: add support for multiple listener
+
+tornado worker
+++++++++++++++
+
+- add gracefull stop support
+
+
+Breaking Changes
+++++++++++++++++
+
+- switch QUIT and TERM signals:
+
+With this change, when gunicorn receives a QUIT all the workers are
+killed immediately and exit and TERM is used for the graceful shutdown.
+
+Note: the old behaviour was based on the NGINX but the new one is more
+correct according the following doc:
+
+https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
+
+also it is complying with the way the signals are sent by heroku:
+
+https://devcenter.heroku.com/articles/python-faq#what-constraints-exist-when-developing-applications-on-heroku
+
+
+- `run_gunicorn`, `gunicorn_django` and `gunicorn_paster` are now
+  completely deprecated and will be removed in the next release. Use the
+  `gunicorn` command instead.
 
 
 18.0 / 2013-08-26
