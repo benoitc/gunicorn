@@ -202,7 +202,7 @@ def when_ready(server):
     server.log.info("Server is ready. Spwawning workers")
 
 def worker_int(worker):
-    worker.log.info("worker received INT or TERM signal")
+    worker.log.info("worker received INT or QUIT signal")
 
     ## get traceback info
     import threading, sys, traceback

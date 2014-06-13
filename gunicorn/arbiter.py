@@ -229,7 +229,7 @@ class Arbiter(object):
         raise StopIteration
 
     def handle_quit(self):
-        "SIGTERM handling"
+        "SIGQUIT handling"
         self.stop(False)
         raise StopIteration
 
@@ -273,7 +273,7 @@ class Arbiter(object):
         if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
-            self.kill_workers(signal.SIGQUIT)
+            self.kill_workers(signal.SIGTERM)
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
 
@@ -480,7 +480,7 @@ class Arbiter(object):
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
-            self.kill_worker(pid, signal.SIGQUIT)
+            self.kill_worker(pid, signal.SIGTERM)
 
     def spawn_worker(self):
         self.worker_age += 1

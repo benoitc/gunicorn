@@ -727,7 +727,7 @@ worker_int
         def worker_int(worker):
             pass
 
-Called just after a worker exited on SIGINT or SIGTERM.
+Called just after a worker exited on SIGINT or SIGQUIT.
 
 The callable needs to accept one instance variable for the initialized
 Worker.

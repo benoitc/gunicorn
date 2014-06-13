@@ -262,7 +262,7 @@ systemd:
     WorkingDirectory=/home/urban/gunicorn/bin
     ExecStart=/home/someuser/gunicorn/bin/gunicorn -p /home/urban/gunicorn/gunicorn.pid- test:app
     ExecReload=/bin/kill -s HUP $MAINPID
-    ExecStop=/bin/kill -s QUIT $MAINPID
+    ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
 
 **gunicorn.socket**::

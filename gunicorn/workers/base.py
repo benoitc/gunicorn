@@ -83,7 +83,7 @@ class Worker(object):
         if self.cfg.reload:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
-                os.kill(self.pid, signal.SIGTERM)
+                os.kill(self.pid, signal.SIGQUIT)
                 raise SystemExit()
             Reloader(callback=changed).start()
 
@@ -130,10 +130,10 @@ class Worker(object):
         signal.signal(signal.SIGUSR1, self.handle_usr1)
         signal.signal(signal.SIGABRT, self.handle_abort)
 
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGQUIT, False)
+            signal.siginterrupt(signal.SIGTERM, False)
             signal.siginterrupt(signal.SIGUSR1, False)
 
     def handle_usr1(self, sig, frame):
@@ -141,11 +141,11 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         self.alive = False
-        # worker_int callback
-        self.cfg.worker_int(self)
 
     def handle_quit(self, sig, frame):
         self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
         sys.exit(0)
 
     def handle_abort(self, sig, frame):

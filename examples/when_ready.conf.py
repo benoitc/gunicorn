@@ -29,7 +29,7 @@ class MemoryWatch(threading.Thread):
                 if self.memory_usage(pid) > self.max_mem:
                     self.server.log.info("Pid %s killed (memory usage > %s)", 
                         pid, self.max_mem)
-                    self.server.kill_worker(pid, signal.SIGQUIT)
+                    self.server.kill_worker(pid, signal.SIGTERM)
             time.sleep(self.timeout)
             
 
