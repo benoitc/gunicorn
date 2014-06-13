@@ -1369,7 +1369,7 @@ class WorkerInt(Setting):
 
     default = staticmethod(worker_int)
     desc = """\
-        Called just after a worker exited on SIGINT or SIGTERM.
+        Called just after a worker exited on SIGINT or SIGQUIT.
 
         The callable needs to accept one instance variable for the initialized
         Worker.
