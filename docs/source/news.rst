@@ -10,6 +10,8 @@ Core
 ++++
 
 - fix #785: handle binary type address given to a client socket address
+- fix graceful shutdown. make sure QUIT and TERMS signals are switched
+  everywhere.
 
 19.0 / 2014-06-12
 -----------------
