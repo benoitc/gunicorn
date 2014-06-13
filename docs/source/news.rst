@@ -1,6 +1,16 @@
 Changelog
 =========
 
+19.1 / unreleased
+
+Changes
+~~~~~~~
+
+Core
+++++
+
+- fix #785: handle binary type address given to a client socket address
+
 19.0 / 2014-06-12
 -----------------
 
