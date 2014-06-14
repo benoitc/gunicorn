@@ -7,7 +7,12 @@ __all__ = ['AiohttpWorker']
 import asyncio
 import functools
 import os
-import gunicorn.workers.base as base
+import sys
+
+from . import base
+
+if sys.version_info < (3, 3, 0):
+    raise RuntimeError("Python 3.3 and later is needed to run this worker")
 
 try:
     from aiohttp.wsgi import WSGIServerHttpProtocol
