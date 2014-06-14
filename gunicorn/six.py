@@ -357,7 +357,11 @@ if PY3:
     print_ = getattr(builtins, "print")
 
     def execfile_(fname, *args):
-        return exec_(_get_codeobj(fname), *args)
+        if fname.endswith(".pyc"):
+            code = _get_codeobj(fname)
+        else:
+            code = compile(open(fname, 'rb').read(), fname, 'exec')
+        return exec_(code, *args)
 
 
     del builtins
@@ -382,7 +386,9 @@ else:
 
     def execfile_(fname, *args):
         """ Overriding PY2 execfile() implementation to support .pyc files """
-        return exec_(_get_codeobj(fname), *args)
+        if fname.endswith(".pyc"):
+            return exec_(_get_codeobj(fname), *args)
+        return execfile(fname, *args)
 
 
     def print_(*args, **kwargs):
