@@ -114,6 +114,8 @@ class AsyncWorker(base.Worker):
                     respiter.close()
             if resp.should_close():
                 raise StopIteration()
+        except StopIteration:
+            raise
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
