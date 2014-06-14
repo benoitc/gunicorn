@@ -107,6 +107,22 @@ Always remember, there is such a thing as too many workers. After a point your
 worker processes will start thrashing system resources decreasing the throughput
 of the entire system.
 
+How Many Threads?
+===================
+
+Since Gunicorn 19, a threads option can be used to process requests in multiple
+threads. Using threads assumes use of the sync worker. One benefit from threads
+is that requests can take longer than the worker timeout while notifying the
+master process that it is not frozen and should not be killed. Depending on the
+system, using multiple threads, multiple worker processes, or some mixture, may
+yield the best results. For example, CPython may not perform as well as Jython
+when using threads, as threading is implemented differently by each. Using
+threads instead of processes is a good way to reduce the memory footprint of
+Gunicorn, while still allowing for application upgrades using the reload signal,
+as the application code will be shared among workers but loaded only in the
+worker processes (unlike when using the preload setting, which loads the code in
+the master process).
+
 .. _Greenlets: https://github.com/python-greenlet/greenlet
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
