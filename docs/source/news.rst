@@ -13,6 +13,11 @@ Core
 - fix graceful shutdown. make sure QUIT and TERMS signals are switched
   everywhere.
 
+Tornado worker
+++++++++++++++
+
+- fix x_headers error
+
 19.0 / 2014-06-12
 -----------------
 
