@@ -9,7 +9,6 @@ Changes
 Core
 ++++
 
-- improvement: fix #788 check the python requirements for the gaiohttp server
 - fix #785: handle binary type address given to a client socket address
 - fix graceful shutdown. make sure QUIT and TERMS signals are switched
   everywhere.
@@ -20,7 +19,7 @@ Tornado worker
 - fix #783: x_headers error. The x-forwarded-headers option has been removed
   in `c4873681299212d6082cd9902740eef18c2f14f1
   <https://github.com/benoitc/gunicorn/commit/c4873681299212d6082cd9902740eef18c2f14f1>`_. The discussion is
-  available on `#633 <https://github.com/benoitc/gunicorn/pull/633>`_.
+  available on `#633 <https://github.com/benoitc/gunicorn/pull/633>`_. 
 
 
 
