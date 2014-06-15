@@ -152,9 +152,10 @@ class Worker(object):
         sys.exit(0)
 
     def handle_ill(self, sig, frame):
+        tempdir = util.gettempdir(self.cfg)
         now = datetime.now()
         time_stamp = now.strftime('%Y%m%d%H%M%S')
-        file_path = ("/tmp/gunicornsigill_%s_%s" % (time_stamp, self.pid))
+        file_path = ("%s/gunicornsigill_%s_%s" % (tempdir, time_stamp, self.pid))
         self.log.info("Worker received SIGILL. Logging open requests to %s" % (file_path))
 
         with open(file_path, 'a') as file:

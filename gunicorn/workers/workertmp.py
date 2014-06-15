@@ -17,9 +17,7 @@ class WorkerTmp(object):
 
     def __init__(self, cfg):
         old_umask = os.umask(cfg.umask)
-        fdir = cfg.worker_tmp_dir
-        if fdir and not os.path.isdir(fdir):
-            raise RuntimeError("%s doesn't exist. Can't create workertmp." % fdir)
+        fdir = util.gettempdir(cfg)
         fd, name = tempfile.mkstemp(prefix="wgunicorn-", dir=fdir)
 
         # allows the process to write to the file

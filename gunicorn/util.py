@@ -20,6 +20,7 @@ import inspect
 import errno
 import warnings
 import cgi
+import tempfile
 
 from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
@@ -534,3 +535,11 @@ def warn(msg):
 
     sys.stderr.write("!!!\n\n")
     sys.stderr.flush()
+
+def gettempdir(cfg):
+    tempdir = cfg.worker_tmp_dir
+    if tempdir and not os.path.isdir(tempdir):
+        raise RuntimeError("%s doesn't exist. Can't create workertmp." % tempdir)
+    if not tempdir:
+        tempdir = tempfile.gettempdir()
+    return tempdir
