@@ -94,14 +94,16 @@ core
 - add: include tz offset in access log
 - add: include access logs in the syslog handler.
 - add --reload option for code reloading
-- add the capability to load `gunicorn.base.Application` without the loading of the arguments of the command line. It allows you to [embed gunicorn in your own application](http://docs.gunicorn.org/en/latest/custom.html).
+- add the capability to load `gunicorn.base.Application` without the loading of
+  the arguments of the command line. It allows you to :ref:`embed gunicorn in
+  your own application <custom>`.
 - improve: set wsgi.multithread to True for async workers
 - fix logging: make sure to redirect wsgi.errors when needed
 - add: syslog logging can now be done to a unix socket
 - fix logging: don't try to redirect stdout/stderr to the logfile.
 - fix logging: don't propagate log
 - improve logging: file option can be overriden by the gunicorn options
-`--error-logfile` and `--access-logfile` if they are given.
+  `--error-logfile` and `--access-logfile` if they are given.
 - fix: dont' override SERVER_* by the Host header
 - fix: handle_error
 - add more option to configure SSL
