@@ -199,7 +199,7 @@ def pre_exec(server):
     server.log.info("Forked child, re-executing.")
 
 def when_ready(server):
-    server.log.info("Server is ready. Spwawning workers")
+    server.log.info("Server is ready. Spawning workers")
 
 def worker_int(worker):
     worker.log.info("worker received INT or QUIT signal")
