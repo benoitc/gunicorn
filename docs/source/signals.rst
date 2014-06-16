@@ -20,7 +20,7 @@ Master process
   not preloaded (using the ``--preload`` option), Gunicorn will also load the
   new version.
 - **TTIN**: Increment the number of processes by one
-- **TTOU**: Decrement the nunber of processes by one
+- **TTOU**: Decrement the number of processes by one
 - **USR1**: Reopen the log files
 - **USR2**: Upgrade the Gunicorn on the fly. A separate **TERM** signal should
   be used to kill the old process. This signal can also be used to use the new
