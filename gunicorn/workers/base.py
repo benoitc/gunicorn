@@ -155,7 +155,8 @@ class Worker(object):
         tempdir = util.gettempdir(self.cfg)
         now = datetime.now()
         time_stamp = now.strftime('%Y%m%d%H%M%S')
-        file_path = ("%s/gunicornsigill_%s_%s" % (tempdir, time_stamp, self.pid))
+        file_name = "gunicornsigill_%s_%s" % (time_stamp, self.pid)
+        file_path = os.path.join(tempdir, file_name)
         self.log.info("Worker received SIGILL. Logging open requests to %s" % (file_path))
 
         with open(file_path, 'a') as file:
