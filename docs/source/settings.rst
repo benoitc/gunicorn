@@ -1,3 +1,4 @@
+
 .. _settings:
 
 Settings
@@ -102,6 +103,22 @@ python path to a subclass of gunicorn.workers.base.Worker. This
 alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``. Alternatively the syntax
 can also load the gevent class with ``egg:gunicorn#gevent``
+
+threads
+~~~~~~~
+
+* ``--threads INT``
+* ``1``
+
+The number of worker threads for handling requests.
+
+Run each worker with the specified number of threads.
+
+A positive integer generally in the 2-4 x $(NUM_CORES) range. You'll
+want to vary this a bit to find the best for your particular
+application's work load.
+
+If it is not defined, the default is 1.
 
 worker_connections
 ~~~~~~~~~~~~~~~~~~
@@ -276,7 +293,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn_env/src/gunicorn/docs``
+* ``/home/benoitc/work/gunicorn/env_py3/src/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -329,7 +346,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``501``
+* ``1000``
 
 Switch worker processes to run as this user.
 
@@ -341,7 +358,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``20``
+* ``1000``
 
 Switch worker process to run as this group.
 
@@ -379,7 +396,7 @@ temporary directory.
 secure_scheme_headers
 ~~~~~~~~~~~~~~~~~~~~~
 
-* ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
+* ``{'X-FORWARDED-SSL': 'on', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-PROTOCOL': 'ssl'}``
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. These tell gunicorn to set
@@ -504,7 +521,7 @@ syslog_addr
 ~~~~~~~~~~~
 
 * ``--log-syslog-to SYSLOG_ADDR``
-* ``unix:///var/run/syslog``
+* ``udp://localhost:514``
 
 Address to send syslog messages.
 
@@ -710,7 +727,22 @@ worker_int
         def worker_int(worker):
             pass
 
-Called just after a worker exited on SIGINT or SIGTERM.
+Called just after a worker exited on SIGINT or SIGQUIT.
+
+The callable needs to accept one instance variable for the initialized
+Worker.
+
+worker_abort
+~~~~~~~~~~~~
+
+*  ::
+
+        def worker_abort(worker):
+            pass
+
+Called when a worker received the SIGABRT signal.
+
+This call generally happen on timeout.
 
 The callable needs to accept one instance variable for the initialized
 Worker.
@@ -781,6 +813,18 @@ two integers of number of workers after and before change.
 
 If the number of workers is set for the first time, old_value would be
 None.
+
+on_exit
+~~~~~~~
+
+*  ::
+
+        def on_exit(server):
+            pass
+
+Called just before exiting gunicorn.
+
+The callable needs to accept a single instance variable for the Arbiter.
 
 Server Mechanics
 ----------------

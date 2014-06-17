@@ -131,8 +131,7 @@ class Arbiter(object):
         listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
-        self.log.info("Using worker: %s",
-                self.cfg.settings['worker_class'].get())
+        self.log.info("Using worker: %s", self.cfg.worker_class_str)
 
         self.cfg.when_ready(self)
 
@@ -230,7 +229,7 @@ class Arbiter(object):
         raise StopIteration
 
     def handle_quit(self):
-        "SIGTERM handling"
+        "SIGQUIT handling"
         self.stop(False)
         raise StopIteration
 
@@ -274,7 +273,7 @@ class Arbiter(object):
         if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
-            self.kill_workers(signal.SIGQUIT)
+            self.kill_workers(signal.SIGTERM)
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
 
@@ -296,6 +295,7 @@ class Arbiter(object):
             self.log.info("Reason: %s", reason)
         if self.pidfile is not None:
             self.pidfile.unlink()
+        self.cfg.on_exit(self)
         sys.exit(exit_status)
 
     def sleep(self):
@@ -432,8 +432,12 @@ class Arbiter(object):
             except ValueError:
                 continue
 
-            self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
-            self.kill_worker(pid, signal.SIGKILL)
+            if not worker.aborted:
+                self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
+                worker.aborted = True
+                self.kill_worker(pid, signal.SIGABRT)
+            else:
+                self.kill_worker(pid, signal.SIGKILL)
 
     def reap_workers(self):
         """\
@@ -476,7 +480,7 @@ class Arbiter(object):
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
-            self.kill_worker(pid, signal.SIGQUIT)
+            self.kill_worker(pid, signal.SIGTERM)
 
         self.log.info("{0} workers".format(len(workers)),
                       extra={"metric": "gunicorn.workers",

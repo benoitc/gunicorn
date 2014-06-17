@@ -20,9 +20,9 @@ Master process
   not preloaded (using the ``--preload`` option), Gunicorn will also load the
   new version.
 - **TTIN**: Increment the number of processes by one
-- **TTOU**: Decrement the nunber of processes by one
+- **TTOU**: Decrement the number of processes by one
 - **USR1**: Reopen the log files
-- **USR2**: Upgrade the Gunicorn on the fly. A separate **QUIT** signal should
+- **USR2**: Upgrade the Gunicorn on the fly. A separate **TERM** signal should
   be used to kill the old process. This signal can also be used to use the new
   versions of pre-loaded applications.
 - **WINCH**: Gracefully shutdown the worker processes when gunicorn is
@@ -91,7 +91,7 @@ incoming requests together. To phase the old instance out, you have to
 send **WINCH** signal to the old master process, and its worker
 processes will start to gracefully shut down.
 
-t this point you can still revert to the old server because it hasn't closed its listen sockets yet, by following these steps:
+At this point you can still revert to the old server because it hasn't closed its listen sockets yet, by following these steps:
 
 - Send HUP signal to the old master process - it will start the worker processes without reloading a configuration file
 - Send TERM signal to the new master process to gracefully shut down its worker processes

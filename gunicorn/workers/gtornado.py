@@ -93,7 +93,6 @@ class TornadoWorker(Worker):
                 server._sockets[s.fileno()] = s
 
         server.no_keep_alive = self.cfg.keepalive <= 0
-        server.xheaders = bool(self.cfg.x_forwarded_for_header)
         server.start(num_processes=1)
 
         self.ioloop.start()

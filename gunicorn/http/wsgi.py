@@ -159,6 +159,8 @@ def create(req, sock, client, server, cfg):
     # http://www.ietf.org/rfc/rfc3875
     if isinstance(client, string_types):
         environ['REMOTE_ADDR'] = client
+    elif isinstance(client, binary_type):
+        environ['REMOTE_ADDR'] = str(client)
     else:
         environ['REMOTE_ADDR'] = client[0]
         environ['REMOTE_PORT'] = str(client[1])
