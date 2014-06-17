@@ -269,7 +269,6 @@ def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
-
 def close(sock):
     try:
         sock.close()
@@ -338,8 +337,7 @@ def write_error(sock, status_int, reason, mesg):
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
-    %s
-    """) % (str(status_int), reason, len(html), html)
+    %s""") % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
 
 

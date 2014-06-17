@@ -82,6 +82,16 @@ To decrease the worker count by one::
 
     $ kill -TTOU $masterpid
 
+Does Gunicorn suffer from the thundering herd problem?
+------------------------------------------------------
+
+The thundering herd problem occurs when many sleeping request handlers, which
+may be either threads or processes, wake up at the same time to handle an new
+request. Since only one handler will receive the request, the others will have
+been awakened for no reaon, wasting CPU cycles. At this time, Gunicorn does not
+implement any IPC solution for coordinating between worker processes. You may
+experience high load due to this problem when using many workers or threads.
+
 .. _worker_class: configure.html#worker-class
 .. _`number of workers`: design.html#how-many-workers
 

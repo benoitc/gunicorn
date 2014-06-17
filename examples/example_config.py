@@ -199,10 +199,10 @@ def pre_exec(server):
     server.log.info("Forked child, re-executing.")
 
 def when_ready(server):
-    server.log.info("Server is ready. Spwawning workers")
+    server.log.info("Server is ready. Spawning workers")
 
 def worker_int(worker):
-    worker.log.info("worker received INT or TERM signal")
+    worker.log.info("worker received INT or QUIT signal")
 
     ## get traceback info
     import threading, sys, traceback
@@ -217,3 +217,6 @@ def worker_int(worker):
             if line:
                 code.append("  %s" % (line.strip()))
     worker.log.debug("\n".join(code))
+
+def worker_abort(worker):
+    worker.log.info("worker received SIGABRT signal")

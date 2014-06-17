@@ -23,7 +23,7 @@ from gunicorn.six import MAXSIZE
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
 
     PIPE = []
 
@@ -40,6 +40,7 @@ class Worker(object):
         self.timeout = timeout
         self.cfg = cfg
         self.booted = False
+        self.aborted = False
 
         self.nr = 0
         self.max_requests = cfg.max_requests or MAXSIZE
@@ -82,7 +83,7 @@ class Worker(object):
         if self.cfg.reload:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
-                os.kill(self.pid, signal.SIGTERM)
+                os.kill(self.pid, signal.SIGQUIT)
                 raise SystemExit()
             Reloader(callback=changed).start()
 
@@ -127,10 +128,12 @@ class Worker(object):
         signal.signal(signal.SIGINT, self.handle_quit)
         signal.signal(signal.SIGWINCH, self.handle_winch)
         signal.signal(signal.SIGUSR1, self.handle_usr1)
-        # Don't let SIGQUIT and SIGUSR1 disturb active requests
+        signal.signal(signal.SIGABRT, self.handle_abort)
+
+        # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGQUIT, False)
+            signal.siginterrupt(signal.SIGTERM, False)
             signal.siginterrupt(signal.SIGUSR1, False)
 
     def handle_usr1(self, sig, frame):
@@ -138,12 +141,17 @@ class Worker(object):
 
     def handle_exit(self, sig, frame):
         self.alive = False
-        # worker_int callback
-        self.cfg.worker_int(self)
 
     def handle_quit(self, sig, frame):
         self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
         sys.exit(0)
+
+    def handle_abort(self, sig, frame):
+        self.alive = False
+        self.cfg.worker_abort(self)
+        sys.exit(1)
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
