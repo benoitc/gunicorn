@@ -154,7 +154,7 @@ statsD consumer.
 
 To use this instrumentation mechanism, simply use a new logger::
 
-    $ gunicorn --logging-class gunicorn.instrument.statsd.Statsd ...
+    $ gunicorn --statsd-to localhost:8125 ...
 
 The `Statsd` logger overrides `gunicorn.glogging.Logger` to track
 all requests. The following metrics are generated:
