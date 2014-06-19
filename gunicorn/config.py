@@ -454,7 +454,7 @@ class ConfigFile(Setting):
     validator = validate_string
     default = None
     desc = """\
-        The path to a Gunicorn config file.
+        The path to a Gunicorn config file, or python module.
 
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
