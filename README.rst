@@ -152,9 +152,9 @@ The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
 metrics so that instrumentation does not cause Gunicorn to be heldeup by a slow
 statsD consumer.
 
-To use this instrumentation mechanism, simply use a new logger::
+To use statsD, just tell gunicorn where the statsD server is:
 
-    $ gunicorn --statsd-to localhost:8125 ...
+    $ gunicorn --statsd-host=localhost:8125 ...
 
 The `Statsd` logger overrides `gunicorn.glogging.Logger` to track
 all requests. The following metrics are generated:
