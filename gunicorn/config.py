@@ -144,7 +144,7 @@ class Config(object):
             uri = "gunicorn.glogging.Logger"
         
         # if statsd is on, automagically switch to the statsd logger
-        if 'statsd_to' in self.settings:
+        if 'statsd_host' in self.settings:
             logger_class = util.load_class("gunicorn.instrument.statsd.Statsd",
                 section="gunicorn.loggers")
         else:
@@ -1641,10 +1641,10 @@ if sys.version_info >= (2, 7):
         """
 
 # statsD monitoring
-class StatsdTo(Setting):
-    name = "statsd_to"
+class StatsdHost(Setting):
+    name = "statsd_host"
     section = "Logging"
-    cli = ["--statsd-to"]
+    cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = "localhost:8125"
     validator = validate_hostport
