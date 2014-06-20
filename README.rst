@@ -52,7 +52,8 @@ After installing Gunicorn you will have access to the command line script
 Commonly Used Arguments
 +++++++++++++++++++++++
 
-  * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_
+  * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_ or 
+    python module.
   * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
     can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
     An IP is a valid ``$(HOST)``.

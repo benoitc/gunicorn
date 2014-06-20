@@ -75,11 +75,9 @@ class BaseApplication(object):
             sys.exit(1)
 
 class Application(BaseApplication):
-    def load_config_from_file(self, filename):
-        """
-        Loads the configuration file: the file is a python file, otherwise raise an RuntimeError
-        Exception or stop the process if the configuration file contains a syntax error.
-        """
+
+    def get_config_from_filename(self, filename):
+
         if not os.path.exists(filename):
             raise RuntimeError("%r doesn't exist" % filename)
 
@@ -97,6 +95,22 @@ class Application(BaseApplication):
             traceback.print_exc()
             sys.exit(1)
 
+        return cfg
+
+    def get_config_from_module_name(self, module_name):
+        return util.import_module(module_name).__dict__
+
+    def load_config_from_module_name_or_filename(self, location):
+        """
+        Loads the configuration file: the file is a python file, otherwise raise an RuntimeError
+        Exception or stop the process if the configuration file contains a syntax error.
+        """
+
+        try:
+            cfg = self.get_config_from_module_name(module_name=location)
+        except ImportError:
+            cfg = self.get_config_from_filename(filename=location)
+
         for k, v in cfg.items():
             # Ignore unknown names
             if k not in self.cfg.settings:
@@ -108,6 +122,11 @@ class Application(BaseApplication):
                 raise
 
         return cfg
+
+    def load_config_from_file(self, filename):
+        return self.load_config_from_module_name_or_filename(
+            location=filename
+        )
 
     def load_config(self):
         # parse console args
