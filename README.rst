@@ -169,7 +169,7 @@ all requests. The following metrics are generated:
 
 To generate new metrics you can `log.info` with a few additional keywords::
 
-    log.info("...", metric="my.metric", value=1.2, mtype="gauge")
+    log.info("...", extra={"metric": "my.metric", "value": "1.2", "mtype": "gauge"})
 
 LICENSE
 -------
