@@ -5,10 +5,13 @@
 
 
 import os
-from setuptools import setup, find_packages, Command
+from setuptools import setup, Command
 import sys
 
 from gunicorn import __version__
+
+
+ASYNCIO_COMPAT = sys.version_info >= (3, 3)
 
 
 CLASSIFIERS = [
@@ -65,6 +68,17 @@ class PyTest(Command):
 
 REQUIREMENTS = []
 
+py_modules = []
+
+for root, folders, files in os.walk('gunicorn'):
+    for f in files:
+        if f.endswith('.py') and (ASYNCIO_COMPAT or f != 'gaiohttp.py'):
+            full = os.path.join(root, f[:-3])
+            parts = full.split(os.path.sep)
+            modname = '.'.join(parts)
+            py_modules.append(modname)
+
+
 setup(
     name = 'gunicorn',
     version = __version__,
@@ -78,7 +92,7 @@ setup(
 
     classifiers = CLASSIFIERS,
     zip_safe = False,
-    packages = find_packages(exclude=['examples', 'tests']),
+    py_modules = py_modules,
     include_package_data = True,
 
     tests_require = tests_require,
