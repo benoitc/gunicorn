@@ -515,7 +515,7 @@ def is_fileobject(obj):
     # check BytesIO case and maybe others
     try:
         obj.fileno()
-    except io.UnsupportedOperation:
+    except (IOError, io.UnsupportedOperation):
         return False
 
     return True
