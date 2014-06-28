@@ -482,6 +482,11 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
+        self.log.info("{0} workers".format(len(workers)),
+                      extra={"metric": "gunicorn.workers",
+                          "value": len(workers),
+                          "mtype": "gauge"})
+
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
