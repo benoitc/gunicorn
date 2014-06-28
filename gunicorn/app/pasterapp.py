@@ -20,6 +20,17 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import util
 
 
+def _configure_logging_from_paste_config(paste_file):
+    logger_cfg_file = paste_file.split(':')[1]
+    cfg_parser = ConfigParser.ConfigParser()
+    cfg_parser.read([logger_cfg_file])
+    if cfg_parser.has_section('loggers'):
+        from logging.config import fileConfig
+        config_file = os.path.abspath(logger_cfg_file)
+        fileConfig(config_file, dict(__file__=config_file,
+                                     here=os.path.dirname(config_file)))
+
+
 def paste_config(gconfig, config_url, relative_to, global_conf=None):
     # add entry to pkg_resources
     sys.path.insert(0, relative_to)
@@ -40,6 +51,9 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
     cfg['workers'] = int(lc.get('workers', 1))
     cfg['umask'] = int(lc.get('umask', 0))
     cfg['default_proc_name'] = gc.get('__file__')
+
+    # init logging configuration
+    _configure_logging_from_paste_config(config_url)
 
     for k, v in gc.items():
         if k not in gconfig.settings:
