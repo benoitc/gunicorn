@@ -49,7 +49,8 @@ class AiohttpWorker(base.Worker):
 
     def factory(self, wsgi, host, port):
         proto = WSGIServerHttpProtocol(
-            wsgi, loop=self.loop,
+            wsgi, readpayload=True,
+            loop=self.loop,
             log=self.log,
             debug=self.cfg.debug,
             keep_alive=self.cfg.keepalive,
