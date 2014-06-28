@@ -107,9 +107,9 @@ class Application(BaseApplication):
         """
 
         try:
-            cfg = self.get_config_from_filename(filename=location)
-        except ImportError:
             cfg = self.get_config_from_module_name(module_name=location)
+        except ImportError:
+            cfg = self.get_config_from_filename(filename=location)
 
         for k, v in cfg.items():
             # Ignore unknown names
