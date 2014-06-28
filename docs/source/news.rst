@@ -43,7 +43,7 @@ Extra
 Documentation
 +++++++++++++
 
-- update faq: put a not on how `watch logs in the console
+- update faq: put a note on how `watch logs in the console
   <http://docs.gunicorn.org/en/latest/faq.html#why-i-don-t-see-any-logs-in-the-console>`_
   since many people asked for it.
 
