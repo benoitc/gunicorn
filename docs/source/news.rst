@@ -10,11 +10,11 @@ Changes
 Core
 ++++
 
-- fix #785: handle binary type address given to a client socket address
+- fix `#785 <https://github.com/benoitc/gunicorn/issues/785>`_: handle binary type address given to a client socket address
 - fix graceful shutdown. make sure QUIT and TERMS signals are switched
   everywhere.
-- support loading config from module (#799)
-- fix check for file-like objects (#805)
+- support loading config from module (`#799 <https://github.com/benoitc/gunicorn/issues/799>`_)
+- fix check for file-like objects (`#805 <https://github.com/benoitc/gunicorn/issues/805>`_)
 
 Tornado worker
 ++++++++++++++
@@ -27,18 +27,18 @@ Tornado worker
 AioHttp worker
 ++++++++++++++
 
-- fix: fetch all body in input. fix #803
+- fix: fetch all body in input. fix `#803 <https://github.com/benoitc/gunicorn/issues/803>`_
 - fix: don't install the worker if python < 3.3
 
 Logging
 +++++++
 
-- add statsd logging handler fix #748
+- add statsd logging handler fix `#748 <https://github.com/benoitc/gunicorn/issues/748>`_
 
 Extra
 +++++
 
-- fix RuntimeError in gunicorn.reloader (#807)
+- fix RuntimeError in gunicorn.reloader (`#807 <https://github.com/benoitc/gunicorn/issues/807>`_)
 
 Documentation
 +++++++++++++
