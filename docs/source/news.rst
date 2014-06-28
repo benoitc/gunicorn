@@ -12,6 +12,8 @@ Core
 - fix #785: handle binary type address given to a client socket address
 - fix graceful shutdown. make sure QUIT and TERMS signals are switched
   everywhere.
+- support loading config from module (#799)
+- fix check for file-like objects (#805)
 
 Tornado worker
 ++++++++++++++
@@ -19,9 +21,30 @@ Tornado worker
 - fix #783: x_headers error. The x-forwarded-headers option has been removed
   in `c4873681299212d6082cd9902740eef18c2f14f1
   <https://github.com/benoitc/gunicorn/commit/c4873681299212d6082cd9902740eef18c2f14f1>`_. The discussion is
-  available on `#633 <https://github.com/benoitc/gunicorn/pull/633>`_. 
+  available on `#633 <https://github.com/benoitc/gunicorn/pull/633>`_.
 
+AioHttp worker
+++++++++++++++
 
+- fix: fetch all body in input. fix #803
+- fix: don't install the worker if python < 3.3
+
+Logging
++++++++
+
+- add statsd logging handler fix #748
+
+Extra
++++++
+
+- fix RuntimeError in gunicorn.reloader (#807)
+
+Documentation
++++++++++++++
+
+- update faq: put a not on how `watch logs in the console
+  <http://docs.gunicorn.org/en/latest/faq.html#why-i-don-t-see-any-logs-in-the-console>`_
+  since many people asked for it.
 
 19.0 / 2014-06-12
 -----------------
