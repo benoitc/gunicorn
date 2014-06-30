@@ -8,7 +8,8 @@ import errno
 import socket
 import ssl
 import sys
-import greenlet
+from greenlet import greenlet
+import traceback
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -134,3 +135,10 @@ class AsyncWorker(base.Worker):
             except Exception:
                 self.log.exception("Exception in post_request hook")
         return True
+
+    def get_call_stack_str(self, call_stack):
+        if isinstance(call_stack, greenlet):
+            stack_str = "Stack: \n".join(traceback.format_stack(call_stack.gr_frame))
+        else:
+            stack_str = "Thread: %s was not greenlet%s\n" % call_stack
+        return stack_str

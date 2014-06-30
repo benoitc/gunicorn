@@ -7,8 +7,6 @@ from datetime import datetime
 import os
 import signal
 import sys
-from greenlet import greenlet
-import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
@@ -160,14 +158,11 @@ class Worker(object):
         self.log.info("Worker received SIGILL. Logging open requests to %s" % (file_path))
 
         with open(file_path, 'a') as file:
-            for (request_start, environ, current_greenlet) in self.requests.values():
+            for (request_start, environ, call_stack) in self.requests.values():
                 request_time = now - request_start
-                file.write("[%s] Age: %s, Thread: %s, Request: %s\n" % (self.pid, request_time.microseconds, current_greenlet, environ))
-                if isinstance(current_greenlet, greenlet):
-                    stack_str = "".join(traceback.format_stack(current_greenlet.gr_frame))
-                    file.write("Stack: %s\n" % (stack_str))
-                else:
-                    file.write("Thread: %s was not greenlet%s\n" % current_greenlet)
+                file.write("[%s] Age: %s, Thread: %s, Request: %s\n" % (self.pid, request_time.microseconds, call_stack, environ))
+                stack_str = self.get_call_stack_str(call_stack)
+                file.write(stack_str)
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
@@ -231,3 +226,7 @@ class Worker(object):
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
         return
+
+    def get_call_stack_str(self, call_stack):
+        # Implement in specific workers if it makes sense
+        return ""
