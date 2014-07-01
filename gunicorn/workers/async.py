@@ -138,7 +138,7 @@ class AsyncWorker(base.Worker):
 
     def get_call_stack_str(self, call_stack):
         if isinstance(call_stack, greenlet):
-            stack_str = "Stack: \n".join(traceback.format_stack(call_stack.gr_frame))
+            stack_str = "Stack:\n%s\n" % ("".join(traceback.format_stack(call_stack.gr_frame)))
         else:
             stack_str = "Thread: %s was not greenlet%s\n" % call_stack
         return stack_str
