@@ -29,7 +29,7 @@ Install from sources::
 
 Or from Pypi::
 
-  $ easy_install -U gunicorn
+  $ pip install -U gunicorn
 
 You may also want to install Eventlet_ or Gevent_ if you expect that your
 application code may need to pause for extended periods of time during
@@ -38,7 +38,7 @@ want to consider one of the alternate worker types.
 
 To install eventlet::
 
-    $ easy_install -U eventlet
+    $ pip install -U eventlet
 
 If you encounter errors when compiling the extensions for Eventlet_ or
 Gevent_ you most likely need to install a newer version of libev_ or libevent_.
