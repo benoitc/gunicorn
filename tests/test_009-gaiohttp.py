@@ -61,7 +61,7 @@ class WorkerTests(unittest.TestCase):
         self.worker.cfg = mock.Mock()
 
         f = self.worker.factory(
-            self.worker.wsgi, 'localhost', 8080)
+            self.worker.wsgi, ('localhost', 8080))
         self.assertIsInstance(f, WSGIServerHttpProtocol)
 
     @mock.patch('gunicorn.workers.gaiohttp.asyncio')
@@ -71,6 +71,26 @@ class WorkerTests(unittest.TestCase):
         self.worker.servers = []
         sock = mock.Mock()
         sock.cfg_addr = ('localhost', 8080)
+        self.worker.sockets = [sock]
+        self.worker.wsgi = mock.Mock()
+        self.worker.log = mock.Mock()
+        self.worker.notify = mock.Mock()
+        loop = self.worker.loop = mock.Mock()
+        loop.create_server.return_value = asyncio.Future(loop=self.loop)
+        loop.create_server.return_value.set_result(sock)
+
+        self.loop.run_until_complete(self.worker._run())
+
+        self.assertTrue(self.worker.log.info.called)
+        self.assertTrue(self.worker.notify.called)
+
+    @mock.patch('gunicorn.workers.gaiohttp.asyncio')
+    def test__run_unix_socket(self, m_asyncio):
+        self.worker.ppid = 1
+        self.worker.alive = True
+        self.worker.servers = []
+        sock = mock.Mock()
+        sock.cfg_addr = '/tmp/gunicorn.sock'
         self.worker.sockets = [sock]
         self.worker.wsgi = mock.Mock()
         self.worker.log = mock.Mock()
