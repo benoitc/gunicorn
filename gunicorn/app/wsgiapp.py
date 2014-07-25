@@ -31,7 +31,7 @@ class WSGIApplication(Application):
             from .pasterapp import paste_config
             return paste_config(self.cfg, self.cfgurl, self.relpath)
 
-        if len(args) != 1:
+        if len(args) < 1:
             parser.error("No application module specified.")
 
         self.cfg.set("default_proc_name", args[0])
