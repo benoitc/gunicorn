@@ -68,20 +68,31 @@ class TornadoWorker(Worker):
         # will help gunicorn shutdown the worker if max_requests
         # is exceeded.
         httpserver = sys.modules["tornado.httpserver"]
-        old_connection_finish = httpserver.HTTPConnection.finish
+        if hasattr(httpserver, 'HTTPConnection'):
+            old_connection_finish = httpserver.HTTPConnection.finish
 
-        def finish(other):
-            self.handle_request()
-            old_connection_finish(other)
-        httpserver.HTTPConnection.finish = finish
-        sys.modules["tornado.httpserver"] = httpserver
+            def finish(other):
+                self.handle_request()
+                old_connection_finish(other)
+            httpserver.HTTPConnection.finish = finish
+            sys.modules["tornado.httpserver"] = httpserver
+
+            server_class = tornado.httpserver.HTTPServer
+        else:
+
+            class _HTTPServer(tornado.httpserver.HTTPServer):
+
+                def on_close(instance, server_conn):
+                    self.handle_request()
+                    super(_HTTPServer, instance).on_close(server_conn)
+
+            server_class = _HTTPServer
 
         if self.cfg.is_ssl:
-            server = tornado.httpserver.HTTPServer(app, io_loop=self.ioloop,
+            server = server_class(app, io_loop=self.ioloop,
                     ssl_options=self.cfg.ssl_options)
         else:
-            server = tornado.httpserver.HTTPServer(app,
-                    io_loop=self.ioloop)
+            server = server_class(app, io_loop=self.ioloop)
 
         self.server = server
 
