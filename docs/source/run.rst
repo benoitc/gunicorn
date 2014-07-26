@@ -64,7 +64,7 @@ callable that should be found in the specified module.
 
 So for a typical Django project, invoking gunicorn would look like:
 
-    gunicorn myproject.wsgi:application
+    gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi:application
 
 (This requires that your project be on the Python path; the simplest way
 to ensure that is to run this command from the same directory as your
