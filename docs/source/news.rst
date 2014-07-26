@@ -1,7 +1,7 @@
 Changelog
 =========
 
-19.1 / unreleased
+19.1 / 2013-07-26 
 ~~~~~~~~~~~~~~~~~
 
 Changes
@@ -15,10 +15,15 @@ Core
   everywhere.
 - support loading config from module (`#799 <https://github.com/benoitc/gunicorn/issues/799>`_)
 - fix check for file-like objects (`#805 <https://github.com/benoitc/gunicorn/issues/805>`_)
+- fix `#815 <https://github.com/benoitc/gunicorn/issues/815>`_  args validation in WSGIApplication.init
+- fix `#787 <https://github.com/benoitc/gunicorn/issues/787>`_ check if we load a pyc file or not.
+
 
 Tornado worker
 ++++++++++++++
 
+
+- fix `#771 <https://github.com/benoitc/gunicorn/issues/771>`_: support tornado 4.0
 - fix #783: x_headers error. The x-forwarded-headers option has been removed
   in `c4873681299212d6082cd9902740eef18c2f14f1
   <https://github.com/benoitc/gunicorn/commit/c4873681299212d6082cd9902740eef18c2f14f1>`_. The discussion is
@@ -29,11 +34,23 @@ AioHttp worker
 
 - fix: fetch all body in input. fix `#803 <https://github.com/benoitc/gunicorn/issues/803>`_
 - fix: don't install the worker if python < 3.3
+- fix  `#822 <https://github.com/benoitc/gunicorn/issues/822>`_: Support UNIX sockets in gaiohttp worker
+
+
+Async worker
+++++++++++++
+
+- fix `#790 <https://github.com/benoitc/gunicorn/issues/790>`_ StopIteration shouldn't be catched at this level.
 
 Logging
 +++++++
 
 - add statsd logging handler fix `#748 <https://github.com/benoitc/gunicorn/issues/748>`_
+
+Paster
+++++++
+
+- fix `#809 <https://github.com/benoitc/gunicorn/issues/809>`_ Set global logging configuration from a Paste config.
 
 Extra
 +++++
