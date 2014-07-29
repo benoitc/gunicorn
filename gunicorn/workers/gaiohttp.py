@@ -14,7 +14,7 @@ import gunicorn.workers.base as base
 if sys.version_info >= (3, 3):
     import asyncio
 else:
-     RuntimeError("You need Python >= 3.3 to use the asyncio worker")
+    raise RuntimeError("You need Python >= 3.3 to use the asyncio worker")
 
 
 try:
