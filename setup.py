@@ -5,7 +5,9 @@
 
 
 import os
-from setuptools import setup, Command
+from setuptools import setup
+from setuptools.command.test import test as TestCommand
+
 import sys
 
 from gunicorn import __version__
@@ -46,25 +48,26 @@ fname = os.path.join(os.path.dirname(__file__), 'requirements_dev.txt')
 with open(fname) as f:
     tests_require = list(map(lambda l: l.strip(), f.readlines()))
 
-class PyTest(Command):
+class PyTest(TestCommand):
     user_options = [
         ("cov", None, "measure coverage")
     ]
 
     def initialize_options(self):
+        TestCommand.initialize_options(self)
         self.cov = None
 
     def finalize_options(self):
-        pass
-
-    def run(self):
-        import subprocess
-        basecmd = [sys.executable, '-m', 'pytest']
+        TestCommand.finalize_options(self)
+        self.test_args = ['tests']
         if self.cov:
-            basecmd += ['--cov', 'gunicorn']
-        errno = subprocess.call(basecmd + ['tests'])
-        raise SystemExit(errno)
+            self.test_args += ['--cov', 'gunicorn']
+        self.test_suite = True
 
+    def run_tests(self):
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 REQUIREMENTS = []
 
