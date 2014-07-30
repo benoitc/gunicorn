@@ -1,5 +1,5 @@
-py==1.4.19
-pytest==2.5.1
-pytest-cov==1.6
+py==1.4.22
+pytest==2.6.0
+pytest-cov==1.7.0
 sphinx
 sphinx_rtd_theme

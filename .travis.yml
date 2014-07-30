@@ -6,10 +6,8 @@ python:
   - "3.4"
   - "pypy"
 install:
-  - "pip install -r requirements_dev.txt"
-  - "python setup.py install"
   - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install aiohttp; fi
-script: py.test -x tests/
+script: python setup.py test
 branches:
   only:
     - master
