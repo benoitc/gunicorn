@@ -25,7 +25,7 @@ class Pidfile(object):
             if oldpid == os.getpid():
                 return
             raise RuntimeError("Already running on PID %s " \
-                "(or pid file '%s' is stale)" % (os.getpid(), self.fname))
+                "(or pid file '%s' is stale)" % (oldpid, self.fname))
 
         self.pid = pid
 
