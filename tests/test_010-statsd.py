@@ -2,8 +2,16 @@ from datetime import timedelta
 
 import t
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+import logging
+
 from gunicorn.config import Config
 from gunicorn.instrument.statsd import Statsd
+
 
 class TestException(Exception): pass
 
@@ -38,10 +46,27 @@ def test_statsd_fail():
 
 def test_instrument():
     logger = Statsd(Config())
+    # Capture logged messages
+    sio = StringIO()
+    logger.error_log.addHandler(logging.StreamHandler(sio))
     logger.sock = MockSocket(False)
 
+    # Regular message
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     t.eq(logger.sock.msgs[0], "gunicorn.test:666|g")
+    t.eq(sio.getvalue(), "Blah\n")
+    logger.sock.reset()
+
+    # Only metrics, no logging
+    logger.info("", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "gunicorn.test:666|g")
+    t.eq(sio.getvalue(), "Blah\n")  # log is unchanged
+    logger.sock.reset()
+    
+    # Debug logging also supports metrics
+    logger.debug("", extra={"mtype": "gauge", "metric": "gunicorn.debug", "value": 667})
+    t.eq(logger.sock.msgs[0], "gunicorn.debug:667|g")
+    t.eq(sio.getvalue(), "Blah\n")  # log is unchanged
     logger.sock.reset()
 
     logger.critical("Boom")

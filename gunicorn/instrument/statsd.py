@@ -6,6 +6,7 @@
 "Bare-bones implementation of statsD's protocol, client-side"
 
 import socket
+import logging
 from gunicorn.glogging import Logger
 
 # Instrumentation constants
@@ -50,30 +51,37 @@ class Statsd(Logger):
 
     # Special treatement for info, the most common log level
     def info(self, msg, *args, **kwargs):
-        """Log a given statistic if metric, value and type are present
-        """
-        Logger.info(self, msg, *args, **kwargs)
-        extra = kwargs.get("extra", None)
-        if extra is not None:
-            metric = extra.get(METRIC_VAR, None)
-            value = extra.get(VALUE_VAR, None)
-            typ = extra.get(MTYPE_VAR, None)
-            if metric and value and typ:
-                if typ == GAUGE_TYPE:
-                    self.gauge(metric, value)
-                elif typ == COUNTER_TYPE:
-                    self.increment(metric, value)
-                elif typ == HISTOGRAM_TYPE:
-                    self.histogram(metric, value)
-                else:
-                    pass
+        self.log(logging.INFO, msg, *args, **kwargs)
 
     # skip the run-of-the-mill logs
     def debug(self, msg, *args, **kwargs):
-        Logger.debug(self, msg, *args, **kwargs)
+        self.log(logging.DEBUG, msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
-        Logger.log(self, lvl, msg, *args, **kwargs)
+        """Log a given statistic if metric, value and type are present
+        """
+        try:
+            extra = kwargs.get("extra", None)
+            if extra is not None:
+                metric = extra.get(METRIC_VAR, None)
+                value = extra.get(VALUE_VAR, None)
+                typ = extra.get(MTYPE_VAR, None)
+                if metric and value and typ:
+                    if typ == GAUGE_TYPE:
+                        self.gauge(metric, value)
+                    elif typ == COUNTER_TYPE:
+                        self.increment(metric, value)
+                    elif typ == HISTOGRAM_TYPE:
+                        self.histogram(metric, value)
+                    else:
+                        pass
+             
+            # Log to parent logger only if there is something to say
+            if msg is not None and len(msg) > 0:
+                Logger.log(self, lvl, msg, *args, **kwargs)
+        except Exception:
+            pass
+
 
     # access logging
     def access(self, resp, req, environ, request_time):
