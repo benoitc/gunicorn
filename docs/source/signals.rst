@@ -1,12 +1,12 @@
 .. _signals:
 
 ================
-Signals Handling
+Signal Handling
 ================
 
 A brief description of the signals handled by Gunicorn. We also document the
-signales used internally by Gunicorn to communicate with the workers. With the
-exception of TTIN/TTOU the signals handling match the behaviour of `nginx
+signals used internally by Gunicorn to communicate with the workers. With the
+exception of TTIN/TTOU the signal handling matches the behaviour of `nginx
 <http://wiki.nginx.org/CommandLine>`_.
 
 Master process
@@ -42,7 +42,7 @@ automatically respawned.
 Reload the configuration
 ========================
 
-the signal HUP can be used to reload the Gunicorn configuration on the
+The ``HUP`` signal can be used to reload the Gunicorn configuration on the
 fly.
 
 ::
@@ -57,7 +57,7 @@ fly.
     2013-06-29 06:26:55 [20704] [INFO] Booting worker with pid: 20704
 
 
-Sending an **HUP** signal will reload the configuration, start the new
+Sending a **HUP** signal will reload the configuration, start the new
 worker processes with a new configuration and gracefully shutdown older
 workers. If the application is not preloaded (using the ``--preload``
 option), Gunicorn will also load the new version.
@@ -70,7 +70,7 @@ upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be
 lost. Preloaded applications will also be reloaded.
 
-First, replace old binary with a new one, then send **USR2** signal to the
+First, replace the old binary with a new one, then send the **USR2** signal to the
 master process. It renames its .pid file to .oldbin (e.g.
 /var/run/gunicorn.pid.oldbin), then executes a new binary,
 which in turn starts a new master process and the new worker processes::
@@ -88,22 +88,22 @@ which in turn starts a new master process and the new worker processes::
 
 At this point, two instances of gunicorn are running, handling the
 incoming requests together. To phase the old instance out, you have to
-send **WINCH** signal to the old master process, and its worker
+send the **WINCH** signal to the old master process, and its worker
 processes will start to gracefully shut down.
 
 At this point you can still revert to the old server because it hasn't closed its listen sockets yet, by following these steps:
 
-- Send HUP signal to the old master process - it will start the worker processes without reloading a configuration file
-- Send TERM signal to the new master process to gracefully shut down its worker processes
-- Send QUIT signal to the new master process to force it quit
+- Send the HUP signal to the old master process - it will start the worker processes without reloading a configuration file
+- Send the TERM signal to the new master process to gracefully shut down its worker processes
+- Send the QUIT signal to the new master process to force it quit
 
-If for some reason new worker processes do not quit, send KILL signal to
+If for some reason the new worker processes do not quit, send the KILL signal to
 them after the new master process quits, the old master process removes
 .oldbin suffix from its .pid file, and everything is exactly as before
 the upgrade attempt.
 
 If an update is successful and you want to keep the new server, send
-the TERM signal to the old master process to leave only new server
+the TERM signal to the old master process to leave only the new server
 running::
 
       PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND                                                 
