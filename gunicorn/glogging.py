@@ -65,7 +65,7 @@ CONFIG_DEFAULTS = dict(
         formatters={
             "generic": {
                 "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
+                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             }
         }
@@ -157,7 +157,7 @@ class Logger(object):
     }
 
     error_fmt = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
-    datefmt = r"%Y-%m-%d %H:%M:%S"
+    datefmt = r"[%Y-%m-%d %H:%M:%S %z]"
 
     access_fmt = "%(message)s"
     syslog_fmt = "[%(process)d] %(message)s"
