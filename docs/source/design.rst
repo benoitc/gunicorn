@@ -55,7 +55,7 @@ AsyncIO Workers
 These workers are compatible with python3. You have two kind of workers.
 
 The worker `gthread` is a threaded worker. It accepts connections in the
-main loop, accepted connections are are added to the thread pool as a
+main loop, accepted connections are added to the thread pool as a
 connection job. On keepalive connections are put back in the loop
 waiting for an event. If no event happen after the keep alive timeout,
 the connection is closed.
