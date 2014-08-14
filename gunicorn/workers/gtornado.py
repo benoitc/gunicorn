@@ -103,8 +103,7 @@ class TornadoWorker(Worker):
             elif hasattr(server, "_sockets"):  # tornado 2.0
                 server._sockets[s.fileno()] = s
 
-        if hasattr(app, 'xheaders'):
-            server.xheaders = app.xheaders
+        server.xheaders = app.settings.get('xheaders', False)
         server.no_keep_alive = self.cfg.keepalive <= 0
         server.start(num_processes=1)
 
