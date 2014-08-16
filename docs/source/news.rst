@@ -1,7 +1,34 @@
 Changelog
 =========
 
-19.1 / 2014-07-26 
+19.1.1 / 2014-08-16
+-------------------
+
+Changes
+-------
+
+Core
+++++
+
+- fix  `#835 <https://github.com/benoitc/gunicorn/issues/835>`_: display correct pid of already running instance
+- fix : fix `PyTest` class in setup.py.
+
+Logging
++++++++
+
+- fix  `#838 <https://github.com/benoitc/gunicorn/issues/838>`_: statsd logegr, send statsd timing metrics in milliseconds
+- fix `#839 <https://github.com/benoitc/gunicorn/issues/839>`_: statsd logger,  allows for empty log message while pushing metrics and restore worker number in DEBUG logs
+- fix  `#850 <https://github.com/benoitc/gunicorn/issues/850>`_: add
+  timezonw to logging
+- fix `#853 <https://github.com/benoitc/gunicorn/issues/853>`_: Respect logger_class setting unless statsd is on
+
+AioHttp worker
+++++++++++++++
+
+- fix `#830 <https://github.com/benoitc/gunicorn/issues/830>`_ make sure
+  gaiohttp worker is shipped with gunicorn.
+
+19.1 / 2014-07-26
 ~~~~~~~~~~~~~~~~~
 
 Changes
