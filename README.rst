@@ -161,7 +161,7 @@ The `Statsd` logger overrides `gunicorn.glogging.Logger` to track
 all requests. The following metrics are generated:
 
   * ``gunicorn.requests``: request rate per second
-  * ``gunicorn.request.duration``: histogram of request duration
+  * ``gunicorn.request.duration``: histogram of request duration (in millisecond)
   * ``gunicorn.workers``: number of workers managed by the arbiter (gauge)
   * ``gunicorn.log.critical``: rate of critical log messages
   * ``gunicorn.log.error``: rate of error log messages
