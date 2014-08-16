@@ -12,6 +12,7 @@ from aiohttp.wsgi import WSGIServerHttpProtocol
 
 import asyncio
 from gunicorn.workers import gaiohttp
+from gunicorn.workers._gaiohttp import _wrp
 from gunicorn.config import Config
 from unittest import mock
 
@@ -32,7 +33,7 @@ class WorkerTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
-    @mock.patch('gunicorn.workers.gaiohttp.asyncio')
+    @mock.patch('gunicorn.workers._gaiohttp.asyncio')
     def test_init_process(self, m_asyncio):
         try:
             self.worker.init_process()
@@ -45,7 +46,7 @@ class WorkerTests(unittest.TestCase):
         self.assertTrue(m_asyncio.new_event_loop.called)
         self.assertTrue(m_asyncio.set_event_loop.called)
 
-    @mock.patch('gunicorn.workers.gaiohttp.asyncio')
+    @mock.patch('gunicorn.workers._gaiohttp.asyncio')
     def test_run(self, m_asyncio):
         self.worker.loop = mock.Mock()
         self.worker.run()
@@ -64,7 +65,7 @@ class WorkerTests(unittest.TestCase):
             self.worker.wsgi, ('localhost', 8080))
         self.assertIsInstance(f, WSGIServerHttpProtocol)
 
-    @mock.patch('gunicorn.workers.gaiohttp.asyncio')
+    @mock.patch('gunicorn.workers._gaiohttp.asyncio')
     def test__run(self, m_asyncio):
         self.worker.ppid = 1
         self.worker.alive = True
@@ -84,7 +85,7 @@ class WorkerTests(unittest.TestCase):
         self.assertTrue(self.worker.log.info.called)
         self.assertTrue(self.worker.notify.called)
 
-    @mock.patch('gunicorn.workers.gaiohttp.asyncio')
+    @mock.patch('gunicorn.workers._gaiohttp.asyncio')
     def test__run_unix_socket(self, m_asyncio):
         self.worker.ppid = 1
         self.worker.alive = True
@@ -128,8 +129,8 @@ class WorkerTests(unittest.TestCase):
         self.assertFalse(self.worker.servers)
         self.assertTrue(conn.closing.called)
 
-    @mock.patch('gunicorn.workers.gaiohttp.os')
-    @mock.patch('gunicorn.workers.gaiohttp.asyncio.sleep')
+    @mock.patch('gunicorn.workers._gaiohttp.os')
+    @mock.patch('gunicorn.workers._gaiohttp.asyncio.sleep')
     def test__run_exc(self, m_sleep, m_os):
         m_os.getpid.return_value = 1
         m_os.getppid.return_value = 1
@@ -179,14 +180,14 @@ class WorkerTests(unittest.TestCase):
         conn = object()
         tracking = {}
         meth = mock.Mock()
-        wrp = gaiohttp._wrp(conn, meth, tracking)
+        wrp = _wrp(conn, meth, tracking)
         wrp()
 
         self.assertIn(id(conn), tracking)
         self.assertTrue(meth.called)
 
         meth = mock.Mock()
-        wrp = gaiohttp._wrp(conn, meth, tracking, False)
+        wrp = _wrp(conn, meth, tracking, False)
         wrp()
 
         self.assertNotIn(1, tracking)
