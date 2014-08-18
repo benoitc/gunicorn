@@ -930,3 +930,14 @@ ciphers
 
 Ciphers to use (see stdlib ssl module's)
 
+Logging
+-------
+
+statsd_host
+~~~~~~~~~~~
+
+* ``--statsd-host STATSD_ADDR``
+* ``None``
+
+host:port of the statsd server to log to
+
