@@ -50,11 +50,11 @@ def make_wsgi_application():
 def reload_django_settings():
         mod = util.import_module(os.environ['DJANGO_SETTINGS_MODULE'])
 
-        # reload module
+        # Reload module.
         reload(mod)
 
-        # reload settings.
-        # USe code from django.settings.Settings module.
+        # Reload settings.
+        # Use code from django.settings.Settings module.
 
         # Settings that should be converted into tuples if they're mistakenly entered
         # as strings.
