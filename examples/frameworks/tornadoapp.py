@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -
 #
-# This file is part of gunicorn released under the MIT license. 
+# This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 #
 # Run with:
 #
-#   $ gunicorn -k egg:gunicorn#tornado tornadoapp:app
+#   $ gunicorn -k tornado tornadoapp:app
 #
 
 from datetime import timedelta
