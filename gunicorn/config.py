@@ -628,6 +628,23 @@ class MaxRequests(Setting):
         """
 
 
+class MaxRequestsJitter(Setting):
+    name = "max_requests_jitter"
+    section = "Worker Processes"
+    cli = ["--max-requests-jitter"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        The maximum jitter to add to the max-requests setting.
+
+        The jitter causes the restart per worker to be randomized by
+        randint(0, max_requests_jitter). This is intended to stagger worker
+        restarts to avoid all workers restarting at the same time.
+        """
+
+
 class Timeout(Setting):
     name = "timeout"
     section = "Worker Processes"

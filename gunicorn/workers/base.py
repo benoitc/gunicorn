@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import signal
 import sys
+from random import randint
 
 
 from gunicorn import util
@@ -44,7 +45,8 @@ class Worker(object):
         self.aborted = False
 
         self.nr = 0
-        self.max_requests = cfg.max_requests or MAXSIZE
+        jitter = randint(0, cfg.max_requests_jitter)
+        self.max_requests = cfg.max_requests + jitter or MAXSIZE
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
