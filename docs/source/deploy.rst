@@ -300,7 +300,7 @@ utility::
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
 .. _Supervisor: http://supervisord.org
 .. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
-.. _`configuration documentation`: http://gunicorn.org/configure.html#logging
+.. _`configuration documentation`: http://docs.gunicorn.org/en/latest/settings.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
 .. _Systemd: http://www.freedesktop.org/wiki/Software/systemd
