@@ -271,6 +271,7 @@ def set_non_blocking(fd):
 
 def close(sock):
     try:
+        sock.shutdown(socket.SHUT_WR)
         sock.close()
     except socket.error:
         pass
