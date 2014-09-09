@@ -1,7 +1,8 @@
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls.defaults import url
 
-urlpatterns = patterns('',
-    url(r'^acsv$', 'testing.views.acsv'),
-    url(r'^$', 'testing.views.home'),
-    
-)
+from . import views
+
+urlpatterns = [
+    url(r'^acsv$', views.acsv),
+    url(r'^$', views.home),
+]
