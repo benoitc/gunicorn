@@ -235,7 +235,6 @@ from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
     stop on runlevel [016]
 
     respawn
-    console log
     setuid nobody
     setgid nogroup
     chdir /path/to/app/directory
