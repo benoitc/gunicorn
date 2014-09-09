@@ -27,7 +27,7 @@ Install from sources::
 
   $ python setup.py install
 
-Or from Pypi::
+Or from PyPI::
 
   $ pip install -U gunicorn
 
@@ -150,7 +150,7 @@ Gunicorn provides an optional instrumentation of the arbiter and
 workers using the statsD_ protocol over UDP. Thanks to the 
 `gunicorn.instrument.statsd` module, Gunicorn becomes a statsD client
 The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
-metrics so that instrumentation does not cause Gunicorn to be heldeup by a slow
+metrics so that instrumentation does not cause Gunicorn to be held up by a slow
 statsD consumer.
 
 To use statsD, just tell gunicorn where the statsD server is:
