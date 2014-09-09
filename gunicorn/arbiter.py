@@ -309,8 +309,9 @@ class Arbiter(object):
             oldest = time.time()
             for w in worker_values:
                 try:
-                    if w.tmp.last_update() < oldest:
-                        oldest = w.tmp.last_update()
+                    last_update = w.tmp.last_update()
+                    if last_update < oldest:
+                        oldest = last_update
                 except ValueError:
                     pass
 
