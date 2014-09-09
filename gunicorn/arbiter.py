@@ -305,7 +305,16 @@ class Arbiter(object):
         """
         if self.WORKERS:
             worker_values = list(self.WORKERS.values())
-            oldest = min(w.tmp.last_update() for w in worker_values)
+
+            oldest = time.time()
+            for w in worker_values:
+                try:
+                    last_update = w.tmp.last_update()
+                    if last_update < oldest:
+                        oldest = last_update
+                except ValueError:
+                    pass
+
             timeout = self.timeout - (time.time() - oldest)
             # The timeout can be reached, so don't wait for a negative value
             timeout = max(timeout, 1.0)
