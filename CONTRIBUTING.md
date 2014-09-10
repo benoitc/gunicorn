@@ -60,7 +60,7 @@ test suite on your branch before submitting a pull request.
 Make sure you include relevant updates or additions to documentation
 when creating or modifying features.
 
-Write clean code. 
+Write clean code.
 
 Pull requests descriptions should be as clear as possible and include a
 reference to all the issues that they address.
@@ -147,8 +147,8 @@ benoitc.
 
 ### How can I become a maintainer?
 
-* Step 1: learn the component inside out 
-* Step 2: make yourself useful by contributing code, bugfixes, support etc. 
+* Step 1: learn the component inside out
+* Step 2: make yourself useful by contributing code, bugfixes, support etc.
 * Step 3: volunteer on the irc channel (#gunicorn@freenode)
 
 Don't forget: being a maintainer is a time investment. Make sure you
@@ -160,8 +160,8 @@ maintainer to make a difference on the project!
 It is every maintainer's responsibility to:
 
 * 1) Expose a clear roadmap for improving their component.
-* 2) Deliver prompt feedback and decisions on pull requests.  
-* 3) Be available to anyone with questions, bug reports, criticism etc. on their component. This includes irc, github requests and the mailing list.  
+* 2) Deliver prompt feedback and decisions on pull requests.
+* 3) Be available to anyone with questions, bug reports, criticism etc. on their component. This includes irc, github requests and the mailing list.
 * 4) Make sure their component respects the philosophy, design and roadmap of the project.
 
 ### How is this process changed?

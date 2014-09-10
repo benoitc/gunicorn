@@ -940,4 +940,3 @@ statsd_host
 * ``None``
 
 host:port of the statsd server to log to
-

@@ -62,7 +62,7 @@ def test_instrument():
     t.eq(logger.sock.msgs[0], "gunicorn.test:666|g")
     t.eq(sio.getvalue(), "Blah\n")  # log is unchanged
     logger.sock.reset()
-    
+
     # Debug logging also supports metrics
     logger.debug("", extra={"mtype": "gauge", "metric": "gunicorn.debug", "value": 667})
     t.eq(logger.sock.msgs[0], "gunicorn.debug:667|g")

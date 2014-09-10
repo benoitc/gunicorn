@@ -31,5 +31,3 @@ Issue Tracking
 
 Bug reports, enhancement requests and tasks generally go in the `Github
 issue tracker <http://github.com/benoitc/gunicorn/issues>`_.
-
-

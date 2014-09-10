@@ -90,8 +90,8 @@ may be either threads or processes, wake up at the same time to handle a new
 request. Since only one handler will receive the request, the others will have
 been awakened for no reaon, wasting CPU cycles. At this time, Gunicorn does not
 implement any IPC solution for coordinating between worker processes. You may
-experience high load due to this problem when using many workers or threads. 
-However `a work has been started <https://github.com/benoitc/gunicorn/issues/792>`_ 
+experience high load due to this problem when using many workers or threads.
+However `a work has been started <https://github.com/benoitc/gunicorn/issues/792>`_
 to remove this issue.
 
 .. _worker_class: configure.html#worker-class
@@ -100,7 +100,7 @@ to remove this issue.
 Why I don't see any logs in the console?
 ----------------------------------------
 
-Since the version R19, Gunicorn doesn't log by default in the console. 
+Since the version R19, Gunicorn doesn't log by default in the console.
 To watch the logs  in the console you now need to use the option ``--log-file=-``.
 
 Kernel Parameters

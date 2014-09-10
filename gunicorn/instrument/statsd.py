@@ -75,7 +75,7 @@ class Statsd(Logger):
                         self.histogram(metric, value)
                     else:
                         pass
-             
+
             # Log to parent logger only if there is something to say
             if msg is not None and len(msg) > 0:
                 Logger.log(self, lvl, msg, *args, **kwargs)
