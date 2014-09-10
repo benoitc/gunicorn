@@ -1,19 +1,19 @@
 Changelog - 2011
 ================
 
-0.13.4 / 2011-09-23 
+0.13.4 / 2011-09-23
 -------------------
 
 - fix util.closerange function used to prevent leaking fds on python 2.5
   (typo)
 
-0.13.3 / 2011-09-19 
+0.13.3 / 2011-09-19
 -------------------
 - refactor gevent worker
 - prevent leaking fds on reexec
 - fix inverted request_time computation
 
-0.13.2 / 2011-09-17 
+0.13.2 / 2011-09-17
 -------------------
 
 - Add support for Tornado 2.0 in tornado worker
@@ -25,12 +25,12 @@ Changelog - 2011
 - Fix sendfile support
 - Fix Django reloading
 
-0.13.1 / 2011-08-22 
+0.13.1 / 2011-08-22
 -------------------
 
 - Fix unix socket. log argument was missing.
 
-0.13.0 / 2011-08-22  
+0.13.0 / 2011-08-22
 -------------------
 
 - Improve logging: allows file-reopening and add access log file
@@ -58,7 +58,7 @@ Changelog - 2011
 - Fix django localisation
 - Compatible with gevent 0.14dev
 
-0.12.1 / 2011-03-23  
+0.12.1 / 2011-03-23
 -------------------
 
 - Add "on_starting" hook. This hook can be used to set anything before

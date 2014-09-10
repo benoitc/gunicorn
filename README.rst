@@ -52,7 +52,7 @@ After installing Gunicorn you will have access to the command line script
 Commonly Used Arguments
 +++++++++++++++++++++++
 
-  * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_ or 
+  * ``-c CONFIG, --config=CONFIG`` - Specify the path to a `config file`_ or
     python module.
   * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
     can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
@@ -147,7 +147,7 @@ Instrumentation
 ---------------
 
 Gunicorn provides an optional instrumentation of the arbiter and
-workers using the statsD_ protocol over UDP. Thanks to the 
+workers using the statsD_ protocol over UDP. Thanks to the
 `gunicorn.instrument.statsd` module, Gunicorn becomes a statsD client
 The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
 metrics so that instrumentation does not cause Gunicorn to be held up by a slow

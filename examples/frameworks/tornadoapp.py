@@ -36,4 +36,3 @@ app = Application([
     (r"/", MainHandler),
     (r"/longpoll", LongPollHandler)
 ])
-

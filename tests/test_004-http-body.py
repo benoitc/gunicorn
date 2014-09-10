@@ -58,4 +58,3 @@ def test_readline_buffer_loaded_with_size():
     t.eq(body.readline(2), b"\n")
     t.eq(body.readline(2), b"de")
     t.eq(body.readline(2), b"f")
-

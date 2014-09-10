@@ -87,8 +87,8 @@ class WebSocketWSGI(object):
                 "Sec-WebSocket-Version: %s\r\n"
                 "Sec-WebSocket-Accept: %s\r\n\r\n"
                  % (
-                    environ.get('HTTP_ORIGIN'), 
-                    environ.get('HTTP_HOST'), 
+                    environ.get('HTTP_ORIGIN'),
+                    environ.get('HTTP_HOST'),
                     ws.path,
                     version,
                     base64.b64encode(sha1(key + WS_KEY).digest())
@@ -99,8 +99,8 @@ class WebSocketWSGI(object):
             handshake_reply += (
                        "WebSocket-Origin: %s\r\n"
                        "WebSocket-Location: ws://%s%s\r\n\r\n" % (
-                            environ.get('HTTP_ORIGIN'), 
-                            environ.get('HTTP_HOST'), 
+                            environ.get('HTTP_ORIGIN'),
+                            environ.get('HTTP_HOST'),
                             ws.path))
 
         sock.sendall(handshake_reply)
@@ -194,7 +194,7 @@ class WebSocket(object):
         """
 
         f = {'fin'          : 0,
-             'opcode'       : 0,   
+             'opcode'       : 0,
              'mask'         : 0,
              'hlen'         : 2,
              'length'       : 0,
@@ -343,10 +343,10 @@ class WebSocket(object):
                     raise ValueError("Don't understand how to parse this type of message: %r" % buf)
         self._buf = buf
         return msgs
-    
+
     def send(self, message):
-        """Send a message to the browser.  
-        
+        """Send a message to the browser.
+
         *message* should be convertable to a string; unicode objects should be
         encodable as utf-8.  Raises socket.error with errno of 32
         (broken pipe) if the socket has already been closed by the client."""
@@ -364,8 +364,8 @@ class WebSocket(object):
             self._sendlock.put(t)
 
     def wait(self):
-        """Waits for and deserializes messages. 
-        
+        """Waits for and deserializes messages.
+
         Returns a single message; the oldest not yet processed. If the client
         has already closed the connection, returns None.  This is different
         from normal socket behavior because the empty string is a valid
@@ -415,7 +415,7 @@ class WebSocket(object):
 import os
 import random
 def handle(ws):
-    """  This is the websocket handler function.  Note that we 
+    """  This is the websocket handler function.  Note that we
     can dispatch based on path in here, too."""
     if ws.path == '/echo':
         while True:
@@ -423,19 +423,19 @@ def handle(ws):
             if m is None:
                 break
             ws.send(m)
-            
+
     elif ws.path == '/data':
         for i in xrange(10000):
             ws.send("0 %s %s\n" % (i, random.random()))
             eventlet.sleep(0.1)
-                            
+
 wsapp = WebSocketWSGI(handle)
 def app(environ, start_response):
     """ This resolves to the web page or the websocket depending on
     the path."""
     if environ['PATH_INFO'] == '/' or environ['PATH_INFO'] == "":
         data = open(os.path.join(
-                     os.path.dirname(__file__), 
+                     os.path.dirname(__file__),
                      'websocket.html')).read()
         data = data % environ
         start_response('200 OK', [('Content-Type', 'text/html'),
@@ -443,4 +443,3 @@ def app(environ, start_response):
         return [data]
     else:
         return wsapp(environ, start_response)
-

@@ -68,4 +68,3 @@ texinfo_documents = [
    u'Benoit Chesneau', 'Gunicorn', 'One line description of project.',
    'Miscellaneous'),
 ]
-

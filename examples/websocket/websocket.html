@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- idea and code swiped from 
+<!-- idea and code swiped from
 http://assorted.svn.sourceforge.net/viewvc/assorted/real-time-plotter/trunk/src/rtp.html?view=markup -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"></script>
 <script src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
@@ -9,7 +9,7 @@ http://assorted.svn.sourceforge.net/viewvc/assorted/real-time-plotter/trunk/src/
 window.onload = function() {
     var data = {};
     var s = new WebSocket("ws://%(HTTP_HOST)s/data");
-    s.onopen = function() { 
+    s.onopen = function() {
         //alert('open');
         s.send('hi');
     };
