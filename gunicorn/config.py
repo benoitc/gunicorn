@@ -678,6 +678,24 @@ class Keepalive(Setting):
         """
 
 
+class NumWorkersPath(Setting):
+    name = "num_workers_path"
+    section = "Worker Processes"
+    cli = ["--num_workers_path"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        A file that store the new number of workers.
+
+        When the master process get a SIGTSTP signal, a number will be read from
+        this file and set as its new number of workers.
+
+        e.g.
+        '/etc/myapp/num_workers'.
+        """
+
+
 class LimitRequestLine(Setting):
     name = "limit_request_line"
     section = "Security"
