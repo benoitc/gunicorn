@@ -74,7 +74,6 @@ class GeventWorker(AsyncWorker):
                 _sock=s))
         self.sockets = sockets
 
-
     def notify(self):
         super(GeventWorker, self).notify()
         if self.ppid != os.getppid():
@@ -129,7 +128,7 @@ class GeventWorker(AsyncWorker):
         try:
             # Stop accepting requests
             for server in servers:
-                if hasattr(server, 'close'): # gevent 1.0
+                if hasattr(server, 'close'):  # gevent 1.0
                     server.close()
                 if hasattr(server, 'kill'):  # gevent < 1.0
                     server.kill()

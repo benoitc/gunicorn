@@ -22,7 +22,6 @@ class MemoryWatch(threading.Thread):
         used_mem = sum(int(x) for x in out.split('\n')[1:])
         return used_mem
 
-
     def run(self):
         while True:
             for (pid, worker) in list(self.server.WORKERS.items()):

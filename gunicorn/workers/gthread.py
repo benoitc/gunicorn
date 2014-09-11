@@ -70,7 +70,6 @@ class TConn(object):
                 self.sock = ssl.wrap_socket(client, server_side=True,
                         **self.cfg.ssl_options)
 
-
             # initialize the parser
             self.parser = http.RequestParser(self.cfg, self.sock)
             return True

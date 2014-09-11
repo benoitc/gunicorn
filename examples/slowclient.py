@@ -12,8 +12,9 @@ def app(environ, start_response):
     data = b'Hello, World!\n'
     status = '200 OK'
     response_headers = [
-        ('Content-type','text/plain'),
-        ('Content-Length', str(len(data)))    ]
+        ('Content-type', 'text/plain'),
+        ('Content-Length', str(len(data))),
+    ]
     sys.stdout.write('request received, pausing 10 seconds')
     sys.stdout.flush()
     time.sleep(10)

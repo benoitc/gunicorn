@@ -8,7 +8,7 @@ import grp
 import inspect
 try:
     import argparse
-except ImportError: # python 2.6
+except ImportError:  # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
@@ -73,7 +73,7 @@ class Config(object):
         parser = argparse.ArgumentParser(**kwargs)
         parser.add_argument("-v", "--version",
                 action="version", default=argparse.SUPPRESS,
-                version="%(prog)s (version " +  __version__ + ")\n",
+                version="%(prog)s (version " + __version__ + ")\n",
                 help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
@@ -223,8 +223,6 @@ class Setting(object):
     desc = None
     nargs = None
     const = None
-
-
 
     def __init__(self):
         if self.default is not None:
@@ -432,7 +430,7 @@ def validate_file(val):
     # valid if the value is a string
     val = validate_string(val)
 
-     # transform relative paths
+    # transform relative paths
     path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
 
     # test if the path exists
@@ -1648,6 +1646,6 @@ class StatsdHost(Setting):
     meta = "STATSD_ADDR"
     default = None
     validator = validate_hostport
-    desc ="""\
+    desc = """\
     host:port of the statsd server to log to
     """

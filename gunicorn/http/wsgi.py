@@ -101,7 +101,7 @@ def proxy_environ(req):
     return {
         "PROXY_PROTOCOL": info["proxy_protocol"],
         "REMOTE_ADDR": info["client_addr"],
-        "REMOTE_PORT":  str(info["client_port"]),
+        "REMOTE_PORT": str(info["client_port"]),
         "PROXY_ADDR": info["proxy_addr"],
         "PROXY_PORT": str(info["proxy_port"]),
     }
@@ -374,7 +374,7 @@ class Response(object):
 
             sent += len(data)
             if sent > nbytes:
-                data = data[:nbytes-sent]
+                data = data[:nbytes - sent]
 
             util.write(self.sock, data, self.chunked)
 

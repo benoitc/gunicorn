@@ -70,8 +70,8 @@ except ImportError:
             try:
                 dot = package.rindex('.', 0, dot)
             except ValueError:
-                raise ValueError("attempted relative import beyond top-level "
-                                  "package")
+                msg = "attempted relative import beyond top-level package"
+                raise ValueError(msg)
         return "%s.%s" % (package[:dot], name)
 
     def import_module(name, package=None):
@@ -112,8 +112,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             return pkg_resources.load_entry_point(dist, section, name)
         except:
             exc = traceback.format_exc()
-            raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                exc))
+            msg = "class uri %r invalid or not found: \n\n[%s]"
+            raise RuntimeError(msg % (uri, exc))
     else:
         components = uri.split('.')
         if len(components) == 1:
@@ -130,8 +130,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                                 section, uri)
                 except:
                     exc = traceback.format_exc()
-                    raise RuntimeError("class uri %r invalid or not found: \n\n[%s]" % (uri,
-                        exc))
+                    msg = "class uri %r invalid or not found: \n\n[%s]"
+                    raise RuntimeError(msg % (uri, exc))
 
         klass = components.pop(-1)
 
@@ -139,9 +139,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             mod = import_module('.'.join(components))
         except:
             exc = traceback.format_exc()
-            raise RuntimeError(
-                    "class uri %r invalid or not found: \n\n[%s]" %
-                    (uri, exc))
+            msg = "class uri %r invalid or not found: \n\n[%s]"
+            raise RuntimeError(msg % (uri, exc))
         return getattr(mod, klass)
 
 
@@ -215,7 +214,7 @@ def is_ipv6(addr):
         socket.inet_pton(socket.AF_INET6, addr)
     except socket.error:  # not a valid address
         return False
-    except ValueError: # ipv6 not supported on this platform
+    except ValueError:  # ipv6 not supported on this platform
         return False
     return True
 
@@ -229,7 +228,6 @@ def parse_address(netloc, default_port=8000):
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
-
 
     # get host
     if '[' in netloc and ']' in netloc:
@@ -356,8 +354,8 @@ def import_app(module):
         __import__(module)
     except ImportError:
         if module.endswith(".py") and os.path.exists(module):
-            raise ImportError("Failed to find application, did "
-                "you mean '%s:%s'?" % (module.rsplit(".", 1)[0], obj))
+            msg = "Failed to find application, did you mean '%s:%s'?"
+            raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
         else:
             raise
 

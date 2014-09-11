@@ -30,7 +30,6 @@ def home(request):
             message = form.cleaned_data['message']
             f = request.FILES['f']
 
-
             if not hasattr(f, "fileno"):
                 size = len(f.read())
             else:
@@ -40,7 +39,6 @@ def home(request):
                     size = len(f.read())
     else:
         form = MsgForm()
-
 
     return render_to_response('home.html', {
         'form': form,

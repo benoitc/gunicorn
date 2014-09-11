@@ -13,7 +13,7 @@ class SubDomainApp:
 
     def __call__(self, environ, start_response):
         host = environ.get("HTTP_HOST", "")
-        host = host.split(":")[0] # strip port
+        host = host.split(":")[0]  # strip port
 
         for pattern, app in self.mapping:
             if re.match("^" + pattern + "$", host):
