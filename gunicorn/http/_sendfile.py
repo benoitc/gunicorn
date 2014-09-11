@@ -16,10 +16,10 @@ except MemoryError:
     raise ImportError
 
 SUPPORTED_PLATFORMS = (
-        'darwin',
-        'freebsd',
-        'dragonfly',
-        'linux2')
+    'darwin',
+    'freebsd',
+    'dragonfly',
+    'linux2')
 
 if sys.version_info < (2, 6) or \
         sys.platform not in SUPPORTED_PLATFORMS:

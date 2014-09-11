@@ -18,5 +18,5 @@ class GunicornSubProcessTestMiddleware(object):
         self.queue.put(('REQUEST',))
 
     def process_response(self, request, response):
-        self.queue.put(('RESPONSE',response.status_code))
+        self.queue.put(('RESPONSE', response.status_code))
         return response

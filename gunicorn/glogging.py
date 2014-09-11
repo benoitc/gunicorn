@@ -202,8 +202,8 @@ class Logger(object):
                 fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
                         disable_existing_loggers=False)
             else:
-                raise RuntimeError("Error: log config '%s' not found" %
-                        cfg.logconfig)
+                msg = "Error: log config '%s' not found"
+                raise RuntimeError(msg % cfg.logconfig)
 
     def critical(self, msg, *args, **kwargs):
         self.error_log.critical(msg, *args, **kwargs)

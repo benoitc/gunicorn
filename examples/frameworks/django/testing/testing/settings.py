@@ -157,4 +157,4 @@ LOGGING = {
     }
 }
 
-SOME_VALUE="test on reload"
+SOME_VALUE = "test on reload"

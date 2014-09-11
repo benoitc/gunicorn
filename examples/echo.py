@@ -24,11 +24,10 @@ def app(environ, start_response):
     else:
         data = environ['wsgi.input'].read()
 
-
     status = '200 OK'
 
     response_headers = [
-        ('Content-type','text/plain'),
+        ('Content-type', 'text/plain'),
         ('Content-Length', str(len(data))),
         ('X-Gunicorn-Version', __version__),
         ("Test", "test тест"),

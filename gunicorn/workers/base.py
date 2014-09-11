@@ -12,9 +12,10 @@ import sys
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import Reloader
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, \
-InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion, \
-LimitRequestLine, LimitRequestHeaders
+from gunicorn.http.errors import (
+    InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
+    InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
+)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
@@ -22,7 +23,7 @@ from gunicorn.six import MAXSIZE
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x) \
+    SIGNALS = [getattr(signal, "SIG%s" % x)
             for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
 
     PIPE = []
@@ -157,9 +158,9 @@ class Worker(object):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            LimitRequestLine, LimitRequestHeaders,
-            InvalidProxyLine, ForbiddenProxyRequest,)):
+                InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+                LimitRequestLine, LimitRequestHeaders,
+                InvalidProxyLine, ForbiddenProxyRequest)):
 
             status_int = 400
             reason = "Bad Request"
@@ -185,11 +186,8 @@ class Worker(object):
                 mesg = "Request forbidden"
                 status_int = 403
 
-            self.log.debug("Invalid request from ip={ip}: {error}"\
-                           "".format(ip=addr[0],
-                                     error=str(exc),
-                                    )
-                          )
+            msg = "Invalid request from ip={ip}: {error}"
+            self.log.debug(msg.format(ip=addr[0], error=str(exc)))
         else:
             self.log.exception("Error handling request")
 

@@ -43,7 +43,7 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x) \
+    SIGNALS = [getattr(signal, "SIG%s" % x)
             for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
@@ -492,15 +492,15 @@ class Arbiter(object):
             self.kill_worker(pid, signal.SIGTERM)
 
         self.log.debug("{0} workers".format(len(workers)),
-                        extra={ "metric": "gunicorn.workers",
-                                "value": len(workers),
-                                "mtype": "gauge"})
+                       extra={"metric": "gunicorn.workers",
+                              "value": len(workers),
+                              "mtype": "gauge"})
 
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
-                                    self.app, self.timeout / 2.0,
-                                    self.cfg, self.log)
+                                   self.app, self.timeout / 2.0,
+                                   self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
         pid = os.fork()
         if pid != 0:

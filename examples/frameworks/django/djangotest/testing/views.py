@@ -32,7 +32,6 @@ def home(request):
     else:
         form = MsgForm()
 
-
     return render_to_response('home.html', {
         'form': form,
         'subject': subject,
