@@ -253,16 +253,21 @@ systemd:
 
     [Unit]
     Description=gunicorn daemon
+    Requires=gunicorn.socket
+    After=network.target
 
     [Service]
-    Type=forking
-    PIDFile=/home/urban/gunicorn/gunicorn.pid
+    PIDFile=/run/gunicorn/pid
     User=someuser
-    WorkingDirectory=/home/urban/gunicorn/bin
-    ExecStart=/home/someuser/gunicorn/bin/gunicorn -p /home/urban/gunicorn/gunicorn.pid- test:app
+    Group=someuser
+    WorkingDirectory=/home/someuser
+    ExecStart=/home/someuser/gunicorn/bin/gunicorn --pid /run/gunicorn/pid test:app
     ExecReload=/bin/kill -s HUP $MAINPID
     ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
+
+    [Install]
+    WantedBy=multi-user.target
 
 **gunicorn.socket**::
 
@@ -270,17 +275,21 @@ systemd:
     Description=gunicorn socket
 
     [Socket]
-    ListenStream=/run/gunicorn.sock
+    ListenStream=/run/gunicorn/socket
     ListenStream=0.0.0.0:9000
     ListenStream=[::]:8000
 
     [Install]
     WantedBy=sockets.target
 
+**tmpfiles.d/gunicorn.conf**::
+
+    d /run/gunicorn 0755 someuser someuser -
+
 After running curl http://localhost:9000/ gunicorn should start and you
 should see something like that in logs::
 
-    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn.sock,http://0.0.0.0:9000,http://[::]:8000
+    2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn/socket,http://0.0.0.0:9000,http://[::]:8000
 
 Logging
 =======
