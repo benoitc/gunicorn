@@ -1657,6 +1657,6 @@ class StatsdPrefix(Setting):
     meta = "STATSD_PREFIX"
     default = ""
     validator = validate_string
-    desc ="""\
+    desc = """\
     prefix to use when emitting statsd metrics
     """
