@@ -25,9 +25,9 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
+        self.prefix = cfg.statsd_prefix
         try:
             host, port = cfg.statsd_host
-            self.prefix = cfg.statsd_prefix
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.connect((host, int(port)))
         except Exception:
