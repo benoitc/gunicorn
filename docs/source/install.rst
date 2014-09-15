@@ -125,20 +125,26 @@ Ubuntu
 
 If you use Ubuntu_, you can update your system with packages from
 our PPA_ by adding ``ppa:gunicorn/ppa`` to your system's Software
-Sources. Use the ``apt-add-repository`` command from the
-``python-software-properties`` package to add the Gunicorn software source.
+Sources::
 
-::
-
+    $ sudo apt-get install python-software-properties
     $ sudo apt-add-repository ppa:gunicorn/ppa
+    $ sudo apt-get update
+    $ sudo apt-get install gunicorn
 
 Or this PPA can be added to your system manually by copying the lines below
-and adding them to your system's software sources::
+and adding them to your system's software sources in ``/etc/apt/sources.list``::
 
   deb http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
   deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
 
 Replace *lucid* with your Ubuntu distribution series.
+
+Then run::
+
+  $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5370FF2A
+  $ sudo apt-get update
+  $ sudo apt-get install gunicorn
 
 :Signing key: ``1024R/5370FF2A``
 :Fingerprint: ``FC7B41B54C9B8476D9EC22A2C6773E575370FF2A``
