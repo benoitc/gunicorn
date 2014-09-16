@@ -104,18 +104,10 @@ We also provide integration for both Django and Paster applications.
 Django
 ++++++
 
-gunicorn just needs to be called with a the location of a WSGI
-application object.:
+Gunicorn will look for a WSGI callable named ``application`` in not specified.
+So for a typical Django project, invoking gunicorn would look like::
 
-    gunicorn [OPTIONS] APP_MODULE
-
-Where APP_MODULE is of the pattern MODULE_NAME:VARIABLE_NAME. The module
-name should be a full dotted path. The variable name refers to a WSGI
-callable that should be found in the specified module.
-
-So for a typical Django project, invoking gunicorn would look like:
-
-    gunicorn myproject.wsgi:application
+    gunicorn myproject.wsgi
 
 (This requires that your project be on the Python path; the simplest way
 to ensure that is to run this command from the same directory as your
@@ -124,9 +116,11 @@ manage.py file.)
 You can use the
 `--env <http://docs.gunicorn.org/en/latest/settings.html#raw-env>`_ option
 to set the path to load the settings. In case you need it you can also
-add your application path to PYTHONPATH using the
+add your application path to ``PYTHONPATH`` using the
 `--pythonpath <http://docs.gunicorn.org/en/latest/settings.html#pythonpath>`_
-option.
+option.::
+
+    gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi
 
 Paste
 +++++
