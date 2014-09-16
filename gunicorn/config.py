@@ -1658,5 +1658,5 @@ class StatsdPrefix(Setting):
     default = ""
     validator = validate_string
     desc = """\
-    prefix to use when emitting statsd metrics
+    prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
     """
