@@ -560,6 +560,16 @@ syslog_facility
 
 Syslog facility name
 
+statsd_host
+~~~~~~~~~~~
+
+* ``--statsd-host STATSD_ADDR``
+* ``None``
+
+host:port of the statsd server to log to
+
+.. versionadded:: 19.1
+
 enable_stdio_inheritance
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -929,14 +939,3 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
-
-Logging
--------
-
-statsd_host
-~~~~~~~~~~~
-
-* ``--statsd-host STATSD_ADDR``
-* ``None``
-
-host:port of the statsd server to log to
