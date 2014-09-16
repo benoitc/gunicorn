@@ -5,9 +5,9 @@
 
 "Bare-bones implementation of statsD's protocol, client-side"
 
-import re
 import socket
 import logging
+from re import sub
 from gunicorn.glogging import Logger
 
 # Instrumentation constants
@@ -26,7 +26,7 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
-        self.prefix = re.sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
+        self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
