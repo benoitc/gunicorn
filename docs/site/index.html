@@ -90,7 +90,7 @@
       ])
       return iter([data])
 
-  (tutorial) $ ../bin/gunicorn --log-file - -w 4 myapp:app
+  (tutorial) $ ../bin/gunicorn -w 4 myapp:app
   [2014-09-10 10:22:28 +0000] [30869] [INFO] Listening at: http://127.0.0.1:8000 (30869)
   [2014-09-10 10:22:28 +0000] [30869] [INFO] Using worker: sync
   [2014-09-10 10:22:28 +0000] [30874] [INFO] Booting worker with pid: 30874
