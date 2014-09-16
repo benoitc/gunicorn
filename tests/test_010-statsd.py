@@ -86,3 +86,30 @@ def test_prefix():
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_no_dot():
+    c = Config()
+    c.set("statsd_prefix", "test")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_multiple_dots():
+    c = Config()
+    c.set("statsd_prefix", "test...")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_nested():
+    c = Config()
+    c.set("statsd_prefix", "test.asdf.")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.asdf.gunicorn.test:666|g")
