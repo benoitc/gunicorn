@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from __future__ import print_function
 
 import email.utils
 import fcntl
@@ -520,13 +521,13 @@ def is_fileobject(obj):
 
 
 def warn(msg):
-    sys.stderr.write("!!!\n")
+    print("!!!", file=sys.stderr)
 
     lines = msg.splitlines()
     for i, line in enumerate(lines):
         if i == 0:
             line = "WARNING: %s" % line
-        sys.stderr.write("!!! %s\n" % line)
+        print("!!! %s" % line, file=sys.stderr)
 
-    sys.stderr.write("!!!\n\n")
+    print("!!!\n", file=sys.stderr)
     sys.stderr.flush()

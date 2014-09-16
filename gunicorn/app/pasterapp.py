@@ -2,6 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+from __future__ import print_function
 
 import os
 import pkg_resources
@@ -155,7 +156,7 @@ class PasterServerApplication(PasterBaseApplication):
                 if k.lower() in self.cfg.settings and v is not None:
                     self.cfg.set(k.lower(), v)
         except Exception as e:
-            sys.stderr.write("\nConfig error: %s\n" % str(e))
+            print("\nConfig error: %s" % str(e), file=sys.stderr)
             sys.stderr.flush()
             sys.exit(1)
 
