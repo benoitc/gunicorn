@@ -2,6 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+from __future__ import print_function
 
 import os
 import sys
@@ -34,7 +35,7 @@ class BaseApplication(object):
             self.load_default_config()
             self.load_config()
         except Exception as e:
-            sys.stderr.write("\nError: %s\n" % str(e))
+            print("\nError: %s" % str(e), file=sys.stderr)
             sys.stderr.flush()
             sys.exit(1)
 
@@ -70,7 +71,7 @@ class BaseApplication(object):
         try:
             Arbiter(self).run()
         except RuntimeError as e:
-            sys.stderr.write("\nError: %s\n\n" % e)
+            print("\nError: %s\n" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(1)
 
@@ -91,8 +92,9 @@ class Application(BaseApplication):
         try:
             execfile_(filename, cfg, cfg)
         except Exception:
-            print("Failed to read config file: %s" % filename)
+            print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
+            sys.stderr.flush()
             sys.exit(1)
 
         return cfg
@@ -118,7 +120,8 @@ class Application(BaseApplication):
             try:
                 self.cfg.set(k.lower(), v)
             except:
-                sys.stderr.write("Invalid value for %s: %s\n\n" % (k, v))
+                print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
+                sys.stderr.flush()
                 raise
 
         return cfg
@@ -162,7 +165,8 @@ class Application(BaseApplication):
             try:
                 self.load()
             except:
-                sys.stderr.write("\nError while loading the application:\n\n")
+                msg = "\nError while loading the application:\n"
+                print(msg, file=sys.stderr)
                 traceback.print_exc()
                 sys.stderr.flush()
                 sys.exit(1)

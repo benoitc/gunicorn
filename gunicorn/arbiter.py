@@ -2,6 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+from __future__ import print_function
 
 import errno
 import os
@@ -520,8 +521,7 @@ class Arbiter(object):
         except AppImportError as e:
             self.log.debug("Exception while loading the application: \n%s",
                     traceback.format_exc())
-
-            sys.stderr.write("%s\n" % e)
+            print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except:
