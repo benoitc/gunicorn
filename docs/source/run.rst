@@ -67,7 +67,7 @@ You can use the
 to set the path to load the settings. In case you need it you can also
 add your application path to ``PYTHONPATH`` using the
 `--pythonpath <http://docs.gunicorn.org/en/latest/settings.html#pythonpath>`_
-option.::
+option::
 
     gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi
 
