@@ -1,7 +1,7 @@
 Changelog
 =========
 
-20.0 / unreleased
+19.2 / unreleased
 -----------------
 
 Changes
@@ -10,12 +10,12 @@ Changes
 Core
 ++++
 
-- fix `#863 <https://github.com/benoitc/gunicorn/issues/863`_: fix race condition error.
+- fix `#863 <https://github.com/benoitc/gunicorn/issues/863>`_: fix race condition error.
 
 Logging
 +++++++
 
-- fix `#832 <https://github.com/benoitc/gunicorn/issues/832`_: log to console by default.
+- fix `#832 <https://github.com/benoitc/gunicorn/issues/832>`_: log to console by default.
 
 19.1.1 / 2014-08-16
 -------------------
