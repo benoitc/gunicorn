@@ -469,11 +469,14 @@ errorlog
 ~~~~~~~~
 
 * ``--error-logfile FILE, --log-file FILE``
-* ``None``
+* ``-``
 
 The Error log file to write to.
 
 "-" means log to stderr.
+
+.. versionchanged:: 20.0
+   Log to ``stderr`` by default.
 
 loglevel
 ~~~~~~~~

@@ -100,8 +100,9 @@ to remove this issue.
 Why I don't see any logs in the console?
 ----------------------------------------
 
-Since the version R19, Gunicorn doesn't log by default in the console.
-To watch the logs  in the console you now need to use the option ``--log-file=-``.
+In version R19, Gunicorn doesn't log by default in the console.
+To watch the logs in the console you need to use the option ``--log-file=-``.
+In version R20, Gunicorn logs to the console by default again.
 
 Kernel Parameters
 =================

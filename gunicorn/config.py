@@ -1045,7 +1045,7 @@ class ErrorLog(Setting):
     cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
-    default = None
+    default = '-'
     desc = """\
         The Error log file to write to.
 
