@@ -1,5 +1,6 @@
-
 .. _settings:
+
+.. Please update gunicorn/config.py instead.
 
 Settings
 ========

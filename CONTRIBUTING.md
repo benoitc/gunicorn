@@ -60,6 +60,10 @@ test suite on your branch before submitting a pull request.
 Make sure you include relevant updates or additions to documentation
 when creating or modifying features.
 
+If you are adding a new configuration option or updating an existing one,
+please do it in `gunicorn/config.py`, then run `make -C docs html` to update
+`docs/source/settings.rst`.
+
 Write clean code.
 
 Pull requests descriptions should be as clear as possible and include a
