@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# Please remember to run "make -C docs html" after update "desc" attributes.
+
 import copy
 import grp
 import inspect
@@ -457,7 +459,6 @@ def get_default_config_file():
     return None
 
 
-# Please remember to run "make html" in docs/ after update "desc" attributes.
 class ConfigFile(Setting):
     name = "config"
     section = "Config File"
