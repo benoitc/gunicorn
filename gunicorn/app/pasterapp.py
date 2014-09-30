@@ -28,9 +28,11 @@ def _configure_logging_from_paste_config(paste_file):
     if cfg_parser.has_section('loggers'):
         from logging.config import fileConfig
         config_file = os.path.abspath(logger_cfg_file)
-        fileConfig(config_file, dict(__file__=config_file,
-                                     here=os.path.dirname(config_file)))
-
+        defaults = dict(__file__=config_file,
+                        here=os.path.dirname(config_file))
+        fileConfig(config_file,
+                   defaults,
+                   disable_existing_loggers=False)
 
 def paste_config(gconfig, config_url, relative_to, global_conf=None):
     # add entry to pkg_resources
@@ -90,8 +92,11 @@ class PasterBaseApplication(Application):
             if parser.has_section('loggers'):
                 from logging.config import fileConfig
                 config_file = os.path.abspath(self.cfgfname)
-                fileConfig(config_file, dict(__file__=config_file,
-                                             here=os.path.dirname(config_file)))
+                defaults = dict(__file__=config_file,
+                                here=os.path.dirname(config_file))
+                fileConfig(config_file,
+                           defaults,
+                           disable_existing_loggers=False)
 
 
 class PasterApplication(PasterBaseApplication):
