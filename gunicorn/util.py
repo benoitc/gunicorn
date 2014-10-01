@@ -5,7 +5,6 @@
 
 from __future__ import print_function
 
-import email.utils
 import fcntl
 import io
 import os
@@ -35,6 +34,11 @@ timeout_default = object()
 CHUNK_SIZE = (16 * 1024)
 
 MAX_BODY = 1024 * 132
+
+weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+monthname = [None,
+             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
@@ -393,7 +397,11 @@ def http_date(timestamp=None):
     """Return the current date and time formatted for a message header."""
     if timestamp is None:
         timestamp = time.time()
-    s = email.utils.formatdate(timestamp, localtime=False, usegmt=True)
+    year, month, day, hh, mm, ss, wd, y, z = time.gmtime(timestamp)
+    s = "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
+            weekdayname[wd],
+            day, monthname[month], year,
+            hh, mm, ss)
     return s
 
 
