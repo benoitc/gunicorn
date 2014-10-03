@@ -53,7 +53,7 @@ We also provide integration for both Django and Paster applications.
 Django
 ------
 
-Gunicorn will look for a WSGI callable named ``application`` in not specified.
+Gunicorn will look for a WSGI callable named ``application`` if not specified.
 So for a typical Django project, invoking gunicorn would look like::
 
     gunicorn myproject.wsgi
