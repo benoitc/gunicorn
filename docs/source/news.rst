@@ -11,6 +11,8 @@ Core
 ++++
 
 - fix `#863 <https://github.com/benoitc/gunicorn/issues/863>`_: fix race condition error.
+- fix `#862 <https://github.com/benoitc/gunicorn/pull/862>`_: add ``max_requests_jitter``
+  configuration option.
 
 Logging
 +++++++

@@ -152,11 +152,13 @@ max_requests_jitter
 * ``--max-requests-jitter INT``
 * ``0``
 
-The maximum jitter to add to the max_requests setting.
+The maximum jitter to add to the max-requests setting.
 
 The jitter causes the restart per worker to be randomized by
 ``randint(0, max_requests_jitter)``. This is intended to stagger worker
 restarts to avoid all workers restarting at the same time.
+
+.. versionadded:: 19.2
 
 timeout
 ~~~~~~~
