@@ -8,11 +8,11 @@ import os
 import sys
 import traceback
 
+from gunicorn._compat import execfile_
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
-from gunicorn.six import execfile_
 
 class BaseApplication(object):
     """

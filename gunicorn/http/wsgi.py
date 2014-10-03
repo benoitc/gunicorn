@@ -9,7 +9,8 @@ import os
 import re
 import sys
 
-from gunicorn.six import unquote_to_wsgi_str, string_types, binary_type, reraise
+from gunicorn._compat import unquote_to_wsgi_str
+from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.six as six
 import gunicorn.util as util

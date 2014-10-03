@@ -19,6 +19,7 @@ import sys
 import textwrap
 
 from gunicorn import __version__
+from gunicorn import _compat
 from gunicorn.errors import ConfigError
 from gunicorn import six
 from gunicorn import util
@@ -120,7 +121,7 @@ class Config(object):
     @property
     def address(self):
         s = self.settings['bind'].get()
-        return [util.parse_address(six.bytes_to_str(bind)) for bind in s]
+        return [util.parse_address(_compat.bytes_to_str(bind)) for bind in s]
 
     @property
     def uid(self):
@@ -179,7 +180,7 @@ class Config(object):
             return env
 
         for e in raw_env:
-            s = six.bytes_to_str(e)
+            s = _compat.bytes_to_str(e)
             try:
                 k, v = s.split('=', 1)
             except ValueError:
