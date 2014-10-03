@@ -146,6 +146,18 @@ to help limit the damage of memory leaks.
 If this is set to zero (the default) then the automatic worker
 restarts are disabled.
 
+max_requests_jitter
+~~~~~~~~~~~~~~~~~~~
+
+* ``--max-requests-jitter INT``
+* ``0``
+
+The maximum jitter to add to the max_requests setting.
+
+The jitter causes the restart per worker to be randomized by
+``randint(0, max_requests_jitter)``. This is intended to stagger worker
+restarts to avoid all workers restarting at the same time.
+
 timeout
 ~~~~~~~
 
