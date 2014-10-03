@@ -2,8 +2,10 @@ import os
 import inspect
 import gunicorn.config as guncfg
 
-HEAD = """
+HEAD = """\
 .. _settings:
+
+.. Please update gunicorn/config.py instead.
 
 Settings
 ========
