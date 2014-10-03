@@ -77,3 +77,39 @@ def test_instrument():
     t.eq(logger.sock.msgs[0], "gunicorn.request.duration:7000.0|ms")
     t.eq(logger.sock.msgs[1], "gunicorn.requests:1|c|@1.0")
     t.eq(logger.sock.msgs[2], "gunicorn.request.status.200:1|c|@1.0")
+
+def test_prefix():
+    c = Config()
+    c.set("statsd_prefix", "test.")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_no_dot():
+    c = Config()
+    c.set("statsd_prefix", "test")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_multiple_dots():
+    c = Config()
+    c.set("statsd_prefix", "test...")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+
+def test_prefix_nested():
+    c = Config()
+    c.set("statsd_prefix", "test.asdf.")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    t.eq(logger.sock.msgs[0], "test.asdf.gunicorn.test:666|g")

@@ -1655,3 +1655,14 @@ class StatsdHost(Setting):
     desc = """\
     host:port of the statsd server to log to
     """
+
+class StatsdPrefix(Setting):
+    name = "statsd_prefix"
+    section = "Logging"
+    cli = ["--statsd-prefix"]
+    meta = "STATSD_PREFIX"
+    default = ""
+    validator = validate_string
+    desc = """\
+    prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
+    """

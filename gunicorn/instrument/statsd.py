@@ -7,6 +7,7 @@
 
 import socket
 import logging
+from re import sub
 from gunicorn.glogging import Logger
 
 # Instrumentation constants
@@ -25,6 +26,7 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
+        self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -98,27 +100,27 @@ class Statsd(Logger):
     def gauge(self, name, value):
         try:
             if self.sock:
-                self.sock.send("{0}:{1}|g".format(name, value))
+                self.sock.send("{0}{1}:{2}|g".format(self.prefix, name, value))
         except Exception:
             pass
 
     def increment(self, name, value, sampling_rate=1.0):
         try:
             if self.sock:
-                self.sock.send("{0}:{1}|c|@{2}".format(name, value, sampling_rate))
+                self.sock.send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
         except Exception:
             pass
 
     def decrement(self, name, value, sampling_rate=1.0):
         try:
             if self.sock:
-                self.sock.send("{0}:-{1}|c|@{2}".format(name, value, sampling_rate))
+                self.sock.send("{0){1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
         except Exception:
             pass
 
     def histogram(self, name, value):
         try:
             if self.sock:
-                self.sock.send("{0}:{1}|ms".format(name, value))
+                self.sock.send("{0}{1}:{2}|ms".format(self.prefix, name, value))
         except Exception:
             pass
