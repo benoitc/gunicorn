@@ -44,6 +44,10 @@ fname = os.path.join(os.path.dirname(__file__), 'requirements_dev.txt')
 with open(fname) as f:
     tests_require = list(map(lambda l: l.strip(), f.readlines()))
 
+if sys.version_info[:2] < (3, 3):
+    tests_require.append('mock')
+if sys.version_info[:2] < (2, 7):
+    tests_require.append('unittest2')
 
 class PyTestCommand(TestCommand):
     user_options = [
