@@ -21,7 +21,7 @@ http://docs.gunicorn.org
 Installation
 ------------
 
-Gunicorn requires **Python 2.x >= 2.6** or **Python 3.x >= 3.1**.
+Gunicorn requires **Python 2.x >= 2.6** or **Python 3.x >= 3.2**.
 
 Install from sources::
 

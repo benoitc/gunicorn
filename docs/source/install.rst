@@ -4,7 +4,7 @@ Installation
 
 .. highlight:: bash
 
-:Requirements: **Python 2.x >= 2.6** or **Python 3.x >= 3.1**
+:Requirements: **Python 2.x >= 2.6** or **Python 3.x >= 3.2**
 
 To install the latest released version of Gunicorn::
 
