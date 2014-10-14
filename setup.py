@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-
 import os
 import sys
 
@@ -45,7 +44,8 @@ fname = os.path.join(os.path.dirname(__file__), 'requirements_dev.txt')
 with open(fname) as f:
     tests_require = list(map(lambda l: l.strip(), f.readlines()))
 
-class PyTest(TestCommand):
+
+class PyTestCommand(TestCommand):
     user_options = [
         ("cov", None, "measure coverage")
     ]
@@ -66,31 +66,26 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-REQUIREMENTS = []
-
 setup(
-    name = 'gunicorn',
-    version = __version__,
+    name='gunicorn',
+    version=__version__,
 
-    description = 'WSGI HTTP Server for UNIX',
-    long_description = long_description,
-    author = 'Benoit Chesneau',
-    author_email = 'benoitc@e-engura.com',
-    license = 'MIT',
-    url = 'http://gunicorn.org',
+    description='WSGI HTTP Server for UNIX',
+    long_description=long_description,
+    author='Benoit Chesneau',
+    author_email='benoitc@e-engura.com',
+    license='MIT',
+    url='http://gunicorn.org',
 
-    classifiers = CLASSIFIERS,
-    zip_safe = False,
-    packages = find_packages(exclude=['examples', 'tests']),
-    include_package_data = True,
+    classifiers=CLASSIFIERS,
+    zip_safe=False,
+    packages=find_packages(exclude=['examples', 'tests']),
+    include_package_data=True,
 
-    tests_require = tests_require,
-    cmdclass = {'test': PyTest},
-
-    install_requires = REQUIREMENTS,
+    tests_require=tests_require,
+    cmdclass={'test': PyTestCommand},
 
     entry_points="""
-
     [console_scripts]
     gunicorn=gunicorn.app.wsgiapp:run
     gunicorn_django=gunicorn.app.djangoapp:run
