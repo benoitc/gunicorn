@@ -763,7 +763,7 @@ class Debug(Setting):
     action = "store_true"
     default = False
     desc = """\
-        Turn on debugging in the server.
+        Deprecated: no-op now.
 
         **DEPRECATED**: This no functionality was removed after v18.0.
         This option is now a no-op.
