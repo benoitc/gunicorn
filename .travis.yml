@@ -1,13 +1,11 @@
 language: python
-python:
-  - "2.6"
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "pypy"
-install:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install aiohttp; fi
-script: python setup.py test
-branches:
-  only:
-    - master
+env:
+  - TOXENV=py26
+  - TOXENV=py27
+  - TOXENV=py32
+  - TOXENV=py33
+  - TOXENV=py34
+  - TOXENV=pypy
+  - TOXENV=pypy3
+install: pip install tox
+script: tox
