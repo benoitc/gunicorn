@@ -76,14 +76,6 @@ timeout = 30
 keepalive = 2
 
 #
-# Debugging
-#
-#   debug - Turn on debugging in the server. This limits the number of
-#       worker processes to 1 and changes some error handling that's
-#       sent to clients.
-#
-#       True or False
-#
 #   spew - Install a trace function that spews every line of Python
 #       that is executed when running the server. This is the
 #       nuclear option.
@@ -91,7 +83,6 @@ keepalive = 2
 #       True or False
 #
 
-debug = False
 spew = False
 
 #

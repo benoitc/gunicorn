@@ -244,17 +244,6 @@ on the allowed size of an HTTP request header field.
 Debugging
 ---------
 
-debug
-~~~~~
-
-* ``--debug``
-* ``False``
-
-Turn on debugging in the server.
-
-**DEPRECATED**: This no functionality was removed after v18.0.
-This option is now a no-op.
-
 reload
 ~~~~~~
 
@@ -958,4 +947,12 @@ statsd_host
 * ``None``
 
 host:port of the statsd server to log to
+
+statsd_prefix
+~~~~~~~~~~~~~
+
+* ``--statsd-prefix STATSD_PREFIX``
+* ````
+
+prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
 

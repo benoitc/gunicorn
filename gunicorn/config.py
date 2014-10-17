@@ -755,21 +755,6 @@ class LimitRequestFieldSize(Setting):
         """
 
 
-class Debug(Setting):
-    name = "debug"
-    section = "Debugging"
-    cli = ["--debug"]
-    validator = validate_bool
-    action = "store_true"
-    default = False
-    desc = """\
-        Turn on debugging in the server.
-
-        **DEPRECATED**: This no functionality was removed after v18.0.
-        This option is now a no-op.
-        """
-
-
 class Reload(Setting):
     name = "reload"
     section = 'Debugging'
