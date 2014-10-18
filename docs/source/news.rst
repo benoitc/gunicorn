@@ -13,6 +13,8 @@ Core
 - fix `#863 <https://github.com/benoitc/gunicorn/issues/863>`_: fix race condition error.
 - fix `#862 <https://github.com/benoitc/gunicorn/pull/862>`_: add ``max_requests_jitter``
   configuration option.
+- fix `#917 <https://github.com/benoitc/gunicorn/issues/917>`_: the deprecated ``--debug``
+  option has been removed.
 
 Logging
 +++++++
