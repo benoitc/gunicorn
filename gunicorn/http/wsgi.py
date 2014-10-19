@@ -344,6 +344,9 @@ class Response(object):
         self.sent += tosend
         util.write(self.sock, arg, self.chunked)
 
+    def can_sendfile(self):
+        return (self.cfg.sendfile and (sendfile is not None))
+
     def sendfile_all(self, fileno, sockno, offset, nbytes):
         # Send file in at most 1GB blocks as some operating
         # systems can have problems with sending files in blocks
@@ -380,7 +383,7 @@ class Response(object):
             util.write(self.sock, data, self.chunked)
 
     def write_file(self, respiter):
-        if sendfile is not None and util.is_fileobject(respiter.filelike):
+        if can_sendfile() and util.is_fileobject(respiter.filelike):
             # sometimes the fileno isn't a callable
             if six.callable(respiter.filelike.fileno):
                 fileno = respiter.filelike.fileno()

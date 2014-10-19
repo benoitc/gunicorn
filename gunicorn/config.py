@@ -816,6 +816,16 @@ class PreloadApp(Setting):
         restarting workers.
         """
 
+class Sendfile(Setting):
+    name = "sendfile"
+    section = "Server Mechanics"
+    cli = ["--sendfile"]
+    validator = validate_bool
+    action = "store_true"
+    default = True
+    desc = """\
+        Enables or disables the use of sendfile().
+        """
 
 class Chdir(Setting):
     name = "chdir"
