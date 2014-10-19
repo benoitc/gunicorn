@@ -383,7 +383,7 @@ class Response(object):
             util.write(self.sock, data, self.chunked)
 
     def write_file(self, respiter):
-        if can_sendfile() and util.is_fileobject(respiter.filelike):
+        if self.can_sendfile() and util.is_fileobject(respiter.filelike):
             # sometimes the fileno isn't a callable
             if six.callable(respiter.filelike.fileno):
                 fileno = respiter.filelike.fileno()
