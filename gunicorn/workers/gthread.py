@@ -39,13 +39,7 @@ except ImportError:
 try:
     from asyncio import selectors
 except ImportError:
-    try:
-        from trollius import selectors
-    except ImportError:
-        raise RuntimeError("""
-        You need 'trollius' installed to use this worker with this python
-        version.
-        """)
+    from gunicorn import selectors
 
 
 class TConn(object):
