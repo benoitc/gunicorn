@@ -40,9 +40,9 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
 # read dev requirements
-fname = os.path.join(os.path.dirname(__file__), 'requirements_dev.txt')
+fname = os.path.join(os.path.dirname(__file__), 'requirements_test.txt')
 with open(fname) as f:
-    tests_require = list(map(lambda l: l.strip(), f.readlines()))
+    tests_require = [l.strip() for l in f.readlines()]
 
 if sys.version_info[:2] < (3, 3):
     tests_require.append('mock')

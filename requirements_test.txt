@@ -1,0 +1,2 @@
+pytest==2.6.3
+pytest-cov==1.7.0
