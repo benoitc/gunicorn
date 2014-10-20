@@ -824,7 +824,9 @@ class Sendfile(Setting):
     action = "store_true"
     default = True
     desc = """\
-        Enables or disables the use of sendfile().
+        Enables or disables the use of ``sendfile()``.
+
+        .. versionadded:: 19.2
         """
 
 class Chdir(Setting):

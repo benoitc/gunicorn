@@ -293,6 +293,16 @@ speed up server boot times. Although, if you defer application loading
 to each worker process, you can reload your application code easily by
 restarting workers.
 
+sendfile
+~~~~~~~~
+
+* ``--sendfile``
+* ``True``
+
+Enables or disables the use of ``sendfile()``.
+
+.. versionadded:: 19.2
+
 chdir
 ~~~~~
 
