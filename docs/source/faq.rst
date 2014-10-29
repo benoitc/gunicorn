@@ -137,3 +137,13 @@ this queue new connections will eventually start getting dropped.
 ::
 
     $ sudo sysctl -w net.core.somaxconn="2048"
+
+
+Troubleshooting
+===============
+
+How do I fix Django reporting an ``ImproperlyConfigured`` error?
+----------------------------------------------------------------
+
+With asynchronous workers, creating URLs with the ``reverse`` function of
+``django.core.urlresolvers`` may fail. Use ``reverse_lazy`` instead.
