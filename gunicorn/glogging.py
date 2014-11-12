@@ -243,7 +243,7 @@ class Logger(object):
             'r': "%s %s %s" % (environ['REQUEST_METHOD'],
                 environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
             's': status,
-            'b': resp.response_length and str(resp.response_length) or '-',
+            'b': resp.sent and str(resp.sent) or '-',
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
             'T': request_time.seconds,
