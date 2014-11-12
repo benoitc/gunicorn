@@ -120,8 +120,8 @@ class AsyncWorker(base.Worker):
             raise
         except socket.error:
             # If the original exception was a socket.error we delegate
-            # handling it to the caller (where handle() might ignore it).
-            raise
+            # handling it to the caller (where handle() might ignore it 
+            six.reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
