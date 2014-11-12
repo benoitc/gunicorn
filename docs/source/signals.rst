@@ -5,9 +5,7 @@ Signal Handling
 ================
 
 A brief description of the signals handled by Gunicorn. We also document the
-signals used internally by Gunicorn to communicate with the workers. With the
-exception of TTIN/TTOU the signal handling matches the behaviour of `nginx
-<http://wiki.nginx.org/CommandLine>`_.
+signals used internally by Gunicorn to communicate with the workers.
 
 Master process
 ==============
