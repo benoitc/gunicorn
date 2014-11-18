@@ -25,6 +25,7 @@ import greenlet
 from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.async import AsyncWorker
 
+
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
@@ -82,6 +83,7 @@ def patch_sendfile():
     if o_sendfile is not None:
         setattr(wsgi, "sendfile", _eventlet_sendfile)
 
+
 class EventletWorker(AsyncWorker):
 
     def patch(self):
@@ -99,7 +101,7 @@ class EventletWorker(AsyncWorker):
     def handle(self, listener, client, addr):
         if self.cfg.is_ssl:
             client = eventlet.wrap_ssl(client, server_side=True,
-                **self.cfg.ssl_options)
+                                       **self.cfg.ssl_options)
 
         super(EventletWorker, self).handle(listener, client, addr)
 
@@ -110,7 +112,7 @@ class EventletWorker(AsyncWorker):
             gsock.setblocking(1)
             hfun = partial(self.handle, gsock)
             acceptor = eventlet.spawn(_eventlet_serve, gsock, hfun,
-                    self.worker_connections)
+                                      self.worker_connections)
 
             acceptors.append(acceptor)
             eventlet.sleep(0.0)
