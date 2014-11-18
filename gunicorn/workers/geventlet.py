@@ -66,10 +66,10 @@ class EventletWorker(AsyncWorker):
     def run(self):
         acceptors = []
         for sock in self.sockets:
-            sock = GreenSocket(sock)
-            sock.setblocking(1)
-            hfun = partial(self.handle, sock)
-            acceptor = eventlet.spawn(eventlet.serve, sock, hfun,
+            gsock = GreenSocket(sock)
+            gsock.setblocking(1)
+            hfun = partial(self.handle, gsock)
+            acceptor = eventlet.spawn(self.serve, gsock, hfun,
                     self.worker_connections)
 
             acceptors.append(acceptor)
@@ -82,8 +82,23 @@ class EventletWorker(AsyncWorker):
         self.notify()
         try:
             with eventlet.Timeout(self.cfg.graceful_timeout) as t:
+                [a.kill(eventlet.StopServe()) for a in acceptors]
                 [a.wait() for a in acceptors]
         except eventlet.Timeout as te:
             if te != t:
                 raise
             [a.kill() for a in acceptors]
+
+    def serve(self, sock, handle, concurrency):
+        pool = eventlet.greenpool.GreenPool(concurrency)
+        server_gt = eventlet.greenthread.getcurrent()
+
+        while True:
+            try:
+                conn, addr = sock.accept()
+                gt = pool.spawn(handle, conn, addr)
+                gt.link(eventlet.convenience._stop_checker, server_gt, conn)
+                conn, addr, gt = None, None, None
+            except eventlet.StopServe:
+                pool.waitall()
+                return
