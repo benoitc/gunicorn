@@ -5,6 +5,7 @@
 
 from functools import partial
 import errno
+import sys
 
 try:
     import eventlet
@@ -16,12 +17,14 @@ if eventlet.version_info < (0, 9, 7):
     raise RuntimeError("You need eventlet >= 0.9.7")
 
 
-from eventlet import hubs
+from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
 from eventlet.hubs import trampoline
+import greenlet
 
 from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.async import AsyncWorker
+
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
@@ -33,11 +36,53 @@ def _eventlet_sendfile(fdout, fdin, offset, nbytes):
             else:
                 raise
 
+
+def _eventlet_serve(sock, handle, concurrency):
+    """
+    Serve requests forever.
+
+    This code is nearly identical to ``eventlet.convenience.serve`` except
+    that it attempts to join the pool at the end, which allows for gunicorn
+    graceful shutdowns.
+    """
+    pool = eventlet.greenpool.GreenPool(concurrency)
+    server_gt = eventlet.greenthread.getcurrent()
+
+    while True:
+        try:
+            conn, addr = sock.accept()
+            gt = pool.spawn(handle, conn, addr)
+            gt.link(_eventlet_stop, server_gt, conn)
+            conn, addr, gt = None, None, None
+        except eventlet.StopServe:
+            pool.waitall()
+            return
+
+
+def _eventlet_stop(client, server, conn):
+    """
+    Stop a greenlet handling a request and close its connection.
+
+    This code is lifted from eventlet so as not to depend on undocumented
+    functions in the library.
+    """
+    try:
+        try:
+            client.wait()
+        finally:
+            conn.close()
+    except greenlet.GreenletExit:
+        pass
+    except Exception:
+        greenthread.kill(server, *sys.exc_info())
+
+
 def patch_sendfile():
     from gunicorn.http import wsgi
 
     if o_sendfile is not None:
         setattr(wsgi, "sendfile", _eventlet_sendfile)
+
 
 class EventletWorker(AsyncWorker):
 
@@ -56,21 +101,18 @@ class EventletWorker(AsyncWorker):
     def handle(self, listener, client, addr):
         if self.cfg.is_ssl:
             client = eventlet.wrap_ssl(client, server_side=True,
-                **self.cfg.ssl_options)
+                                       **self.cfg.ssl_options)
 
         super(EventletWorker, self).handle(listener, client, addr)
-
-        if not self.alive:
-            raise eventlet.StopServe()
 
     def run(self):
         acceptors = []
         for sock in self.sockets:
-            sock = GreenSocket(sock)
-            sock.setblocking(1)
-            hfun = partial(self.handle, sock)
-            acceptor = eventlet.spawn(eventlet.serve, sock, hfun,
-                    self.worker_connections)
+            gsock = GreenSocket(sock)
+            gsock.setblocking(1)
+            hfun = partial(self.handle, gsock)
+            acceptor = eventlet.spawn(_eventlet_serve, gsock, hfun,
+                                      self.worker_connections)
 
             acceptors.append(acceptor)
             eventlet.sleep(0.0)
@@ -82,6 +124,7 @@ class EventletWorker(AsyncWorker):
         self.notify()
         try:
             with eventlet.Timeout(self.cfg.graceful_timeout) as t:
+                [a.kill(eventlet.StopServe()) for a in acceptors]
                 [a.wait() for a in acceptors]
         except eventlet.Timeout as te:
             if te != t:
