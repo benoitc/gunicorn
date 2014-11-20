@@ -199,8 +199,11 @@ class Logger(object):
 
         if cfg.logconfig:
             if os.path.exists(cfg.logconfig):
-                fileConfig(cfg.logconfig, defaults=CONFIG_DEFAULTS,
-                        disable_existing_loggers=False)
+                defaults = CONFIG_DEFAULTS.copy()
+                defaults['__file__'] = cfg.logconfig
+                defaults['here'] = os.path.dirname(cfg.logconfig)
+                fileConfig(cfg.logconfig, defaults=defaults,
+                           disable_existing_loggers=False)
             else:
                 msg = "Error: log config '%s' not found"
                 raise RuntimeError(msg % cfg.logconfig)

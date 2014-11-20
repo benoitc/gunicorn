@@ -21,15 +21,10 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import util
 
 
-def _configure_logging_from_paste_config(paste_file):
-    logger_cfg_file = paste_file.split(':')[1]
+def _has_logging_config(paste_file):
     cfg_parser = ConfigParser.ConfigParser()
-    cfg_parser.read([logger_cfg_file])
-    if cfg_parser.has_section('loggers'):
-        from logging.config import fileConfig
-        config_file = os.path.abspath(logger_cfg_file)
-        fileConfig(config_file, dict(__file__=config_file,
-                                     here=os.path.dirname(config_file)))
+    cfg_parser.read([paste_file])
+    return cfg_parser.has_section('loggers')
 
 
 def paste_config(gconfig, config_url, relative_to, global_conf=None):
@@ -39,7 +34,7 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
 
     config_url = config_url.split('#')[0]
     cx = loadwsgi.loadcontext(SERVER, config_url, relative_to=relative_to,
-            global_conf=global_conf)
+                              global_conf=global_conf)
     gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
     cfg = {}
 
@@ -54,7 +49,9 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
     cfg['default_proc_name'] = gc.get('__file__')
 
     # init logging configuration
-    _configure_logging_from_paste_config(config_url)
+    config_file = config_url.split(':')[1]
+    if _has_logging_config(config_file):
+        cfg.setdefault('logconfig', config_file)
 
     for k, v in gc.items():
         if k not in gconfig.settings:
