@@ -275,7 +275,7 @@ check_config
 * ``--check-config``
 * ``False``
 
-Check the configuration..
+Check the configuration.
 
 Server Mechanics
 ----------------
@@ -564,7 +564,7 @@ syslog_prefix
 * ``--log-syslog-prefix SYSLOG_PREFIX``
 * ``None``
 
-makes gunicorn use the parameter as program-name in the syslog entries.
+Makes gunicorn use the parameter as program-name in the syslog entries.
 
 All entries will be prefixed by gunicorn.<prefix>. By default the program
 name is the name of the process.
@@ -759,7 +759,7 @@ worker_abort
 
 Called when a worker received the SIGABRT signal.
 
-This call generally happen on timeout.
+This call generally happens on timeout.
 
 The callable needs to accept one instance variable for the initialized
 Worker.
@@ -854,8 +854,8 @@ proxy_protocol
 
 Enable detect PROXY protocol (PROXY mode).
 
-Allow using Http and Proxy together. It's may be useful for work with
-stunnel as https frondend and gunicorn as http server.
+Allow using Http and Proxy together. It may be useful for work with
+stunnel as https frontend and gunicorn as http server.
 
 PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
 
@@ -964,5 +964,5 @@ statsd_prefix
 * ``--statsd-prefix STATSD_PREFIX``
 * ````
 
-prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
+Prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
 

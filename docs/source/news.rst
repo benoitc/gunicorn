@@ -192,7 +192,7 @@ core
 - fix logging: don't propagate log
 - improve logging: file option can be overriden by the gunicorn options
   `--error-logfile` and `--access-logfile` if they are given.
-- fix: dont' override SERVER_* by the Host header
+- fix: don't override SERVER_* by the Host header
 - fix: handle_error
 - add more option to configure SSL
 - fix: sendfile with SSL
@@ -220,7 +220,7 @@ gevent worker
 - fix: "global name 'hub' is not defined"
 - fix: reinit `hub` on old versions of gevent
 - support gevent 1.0
-- fix: add subprocess in monket patching
+- fix: add subprocess in monkey patching
 - fix: add support for multiple listener
 
 eventlet worker
@@ -233,7 +233,7 @@ eventlet worker
 tornado worker
 ++++++++++++++
 
-- add gracefull stop support
+- add graceful stop support
 
 18.0 / 2013-08-26
 ~~~~~~~~~~~~~~~~~

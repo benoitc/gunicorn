@@ -796,7 +796,7 @@ class ConfigCheck(Setting):
     action = "store_true"
     default = False
     desc = """\
-        Check the configuration..
+        Check the configuration.
         """
 
 
@@ -1179,7 +1179,7 @@ class SyslogPrefix(Setting):
     validator = validate_string
     default = None
     desc = """\
-    makes gunicorn use the parameter as program-name in the syslog entries.
+    Makes gunicorn use the parameter as program-name in the syslog entries.
 
     All entries will be prefixed by gunicorn.<prefix>. By default the program
     name is the name of the process.
@@ -1423,7 +1423,7 @@ class WorkerAbort(Setting):
     desc = """\
         Called when a worker received the SIGABRT signal.
 
-        This call generally happen on timeout.
+        This call generally happens on timeout.
 
         The callable needs to accept one instance variable for the initialized
         Worker.
@@ -1542,8 +1542,8 @@ class ProxyProtocol(Setting):
     desc = """\
         Enable detect PROXY protocol (PROXY mode).
 
-        Allow using Http and Proxy together. It's may be useful for work with
-        stunnel as https frondend and gunicorn as http server.
+        Allow using Http and Proxy together. It may be useful for work with
+        stunnel as https frontend and gunicorn as http server.
 
         PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
 
@@ -1680,5 +1680,5 @@ class StatsdPrefix(Setting):
     default = ""
     validator = validate_string
     desc = """\
-    prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
+    Prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
     """
