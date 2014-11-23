@@ -16,6 +16,7 @@ Logging
 +++++++
 
 - fix `#832 <https://github.com/benoitc/gunicorn/issues/832>`_: log to console by default.
+- fix `#845 <https://github.com/benoitc/gunicorn/issues/845>`_: set the gunicorn loggers from the paste config.
 
 19.1.1 / 2014-08-16
 -------------------
