@@ -15,7 +15,6 @@ from datetime import datetime
 import errno
 from functools import partial
 import os
-import operator
 import socket
 import ssl
 import sys

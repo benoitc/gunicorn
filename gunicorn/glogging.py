@@ -314,7 +314,7 @@ class Logger(object):
 
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
-            if getattr(h, "_gunicorn", False) == True:
+            if getattr(h, "_gunicorn", False):
                 return h
 
     def _set_handler(self, log, output, fmt):
