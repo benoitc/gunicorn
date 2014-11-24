@@ -6,7 +6,7 @@ from gunicorn.config import Config
 from gunicorn.glogging import Logger
 
 
-class Mock():
+class Mock(object):
     def __init__(self, **kwargs):
         for attr in kwargs:
             setattr(self, attr, kwargs[attr])
@@ -14,7 +14,8 @@ class Mock():
 
 def test_atoms_defaults():
     response = Mock(status='200', response_length=1024,
-        headers=(('Content-Type', 'application/json'), ))
+        headers=(('Content-Type', 'application/json'),),
+        sent=1024)
     request = Mock(headers=(('Accept', 'application/json'), ))
     environ = {'REQUEST_METHOD': 'GET', 'RAW_URI': 'http://my.uri',
         'SERVER_PROTOCOL': 'HTTP/1.1'}
