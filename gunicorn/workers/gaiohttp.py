@@ -7,7 +7,7 @@ import sys
 
 if sys.version_info >= (3, 3):
     try:
-        import aiohttp
+        import aiohttp  # NOQA
     except ImportError:
         raise RuntimeError("You need aiohttp installed to use this worker.")
     else:

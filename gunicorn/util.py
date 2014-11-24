@@ -406,7 +406,7 @@ def daemonize(enable_stdio_inheritance=False):
     Standard daemonization of a process.
     http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
     """
-    if not 'GUNICORN_FD' in os.environ:
+    if 'GUNICORN_FD' not in os.environ:
         if os.fork():
             os._exit(0)
         os.setsid()
