@@ -1,5 +1,8 @@
 import os
 import inspect
+
+from docutils import nodes, utils
+
 import gunicorn.config as guncfg
 
 HEAD = """\
@@ -16,6 +19,9 @@ used in the configuration file. The command line arguments are listed as well
 for reference on setting at the command line.
 
 """
+ISSUE_URI = 'https://github.com/benoitc/gunicorn/issues/%s'
+PULL_REQUEST_URI = 'https://github.com/benoitc/gunicorn/pull/%s'
+
 
 def format_settings(app):
     settings_file = os.path.join(app.srcdir, "settings.rst")
@@ -28,6 +34,7 @@ def format_settings(app):
     with open(settings_file, 'w') as settings:
         settings.write(HEAD)
         settings.write(''.join(ret))
+
 
 def fmt_setting(s):
     if callable(s.default):
@@ -56,5 +63,22 @@ def fmt_setting(s):
     out.append("")
     return "\n".join(out)
 
+
+def issue_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
+    issue = utils.unescape(text)
+    text = 'issue ' + issue
+    refnode = nodes.reference(text, text, refuri=ISSUE_URI % issue)
+    return [refnode], []
+
+
+def pull_request_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
+    issue = utils.unescape(text)
+    text = 'pull request ' + issue
+    refnode = nodes.reference(text, text, refuri=ISSUE_URI % issue)
+    return [refnode], []
+
+
 def setup(app):
     app.connect('builder-inited', format_settings)
+    app.add_role('issue', issue_role)
+    app.add_role('pr', pull_request_role)
