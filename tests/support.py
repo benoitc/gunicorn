@@ -1,6 +1,7 @@
 import functools
 import sys
 import unittest
+import platform
 
 HOST = "127.0.0.1"
 
