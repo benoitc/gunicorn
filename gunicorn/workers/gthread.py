@@ -61,7 +61,7 @@ class TConn(object):
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                self.sock = ssl.wrap_socket(client, server_side=True,
+                self.sock = ssl.wrap_socket(self.sock, server_side=True,
                         **self.cfg.ssl_options)
 
             # initialize the parser
