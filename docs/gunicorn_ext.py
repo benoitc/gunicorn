@@ -74,7 +74,7 @@ def issue_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
 def pull_request_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
     issue = utils.unescape(text)
     text = 'pull request ' + issue
-    refnode = nodes.reference(text, text, refuri=ISSUE_URI % issue)
+    refnode = nodes.reference(text, text, refuri=PULL_REQUEST_URI % issue)
     return [refnode], []
 
 
