@@ -11,7 +11,6 @@ import random
 
 from gunicorn._compat import execfile_
 from gunicorn.config import Config
-from gunicorn.http.errors import ParseException
 from gunicorn.http.parser import RequestParser
 from gunicorn.six.moves.urllib.parse import urlparse
 from gunicorn import six

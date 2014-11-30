@@ -5,7 +5,6 @@
 
 import t
 
-import functools
 import os
 import sys
 

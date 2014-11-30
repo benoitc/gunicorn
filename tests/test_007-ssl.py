@@ -5,16 +5,14 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-# stdlib
-import inspect
 import ssl
 import sys
 from unittest import TestCase
 
-# gunicorn
-from gunicorn.config import KeyFile, CertFile, SSLVersion, CACerts, \
-     SuppressRaggedEOFs, DoHandshakeOnConnect, Setting, validate_bool, validate_string, \
-     validate_pos_int
+from gunicorn.config import (
+    KeyFile, CertFile, SSLVersion, CACerts, SuppressRaggedEOFs,
+    DoHandshakeOnConnect, Setting,
+)
 
 if sys.version_info >= (2, 7):
     from gunicorn.config import Ciphers

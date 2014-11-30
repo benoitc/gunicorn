@@ -1,7 +1,6 @@
 # The following code adapted from CPython (see Lib/test/test_selectors.py)
 
 import errno
-import os
 import random
 import signal
 import socket
