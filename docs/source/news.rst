@@ -4,9 +4,6 @@ Changelog
 19.2 / unreleased
 -----------------
 
-Changes
--------
-
 Core
 ++++
 
