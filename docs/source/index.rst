@@ -40,6 +40,7 @@ Contents
     run
     configure
     settings
+    instrumentation
     deploy
     design
     signals

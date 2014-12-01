@@ -1669,7 +1669,9 @@ class StatsdHost(Setting):
     default = None
     validator = validate_hostport
     desc = """\
-    host:port of the statsd server to log to
+    ``host:port`` of the statsd server to log to.
+
+    .. versionadded:: 19.1
     """
 
 class StatsdPrefix(Setting):
@@ -1680,5 +1682,8 @@ class StatsdPrefix(Setting):
     default = ""
     validator = validate_string
     desc = """\
-    Prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
+    Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
+    if not provided).
+
+    .. versionadded:: 19.2
     """

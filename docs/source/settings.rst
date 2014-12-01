@@ -956,7 +956,9 @@ statsd_host
 * ``--statsd-host STATSD_ADDR``
 * ``None``
 
-host:port of the statsd server to log to
+``host:port`` of the statsd server to log to.
+
+.. versionadded:: 19.1
 
 statsd_prefix
 ~~~~~~~~~~~~~
@@ -964,5 +966,8 @@ statsd_prefix
 * ``--statsd-prefix STATSD_PREFIX``
 * ````
 
-Prefix to use when emitting statsd metrics (a trailing . is added, if not provided)
+Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
+if not provided).
+
+.. versionadded:: 19.2
 
