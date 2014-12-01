@@ -20,7 +20,7 @@ Logging
 
 
 History
-=======
+-------
 
 .. toctree::
    :titlesonly:
