@@ -6,9 +6,9 @@ from docutils import nodes, utils
 import gunicorn.config as guncfg
 
 HEAD = """\
-.. _settings:
-
 .. Please update gunicorn/config.py instead.
+
+.. _settings:
 
 Settings
 ========
