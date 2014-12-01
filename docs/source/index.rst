@@ -42,9 +42,9 @@ Contents
     settings
     instrumentation
     deploy
-    design
     signals
     custom
-    community
+    design
     faq
+    community
     news
