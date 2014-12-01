@@ -82,7 +82,9 @@ let us know.
 Paster Applications
 -------------------
 
-In your INI file, you can specify to use Gunicorn as the server like such::
+In your INI file, you can specify to use Gunicorn as the server like such:
+
+.. code-block:: ini
 
     [server:main]
     use = egg:gunicorn#main
