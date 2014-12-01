@@ -44,7 +44,7 @@ class FileWrapper(object):
         raise IndexError
 
 
-class WSGIErrorsWraper(io.RawIOBase):
+class WSGIErrorsWrapper(io.RawIOBase):
 
     def __init__(self, cfg):
         errorlog = logging.getLogger("gunicorn.error")
@@ -70,7 +70,7 @@ class WSGIErrorsWraper(io.RawIOBase):
 
 def base_environ(cfg):
     return {
-        "wsgi.errors": WSGIErrorsWraper(cfg),
+        "wsgi.errors": WSGIErrorsWrapper(cfg),
         "wsgi.version": (1, 0),
         "wsgi.multithread": False,
         "wsgi.multiprocess": (cfg.workers > 1),
