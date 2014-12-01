@@ -30,8 +30,4 @@ all requests. The following metrics are generated:
 * ``gunicorn.log.warning``: rate of warning log messages
 * ``gunicorn.log.exception``: rate of exceptional log messages
 
-To generate new metrics you can ``log.info`` with a few additional keywords::
-
-    log.info("...", extra={"metric": "my.metric", "value": "1.2", "mtype": "gauge"})
-
 .. _statsD: http://github.com/etsy/statsd
