@@ -8,7 +8,7 @@ Instrumentation
 
 Gunicorn provides an optional instrumentation of the arbiter and
 workers using the statsD_ protocol over UDP. Thanks to the
-``gunicorn.instrument.statsd`` module, Gunicorn becomes a statsD client
+``gunicorn.instrument.statsd`` module, Gunicorn becomes a statsD client.
 The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
 metrics so that instrumentation does not cause Gunicorn to be held up by a slow
 statsD consumer.
