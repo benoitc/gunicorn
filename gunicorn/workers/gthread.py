@@ -31,8 +31,8 @@ try:
     import concurrent.futures as futures
 except ImportError:
     raise RuntimeError("""
-    You need 'concurrent' installed to use this worker with this python
-    version.
+    You need 'concurrent.futures' (PyPI: futures) installed to use this worker
+    with this python version.
     """)
 
 try:
