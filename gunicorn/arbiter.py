@@ -344,13 +344,15 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
         self.LISTENERS = []
-        sig = signal.SIGTERM
-        if not graceful:
-            sig = signal.SIGQUIT
-        limit = time.time() + self.cfg.graceful_timeout
-        while self.WORKERS and time.time() < limit:
-            self.kill_workers(sig)
+        if graceful:
+          limit = time.time() + self.cfg.graceful_timeout
+          while self.WORKERS and time.time() < limit:
+            self.kill_workers(signal.SIGTERM)
             time.sleep(0.1)
+        else:
+          self.kill_workers(signal.SIGQUIT)
+          time.sleep(0.1)
+
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
