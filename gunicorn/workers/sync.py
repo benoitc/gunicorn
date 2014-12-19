@@ -18,6 +18,8 @@ import gunicorn.util as util
 import gunicorn.workers.base as base
 from gunicorn import six
 
+class StopWaiting(Exception):
+    """ exception raised to stop waiting for a connnection """
 
 class SyncWorker(base.Worker):
 
@@ -41,7 +43,7 @@ class SyncWorker(base.Worker):
                 if self.nr < 0:
                     return self.sockets
                 else:
-                    return False
+                    raise StopWaiting
             raise
 
     def is_parent_alive(self):
@@ -75,15 +77,18 @@ class SyncWorker(base.Worker):
             if not self.is_parent_alive():
                 return
 
-            if not self.wait(timeout):
+            try:
+                self.wait(timeout)
+            except StopWaiting:
                 return
 
     def run_for_multiple(self, timeout):
         while self.alive:
             self.notify()
 
-            ready = self.wait(timeout)
-            if not ready:
+            try:
+                ready = self.wait(timeout)
+            except StopWaiting:
                 return
 
             for listener in ready:
