@@ -196,12 +196,12 @@ class GeventResponse(object):
 
     status = None
     headers = None
-    response_length = None
+    sent = None
 
     def __init__(self, status, headers, clength):
         self.status = status
         self.headers = headers
-        self.response_length = clength
+        self.sent = clength
 
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
