@@ -348,9 +348,12 @@ class Arbiter(object):
         if not graceful:
             sig = signal.SIGQUIT
         limit = time.time() + self.cfg.graceful_timeout
+        # instruct the workers to exit
+        self.kill_workers(sig)
+        # wait until the graceful timeout
         while self.WORKERS and time.time() < limit:
-            self.kill_workers(sig)
             time.sleep(0.1)
+
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
