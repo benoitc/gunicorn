@@ -194,6 +194,9 @@ class ThreadWorker(base.Worker):
                     callback = key.data
                     callback(key.fileobj)
 
+            if not self.is_parent_alive():
+                break
+
             # hanle keepalive timeouts
             self.murder_keepalived()
 
