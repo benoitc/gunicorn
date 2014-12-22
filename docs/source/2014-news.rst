@@ -1,3 +1,4 @@
+================
 Changelog - 2014
 ================
 
@@ -6,7 +7,7 @@ Changelog - 2014
    Please see :doc:`news` for the latest changes.
 
 19.1.1 / 2014-08-16
--------------------
+===================
 
 Changes
 -------
@@ -16,6 +17,7 @@ Core
 
 - fix :issue:`835`: display correct pid of already running instance
 - fix :pr:`833`: fix `PyTest` class in setup.py.
+
 
 Logging
 +++++++
@@ -32,7 +34,7 @@ AioHttp worker
 - fix :issue:`830` make sure gaiohttp worker is shipped with gunicorn.
 
 19.1 / 2014-07-26
-~~~~~~~~~~~~~~~~~
+=================
 
 Changes
 -------
@@ -51,12 +53,12 @@ Core
 Tornado worker
 ++++++++++++++
 
-
 - fix :issue:`771`: support tornado 4.0
 - fix :issue:`783`: x_headers error. The x-forwarded-headers option has been removed
   in `c4873681299212d6082cd9902740eef18c2f14f1
   <https://github.com/benoitc/gunicorn/commit/c4873681299212d6082cd9902740eef18c2f14f1>`_.
   The discussion is available on :pr:`633`.
+
 
 AioHttp worker
 ++++++++++++++
@@ -71,20 +73,24 @@ Async worker
 
 - fix :issue:`790`: StopIteration shouldn't be catched at this level.
 
+
 Logging
 +++++++
 
 - add statsd logging handler fix :issue:`748`
+
 
 Paster
 ++++++
 
 - fix :issue:`809`: Set global logging configuration from a Paste config.
 
+
 Extra
 +++++
 
 - fix RuntimeError in gunicorn.reloader (:issue:`807`)
+
 
 Documentation
 +++++++++++++
@@ -93,8 +99,9 @@ Documentation
   <http://docs.gunicorn.org/en/latest/faq.html#why-i-don-t-see-any-logs-in-the-console>`_
   since many people asked for it.
 
+
 19.0 / 2014-06-12
-~~~~~~~~~~~~~~~~~
+=================
 
 Gunicorn 19.0 is a major release with new features and fixes. This
 version improve a lot the usage of Gunicorn with python 3 by adding `two
@@ -122,15 +129,15 @@ also it is complying with the way the signals are sent by heroku:
 https://devcenter.heroku.com/articles/python-faq#what-constraints-exist-when-developing-applications-on-heroku
 
 Deprecations
-+++++++++++++
+++++++++++++
 
 `run_gunicorn`, `gunicorn_django` and `gunicorn_paster` are now
 completely deprecated and will be removed in the next release. Use the
 `gunicorn` command instead.
 
 
-Changes:
---------
+Changes
+-------
 
 core
 ++++
@@ -194,6 +201,7 @@ core
 - deprecate `run_gunicorn` django option
 - fix: sys imported twice
 
+
 gevent worker
 +++++++++++++
 
@@ -205,12 +213,14 @@ gevent worker
 - fix: add subprocess in monkey patching
 - fix: add support for multiple listener
 
+
 eventlet worker
 +++++++++++++++
 
 - fix: merge duplicate EventletWorker.init_process method (fixes #657)
 - fix: missing errno import for eventlet sendfile patch
 - fix: add support for multiple listener
+
 
 tornado worker
 ++++++++++++++

@@ -1,11 +1,13 @@
+=========
 Changelog
 =========
 
+
 19.2 / unreleased
------------------
+=================
 
 Core
-++++
+----
 
 - fix :issue:`863`: fix race condition error.
 - fix :pr:`862`: add ``max_requests_jitter``
@@ -13,14 +15,14 @@ Core
 - fix :issue:`917`: the deprecated ``--debug`` option has been removed.
 
 Logging
-+++++++
+-------
 
 - fix :issue:`832`: log to console by default.
 - fix :issue:`845`: set the gunicorn loggers from the paste config
 
 
 History
--------
+=======
 
 .. toctree::
    :titlesonly:
