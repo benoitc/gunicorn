@@ -590,6 +590,27 @@ Enable inheritance for stdio file descriptors in daemon mode.
 Note: To disable the python stdout buffering, you can to set the user
 environment variable ``PYTHONUNBUFFERED`` .
 
+statsd_host
+~~~~~~~~~~~
+
+* ``--statsd-host STATSD_ADDR``
+* ``None``
+
+``host:port`` of the statsd server to log to.
+
+.. versionadded:: 19.1
+
+statsd_prefix
+~~~~~~~~~~~~~
+
+* ``--statsd-prefix STATSD_PREFIX``
+* ````
+
+Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
+if not provided).
+
+.. versionadded:: 19.2
+
 Process Naming
 --------------
 
@@ -946,28 +967,4 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
-
-Logging
--------
-
-statsd_host
-~~~~~~~~~~~
-
-* ``--statsd-host STATSD_ADDR``
-* ``None``
-
-``host:port`` of the statsd server to log to.
-
-.. versionadded:: 19.1
-
-statsd_prefix
-~~~~~~~~~~~~~
-
-* ``--statsd-prefix STATSD_PREFIX``
-* ````
-
-Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
-if not provided).
-
-.. versionadded:: 19.2
 

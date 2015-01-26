@@ -1215,6 +1215,35 @@ class EnableStdioInheritance(Setting):
     """
 
 
+# statsD monitoring
+class StatsdHost(Setting):
+    name = "statsd_host"
+    section = "Logging"
+    cli = ["--statsd-host"]
+    meta = "STATSD_ADDR"
+    default = None
+    validator = validate_hostport
+    desc = """\
+    ``host:port`` of the statsd server to log to.
+
+    .. versionadded:: 19.1
+    """
+
+class StatsdPrefix(Setting):
+    name = "statsd_prefix"
+    section = "Logging"
+    cli = ["--statsd-prefix"]
+    meta = "STATSD_PREFIX"
+    default = ""
+    validator = validate_string
+    desc = """\
+    Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
+    if not provided).
+
+    .. versionadded:: 19.2
+    """
+
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"
@@ -1659,31 +1688,3 @@ if sys.version_info >= (2, 7):
         desc = """\
         Ciphers to use (see stdlib ssl module's)
         """
-
-# statsD monitoring
-class StatsdHost(Setting):
-    name = "statsd_host"
-    section = "Logging"
-    cli = ["--statsd-host"]
-    meta = "STATSD_ADDR"
-    default = None
-    validator = validate_hostport
-    desc = """\
-    ``host:port`` of the statsd server to log to.
-
-    .. versionadded:: 19.1
-    """
-
-class StatsdPrefix(Setting):
-    name = "statsd_prefix"
-    section = "Logging"
-    cli = ["--statsd-prefix"]
-    meta = "STATSD_PREFIX"
-    default = ""
-    validator = validate_string
-    desc = """\
-    Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
-    if not provided).
-
-    .. versionadded:: 19.2
-    """
