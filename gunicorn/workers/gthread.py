@@ -100,6 +100,14 @@ class ThreadWorker(base.Worker):
         self._lock = RLock()
         super(ThreadWorker, self).init_process()
 
+    def handle_quit(self, sig, frame):
+        self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
+        self.tpool.shutdown(False)
+        time.sleep(0.1)
+        sys.exit(0)
+
     def _wrap_future(self, fs, conn):
         fs.conn = conn
         self.futures.append(fs)
@@ -210,13 +218,11 @@ class ThreadWorker(base.Worker):
 
             if not result.done:
                 break
-
             else:
                 [self.futures.remove(f) for f in result.done]
 
         self.tpool.shutdown(False)
         self.poller.close()
-
 
     def finish_request(self, fs):
         if fs.cancelled():
