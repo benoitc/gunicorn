@@ -6,4 +6,4 @@
 from gunicorn.http.message import Message, Request
 from gunicorn.http.parser import RequestParser
 
-__all__ = [Message, Request, RequestParser]
+__all__ = ['Message', 'Request', 'RequestParser']
