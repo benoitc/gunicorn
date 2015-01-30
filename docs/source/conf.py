@@ -19,7 +19,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Gunicorn'
-copyright = u'2009-2014, Benoit Chesneau'
+copyright = u'2009-2015, Benoit Chesneau'
 # gunicorn version
 import gunicorn
 release = version = gunicorn.__version__
