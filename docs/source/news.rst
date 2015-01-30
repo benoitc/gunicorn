@@ -12,12 +12,12 @@ Core
 ++++
 
 - optimize the sync workers when listening on a single interface
-- add `--sendfile` settings to enable/disable sendfile. fix issue:`856` .
-- add the selectors module to the code base. issue:`886`
+- add `--sendfile` settings to enable/disable sendfile. fix :issue:`856` .
+- add the selectors module to the code base. :issue:`886`
 - fix :pr:`862` add `--max-requests-jitter` setting to set the maximum jitter to add to the
   max-requests setting.
-- fix issue:`899` propagate proxy_protocol_info to keep-alive requests
-- fix issue:`863` worker timeout: dynamic timeout has been removed, fix a race
+- fix :issue:`899` propagate proxy_protocol_info to keep-alive requests
+- fix :issue:`863` worker timeout: dynamic timeout has been removed, fix a race
   condition error
 - fix: Avoid world writable file
 - fix :issue:`917`: the deprecated ``--debug`` option has been removed.
@@ -25,10 +25,10 @@ Core
 Logging
 +++++++
 
-- fix issue:`941`  set logconfig default to paster more trivially
+- fix :issue:`941`  set logconfig default to paster more trivially
 - add statsd-prefix config setting: set the prefix to use when emitting statsd
   metrics
-- issue:`832` log to console by default
+- :issue:`832` log to console by default
 - fix :issue:`845`: set the gunicorn loggers from the paste config
 
 Thread Worker
@@ -39,7 +39,7 @@ Thread Worker
 Eventlet Worker
 +++++++++++++++
 
-- fix issue:`867` Fix eventlet shutdown to actively shut down the workers.
+- fix :issue:`867` Fix eventlet shutdown to actively shut down the workers.
 
 Documentation
 +++++++++++++
