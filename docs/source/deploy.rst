@@ -149,8 +149,8 @@ Monitoring
 Gaffer
 ------
 
-Using Gafferd and gafferctl
-+++++++++++++++++++++++++++
+Using Gafferd and gaffer
+++++++++++++++++++++++++
 
 `Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>`_ can be
 used to monitor gunicorn. A simple configuration is::
@@ -159,7 +159,7 @@ used to monitor gunicorn. A simple configuration is::
     cmd = gunicorn -w 3 test:app
     cwd = /path/to/project
 
-Then you can easily manage Gunicorn using `gafferctl <http://gaffer.readthedocs.org/en/latest/gafferctl.html>`_.
+Then you can easily manage Gunicorn using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.
 
 
 Using a Procfile
