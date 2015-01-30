@@ -1,6 +1,10 @@
-=========
-Changelog
-=========
+================
+Changelog - 2015
+================
+
+.. note::
+
+   Please see :doc:`news` for the latest changes.
 
 19.2 / 2015/01/30
 ===================
@@ -14,13 +18,11 @@ Core
 - optimize the sync workers when listening on a single interface
 - add `--sendfile` settings to enable/disable sendfile. fix issue:`856` .
 - add the selectors module to the code base. issue:`886`
-- fix :pr:`862` add `--max-requests-jitter` setting to set the maximum jitter to add to the
+- add `--max-requests-jitter` setting to set the maximum jitter to add to the
   max-requests setting.
 - fix issue:`899` propagate proxy_protocol_info to keep-alive requests
-- fix issue:`863` worker timeout: dynamic timeout has been removed, fix a race
-  condition error
+- fix issue:`863` worker timeout: dynamic timeout has been removed
 - fix: Avoid world writable file
-- fix :issue:`917`: the deprecated ``--debug`` option has been removed.
 
 Logging
 +++++++
@@ -29,7 +31,6 @@ Logging
 - add statsd-prefix config setting: set the prefix to use when emitting statsd
   metrics
 - issue:`832` log to console by default
-- fix :issue:`845`: set the gunicorn loggers from the paste config
 
 Thread Worker
 +++++++++++++
@@ -46,16 +47,3 @@ Documentation
 
 Many improvements and fixes have been done, see the detailled changelog for
 more informations.
-
-History
-=======
-
-.. toctree::
-   :titlesonly:
-
-   2015-news
-   2014-news
-   2013-news
-   2012-news
-   2011-news
-   2010-news
