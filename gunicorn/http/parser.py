@@ -9,8 +9,9 @@ from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 class Parser(object):
 
-    def __init__(self, mesg_class, cfg, source):
-        self.mesg_class = mesg_class
+    mesg_class = None
+
+    def __init__(self, cfg, source):
         self.cfg = cfg
         if hasattr(source, "recv"):
             self.unreader = SocketUnreader(source)
@@ -47,5 +48,4 @@ class Parser(object):
 
 class RequestParser(Parser):
 
-    def __init__(self, *args, **kwargs):
-        super(RequestParser, self).__init__(Request, *args, **kwargs)
+    mesg_class = Request
