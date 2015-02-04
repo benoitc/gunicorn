@@ -2,8 +2,30 @@
 Changelog
 =========
 
+19.2.1 / 2015/02/4
+==================
+
+Changes
+-------
+
+Logging
++++++++
+
+- expose loglevel in the Logger class
+
+AsyncIO worker (gaiohttp)
++++++++++++++++++++++++++
+
+- fix :issue:`977` fix initial crash
+
+Documentation
++++++++++++++
+
+- document security mailing-list in the contributing page.
+
+
 19.2 / 2015/01/30
-===================
+=================
 
 Changes
 -------
