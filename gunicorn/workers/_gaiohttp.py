@@ -5,6 +5,7 @@
 
 import asyncio
 import functools
+import logging
 import os
 import gunicorn.workers.base as base
 
@@ -44,11 +45,14 @@ class AiohttpWorker(base.Worker):
         return proto
 
     def factory(self, wsgi, addr):
+        # are we in debug level
+        is_debug = self.log.loglevel == logging.DEBUG
+
         proto = WSGIServerHttpProtocol(
             wsgi, readpayload=True,
             loop=self.loop,
             log=self.log,
-            debug=self.cfg.debug,
+            debug=is_debug,
             keep_alive=self.cfg.keepalive,
             access_log=self.log.access_log,
             access_log_format=self.cfg.access_log_format)

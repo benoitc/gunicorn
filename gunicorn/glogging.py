@@ -171,12 +171,13 @@ class Logger(object):
         self.access_log.propagate = False
         self.error_handlers = []
         self.access_handlers = []
+        self.loglevel = logging.INFO
         self.cfg = cfg
         self.setup(cfg)
 
     def setup(self, cfg):
-        loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
-        self.error_log.setLevel(loglevel)
+        self.loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+        self.error_log.setLevel(self.loglevel)
         self.access_log.setLevel(logging.INFO)
 
         # set gunicorn.error handler
