@@ -31,3 +31,10 @@ Issue Tracking
 
 Bug reports, enhancement requests and tasks generally go in the `Github
 issue tracker <http://github.com/benoitc/gunicorn/issues>`_.
+
+Security Issues
+===============
+
+The security mailing list is a place to report security issues. Only
+developers are subscribed to it. To post a message to the list use the address
+to `security@gunicorn.org <mailto:security@gunicorn.org>`_ .
