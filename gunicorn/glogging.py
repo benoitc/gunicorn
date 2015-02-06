@@ -155,6 +155,7 @@ class Logger(object):
         "info": logging.INFO,
         "debug": logging.DEBUG
     }
+    loglevel = logging.INFO
 
     error_fmt = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
     datefmt = r"[%Y-%m-%d %H:%M:%S %z]"
@@ -171,7 +172,6 @@ class Logger(object):
         self.access_log.propagate = False
         self.error_handlers = []
         self.access_handlers = []
-        self.loglevel = logging.INFO
         self.cfg = cfg
         self.setup(cfg)
 
