@@ -43,6 +43,7 @@ class Worker(object):
         self.cfg = cfg
         self.booted = False
         self.aborted = False
+        self.reloader = None
 
         self.nr = 0
         jitter = randint(0, cfg.max_requests_jitter)
@@ -87,7 +88,7 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 os.kill(self.pid, signal.SIGQUIT)
-            Reloader(callback=changed).start()
+            self.reloader = Reloader(callback=changed).start()
 
         # set environment' variables
         if self.cfg.env:
