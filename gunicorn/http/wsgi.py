@@ -257,8 +257,8 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            assert isinstance(name, string_types), "%r is not a string" % name
-
+            if not isinstance(name, string_types):
+                raise TypeError('%r is not a string' % name)
             value = str(value).strip()
             lname = name.lower().strip()
             if lname == "content-length":
@@ -322,9 +322,8 @@ class Response(object):
 
     def write(self, arg):
         self.send_headers()
-
-        assert isinstance(arg, binary_type), "%r is not a byte." % arg
-
+        if not isinstance(arg, binary_type):
+            raise TypeError('%r is not a byte' % arg)
         arglen = len(arg)
         tosend = arglen
         if self.response_length is not None:
