@@ -503,7 +503,8 @@ def to_bytestring(value):
     """Converts a string argument to a byte string"""
     if isinstance(value, bytes):
         return value
-    assert isinstance(value, text_type)
+    if not isinstance(value, text_type):
+        raise TypeError('%r is not a string' % value)
     return value.encode("utf-8")
 
 

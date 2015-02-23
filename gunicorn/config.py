@@ -268,7 +268,8 @@ class Setting(object):
         return self.value
 
     def set(self, val):
-        assert six.callable(self.validator), "Invalid validator: %s" % self.name
+        if not six.callable(self.validator):
+            raise TypeError('Invalid validator: %s' % self.name)
         self.value = self.validator(val)
 
     def __lt__(self, other):
