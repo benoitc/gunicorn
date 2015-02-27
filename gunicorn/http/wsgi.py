@@ -284,7 +284,7 @@ class Response(object):
             return False
         elif self.req.version <= (1, 0):
             return False
-        elif self.status_code in (204, 304):
+        elif self.status_code in (204, 304) or self.req.method == "HEAD":
             # Do not use chunked responses when the response is guaranteed to
             # not have a response body.
             return False
