@@ -284,7 +284,7 @@ class Response(object):
             return False
         elif self.req.version <= (1, 0):
             return False
-        elif self.status_code in (204, 304):
+        elif self.status_code in (204, 304) or self.req.method == "HEAD":
             # Do not use chunked responses when the response is guaranteed to
             # not have a response body.
             return False
@@ -322,6 +322,11 @@ class Response(object):
 
     def write(self, arg):
         self.send_headers()
+
+        if self.req.method == "HEAD":
+            # HEAD request must not have body
+            return
+
         if not isinstance(arg, binary_type):
             raise TypeError('%r is not a byte' % arg)
         arglen = len(arg)
