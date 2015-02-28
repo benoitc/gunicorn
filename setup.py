@@ -4,10 +4,8 @@
 # See the NOTICE for more information.
 
 import os
-import sys
 
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 
 from gunicorn import __version__
 
@@ -39,37 +37,6 @@ CLASSIFIERS = [
 with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
-# read dev requirements
-fname = os.path.join(os.path.dirname(__file__), 'requirements_test.txt')
-with open(fname) as f:
-    tests_require = [l.strip() for l in f.readlines()]
-
-if sys.version_info[:2] < (3, 3):
-    tests_require.append('mock')
-if sys.version_info[:2] < (2, 7):
-    tests_require.append('unittest2')
-
-class PyTestCommand(TestCommand):
-    user_options = [
-        ("cov", None, "measure coverage")
-    ]
-
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.cov = None
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = ['tests']
-        if self.cov:
-            self.test_args += ['--cov', 'gunicorn']
-        self.test_suite = True
-
-    def run_tests(self):
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
-
 setup(
     name='gunicorn',
     version=__version__,
@@ -85,9 +52,6 @@ setup(
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),
     include_package_data=True,
-
-    tests_require=tests_require,
-    cmdclass={'test': PyTestCommand},
 
     entry_points="""
     [console_scripts]
