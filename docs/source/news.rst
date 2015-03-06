@@ -2,6 +2,32 @@
 Changelog
 =========
 
+19.2.2 / 2015/03/06
+===================
+
+Changes
+-------
+
+Core
+++++
+
+- fix: :issue:`978` make sure a listener is inherutable
+- add `check_config` class method to workers
+- fix: :issue:`983` fix select timeout in sync worker with multiple
+  connections
+- allows workers to access to the reloader. close :issue:`984`
+- raise TypeError insted of AssertionError
+
+Logging
++++++++
+
+- make Logger.loglevel a classs attribute
+
+Documentation
++++++++++++++
+
+- fix: :issue:`988` fix syntax errors in examples/gunicorn_rc
+
 19.2.1 / 2015/02/4
 ==================
 
