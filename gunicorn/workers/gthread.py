@@ -86,13 +86,20 @@ class ThreadWorker(base.Worker):
         super(ThreadWorker, self).__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
-
         # initialise the pool
         self.tpool = None
         self.poller = None
         self._lock = None
         self.futures = deque()
         self._keep = deque()
+
+    @classmethod
+    def check_config(cls, cfg, log):
+        max_keepalived = cfg.worker_connections - cfg.threads
+
+        if max_keepalived <= 0 and cfg.keepalive:
+            log.warning("No keepalived connections can be handled. " +
+                    "Check the number of worker connections and threads.")
 
     def init_process(self):
         self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)

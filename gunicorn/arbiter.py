@@ -134,6 +134,9 @@ class Arbiter(object):
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
 
+        # check worker class requirements
+        self.worker_class.check_config(self.cfg, self.log)
+
         self.cfg.when_ready(self)
 
     def init_signals(self):
