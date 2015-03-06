@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import signal
 import sys
+import time
 from random import randint
 
 
@@ -149,6 +150,7 @@ class Worker(object):
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
+        time.sleep(0.1)
         sys.exit(0)
 
     def handle_abort(self, sig, frame):
