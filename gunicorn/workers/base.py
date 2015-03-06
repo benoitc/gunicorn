@@ -89,7 +89,8 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 os.kill(self.pid, signal.SIGQUIT)
-            self.reloader = Reloader(callback=changed).start()
+            self.reloader = Reloader(callback=changed)
+            self.reloader.start()
 
         # set environment' variables
         if self.cfg.env:
