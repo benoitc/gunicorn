@@ -11,12 +11,12 @@ Changes
 Core
 ++++
 
-- fix: :issue:`978` make sure a listener is inherutable
+- fix: :issue:`978` make sure a listener is inheritable
 - add `check_config` class method to workers
 - fix: :issue:`983` fix select timeout in sync worker with multiple
   connections
 - allows workers to access to the reloader. close :issue:`984`
-- raise TypeError insted of AssertionError
+- raise TypeError instead of AssertionError
 
 Logging
 +++++++
