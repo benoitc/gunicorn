@@ -91,13 +91,14 @@ class SyncWorker(base.Worker):
             except StopWaiting:
                 return
 
-            for listener in ready:
-                try:
-                    self.accept(listener)
-                except socket.error as e:
-                    if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
-                            errno.EWOULDBLOCK):
-                        raise
+            if ready is not None:
+                for listener in ready:
+                    try:
+                        self.accept(listener)
+                    except socket.error as e:
+                        if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
+                                errno.EWOULDBLOCK):
+                            raise
 
             if not self.is_parent_alive():
                 return
