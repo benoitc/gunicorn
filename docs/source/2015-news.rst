@@ -6,8 +6,7 @@ Changelog - 2015
 
    Please see :doc:`news` for the latest changes.
 
-
-19.2.2 / 2015/03/06
+19.3.0 / 2015/03/06
 ===================
 
 Changes
