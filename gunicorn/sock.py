@@ -41,6 +41,11 @@ class BaseSocket(object):
         if not bound:
             self.bind(sock)
         sock.setblocking(0)
+
+        # make sure that the socket can be inherited
+        if hasattr(sock, "set_inheritable"):
+            sock.set_inheritable(True)
+
         sock.listen(self.conf.backlog)
         return sock
 
@@ -109,6 +114,7 @@ class UnixSocket(BaseSocket):
         sock.bind(self.cfg_addr)
         util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
+
 
     def close(self):
         super(UnixSocket, self).close()
