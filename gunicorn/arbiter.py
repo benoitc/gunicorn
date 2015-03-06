@@ -135,7 +135,8 @@ class Arbiter(object):
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
 
         # check worker class requirements
-        self.worker_class.check_config(self.cfg, self.log)
+        if hasattr(self.worker_class, "check_config"):
+            self.worker_class.check_config(self.cfg, self.log)
 
         self.cfg.when_ready(self)
 
