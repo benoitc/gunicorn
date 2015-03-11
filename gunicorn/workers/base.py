@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import time
+import traceback
 from random import randint
 
 
@@ -116,7 +117,19 @@ class Worker(object):
 
         self.init_signals()
 
-        self.wsgi = self.app.wsgi()
+        try:
+            self.wsgi = self.app.wsgi()
+        except SyntaxError as e:
+            if not self.reloader:
+                raise
+
+            self.log.exception(e)
+
+            exc_type, exc_val, exc_tb = sys.exc_info()
+            self.reloader.add_extra_file(exc_val.filename)
+
+            tb_string = traceback.format_exc(exc_tb)
+            self.wsgi = util.make_fail_app(tb_string)
 
         self.cfg.post_worker_init(self)
 
