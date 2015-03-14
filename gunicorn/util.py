@@ -541,6 +541,6 @@ def make_fail_app(msg):
             ("Content-Type", "text/plain"),
             ("Content-Length", str(len(msg)))
         ])
-        return iter([msg])
+        return [msg]
 
     return app
