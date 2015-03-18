@@ -532,3 +532,15 @@ def warn(msg):
 
     print("!!!\n", file=sys.stderr)
     sys.stderr.flush()
+
+
+def make_fail_app(msg):
+
+    def app(environ, start_response):
+        start_response("500 Internal Server Error", [
+            ("Content-Type", "text/plain"),
+            ("Content-Length", str(len(msg)))
+        ])
+        return [msg]
+
+    return app
