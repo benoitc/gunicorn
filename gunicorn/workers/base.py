@@ -117,6 +117,15 @@ class Worker(object):
 
         self.init_signals()
 
+        self.cfg.post_worker_init(self)
+
+        self.load_wsgi()
+
+        # Enter main run loop
+        self.booted = True
+        self.run()
+
+    def load_wsgi(self):
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
@@ -130,12 +139,6 @@ class Worker(object):
 
             tb_string = traceback.format_exc(exc_tb)
             self.wsgi = util.make_fail_app(tb_string)
-
-        self.cfg.post_worker_init(self)
-
-        # Enter main run loop
-        self.booted = True
-        self.run()
 
     def init_signals(self):
         # reset signaling
