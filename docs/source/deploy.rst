@@ -124,7 +124,7 @@ this::
     $ mkdir ~/venvs/
     $ virtualenv ~/venvs/webapp
     $ source ~/venvs/webapp/bin/activate
-    $ ~/venvs/webapp/bin/easy_install -U gunicorn
+    $ pip install gunicorn
     $ deactivate
 
 Then you just need to use one of the three Gunicorn scripts that was installed
