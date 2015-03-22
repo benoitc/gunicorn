@@ -156,5 +156,4 @@ def run():
 
     See https://docs.djangoproject.com/en/1.5/howto/deployment/wsgi/gunicorn/
     for more info.""")
-    from gunicorn.app.djangoapp import DjangoApplication
     DjangoApplication("%(prog)s [OPTIONS] [SETTINGS_PATH]").run()
