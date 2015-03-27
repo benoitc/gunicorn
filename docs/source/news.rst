@@ -21,7 +21,7 @@ Core
 Logging
 +++++++
 
-- make Logger.loglevel a classs attribute
+- make Logger.loglevel a class attribute
 
 Documentation
 +++++++++++++
