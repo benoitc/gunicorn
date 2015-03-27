@@ -92,8 +92,8 @@ Eventlet Worker
 Documentation
 +++++++++++++
 
-Many improvements and fixes have been done, see the detailled changelog for
-more informations.
+Many improvements and fixes have been done, see the detailed changelog for
+more information.
 
 History
 =======
