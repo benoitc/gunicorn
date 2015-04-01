@@ -1,6 +1,10 @@
 Gunicorn
 --------
 
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/benoitc/gunicorn
+   :target: https://gitter.im/benoitc/gunicorn?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 .. image::
     https://secure.travis-ci.org/benoitc/gunicorn.png?branch=master
     :alt: Build Status
