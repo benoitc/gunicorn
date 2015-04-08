@@ -214,7 +214,6 @@ def create_sockets(conf, log):
                     log.error("Connection in use: %s", str(addr))
                 if e.args[0] == errno.EADDRNOTAVAIL:
                     log.error("Invalid address: %s", str(addr))
-                    sys.exit(1)
                 if i < 5:
                     log.error("Retrying in 1 second.")
                     time.sleep(1)
