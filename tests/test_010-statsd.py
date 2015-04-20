@@ -1,4 +1,5 @@
 from datetime import timedelta
+import socket
 
 import t
 
@@ -8,12 +9,18 @@ except ImportError:
     from io import StringIO
 
 import logging
+import tempfile
+import shutil
+import os
 
 from gunicorn.config import Config
 from gunicorn.instrument.statsd import Statsd
 
 
-class TestException(Exception): pass
+
+
+class TestException(Exception):
+    pass
 
 class MockSocket(object):
     "Pretend to be a UDP socket"
@@ -24,7 +31,25 @@ class MockSocket(object):
     def send(self, msg):
         if self.failp:
             raise TestException("Should not interrupt the logger")
-        self.msgs.append(msg)
+
+        sock_dir = tempfile.mkdtemp()
+        sock_file = os.path.join(sock_dir, "test.sock")
+
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+        try:
+            server.bind(sock_file)
+            client.connect(sock_file)
+
+            client.send(msg)
+            self.msgs.append(server.recv(1024))
+
+        finally:
+            client.close()
+            server.close()
+            shutil.rmtree(sock_dir)
+
 
     def reset(self):
         self.msgs = []
@@ -53,30 +78,30 @@ def test_instrument():
 
     # Regular message
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"gunicorn.test:666|g")
     t.eq(sio.getvalue(), "Blah\n")
     logger.sock.reset()
 
     # Only metrics, no logging
     logger.info("", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"gunicorn.test:666|g")
     t.eq(sio.getvalue(), "Blah\n")  # log is unchanged
     logger.sock.reset()
 
     # Debug logging also supports metrics
     logger.debug("", extra={"mtype": "gauge", "metric": "gunicorn.debug", "value": 667})
-    t.eq(logger.sock.msgs[0], "gunicorn.debug:667|g")
+    t.eq(logger.sock.msgs[0], b"gunicorn.debug:667|g")
     t.eq(sio.getvalue(), "Blah\n")  # log is unchanged
     logger.sock.reset()
 
     logger.critical("Boom")
-    t.eq(logger.sock.msgs[0], "gunicorn.log.critical:1|c|@1.0")
+    t.eq(logger.sock.msgs[0], b"gunicorn.log.critical:1|c|@1.0")
     logger.sock.reset()
 
     logger.access(MockResponse("200 OK"), None, {}, timedelta(seconds=7))
-    t.eq(logger.sock.msgs[0], "gunicorn.request.duration:7000.0|ms")
-    t.eq(logger.sock.msgs[1], "gunicorn.requests:1|c|@1.0")
-    t.eq(logger.sock.msgs[2], "gunicorn.request.status.200:1|c|@1.0")
+    t.eq(logger.sock.msgs[0], b"gunicorn.request.duration:7000.0|ms")
+    t.eq(logger.sock.msgs[1], b"gunicorn.requests:1|c|@1.0")
+    t.eq(logger.sock.msgs[2], b"gunicorn.request.status.200:1|c|@1.0")
 
 def test_prefix():
     c = Config()
@@ -85,7 +110,7 @@ def test_prefix():
     logger.sock = MockSocket(False)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"test.gunicorn.test:666|g")
 
 def test_prefix_no_dot():
     c = Config()
@@ -94,7 +119,7 @@ def test_prefix_no_dot():
     logger.sock = MockSocket(False)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"test.gunicorn.test:666|g")
 
 def test_prefix_multiple_dots():
     c = Config()
@@ -103,7 +128,7 @@ def test_prefix_multiple_dots():
     logger.sock = MockSocket(False)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "test.gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"test.gunicorn.test:666|g")
 
 def test_prefix_nested():
     c = Config()
@@ -112,4 +137,4 @@ def test_prefix_nested():
     logger.sock = MockSocket(False)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    t.eq(logger.sock.msgs[0], "test.asdf.gunicorn.test:666|g")
+    t.eq(logger.sock.msgs[0], b"test.asdf.gunicorn.test:666|g")

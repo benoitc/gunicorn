@@ -224,8 +224,8 @@ class Logger(object):
     def debug(self, msg, *args, **kwargs):
         self.error_log.debug(msg, *args, **kwargs)
 
-    def exception(self, msg, *args):
-        self.error_log.exception(msg, *args)
+    def exception(self, msg, *args, **kwargs):
+        self.error_log.exception(msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
         if isinstance(lvl, string_types):

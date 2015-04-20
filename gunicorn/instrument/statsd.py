@@ -8,7 +8,9 @@
 import socket
 import logging
 from re import sub
+
 from gunicorn.glogging import Logger
+from gunicorn import six
 
 # Instrumentation constants
 STATSD_DEFAULT_PORT = 8125
@@ -82,7 +84,7 @@ class Statsd(Logger):
             if msg is not None and len(msg) > 0:
                 Logger.log(self, lvl, msg, *args, **kwargs)
         except Exception:
-            pass
+            Logger.warning(self, "Failed to log to statsd", exc_info=True)
 
     # access logging
     def access(self, resp, req, environ, request_time):
@@ -98,29 +100,22 @@ class Statsd(Logger):
     # statsD methods
     # you can use those directly if you want
     def gauge(self, name, value):
-        try:
-            if self.sock:
-                self.sock.send("{0}{1}:{2}|g".format(self.prefix, name, value))
-        except Exception:
-            pass
+        self._sock_send("{0}{1}:{2}|g".format(self.prefix, name, value))
 
     def increment(self, name, value, sampling_rate=1.0):
-        try:
-            if self.sock:
-                self.sock.send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
-        except Exception:
-            pass
+        self._sock_send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
 
     def decrement(self, name, value, sampling_rate=1.0):
-        try:
-            if self.sock:
-                self.sock.send("{0){1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
-        except Exception:
-            pass
+        self._sock_send("{0){1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
 
     def histogram(self, name, value):
+        self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
+
+    def _sock_send(self, msg):
         try:
+            if isinstance(msg, six.text_type):
+                msg = msg.encode("ascii")
             if self.sock:
-                self.sock.send("{0}{1}:{2}|ms".format(self.prefix, name, value))
+                self.sock.send(msg)
         except Exception:
-            pass
+            Logger.warning(self, "Error sending message to statsd", exc_info=True)
