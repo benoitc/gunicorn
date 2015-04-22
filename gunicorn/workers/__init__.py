@@ -12,7 +12,9 @@ SUPPORTED_WORKERS = {
     "gevent": "gunicorn.workers.ggevent.GeventWorker",
     "gevent_wsgi": "gunicorn.workers.ggevent.GeventPyWSGIWorker",
     "gevent_pywsgi": "gunicorn.workers.ggevent.GeventPyWSGIWorker",
-    "tornado": "gunicorn.workers.gtornado.TornadoWorker"}
+    "tornado": "gunicorn.workers.gtornado.TornadoWorker",
+    "gthread": "gunicorn.workers.gthread.ThreadWorker",
+}
 
 
 if sys.version_info >= (3, 3):
