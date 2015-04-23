@@ -129,8 +129,13 @@ class Arbiter(object):
         if notify_socket and notify_socket[0] in ("@", "/"):
             if notify_socket[0] == "@":
                 notify_socket = "\0" + notify_socket[1:]
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-            sock.sendto("MAINPID=%s\n" % self.pid, notify_socket)
+            try:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+                sock.sendto("MAINPID=%s\n" % self.pid, notify_socket)
+            except:
+                pass
+            finally:
+                sock.close()
 
         self.cfg.on_starting(self)
 
