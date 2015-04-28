@@ -820,12 +820,12 @@ class PreloadApp(Setting):
 class Sendfile(Setting):
     name = "sendfile"
     section = "Server Mechanics"
-    cli = ["--sendfile"]
+    cli = ["--no-sendfile"]
     validator = validate_bool
-    action = "store_true"
+    action = "store_false"
     default = True
     desc = """\
-        Enables or disables the use of ``sendfile()``.
+        Disables the use of ``sendfile()``.
 
         .. versionadded:: 19.2
         """
