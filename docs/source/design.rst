@@ -5,7 +5,7 @@
 Design
 ======
 
-A brief description of an architecture of Gunicorn.
+A brief description of the architecture of Gunicorn.
 
 Server Model
 ============
