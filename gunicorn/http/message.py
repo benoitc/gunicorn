@@ -323,7 +323,10 @@ class Request(Message):
         else:
             self.uri = bits[1]
 
-        parts = urlsplit(self.uri)
+        try:
+            parts = urlsplit(self.uri)
+        except ValueError:
+            raise InvalidRequestLine(line)
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
