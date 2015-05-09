@@ -12,17 +12,15 @@ import pytest
 
 dirname = os.path.dirname(__file__)
 reqdir = os.path.join(dirname, "requests", "invalid")
+httpfiles = glob.glob(os.path.join(reqdir, "*.http"))
 
+@pytest.mark.parametrize("fname", httpfiles)
+def test_http_parser(fname):
+    env = treq.load_py(os.path.splitext(fname)[0] + ".py")
 
-def test_http_parser():
-    for fname in glob.glob(os.path.join(reqdir, "*.http")):
-        env = treq.load_py(os.path.splitext(fname)[0] + ".py")
+    expect = env["request"]
+    cfg = env["cfg"]
+    req = treq.badrequest(fname)
 
-        expect = env['request']
-        cfg = env['cfg']
-        req = treq.badrequest(fname)
-
-        with pytest.raises(expect):
-            def f(fname):
-                return req.check(cfg)
-            f(fname)
+    with pytest.raises(expect):
+        req.check(cfg)
