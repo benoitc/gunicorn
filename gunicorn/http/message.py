@@ -15,7 +15,7 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.six import BytesIO
-from gunicorn.six.moves.urllib.parse import urlsplit
+from gunicorn._compat import urlsplit
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
