@@ -1,17 +1,10 @@
-*.gem
-*.sw*
 *.pyc
-*#*
-venv*
 __pycache__
 MANIFEST
 build
 dist
 setuptools-*
-.svn/*
-.DS_Store
 *.so
-.Python
 *.egg
 *.egg-info
 nohup.out
