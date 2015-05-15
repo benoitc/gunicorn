@@ -92,6 +92,7 @@ class ThreadWorker(base.Worker):
         self._lock = None
         self.futures = deque()
         self._keep = deque()
+        self.nr_conns = 0
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -131,7 +132,7 @@ class ThreadWorker(base.Worker):
             client, addr = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, listener, client, addr)
-            self.nr += 1
+            self.nr_conns += 1
             # enqueue the job
             self.enqueue_req(conn)
         except socket.error as e:
@@ -170,7 +171,7 @@ class ThreadWorker(base.Worker):
                     self._keep.appendleft(conn)
                 break
             else:
-                self.nr -= 1
+                self.nr_conns -= 1
                 # remove the socket from the poller
                 with self._lock:
                     try:
@@ -202,7 +203,7 @@ class ThreadWorker(base.Worker):
             self.notify()
 
             # can we accept more connections?
-            if self.nr < self.worker_connections:
+            if self.nr_conns < self.worker_connections:
                 # wait for an event
                 events = self.poller.select(0.02)
                 for key, mask in events:
@@ -253,12 +254,12 @@ class ThreadWorker(base.Worker):
                     self.poller.register(conn.sock, selectors.EVENT_READ,
                             partial(self.reuse_connection, conn))
             else:
-                self.nr -= 1
+                self.nr_conns -= 1
                 conn.close()
         except:
             # an exception happened, make sure to close the
             # socket.
-            self.nr -= 1
+            self.nr_conns -= 1
             fs.conn.close()
 
     def handle(self, conn):
@@ -308,7 +309,7 @@ class ThreadWorker(base.Worker):
             resp, environ = wsgi.create(req, conn.sock, conn.addr,
                     conn.listener.getsockname(), self.cfg)
             environ["wsgi.multithread"] = True
-
+            self.nr += 1
             if self.alive and self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
