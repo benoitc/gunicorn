@@ -46,7 +46,7 @@ help prioritize the most common problems and requests.
 
 ### Conventions
 
-Don't comment on closed issues or PR, instead open a new issue and link it to
+Don't comment on closed issues or PRs, instead open a new issue and link it to
 the old one.
 
 Fork the repo and make changes on your fork in a feature branch:
