@@ -43,7 +43,11 @@ documenting your bug report or improvement proposal. If it does, it
 never hurts to add a quick "+1" or "I have this problem too". This will
 help prioritize the most common problems and requests.
 
+
 ### Conventions
+
+Don't comment on closed issues or PR, instead open a new issue and link it to
+the old one.
 
 Fork the repo and make changes on your fork in a feature branch:
 
