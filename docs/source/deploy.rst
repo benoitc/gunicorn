@@ -111,6 +111,21 @@ Gunicorn may come from untrusted proxies or directly from clients since the
 application may be tricked into serving SSL-only content over an insecure
 connection.
 
+Gunicorn v19 introduced a breaking change concerning how ``REMOTE_ADDR`` is
+handled. Previous to Gunicorn v19 this was set to the value of
+``X-Forwarded-For`` if recieved from a trusted proxy. However, this was not in
+compliance with `RFC 3875 CGI Version 1.1 <http://www.ietf.org/rfc/rfc3875>`_
+which is why the ``REMOTE_ADDR`` is now the IP address of **the proxy** and
+**not the actual user**. You should instead configure Nginx to send the user's
+IP address through the ``X-Forwarded-For`` header like this::
+
+    ...
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    ...
+
+It is also worth noting that the ``REMOTE_ADDR`` will be completely empty if you
+bind Gunicorn to a unix socket and not a tcp host:port tuple.
+
 Using Virtualenv
 ================
 
