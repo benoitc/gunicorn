@@ -90,7 +90,7 @@ class TornadoWorker(Worker):
 
         if self.cfg.is_ssl:
             server = server_class(app, io_loop=self.ioloop,
-                    ssl_options=self.cfg.ssl_options)
+                                  ssl_options=self.cfg.ssl_options)
         else:
             server = server_class(app, io_loop=self.ioloop)
 
@@ -103,6 +103,7 @@ class TornadoWorker(Worker):
             elif hasattr(server, "_sockets"):  # tornado 2.0
                 server._sockets[s.fileno()] = s
 
+        server.xheaders = app.settings.get('xheaders', False)
         server.no_keep_alive = self.cfg.keepalive <= 0
         server.start(num_processes=1)
 
@@ -117,5 +118,5 @@ class TornadoWorker(Worker):
         PeriodicCallback(self.stop_ioloop, 1000, io_loop=self.ioloop).start()
 
     def stop_ioloop(self):
-        if not self.ioloop._callbacks and len(self.ioloop._timeouts) <= 1:
+        if not self.ioloop._callbacks:
             self.ioloop.stop()
