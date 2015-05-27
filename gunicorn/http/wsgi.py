@@ -126,7 +126,7 @@ def create(req, sock, client, server, cfg):
                 and client[0] not in cfg.forwarded_allow_ips):
             secure_headers = {}
 
-    # add the headers tot the environ
+    # add the headers to the environ
     for hdr_name, hdr_value in req.headers:
         if hdr_name == "EXPECT":
             # handle expect
@@ -151,7 +151,7 @@ def create(req, sock, client, server, cfg):
             hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
-    # set the url schejeme
+    # set the url scheme
     environ['wsgi.url_scheme'] = url_scheme
 
     # set the REMOTE_* keys in environ
