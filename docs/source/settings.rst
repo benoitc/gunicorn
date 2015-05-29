@@ -296,12 +296,14 @@ restarting workers.
 sendfile
 ~~~~~~~~
 
-* ``--sendfile``
+* ``--no-sendfile``
 * ``True``
 
-Enables or disables the use of ``sendfile()``.
+Disables the use of ``sendfile()``.
 
 .. versionadded:: 19.2
+.. versionchanged:: 19.4
+    Swapped --sendfile with --no-sendfile to actually allow disabling
 
 chdir
 ~~~~~
