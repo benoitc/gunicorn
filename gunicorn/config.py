@@ -829,7 +829,8 @@ class Sendfile(Setting):
 
         .. versionadded:: 19.2
         .. versionchanged:: 19.4
-            Swapped --sendfile with --no-sendfile to actually allow disabling
+           Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
+           disabling.
         """
 
 class Chdir(Setting):

@@ -303,7 +303,8 @@ Disables the use of ``sendfile()``.
 
 .. versionadded:: 19.2
 .. versionchanged:: 19.4
-    Swapped --sendfile with --no-sendfile to actually allow disabling
+   Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
+   disabling.
 
 chdir
 ~~~~~
