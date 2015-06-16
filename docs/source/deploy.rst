@@ -39,9 +39,17 @@ An `example configuration`_ file for fast clients with Nginx_::
         }
 
         server {
-            listen 80 default;
+            # If no Host match, close the connection to prevent Host spoofing
+            listen 80 default_server;
+            return 444;
+        }
+
+        server {
+            listen 80;
             client_max_body_size 4G;
-            server_name _;
+
+            # set the correct host(s) for your site
+            server_name example.com www.example.com;
 
             keepalive_timeout 5;
 
