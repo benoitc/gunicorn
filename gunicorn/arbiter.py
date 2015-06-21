@@ -429,7 +429,7 @@ class Arbiter(object):
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
-            except ValueError:
+            except (OSError, ValueError):
                 continue
 
             if not worker.aborted:
