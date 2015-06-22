@@ -45,7 +45,7 @@ class Arbiter(object):
     # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -203,7 +203,7 @@ class Arbiter(object):
                 raise
             except Exception:
                 self.log.info("Unhandled exception in main loop:\n%s",
-                            traceback.format_exc())
+                              traceback.format_exc())
                 self.stop(False)
                 if self.pidfile is not None:
                     self.pidfile.unlink()
@@ -429,7 +429,7 @@ class Arbiter(object):
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
-            except ValueError:
+            except (OSError, ValueError):
                 continue
 
             if not worker.aborted:
@@ -510,13 +510,13 @@ class Arbiter(object):
             raise
         except AppImportError as e:
             self.log.debug("Exception while loading the application: \n%s",
-                    traceback.format_exc())
+                           traceback.format_exc())
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except:
             self.log.exception("Exception in worker process:\n%s",
-                    traceback.format_exc())
+                               traceback.format_exc())
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
