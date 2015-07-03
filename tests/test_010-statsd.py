@@ -19,9 +19,9 @@ from gunicorn.instrument.statsd import Statsd
 from support import SimpleNamespace
 
 
-
-class TestException(Exception):
+class StatsdTestException(Exception):
     pass
+
 
 class MockSocket(object):
     "Pretend to be a UDP socket"
@@ -31,7 +31,7 @@ class MockSocket(object):
 
     def send(self, msg):
         if self.failp:
-            raise TestException("Should not interrupt the logger")
+            raise StatsdTestException("Should not interrupt the logger")
 
         sock_dir = tempfile.mkdtemp()
         sock_file = os.path.join(sock_dir, "test.sock")
