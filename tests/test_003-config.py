@@ -202,19 +202,25 @@ def test_cli_overrides_config_module():
     assert app.cfg.bind == ["blarney"]
     assert app.cfg.proc_name == "fooey"
 
-def test_default_config_file():
+@pytest.fixture
+def create_config_file(request):
     default_config = os.path.join(os.path.abspath(os.getcwd()),
-                                                  'gunicorn.conf.py')
+                                                      'gunicorn.conf.py')
     with open(default_config, 'w+') as default:
         default.write("bind='0.0.0.0:9090'")
 
-    t.eq(config.get_default_config_file(), default_config)
+    def fin():
+        os.unlink(default_config)
+    request.addfinalizer(fin)
+
+    return default
+
+def test_default_config_file(create_config_file):
+    assert config.get_default_config_file() == create_config_file.name
 
     with AltArgs(["prog_name"]):
         app = NoConfigApp()
-        t.eq(app.cfg.bind, ["0.0.0.0:9090"])
-
-    os.unlink(default_config)
+    assert app.cfg.bind == ["0.0.0.0:9090"]
 
 def test_post_request():
     c = config.Config()
