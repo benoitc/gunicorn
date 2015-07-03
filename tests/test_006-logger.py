@@ -22,7 +22,7 @@ def test_atoms_defaults():
     logger = Logger(Config())
     atoms = logger.atoms(response, request, environ,
         datetime.timedelta(seconds=1))
-    t.istype(atoms, dict)
-    t.eq(atoms['r'], 'GET http://my.uri HTTP/1.1')
-    t.eq(atoms['{accept}i'], 'application/json')
-    t.eq(atoms['{content-type}o'], 'application/json')
+    assert isinstance(atoms, dict)
+    assert atoms['r'] == 'GET http://my.uri HTTP/1.1'
+    assert atoms['{accept}i'] == 'application/json'
+    assert atoms['{content-type}o'] == 'application/json'

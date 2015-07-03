@@ -42,8 +42,8 @@ class PreloadedAppWithEnvSettings(BaseApplication):
 
 
 def verify_env_vars():
-    t.eq(os.getenv('SOME_PATH'), '/tmp/something')
-    t.eq(os.getenv('OTHER_PATH'), '/tmp/something/else')
+    assert os.getenv('SOME_PATH') == '/tmp/something'
+    assert os.getenv('OTHER_PATH') == '/tmp/something/else'
 
 
 def test_env_vars_available_during_preload():
