@@ -70,8 +70,12 @@ class GeventWorker(AsyncWorker):
         # patch sockets
         sockets = []
         for s in self.sockets:
-            sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
-                _sock=s))
+            if sys.version_info[0] == 3:
+                sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
+                    fileno=s.sock.fileno()))
+            else:
+                sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
+                    _sock=s))
         self.sockets = sockets
 
     def notify(self):
