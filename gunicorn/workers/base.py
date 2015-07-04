@@ -27,7 +27,7 @@ from gunicorn.six import MAXSIZE
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+            for x in "ABRT QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
 
     PIPE = []
 
@@ -144,6 +144,7 @@ class Worker(object):
         # reset signaling
         [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
         # init new signaling
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_quit)
