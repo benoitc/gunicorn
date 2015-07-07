@@ -47,8 +47,8 @@ You can now run the app with the following command::
 Commonly Used Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-* ``-c CONFIG, --config=CONFIG`` - Specify the path to a config file or
-  Python module.
+* ``-c CONFIG, --config=CONFIG`` - Specify a config file in the form
+  ``$(PATH)``, ``file:$(PATH)``, or ``python:$(MODULE_NAME)``.
 * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
   can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
   An IP is a valid ``$(HOST)``.

@@ -16,13 +16,19 @@ Config File
 config
 ~~~~~~
 
-* ``-c FILE, --config FILE``
+* ``-c CONFIG, --config CONFIG``
 * ``None``
 
-The path to a Gunicorn config file, or python module.
+The Gunicorn config file.
+
+A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
 Only has an effect when specified on the command line or as part of an
 application specific configuration.
+
+.. versionchanged:: 19.4
+   Loading the config from a Python module requires the ``python:``
+   prefix.
 
 Server Socket
 -------------
