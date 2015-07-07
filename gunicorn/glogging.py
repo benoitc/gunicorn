@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import base64
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
@@ -239,7 +240,7 @@ class Logger(object):
         atoms = {
             'h': environ.get('REMOTE_ADDR', '-'),
             'l': '-',
-            'u': '-',  # would be cool to get username from basic auth header
+            'u': self._get_user(environ) or '-',
             't': self.now(),
             'r': "%s %s %s" % (environ['REQUEST_METHOD'],
                 environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
@@ -369,3 +370,18 @@ class Logger(object):
         h.setFormatter(fmt)
         h._gunicorn = True
         log.addHandler(h)
+
+    def _get_user(self, environ):
+        user = None
+        http_auth = environ.get("HTTP_AUTHORIZATION")
+        if http_auth:
+            auth = http_auth.split(" ", 1)
+            if len(auth) == 2:
+                try:
+                    auth = base64.b64decode(auth[1].strip()).split(":", 1)
+                except TypeError:
+                    return user
+                if len(auth) == 2:
+                    user = auth[0]
+        return user
+
