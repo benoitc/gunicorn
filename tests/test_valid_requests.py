@@ -3,24 +3,25 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import treq
-
 import glob
 import os
 
 import pytest
 
+import treq
+
 dirname = os.path.dirname(__file__)
-reqdir = os.path.join(dirname, "requests", "invalid")
+reqdir = os.path.join(dirname, "requests", "valid")
 httpfiles = glob.glob(os.path.join(reqdir, "*.http"))
+
 
 @pytest.mark.parametrize("fname", httpfiles)
 def test_http_parser(fname):
     env = treq.load_py(os.path.splitext(fname)[0] + ".py")
 
-    expect = env["request"]
-    cfg = env["cfg"]
-    req = treq.badrequest(fname)
+    expect = env['request']
+    cfg = env['cfg']
+    req = treq.request(fname, expect)
 
-    with pytest.raises(expect):
-        req.check(cfg)
+    for case in req.gen_cases(cfg):
+        case[0](*case[1:])

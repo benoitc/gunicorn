@@ -3,13 +3,13 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import t
 import os
-from gunicorn.app.base import BaseApplication
+
+import gunicorn.app.base
 import gunicorn.arbiter
 
 
-class PreloadedAppWithEnvSettings(BaseApplication):
+class PreloadedAppWithEnvSettings(gunicorn.app.base.BaseApplication):
     """
     Simple application that makes use of the 'preload' feature to
     start the application before spawning worker processes and sets
@@ -18,11 +18,9 @@ class PreloadedAppWithEnvSettings(BaseApplication):
 
     def init(self, parser, opts, args):
         """No-op"""
-        pass
 
     def load(self):
         """No-op"""
-        pass
 
     def load_config(self):
         """Set the 'preload_app' and 'raw_env' settings in order to verify their
@@ -42,8 +40,8 @@ class PreloadedAppWithEnvSettings(BaseApplication):
 
 
 def verify_env_vars():
-    t.eq(os.getenv('SOME_PATH'), '/tmp/something')
-    t.eq(os.getenv('OTHER_PATH'), '/tmp/something/else')
+    assert os.getenv('SOME_PATH') == '/tmp/something'
+    assert os.getenv('OTHER_PATH') == '/tmp/something/else'
 
 
 def test_env_vars_available_during_preload():

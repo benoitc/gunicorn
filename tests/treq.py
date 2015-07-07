@@ -253,18 +253,18 @@ class request(object):
         p = RequestParser(cfg, sender())
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
-        t.eq(len(cases), 0)
+        assert len(cases) == 0
 
     def same(self, req, sizer, matcher, exp):
-        t.eq(req.method, exp["method"])
-        t.eq(req.uri, exp["uri"]["raw"])
-        t.eq(req.path, exp["uri"]["path"])
-        t.eq(req.query, exp["uri"]["query"])
-        t.eq(req.fragment, exp["uri"]["fragment"])
-        t.eq(req.version, exp["version"])
-        t.eq(req.headers, exp["headers"])
+        assert req.method == exp["method"]
+        assert req.uri == exp["uri"]["raw"]
+        assert req.path == exp["uri"]["path"]
+        assert req.query == exp["uri"]["query"]
+        assert req.fragment == exp["uri"]["fragment"]
+        assert req.version == exp["version"]
+        assert req.headers == exp["headers"]
         matcher(req, exp["body"], sizer)
-        t.eq(req.trailers, exp.get("trailers", []))
+        assert req.trailers == exp.get("trailers", [])
 
 class badrequest(object):
     def __init__(self, fname):
