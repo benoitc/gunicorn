@@ -14,7 +14,7 @@ import sys
 import traceback
 
 from gunicorn import util
-from gunicorn.six import string_types
+from gunicorn.six import PY3, string_types
 
 
 # syslog facility codes
@@ -378,10 +378,13 @@ class Logger(object):
             auth = http_auth.split(" ", 1)
             if len(auth) == 2:
                 try:
-                    auth = base64.b64decode(auth[1].strip()).split(":", 1)
-                except TypeError:
+                    auth = base64.b64decode(auth[1].strip())
+                    if PY3:  # b64decode returns a byte string in Python 3
+                        auth = auth.decode('utf-8')
+                    auth = auth.split(":", 1)
+                except TypeError as exc:
+                    self.debug("Couldn't get username: %s", exc)
                     return user
                 if len(auth) == 2:
                     user = auth[0]
         return user
-
