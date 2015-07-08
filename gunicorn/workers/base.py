@@ -210,7 +210,7 @@ class Worker(object):
             msg = "Invalid request from ip={ip}: {error}"
             self.log.debug(msg.format(ip=addr[0], error=str(exc)))
         else:
-            self.log.exception("Error handling request")
+            self.log.exception("Error handling request %s", req.uri)
 
             status_int = 500
             reason = "Internal Server Error"
