@@ -378,7 +378,9 @@ class Logger(object):
             auth = http_auth.split(" ", 1)
             if len(auth) == 2:
                 try:
-                    auth = base64.b64decode(auth[1].strip())
+                    # b64decode doesn't accept unicode in Python < 3.3
+                    # so we need to convert it to a byte string
+                    auth = base64.b64decode(auth[1].strip().encode('utf-8'))
                     if PY3:  # b64decode returns a byte string in Python 3
                         auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
