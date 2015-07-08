@@ -16,7 +16,7 @@
 
 try:
     from routes import Mapper
-except:
+except ImportError:
     print("This example requires Routes to be installed")
 
 # Obviously you'd import your app callables

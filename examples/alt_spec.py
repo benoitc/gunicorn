@@ -13,7 +13,7 @@
 
 def load(arg):
     def app(environ, start_response):
-        data = 'Hello, %s!\n' % arg
+        data = b'Hello, %s!\n' % arg
         status = '200 OK'
         response_headers = [
             ('Content-type', 'text/plain'),
