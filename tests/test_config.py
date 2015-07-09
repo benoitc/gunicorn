@@ -183,8 +183,15 @@ def test_load_config():
     assert app.cfg.workers == 3
     assert app.cfg.proc_name == "fooey"
 
+def test_load_config_explicit_file():
+    with AltArgs(["prog_name", "-c", "file:%s" % cfg_file()]):
+        app = NoConfigApp()
+    assert app.cfg.bind == ["unix:/tmp/bar/baz"]
+    assert app.cfg.workers == 3
+    assert app.cfg.proc_name == "fooey"
+
 def test_load_config_module():
-    with AltArgs(["prog_name", "-c", cfg_module()]):
+    with AltArgs(["prog_name", "-c", "python:%s" % cfg_module()]):
         app = NoConfigApp()
     assert app.cfg.bind == ["unix:/tmp/bar/baz"]
     assert app.cfg.workers == 3
@@ -197,7 +204,7 @@ def test_cli_overrides_config():
     assert app.cfg.proc_name == "fooey"
 
 def test_cli_overrides_config_module():
-    with AltArgs(["prog_name", "-c", cfg_module(), "-b", "blarney"]):
+    with AltArgs(["prog_name", "-c", "python:%s" % cfg_module(), "-b", "blarney"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["blarney"]
     assert app.cfg.proc_name == "fooey"

@@ -108,10 +108,15 @@ class Application(BaseApplication):
         Exception or stop the process if the configuration file contains a syntax error.
         """
 
-        try:
-            cfg = self.get_config_from_module_name(module_name=location)
-        except ImportError:
-            cfg = self.get_config_from_filename(filename=location)
+        if location.startswith("python:"):
+            module_name = location[len("python:"):]
+            cfg = self.get_config_from_module_name(module_name)
+        else:
+            if location.startswith("file:"):
+                filename = location[len("file:"):]
+            else:
+                filename = location
+            cfg = self.get_config_from_filename(filename)
 
         for k, v in cfg.items():
             # Ignore unknown names
@@ -127,9 +132,7 @@ class Application(BaseApplication):
         return cfg
 
     def load_config_from_file(self, filename):
-        return self.load_config_from_module_name_or_filename(
-            location=filename
-        )
+        return self.load_config_from_module_name_or_filename(location=filename)
 
     def load_config(self):
         # parse console args
