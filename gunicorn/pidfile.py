@@ -67,7 +67,7 @@ class Pidfile(object):
         try:
             with open(self.fname, "r") as f:
                 try:
-                    wpid = int(f.read() or 0)
+                    wpid = int(f.read())
                 except ValueError:
                     return
 
