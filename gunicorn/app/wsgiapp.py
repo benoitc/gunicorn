@@ -24,12 +24,16 @@ class WSGIApplication(Application):
             if not os.path.exists(path):
                 raise ConfigError("%r not found" % path)
 
-            # paste application, load the config
-            self.cfgurl = 'config:%s#%s' % (path, app_name)
+            srv_name = opts.paste_server \
+                if opts.paste_server and opts.paste_server is not None \
+                else app_name
+            self.cfgurl = 'config:%s#%s' % (path, srv_name)
             self.relpath = os.path.dirname(path)
 
             from .pasterapp import paste_config
-            return paste_config(self.cfg, self.cfgurl, self.relpath)
+            pc = paste_config(self.cfg, self.cfgurl, self.relpath)
+            self.cfgurl = 'config:%s#%s' % (path, app_name)
+            return pc
 
         if len(args) < 1:
             parser.error("No application module specified.")

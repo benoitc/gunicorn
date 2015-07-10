@@ -1325,10 +1325,21 @@ class Paste(Setting):
     desc = """\
         Load a paste.deploy config file. The argument may contain a "#" symbol
         followed by the name of an app section from the config file, e.g.
-        "production.ini#admin".
+        "production.ini#admin". Uses this name also for the server section,
+        unless you additionally use --paste-server.
+        """
 
-        At this time, using alternate server blocks is not supported. Use the
-        command line arguments to control server configuration instead.
+
+class PasteServer(Setting):
+    name = "paste_server"
+    section = "Server Mechanics"
+    cli = ["--paste-server", "--paster-server"]
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        Name of a server section from the config file, if it is different from
+        the app name.
         """
 
 
