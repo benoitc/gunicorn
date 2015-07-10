@@ -419,7 +419,7 @@ temporary directory.
 secure_scheme_headers
 ~~~~~~~~~~~~~~~~~~~~~
 
-* ``{'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on', 'X-FORWARDED-PROTOCOL': 'ssl'}``
+* ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. These tell gunicorn to set
@@ -692,7 +692,7 @@ paste_server
 * ``--paste-server STRING, --paster-server STRING``
 * ``None``
 
-Name of an server section from the config file, if it is different from
+Name of a server section from the config file, if it is different from
 the app name.
 
 Server Hooks
