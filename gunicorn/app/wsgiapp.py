@@ -28,8 +28,8 @@ class WSGIApplication(Application):
             self.cfgurl = 'config:%s#%s' % (path, app_name)
             self.relpath = os.path.dirname(path)
 
-            from .pasterapp import paste_config
-            return paste_config(self.cfg, self.cfgurl, self.relpath)
+            from .pasterapp import server_config
+            return server_config(self.cfg, self.cfgurl, self.relpath)
 
         if len(args) < 1:
             parser.error("No application module specified.")
@@ -55,8 +55,8 @@ class WSGIApplication(Application):
         self.chdir()
 
         # load the paste app
-        from .pasterapp import load_pasteapp
-        return load_pasteapp(self.cfgurl, self.relpath, global_conf=None)
+        from paste.deploy import loadapp
+        return loadapp(self.cfgurl, self.relpath, global_conf=None)
 
     def load(self):
         if self.cfg.paste is not None:
