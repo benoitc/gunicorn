@@ -473,6 +473,8 @@ class Arbiter(object):
         Maintain the number of workers by spawning or killing
         as required.
         """
+        orig_num_workers = self.num_workers
+
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
@@ -482,10 +484,11 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        self.log.debug("{0} workers".format(len(workers)),
-                       extra={"metric": "gunicorn.workers",
-                              "value": len(workers),
-                              "mtype": "gauge"})
+        if self.num_workers != orig_num_workers:
+            self.log.debug("{0} workers".format(len(workers)),
+                           extra={"metric": "gunicorn.workers",
+                                  "value": len(workers),
+                                  "mtype": "gauge"})
 
     def spawn_worker(self):
         self.worker_age += 1
