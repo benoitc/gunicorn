@@ -381,7 +381,7 @@ class ScalableSelectorMixIn:
         for i in range(NUM_FDS // 2):
             try:
                 rd, wr = self.make_socketpair()
-            except OSError:
+            except (IOError, OSError):
                 # too many FDs, skip - note that we should only catch EMFILE
                 # here, but apparently *BSD and Solaris can fail upon connect()
                 # or bind() with EADDRNOTAVAIL, so let's be safe
