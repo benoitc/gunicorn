@@ -460,20 +460,26 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
-                    worker.tmp.close()
+                    self.reap_dead_worker(wpid)
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
+
+    def reap_dead_worker(self, pid):
+        worker = self.WORKERS.pop(pid, None)
+        if worker:
+            self.cleanup_worker(worker)
+
+    def cleanup_worker(self, worker):
+        worker.tmp.close()
+        self.cfg.worker_exit(self, worker)
 
     def manage_workers(self):
         """\
         Maintain the number of workers by spawning or killing
         as required.
         """
-        if len(self.WORKERS.keys()) < self.num_workers:
+        if len(self.WORKERS) < self.num_workers:
             self.spawn_workers()
 
         workers = self.WORKERS.items()
@@ -482,9 +488,9 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        self.log.debug("{0} workers".format(len(workers)),
+        self.log.debug("{0} workers".format(len(self.WORKERS)),
                        extra={"metric": "gunicorn.workers",
-                              "value": len(workers),
+                              "value": len(self.WORKERS),
                               "mtype": "gauge"})
 
     def spawn_worker(self):
@@ -523,8 +529,7 @@ class Arbiter(object):
         finally:
             self.log.info("Worker exiting (pid: %s)", worker_pid)
             try:
-                worker.tmp.close()
-                self.cfg.worker_exit(self, worker)
+                self.cleanup_worker(worker)
             except:
                 pass
 
@@ -536,7 +541,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for i in range(self.num_workers - len(self.WORKERS.keys())):
+        for i in range(self.num_workers - len(self.WORKERS)):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 
@@ -559,12 +564,6 @@ class Arbiter(object):
         try:
             os.kill(pid, sig)
         except OSError as e:
-            if e.errno == errno.ESRCH:
-                try:
-                    worker = self.WORKERS.pop(pid)
-                    worker.tmp.close()
-                    self.cfg.worker_exit(self, worker)
-                    return
-                except (KeyError, OSError):
-                    return
-            raise
+            if e.errno != errno.ESRCH:
+                raise
+        self.reap_dead_worker(pid)
