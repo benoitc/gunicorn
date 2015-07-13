@@ -32,7 +32,6 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
     sys.path.insert(0, relative_to)
     pkg_resources.working_set.add_entry(relative_to)
 
-    config_url = config_url.split('#')[0]
     cx = loadwsgi.loadcontext(SERVER, config_url, relative_to=relative_to,
                               global_conf=global_conf)
     gc, lc = cx.global_conf.copy(), cx.local_conf.copy()

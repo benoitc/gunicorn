@@ -316,7 +316,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn/py27/gunicorn/docs``
+* ``/home/dm/myprojects/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -369,7 +369,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``501``
+* ``1000``
 
 Switch worker processes to run as this user.
 
@@ -381,7 +381,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``20``
+* ``1000``
 
 Switch worker process to run as this group.
 
@@ -547,7 +547,7 @@ syslog_addr
 ~~~~~~~~~~~
 
 * ``--log-syslog-to SYSLOG_ADDR``
-* ``unix:///var/run/syslog``
+* ``udp://localhost:514``
 
 Address to send syslog messages.
 
@@ -683,10 +683,17 @@ paste
 
 Load a paste.deploy config file. The argument may contain a "#" symbol
 followed by the name of an app section from the config file, e.g.
-"production.ini#admin".
+"production.ini#admin". Uses this name also for the server section,
+unless you additionally use --paste-server.
 
-At this time, using alternate server blocks is not supported. Use the
-command line arguments to control server configuration instead.
+paste_server
+~~~~~~~~~~~~
+
+* ``--paste-server STRING, --paster-server STRING``
+* ``None``
+
+Name of a server section from the config file, if it is different from
+the app name.
 
 Server Hooks
 ------------
