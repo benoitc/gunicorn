@@ -9,3 +9,7 @@ env:
   - TOXENV=pypy3
 install: pip install tox
 script: tox
+cache:
+  directories:
+    - .tox
+    - $HOME/.cache/pip
