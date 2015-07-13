@@ -528,10 +528,6 @@ class Arbiter(object):
             sys.exit(-1)
         finally:
             self.log.info("Worker exiting (pid: %s)", worker_pid)
-            try:
-                self.cleanup_worker(worker)
-            except:
-                pass
 
     def spawn_workers(self):
         """\
