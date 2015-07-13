@@ -670,10 +670,10 @@ pythonpath
 * ``--pythonpath STRING``
 * ``None``
 
-A directory to add to the Python path.
+A comma-separated list of directories to add to the Python path.
 
 e.g.
-'/home/djangoprojects/myproject'.
+'/home/djangoprojects/myproject,/home/python/mylibrary'.
 
 paste
 ~~~~~
