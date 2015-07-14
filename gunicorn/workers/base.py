@@ -25,11 +25,8 @@ from gunicorn.six import MAXSIZE
 
 
 class Worker(object):
-
     SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
-
-    PIPE = []
+               for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
 
     def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
         """\
@@ -46,6 +43,7 @@ class Worker(object):
         self.booted = False
         self.aborted = False
         self.reloader = None
+        self.pipe = None
 
         self.nr = 0
         jitter = randint(0, cfg.max_requests_jitter)
@@ -104,8 +102,8 @@ class Worker(object):
         util.seed()
 
         # For waking ourselves up
-        self.PIPE = os.pipe()
-        for p in self.PIPE:
+        self.pipe = os.pipe()
+        for p in self.pipe:
             util.set_non_blocking(p)
             util.close_on_exec(p)
 

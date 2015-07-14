@@ -32,7 +32,7 @@ class SyncWorker(base.Worker):
     def wait(self, timeout):
         try:
             self.notify()
-            ret = select.select(self.sockets, [], self.PIPE, timeout)
+            ret = select.select(self.sockets, [], self.pipe, timeout)
             if ret[0]:
                 return ret[0]
 
