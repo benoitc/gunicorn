@@ -40,6 +40,7 @@ class Arbiter(object):
 
     LISTENERS = []
     WORKERS = {}
+    DYING_WORKERS = {}
     PIPE = []
 
     # I love dynamic languages
@@ -460,19 +461,15 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-                    self.reap_dead_worker(wpid)
+
+                    worker = (self.WORKERS.pop(wpid, None)
+                              or self.DYING_WORKERS.pop(wpid, None))
+                    if worker:
+                        worker.tmp.close()
+                        self.cfg.worker_exit(self, worker)
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
-
-    def reap_dead_worker(self, pid):
-        worker = self.WORKERS.pop(pid, None)
-        if worker:
-            self.cleanup_worker(worker)
-
-    def cleanup_worker(self, worker):
-        worker.tmp.close()
-        self.cfg.worker_exit(self, worker)
 
     def manage_workers(self):
         """\
@@ -562,4 +559,6 @@ class Arbiter(object):
         except OSError as e:
             if e.errno != errno.ESRCH:
                 raise
-        self.reap_dead_worker(pid)
+
+        worker = self.WORKERS.pop(pid, None)
+        self.DYING_WORKERS.setdefault(pid, worker)
