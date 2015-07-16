@@ -561,4 +561,5 @@ class Arbiter(object):
                 raise
 
         worker = self.WORKERS.pop(pid, None)
-        self.DYING_WORKERS.setdefault(pid, worker)
+        if worker is not None:
+            self.DYING_WORKERS.setdefault(pid, worker)
