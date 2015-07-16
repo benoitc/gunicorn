@@ -339,7 +339,7 @@ class Arbiter(object):
         # instruct the workers to exit
         self.kill_workers(sig)
         # wait until the graceful timeout
-        while self.WORKERS and time.time() < limit:
+        while (self.WORKERS or self.DYING_WORKERS) and time.time() < limit:
             time.sleep(0.1)
 
         self.kill_workers(signal.SIGKILL)
@@ -425,7 +425,7 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        workers = list(self.WORKERS.items())
+        workers = list(self.WORKERS.items() + self.DYING_WORKERS.items())
         for (pid, worker) in workers:
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
