@@ -425,7 +425,7 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        workers = list(self.WORKERS.items() + self.DYING_WORKERS.items())
+        workers = list(self.WORKERS.items()) + list(self.DYING_WORKERS.items())
         for (pid, worker) in workers:
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
