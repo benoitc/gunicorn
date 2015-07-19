@@ -51,6 +51,8 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
 
+    last_logged_worker_count = None
+
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
 
@@ -473,8 +475,6 @@ class Arbiter(object):
         Maintain the number of workers by spawning or killing
         as required.
         """
-        orig_num_workers = self.num_workers
-
         if len(self.WORKERS.keys()) < self.num_workers:
             self.spawn_workers()
 
@@ -484,10 +484,12 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        if self.num_workers != orig_num_workers:
-            self.log.debug("{0} workers".format(len(workers)),
+        active_worker_count = len(workers)
+        if self.last_logged_worker_count != active_worker_count:
+            self.last_logged_worker_count = active_worker_count
+            self.log.debug("{0} workers".format(active_worker_count),
                            extra={"metric": "gunicorn.workers",
-                                  "value": len(workers),
+                                  "value": active_worker_count,
                                   "mtype": "gauge"})
 
     def spawn_worker(self):
