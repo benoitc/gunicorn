@@ -25,7 +25,6 @@ import greenlet
 from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.async import AsyncWorker
 
-
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
@@ -87,11 +86,11 @@ def patch_sendfile():
 class EventletWorker(AsyncWorker):
 
     def patch(self):
+        hubs.use_hub()
         eventlet.monkey_patch(os=False)
         patch_sendfile()
 
     def init_process(self):
-        hubs.use_hub()
         self.patch()
         super(EventletWorker, self).init_process()
 
@@ -119,7 +118,11 @@ class EventletWorker(AsyncWorker):
 
         while self.alive:
             self.notify()
-            eventlet.sleep(1.0)
+            try:
+                eventlet.sleep(1.0)
+            except AssertionError:
+                self.alive = False
+                break
 
         self.notify()
         try:
