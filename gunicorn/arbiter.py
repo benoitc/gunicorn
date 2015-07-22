@@ -164,7 +164,7 @@ class Arbiter(object):
         [signal.signal(s, self.signal) for s in self.HANDLED_SIGNALS]
 
     def signal(self, sig, frame):
-        if len(self.SIG_QUEUE) < 5:
+        if len(self.SIG_QUEUE) < 256:
             self.SIG_QUEUE.append(sig)
             self.wakeup()
 
