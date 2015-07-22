@@ -43,14 +43,16 @@ class Arbiter(object):
     DYING_WORKERS = {}
     PIPE = []
 
-    # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
     )
+    HANDLED_SIGNALS = [
+        sig for (sig, name) in SIG_NAMES.items()
+        if name.upper()
+        in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH CHLD".split()
+    ]
 
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
@@ -159,8 +161,7 @@ class Arbiter(object):
         self.log.close_on_exec()
 
         # initialize all signals
-        [signal.signal(s, self.signal) for s in self.SIGNALS]
-        signal.signal(signal.SIGCHLD, self.handle_chld)
+        [signal.signal(s, self.signal) for s in self.HANDLED_SIGNALS]
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
