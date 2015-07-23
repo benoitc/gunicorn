@@ -40,16 +40,19 @@ class Arbiter(object):
 
     LISTENERS = []
     WORKERS = {}
+    DYING_WORKERS = {}
     PIPE = []
 
-    # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
     )
+    HANDLED_SIGNALS = [
+        sig for (sig, name) in SIG_NAMES.items()
+        if name.upper()
+        in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH CHLD".split()
+    ]
 
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
@@ -158,11 +161,10 @@ class Arbiter(object):
         self.log.close_on_exec()
 
         # initialize all signals
-        [signal.signal(s, self.signal) for s in self.SIGNALS]
-        signal.signal(signal.SIGCHLD, self.handle_chld)
+        [signal.signal(s, self.signal) for s in self.HANDLED_SIGNALS]
 
     def signal(self, sig, frame):
-        if len(self.SIG_QUEUE) < 5:
+        if len(self.SIG_QUEUE) < 256:
             self.SIG_QUEUE.append(sig)
             self.wakeup()
 
@@ -338,7 +340,7 @@ class Arbiter(object):
         # instruct the workers to exit
         self.kill_workers(sig)
         # wait until the graceful timeout
-        while self.WORKERS and time.time() < limit:
+        while (self.WORKERS or self.DYING_WORKERS) and time.time() < limit:
             time.sleep(0.1)
 
         self.kill_workers(signal.SIGKILL)
@@ -424,7 +426,7 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        workers = list(self.WORKERS.items())
+        workers = list(self.WORKERS.items()) + list(self.DYING_WORKERS.items())
         for (pid, worker) in workers:
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
@@ -460,10 +462,12 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
-                    worker.tmp.close()
+
+                    worker = (self.WORKERS.pop(wpid, None)
+                              or self.DYING_WORKERS.pop(wpid, None))
+                    if worker:
+                        worker.tmp.close()
+                        self.cfg.worker_exit(self, worker)
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
@@ -473,7 +477,7 @@ class Arbiter(object):
         Maintain the number of workers by spawning or killing
         as required.
         """
-        if len(self.WORKERS.keys()) < self.num_workers:
+        if len(self.WORKERS) < self.num_workers:
             self.spawn_workers()
 
         workers = self.WORKERS.items()
@@ -482,9 +486,9 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        self.log.debug("{0} workers".format(len(workers)),
+        self.log.debug("{0} workers".format(len(self.WORKERS)),
                        extra={"metric": "gunicorn.workers",
-                              "value": len(workers),
+                              "value": len(self.WORKERS),
                               "mtype": "gauge"})
 
     def spawn_worker(self):
@@ -522,11 +526,6 @@ class Arbiter(object):
             sys.exit(-1)
         finally:
             self.log.info("Worker exiting (pid: %s)", worker_pid)
-            try:
-                worker.tmp.close()
-                self.cfg.worker_exit(self, worker)
-            except:
-                pass
 
     def spawn_workers(self):
         """\
@@ -536,7 +535,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for i in range(self.num_workers - len(self.WORKERS.keys())):
+        for i in range(self.num_workers - len(self.WORKERS)):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 
@@ -559,12 +558,9 @@ class Arbiter(object):
         try:
             os.kill(pid, sig)
         except OSError as e:
-            if e.errno == errno.ESRCH:
-                try:
-                    worker = self.WORKERS.pop(pid)
-                    worker.tmp.close()
-                    self.cfg.worker_exit(self, worker)
-                    return
-                except (KeyError, OSError):
-                    return
-            raise
+            if e.errno != errno.ESRCH:
+                raise
+
+        worker = self.WORKERS.pop(pid, None)
+        if worker is not None:
+            self.DYING_WORKERS.setdefault(pid, worker)
