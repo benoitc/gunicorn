@@ -51,12 +51,12 @@ class Arbiter(object):
         if name[:3] == "SIG" and name[3] != "_"
     )
 
-    last_logged_worker_count = None
-
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
 
         self._num_workers = None
+        self._last_logged_active_worker_count = None
+
         self.setup(app)
 
         self.pidfile = None
@@ -485,8 +485,8 @@ class Arbiter(object):
             self.kill_worker(pid, signal.SIGTERM)
 
         active_worker_count = len(workers)
-        if self.last_logged_worker_count != active_worker_count:
-            self.last_logged_worker_count = active_worker_count
+        if self._last_logged_active_worker_count != active_worker_count:
+            self._last_logged_active_worker_count = active_worker_count
             self.log.debug("{0} workers".format(active_worker_count),
                            extra={"metric": "gunicorn.workers",
                                   "value": active_worker_count,
