@@ -16,11 +16,14 @@ worker = 1
 
 try:
     sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'project_name'))
-    script_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'project_name/settings.py')
+    script_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'project_name/local_settings.py') # or 'settings.py'
     print script_file
     process = Popen(['python', script_file], stdout=PIPE)
     out, err = process.communicate()
-    #  See 'project_name/settings.py' to see how variables come from Django's Settings
+    #  See 'project_name/local_settings.py' to see how variables come from Django's Settings
+    #  In this sample we are using 'local_settings' to manage different settings for production/development/etc
+    #  (like this: http://lethain.com/development-to-deployment-in-django/), but you can call django's settings.py
+    #  too, which also calls 'local_settings.py'.
     try:
         dict_params = ast.literal_eval(out)
         if 'BIND_PORT' in dict_params:
