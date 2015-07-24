@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 #
+#  Use this config file in your script like this:
+#  gunicorn project_name.wsgi:application -c read_django_settings.py
+#
+#  this way you can keep you script deploy-independent and share settings already defined on Django's
+#  settings with Gunicorn.
+#
+
 import multiprocessing
 import os
 import sys
@@ -24,6 +31,8 @@ try:
     #  In this sample we are using 'local_settings' to manage different settings for production/development/etc
     #  (like this: http://lethain.com/development-to-deployment-in-django/), but you can call django's settings.py
     #  too, which also calls 'local_settings.py'.
+    #
+    #  All conditions below show be adapte to fit your needs:
     try:
         dict_params = ast.literal_eval(out)
         if 'BIND_PORT' in dict_params:
