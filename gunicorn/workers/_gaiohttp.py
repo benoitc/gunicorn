@@ -7,6 +7,12 @@ import asyncio
 import functools
 import logging
 import os
+
+try:
+    import ssl
+except ImportError:
+    ssl = None
+
 import gunicorn.workers.base as base
 
 from aiohttp.wsgi import WSGIServerHttpProtocol
@@ -16,6 +22,12 @@ class AiohttpWorker(base.Worker):
 
     def __init__(self, *args, **kw):  # pragma: no cover
         super().__init__(*args, **kw)
+        cfg = self.cfg
+        if cfg.ssl_version:
+            self.ssl_context = ssl.SSLContext(cfg.ssl_version)
+            self.ssl_context.load_cert_chain(cfg.certfile, cfg.keyfile)
+        else:
+            self.ssl_context = None
 
         self.servers = []
         self.connections = {}
@@ -74,7 +86,7 @@ class AiohttpWorker(base.Worker):
         for sock in self.sockets:
             factory = self.get_factory(sock.sock, sock.cfg_addr)
             self.servers.append(
-                (yield from self.loop.create_server(factory, sock=sock.sock)))
+                (yield from self._create_server(factory, sock)))
 
         # If our parent changed then we shut down.
         pid = os.getpid()
@@ -111,6 +123,11 @@ class AiohttpWorker(base.Worker):
                 server.close()
 
         yield from self.close()
+
+    @asyncio.coroutine
+    def _create_server(self, factory, sock):
+        return self.loop.create_server(factory, sock=sock.sock,
+                                       ssl=self.ssl_context)
 
 
 class _wrp:
