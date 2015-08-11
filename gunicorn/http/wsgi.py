@@ -26,6 +26,8 @@ except ImportError:
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
+CGI_HEADERS = ("SCRIPT_URL", "REDIRECT_URL")
+
 log = logging.getLogger(__name__)
 
 
@@ -121,10 +123,12 @@ def create(req, sock, client, server, cfg):
 
     # set secure_headers
     secure_headers = cfg.secure_scheme_headers
+    cgi_headers = CGI_HEADERS
     if client and not isinstance(client, string_types):
         if ('*' not in cfg.forwarded_allow_ips
                 and client[0] not in cfg.forwarded_allow_ips):
             secure_headers = {}
+            cgi_headers = ()
 
     # add the headers to the environ
     for hdr_name, hdr_value in req.headers:
@@ -139,6 +143,9 @@ def create(req, sock, client, server, cfg):
             host = hdr_value
         elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
+        elif cgi_headers and hdr_name in cgi_headers:
+            environ[hdr_name] = hdr_value
+            continue
         elif hdr_name == "CONTENT-TYPE":
             environ['CONTENT_TYPE'] = hdr_value
             continue
