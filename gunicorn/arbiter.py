@@ -55,6 +55,8 @@ class Arbiter(object):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
 
         self._num_workers = None
+        self._last_logged_active_worker_count = None
+
         self.setup(app)
 
         self.pidfile = None
@@ -482,10 +484,13 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        self.log.debug("{0} workers".format(len(workers)),
-                       extra={"metric": "gunicorn.workers",
-                              "value": len(workers),
-                              "mtype": "gauge"})
+        active_worker_count = len(workers)
+        if self._last_logged_active_worker_count != active_worker_count:
+            self._last_logged_active_worker_count = active_worker_count
+            self.log.debug("{0} workers".format(active_worker_count),
+                           extra={"metric": "gunicorn.workers",
+                                  "value": active_worker_count,
+                                  "mtype": "gauge"})
 
     def spawn_worker(self):
         self.worker_age += 1
