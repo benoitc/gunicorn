@@ -1,6 +1,14 @@
+# -*- encoding: utf-8 -*-
+
 import t
+from gunicorn import util
 from gunicorn.http.body import Body
+from gunicorn.http.wsgi import Response
 from gunicorn.six import BytesIO
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 
 
 def assert_readline(payload, size, expected):
@@ -57,3 +65,23 @@ def test_readline_buffer_loaded_with_size():
     assert body.readline(2) == b"\n"
     assert body.readline(2) == b"de"
     assert body.readline(2) == b"f"
+
+
+def test_http_header_encoding():
+    """ tests whether http response headers are ISO-8859-1 encoded """
+
+    mocked_socket = mock.MagicMock()
+    mocked_socket.sendall = mock.MagicMock()
+    mocked_request = mock.MagicMock()
+    response = Response(mocked_request, mocked_socket, None)
+
+    # set umlaut header
+    response.headers.append(('foo', 'häder'))
+    response.send_headers()
+
+    # build our own header_str to compare against
+    tosend = response.default_headers()
+    tosend.extend(["%s: %s\r\n" % (k, v) for k, v in response.headers])
+    header_str = "%s\r\n" % "".join(tosend)
+
+    mocked_socket.sendall.assert_called_with(util.to_latin1(header_str))

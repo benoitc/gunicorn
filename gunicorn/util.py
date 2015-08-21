@@ -508,6 +508,15 @@ def to_bytestring(value):
     return value.encode("utf-8")
 
 
+def to_latin1(value):
+    """Converts a string argument to a byte string"""
+    if isinstance(value, bytes):
+        return value
+    if not isinstance(value, text_type):
+        raise TypeError('%r is not a string' % value)
+    return value.encode("latin-1")
+
+
 def is_fileobject(obj):
     if not hasattr(obj, "tell") or not hasattr(obj, "fileno"):
         return False
