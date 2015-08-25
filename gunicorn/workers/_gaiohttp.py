@@ -23,7 +23,7 @@ class AiohttpWorker(base.Worker):
     def __init__(self, *args, **kw):  # pragma: no cover
         super().__init__(*args, **kw)
         cfg = self.cfg
-        if cfg.ssl_version:
+        if cfg.is_ssl:
             self.ssl_context = ssl.SSLContext(cfg.ssl_version)
             self.ssl_context.load_cert_chain(cfg.certfile, cfg.keyfile)
         else:
