@@ -7,7 +7,7 @@ import base64
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
-from logging.config import fileConfig
+from logging.config import fileConfig, dictConfig
 import os
 import socket
 import sys
@@ -199,7 +199,11 @@ class Logger(object):
                 self.access_log, cfg, self.syslog_fmt, "access"
             )
 
-        if cfg.logconfig:
+        if cfg.logconfig_dict:
+            config = CONFIG_DEFAULTS.copy()
+            config.update(cfg.logconfig_dict)
+            dictConfig(config)
+        elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
                 defaults['__file__'] = cfg.logconfig
