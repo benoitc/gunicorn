@@ -1316,8 +1316,8 @@ class LogConfigDict(Setting):
     default = {}
     desc = """\
     The log config dictionary to use, using the standard Python logging
-    module's dictConfig format.
-    If specified, this takes precedence over logconfig, which uses the older
+    module's dictConfig format added in python 2.7.
+    If available, this takes precedence over logconfig, which uses the older
     fileConfig format.
     """
 
