@@ -13,7 +13,7 @@ The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
 metrics so that instrumentation does not cause Gunicorn to be held up by a slow
 statsD consumer.
 
-To use statsD, just tell gunicorn where the statsD server is:
+To use statsD, just tell Gunicorn where the statsD server is:
 
 .. code-block:: bash
 

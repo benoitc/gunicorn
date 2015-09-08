@@ -176,7 +176,7 @@ Using Gafferd and gaffer
 ++++++++++++++++++++++++
 
 `Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>`_ can be
-used to monitor gunicorn. A simple configuration is::
+used to monitor Gunicorn. A simple configuration is::
 
     [process:gunicorn]
     cmd = gunicorn -w 3 test:app
@@ -194,7 +194,7 @@ Create a ``Procfile`` in your project::
 
 You can launch any other applications that should be launched at the same time.
 
-Then you can start your gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
+Then you can start your Gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
 
     gaffer start
 
@@ -226,7 +226,7 @@ Here is an `example service`_ definition::
 Save this as ``/etc/sv/[app_name]/run``, and make it executable
 (``chmod u+x /etc/sv/[app_name]/run``).
 Then run ``ln -s /etc/sv/[app_name] /etc/service/[app_name]``.
-If runit is installed, gunicorn should start running automatically as soon
+If runit is installed, Gunicorn should start running automatically as soon
 as you create the symlink.
 
 If it doesn't start automatically, run the script directly to troubleshoot.
@@ -247,7 +247,7 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 
 Upstart
 -------
-Using gunicorn with upstart is simple. In this example we will run the app "myapp"
+Using Gunicorn with upstart is simple. In this example we will run the app "myapp"
 from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
 
 **/etc/init/myapp.conf**::
@@ -268,8 +268,8 @@ Systemd
 -------
 
 A tool that is starting to be common on linux systems is Systemd_. Here
-are configurations files to set the gunicorn launch in systemd and
-the interfaces on which gunicorn will listen. The sockets will be managed by
+are configurations files to set the Gunicorn launch in systemd and
+the interfaces on which Gunicorn will listen. The sockets will be managed by
 systemd:
 
 **gunicorn.service**::
@@ -309,7 +309,7 @@ systemd:
 
     d /run/gunicorn 0755 someuser someuser -
 
-After running curl http://localhost:9000/ gunicorn should start and you
+After running ``curl http://localhost:9000/``, Gunicorn should start and you
 should see something like that in logs::
 
     2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn/socket,http://0.0.0.0:9000,http://[::]:8000
