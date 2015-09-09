@@ -23,7 +23,7 @@ Master process
 - **USR2**: Upgrade the Gunicorn on the fly. A separate **TERM** signal should
   be used to kill the old process. This signal can also be used to use the new
   versions of pre-loaded applications.
-- **WINCH**: Gracefully shutdown the worker processes when gunicorn is
+- **WINCH**: Gracefully shutdown the worker processes when Gunicorn is
   daemonized.
 
 Worker process
@@ -63,7 +63,7 @@ option), Gunicorn will also load the new version.
 Upgrading to a new binary on the fly
 ====================================
 
-If you need to replace the gunicorn binary with a new one (when
+If you need to replace the Gunicorn binary with a new one (when
 upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be
 lost. Preloaded applications will also be reloaded.
@@ -84,7 +84,7 @@ which in turn starts a new master process and the new worker processes::
     20860 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.00 gunicorn: worker [test:app]
     20861 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
 
-At this point, two instances of gunicorn are running, handling the
+At this point, two instances of Gunicorn are running, handling the
 incoming requests together. To phase the old instance out, you have to
 send the **WINCH** signal to the old master process, and its worker
 processes will start to gracefully shut down.

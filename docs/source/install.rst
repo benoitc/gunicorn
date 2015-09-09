@@ -54,7 +54,7 @@ Debian GNU/Linux
 
 If you are using Debian GNU/Linux and it is recommended that you use
 system packages to install Gunicorn except maybe when you want to use
-different versions of gunicorn with virtualenv. This has a number of
+different versions of Gunicorn with virtualenv. This has a number of
 advantages:
 
 * Zero-effort installation: Automatically starts multiple Gunicorn instances
@@ -71,11 +71,32 @@ advantages:
   rolled back in case of incompatibility. The package can also be purged
   entirely from the system in seconds.
 
-Stable ("wheezy")
+stable ("jessie")
 -----------------
 
-The version of Gunicorn in the Debian_ "stable" distribution is 0.14.5 (June
-2012). You can install it using::
+The version of Gunicorn in the Debian_ "stable" distribution is 19.0 (June
+2014). You can install it using::
+
+    $ sudo apt-get install gunicorn
+
+You can also use the most recent version by using `Debian Backports`_.
+First, copy the following line to your ``/etc/apt/sources.list``::
+
+    deb http://backports.debian.org/debian-backports jessie-backports main
+
+Then, update your local package lists::
+
+    $ sudo apt-get update
+
+You can then install the latest version using::
+
+    $ sudo apt-get -t jessie-backports install gunicorn
+
+oldstable ("wheezy")
+--------------------
+
+The version of Gunicorn in the Debian_ "oldstable" distribution is 0.14.5 (June
+2012). you can install it using::
 
     $ sudo apt-get install gunicorn
 
@@ -92,29 +113,10 @@ You can then install the latest version using::
 
     $ sudo apt-get -t wheezy-backports install gunicorn
 
-Oldstable ("squeeze")
----------------------
+Testing ("stretch") / Unstable ("sid")
+--------------------------------------
 
-The version of Gunicorn in the Debian_ "oldstable" distribution is 0.10.0 (July
-2010). It is not recommended that you use this version.
-
-However, you can use the most recent version by using `Debian Backports`_.
-First, copy the following line to your ``/etc/apt/sources.list``::
-
-    deb http://backports.debian.org/debian-backports squeeze-backports main
-
-Then, update your local package lists::
-
-    $ sudo apt-get update
-
-You can then install the latest version using::
-
-    $ sudo apt-get -t squeeze-backports install gunicorn
-
-Testing ("jessie") / Unstable ("sid")
--------------------------------------
-
-"jessie" and "sid" contain the latest released version of Gunicorn. You can
+"stretch" and "sid" contain the latest released version of Gunicorn. You can
 install it in the usual way::
 
     $ sudo apt-get install gunicorn
@@ -123,31 +125,11 @@ install it in the usual way::
 Ubuntu
 ======
 
-If you use Ubuntu_, you can update your system with packages from
-our PPA_ by adding ``ppa:gunicorn/ppa`` to your system's Software
-Sources::
+Ubuntu_ 12.04 (trusty) or later contains Gunicorn package by default so that
+you can install it in the usual way::
 
-    $ sudo apt-get install python-software-properties
-    $ sudo apt-add-repository ppa:gunicorn/ppa
     $ sudo apt-get update
     $ sudo apt-get install gunicorn
-
-Or this PPA can be added to your system manually by copying the lines below
-and adding them to your system's software sources in ``/etc/apt/sources.list``::
-
-  deb http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
-  deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
-
-Replace *lucid* with your Ubuntu distribution series.
-
-Then run::
-
-  $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5370FF2A
-  $ sudo apt-get update
-  $ sudo apt-get install gunicorn
-
-:Signing key: ``1024R/5370FF2A``
-:Fingerprint: ``FC7B41B54C9B8476D9EC22A2C6773E575370FF2A``
 
 
 .. _`design docs`: design.html
@@ -157,4 +139,3 @@ Then run::
 .. _Debian: http://www.debian.org/
 .. _`Debian Backports`: http://backports.debian.org/
 .. _Ubuntu: http://www.ubuntu.com/
-.. _PPA: https://launchpad.net/~gunicorn/+archive/ppa
