@@ -125,43 +125,11 @@ install it in the usual way::
 Ubuntu
 ======
 
-12.04 or later
---------------
-
 Ubuntu_ 12.04 (trusty) or later contains Gunicorn package by default so that
 you can install it in the usual way::
 
     $ sudo apt-get update
     $ sudo apt-get install gunicorn
-
-10.04 through 11.10
--------------------
-
-If you use Ubuntu_ 10.04 (lucid) or any version up to 11.10 (oneiric), you can
-update your system with packages from our PPA_ by adding ``ppa:gunicorn/ppa``
-to your system's Software Sources::
-
-    $ sudo apt-get install python-software-properties
-    $ sudo apt-add-repository ppa:gunicorn/ppa
-    $ sudo apt-get update
-    $ sudo apt-get install gunicorn
-
-Or this PPA can be added to your system manually by copying the lines below
-and adding them to your system's software sources in ``/etc/apt/sources.list``::
-
-  deb http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
-  deb-src http://ppa.launchpad.net/gunicorn/ppa/ubuntu lucid main
-
-Replace *lucid* with your Ubuntu distribution series.
-
-Then run::
-
-  $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5370FF2A
-  $ sudo apt-get update
-  $ sudo apt-get install gunicorn
-
-:Signing key: ``1024R/5370FF2A``
-:Fingerprint: ``FC7B41B54C9B8476D9EC22A2C6773E575370FF2A``
 
 
 .. _`design docs`: design.html
@@ -171,4 +139,3 @@ Then run::
 .. _Debian: http://www.debian.org/
 .. _`Debian Backports`: http://backports.debian.org/
 .. _Ubuntu: http://www.ubuntu.com/
-.. _PPA: https://launchpad.net/~gunicorn/+archive/ppa
