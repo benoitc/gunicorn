@@ -45,11 +45,7 @@ with open(fname) as f:
     tests_require = [l.strip() for l in f.readlines()]
 
 if sys.version_info[:2] < (3, 3):
-    # recent versions of mock doesn't support Python 2.6
-    if sys.version_info[:2] == (2, 6):
-        tests_require.append('mock==1.0.1')
-    else:
-        tests_require.append('mock')
+    tests_require.append('mock')
 if sys.version_info[:2] < (2, 7):
     tests_require.append('unittest2')
 
