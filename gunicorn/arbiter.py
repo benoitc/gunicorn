@@ -40,6 +40,7 @@ class Arbiter(object):
 
     LISTENERS = []
     WORKERS = {}
+    WORKER_IDS = {}
     PIPE = []
 
     # I love dynamic languages
@@ -466,6 +467,7 @@ class Arbiter(object):
                     if not worker:
                         continue
                     worker.tmp.close()
+                    del self.WORKER_IDS[wpid]
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
@@ -494,6 +496,11 @@ class Arbiter(object):
 
     def spawn_worker(self):
         self.worker_age += 1
+        worker_id = -1
+        for i in range(self.num_workers):
+            if i not in self.WORKER_IDS.values():
+                worker_id = i
+                break
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
                                    self.app, self.timeout / 2.0,
                                    self.cfg, self.log)
@@ -501,6 +508,7 @@ class Arbiter(object):
         pid = os.fork()
         if pid != 0:
             self.WORKERS[pid] = worker
+            self.WORKER_IDS[pid] = worker_id
             return pid
 
         # Process Child
@@ -509,6 +517,8 @@ class Arbiter(object):
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker_pid)
             self.cfg.post_fork(self, worker)
+            if self.num_workers > 1 and worker_id != -1:
+                os.environ['GUNICORN_WORKER_INSTANCE'] = str(worker_id)
             worker.init_process()
             sys.exit(0)
         except SystemExit:
@@ -569,6 +579,7 @@ class Arbiter(object):
                     worker = self.WORKERS.pop(pid)
                     worker.tmp.close()
                     self.cfg.worker_exit(self, worker)
+                    del self.WORKER_IDS[pid]
                     return
                 except (KeyError, OSError):
                     return
