@@ -52,7 +52,7 @@ Gunicorn to trust the ``X-Forwarded-*`` headers sent by Nginx. By default,
 Gunicorn will only trust these headers if the connection comes from localhost.
 This is to prevent a malicious client from forging these headers::
 
-  gunicorn -w 3 --forwarded-allow-ips="10.170.3.217,10.170.3.220" test:app
+    $ gunicorn -w 3 --forwarded-allow-ips="10.170.3.217,10.170.3.220" test:app
 
 When the Gunicorn host is completely firewalled from the external network such
 that all connections come from a trusted proxy (e.g. Heroku) this value can
@@ -117,14 +117,13 @@ Gaffer
 Using Gafferd and gaffer
 ++++++++++++++++++++++++
 
-`Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>`_ can be
-used to monitor Gunicorn. A simple configuration is::
+Gaffer_ can be used to monitor Gunicorn. A simple configuration is::
 
     [process:gunicorn]
     cmd = gunicorn -w 3 test:app
     cwd = /path/to/project
 
-Then you can easily manage Gunicorn using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.
+Then you can easily manage Gunicorn using Gaffer_.
 
 
 Using a Procfile
@@ -136,7 +135,7 @@ Create a ``Procfile`` in your project::
 
 You can launch any other applications that should be launched at the same time.
 
-Then you can start your Gunicorn application using `gaffer <http://gaffer.readthedocs.org/en/latest/gaffer.html>`_.::
+Then you can start your Gunicorn application using Gaffer_.::
 
     gaffer start
 
@@ -277,3 +276,4 @@ utility::
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
 .. _Systemd: http://www.freedesktop.org/wiki/Software/systemd
+.. _Gaffer <http://gaffer.readthedocs.org/en/latest/index.html>:
