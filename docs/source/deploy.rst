@@ -13,68 +13,10 @@ buffers slow clients when you use default Gunicorn workers. Without this
 buffering Gunicorn will be easily susceptible to denial-of-service attacks.
 You can use slowloris_ to check if your proxy is behaving properly.
 
-An `example configuration`_ file for fast clients with Nginx_::
+An `example configuration`_ file for fast clients with Nginx_:
 
-    worker_processes 1;
-
-    user nobody nogroup;
-    pid /tmp/nginx.pid;
-    error_log /tmp/nginx.error.log;
-
-    events {
-        worker_connections 1024;
-        accept_mutex off;
-    }
-
-    http {
-        include mime.types;
-        default_type application/octet-stream;
-        access_log /tmp/nginx.access.log combined;
-        sendfile on;
-
-        upstream app_server {
-            server unix:/tmp/gunicorn.sock fail_timeout=0;
-            # For a TCP configuration:
-            # server 192.168.0.7:8000 fail_timeout=0;
-        }
-
-        server {
-            # If no Host match, close the connection to prevent Host spoofing
-            listen 80 default_server;
-            return 444;
-        }
-
-        server {
-            listen 80;
-            client_max_body_size 4G;
-
-            # set the correct host(s) for your site
-            server_name example.com www.example.com;
-
-            keepalive_timeout 5;
-
-            # path for static files
-            root /path/to/app/current/public;
-
-            location / {
-                # checks for static file, if not found proxy to app
-                try_files $uri @proxy_to_app;
-            }
-
-            location @proxy_to_app {
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header Host $http_host;
-                proxy_redirect off;
-
-                proxy_pass   http://app_server;
-            }
-
-            error_page 500 502 503 504 /500.html;
-            location = /500.html {
-                root /path/to/app/current/public;
-            }
-        }
-    }
+.. literalinclude:: ../../examples/nginx.conf
+   :language: nginx
 
 If you want to be able to handle streaming request/responses or other fancy
 features like Comet, Long polling, or Web sockets, you need to turn off the
