@@ -4,6 +4,8 @@
 # See the NOTICE for more information.
 
 
+# we inherit from BaseException here to make sure to not be caucght 
+# at application level
 class HaltServer(BaseException):
     def __init__(self, reason, exit_status=1):
         self.reason = reason
@@ -13,7 +15,7 @@ class HaltServer(BaseException):
         return "<HaltServer %r %d>" % (self.reason, self.exit_status)
 
 
-class ConfigError(BaseException):
+class ConfigError(Exception):
     """ Exception raised on config error """
 
 
