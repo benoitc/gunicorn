@@ -58,7 +58,7 @@ class TornadoWorker(Worker):
                         pass
                 self.server_alive = False
             else:
-                if not self.ioloop._callbacks and len(self.ioloop._timeouts) <= 1:
+                if not self.ioloop._callbacks:
                     self.ioloop.stop()
 
     def run(self):
