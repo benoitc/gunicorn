@@ -44,8 +44,6 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
     elif host:
         cfg['bind'] = host.split(',')
 
-    cfg['workers'] = int(lc.get('workers', 1))
-    cfg['umask'] = int(lc.get('umask', 0))
     cfg['default_proc_name'] = gc.get('__file__')
 
     # init logging configuration
