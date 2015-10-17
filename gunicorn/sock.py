@@ -38,6 +38,11 @@ class BaseSocket(object):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except socket.error as ex:
+            if ex.errno == 92:
+                self.log.warning('SO_REUSEPORT socket option not supported.')
         if not bound:
             self.bind(sock)
         sock.setblocking(0)
