@@ -1049,7 +1049,7 @@ class AccessLogFormat(Setting):
         ==========  ===========
         h           remote address
         l           ``'-'``
-        u           currently ``'-'``, may be user name in future releases
+        u           user name
         t           date of the request
         r           status line (e.g. ``GET / HTTP/1.1``)
         s           status
