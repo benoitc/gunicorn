@@ -1052,8 +1052,13 @@ class AccessLogFormat(Setting):
         u           user name
         t           date of the request
         r           status line (e.g. ``GET / HTTP/1.1``)
+        m           request method
+        U           URL path without query string
+        q           query string
+        H           protocol
         s           status
-        b           response length or ``'-'``
+        B           response length
+        b           response length or ``'-'`` (CLF format)
         f           referer
         a           user agent
         T           request time in seconds
