@@ -166,6 +166,11 @@ class GeventWorker(AsyncWorker):
         except SystemExit:
             pass
 
+    def handle_quit(self, sig, frame):
+        # Move this out of the signal handler so we can use
+        # blocking calls. See #1126
+        gevent.spawn(super(GeventWorker, self).handle_quit, sig, frame)
+
     if gevent.version_info[0] == 0:
 
         def init_process(self):
