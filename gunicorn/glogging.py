@@ -336,6 +336,8 @@ class Logger(object):
             else:
                 util.check_is_writeable(output)
                 h = logging.FileHandler(output)
+                # make sure the user can reopen the file
+                os.chown(h.baseFilename, self.cfg.user, self.cfg.group)
 
             h.setFormatter(fmt)
             h._gunicorn = True
