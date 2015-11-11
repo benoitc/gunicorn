@@ -49,7 +49,7 @@ you should use one of the async workers.
 
 .. _slowloris: http://ha.ckers.org/slowloris/
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
-.. _proc_name: configure.html#proc-name
+.. _proc_name: settings.html#proc-name
 
 
 Worker Processes
