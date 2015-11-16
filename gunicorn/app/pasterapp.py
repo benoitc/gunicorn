@@ -27,13 +27,14 @@ def _has_logging_config(paste_file):
     return cfg_parser.has_section('loggers')
 
 
-def paste_config(gconfig, config_url, relative_to, global_conf=None):
+def paste_config(gconfig, full_config_url, relative_to, global_conf=None):
     # add entry to pkg_resources
     sys.path.insert(0, relative_to)
     pkg_resources.working_set.add_entry(relative_to)
 
-    config_url = config_url.split('#')[0]
-    cx = loadwsgi.loadcontext(SERVER, config_url, relative_to=relative_to,
+    config_url = full_config_url.split('#')[0]
+    cx = loadwsgi.loadcontext(SERVER, full_config_url,
+                              relative_to=relative_to,
                               global_conf=global_conf)
     gc, lc = cx.global_conf.copy(), cx.local_conf.copy()
     cfg = {}
