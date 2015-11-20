@@ -381,7 +381,7 @@ class Logger(object):
     def _get_user(self, environ):
         user = None
         http_auth = environ.get("HTTP_AUTHORIZATION")
-        if http_auth:
+        if http_auth and http_auth.startswith('Basic'):
             auth = http_auth.split(" ", 1)
             if len(auth) == 2:
                 try:
