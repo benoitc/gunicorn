@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import base64
+import binascii
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
@@ -392,6 +393,9 @@ class Logger(object):
                         auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
                 except TypeError as exc:
+                    self.debug("Couldn't get username: %s", exc)
+                    return user
+                except binascii.Error as exc:
                     self.debug("Couldn't get username: %s", exc)
                     return user
                 if len(auth) == 2:
