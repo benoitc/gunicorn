@@ -12,7 +12,6 @@ import sys
 from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
-import gunicorn.six as six
 import gunicorn.util as util
 
 try:
@@ -23,6 +22,10 @@ except ImportError:
         from ._sendfile import sendfile
     except ImportError:
         sendfile = None
+
+# Send files in at most 1GB blocks as some operating systems can have problems
+# with sending files in blocks over 2GB.
+BLKSIZE = 0x3FFFFFFF
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
 
@@ -344,77 +347,51 @@ class Response(object):
         util.write(self.sock, arg, self.chunked)
 
     def can_sendfile(self):
-        return (self.cfg.sendfile and (sendfile is not None))
+        return self.cfg.sendfile and sendfile is not None
 
-    def sendfile_all(self, fileno, sockno, offset, nbytes):
-        # Send file in at most 1GB blocks as some operating
-        # systems can have problems with sending files in blocks
-        # over 2GB.
+    def sendfile(self, respiter):
+        if self.cfg.is_ssl or not self.can_sendfile():
+            return False
 
-        BLKSIZE = 0x3FFFFFFF
+        try:
+            fileno = respiter.filelike.fileno()
+            offset = os.lseek(fileno, 0, os.SEEK_CUR)
+            if self.response_length is None:
+                filesize = os.fstat(fileno).st_size
 
-        if nbytes > BLKSIZE:
-            for m in range(0, nbytes, BLKSIZE):
-                self.sendfile_all(fileno, sockno, offset, min(nbytes, BLKSIZE))
-                offset += BLKSIZE
-                nbytes -= BLKSIZE
-        else:
-            sent = 0
-            sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
-            while sent != nbytes:
-                sent += sendfile(sockno, fileno, offset + sent, nbytes - sent)
+                # The file may be special and sendfile will fail.
+                # It may also be zero-length, but that is okay.
+                if filesize == 0:
+                    return False
 
-    def sendfile_use_send(self, fileno, fo_offset, nbytes):
+                nbytes = filesize - offset
+            else:
+                nbytes = self.response_length
+        except (OSError, io.UnsupportedOperation):
+            return False
 
-        # send file in blocks of 8182 bytes
-        BLKSIZE = 8192
+        self.send_headers()
 
+        if self.is_chunked():
+            chunk_size = "%X\r\n" % nbytes
+            self.sock.sendall(chunk_size.encode('utf-8'))
+
+        sockno = self.sock.fileno()
         sent = 0
-        while sent != nbytes:
-            data = os.read(fileno, BLKSIZE)
-            if not data:
-                break
 
-            sent += len(data)
-            if sent > nbytes:
-                data = data[:nbytes - sent]
+        for m in range(0, nbytes, BLKSIZE):
+            count = min(nbytes - sent, BLKSIZE)
+            sent += sendfile(sockno, fileno, offset + sent, count)
 
-            util.write(self.sock, data, self.chunked)
+        if self.is_chunked():
+            self.sock.sendall(b"\r\n")
+
+        os.lseek(fileno, offset, os.SEEK_SET)
+
+        return True
 
     def write_file(self, respiter):
-        if self.can_sendfile() and util.is_fileobject(respiter.filelike):
-            # sometimes the fileno isn't a callable
-            if six.callable(respiter.filelike.fileno):
-                fileno = respiter.filelike.fileno()
-            else:
-                fileno = respiter.filelike.fileno
-
-            fd_offset = os.lseek(fileno, 0, os.SEEK_CUR)
-            fo_offset = respiter.filelike.tell()
-            nbytes = max(os.fstat(fileno).st_size - fo_offset, 0)
-
-            if self.response_length:
-                nbytes = min(nbytes, self.response_length)
-
-            if nbytes == 0:
-                return
-
-            self.send_headers()
-
-            if self.cfg.is_ssl:
-                self.sendfile_use_send(fileno, fo_offset, nbytes)
-            else:
-                if self.is_chunked():
-                    chunk_size = "%X\r\n" % nbytes
-                    self.sock.sendall(chunk_size.encode('utf-8'))
-
-                self.sendfile_all(fileno, self.sock.fileno(), fo_offset, nbytes)
-
-                if self.is_chunked():
-                    self.sock.sendall(b"\r\n")
-
-            os.lseek(fileno, fd_offset, os.SEEK_SET)
-        else:
+        if not self.sendfile(respiter):
             for item in respiter:
                 self.write(item)
 
