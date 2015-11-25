@@ -320,7 +320,7 @@ class Response(object):
         tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
-        util.write(self.sock, util.to_latin1(header_str))
+        util.write(self.sock, util.to_bytestring(header_str, "ascii"))
         self.headers_sent = True
 
     def write(self, arg):

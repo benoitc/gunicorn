@@ -25,7 +25,6 @@ from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
 
-
 MAXFD = 1024
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
@@ -498,23 +497,14 @@ def check_is_writeable(path):
     f.close()
 
 
-def to_bytestring(value):
+def to_bytestring(value, encoding="utf8"):
     """Converts a string argument to a byte string"""
     if isinstance(value, bytes):
         return value
     if not isinstance(value, text_type):
         raise TypeError('%r is not a string' % value)
-    return value.encode("utf-8")
 
-
-def to_latin1(value):
-    """Converts a string argument to a byte string"""
-    if isinstance(value, bytes):
-        return value
-    if not isinstance(value, text_type):
-        raise TypeError('%r is not a string' % value)
-    return value.encode("latin-1")
-
+    return value.encode(encoding)
 
 def warn(msg):
     print("!!!", file=sys.stderr)
