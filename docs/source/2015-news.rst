@@ -30,6 +30,8 @@ Core
 - fix: add gthread to the list of supported workers (:issue:`1011`)
 - improvement: retry socket binding up to five times upon EADDRNOTAVAIL
   (:issue:`1004`)
+- **breaking change**: only honor headers that can be encoded in ascii to comply to
+  the RFC 7230 (See :issue:`1151`).
 
 Logging
 +++++++
