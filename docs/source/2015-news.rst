@@ -6,7 +6,12 @@ Changelog - 2015
 
    Please see :doc:`news` for the latest changes.
 
-19.4.0 / 2015/11/20
+19.4.1 / 2015/11/25
+===================
+
+- fix tornado worker (:issue:`1154`)
+
+  19.4.0 / 2015/11/20
 ===================
 
 Core
