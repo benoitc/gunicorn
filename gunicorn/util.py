@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import email.utils
 import fcntl
+import io
 import os
 import pkg_resources
 import random
@@ -505,6 +506,19 @@ def to_bytestring(value, encoding="utf8"):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
+
+def is_fileobject(obj):
+    if not hasattr(obj, "tell") or not hasattr(obj, "fileno"):
+        return False
+
+    # check BytesIO case and maybe others
+    try:
+        obj.fileno()
+    except (IOError, io.UnsupportedOperation):
+        return False
+
+    return True
+
 
 def warn(msg):
     print("!!!", file=sys.stderr)
