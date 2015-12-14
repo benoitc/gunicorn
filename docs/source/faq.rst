@@ -28,9 +28,9 @@ How might I test a proxy configuration?
 ---------------------------------------
 
 The Boom_ program is a great way to test that your proxy is correctly
-buffering responses for the synchronous workers.
+buffering responses for the synchronous workers::
 
-    boom -n 10000 -c 100 http://127.0.0.1:5000/
+    $ boom -n 10000 -c 100 http://127.0.0.1:5000/
 
 This runs a benchmark of 10000 requests with 100 running concurrently.
 
