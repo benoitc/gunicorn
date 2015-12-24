@@ -821,13 +821,14 @@ class PreloadApp(Setting):
         restarting workers.
         """
 
+
 class Sendfile(Setting):
     name = "sendfile"
     section = "Server Mechanics"
     cli = ["--no-sendfile"]
     validator = validate_bool
-    action = "store_false"
-    default = True
+    action = "store_const"
+    const = False
     desc = """\
         Disables the use of ``sendfile()``.
 
@@ -836,6 +837,7 @@ class Sendfile(Setting):
            Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
            disabling.
         """
+
 
 class Chdir(Setting):
     name = "chdir"

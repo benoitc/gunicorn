@@ -347,7 +347,7 @@ class Response(object):
         util.write(self.sock, arg, self.chunked)
 
     def can_sendfile(self):
-        return self.cfg.sendfile and sendfile is not None
+        return self.cfg.sendfile is not False and sendfile is not None
 
     def sendfile(self, respiter):
         if self.cfg.is_ssl or not self.can_sendfile():
