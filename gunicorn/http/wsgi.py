@@ -379,7 +379,7 @@ class Response(object):
         sockno = self.sock.fileno()
         sent = 0
 
-        for m in range(0, nbytes, BLKSIZE):
+        while sent != nbytes:
             count = min(nbytes - sent, BLKSIZE)
             sent += sendfile(sockno, fileno, offset + sent, count)
 

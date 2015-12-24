@@ -27,8 +27,12 @@ You can gracefully reload by sending HUP signal to gunicorn::
 How might I test a proxy configuration?
 ---------------------------------------
 
-The Slowloris_ script is a great way to test that your proxy is correctly
-buffering responses for the synchronous workers.
+The Boom_ program is a great way to test that your proxy is correctly
+buffering responses for the synchronous workers::
+
+    $ boom -n 10000 -c 100 http://127.0.0.1:5000/
+
+This runs a benchmark of 10000 requests with 100 running concurrently.
 
 How can I name processes?
 -------------------------
@@ -47,7 +51,7 @@ HTTP/1.0 with its upstream servers. If you want to deploy Gunicorn to
 handle unbuffered requests (ie, serving requests directly from the internet)
 you should use one of the async workers.
 
-.. _slowloris: http://ha.ckers.org/slowloris/
+.. _Boom: https://github.com/rakyll/boom
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle
 .. _proc_name: settings.html#proc-name
 
