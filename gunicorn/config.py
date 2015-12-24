@@ -681,8 +681,8 @@ class GracefulTimeout(Setting):
     desc = """\
         Timeout for graceful workers restart.
 
-        After receiving a restart signal, workers have this much time to finish 
-        serving requests. Workers still alive after the timeout (starting from 
+        After receiving a restart signal, workers have this much time to finish
+        serving requests. Workers still alive after the timeout (starting from
         the receipt of the restart signal) are force killed.
         """
 
@@ -1692,6 +1692,7 @@ class DoHandshakeOnConnect(Setting):
     Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
     """
 
+
 if sys.version_info >= (2, 7):
     class Ciphers(Setting):
         name = "ciphers"
@@ -1702,3 +1703,37 @@ if sys.version_info >= (2, 7):
         desc = """\
         Ciphers to use (see stdlib ssl module's)
         """
+
+
+class AllowTCPFastOpen(Setting):
+    name = "allow_tcp_fast_open"
+    section = "Server Socket"
+    cli = ["--allow-tcp-fast-open"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Whether the server will allow the TCP Fast Open.
+
+    Available on Linux >= 3.7.1, Python>=  3.4
+
+    More info: http://research.google.com/pubs/pub37517.html
+
+    .. versionadded:: 19.5
+    """
+
+
+class TCPFastOpenQueue(Setting):
+    name = "tcp_fast_open_queue"
+    section = "Server Socket"
+    cli = ["--tcp-fast-open-queue"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 5
+    desc = """\
+    The size of the TCP Fast Open queue. If the number of connections exceed
+    this value, the other connections are proceed with a normal 3-way.
+
+    .. versionadded:: 19.5
+    """
