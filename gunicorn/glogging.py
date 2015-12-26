@@ -278,7 +278,7 @@ class Logger(object):
         for format details
         """
 
-        if not self.cfg.accesslog and not self.cfg.logconfig:
+        if not (self.cfg.accesslog or self.cfg.logconfig or self.cfg.syslog):
             return
 
         # wrap atoms:
