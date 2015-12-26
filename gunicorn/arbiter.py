@@ -176,9 +176,9 @@ class Arbiter(object):
         self.start()
         util._setproctitle("master [%s]" % self.proc_name)
 
-        self.manage_workers()
-        while True:
-            try:
+        try:
+            self.manage_workers()
+            while True:
                 sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
                 if sig is None:
                     self.sleep()
@@ -198,21 +198,21 @@ class Arbiter(object):
                 self.log.info("Handling signal: %s", signame)
                 handler()
                 self.wakeup()
-            except StopIteration:
-                self.halt()
-            except KeyboardInterrupt:
-                self.halt()
-            except HaltServer as inst:
-                self.halt(reason=inst.reason, exit_status=inst.exit_status)
-            except SystemExit:
-                raise
-            except Exception:
-                self.log.info("Unhandled exception in main loop:\n%s",
-                              traceback.format_exc())
-                self.stop(False)
-                if self.pidfile is not None:
-                    self.pidfile.unlink()
-                sys.exit(-1)
+        except StopIteration:
+            self.halt()
+        except KeyboardInterrupt:
+            self.halt()
+        except HaltServer as inst:
+            self.halt(reason=inst.reason, exit_status=inst.exit_status)
+        except SystemExit:
+            raise
+        except Exception:
+            self.log.info("Unhandled exception in main loop:\n%s",
+                          traceback.format_exc())
+            self.stop(False)
+            if self.pidfile is not None:
+                self.pidfile.unlink()
+            sys.exit(-1)
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
