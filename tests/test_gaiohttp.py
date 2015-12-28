@@ -59,7 +59,7 @@ class WorkerTests(unittest.TestCase):
         self.worker.wsgi = mock.Mock()
         self.worker.loop = mock.Mock()
         self.worker.log = mock.Mock()
-        self.worker.cfg = mock.Mock()
+        self.worker.cfg = Config()
 
         f = self.worker.factory(
             self.worker.wsgi, ('localhost', 8080))
