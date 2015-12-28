@@ -355,6 +355,10 @@ class Response(object):
 
         try:
             fileno = respiter.filelike.fileno()
+        except AttributeError:
+            return False
+
+        try:
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
                 filesize = os.fstat(fileno).st_size
