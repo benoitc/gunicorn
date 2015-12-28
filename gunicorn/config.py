@@ -281,6 +281,9 @@ Setting = SettingMeta('Setting', (Setting,), {})
 
 
 def validate_bool(val):
+    if val is None:
+        return
+
     if isinstance(val, bool):
         return val
     if not isinstance(val, six.string_types):
