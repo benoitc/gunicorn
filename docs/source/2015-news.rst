@@ -20,7 +20,7 @@ Core
 Logging
 +++++++
 
-- fix: Always send access log to syslog if syslog is on`
+- fix: Always send access log to syslog if syslog is on
 - fix: check auth before trying to own a file (:issue:`1157`)
 
 
