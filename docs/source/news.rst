@@ -17,7 +17,7 @@ Logging
 +++++++
 
 - fix: Always send access log to syslog if syslog is on`
-- fix: Documentationcheck auth before trying to own a file (:issue:`1157`)
+- fix: check auth before trying to own a file (:issue:`1157`)
 
 
 Documentation
