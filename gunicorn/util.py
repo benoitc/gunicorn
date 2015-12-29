@@ -162,21 +162,6 @@ def chown(path, uid, gid):
     gid = abs(gid) & 0x7FFFFFFF  # see note above.
     os.chown(path, uid, gid)
 
-def is_writable(path, uid, gid):
-    gid = abs(gid) & 0x7FFFFFFF
-    st = os.stat(path)
-
-    if st.st_uid == uid:
-        return st.st_mode & st.S_IWUSR != 0
-
-    user = pwd.getpwuid(uid)[0]
-    groups = [g.gr_gid for g in grp.getgrall() if user in g.gr_mem]
-    groups.append(gid)
-
-    if st.st_gid in groups:
-        return st.st_mode & stat.S_IWGRP != 0
-
-    return st.st_mode & stat.S_IWOTH != 0
 
 if sys.platform.startswith("win"):
     def _waitfor(func, pathname, waitall=False):
