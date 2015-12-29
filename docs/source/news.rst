@@ -2,6 +2,11 @@
 Changelog
 =========
 
+19.4.3 / 2015/12/30
+===================
+
+- fix: don't check if a file is writable using os.stat (`:issue:`1171`)
+
 19.4.2 / 2015/12/29
 ===================
 
