@@ -338,9 +338,13 @@ class Logger(object):
                 util.check_is_writeable(output)
                 h = logging.FileHandler(output)
                 # make sure the user can reopen the file
-                if not util.is_writable(h.baseFilename, self.cfg.user,
-                        self.cfg.group):
+                try:
                     os.chown(h.baseFilename, self.cfg.user, self.cfg.group)
+                except OSError:
+                    # it's probably OK there, we assume the user has given
+                    # /dev/null as a parameter.
+                    pass
+
             h.setFormatter(fmt)
             h._gunicorn = True
             log.addHandler(h)
