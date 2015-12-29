@@ -6,6 +6,35 @@ Changelog - 2015
 
    Please see :doc:`news` for the latest changes.
 
+19.4.2 / 2015/12/29
+===================
+
+Core
+++++
+
+- improvement: handle HaltServer in manage_workers (:issue:`1095`)
+- fix: Do not rely on sendfile sending requested count (:issue:`1155`)
+- fix: claridy --no-sendfile default (:issue:`1156`)
+- fix: LoggingCatch sendfile failure from no file descriptor (:issue:`1160`)
+
+Logging
++++++++
+
+- fix: Always send access log to syslog if syslog is on`
+- fix: Documentationcheck auth before trying to own a file (:issue:`1157`)
+
+
+Documentation
++++++++++++++
+
+- fix: Fix Slowloris broken link. (:issue:`1142`)
+- Tweak markup in faq.rst
+
+Testing
++++++++
+
+- fix: gaiohttp test (:issue:`1164`)
+
 19.4.1 / 2015/11/25
 ===================
 
