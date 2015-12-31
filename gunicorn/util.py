@@ -510,7 +510,7 @@ def to_bytestring(value, encoding="utf8"):
 
     return value.encode(encoding)
 
-def is_fileobject(obj):
+def has_fileno(obj):
     if not hasattr(obj, "fileno"):
         return False
 
