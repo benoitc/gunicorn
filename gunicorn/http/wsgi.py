@@ -355,7 +355,7 @@ class Response(object):
 
         try:
             fileno = respiter.filelike.fileno()
-        except AttributeError:
+        except (AttributeError, io.UnsupportedOperation):
             return False
 
         try:
