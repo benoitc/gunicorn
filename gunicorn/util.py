@@ -510,14 +510,14 @@ def to_bytestring(value, encoding="utf8"):
 
     return value.encode(encoding)
 
-def is_fileobject(obj):
-    if not hasattr(obj, "tell") or not hasattr(obj, "fileno"):
+def has_fileno(obj):
+    if not hasattr(obj, "fileno"):
         return False
 
     # check BytesIO case and maybe others
     try:
         obj.fileno()
-    except (IOError, io.UnsupportedOperation):
+    except (AttributeError, IOError, io.UnsupportedOperation):
         return False
 
     return True
