@@ -353,7 +353,9 @@ class Response(object):
         if self.cfg.is_ssl or not self.can_sendfile():
             return False
 
-        if not util.has_fileno(respiter.filelike):
+        if util.has_fileno(respiter.filelike):
+            fileno = respiter.filelike.fileno()
+        else:
             return False
 
         try:
