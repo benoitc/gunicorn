@@ -2,11 +2,16 @@
 Changelog
 =========
 
-19.4.3 / 2016/01/04
+19.4.4 / 2016/01/04
 ===================
 
 - fix: check if a fileobject can be used with sendfile(2) (:issue:`1174`)
 - doc: be more descriptive in errorlog option (:issue:`1173`)
+
+19.4.3 / 2015/12/30
+===================
+
+- fix: don't check if a file is writable using os.stat with SELINUX (:issue:`1171`)
 
 19.4.2 / 2015/12/29
 ===================

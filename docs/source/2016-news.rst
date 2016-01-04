@@ -6,7 +6,7 @@ Changelog - 2016
 
    Please see :doc:`news` for the latest changes.
 
-19.4.3 / 2016/01/04
+19.4.4 / 2016/01/04
 ===================
 
 - fix: check if a fileobject can be used with sendfile(2) (:issue:`1174`)
