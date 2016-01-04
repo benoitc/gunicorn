@@ -1,0 +1,13 @@
+================
+Changelog - 2016
+================
+
+.. note::
+
+   Please see :doc:`news` for the latest changes.
+
+19.4.3 / 2016/01/04
+===================
+
+- fix: check if a fileobject can be used with sendfile(2) (:issue:`1174`)
+- doc: be more descriptive in errorlog option (:issue:`1173`)
