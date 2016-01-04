@@ -1086,7 +1086,7 @@ class ErrorLog(Setting):
     desc = """\
         The Error log file to write to.
 
-        ``'-'`` means log to stderr.
+        Using ``'-'`` for FILE makes gunicorn log to stderr.
 
         .. versionchanged:: 19.2
            Log to stderr by default.
