@@ -2,6 +2,11 @@
 Changelog
 =========
 
+19.4.5 / 2016/01/05
+===================
+
+- fix: NameError fileno in gunicorn.http.wsgi (:issue:`1178`)
+
 19.4.4 / 2016/01/04
 ===================
 
