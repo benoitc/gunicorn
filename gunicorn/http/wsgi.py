@@ -353,11 +353,10 @@ class Response(object):
         if self.cfg.is_ssl or not self.can_sendfile():
             return False
 
-        if util.has_fileno(respiter.filelike):
-            fileno = respiter.filelike.fileno()
-        else:
+        if not util.has_fileno(respiter.filelike):
             return False
 
+        fileno = respiter.filelike.fileno()
         try:
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
