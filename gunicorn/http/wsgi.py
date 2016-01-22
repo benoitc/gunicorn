@@ -230,6 +230,8 @@ class Response(object):
             return True
         if self.response_length is not None or self.chunked:
             return False
+        if self.req.method == 'HEAD':
+            return False
         if self.status_code < 200 or self.status_code in (204, 304):
             return False
         return True
@@ -286,6 +288,9 @@ class Response(object):
         if self.response_length is not None:
             return False
         elif self.req.version <= (1, 0):
+            return False
+        elif self.req.method == 'HEAD':
+            # Responses to a HEAD request MUST NOT contain a response body.
             return False
         elif self.status_code in (204, 304):
             # Do not use chunked responses when the response is guaranteed to
