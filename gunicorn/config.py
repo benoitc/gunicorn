@@ -147,7 +147,7 @@ class Config(object):
             uri = "gunicorn.glogging.Logger"
 
         # if statsd is on, automagically switch to the statsd logger
-        if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+        if uri is not None and 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
             logger_class = util.load_class("gunicorn.instrument.statsd.Statsd",
                 section="gunicorn.loggers")
         else:
