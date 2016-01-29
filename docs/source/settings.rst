@@ -532,6 +532,10 @@ The logger you want to use to log events in Gunicorn.
 The default class (``gunicorn.glogging.Logger``) handle most of
 normal usages in logging. It provides error and access logging.
 
+If you enable statsd support, then a special subclass
+(``gunicorn.instrument.statsd.Statsd``) is used instead, which handles
+sending the metrics to *statsd_host*
+
 You can provide your own worker by giving Gunicorn a
 Python path to a subclass like ``gunicorn.glogging.Logger``.
 Alternatively the syntax can also load the Logger class
@@ -610,6 +614,9 @@ statsd_host
 * ``None``
 
 ``host:port`` of the statsd server to log to.
+
+Note: enabling this switches the default *logger_class* to
+``gunicorn.instrument.statsd.Statsd``
 
 .. versionadded:: 19.1
 

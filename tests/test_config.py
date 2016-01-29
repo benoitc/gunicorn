@@ -13,6 +13,8 @@ import pytest
 from gunicorn import config
 from gunicorn.app.base import Application
 from gunicorn.workers.sync import SyncWorker
+from gunicorn import glogging
+from gunicorn.instrument import statsd
 
 dirname = os.path.dirname(__file__)
 def cfg_module():
@@ -56,6 +58,9 @@ def test_property_access():
 
     # Class was loaded
     assert c.worker_class == SyncWorker
+
+    # logger class was loaded
+    assert c.logger_class == glogging.Logger
 
     # Workers defaults to 1
     assert c.workers == 1
@@ -259,3 +264,24 @@ def test_nworkers_changed():
 
     c.set("nworkers_changed", nworkers_changed_3)
     assert c.nworkers_changed(1, 2, 3) == 3
+
+
+def test_statsd_changes_logger():
+    c = config.Config()
+    assert c.logger_class == glogging.Logger
+    c.set('statsd_host', 'localhost:12345')
+    assert c.logger_class == statsd.Statsd
+
+
+class MyLogger(glogging.Logger):
+    # dummy custom logger class for testing
+    pass
+
+
+def test_always_use_configured_logger():
+    c = config.Config()
+    c.set('logger_class', __name__ + '.MyLogger')
+    assert c.logger_class == MyLogger
+    c.set('statsd_host', 'localhost:12345')
+    # still uses custom logger over statsd
+    assert c.logger_class == MyLogger
