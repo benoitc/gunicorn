@@ -69,8 +69,8 @@ class SyncWorker(base.Worker):
                 # process.
                 continue
 
-            except socket.error as e:
-                if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
+            except EnvironmentError as e:
+                if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                         errno.EWOULDBLOCK):
                     raise
 
@@ -95,8 +95,8 @@ class SyncWorker(base.Worker):
                 for listener in ready:
                     try:
                         self.accept(listener)
-                    except socket.error as e:
-                        if e.args[0] not in (errno.EAGAIN, errno.ECONNABORTED,
+                    except EnvironmentError as e:
+                        if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                 errno.EWOULDBLOCK):
                             raise
 
@@ -139,11 +139,11 @@ class SyncWorker(base.Worker):
             else:
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
-        except socket.error as e:
-            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
+        except EnvironmentError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
             else:
-                if e.args[0] == errno.ECONNRESET:
+                if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
                 else:
                     self.log.debug("Ignoring EPIPE")
@@ -181,7 +181,7 @@ class SyncWorker(base.Worker):
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
-        except socket.error:
+        except EnvironmentError:
             exc_info = sys.exc_info()
             # pass to next try-except level
             six.reraise(exc_info[0], exc_info[1], exc_info[2])
@@ -193,7 +193,7 @@ class SyncWorker(base.Worker):
                 try:
                     client.shutdown(socket.SHUT_RDWR)
                     client.close()
-                except socket.error:
+                except EnvironmentError:
                     pass
                 raise StopIteration()
             raise

@@ -135,8 +135,8 @@ class ThreadWorker(base.Worker):
             self.nr_conns += 1
             # enqueue the job
             self.enqueue_req(conn)
-        except socket.error as e:
-            if e.args[0] not in (errno.EAGAIN,
+        except EnvironmentError as e:
+            if e.errno not in (errno.EAGAIN,
                     errno.ECONNABORTED, errno.EWOULDBLOCK):
                 raise
 
@@ -176,8 +176,8 @@ class ThreadWorker(base.Worker):
                 with self._lock:
                     try:
                         self.poller.unregister(conn.sock)
-                    except socket.error as e:
-                        if e.args[0] != errno.EBADF:
+                    except EnvironmentError as e:
+                        if e.errno != errno.EBADF:
                             raise
 
                 # close the socket
@@ -287,11 +287,11 @@ class ThreadWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, conn.sock, conn.addr, e)
 
-        except socket.error as e:
-            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
+        except EnvironmentError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
                 self.log.exception("Socket error processing request.")
             else:
-                if e.args[0] == errno.ECONNRESET:
+                if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
                 else:
                     self.log.debug("Ignoring connection epipe")
@@ -338,7 +338,7 @@ class ThreadWorker(base.Worker):
             if resp.should_close():
                 self.log.debug("Closing connection.")
                 return False
-        except socket.error:
+        except EnvironmentError:
             exc_info = sys.exc_info()
             # pass to next try-except level
             six.reraise(exc_info[0], exc_info[1], exc_info[2])
@@ -350,7 +350,7 @@ class ThreadWorker(base.Worker):
                 try:
                     conn.sock.shutdown(socket.SHUT_RDWR)
                     conn.sock.close()
-                except socket.error:
+                except EnvironmentError:
                     pass
                 raise StopIteration()
             raise
