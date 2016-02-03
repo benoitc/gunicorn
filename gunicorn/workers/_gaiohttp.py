@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import asyncio
+import datetime
 import functools
 import logging
 import os
@@ -15,7 +16,12 @@ except ImportError:
 
 import gunicorn.workers.base as base
 
-from aiohttp.wsgi import WSGIServerHttpProtocol
+from aiohttp.wsgi import WSGIServerHttpProtocol as OldWSGIServerHttpProtocol
+
+
+class WSGIServerHttpProtocol(OldWSGIServerHttpProtocol):
+    def log_access(self, request, environ, response, time):
+        self.logger.access(response, request, environ, datetime.timedelta(0, 0, time))
 
 
 class AiohttpWorker(base.Worker):
