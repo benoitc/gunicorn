@@ -207,8 +207,8 @@ class Arbiter(object):
         except SystemExit:
             raise
         except Exception:
-            self.log.info("Unhandled exception in main loop:\n%s",
-                          traceback.format_exc())
+            self.log.info("Unhandled exception in main loop",
+                          exc_info=1)
             self.stop(False)
             if self.pidfile is not None:
                 self.pidfile.unlink()
@@ -518,14 +518,13 @@ class Arbiter(object):
         except SystemExit:
             raise
         except AppImportError as e:
-            self.log.debug("Exception while loading the application: \n%s",
-                           traceback.format_exc())
+            self.log.debug("Exception while loading the application",
+                           exc_info=1)
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except:
-            self.log.exception("Exception in worker process:\n%s",
-                               traceback.format_exc())
+            self.log.exception("Exception in worker process"),
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
