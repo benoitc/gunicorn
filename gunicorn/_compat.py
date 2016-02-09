@@ -74,12 +74,12 @@ if six.PY3:
     def bytes_to_str(b):
         if isinstance(b, six.text_type):
             return b
-        return str(b, 'latin1')
+        return str(b, 'utf-8')
 
     import urllib.parse
 
     def unquote_to_wsgi_str(string):
-        return _unquote_to_bytes(string).decode('latin-1')
+        return _unquote_to_bytes(string).decode('utf-8')
 
     _unquote_to_bytes = urllib.parse.unquote_to_bytes
 
