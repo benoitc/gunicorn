@@ -539,7 +539,7 @@ class Workers(Setting):
     meta = "INT"
     validator = validate_pos_int
     type = int
-    default = int(os.environ.get('WEB_CONCURRENCY', 1))
+    default = int(os.environ.get("WEB_CONCURRENCY", 1))
     desc = """\
         The number of worker processes for handling requests.
 
@@ -548,7 +548,7 @@ class Workers(Setting):
         application's work load.
 
         By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-        If it is not defined, the default is 1.
+        If it is not defined, the default is ``1``.
         """
 
 
@@ -1021,7 +1021,7 @@ class ForwardedAllowIPS(Setting):
 
         Set to ``*`` to disable checking of Front-end IPs (useful for setups
         where you don't know in advance the IP address of Front-end, but
-        you still trust the environment)
+        you still trust the environment).
         """
 
 
@@ -1225,7 +1225,7 @@ class EnableStdioInheritance(Setting):
     default = False
     action = "store_true"
     desc = """\
-    Enable stdio inheritance
+    Enable stdio inheritance.
 
     Enable inheritance for stdio file descriptors in daemon mode.
 
