@@ -1014,7 +1014,7 @@ class ForwardedAllowIPS(Setting):
     cli = ["--forwarded-allow-ips"]
     meta = "STRING"
     validator = validate_string_to_list
-    default = "127.0.0.1"
+    default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
     desc = """\
         Front-end's IPs from which allowed to handle set secure headers.
         (comma separate).
@@ -1022,6 +1022,9 @@ class ForwardedAllowIPS(Setting):
         Set to ``*`` to disable checking of Front-end IPs (useful for setups
         where you don't know in advance the IP address of Front-end, but
         you still trust the environment).
+
+        By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
+        variable. If it is not defined, the default is ``"127.0.0.1"``.
         """
 
 
