@@ -11,7 +11,6 @@ import select
 import signal
 import sys
 import time
-import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -208,7 +207,7 @@ class Arbiter(object):
             raise
         except Exception:
             self.log.info("Unhandled exception in main loop",
-                          exc_info=1)
+                          exc_info=True)
             self.stop(False)
             if self.pidfile is not None:
                 self.pidfile.unlink()
@@ -519,7 +518,7 @@ class Arbiter(object):
             raise
         except AppImportError as e:
             self.log.debug("Exception while loading the application",
-                           exc_info=1)
+                           exc_info=True)
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
