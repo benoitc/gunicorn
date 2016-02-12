@@ -616,7 +616,10 @@ statsd_host
 ``host:port`` of the statsd server to log to.
 
 Note: enabling this switches the default *logger_class* to
-``gunicorn.instrument.statsd.Statsd``
+``gunicorn.instrument.statsd.Statsd``. If you wish to use statsd with
+a custom *logger_class*, you should make sure your class is API
+compatible with ``gunicorn.instrument.statsd.Statsd``, or inherit from
+it.
 
 .. versionadded:: 19.1
 
