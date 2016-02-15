@@ -523,19 +523,6 @@ def has_fileno(obj):
     return True
 
 
-def warn(msg):
-    print("!!!", file=sys.stderr)
-
-    lines = msg.splitlines()
-    for i, line in enumerate(lines):
-        if i == 0:
-            line = "WARNING: %s" % line
-        print("!!! %s" % line, file=sys.stderr)
-
-    print("!!!\n", file=sys.stderr)
-    sys.stderr.flush()
-
-
 def make_fail_app(msg):
 
     def app(environ, start_response):
