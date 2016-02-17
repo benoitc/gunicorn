@@ -32,8 +32,9 @@ backlog = 2048
 #       for your particular application's work load.
 #
 #   worker_class - The type of workers to use. The default
-#       async class should handle most 'normal' types of work
-#       loads. You'll want to read http://gunicorn/deployment.hml
+#       sync class should handle most 'normal' types of work
+#       loads. You'll want to read
+#       http://docs.gunicorn.org/en/latest/design.html#choosing-a-worker-type
 #       for information on when you might want to choose one
 #       of the other worker classes.
 #
