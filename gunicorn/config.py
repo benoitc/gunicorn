@@ -144,16 +144,18 @@ class Config(object):
         uri = self.settings['logger_class'].get()
         if uri == "simple":
             # support the default
-            uri = "gunicorn.glogging.Logger"
+            uri = LoggerClass.default
 
-        # if statsd is on, automagically switch to the statsd logger
-        if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-            logger_class = util.load_class("gunicorn.instrument.statsd.Statsd",
-                section="gunicorn.loggers")
-        else:
-            logger_class = util.load_class(uri,
-                default="gunicorn.glogging.Logger",
-                section="gunicorn.loggers")
+        # if default logger is in use, and statsd is on, automagically switch
+        # to the statsd logger
+        if uri == LoggerClass.default:
+            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+                uri = "gunicorn.instrument.statsd.Statsd"
+
+        logger_class = util.load_class(
+            uri,
+            default="gunicorn.glogging.Logger",
+            section="gunicorn.loggers")
 
         if hasattr(logger_class, "install"):
             logger_class.install()
