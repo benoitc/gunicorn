@@ -9,7 +9,6 @@ import os
 import re
 import sys
 
-from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
@@ -197,7 +196,7 @@ def create(req, sock, client, server, cfg):
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
-    environ['PATH_INFO'] = unquote_to_wsgi_str(path_info)
+    environ['PATH_INFO'] = path_info
     environ['SCRIPT_NAME'] = script_name
 
     # override the environ with the correct remote and server address if
