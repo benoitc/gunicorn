@@ -98,7 +98,7 @@ class Command(BaseCommand):
 
             gunicorn myproject.wsgi:application
 
-        See https://docs.djangoproject.com/en/1.5/howto/deployment/wsgi/gunicorn/
+        See https://docs.djangoproject.com/en/1.8/howto/deployment/wsgi/gunicorn/
         for more info.""")
 
         if args:
