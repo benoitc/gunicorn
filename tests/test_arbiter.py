@@ -5,15 +5,18 @@
 
 import os
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
 import gunicorn.app.base
 import gunicorn.arbiter
 
 
-class PreloadedAppWithEnvSettings(gunicorn.app.base.BaseApplication):
+class DummyApplication(gunicorn.app.base.BaseApplication):
     """
-    Simple application that makes use of the 'preload' feature to
-    start the application before spawning worker processes and sets
-    environmental variable configuration settings.
+    Dummy application that has an default configuration.
     """
 
     def init(self, parser, opts, args):
@@ -21,6 +24,27 @@ class PreloadedAppWithEnvSettings(gunicorn.app.base.BaseApplication):
 
     def load(self):
         """No-op"""
+
+    def load_config(self):
+        """No-op"""
+
+
+def test_arbiter_shutdown_closes_listeners():
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    listener1 = mock.Mock()
+    listener2 = mock.Mock()
+    arbiter.LISTENERS = [listener1, listener2]
+    arbiter.stop()
+    listener1.close.assert_called_with()
+    listener2.close.assert_called_with()
+
+
+class PreloadedAppWithEnvSettings(DummyApplication):
+    """
+    Simple application that makes use of the 'preload' feature to
+    start the application before spawning worker processes and sets
+    environmental variable configuration settings.
+    """
 
     def load_config(self):
         """Set the 'preload_app' and 'raw_env' settings in order to verify their
