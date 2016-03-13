@@ -54,6 +54,7 @@ def _eventlet_serve(sock, handle, concurrency):
             gt.link(_eventlet_stop, server_gt, conn)
             conn, addr, gt = None, None, None
         except eventlet.StopServe:
+            sock.close()
             pool.waitall()
             return
 
