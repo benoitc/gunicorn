@@ -54,11 +54,15 @@ class BaseSocket(object):
         sock.bind(self.cfg_addr)
 
     def close(self):
+        if self.sock is None:
+            return
+
         try:
             self.sock.close()
         except socket.error as e:
             self.log.info("Error while closing socket %s", str(e))
-        del self.sock
+
+        self.sock = None
 
 
 class TCPSocket(BaseSocket):
