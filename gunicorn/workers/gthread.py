@@ -346,7 +346,7 @@ class ThreadWorker(base.Worker):
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                self.log.exception("Error handling request")
+                self.log.info("Error handling request")
                 try:
                     conn.sock.shutdown(socket.SHUT_RDWR)
                     conn.sock.close()
