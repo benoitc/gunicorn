@@ -107,11 +107,8 @@ def _wrap_error(exc, mapping, key):
     new_err = new_err_cls(*exc.args)
 
     # raise a new exception with the original traceback
-    if hasattr(exc, '__traceback__'):
-        traceback = exc.__traceback__
-    else:
-        traceback = sys.exc_info()[2]
-    six.reraise(new_err_cls, new_err, traceback)
+    six.reraise(new_err_cls, new_err,
+                exc.__traceback__ if hasattr(exc, '__traceback__') else sys.exc_info()[2])
 
 if PY33:
     import builtins

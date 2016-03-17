@@ -339,9 +339,8 @@ class ThreadWorker(base.Worker):
                 self.log.debug("Closing connection.")
                 return False
         except EnvironmentError:
-            exc_info = sys.exc_info()
             # pass to next try-except level
-            six.reraise(exc_info[0], exc_info[1], exc_info[2])
+            six.reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
