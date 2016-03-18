@@ -10,6 +10,7 @@ import re
 import sys
 
 from gunicorn._compat import unquote_to_wsgi_str
+from gunicorn.http.errors import InvalidHeader
 from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
@@ -28,6 +29,7 @@ except ImportError:
 BLKSIZE = 0x3FFFFFFF
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
+HEADER_VALUE_RE = re.compile(r"[\x07\x1B\f\n\r\t\v]")
 
 log = logging.getLogger(__name__)
 
@@ -264,6 +266,10 @@ class Response(object):
         for name, value in headers:
             if not isinstance(name, string_types):
                 raise TypeError('%r is not a string' % name)
+
+            if HEADER_VALUE_RE.search(value):
+                raise InvalidHeader('%r' % value)
+
             value = str(value).strip()
             lname = name.lower().strip()
             if lname == "content-length":
