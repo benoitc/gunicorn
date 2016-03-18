@@ -1,10 +1,12 @@
 # -*- encoding: utf-8 -*-
 
 import t
+import pytest
 from gunicorn import util
 from gunicorn.http.body import Body
 from gunicorn.http.wsgi import Response
 from gunicorn.six import BytesIO
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 
 try:
     import unittest.mock as mock
@@ -94,3 +96,20 @@ def test_http_header_encoding():
         mocked_socket.sendall(util.to_bytestring(header_str,"ascii"))
     except Exception as e:
         assert isinstance(e, UnicodeEncodeError)
+
+
+def test_http_inalid_response_header():
+    """ tests whether http response headers are contains control chars """
+
+    mocked_socket = mock.MagicMock()
+    mocked_socket.sendall = mock.MagicMock()
+
+    mocked_request = mock.MagicMock()
+    response = Response(mocked_request, mocked_socket, None)
+
+    with pytest.raises(InvalidHeader):
+        response.start_response("200 OK", [('foo', 'essai\r\n')])
+
+    response = Response(mocked_request, mocked_socket, None)
+    with pytest.raises(InvalidHeaderName):
+        response.start_response("200 OK", [('foo\r\n', 'essai')])
