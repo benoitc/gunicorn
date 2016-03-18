@@ -96,6 +96,7 @@ def test_http_header_encoding():
     except Exception as e:
         assert isinstance(e, UnicodeEncodeError)
 
+
 def test_http_inalid_response_header():
     """ tests whether http response headers are contains control chars """
 
@@ -106,8 +107,7 @@ def test_http_inalid_response_header():
     response = Response(mocked_request, mocked_socket, None)
 
     # set umlaut header
-    response.headers.append(('foo', 'essai\r\n'))
     try:
-        response.send_headers()
+        response.start_response("200 OK", [('foo', 'essai\r\n')])
     except Exception as e:
         assert isinstance(e, InvalidHeader)
