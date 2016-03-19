@@ -128,14 +128,15 @@ class Worker(object):
     def load_wsgi(self):
         try:
             self.wsgi = self.app.wsgi()
-        except SyntaxError as e:
+        except (SyntaxError, NameError) as e:
             if not self.cfg.reload:
                 raise
 
             self.log.exception(e)
 
             exc_type, exc_val, exc_tb = sys.exc_info()
-            self.reloader.add_extra_file(exc_val.filename)
+            if hasattr(exc_val, 'filename'):
+                self.reloader.add_extra_file(exc_val.filename)
 
             tb_string = traceback.format_exc(exc_tb)
             self.wsgi = util.make_fail_app(tb_string)
