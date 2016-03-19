@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import t
+import pytest
 from gunicorn import util
 from gunicorn.http.body import Body
 from gunicorn.http.wsgi import Response
@@ -106,8 +107,5 @@ def test_http_inalid_response_header():
     mocked_request = mock.MagicMock()
     response = Response(mocked_request, mocked_socket, None)
 
-    # set umlaut header
-    try:
+    with pytest.raises(InvalidHeader):
         response.start_response("200 OK", [('foo', 'essai\r\n')])
-    except Exception as e:
-        assert isinstance(e, InvalidHeader)
