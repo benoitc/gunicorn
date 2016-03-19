@@ -10,6 +10,7 @@ import re
 import sys
 
 from gunicorn._compat import unquote_to_wsgi_str
+from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader
 from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
@@ -266,6 +267,9 @@ class Response(object):
         for name, value in headers:
             if not isinstance(name, string_types):
                 raise TypeError('%r is not a string' % name)
+
+            if HEADER_RE.search(name):
+                raise InvalidHeaderName('%r' % name)
 
             if HEADER_VALUE_RE.search(value):
                 raise InvalidHeader('%r' % value)
