@@ -29,7 +29,7 @@ except ImportError:
 BLKSIZE = 0x3FFFFFFF
 
 NORMALIZE_SPACE = re.compile(r'(?:\r\n)?[ \t]+')
-HEADER_VALUE_RE = re.compile(r"[\x00-\x1F\x7F]")
+HEADER_VALUE_RE = re.compile(r'[\x00-\x1F\x7F]')
 
 log = logging.getLogger(__name__)
 
