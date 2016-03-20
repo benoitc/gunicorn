@@ -80,7 +80,7 @@ def test_http_header_encoding():
     response = Response(mocked_request, mocked_socket, None)
 
     # set umlaut header
-    response.headers.append(('foo', 'häder'))
+    response.headers.append(('foo', u'häder'))
     with pytest.raises(UnicodeEncodeError):
         response.send_headers()
 
