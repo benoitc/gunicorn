@@ -55,13 +55,11 @@ class AsyncWorker(base.Worker):
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
             except ssl.SSLError:
-                exc_info = sys.exc_info()
                 # pass to next try-except level
-                six.reraise(exc_info[0], exc_info[1], exc_info[2])
+                six.reraise(*sys.exc_info())
             except EnvironmentError:
-                exc_info = sys.exc_info()
                 # pass to next try-except level
-                six.reraise(exc_info[0], exc_info[1], exc_info[2])
+                six.reraise(*sys.exc_info())
             except Exception as e:
                 self.handle_error(req, client, addr, e)
         except ssl.SSLError as e:
