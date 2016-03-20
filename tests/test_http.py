@@ -93,7 +93,7 @@ def test_http_header_encoding():
         mocked_socket.sendall(util.to_bytestring(header_str,"ascii"))
 
 
-def test_http_inalid_response_header():
+def test_http_invalid_response_header():
     """ tests whether http response headers are contains control chars """
 
     mocked_socket = mock.MagicMock()
