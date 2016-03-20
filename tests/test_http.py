@@ -81,21 +81,16 @@ def test_http_header_encoding():
 
     # set umlaut header
     response.headers.append(('foo', 'häder'))
-    try:
+    with pytest.raises(UnicodeEncodeError):
         response.send_headers()
-    except Exception as e:
-        assert isinstance(e, UnicodeEncodeError)
-
 
     # build our own header_str to compare against
     tosend = response.default_headers()
     tosend.extend(["%s: %s\r\n" % (k, v) for k, v in response.headers])
     header_str = "%s\r\n" % "".join(tosend)
 
-    try:
+    with pytest.raises(UnicodeEncodeError):
         mocked_socket.sendall(util.to_bytestring(header_str,"ascii"))
-    except Exception as e:
-        assert isinstance(e, UnicodeEncodeError)
 
 
 def test_http_inalid_response_header():
