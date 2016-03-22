@@ -102,6 +102,8 @@ A string referring to one of the following bundled classes:
 * ``eventlet`` - Requires eventlet >= 0.9.7
 * ``gevent``   - Requires gevent >= 0.13
 * ``tornado``  - Requires tornado >= 0.2
+* ``gthread``  - Python 2 requires the futures package to be installed
+* ``gaiohttp`` - Requires Python 3.4 and aiohttp >= 0.21.5
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
