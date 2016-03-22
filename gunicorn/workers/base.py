@@ -5,12 +5,12 @@
 
 from datetime import datetime
 import os
+from random import randint
 import signal
+from ssl import SSLError
 import sys
 import time
 import traceback
-from random import randint
-
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
@@ -181,7 +181,8 @@ class Worker(object):
         if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
                 InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
                 LimitRequestLine, LimitRequestHeaders,
-                InvalidProxyLine, ForbiddenProxyRequest)):
+                InvalidProxyLine, ForbiddenProxyRequest,
+                SSLError)):
 
             status_int = 400
             reason = "Bad Request"
@@ -206,12 +207,16 @@ class Worker(object):
                 reason = "Forbidden"
                 mesg = "Request forbidden"
                 status_int = 403
+            elif isinstance(exc, SSLError):
+                reason = "Forbidden"
+                mesg = "'%s'" % str(exc)
+                status_int = 403
 
             msg = "Invalid request from ip={ip}: {error}"
             self.log.debug(msg.format(ip=addr[0], error=str(exc)))
         else:
-            self.log.exception("Error handling request %s", req.uri)
-
+            if hasattr(req, "uri"):
+                self.log.exception("Error handling request %s", req.uri)
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
