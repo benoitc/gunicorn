@@ -114,20 +114,9 @@ class GeventWorker(AsyncWorker):
             server.start()
             servers.append(server)
 
-        try:
-            while self.alive:
-                self.notify()
-                gevent.sleep(1.0)
-
-        except KeyboardInterrupt:
-            pass
-        except:
-            for server in servers:
-                try:
-                    server.stop()
-                except:
-                    pass
-            raise
+        while self.alive:
+            self.notify()
+            gevent.sleep(1.0)
 
         try:
             # Stop accepting requests
