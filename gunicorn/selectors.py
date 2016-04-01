@@ -397,7 +397,9 @@ if hasattr(select, 'epoll'):
 
         def register(self, fileobj, events, data=None):
             key = super(EpollSelector, self).register(fileobj, events, data)
-            epoll_events = 0
+            # EPOLLEXCLUSIVE (linux 3.5) to avoid thundering herd
+            # http://man7.org/linux/man-pages/man2/epoll_ctl.2.html
+            epoll_events = (1 << 28)
             if events & EVENT_READ:
                 epoll_events |= select.EPOLLIN
             if events & EVENT_WRITE:
