@@ -49,7 +49,7 @@ class FakeSocket(object):
         return self.tmp.len
 
     def recv(self, length=None):
-        return self.tmp.read()
+        return self.tmp.read(length)
 
     def recv_into(self, buf, length):
         tmp_buffer = self.tmp.read(length)
