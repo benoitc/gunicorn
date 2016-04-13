@@ -4,7 +4,7 @@ import t
 import pytest
 
 from gunicorn import util
-from gunicorn.http.body import Body
+from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.six import BytesIO
@@ -177,3 +177,52 @@ def test_socket_unreader_chunk():
     assert sock_unreader.chunk() == b'm dol'
     assert sock_unreader.chunk() == b'or'
     assert sock_unreader.chunk() == b''
+
+
+def test_length_reader_read():
+    unreader = IterUnreader((b'Lorem', b'ipsum', b'dolor', b'sit', b'amet'))
+    reader = LengthReader(unreader, 13)
+    assert reader.read(0) == b''
+    assert reader.read(5) == b'Lorem'
+    assert reader.read(6) == b'ipsumd'
+    assert reader.read(4) == b'ol'
+    assert reader.read(100) == b''
+
+    reader = LengthReader(unreader, 10)
+    assert reader.read(0) == b''
+    assert reader.read(5) == b'orsit'
+    assert reader.read(5) == b'amet'
+    assert reader.read(100) == b''
+
+
+def test_length_reader_read_invalid_size():
+    reader = LengthReader(None, 5)
+    with pytest.raises(TypeError):
+        reader.read('100')
+    with pytest.raises(TypeError):
+        reader.read([100])
+    with pytest.raises(ValueError):
+        reader.read(-100)
+
+
+def test_eof_reader_read():
+    unreader = IterUnreader((b'Lorem', b'ipsum', b'dolor', b'sit', b'amet'))
+    reader = EOFReader(unreader)
+
+    assert reader.read(0) == b''
+    assert reader.read(5) == b'Lorem'
+    assert reader.read(5) == b'ipsum'
+    assert reader.read(3) == b'dol'
+    assert reader.read(3) == b'ors'
+    assert reader.read(100) == b'itamet'
+    assert reader.read(100) == b''
+
+
+def test_eof_reader_read_invalid_size():
+    reader = EOFReader(None)
+    with pytest.raises(TypeError):
+        reader.read('100')
+    with pytest.raises(TypeError):
+        reader.read([100])
+    with pytest.raises(ValueError):
+        reader.read(-100)
