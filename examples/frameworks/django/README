@@ -1,4 +1,3 @@
-applications to test django support:
+Applications to test Django support:
 
-djangotest -> django 1.1 - 1.3
-testing -> django 1.4
+testing -> Django 1.4
