@@ -117,9 +117,9 @@ class Worker(object):
 
         self.init_signals()
 
-        self.cfg.post_worker_init(self)
-
         self.load_wsgi()
+
+        self.cfg.post_worker_init(self)
 
         # Enter main run loop
         self.booted = True
