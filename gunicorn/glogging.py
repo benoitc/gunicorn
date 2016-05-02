@@ -52,9 +52,16 @@ CONFIG_DEFAULTS = dict(
             "root": {"level": "INFO", "handlers": ["console"]},
             "gunicorn.error": {
                 "level": "INFO",
-                "handlers": ["console"],
+                "handlers": ["error_console"],
                 "propagate": True,
                 "qualname": "gunicorn.error"
+            },
+
+            "gunicorn.access": {
+                "level": "INFO",
+                "handlers": ["console"],
+                "propagate": True,
+                "qualname": "gunicorn.access"
             }
         },
         handlers={
@@ -62,7 +69,12 @@ CONFIG_DEFAULTS = dict(
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
                 "stream": "sys.stdout"
-            }
+            },
+            "error_console": {
+                "class": "logging.StreamHandler",
+                "formatter": "generic",
+                "stream": "sys.stderr"
+            },
         },
         formatters={
             "generic": {
