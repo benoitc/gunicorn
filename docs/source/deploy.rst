@@ -265,6 +265,8 @@ utility::
 
     kill -USR1 $(cat /var/run/gunicorn.pid)
 
+.. note:: overriding the LOGGING dictionary requires to set `disable_existing_loggers: False`` to not interfere with the Gunicorn logging.
+
 .. _Nginx: http://www.nginx.org
 .. _Boom: https://github.com/rakyll/boom
 .. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
