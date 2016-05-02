@@ -397,7 +397,8 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            [l.close() for l in self.LISTENERS]
+            for l in self.LISTENERS:
+                l.close()
             # init new listeners
             self.LISTENERS = create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])
