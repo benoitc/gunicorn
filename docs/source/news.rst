@@ -2,6 +2,58 @@
 Changelog
 =========
 
+19.5.0 / 2016/05/10
+===================
+
+Core
+++++
+
+- fix: Ensure response to HEAD request won't have message body  
+- fix: lock domain socket and remove on last arbiter exit (:issue:`#1220`)
+- improvement: use EnvironmentError instead of socket.error (:issue:`939`)
+- add: new $FORWARDDED_ALLOW_IPS environment variable (:issue:`1205`)
+- fix: infinite recursion when destroying sockets (:issue:`1219`)
+- fix: close sockets on shutdown (:issue:`922`)
+- fix: clean up sys.exc_info calls to drop circular refs (:issue:`1228`)
+- fix: do post_worker_init after load_wsgi (:issue:`1248`)
+
+Workers
++++++++
+
+- fix access logging in gaiohttp worker (:issue:`#1193`)
+- eventlet: handle QUIT in a new coroutine (:issue:`#1217`)
+- gevent: remove obsolete exception clauses in run (:issue:`#1218`)
+- tornado: fix extra "Server" response header (:issue:`1246`)
+- fix: unblock the wait loop under python 3.5 in sync worker (:issue:`1256`)
+
+Logging
++++++++
+
+- fix: log message for listener reloading (:issue:`1181`)
+- Let logging module handle traceback printing (:issue:`1201`)
+- improvement:  Allow configuring logger_class with statsd_host (:issue:`#1188`)
+- fix: traceback formatting (:issue:`1235`)
+- fix: print error logs on stderr and access logs on stdout (:issue:`1184`)
+
+
+Documentation
++++++++++++++
+
+- Simplify installation instructions in gunicorn.org (:issue:`1072`)
+- Fix URL and default worker type in example_config (:issue:`1209`)
+- update django doc url to 1.8 lts (:issue:`1213`)
+- fix: miscellaneous wording corrections (:issue:`1216`)
+- Add PSF License Agreement of selectors.py to NOTICE (:issue: `1226`)
+- document LOGGING overriding (:issue:`1051`)
+- put a note that error logs are only errors from Gunicorn (:issue:`1124`)
+- add a note about the requirements of the threads workers under python 2.x (:issue:`1200`)
+- add access_log_format to config example (:issue:`1251`)
+
+Tests
++++++
+
+- Use more pytest.raises() in test_http.py
+
 19.4.5 / 2016/01/05
 ===================
 
