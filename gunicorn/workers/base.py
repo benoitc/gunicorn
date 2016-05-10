@@ -113,6 +113,8 @@ class Worker(object):
         [util.close_on_exec(s) for s in self.sockets]
         util.close_on_exec(self.tmp.fileno())
 
+        self.wait_fds = self.sockets + [self.PIPE[0]]
+
         self.log.close_on_exec()
 
         self.init_signals()
@@ -163,6 +165,9 @@ class Worker(object):
         if hasattr(signal, 'siginterrupt'):  # python >= 2.6
             signal.siginterrupt(signal.SIGTERM, False)
             signal.siginterrupt(signal.SIGUSR1, False)
+
+        if hasattr(signal, 'set_wakeup_fd'):
+            signal.set_wakeup_fd(self.PIPE[1])
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
