@@ -16,7 +16,7 @@
     <div class="logo-div">
       <div class="latest">
         Latest version: <strong><a
-            href="http://docs.gunicorn.org/en/stable">19.4</a></strong>
+            href="http://docs.gunicorn.org/en/stable">19.5</a></strong>
       </div>
 
       <div class="logo"><img src="images/logo.jpg" ></div>
@@ -39,7 +39,7 @@
         <li class="active">
           <a href="#quickstart" title="Quickstart" class="gabout">
             <h2>Quickstart</h2>
-            <p>Quickstart guide to getting started with using Gunicorn.</p>
+            <p>Read the quickstart guide to get started using Gunicorn.</p>
           </a>
         </li>
         <li class="withborder">
@@ -57,7 +57,7 @@
         <li class="withborder">
           <a href="#docs" title="Documentation" class="gdocuments">
             <h2>Documentation</h2>
-            <p>Read documentation to learn more about the Gunicorn.</p>
+            <p>Read the documentation to learn more about Gunicorn.</p>
           </a>
         </li>
       </ul>
@@ -66,31 +66,19 @@
       <div class="tab-box active" data-tab="quickstart">
         <h1>Installation</h1>
         <p>
-          Here's a quick rundown on how to get started with Gunicorn. For more detail read the documentation.
+          Here's a quick rundown on how to get started with Gunicorn. For more details read the <a href="http://docs.gunicorn.org/en/stable/">documentation</a>.
         </p>
 <pre>
-  $ sudo pip install virtualenv
-  $ mkdir ~/environments/
-  $ virtualenv ~/environments/tutorial/
-  $ cd ~/environments/tutorial/
-  $ ls
-  bin  include  lib
-  $ source bin/activate
-  (tutorial) $ pip install gunicorn
-  (tutorial) $ mkdir myapp
-  (tutorial) $ cd myapp/
-  (tutorial) $ vi myapp.py
-  (tutorial) $ cat myapp.py
-
-  def app(environ, start_response):
-      data = b"Hello, World!\n"
-      start_response("200 OK", [
-          ("Content-Type", "text/plain"),
-          ("Content-Length", str(len(data)))
-      ])
-      return iter([data])
-
-  (tutorial) $ ../bin/gunicorn -w 4 myapp:app
+  $ pip install gunicorn
+  $ cat myapp.py
+    def app(environ, start_response):
+        data = b"Hello, World!\n"
+        start_response("200 OK", [
+            ("Content-Type", "text/plain"),
+            ("Content-Length", str(len(data)))
+        ])
+        return iter([data])
+  $ gunicorn -w 4 myapp:app
   [2014-09-10 10:22:28 +0000] [30869] [INFO] Listening at: http://127.0.0.1:8000 (30869)
   [2014-09-10 10:22:28 +0000] [30869] [INFO] Using worker: sync
   [2014-09-10 10:22:28 +0000] [30874] [INFO] Booting worker with pid: 30874
@@ -102,9 +90,9 @@
       <div class="tab-box" data-tab="deployment">
         <h1>Deployment</h1>
         <p>
-          Gunicorn is wsgi http server. It is best to use Gunicorn behind HTTP proxy server. We strongly advise you to use <a href="http://www.nginx.org/">nginx</a>.
+          Gunicorn is a WSGI HTTP server. It is best to use Gunicorn behind an HTTP proxy server. We strongly advise you to use <a href="http://www.nginx.org/">nginx</a>.
         </p>
-        <p>Here's an example to help you get started with using nginx.</p>
+        <p>Here's an example to help you get started with using nginx:</p>
 <pre>
   server {
     listen 80;
@@ -118,13 +106,13 @@
     }
   }
 </pre>
-        <p>Nginx is set up as reverse proxy server to Gunicorn server which is running at localhost port 8000.</p>
+        <p>Nginx is set up as reverse proxy server to a Gunicorn server running on localhost port 8000.</p>
         <p>Read the full documentation at <a
           href="http://docs.gunicorn.org/en/latest/deploy.html">docs.gunicorn.org</a></p>
       </div>
       <div class="tab-box" data-tab="community">
         <h1>Mailing list</h1>
-        <p>The user mailing list is general discussion and support list for
+        <p>The user mailing list is a general discussion and support list for
           Gunicorn users and developers.</p>
           <ul>
             <li>
@@ -134,14 +122,14 @@
               To unsubscribe, send an email to <a href="mailto:user+unsubscribe&#64;gunicorn.org">user+unsubscribe&#64;gunicorn.org</a>
             </li>
             <li>
-              Finally, to post a message to the list use the address to
+              Finally, to post a message to the list use the address
               <a href="mailto:user&#64;gunicorn.org">user&#64;gunicorn.org</a>
             </li>
           </ul>
         <p>The archive for this list can also be <a href="http://lists.gunicorn.org/user">browsed online</a>.</p>
         <h1>Irc</h1>
         <p>The Gunicorn channel is on the <a href="http://freenode.net/">Freenode</a> IRC
-          network. You can chat with other on <a href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn channel</a>.</p>
+          network. You can chat with the community on the <a href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn channel</a>.</p>
 
         <h1>Issue Tracking</h1>
         <p>Bug reports, enhancement requests and tasks generally go in the <a  href="http://github.com/benoitc/gunicorn/issues">Github
@@ -150,7 +138,7 @@
         <h1>Security Issues</h1>
         <p>The security mailing list is a place to report security issues. Only
         developers are subscribed to it. To post a message to the list use the
-        address to  <a  href="mailto:security&#64;gunicorn.org">security&#64;gunicorn.org</a></p>
+        address <a  href="mailto:security&#64;gunicorn.org">security&#64;gunicorn.org</a></p>
 
       </div>
       <div class="tab-box" data-tab="docs">
