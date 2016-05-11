@@ -856,7 +856,7 @@ worker_exit
         def worker_exit(server, worker):
             pass
 
-Called just after a worker has been exited.
+Called in the worker, right before it terminates.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
