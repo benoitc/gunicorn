@@ -258,7 +258,7 @@ Next enable the services so they autostart at boot::
 Either reboot, or start the services manually::
 
     systemctl start nginx.service
-    systemctl start gunicorn.service
+    systemctl start gunicorn.socket
 
 
 After running ``curl http://localhost:9000/``, Gunicorn should start and you
