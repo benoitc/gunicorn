@@ -213,7 +213,7 @@ are configurations files to set the Gunicorn launch in systemd and
 the interfaces on which Gunicorn will listen. The sockets will be managed by
 systemd:
 
-**gunicorn.service**::
+**/etc/systemd/system/gunicorn.service**::
 
     [Unit]
     Description=gunicorn daemon
@@ -233,7 +233,7 @@ systemd:
     [Install]
     WantedBy=multi-user.target
 
-**gunicorn.socket**::
+**/etc/systemd/system/gunicorn.socket**::
 
     [Unit]
     Description=gunicorn socket
@@ -246,9 +246,20 @@ systemd:
     [Install]
     WantedBy=sockets.target
 
-**tmpfiles.d/gunicorn.conf**::
+**/usr/lib/tmpfiles.d/gunicorn.conf**::
 
     d /run/gunicorn 0755 someuser someuser -
+
+Next enable the services so they autostart at boot::
+
+    systemctl enable nginx.service
+    systemctl enable gunicorn.socket
+
+Either reboot, or start the services manually::
+
+    systemctl start nginx.service
+    systemctl start gunicorn.socket
+
 
 After running ``curl http://localhost:9000/``, Gunicorn should start and you
 should see something like that in logs::
