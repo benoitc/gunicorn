@@ -89,7 +89,7 @@ class Worker(object):
         if self.cfg.reload:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
-                os.kill(self.pid, signal.SIGQUIT)
+                self.alive = False
             self.reloader = Reloader(callback=changed)
             self.reloader.start()
 
