@@ -124,7 +124,7 @@ worker processes (unlike when using the preload setting, which loads the code in
 the master process).
 
 .. note:: Under Python 2.x, uou need to install the 'futures' package to use
-this feature.
+   this feature.
 
 .. _Greenlets: https://github.com/python-greenlet/greenlet
 .. _Eventlet: http://eventlet.net
