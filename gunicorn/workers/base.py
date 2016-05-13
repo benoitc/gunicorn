@@ -90,6 +90,10 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
+                self.cfg.worker_int(self)
+                time.sleep(0.1)
+                sys.exit(0)
+
             self.reloader = Reloader(callback=changed)
             self.reloader.start()
 
