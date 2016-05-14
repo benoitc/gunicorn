@@ -14,6 +14,7 @@ import time
 import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
+from gunicorn.lockfile import LockFile
 from gunicorn.pidfile import Pidfile
 from gunicorn.sock import create_sockets
 from gunicorn import util
@@ -39,6 +40,7 @@ class Arbiter(object):
     START_CTX = {}
 
     LISTENERS = []
+    LOCK_FILE = None
     WORKERS = {}
     PIPE = []
 
@@ -131,8 +133,21 @@ class Arbiter(object):
         self.cfg.on_starting(self)
 
         self.init_signals()
+        need_lock = False
         if not self.LISTENERS:
-            self.LISTENERS = create_sockets(self.cfg, self.log)
+            self.LISTENERS, need_lock = create_sockets(self.cfg, self.log)
+
+        if need_lock:
+            if not self.LOCK_FILE:
+                # reuse the lockfile if already set
+                if 'GUNICORN_LOCK' in os.environ:
+                    lock_path = os.environ.get('GUNICORN_LOCK')
+                else:
+                    lock_path = self.cfg.lockfile
+
+                self.LOCK_FILE = LockFile(lock_path)
+            # add us to the shared lock
+            self.LOCK_FILE.lock()
 
         listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
@@ -335,8 +350,17 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
+        locked = False
+        if self.LOCK_FILE:
+            self.LOCK_FILE.unlock()
+            locked = self.LOCK_FILE.locked()
+
+            # delete the lock file if needed
+            if not locked and 'GUNICORN_LOCK' in os.environ:
+                del os.environ['GUNICORN_LOCK']
+
         for l in self.LISTENERS:
-            l.close()
+            l.close(locked)
         self.LISTENERS = []
         sig = signal.SIGTERM
         if not graceful:
@@ -365,6 +389,9 @@ class Arbiter(object):
         environ = self.cfg.env_orig.copy()
         fds = [l.fileno() for l in self.LISTENERS]
         environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
+
+        if self.LOCK_FILE:
+            environ['GUNICORN_LOCK'] = self.LOCK_FILE.name()
 
         os.chdir(self.START_CTX['cwd'])
         self.cfg.pre_exec(self)
