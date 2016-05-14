@@ -12,7 +12,7 @@ import sys
 from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn.six import string_types, binary_type, reraise
+from gunicorn.six import string_types, binary_type, reraise, MAXSIZE
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -82,6 +82,7 @@ def base_environ(cfg):
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "wsgi.file_wrapper": FileWrapper,
+        "CONTENT_LENGTH": MAXSIZE,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
     }
 
