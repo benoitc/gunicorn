@@ -53,7 +53,7 @@ class BaseSocket(object):
     def bind(self, sock):
         sock.bind(self.cfg_addr)
 
-    def close(self):
+    def close(self, locked=False):
         if self.sock is None:
             return
 
@@ -110,8 +110,6 @@ class UnixSocket(BaseSocket):
                     raise ValueError("%r is not a socket" % addr)
         self.parent = os.getpid()
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
-        # each arbiter grabs a shared lock on the unix socket.
-        fcntl.lockf(self.sock, fcntl.LOCK_SH | fcntl.LOCK_NB)
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
@@ -122,18 +120,9 @@ class UnixSocket(BaseSocket):
         util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
 
-
-    def close(self):
-        if self.parent == os.getpid():
-            # attempt to acquire an exclusive lock on the unix socket.
-            # if we're the only arbiter running, the lock will succeed, and
-            # we can safely rm the socket.
-            try:
-                fcntl.lockf(self.sock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except:
-                pass
-            else:
-                os.unlink(self.cfg_addr)
+    def close(self, locked=False):
+        if self.parent == os.getpid() and not locked:
+            os.unlink(self.cfg_addr)
         super(UnixSocket, self).close()
 
 
@@ -162,6 +151,7 @@ def create_sockets(conf, log):
     # gunicorn.
     # http://www.freedesktop.org/software/systemd/man/systemd.socket.html
     listeners = []
+    need_lock = False
     if ('LISTEN_PID' in os.environ
             and int(os.environ.get('LISTEN_PID')) == os.getpid()):
         for i in range(int(os.environ.get('LISTEN_FDS', 0))):
@@ -170,6 +160,7 @@ def create_sockets(conf, log):
                 sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
                 sockname = sock.getsockname()
                 if isinstance(sockname, str) and sockname.startswith('/'):
+                    need_lock = True
                     listeners.append(UnixSocket(sockname, conf, log, fd=fd))
                 elif len(sockname) == 2 and '.' in sockname[0]:
                     listeners.append(TCPSocket("%s:%s" % sockname, conf, log,
@@ -184,7 +175,7 @@ def create_sockets(conf, log):
         if listeners:
             log.debug('Socket activation sockets: %s',
                     ",".join([str(l) for l in listeners]))
-            return listeners
+            return listeners, need_lock
 
     # get it only once
     laddr = conf.address
@@ -205,6 +196,9 @@ def create_sockets(conf, log):
             addr = laddr[i]
             sock_type = _sock_type(addr)
 
+            if sock_type == UnixSocket:
+                need_lock = True
+
             try:
                 listeners.append(sock_type(addr, conf, log, fd=fd))
             except socket.error as e:
@@ -212,11 +206,13 @@ def create_sockets(conf, log):
                     log.error("GUNICORN_FD should refer to an open socket.")
                 else:
                     raise
-        return listeners
+        return listeners, need_lock
 
     # no sockets is bound, first initialization of gunicorn in this env.
     for addr in laddr:
         sock_type = _sock_type(addr)
+        if sock_type == UnixSocket:
+            need_lock = True
 
         # If we fail to create a socket from GUNICORN_FD
         # we fall through and try and open the socket
@@ -244,4 +240,4 @@ def create_sockets(conf, log):
 
         listeners.append(sock)
 
-    return listeners
+    return listeners, need_lock
