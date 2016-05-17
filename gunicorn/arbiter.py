@@ -386,6 +386,8 @@ class Arbiter(object):
             self.master_name = "Old Master"
             return
 
+        self.cfg.pre_exec(self)
+
         environ = self.cfg.env_orig.copy()
         fds = [l.fileno() for l in self.LISTENERS]
         environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
@@ -394,7 +396,6 @@ class Arbiter(object):
             environ['GUNICORN_LOCK'] = self.LOCK_FILE.name()
 
         os.chdir(self.START_CTX['cwd'])
-        self.cfg.pre_exec(self)
 
         # exec the process using the original environnement
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
