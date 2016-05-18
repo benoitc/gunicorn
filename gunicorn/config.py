@@ -904,20 +904,6 @@ class Pidfile(Setting):
         If not set, no PID file will be written.
         """
 
-class LockFile(Setting):
-    name = "lockfile"
-    section = "Server Mechanics"
-    cli = ["--lock-file"]
-    meta = "FILE"
-    validator = validate_string
-    default = util.tmpfile(suffix=".lock", prefix="gunicorn-")
-
-    desc = """\
-        A filename to use for the lock file. A lock file is created when using unix sockets.
-        If not set, the default file 'gunicorn-<RANDOMSTRING>.lock'  will be created in the
-        temporary directory.
-        """
-
 class WorkerTmpDir(Setting):
     name = "worker_tmp_dir"
     section = "Server Mechanics"

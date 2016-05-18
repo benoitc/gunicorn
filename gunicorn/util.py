@@ -17,7 +17,6 @@ import resource
 import socket
 import stat
 import sys
-import tempfile
 import textwrap
 import time
 import traceback
@@ -38,8 +37,6 @@ timeout_default = object()
 CHUNK_SIZE = (16 * 1024)
 
 MAX_BODY = 1024 * 132
-
-normcase = os.path.normcase
 
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
@@ -549,14 +546,3 @@ def make_fail_app(msg):
         return [msg]
 
     return app
-
-
-characters = ("abcdefghijklmnopqrstuvwxyz" +
-              "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-              "0123456789_")
-
-def tmpfile(suffix="", prefix="tmp"):
-    c = characters
-    rand_str = normcase("".join([random.choice(c) for _ in "123456"]))
-    fname = "".join([prefix, rand_str, suffix])
-    return os.path.join(tempfile.gettempdir(), fname)
