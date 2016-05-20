@@ -917,6 +917,7 @@ class WorkerTmpDir(Setting):
         If not set, the default temporary directory will be used.
         """
 
+
 class User(Setting):
     name = "user"
     section = "Server Mechanics"
@@ -1118,6 +1119,20 @@ class Loglevel(Setting):
         * warning
         * error
         * critical
+        """
+
+
+class CaptureOutput(Setting):
+    name = "capture_output"
+    section = "Logging"
+    cli = ["--capture-output"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+        Redirect stdout/stderr to Error log.
+
+        .. versionadded:: 19.6
         """
 
 
