@@ -399,13 +399,14 @@ class Arbiter(object):
         if self.reexec_pid != 0:
             return
 
+        self.cfg.pre_exec(self)
+
         environ = self.cfg.env_orig.copy()
         fds = [l.fileno() for l in self.LISTENERS]
         environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
         environ['GUNICORN_PID'] = str(master_pid)
 
         os.chdir(self.START_CTX['cwd'])
-        self.cfg.pre_exec(self)
 
         # exec the process using the original environnement
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
