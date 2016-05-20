@@ -2,6 +2,13 @@
 Changelog
 =========
 
+19.6.0 / 2016/05/20
+===================
+
+- improvement of the binary upgrade behaviour using USR2: remove file lockin (:issue:`1270`)
+- fix reload under pycharm (:issue:`1129`)
+- fix: make sure to remove the signal from the worker pipe (:issue:`1269`)
+
 19.5.0 / 2016/05/10
 ===================
 
