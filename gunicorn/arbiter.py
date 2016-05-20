@@ -138,16 +138,7 @@ class Arbiter(object):
             self.LISTENERS, need_lock = create_sockets(self.cfg, self.log)
 
         if need_lock:
-            if not self.LOCK_FILE:
-                # reuse the lockfile if already set
-                if 'GUNICORN_LOCK' in os.environ:
-                    lock_path = os.environ.get('GUNICORN_LOCK')
-                else:
-                    lock_path = self.cfg.lockfile
-
-                self.LOCK_FILE = LockFile(lock_path)
-            # add us to the shared lock
-            self.LOCK_FILE.lock()
+            self.acquire_lockfile()
 
         listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
@@ -350,17 +341,13 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
-        locked = False
-        if self.LOCK_FILE:
-            self.LOCK_FILE.unlock()
-            locked = self.LOCK_FILE.locked()
-
-            # delete the lock file if needed
-            if not locked and 'GUNICORN_LOCK' in os.environ:
-                del os.environ['GUNICORN_LOCK']
-
+        released = self.try_release_lockfile()
         for l in self.LISTENERS:
-            l.close(locked)
+            l.close()
+
+            if released:
+                l.destroy()
+
         self.LISTENERS = []
         sig = signal.SIGTERM
         if not graceful:
@@ -452,6 +439,36 @@ class Arbiter(object):
 
         # manage workers
         self.manage_workers()
+
+    def acquire_lockfile(self):
+        """\
+        Acquire the lock file
+        """
+        if not self.LOCK_FILE:
+            # reuse the lockfile if already set
+            if 'GUNICORN_LOCK' in os.environ:
+                lock_path = os.environ.get('GUNICORN_LOCK')
+            else:
+                lock_path = self.cfg.lockfile
+
+            self.LOCK_FILE = LockFile(lock_path)
+        # add us to the shared lock
+        self.LOCK_FILE.acquire()
+
+    def try_release_lockfile(self):
+        """\
+        Try to release the lock file
+        """
+        released = False
+        if self.LOCK_FILE:
+            released = self.LOCK_FILE.release()
+
+            # delete the lock file if needed
+            if released and 'GUNICORN_LOCK' in os.environ:
+                del os.environ['GUNICORN_LOCK']
+
+        return released
+
 
     def murder_workers(self):
         """\

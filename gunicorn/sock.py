@@ -53,7 +53,7 @@ class BaseSocket(object):
     def bind(self, sock):
         sock.bind(self.cfg_addr)
 
-    def close(self, locked=False):
+    def close(self):
         if self.sock is None:
             return
 
@@ -63,6 +63,9 @@ class BaseSocket(object):
             self.log.info("Error while closing socket %s", str(e))
 
         self.sock = None
+
+    def destroy(self):
+        pass
 
 
 class TCPSocket(BaseSocket):
@@ -120,10 +123,12 @@ class UnixSocket(BaseSocket):
         util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
 
-    def close(self, locked=False):
-        if self.parent == os.getpid() and not locked:
-            os.unlink(self.cfg_addr)
+    def close(self):
         super(UnixSocket, self).close()
+
+    def destroy(self):
+        if self.parent == os.getpid():
+            os.unlink(self.cfg_addr)
 
 
 def _sock_type(addr):

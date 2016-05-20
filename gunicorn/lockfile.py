@@ -49,24 +49,27 @@ class LockFile(object):
         self._lockfile = open(self.fname, 'w+b')
         # set permissions to -rw-r--r--
         os.chmod(self.fname, 420)
-        self._locked = False
+        self._released = True
 
-    def lock(self):
+    def acquire(self):
         _lock(self._lockfile.fileno())
-        self._locked = True
+        self._released = False
 
-    def unlock(self):
-        if not self.locked():
-            return
+    def release(self):
+        if self.released():
+            return True
 
         if _unlock(self._lockfile.fileno()):
             self._lockfile.close()
             util.unlink(self.fname)
             self._lockfile = None
-            self._locked = False
+            self._released = True
+            return True
 
-    def locked(self):
-        return self._lockfile is not None and self._locked
+        return False
+
+    def released(self):
+        return self._lockfile is None or self._released
 
     def name(self):
         return self.fname
