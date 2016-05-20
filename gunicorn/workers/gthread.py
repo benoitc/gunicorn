@@ -179,6 +179,9 @@ class ThreadWorker(base.Worker):
                     except EnvironmentError as e:
                         if e.errno != errno.EBADF:
                             raise
+                    except KeyError:
+                        # already removed by the system, continue
+                        pass
 
                 # close the socket
                 conn.close()
