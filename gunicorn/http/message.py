@@ -17,7 +17,7 @@ from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.six import BytesIO
 from gunicorn._compat import urlsplit
 
-MAX_REQUEST_LINE = 8190
+MAX_REQUEST_LINE = 32768
 MAX_HEADERS = 32768
 MAX_HEADERFIELD_SIZE = 8190
 
