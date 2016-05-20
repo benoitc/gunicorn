@@ -254,4 +254,4 @@ class Worker(object):
 
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
-        return
+        self.log.debug("worker: SIGWINCH ignored.")
