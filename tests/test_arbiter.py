@@ -35,8 +35,8 @@ def test_arbiter_shutdown_closes_listeners():
     listener2 = mock.Mock()
     arbiter.LISTENERS = [listener1, listener2]
     arbiter.stop()
-    listener1.close.assert_called_with(False)
-    listener2.close.assert_called_with(False)
+    listener1.close.assert_called_with()
+    listener2.close.assert_called_with()
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
