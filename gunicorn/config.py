@@ -192,6 +192,17 @@ class Config(object):
 
         return env
 
+    @property
+    def sendfile(self):
+        if self.settings['sendfile'].get() is not None:
+            return False
+
+        if 'SENDFILE' in os.environ:
+            sendfile = os.environ['SENDFILE'].lower()
+            return sendfile in ['y', '1', 'yes', 'true']
+
+        return True
+
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -836,13 +847,19 @@ class Sendfile(Setting):
     validator = validate_bool
     action = "store_const"
     const = False
+
     desc = """\
         Disables the use of ``sendfile()``.
+
+        If not set, the value of the ``SENDFILE`` environment variable is used
+        to enable or disable its usage.
 
         .. versionadded:: 19.2
         .. versionchanged:: 19.4
            Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
            disabling.
+        .. versionchanged:: 19.6
+           added support for the ``SENDFILE`` environment variable
         """
 
 
