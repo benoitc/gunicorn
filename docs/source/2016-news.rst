@@ -6,12 +6,25 @@ Changelog - 2016
 
    Please see :doc:`news` for the latest changes55
 
-19.6.0 / 2016/05/20
+19.6.0 / 2016/05/21
 ===================
 
+Core & Logging
+++++++++++++++
+
 - improvement of the binary upgrade behaviour using USR2: remove file lockin (:issue:`1270`)
+- add the ``--capture-output`` setting to capture stdout/stderr tot the log
+file (:issue:`1271`)
+- Allow disabling ``sendfile()`` via the `SENDFILE`` environment variable
+(:issue:`1252`
 - fix reload under pycharm (:issue:`1129`)
+
+Workers
++++++++
+
 - fix: make sure to remove the signal from the worker pipe (:issue:`1269`)
+- fix: **gthread** worker, handle removed socket in the select loop
+(:issue:`1258`)
 
 19.5.0 / 2016/05/10
 ===================
