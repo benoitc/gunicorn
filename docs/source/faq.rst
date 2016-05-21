@@ -144,6 +144,13 @@ this queue new connections will eventually start getting dropped.
 
     $ sudo sysctl -w net.core.somaxconn="2048"
 
+How can I disable the use of ``sendfile()``
+-------------------------------------------
+
+Disabling the use ``sendfile()`` can be done by using the ``--no-sendfile``
+setting or by setting the environment variable ``SENDFILE`` to 0.
+
+
 
 Troubleshooting
 ===============
