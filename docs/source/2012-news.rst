@@ -11,7 +11,7 @@ Changelog - 2012
 - add response arg for post_request hook
 - parse command line with argparse (replace deprecated optparse)
 - fix PWD detection in arbiter
-- miscellenaeous PEP8 fixes
+- miscellaneous PEP8 fixes
 
 0.16.1 / 2012-11-19
 -------------------

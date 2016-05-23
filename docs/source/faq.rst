@@ -10,7 +10,7 @@ WSGI Bits
 How do I set SCRIPT_NAME?
 -------------------------
 
-By default ``SCRIPT_NAME`` is an empy string. The value could be set by
+By default ``SCRIPT_NAME`` is an empty string. The value could be set by
 setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
 
 
