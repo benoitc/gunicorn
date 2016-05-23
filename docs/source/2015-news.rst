@@ -54,7 +54,7 @@ Core
 - fix: make sure that a user is able to access to the logs after dropping a
   privilege (:issue:`1116`)
 - improvement: inherit the `Exception` class where it needs to be (:issue:`997`)
-- fix: make sure headers are always encodedas latin1 RFC 2616 (:issue:`1102`)
+- fix: make sure headers are always encoded as latin1 RFC 2616 (:issue:`1102`)
 - improvement: reduce arbiter noise (:issue:`1078`)
 - fix: don't close the unix socket when the worker exit (:issue:`1088`)
 - improvement: Make last logged worker count an explicit instance var (:issue:`1078`)
@@ -63,7 +63,7 @@ Core
 - fix: catch OSError as well as ValueError on race condition (:issue:`1052`)
 - improve support of ipv6 by backporting urlparse.urlsplit from Python 2.7 to
   Python 2.6.
-- fix: raise InvalidRequestLine when the line contains maliscious data
+- fix: raise InvalidRequestLine when the line contains malicious data
   (:issue:`1023`)
 - fix: fix argument to disable sendfile
 - fix: add gthread to the list of supported workers (:issue:`1011`)
@@ -76,7 +76,7 @@ Logging
 +++++++
 
 - add new parameters to access log (:issue:`1132`)
-- fix: make sure that files handles are correctly reopenebd on HUP
+- fix: make sure that files handles are correctly reopened on HUP
   (:issue:`627`)
 - include request URL in error message (:issue:`1071`)
 - get username in access logs (:issue:`1069`)

@@ -76,7 +76,7 @@ service release.
 -------------------
 
 - optimize readline
-- make imports errors more visiblle when loading an app or a logging
+- make imports errors more visible when loading an app or a logging
   class
 - fix tornado worker: don't pass ssl options if there are none
 - fix PEP3333: accept only bytetrings in the response body
