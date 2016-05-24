@@ -172,7 +172,9 @@ timeout
 * ``-t INT, --timeout INT``
 * ``30``
 
-Workers silent for more than this many seconds are killed and restarted.
+A worker must notify the master process once per timeout interval.
+If it fails do so, the worker is killed and a new worker is spawned
+to replace it.
 
 Generally set to thirty seconds. Only set this noticeably higher if
 you're sure of the repercussions for sync workers. For the non sync
