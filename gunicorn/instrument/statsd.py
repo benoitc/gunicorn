@@ -94,7 +94,7 @@ class Statsd(Logger):
         Logger.access(self, resp, req, environ, request_time)
         duration_in_ms = request_time.seconds * 1000 + float(request_time.microseconds) / 10 ** 3
         status = resp.status
-        path = req.path.replace('/', '__')
+        path = req.path
         method = req.method
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])
@@ -102,7 +102,7 @@ class Statsd(Logger):
         self.increment("gunicorn.requests", 1)
         self.increment("gunicorn.request.status.%d" % status, 1)
         self.histogram("gunicorn.request.{0}.{1}.duration".format(path, method), duration_in_ms)
-        self.increment("gunicorn.requests.{0}.{1}".format(path, req.method), 1)
+        self.increment("gunicorn.requests.{0}.{1}".format(path, method), 1)
         self.increment("gunicorn.request.{0}.{1}.status.{2}".format(path, method, status), 1)
 
     # statsD methods

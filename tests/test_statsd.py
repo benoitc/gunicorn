@@ -91,10 +91,14 @@ def test_instrument():
     assert logger.sock.msgs[0] == b"gunicorn.log.critical:1|c|@1.0"
     logger.sock.reset()
 
-    logger.access(SimpleNamespace(status="200 OK"), None, {}, timedelta(seconds=7))
+    logger.access(SimpleNamespace(status="200 OK"), SimpleNamespace(method='GET', path='/abc/123'),
+                  {}, timedelta(seconds=7))
     assert logger.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
     assert logger.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
     assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
+    assert logger.sock.msgs[3] == b"gunicorn.request./abc/123.GET.duration:7000.0|ms"
+    assert logger.sock.msgs[4] == b"gunicorn.requests./abc/123.GET:1|c|@1.0"
+    assert logger.sock.msgs[5] == b"gunicorn.request./abc/123.GET.status.200:1|c|@1.0"
 
 def test_prefix():
     c = Config()
