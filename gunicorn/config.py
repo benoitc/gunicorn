@@ -8,10 +8,7 @@
 import copy
 import grp
 import inspect
-try:
-    import argparse
-except ImportError:  # python 2.6
-    from . import argparse_compat as argparse
+import argparse
 import os
 import pwd
 import ssl
