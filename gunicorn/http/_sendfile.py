@@ -21,8 +21,7 @@ SUPPORTED_PLATFORMS = (
     'dragonfly',
     'linux2')
 
-if sys.version_info < (2, 6) or \
-        sys.platform not in SUPPORTED_PLATFORMS:
+if sys.platform not in SUPPORTED_PLATFORMS:
     raise ImportError("sendfile isn't supported on this platform")
 
 _libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
