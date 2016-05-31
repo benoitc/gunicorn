@@ -253,6 +253,7 @@ def parse_address(netloc, default_port=8000):
         port = default_port
     return (host, port)
 
+
 def get_maxfd():
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
     if (maxfd == resource.RLIM_INFINITY):
@@ -269,6 +270,7 @@ def close_on_exec(fd):
 def set_non_blocking(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+
 
 def close(sock):
     try:
