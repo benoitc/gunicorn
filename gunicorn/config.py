@@ -987,6 +987,23 @@ class Umask(Setting):
         """
 
 
+class Initgroups(Setting):
+    name = "initgroups"
+    section = "Server Mechanics"
+    cli = ["--initgroups"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+
+    desc = """\
+        If true, set the worker process's group access list with all of the
+        groups of which the specified username is a member, plus the specified
+        group id.
+
+        .. versionadded:: 19.7
+        """
+
+
 class TmpUploadDir(Setting):
     name = "tmp_upload_dir"
     section = "Server Mechanics"
