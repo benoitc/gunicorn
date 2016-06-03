@@ -54,6 +54,7 @@ hop_headers = set("""
 
 try:
     from setproctitle import setproctitle
+
     def _setproctitle(title):
         setproctitle("gunicorn: %s" % title)
 except ImportError:
@@ -147,13 +148,30 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
         return getattr(mod, klass)
 
 
-def set_owner_process(uid, gid):
+def get_username(uid):
+    """ get the username for a user id"""
+    return pwd.getpwuid(uid).pw_name
+
+
+def set_owner_process(uid, gid, initgroups=False):
     """ set user and group of workers processes """
+
     if gid:
+        if uid:
+            try:
+                username = get_username(uid)
+            except KeyError:
+                initgroups = False
+
         # versions of python < 2.6.2 don't manage unsigned int for
         # groups like on osx or fedora
         gid = abs(gid) & 0x7FFFFFFF
-        os.setgid(gid)
+
+        if initgroups:
+            os.initgroups(username, gid)
+        else:
+            os.setgid(gid)
+
     if uid:
         os.setuid(uid)
 
