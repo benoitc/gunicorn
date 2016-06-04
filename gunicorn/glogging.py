@@ -303,6 +303,10 @@ class Logger(object):
         # add response headers
         atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp_headers]))
 
+        # add environ variables
+        environ_variables = environ.items()
+        atoms.update(dict([("{%s}e" % k.lower(), v) for k, v in environ_variables]))
+
         return atoms
 
     def access(self, resp, req, environ, request_time):
