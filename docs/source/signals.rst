@@ -69,8 +69,8 @@ do it without any service downtime - no incoming requests will be
 lost. Preloaded applications will also be reloaded.
 
 First, replace the old binary with a new one, then send the **USR2** signal to the
-master process. It renames its .pid file to .oldbin (e.g.
-/var/run/gunicorn.pid.oldbin), then executes a new binary,
+master process. It executes a new binary whose .pid file is
+postfixed with .2 (e.g. /var/run/gunicorn.pid.2),
 which in turn starts a new master process and the new worker processes::
 
 
@@ -96,8 +96,7 @@ At this point you can still revert to the old server because it hasn't closed it
 - Send the QUIT signal to the new master process to force it quit
 
 If for some reason the new worker processes do not quit, send the KILL signal to
-them after the new master process quits, the old master process removes
-.oldbin suffix from its .pid file, and everything is exactly as before
+them after the new master process quits, and everything is exactly as before
 the upgrade attempt.
 
 If an update is successful and you want to keep the new server, send
