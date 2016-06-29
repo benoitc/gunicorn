@@ -208,11 +208,13 @@ class Body(object):
             self.buf.write(rest)
             return ret
 
+        read_size = 1024
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self.reader.read(read_size)
             if not len(data):
                 break
             self.buf.write(data)
+            read_size = read_size * 2
 
         data = self.buf.getvalue()
         ret, rest = data[:size], data[size:]
