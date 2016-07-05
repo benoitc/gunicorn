@@ -5,6 +5,7 @@
 
 import os
 import sys
+import traceback
 
 from gunicorn.app.base import Application
 from gunicorn import util
