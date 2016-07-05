@@ -206,5 +206,4 @@ def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
         gunicorn --paste development.ini
     """)
 
-    from gunicorn.app.pasterapp import PasterServerApplication
     PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()
