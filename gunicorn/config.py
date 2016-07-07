@@ -14,6 +14,7 @@ except ImportError:  # python 2.6
     from . import argparse_compat as argparse
 import os
 import pwd
+import re
 import ssl
 import sys
 import textwrap
@@ -202,6 +203,25 @@ class Config(object):
             return sendfile in ['y', '1', 'yes', 'true']
 
         return True
+
+    @property
+    def paste_global_conf(self):
+        raw_global_conf = self.settings['raw_paste_global_conf'].get()
+        if raw_global_conf is None:
+            return None
+
+        global_conf = {}
+        for e in raw_global_conf:
+            s = _compat.bytes_to_str(e)
+            try:
+                k, v = re.split(r'(?<!\\)=', s, 1)
+            except ValueError:
+                raise RuntimeError("environment setting %r invalid" % s)
+            k = k.replace('\\=', '=')
+            v = v.replace('\\=', '=')
+            global_conf[k] = v
+
+        return global_conf
 
 
 class SettingMeta(type):
@@ -1764,4 +1784,23 @@ if sys.version_info >= (2, 7):
         default = 'TLSv1'
         desc = """\
         Ciphers to use (see stdlib ssl module's)
+        """
+
+
+class PasteGlobalConf(Setting):
+    name = "raw_paste_global_conf"
+    action = "append"
+    section = "Server Mechanics"
+    cli = ["--paste-global-conf"]
+    meta = "CONF"
+    validator = validate_list_string
+    default = []
+
+    desc = """\
+        Set a PasteDeploy global config variable (key=value).
+
+        The variables are passed to the the PasteDeploy entrypoint. Ex.::
+
+            $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global-conf FOO=1
+
         """
