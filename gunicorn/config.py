@@ -1791,7 +1791,7 @@ class PasteGlobalConf(Setting):
     name = "raw_paste_global_conf"
     action = "append"
     section = "Server Mechanics"
-    cli = ["--paste-global-conf"]
+    cli = ["--paste-global"]
     meta = "CONF"
     validator = validate_list_string
     default = []
@@ -1799,8 +1799,10 @@ class PasteGlobalConf(Setting):
     desc = """\
         Set a PasteDeploy global config variable (key=value).
 
+        The option can be specified multiple times.
+
         The variables are passed to the the PasteDeploy entrypoint. Ex.::
 
-            $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global-conf FOO=1
+            $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
         """
