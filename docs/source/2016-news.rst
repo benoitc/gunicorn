@@ -4,7 +4,7 @@ Changelog - 2016
 
 .. note::
 
-   Please see :doc:`news` for the latest changes55
+   Please see :doc:`news` for the latest changes
 
 19.6.0 / 2016/05/21
 ===================
