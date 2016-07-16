@@ -1805,4 +1805,5 @@ class PasteGlobalConf(Setting):
 
             $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
+        .. versionadded:: 20.0
         """
