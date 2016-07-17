@@ -64,6 +64,9 @@ class BaseSocket(object):
 
         self.sock = None
 
+    def unlink(self):
+        return True
+
 
 class TCPSocket(BaseSocket):
 
@@ -120,8 +123,11 @@ class UnixSocket(BaseSocket):
         os.umask(old_umask)
 
     def close(self):
-        os.unlink(self.cfg_addr)
         super(UnixSocket, self).close()
+
+    def unlink(self):
+        os.unlink(self.cfg_addr)
+
 
 
 def _sock_type(addr):
