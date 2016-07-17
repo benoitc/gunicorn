@@ -12,4 +12,5 @@ from gunicorn import sock
 def test_unix_socket_close_unlink(fromfd, unlink, getpid):
     gsock = sock.UnixSocket('test.sock', mock.Mock(), mock.Mock(), mock.Mock())
     gsock.close()
+    gsock.unlink()
     unlink.assert_called_with("test.sock")
