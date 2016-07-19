@@ -15,8 +15,7 @@ import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
-from gunicorn.sock import create_sockets
-from gunicorn import util
+from gunicorn import sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
 
@@ -61,6 +60,7 @@ class Arbiter(object):
         self.setup(app)
 
         self.pidfile = None
+        self.systemd = False
         self.worker_age = 0
         self.reexec_pid = 0
         self.master_pid = 0
@@ -140,8 +140,21 @@ class Arbiter(object):
         self.cfg.on_starting(self)
 
         self.init_signals()
+
         if not self.LISTENERS:
-            self.LISTENERS = create_sockets(self.cfg, self.log)
+            fds = []
+
+            listen_fds = systemd.listen_fds()
+            if listen_fds:
+                self.systemd = True
+                fds = range(systemd.SD_LISTEN_FDS_START,
+                            systemd.SD_LISTEN_FDS_START + listen_fds)
+
+            elif self.master_pid:
+                for fd in os.environ.pop('GUNICORN_FD').split(','):
+                    fds.append(int(fd))
+
+            self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
         listeners_str = ",".join([str(l) for l in self.LISTENERS])
         self.log.debug("Arbiter booted")
@@ -365,9 +378,8 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
 
-        if self.reexec_pid == 0 and self.master_pid == 0:
-            for l in self.LISTENERS:
-                l.close()
+        unlink = self.reexec_pid == self.master_pid == 0 and not self.systemd
+        sock.close_sockets(self.LISTENERS, unlink)
 
         self.LISTENERS = []
         sig = signal.SIGTERM
@@ -402,9 +414,14 @@ class Arbiter(object):
         self.cfg.pre_exec(self)
 
         environ = self.cfg.env_orig.copy()
-        fds = [l.fileno() for l in self.LISTENERS]
-        environ['GUNICORN_FD'] = ",".join([str(fd) for fd in fds])
         environ['GUNICORN_PID'] = str(master_pid)
+
+        if self.systemd:
+            environ['LISTEN_PID'] = str(os.getpid())
+            environ['LISTEN_FDS'] = str(len(self.LISTENERS))
+        else:
+            environ['GUNICORN_FD'] = ','.join(
+                str(l.fileno()) for l in self.LISTENERS)
 
         os.chdir(self.START_CTX['cwd'])
 
@@ -439,7 +456,7 @@ class Arbiter(object):
             # close all listeners
             [l.close() for l in self.LISTENERS]
             # init new listeners
-            self.LISTENERS = create_sockets(self.cfg, self.log)
+            self.LISTENERS = sock.create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])
             self.log.info("Listening at: %s", listeners_str)
 
