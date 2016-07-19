@@ -4,7 +4,6 @@
 # See the NOTICE for more information.
 
 import errno
-import fcntl
 import os
 import socket
 import stat
