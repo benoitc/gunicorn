@@ -391,7 +391,7 @@ class Arbiter(object):
             return
 
         if self.master_pid != 0:
-            self.log.warning("USR2 signal ignored. Parent exists")
+            self.log.warning("USR2 signal ignored. Parent exists.")
             return
 
         master_pid = os.getpid()
