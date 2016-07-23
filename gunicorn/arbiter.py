@@ -408,13 +408,13 @@ class Arbiter(object):
 
         os.chdir(self.START_CTX['cwd'])
 
-        # exec the process using the original environnement
+        # exec the process using the original environment
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
         old_address = self.cfg.address
 
-        # reset old environement
+        # reset old environment
         for k in self.cfg.env:
             if k in self.cfg.env_orig:
                 # reset the key to the value it had before
