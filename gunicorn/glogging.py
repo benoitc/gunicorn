@@ -212,7 +212,7 @@ class Logger(object):
         # set gunicorn.access handler
         if cfg.accesslog is not None:
             self._set_handler(self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt))
+                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout)
 
         # set syslog handler
         if cfg.syslog:
@@ -373,7 +373,7 @@ class Logger(object):
             if getattr(h, "_gunicorn", False):
                 return h
 
-    def _set_handler(self, log, output, fmt):
+    def _set_handler(self, log, output, fmt, stream=None):
         # remove previous gunicorn log handler
         h = self._get_gunicorn_handler(log)
         if h:
@@ -381,7 +381,7 @@ class Logger(object):
 
         if output is not None:
             if output == "-":
-                h = logging.StreamHandler()
+                h = logging.StreamHandler(stream=stream)
             else:
                 util.check_is_writeable(output)
                 h = logging.FileHandler(output)
