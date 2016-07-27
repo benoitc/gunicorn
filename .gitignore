@@ -13,3 +13,5 @@ examples/frameworks/pylonstest/PasteScript*
 examples/frameworks/pylonstest/pylonstest.egg-info/
 examples/frameworks/django/testing/testdb.sql
 .tox
+venv
+.cache
