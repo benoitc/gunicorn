@@ -381,7 +381,7 @@ class Logger(object):
 
         if output is not None:
             if output == "-":
-                h = logging.StreamHandler(stream=stream)
+                h = logging.StreamHandler(stream)
             else:
                 util.check_is_writeable(output)
                 h = logging.FileHandler(output)
