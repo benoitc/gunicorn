@@ -1097,7 +1097,7 @@ class AccessLog(Setting):
     desc = """\
         The Access log file to write to.
 
-        ``'-'`` means log to stderr.
+        ``'-'`` means log to stdout.
         """
 
 
