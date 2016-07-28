@@ -461,7 +461,7 @@ accesslog
 
 The Access log file to write to.
 
-``'-'`` means log to stderr.
+``'-'`` means log to stdout.
 
 access_log_format
 ~~~~~~~~~~~~~~~~~
