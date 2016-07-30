@@ -65,12 +65,13 @@ The worker `gaiohttp` is a full asyncio worker using aiohttp_.
 Choosing a Worker Type
 ======================
 
-The default synchronous workers assume that your application is resource bound
+The default synchronous workers assume that your application is resource-bound
 in terms of CPU and network bandwidth. Generally this means that your
-application shouldn't do anything that takes an undefined amount of time. For
-instance, a request to the internet meets this criteria. At some point the
-external network will fail in such a way that clients will pile up on your
-servers.
+application shouldn't do anything that takes an undefined amount of time. An example
+of something that takes an undefined amount of time is a request to the internet.
+At some point the external network will fail in such a way that clients will pile up on your
+servers. So, in this sense, any web application which makes outgoing requests to
+APIs will benefit from an asynchronous worker.
 
 This resource bound assumption is why we require a buffering proxy in front of a
 default configuration Gunicorn. If you exposed synchronous workers to the
