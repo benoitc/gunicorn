@@ -834,7 +834,7 @@ class Spew(Setting):
 class ConfigCheck(Setting):
     name = "check_config"
     section = "Debugging"
-    cli = ["--check-config", ]
+    cli = ["--check-config"]
     validator = validate_bool
     action = "store_true"
     default = False
