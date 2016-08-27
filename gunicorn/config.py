@@ -545,6 +545,29 @@ class Bind(Setting):
         """
 
 
+class SocketSOREUSEPORT(Setting):
+    name = "socket_reuseport"
+    section = "Server Socket"
+    cli = ["--socket-reuseport"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Use the SO_REUSEPORT socket option.
+
+        This option allows multiple sockets on the same host to bind to the
+        same port. For example the same address can be listed multiple times
+        in the bind option.
+
+        This option is not available on all platform and all version of python.
+
+        Enabling this option will require a cold restart of the gunicorn master
+        process given that the SO_REUSEPORT option can only be set if the first
+        server sets this option before binding its socket (to prevent port
+        hijacking).
+    """
+
+
 class Backlog(Setting):
     name = "backlog"
     section = "Server Socket"
