@@ -42,7 +42,7 @@ class BaseSocket(object):
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except AttributeError:
-                # not all platform have SO_REUSEPORT.
+                # not all platforms have SO_REUSEPORT.
                 pass
         if not bound:
             self.bind(sock)
