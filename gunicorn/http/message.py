@@ -19,7 +19,7 @@ from gunicorn._compat import urlsplit
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
-MAX_HEADERFIELD_SIZE = 8190
+MAX_HEADERFIELD_SIZE = 16384
 
 HEADER_RE = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
