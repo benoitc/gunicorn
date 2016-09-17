@@ -3,8 +3,12 @@ import cherrypy
 cherrypy.config.update({'environment': 'embedded'})
 
 class Root(object):
+    @cherrypy.expose
     def index(self):
         return 'Hello World!'
-    index.exposed = True
 
-app = cherrypy.Application(Root(), script_name=None, config=None)
+cherrypy.config.update({'engine.autoreload.on': False})
+cherrypy.server.unsubscribe()
+cherrypy.engine.start()
+app = cherrypy.tree.mount(Root())
+
