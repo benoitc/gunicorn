@@ -793,9 +793,12 @@ class LimitRequestFieldSize(Setting):
     desc = """\
         Limit the allowed size of an HTTP request header field.
 
-        Value is a positive number or 0. Setting it to 0 will allow unlimited header field sizes.
+        Value is a positive number or 0. Setting it to 0 will allow unlimited
+        header field sizes.
 
-        Setting this parameter to a very high or unlimited value can open up for DDOS attacks.
+        .. warning::
+           Setting this parameter to a very high or unlimited value can open
+           up for DDOS attacks.
         """
 
 
