@@ -537,11 +537,20 @@ class Arbiter(object):
                                   "value": active_worker_count,
                                   "mtype": "gauge"})
 
+    def _next_worker_id(self):
+        """
+        Find the first free worker id for the next worker.
+        """
+        candidate = 1
+        while candidate in set(w.worker_id for w in self.WORKERS.values()):
+            candidate += 1
+        return candidate
+
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
                                    self.app, self.timeout / 2.0,
-                                   self.cfg, self.log)
+                                   self.cfg, self.log, self._next_worker_id())
         self.cfg.pre_fork(self, worker)
         pid = os.fork()
         if pid != 0:
