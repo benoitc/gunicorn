@@ -224,8 +224,8 @@ systemd:
     PIDFile=/run/gunicorn/pid
     User=someuser
     Group=someuser
-    WorkingDirectory=/home/someuser/dirwithwsgifile
-    ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid --bind unix:/run/gunicorn/socket wsgifile.wsgi
+    WorkingDirectory=/home/someuser/rootofdjangoproject
+    ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid --bind unix:/run/gunicorn/socket appname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
     ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
