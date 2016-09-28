@@ -224,8 +224,8 @@ systemd:
     PIDFile=/run/gunicorn/pid
     User=someuser
     Group=someuser
-    WorkingDirectory=/home/someuser
-    ExecStart=/home/someuser/gunicorn/bin/gunicorn --pid /run/gunicorn/pid test:app
+    WorkingDirectory=/home/someuser/dirwithwsgifile
+    ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid --bind unix:/run/gunicorn/socket wsgifile.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
     ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
