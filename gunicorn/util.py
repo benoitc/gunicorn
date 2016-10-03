@@ -387,8 +387,7 @@ def import_app(module):
     try:
         app = eval(obj, mod.__dict__)
     except NameError:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        traceback.print_exception(exc_type, exc_value, exc_traceback)
+        traceback.print_exception(*sys.exc_info())
         raise AppImportError("Failed to find application: %r" % module)
 
     if app is None:
