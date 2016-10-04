@@ -820,6 +820,22 @@ class Reload(Setting):
         application code or the reload will not work as designed.
         '''
 
+class ReloadInotify(Setting):
+    name = 'inotify'
+    section = 'Debugging'
+    cli = ['--use-inotify']
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = '''\
+        When using the 'reload' option, use the kernel's inotify APIs to watch 
+        files instead of polling the filesystem. On many systems this could result
+        in a performance improvement when using 'reload'.
+
+        This setting must be used in conjunction with 'reload' and requires the
+        'inotify' package be installed from PyPI.
+        '''
 
 class Spew(Setting):
     name = "spew"

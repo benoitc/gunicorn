@@ -14,7 +14,7 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import Reloader
+from gunicorn.reloader import Reloader, InotifyReloader, has_inotify
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
@@ -85,18 +85,6 @@ class Worker(object):
         loop is initiated.
         """
 
-        # start the reloader
-        if self.cfg.reload:
-            def changed(fname):
-                self.log.info("Worker reloading: %s modified", fname)
-                self.alive = False
-                self.cfg.worker_int(self)
-                time.sleep(0.1)
-                sys.exit(0)
-
-            self.reloader = Reloader(callback=changed)
-            self.reloader.start()
-
         # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
@@ -125,6 +113,19 @@ class Worker(object):
         self.init_signals()
 
         self.load_wsgi()
+
+        # start the reloader
+        if self.cfg.reload:
+            def changed(fname):
+                self.log.info("Worker reloading: %s modified", fname)
+                self.alive = False
+                self.cfg.worker_int(self)
+                time.sleep(0.1)
+                sys.exit(0)
+            
+            reloader_cls = Reloader if not self.cfg.inotify else InotifyReloader
+            self.reloader = reloader_cls(callback=changed)
+            self.reloader.start()
 
         self.cfg.post_worker_init(self)
 
