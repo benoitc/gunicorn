@@ -20,11 +20,12 @@ Gunicorn users.
 The archive for this list can also be `browsed online
 <http://lists.gunicorn.org/user>`_ .
 
-Irc
+IRC
 ===
 
 The Gunicorn channel is on the `Freenode <http://freenode.net/>`_ IRC
-network. You can chat with other on `#gunicorn channel <http://webchat.freenode.net/?channels=gunicorn>`_.
+network. You can chat with other on `#gunicorn channel
+<http://webchat.freenode.net/?channels=gunicorn>`_.
 
 Issue Tracking
 ==============

@@ -68,8 +68,8 @@ upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be
 lost. Preloaded applications will also be reloaded.
 
-First, replace the old binary with a new one, then send the **USR2** signal to the
-master process. It executes a new binary whose .pid file is
+First, replace the old binary with a new one, then send the **USR2** signal to
+the master process. It executes a new binary whose .pid file is
 postfixed with .2 (e.g. /var/run/gunicorn.pid.2),
 which in turn starts a new master process and the new worker processes::
 
@@ -89,14 +89,17 @@ incoming requests together. To phase the old instance out, you have to
 send the **WINCH** signal to the old master process, and its worker
 processes will start to gracefully shut down.
 
-At this point you can still revert to the old server because it hasn't closed its listen sockets yet, by following these steps:
+At this point you can still revert to the old server because it hasn't closed
+its listen sockets yet, by following these steps:
 
-- Send the HUP signal to the old master process - it will start the worker processes without reloading a configuration file
-- Send the TERM signal to the new master process to gracefully shut down its worker processes
+- Send the HUP signal to the old master process - it will start the worker
+  processes without reloading a configuration file
+- Send the TERM signal to the new master process to gracefully shut down its
+  worker processes
 - Send the QUIT signal to the new master process to force it quit
 
-If for some reason the new worker processes do not quit, send the KILL signal to
-them after the new master process quits, and everything is exactly as before
+If for some reason the new worker processes do not quit, send the KILL signal
+to them after the new master process quits, and everything is exactly as before
 the upgrade attempt.
 
 If an update is successful and you want to keep the new server, send

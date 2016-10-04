@@ -647,7 +647,7 @@ class WorkerThreads(Setting):
         You'll want to vary this a bit to find the best for your particular
         application's work load.
 
-        If it is not defined, the default is 1.
+        If it is not defined, the default is ``1``.
         """
 
 
