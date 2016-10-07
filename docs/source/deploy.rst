@@ -252,12 +252,12 @@ systemd:
 
 Next enable the services so they autostart at boot::
 
-    systemctl enable nginx.service
+    systemctl enable gunicorn.service
     systemctl enable gunicorn.socket
 
 Either reboot, or start the services manually::
 
-    systemctl start nginx.service
+    systemctl start gunicorn.service
     systemctl start gunicorn.socket
 
 
