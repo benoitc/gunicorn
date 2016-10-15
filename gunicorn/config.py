@@ -945,6 +945,21 @@ class Pidfile(Setting):
         If not set, no PID file will be written.
         """
 
+class DelayPidfile(Setting):
+    name = "delay_pidfile"
+    section = "Server Mechanics"
+    cli = ["--delay-pidfile"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        If pidfile is set, delay creation until workers have booted.
+
+        This setting is useful during on the fly upgrades as a mechanism for
+        signaling when a graceful shutdown of the old master process should be
+        initiated.
+        """
+
 class WorkerTmpDir(Setting):
     name = "worker_tmp_dir"
     section = "Server Mechanics"

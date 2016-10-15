@@ -53,6 +53,7 @@ class Worker(object):
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
+        self.start_time = self.tmp.last_update()
 
     def __str__(self):
         return "<Worker %s>" % self.pid

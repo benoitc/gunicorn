@@ -78,6 +78,13 @@ class Arbiter(object):
             0: sys.executable
         }
 
+    def _create_pidfile(self):
+        pidname = self.cfg.pidfile
+        if self.master_pid != 0:
+            pidname += ".2"
+        self.pidfile = Pidfile(pidname)
+        self.pidfile.create(self.pid)
+
     def _get_num_workers(self):
         return self._num_workers
 
@@ -131,12 +138,8 @@ class Arbiter(object):
             self.master_name = "Master.2"
 
         self.pid = os.getpid()
-        if self.cfg.pidfile is not None:
-            pidname = self.cfg.pidfile
-            if self.master_pid != 0:
-                pidname += ".2"
-            self.pidfile = Pidfile(pidname)
-            self.pidfile.create(self.pid)
+        if self.cfg.pidfile is not None and not self.cfg.delay_pidfile:
+            self._create_pidfile()
         self.cfg.on_starting(self)
 
         self.init_signals()
@@ -528,6 +531,20 @@ class Arbiter(object):
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
+
+        # Use worker.start_time != worker.tmp.last_update() as a proxy for
+        # worker.boot, since worker.boot is only updated in the worker process.
+        if (self.pidfile is None and
+                self.cfg.pidfile is not None and
+                self.cfg.delay_pidfile):
+            worker_values = list(self.WORKERS.values())
+            booted = True
+            for worker in worker_values:
+                if worker.tmp.last_update() == worker.start_time:
+                    booted = False
+                    break
+            if booted:
+                self._create_pidfile()
 
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
