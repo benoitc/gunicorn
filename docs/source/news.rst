@@ -9,7 +9,7 @@ Core & Logging
 ++++++++++++++
 
 - improvement of the binary upgrade behaviour using USR2: remove file locking (:issue:`1270`)
-- add the ``--capture-output`` setting to capture stdout/stderr tot the log
+- add the ``--capture-output`` setting to capture stdout/stderr to the log
 file (:issue:`1271`)
 - Allow disabling ``sendfile()`` via the ``SENDFILE`` environment variable
 (:issue:`1252`)

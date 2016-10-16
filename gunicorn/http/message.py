@@ -19,7 +19,7 @@ from gunicorn._compat import urlsplit
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
-MAX_HEADERFIELD_SIZE = 8190
+DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
 HEADER_RE = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
@@ -41,12 +41,11 @@ class Message(object):
             or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
         self.limit_request_field_size = cfg.limit_request_field_size
-        if (self.limit_request_field_size < 0
-            or self.limit_request_field_size > MAX_HEADERFIELD_SIZE):
-            self.limit_request_field_size = MAX_HEADERFIELD_SIZE
+        if self.limit_request_field_size < 0:
+            self.limit_request_field_size = DEFAULT_MAX_HEADERFIELD_SIZE
 
         # set max header buffer size
-        max_header_field_size = self.limit_request_field_size or MAX_HEADERFIELD_SIZE
+        max_header_field_size = self.limit_request_field_size or DEFAULT_MAX_HEADERFIELD_SIZE
         self.max_buffer_headers = self.limit_request_fields * \
             (max_header_field_size + 2) + 4
 

@@ -24,6 +24,7 @@ import inspect
 import errno
 import warnings
 import cgi
+import logging
 
 from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
@@ -384,9 +385,12 @@ def import_app(module):
 
     mod = sys.modules[module]
 
+    is_debug = logging.root.level == logging.DEBUG
     try:
         app = eval(obj, mod.__dict__)
     except NameError:
+        if is_debug:
+            traceback.print_exception(*sys.exc_info())
         raise AppImportError("Failed to find application: %r" % module)
 
     if app is None:

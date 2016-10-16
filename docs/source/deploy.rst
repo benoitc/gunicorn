@@ -224,8 +224,8 @@ systemd:
     PIDFile=/run/gunicorn/pid
     User=someuser
     Group=someuser
-    WorkingDirectory=/home/someuser
-    ExecStart=/home/someuser/gunicorn/bin/gunicorn --pid /run/gunicorn/pid test:app
+    WorkingDirectory=/home/someuser/applicationroot
+    ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid --bind unix:/run/gunicorn/socket applicationname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
     ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
@@ -252,12 +252,12 @@ systemd:
 
 Next enable the services so they autostart at boot::
 
-    systemctl enable nginx.service
+    systemctl enable gunicorn.service
     systemctl enable gunicorn.socket
 
 Either reboot, or start the services manually::
 
-    systemctl start nginx.service
+    systemctl start gunicorn.service
     systemctl start gunicorn.socket
 
 
