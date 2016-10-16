@@ -82,7 +82,7 @@ You'll want to vary this a bit to find the best for your particular
 application's work load.
 
 By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-If it is not defined, the default is 1.
+If it is not defined, the default is ``1``.
 
 worker_class
 ~~~~~~~~~~~~
@@ -172,9 +172,7 @@ timeout
 * ``-t INT, --timeout INT``
 * ``30``
 
-A worker must notify the master process once per timeout interval.
-If it fails do so, the worker is killed and a new worker is spawned
-to replace it.
+Workers silent for more than this many seconds are killed and restarted.
 
 Generally set to thirty seconds. Only set this noticeably higher if
 you're sure of the repercussions for sync workers. For the non sync
@@ -246,8 +244,12 @@ limit_request_field_size
 
 Limit the allowed size of an HTTP request header field.
 
-Value is a number from 0 (unlimited) to 8190. to set the limit
-on the allowed size of an HTTP request header field.
+Value is a positive number or 0. Setting it to 0 will allow unlimited
+header field sizes.
+
+.. warning::
+   Setting this parameter to a very high or unlimited value can open
+   up for DDOS attacks.
 
 Debugging
 ---------
@@ -305,20 +307,25 @@ sendfile
 ~~~~~~~~
 
 * ``--no-sendfile``
-* ``True``
+* ``None``
 
 Disables the use of ``sendfile()``.
+
+If not set, the value of the ``SENDFILE`` environment variable is used
+to enable or disable its usage.
 
 .. versionadded:: 19.2
 .. versionchanged:: 19.4
    Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
    disabling.
+.. versionchanged:: 19.6
+   added support for the ``SENDFILE`` environment variable
 
 chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn/py27/gunicorn/docs``
+* ``/usr/local/insightsquared/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -371,7 +378,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``501``
+* ``6052``
 
 Switch worker processes to run as this user.
 
@@ -383,7 +390,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``20``
+* ``6052``
 
 Switch worker process to run as this group.
 
@@ -405,6 +412,18 @@ A valid value for the ``os.umask(mode)`` call or a string compatible
 with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
 representations)
+
+initgroups
+~~~~~~~~~~
+
+* ``--initgroups``
+* ``False``
+
+If true, set the worker process's group access list with all of the
+groups of which the specified username is a member, plus the specified
+group id.
+
+.. versionadded:: 19.7
 
 tmp_upload_dir
 ~~~~~~~~~~~~~~
@@ -448,7 +467,10 @@ Front-end's IPs from which allowed to handle set secure headers.
 
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
-you still trust the environment)
+you still trust the environment).
+
+By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
+variable. If it is not defined, the default is ``"127.0.0.1"``.
 
 Logging
 -------
@@ -471,30 +493,31 @@ access_log_format
 
 The access log format.
 
-==========  ===========
-Identifier  Description
-==========  ===========
-h           remote address
-l           ``'-'``
-u           user name
-t           date of the request
-r           status line (e.g. ``GET / HTTP/1.1``)
-m           request method
-U           URL path without query string
-q           query string
-H           protocol
-s           status
-B           response length
-b           response length or ``'-'`` (CLF format)
-f           referer
-a           user agent
-T           request time in seconds
-D           request time in microseconds
-L           request time in decimal seconds
-p           process ID
-{Header}i   request header
-{Header}o   response header
-==========  ===========
+===========  ===========
+Identifier   Description
+===========  ===========
+h            remote address
+l            ``'-'``
+u            user name
+t            date of the request
+r            status line (e.g. ``GET / HTTP/1.1``)
+m            request method
+U            URL path without query string
+q            query string
+H            protocol
+s            status
+B            response length
+b            response length or ``'-'`` (CLF format)
+f            referer
+a            user agent
+T            request time in seconds
+D            request time in microseconds
+L            request time in decimal seconds
+p            process ID
+{Header}i    request header
+{Header}o    response header
+{Variable}e  environment variable
+===========  ===========
 
 errorlog
 ~~~~~~~~
@@ -504,7 +527,7 @@ errorlog
 
 The Error log file to write to.
 
-``'-'`` means log to stderr.
+Using ``'-'`` for FILE makes gunicorn log to stderr.
 
 .. versionchanged:: 19.2
    Log to stderr by default.
@@ -525,6 +548,16 @@ Valid level names are:
 * error
 * critical
 
+capture_output
+~~~~~~~~~~~~~~
+
+* ``--capture-output``
+* ``False``
+
+Redirect stdout/stderr to Error log.
+
+.. versionadded:: 19.6
+
 logger_class
 ~~~~~~~~~~~~
 
@@ -535,10 +568,6 @@ The logger you want to use to log events in Gunicorn.
 
 The default class (``gunicorn.glogging.Logger``) handle most of
 normal usages in logging. It provides error and access logging.
-
-If you enable statsd support, then a special subclass
-(``gunicorn.instrument.statsd.Statsd``) is used instead, which handles
-sending the metrics to *statsd_host*
 
 You can provide your own worker by giving Gunicorn a
 Python path to a subclass like ``gunicorn.glogging.Logger``.
@@ -559,7 +588,7 @@ syslog_addr
 ~~~~~~~~~~~
 
 * ``--log-syslog-to SYSLOG_ADDR``
-* ``unix:///var/run/syslog``
+* ``udp://localhost:514``
 
 Address to send syslog messages.
 
@@ -604,7 +633,7 @@ enable_stdio_inheritance
 * ``-R, --enable-stdio-inheritance``
 * ``False``
 
-Enable stdio inheritance
+Enable stdio inheritance.
 
 Enable inheritance for stdio file descriptors in daemon mode.
 
@@ -618,12 +647,6 @@ statsd_host
 * ``None``
 
 ``host:port`` of the statsd server to log to.
-
-Note: enabling this switches the default *logger_class* to
-``gunicorn.instrument.statsd.Statsd``. If you wish to use statsd with
-a custom *logger_class*, you should make sure your class is API
-compatible with ``gunicorn.instrument.statsd.Statsd``, or inherit from
-it.
 
 .. versionadded:: 19.1
 
@@ -640,6 +663,72 @@ if not provided).
 
 Process Naming
 --------------
+
+proc_name_format
+~~~~~~~~~~~~~~~~
+
+* ``--name-format STRING``
+* ``{proc_name_prefix}: {identifier} [{proc_name}]``
+
+The format to use with setproctitle for process naming. Should be in
+the form of a Python format string with places for "proc_name_prefix",
+"identifier", and "proc_name".
+
+If not set, defaults to "{proc_name_prefix}: {master_identifier} [{proc_name}]"
+and "{proc_name_prefix}: {worker_identifier} [{proc_name}]"
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+proc_name_prefix
+~~~~~~~~~~~~~~~~
+
+* ``--name-prefix STRING``
+* ``gunicorn``
+
+A prefix to use with setproctitle for process naming. Fills the
+"proc_name_prefix" portion of the proc_name_format string.
+
+If not set, defaults to "gunicorn".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+worker_identifier
+~~~~~~~~~~~~~~~~~
+
+* ``--name-worker STRING``
+* ``worker``
+
+How to identify worker processes when using setproctitle. Fills the
+"identifier" portion of the proc_name_format string.
+
+If not set, defaults to "worker".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+master_identifier
+~~~~~~~~~~~~~~~~~
+
+* ``--name-master STRING``
+* ``master``
+
+How to identify the master process when using setproctitle. Fills the
+"identifier" portion of the proc_name_format string.
+
+If not set, defaults to "master".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
 
 proc_name
 ~~~~~~~~~
@@ -858,7 +947,7 @@ worker_exit
         def worker_exit(server, worker):
             pass
 
-Called in the worker, right before it terminates.
+Called just after a worker has been exited.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
@@ -994,4 +1083,23 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
+
+Server Mechanics
+----------------
+
+raw_paste_global_conf
+~~~~~~~~~~~~~~~~~~~~~
+
+* ``--paste-global CONF``
+* ``[]``
+
+Set a PasteDeploy global config variable (key=value).
+
+The option can be specified multiple times.
+
+The variables are passed to the the PasteDeploy entrypoint. Ex.::
+
+    $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
+
+.. versionadded:: 20.0
 
