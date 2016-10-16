@@ -1368,9 +1368,12 @@ class ProcnameFormat(Setting):
     validator = validate_string
     default = "{proc_name_prefix}: {identifier} [{proc_name}]"
     desc = """\
-        The format to use with setproctitle for process naming. Should be in the form of a Python format string with places for "proc_name_prefix", "identifier", and "proc_name".
+        The format to use with setproctitle for process naming. Should be in
+        the form of a Python format string with places for "proc_name_prefix",
+        "identifier", and "proc_name".
 
-        If not set, defaults to "{proc_name_prefix}: {master_identifier} [{proc_name}]" and "{proc_name_prefix}: {worker_identifier} [{proc_name}]"
+        If not set, defaults to "{proc_name_prefix}: {master_identifier} [{proc_name}]"
+        and "{proc_name_prefix}: {worker_identifier} [{proc_name}]"
 
         This affects things like ``ps`` and ``top``. If you're going to be
         running more than one instance of Gunicorn you'll probably want to set a
@@ -1387,7 +1390,8 @@ class ProcnamePrefix(Setting):
     validator = validate_string
     default = "gunicorn"
     desc = """\
-        A prefix to use with setproctitle for process naming. Fills the "proc_name_prefix" portion of the proc_name_format string.
+        A prefix to use with setproctitle for process naming. Fills the
+        "proc_name_prefix" portion of the proc_name_format string.
 
         If not set, defaults to "gunicorn".
 
@@ -1406,7 +1410,8 @@ class WorkerIdentifier(Setting):
     validator = validate_string
     default = "worker"
     desc = """\
-        How to identify worker processes when using setproctitle. Fills the "identifier" portion of the proc_name_format string.
+        How to identify worker processes when using setproctitle. Fills the
+        "identifier" portion of the proc_name_format string.
 
         If not set, defaults to "worker".
 
@@ -1425,7 +1430,8 @@ class MasterIdentifier(Setting):
     validator = validate_string
     default = "master"
     desc = """\
-        How to identify the master process when using setproctitle. Fills the "identifier" portion of the proc_name_format string.
+        How to identify the master process when using setproctitle. Fills the
+        "identifier" portion of the proc_name_format string.
 
         If not set, defaults to "master".
 
