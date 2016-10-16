@@ -56,10 +56,10 @@ hop_headers = set("""
 try:
     from setproctitle import setproctitle
 
-    def _setproctitle(title):
-        setproctitle("gunicorn: %s" % title)
+    def _setproctitle(fmt, prefix, identifier, proc_name):
+        setproctitle(fmt.format(proc_name_prefix=prefix, identifier=identifier, proc_name=proc_name))
 except ImportError:
-    def _setproctitle(title):
+    def _setproctitle(fmt, prefix, identifier, proc_name):
         return
 
 

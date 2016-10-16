@@ -103,6 +103,10 @@ class Arbiter(object):
         self.num_workers = self.cfg.workers
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
+        self.proc_name_format = self.cfg.proc_name_format
+        self.proc_name_prefix = self.cfg.proc_name_prefix
+        self.worker_identifier = self.cfg.worker_identifier
+        self.master_identifier = self.cfg.master_identifier
 
         self.log.debug('Current configuration:\n{0}'.format(
             '\n'.join(
@@ -183,7 +187,7 @@ class Arbiter(object):
     def run(self):
         "Main master loop."
         self.start()
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle(self.proc_name_format, self.proc_name_prefix, self.master_identifier, self.proc_name)
 
         try:
             self.manage_workers()
@@ -309,12 +313,16 @@ class Arbiter(object):
             self.master_name = "Master"
             self.master_pid = 0
             self.proc_name = self.cfg.proc_name
+            self.proc_name_format = self.cfg.proc_name_format
+            self.proc_name_prefix = self.cfg.proc_name_prefix
+            self.worker_identifier = self.cfg.worker_identifier
+            self.master_identifier = self.cfg.master_identifier
             del os.environ['GUNICORN_PID']
             # rename the pidfile
             if self.pidfile is not None:
                 self.pidfile.rename(self.cfg.pidfile)
             # reset proctitle
-            util._setproctitle("master [%s]" % self.proc_name)
+            util._setproctitle(self.proc_name_format, self.proc_name_prefix, self.master_identifier, self.proc_name)
 
     def wakeup(self):
         """\
@@ -456,7 +464,7 @@ class Arbiter(object):
             self.pidfile.create(self.pid)
 
         # set new proc_name
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle(self.proc_name_format, self.proc_name_prefix, self.master_identifier, self.proc_name)
 
         # spawn new workers
         for i in range(self.cfg.workers):
@@ -551,7 +559,7 @@ class Arbiter(object):
         # Process Child
         worker_pid = os.getpid()
         try:
-            util._setproctitle("worker [%s]" % self.proc_name)
+            util._setproctitle(self.proc_name_format, self.proc_name_prefix, self.worker_identifier, self.proc_name)
             self.log.info("Booting worker with pid: %s", worker_pid)
             self.cfg.post_fork(self, worker)
             worker.init_process()
