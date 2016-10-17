@@ -346,6 +346,15 @@ def validate_pos_int(val):
     return val
 
 
+def validate_float(val):
+    if not val:
+        return 0.0
+    try:
+        return float(val)
+    except TypeError:
+        raise TypeError("Value is not a float: %s" % val)
+
+
 def validate_string(val):
     if val is None:
         return None
@@ -1823,7 +1832,6 @@ if sys.version_info >= (2, 7):
         Ciphers to use (see stdlib ssl module's)
         """
 
-
 class PasteGlobalConf(Setting):
     name = "raw_paste_global_conf"
     action = "append"
@@ -1844,3 +1852,16 @@ class PasteGlobalConf(Setting):
 
         .. versionadded:: 20.0
         """
+
+class SpawnWorkerSleepTime(Setting):
+    name = "spawn_worker_sleep_time"
+    section = "Worker Processes"
+    cli = ['--spawn-worker-sleep-time']
+    validator = validate_float
+    default = 0.1
+    desc = """\
+    Minimum time to sleep between spawning workers in seconds.
+
+    The amount of time spent sleeping between spawning new workers will jitter
+    from spawn-worker-sleep-time to 2 * spawn-worker-sleep-time.
+    """
