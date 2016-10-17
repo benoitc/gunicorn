@@ -25,10 +25,13 @@ class BaseSocket(object):
         self.cfg_addr = address
         if fd is None:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
+            bound = False
         else:
             sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
+            os.close(fd)
+            bound = True
 
-        self.sock = self.set_options(sock, bound=(fd is not None))
+        self.sock = self.set_options(sock, bound=bound)
 
     def __str__(self, name):
         return "<socket %d>" % self.sock.fileno()
