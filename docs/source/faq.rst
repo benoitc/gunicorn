@@ -164,9 +164,18 @@ With asynchronous workers, creating URLs with the ``reverse`` function of
 How do I avoid Gunicorn excessively blocking in ``os.fchmod``?
 --------------------------------------------------------------
 
-The current heartbeat system involves calling ``os.fchmod`` on temporary file handlers and may block a worker for arbitrary time if the directory is on a disk-backed filesystem. For example, by default ``/tmp`` is not mounted as ``tmpfs`` in Ubuntu; in AWS an EBS root instance volume may sometimes hang for half a minute and during this time Gunicorn workers may completely block in ``os.fchmod``. ``os.fchmod`` may introduce extra delays if the disk gets full. Also Gunicon may refuse to start if it can't create the files when the disk is full.
+The current heartbeat system involves calling ``os.fchmod`` on temporary file 
+handlers and may block a worker for arbitrary time if the directory is on a 
+disk-backed filesystem. For example, by default ``/tmp`` is not mounted as 
+``tmpfs`` in Ubuntu; in AWS an EBS root instance volume may sometimes hang for 
+half a minute and during this time Gunicorn workers may completely block in 
+``os.fchmod``. ``os.fchmod`` may introduce extra delays if the disk gets full. 
+Also Gunicon may refuse to start if it can't create the files when the disk is 
+full.
 
-Currently to avoid these problems you can create a ``tmpfs`` mount (for a new directory or for ``/tmp``) and pass its path to ``--worker-tmp-dir``. First, check whether your ``/tmp`` is disk-backed or RAM-backed::
+Currently to avoid these problems you can create a ``tmpfs`` mount (for a new 
+directory or for ``/tmp``) and pass its path to ``--worker-tmp-dir``. First, 
+check whether your ``/tmp`` is disk-backed or RAM-backed::
 
     $ df /tmp
     Filesystem     1K-blocks    Used Available Use% Mounted on
