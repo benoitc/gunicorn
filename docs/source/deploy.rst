@@ -208,7 +208,7 @@ from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
 Systemd
 -------
 
-A tool that is starting to be common on linux systems is Systemd_. Below are configurations files and instructions for using systemd to create a unix socket for incomming Gunicorn requests.  Systemd will listen on this socket and start gunicorn automatically in response to traffic.  Later in this section are instructions for configuring Nginx to forward web traffic to the newly created unix socket:
+A tool that is starting to be common on linux systems is Systemd_. Below are configurations files and instructions for using systemd to create a unix socket for incoming Gunicorn requests.  Systemd will listen on this socket and start gunicorn automatically in response to traffic.  Later in this section are instructions for configuring Nginx to forward web traffic to the newly created unix socket:
 
 **/etc/systemd/system/gunicorn.service**::
 
@@ -261,7 +261,7 @@ should see something like that in logs::
 
     2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn/socket,http://0.0.0.0:9000,http://[::]:8000
 
-If you are also using Nginx with Systemd make sure to pass incomming traffic to the new Gunicorn socket.  Below is the http  section of my nginx.conf
+If you are also using Nginx with Systemd make sure to pass incoming traffic to the new Gunicorn socket.  Below is the http  section of my nginx.conf
 
 **/etc/tmpfiles.d/gunicorn.conf**::
     http {
