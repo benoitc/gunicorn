@@ -256,8 +256,7 @@ Either reboot, or start the services manually::
     systemctl start gunicorn.socket
 
 
-After running ``curl --unix-socket /run/gunicorn/socket http:``, Gunicorn should start and you
-should see something like that in logs::
+After running ``curl --unix-socket /run/gunicorn/socket http:``, Gunicorn should start and you should see something like that in logs::
 
     2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn/socket,http://0.0.0.0:9000,http://[::]:8000
 
