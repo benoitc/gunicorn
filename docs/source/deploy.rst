@@ -208,10 +208,7 @@ from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
 Systemd
 -------
 
-A tool that is starting to be common on linux systems is Systemd_. Here
-are configurations files to set the Gunicorn launch in systemd and
-the interfaces on which Gunicorn will listen. The sockets will be managed by
-systemd:
+A tool that is starting to be common on linux systems is Systemd_. Below are configurations files and instructions for using systemd to create a unix socket for incomming Gunicorn requests.  Systemd will listen on this socket and start gunicorn automatically in response to traffic.  Later in this section are instructions for configuring Nginx to forward web traffic to the newly created unix socket:
 
 **/etc/systemd/system/gunicorn.service**::
 
@@ -240,15 +237,13 @@ systemd:
 
     [Socket]
     ListenStream=/run/gunicorn/socket
-    ListenStream=0.0.0.0:9000
-    ListenStream=[::]:8000
 
     [Install]
     WantedBy=sockets.target
 
-**/usr/lib/tmpfiles.d/gunicorn.conf**::
+**/etc/tmpfiles.d/gunicorn.conf**::
 
-    d /run/gunicorn 0755 someuser someuser -
+    d /run/gunicorn 0755 someuser somegroup -
 
 Next enable the services so they autostart at boot::
 
@@ -261,10 +256,51 @@ Either reboot, or start the services manually::
     systemctl start gunicorn.socket
 
 
-After running ``curl http://localhost:9000/``, Gunicorn should start and you
+After running ``curl --unix-socket /run/gunicorn/socket http:``, Gunicorn should start and you
 should see something like that in logs::
 
     2013-02-19 23:48:19 [31436] [DEBUG] Socket activation sockets: unix:/run/gunicorn/socket,http://0.0.0.0:9000,http://[::]:8000
+
+If you are also using Nginx with Systemd make sure to pass incomming traffic to the new Gunicorn socket.  Below is the http  section of my nginx.conf
+
+**/etc/tmpfiles.d/gunicorn.conf**::
+    http {
+        include             mime.types;
+        default_type        application/octet-stream;
+        
+        sendfile             on;
+        keepalive_timeout   65;
+        disable_symlinks    off;
+    
+        server { 
+            listen          8000;
+            server_name     127.0.0.1;
+
+        location /static/ {
+            alias /static/;
+        }
+
+        location / {
+            proxy_set_header    Host $http_host;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    X-Forwarded-Proto $scheme; 
+            proxy_pass          http://unix:/run/gunicorn/socket;
+        }
+    }
+
+
+    
+Now make sure you enable the nginx service so it automatically starts at boot:
+
+    systemctl enable nginx.service
+    
+Either reboot, or start Nginx with the following command:
+
+    systemctl start nginx
+    
+Now you should be able to test Nginx with Gunicorn by visiting http://127.0.0.1:8000/ in any web browser. Please note that the listen and server_name used here are configured for a local machine.  In a produciton server you will most likely listen on port 80, and use your URL as the server_name.  Apache or any other web-server can be used instead of Nginx.
+
 
 Logging
 =======
