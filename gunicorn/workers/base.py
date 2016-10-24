@@ -14,7 +14,7 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import Reloader, InotifyReloader, has_inotify
+from gunicorn.reloader import preferred_reloader, Reloader, InotifyReloader
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
@@ -122,8 +122,14 @@ class Worker(object):
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
-            
-            reloader_cls = Reloader if not self.cfg.inotify else InotifyReloader
+
+            if self.cfg.reload == 'poll':
+                reloader_cls = Reloader
+            elif self.cfg.reload == 'inotify':
+                reloader_cls = InotifyReloader
+            else:
+                reloader_cls = preferred_reloader
+
             self.reloader = reloader_cls(callback=changed)
             self.reloader.start()
 

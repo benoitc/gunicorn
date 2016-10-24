@@ -60,18 +60,20 @@ try:
 except ImportError:
     has_inotify = False
 
+
 class InotifyReloader():
     def __init__(self, callback=None):
-        raise ImportError('You must have the inotify module installed to use the INotify reloader')
+        raise ImportError('You must have the inotify module installed to use '
+                          'the inotify reloader')
 
 if has_inotify:
 
     class InotifyReloader(threading.Thread):
-        event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE 
-                      | inotify.constants.IN_DELETE_SELF | inotify.constants.IN_MODIFY 
-                      | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM 
+        event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE
+                      | inotify.constants.IN_DELETE_SELF | inotify.constants.IN_MODIFY
+                      | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM
                       | inotify.constants.IN_MOVED_TO)
-        
+
         def __init__(self, extra_files=None, callback=None):
             super(InotifyReloader, self).__init__()
             self.setDaemon(True)
@@ -102,14 +104,14 @@ if has_inotify:
 
             for dirname in self._dirs:
                 self._watcher.add_watch(dirname, mask=self.event_mask)
-            
+
             for event in self._watcher.event_gen():
                 if event is None:
                     continue
-                
-                types = event[1]
+
                 filename = event[3]
 
                 self._callback(filename)
 
 
+preferred_reloader = InotifyReloader if has_inotify else Reloader
