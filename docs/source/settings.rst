@@ -255,8 +255,8 @@ Debugging
 reload
 ~~~~~~
 
-* ``--reload``
-* ``False``
+* ``--reload RELOADER_TYPE``
+* ``None``
 
 Restart workers when code changes.
 
@@ -266,6 +266,15 @@ restarted whenever application code changes.
 The reloader is incompatible with application preloading. When using a
 paste configuration be sure that the server block does not import any
 application code or the reload will not work as designed.
+
+When using this option, you can optionally specify whether you would
+like to use file system polling or the kernel's inotify API to watch
+for changes. Generally, inotify should be preferred if available
+because it consumes less system resources. If no preference is given,
+inotify will attempted with a fallback to FS polling.
+
+Note: In order to use the inotify reloader, you must have the 'inotify'
+package installed.
 
 spew
 ~~~~

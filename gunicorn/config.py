@@ -489,6 +489,19 @@ def validate_hostport(val):
     else:
         raise TypeError("Value must consist of: hostname:port")
 
+
+def validate_reloader(val):
+    if val is None:
+        val = 'default'
+
+    choices = ['poll', 'inotify', 'default']
+
+    if val not in choices:
+        raise ConfigError(
+            'Invalid reloader type. Must be one of: %s' % choices
+        )
+
+
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
             'gunicorn.conf.py')
@@ -806,9 +819,12 @@ class Reload(Setting):
     name = "reload"
     section = 'Debugging'
     cli = ['--reload']
-    validator = validate_bool
-    action = 'store_true'
-    default = False
+    validator = validate_reloader
+    nargs = '?'
+    const = 'default'
+    default = None
+    meta = 'RELOADER_TYPE'
+
     desc = '''\
         Restart workers when code changes.
 
@@ -818,6 +834,15 @@ class Reload(Setting):
         The reloader is incompatible with application preloading. When using a
         paste configuration be sure that the server block does not import any
         application code or the reload will not work as designed.
+
+        When using this option, you can optionally specify whether you would
+        like to use file system polling or the kernel's inotify API to watch
+        for changes. Generally, inotify should be preferred if available
+        because it consumes less system resources. If no preference is given,
+        inotify will attempted with a fallback to FS polling.
+
+        Note: In order to use the inotify reloader, you must have the 'inotify'
+        package installed.
         '''
 
 
