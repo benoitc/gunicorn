@@ -823,6 +823,7 @@ class Reload(Setting):
     nargs = '?'
     const = 'default'
     default = None
+    meta = 'RELOADER_TYPE'
 
     desc = '''\
         Restart workers when code changes.
@@ -838,7 +839,10 @@ class Reload(Setting):
         like to use file system polling or the kernel's inotify API to watch
         for changes. Generally, inotify should be preferred if available
         because it consumes less system resources. If no preference is given,
-        inotify will attempted with a fallback to FS polling.'
+        inotify will attempted with a fallback to FS polling.
+
+        Note: In order to use the inotify reloader, you must have the 'inotify'
+        package installed.
         '''
 
 
