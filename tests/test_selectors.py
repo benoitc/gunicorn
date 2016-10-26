@@ -5,10 +5,7 @@ import random
 import signal
 import socket
 from time import sleep
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 try:
     import unittest.mock as mock
 except ImportError:
