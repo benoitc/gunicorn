@@ -501,6 +501,8 @@ def validate_reloader(val):
             'Invalid reloader type. Must be one of: %s' % choices
         )
 
+    return val
+
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
