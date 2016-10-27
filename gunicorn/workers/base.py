@@ -115,7 +115,7 @@ class Worker(object):
         self.load_wsgi()
 
         # start the reloader
-        if self.cfg.reload:
+        if self.cfg.reload and self.cfg.reload != 'off':
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
