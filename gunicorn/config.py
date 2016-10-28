@@ -492,14 +492,16 @@ def validate_hostport(val):
 
 def validate_reloader(val):
     if val is None:
-        val = 'default'
+        val = 'auto'
 
-    choices = ['poll', 'inotify', 'default']
+    choices = ['auto', 'poll', 'inotify', 'off']
 
     if val not in choices:
         raise ConfigError(
             'Invalid reloader type. Must be one of: %s' % choices
         )
+
+    return val
 
 
 def get_default_config_file():
@@ -820,9 +822,7 @@ class Reload(Setting):
     section = 'Debugging'
     cli = ['--reload']
     validator = validate_reloader
-    nargs = '?'
-    const = 'default'
-    default = None
+    default = 'off'
     meta = 'RELOADER_TYPE'
 
     desc = '''\
@@ -838,8 +838,8 @@ class Reload(Setting):
         When using this option, you can optionally specify whether you would
         like to use file system polling or the kernel's inotify API to watch
         for changes. Generally, inotify should be preferred if available
-        because it consumes less system resources. If no preference is given,
-        inotify will attempted with a fallback to FS polling.
+        because it consumes less system resources. The default behavior (auto)
+        is to attempt inotify with a fallback to FS polling.
 
         Note: In order to use the inotify reloader, you must have the 'inotify'
         package installed.
