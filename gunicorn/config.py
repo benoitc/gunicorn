@@ -1832,6 +1832,7 @@ if sys.version_info >= (2, 7):
         Ciphers to use (see stdlib ssl module's)
         """
 
+
 class PasteGlobalConf(Setting):
     name = "raw_paste_global_conf"
     action = "append"
@@ -1858,7 +1859,7 @@ class SpawnWorkerSleepTime(Setting):
     section = "Worker Processes"
     cli = ['--spawn-worker-sleep-time']
     validator = validate_float
-    default = 0.1
+    default = 0.05
     desc = """\
     Minimum time to sleep between spawning workers in seconds.
 
