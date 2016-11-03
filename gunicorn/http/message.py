@@ -23,7 +23,7 @@ DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
 HEADER_RE = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
-VERSION_RE = re.compile(r"HTTP/(\d+).(\d+)")
+VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
 class Message(object):
