@@ -18,6 +18,7 @@ import re
 import ssl
 import sys
 import textwrap
+import shlex
 
 from gunicorn import __version__
 from gunicorn import _compat
@@ -68,6 +69,11 @@ class Config(object):
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
+
+    def get_cmd_args_from_env(self):
+        if 'GUNICORN_CMD_ARGS' in self.env_orig:
+            return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])
+        return []
 
     def parser(self):
         kwargs = {
