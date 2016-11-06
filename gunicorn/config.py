@@ -21,6 +21,7 @@ import textwrap
 
 from gunicorn import __version__
 from gunicorn import _compat
+from gunicorn import SERVER_SOFTWARE
 from gunicorn.errors import ConfigError
 from gunicorn import six
 from gunicorn import util
@@ -1835,4 +1836,36 @@ class PasteGlobalConf(Setting):
             $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
         .. versionadded:: 20.0
+        """
+
+
+class ServerName(Setting):
+    name = "server_name"
+    section = "Server Mechanics"
+    cli = ["--server-name"]
+    validator = validate_string
+    default = SERVER_SOFTWARE
+
+    desc = """\
+        Server name to use in the ``Server`` HTTP Header on responses.
+
+        If not set, the default Gunicorn server name will be used:
+        ``gunicorn\X.Y.Z``.
+
+        .. versionadded:: 19.6
+        """
+
+
+class NoServerName(Setting):
+    name = "no_server_name"
+    section = "Server Mechanics"
+    cli = ["--no-server-name"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = """\
+        If set, the ``Server`` HTTP Header will not be returned on responses.
+
+        .. versionadded:: 19.6
         """

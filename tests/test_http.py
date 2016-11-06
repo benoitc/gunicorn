@@ -3,7 +3,9 @@
 import t
 import pytest
 
+from gunicorn import config
 from gunicorn import util
+from gunicorn import SERVER_SOFTWARE
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
@@ -226,3 +228,37 @@ def test_eof_reader_read_invalid_size():
         reader.read([100])
     with pytest.raises(ValueError):
         reader.read(-100)
+
+
+def test_server_name_response_header():
+    """ tests whether the http server name is set correctly """
+
+    def get_server_name_header_value(headers):
+        """ return the value of the ``Server`` HTTP Header """
+        for header in headers:
+            if header[:8] == 'Server: ':
+                return header[8:].strip()
+        return None
+
+    mocked_socket = mock.MagicMock()
+    mocked_socket.sendall = mock.MagicMock()
+
+    mocked_request = mock.MagicMock()
+    c = config.Config()
+
+    # use case: return default server header
+    response = Response(mocked_request, mocked_socket, c)
+    headers = response.default_headers()
+    assert get_server_name_header_value(headers) == SERVER_SOFTWARE
+
+    # use case: return custom server header
+    c.set('server_name', 'Server x.y')
+    response = Response(mocked_request, mocked_socket, c)
+    headers = response.default_headers()
+    assert get_server_name_header_value(headers) == 'Server x.y'
+
+    # use case: return no server header
+    c.set('no_server_name', True)
+    response = Response(mocked_request, mocked_socket, c)
+    headers = response.default_headers()
+    assert get_server_name_header_value(headers) is None

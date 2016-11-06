@@ -459,6 +459,22 @@ Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
 you still trust the environment)
 
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--server_name STRING``
+* ``gunicorn\X.Y.Z``
+
+Server name to use in the ``Server`` HTTP Header on responses.
+
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--no_server_name``
+* ``None``
+
+If set, the ``Server`` HTTP Header will not be returned on responses.
+
 Logging
 -------
 
@@ -1003,4 +1019,3 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
-

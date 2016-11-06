@@ -214,7 +214,6 @@ class Response(object):
     def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
-        self.version = SERVER_SOFTWARE
         self.status = None
         self.chunked = False
         self.must_close = False
@@ -320,10 +319,12 @@ class Response(object):
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
                 self.req.version[1], self.status),
-            "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
         ]
+        if self.cfg and self.cfg.no_server_name is False \
+                and self.cfg.server_name:
+            headers.append("Server: %s\r\n" % self.cfg.server_name)
         if self.chunked:
             headers.append("Transfer-Encoding: chunked\r\n")
         return headers
