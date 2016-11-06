@@ -1850,7 +1850,7 @@ class ServerName(Setting):
         Server name to use in the ``Server`` HTTP Header on responses.
 
         If not set, the default Gunicorn server name will be used:
-        ``gunicorn\X.Y.Z``.
+        ``gunicorn/X.Y.Z``.
 
         .. versionadded:: 19.6
         """

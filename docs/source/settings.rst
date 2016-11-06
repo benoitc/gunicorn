@@ -463,7 +463,7 @@ server_name
 ~~~~~~~~~~~~~~~~~~~
 
 * ``--server_name STRING``
-* ``gunicorn\X.Y.Z``
+* ``gunicorn/X.Y.Z``
 
 Server name to use in the ``Server`` HTTP Header on responses.
 
