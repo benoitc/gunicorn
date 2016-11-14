@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -12,7 +10,7 @@ import sys
 from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn.six import string_types, binary_type, reraise
+from gunicorn.util import reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 
@@ -127,7 +125,7 @@ def create(req, sock, client, server, cfg):
 
     # set secure_headers
     secure_headers = cfg.secure_scheme_headers
-    if client and not isinstance(client, string_types):
+    if client and not isinstance(client, str):
         if ('*' not in cfg.forwarded_allow_ips
                 and client[0] not in cfg.forwarded_allow_ips):
             secure_headers = {}
@@ -164,9 +162,9 @@ def create(req, sock, client, server, cfg):
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
-    if isinstance(client, string_types):
+    if isinstance(client, str):
         environ['REMOTE_ADDR'] = client
-    elif isinstance(client, binary_type):
+    elif isinstance(client, bytes):
         environ['REMOTE_ADDR'] = str(client)
     else:
         environ['REMOTE_ADDR'] = client[0]
@@ -176,7 +174,7 @@ def create(req, sock, client, server, cfg):
     # Normally only the application should use the Host header but since the
     # WSGI spec doesn't support unix sockets, we are using it to create
     # viable SERVER_* if possible.
-    if isinstance(server, string_types):
+    if isinstance(server, str):
         server = server.split(":")
         if len(server) == 1:
             # unix socket
@@ -265,7 +263,7 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            if not isinstance(name, string_types):
+            if not isinstance(name, str):
                 raise TypeError('%r is not a string' % name)
 
             if HEADER_RE.search(name):
@@ -340,7 +338,7 @@ class Response(object):
 
     def write(self, arg):
         self.send_headers()
-        if not isinstance(arg, binary_type):
+        if not isinstance(arg, bytes):
             raise TypeError('%r is not a byte' % arg)
         arglen = len(arg)
         tosend = arglen

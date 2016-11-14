@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -13,7 +11,7 @@ import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
-from gunicorn import six
+from gunicorn.util import reraise
 
 ALREADY_HANDLED = object()
 
@@ -34,7 +32,7 @@ class AsyncWorker(base.Worker):
             try:
                 listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
-                    req = six.next(parser)
+                    req = next(parser)
                     self.handle_request(listener_name, req, client, addr)
                 else:
                     # keepalive loop
@@ -42,7 +40,7 @@ class AsyncWorker(base.Worker):
                     while True:
                         req = None
                         with self.timeout_ctx():
-                            req = six.next(parser)
+                            req = next(parser)
                         if not req:
                             break
                         if req.proxy_protocol_info:
@@ -56,10 +54,10 @@ class AsyncWorker(base.Worker):
                 self.log.debug("Closing connection. %s", e)
             except ssl.SSLError:
                 # pass to next try-except level
-                six.reraise(*sys.exc_info())
+                reraise(*sys.exc_info())
             except EnvironmentError:
                 # pass to next try-except level
-                six.reraise(*sys.exc_info())
+                reraise(*sys.exc_info())
             except Exception as e:
                 self.handle_error(req, client, addr, e)
         except ssl.SSLError as e:
@@ -122,7 +120,7 @@ class AsyncWorker(base.Worker):
         except EnvironmentError:
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)
-            six.reraise(*sys.exc_info())
+            reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the

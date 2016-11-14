@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -27,7 +25,6 @@ import cgi
 import logging
 
 from gunicorn.errors import AppImportError
-from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
 
 MAXFD = 1024
@@ -310,7 +307,7 @@ except ImportError:
 
 
 def write_chunk(sock, data):
-    if isinstance(data, text_type):
+    if isinstance(data, str):
         data = data.encode('utf-8')
     chunk_size = "%X\r\n" % len(data)
     chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
@@ -529,7 +526,7 @@ def to_bytestring(value, encoding="utf8"):
     """Converts a string argument to a byte string"""
     if isinstance(value, bytes):
         return value
-    if not isinstance(value, text_type):
+    if not isinstance(value, str):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
@@ -570,3 +567,28 @@ def make_fail_app(msg):
         return [msg]
 
     return app
+
+
+# #############################################################################
+# functions from six.py
+# #############################################################################
+
+def reraise(tp, value, tb=None):
+    if value is None:
+        value = tp()
+    if value.__traceback__ is not tb:
+        raise value.with_traceback(tb)
+    raise value
+
+reraise.__doc__ = """Reraise an exception."""
+
+
+def with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    # This requires a bit of explanation: the basic idea is to make a dummy
+    # metaclass for one level of class instantiation that replaces itself with
+    # the actual metaclass.
+    class metaclass(meta):
+        def __new__(cls, name, this_bases, d):
+            return meta(name, bases, d)
+    return type.__new__(metaclass, 'temporary_class', (), {})

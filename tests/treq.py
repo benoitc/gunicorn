@@ -9,11 +9,11 @@ import inspect
 import os
 import random
 
+from urllib.parse import urlparse
+
 from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
-from gunicorn.six.moves.urllib.parse import urlparse
-from gunicorn import six
 
 dirname = os.path.dirname(__file__)
 random.seed()
@@ -209,7 +209,7 @@ class request(object):
         if len(body):
             raise AssertionError("Failed to read entire body: %r" % body)
         try:
-            data = six.next(iter(req.body))
+            data = next(iter(req.body))
             raise AssertionError("Read data after body finished: %r" % data)
         except StopIteration:
             pass
@@ -287,4 +287,4 @@ class badrequest(object):
 
     def check(self, cfg):
         p = RequestParser(cfg, self.send())
-        six.next(p)
+        next(p)

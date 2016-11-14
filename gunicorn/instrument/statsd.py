@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -10,7 +8,6 @@ import logging
 from re import sub
 
 from gunicorn.glogging import Logger
-from gunicorn import six
 
 # Instrumentation constants
 STATSD_DEFAULT_PORT = 8125
@@ -116,7 +113,7 @@ class Statsd(Logger):
 
     def _sock_send(self, msg):
         try:
-            if isinstance(msg, six.text_type):
+            if isinstance(msg, str):
                 msg = msg.encode("ascii")
             if self.sock:
                 self.sock.send(msg)

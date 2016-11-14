@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -25,7 +23,7 @@ from .. import http
 from ..http import wsgi
 from .. import util
 from . import base
-from .. import six
+from gunicorn.util import reraise
 
 
 try:
@@ -275,7 +273,7 @@ class ThreadWorker(base.Worker):
         keepalive = False
         req = None
         try:
-            req = six.next(conn.parser)
+            req = next(conn.parser)
             if not req:
                 return (False, conn)
 
@@ -349,7 +347,7 @@ class ThreadWorker(base.Worker):
                 return False
         except EnvironmentError:
             # pass to next try-except level
-            six.reraise(*sys.exc_info())
+            reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the

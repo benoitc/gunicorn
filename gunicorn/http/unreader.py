@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import io
 import os
-
-from gunicorn import six
 
 # Classes that can undo reading data from
 # a given type of data source.
@@ -13,13 +10,13 @@ from gunicorn import six
 
 class Unreader(object):
     def __init__(self):
-        self.buf = six.BytesIO()
+        self.buf = io.BytesIO()
 
     def chunk(self):
         raise NotImplementedError()
 
     def read(self, size=None):
-        if size is not None and not isinstance(size, six.integer_types):
+        if size is not None and not isinstance(size, int):
             raise TypeError("size parameter must be an int or long.")
 
         if size is not None:
@@ -32,7 +29,7 @@ class Unreader(object):
 
         if size is None and self.buf.tell():
             ret = self.buf.getvalue()
-            self.buf = six.BytesIO()
+            self.buf = io.BytesIO()
             return ret
         if size is None:
             d = self.chunk()
@@ -42,11 +39,11 @@ class Unreader(object):
             chunk = self.chunk()
             if not len(chunk):
                 ret = self.buf.getvalue()
-                self.buf = six.BytesIO()
+                self.buf = io.BytesIO()
                 return ret
             self.buf.write(chunk)
         data = self.buf.getvalue()
-        self.buf = six.BytesIO()
+        self.buf = io.BytesIO()
         self.buf.write(data[size:])
         return data[:size]
 
@@ -74,7 +71,7 @@ class IterUnreader(Unreader):
         if not self.iter:
             return b""
         try:
-            return six.next(self.iter)
+            return next(self.iter)
         except StopIteration:
             self.iter = None
             return b""

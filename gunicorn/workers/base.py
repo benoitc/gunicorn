@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -21,7 +19,6 @@ from gunicorn.http.errors import (
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.wsgi import default_environ, Response
-from gunicorn.six import MAXSIZE
 
 
 class Worker(object):
@@ -49,7 +46,7 @@ class Worker(object):
 
         self.nr = 0
         jitter = randint(0, cfg.max_requests_jitter)
-        self.max_requests = cfg.max_requests + jitter or MAXSIZE
+        self.max_requests = cfg.max_requests + jitter or syx.maxsize
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
