@@ -38,6 +38,7 @@ class Worker(object):
         changes you'll want to do that in ``self.init_process()``.
         """
         self.age = age
+        self.pid = "[booting]"
         self.ppid = ppid
         self.sockets = sockets
         self.app = app
@@ -56,10 +57,6 @@ class Worker(object):
 
     def __str__(self):
         return "<Worker %s>" % self.pid
-
-    @property
-    def pid(self):
-        return os.getpid()
 
     def notify(self):
         """\
