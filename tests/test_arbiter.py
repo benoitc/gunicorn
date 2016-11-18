@@ -16,7 +16,7 @@ import gunicorn.arbiter
 
 class DummyApplication(gunicorn.app.base.BaseApplication):
     """
-    Dummy application that has an default configuration.
+    Dummy application that has a default configuration.
     """
 
     def init(self, parser, opts, args):
@@ -37,6 +37,22 @@ def test_arbiter_shutdown_closes_listeners():
     arbiter.stop()
     listener1.close.assert_called_with()
     listener2.close.assert_called_with()
+
+
+@mock.patch('os.fork')
+def test_arbiter_calls_worker_exit(mock_os_fork):
+    mock_os_fork.return_value = 0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['worker_exit'] = mock.Mock()
+    arbiter.pid = None
+    mock_worker = mock.Mock()
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+    try:
+        arbiter.spawn_worker()
+    except SystemExit:
+        pass
+    arbiter.cfg.worker_exit.assert_called_with(arbiter, mock_worker)
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
