@@ -1634,6 +1634,23 @@ class PostRequest(Setting):
         """
 
 
+class ChildExit(Setting):
+    name = "child_exit"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = six.callable
+
+    def child_exit(server, worker):
+        pass
+    default = staticmethod(child_exit)
+    desc = """\
+        Called just after a worker has been exited, in the master process.
+
+        The callable needs to accept two instance variables for the Arbiter and
+        the just-exited Worker.
+        """
+
+
 class WorkerExit(Setting):
     name = "worker_exit"
     section = "Server Hooks"
@@ -1644,7 +1661,7 @@ class WorkerExit(Setting):
         pass
     default = staticmethod(worker_exit)
     desc = """\
-        Called just after a worker has been exited.
+        Called just after a worker has been exited, in the worker process.
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
