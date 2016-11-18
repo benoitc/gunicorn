@@ -5,7 +5,7 @@ env:
   - TOXENV=py26
   - TOXENV=py27
   - TOXENV=py34
-  - TOKENV=py35
+  - TOXENV=py35
   - TOXENV=pypy
   - TOXENV=pypy3
 install: pip install tox
