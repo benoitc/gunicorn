@@ -294,18 +294,18 @@ class Logger(object):
         if hasattr(req_headers, "items"):
             req_headers = req_headers.items()
 
-        atoms.update(dict([("{%s}i" % k.lower(), v) for k, v in req_headers]))
+        atoms.update({"{%s}i" % k.lower(): v for k, v in req_headers})
 
         resp_headers = resp.headers
         if hasattr(resp_headers, "items"):
             resp_headers = resp_headers.items()
 
         # add response headers
-        atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp_headers]))
+        atoms.update({"{%s}o" % k.lower(): v for k, v in resp_headers})
 
         # add environ variables
         environ_variables = environ.items()
-        atoms.update(dict([("{%s}e" % k.lower(), v) for k, v in environ_variables]))
+        atoms.update({"{%s}e" % k.lower(): v for k, v in environ_variables})
 
         return atoms
 
@@ -419,14 +419,8 @@ class Logger(object):
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        if sys.version_info >= (2, 7):
-            h = logging.handlers.SysLogHandler(address=addr,
+        h = logging.handlers.SysLogHandler(address=addr,
                     facility=facility, socktype=socktype)
-        else:
-            # socktype is only supported in 2.7 and sup
-            # fix issue #541
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility)
 
         h.setFormatter(fmt)
         h._gunicorn = True

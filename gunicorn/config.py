@@ -8,10 +8,7 @@
 import copy
 import grp
 import inspect
-try:
-    import argparse
-except ImportError:  # python 2.6
-    from . import argparse_compat as argparse
+import argparse
 import os
 import pwd
 import re
@@ -1804,16 +1801,15 @@ class DoHandshakeOnConnect(Setting):
     """
 
 
-if sys.version_info >= (2, 7):
-    class Ciphers(Setting):
-        name = "ciphers"
-        section = "SSL"
-        cli = ["--ciphers"]
-        validator = validate_string
-        default = 'TLSv1'
-        desc = """\
-        Ciphers to use (see stdlib ssl module's)
-        """
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "SSL"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
+    """
 
 
 class PasteGlobalConf(Setting):
