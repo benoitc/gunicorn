@@ -142,7 +142,7 @@ class Worker(object):
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
-            if not self.cfg.reload:
+            if self.cfg.reload == 'off':
                 raise
 
             self.log.exception(e)
