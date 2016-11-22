@@ -251,7 +251,7 @@ unix socket:
 
     d /run/gunicorn 0755 someuser somegroup -
 
-Next enable the socket so they it autostarts at boot::
+Next enable the socket so it autostarts at boot::
 
     systemctl enable gunicorn.socket
 
@@ -261,10 +261,10 @@ Either reboot, or start the services manually::
 
 
 After running ``curl --unix-socket /run/gunicorn/socket http``, Gunicorn
-should start and you should see some html from your server.
+should start and you should see some HTML from your server in the terminal.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
-socket. Configure your nginx.conf like the following:
+socket. Configure your ``nginx.conf`` like the following:
 
 **/etc/nginx/nginx.conf**::
     http {
