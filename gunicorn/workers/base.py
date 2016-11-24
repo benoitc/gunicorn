@@ -155,7 +155,7 @@ class Worker(object):
                 exc_type, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
-                tb_string = traceback.format_tb(exc_tb)
+                tb_string = traceback.format_exc(exc_tb)
                 self.wsgi = util.make_fail_app(tb_string)
             finally:
                 del exc_tb
