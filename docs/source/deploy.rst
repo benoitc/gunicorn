@@ -226,6 +226,7 @@ unix socket:
     PIDFile=/run/gunicorn/pid
     User=someuser
     Group=someuser
+    RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
     ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid   \
               --bind unix:/run/gunicorn/socket applicationname.wsgi
