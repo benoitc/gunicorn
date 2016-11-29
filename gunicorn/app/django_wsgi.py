@@ -18,7 +18,19 @@ except:
 
 
 from django.conf import settings
-from django.core.management.validation import get_validation_errors
+
+django17 = False
+try:
+    from django.core.management.validation import get_validation_errors
+except ImportError:
+    django17 = True
+    def get_validation_errors(erro):
+        return True if erro.read() else False
+    try:
+        from django.core.wsgi import get_wsgi_application
+    except ImportError:
+        pass
+
 from django.utils import translation
 
 try:
@@ -41,6 +53,9 @@ def make_wsgi_application():
         print(msg, file=sys.stderr)
         sys.stderr.flush()
         sys.exit(1)
+
+    if django17:
+        return get_wsgi_application()
 
     translation.activate(settings.LANGUAGE_CODE)
     if django14:
