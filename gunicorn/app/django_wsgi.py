@@ -18,7 +18,7 @@ except:
 
 
 from django.conf import settings
-from django.core.management.validation import get_validation_errors
+#from django.core.management.validation import get_validation_errors
 from django.utils import translation
 
 try:
@@ -34,14 +34,20 @@ from gunicorn import util
 def make_wsgi_application():
     # validate models
     s = StringIO()
-    if get_validation_errors(s):
-        s.seek(0)
-        error = s.read()
-        msg = "One or more models did not validate:\n%s" % error
-        print(msg, file=sys.stderr)
-        sys.stderr.flush()
-        sys.exit(1)
-
+#    if get_validation_errors(s):
+#        s.seek(0)
+#        error = s.read()
+#        msg = "One or more models did not validate:\n%s" % error
+#        print(msg, file=sys.stderr)
+#        sys.stderr.flush()
+#        sys.exit(1)
+    import django
+    from django.core.management.base import BaseCommand
+    django.setup()
+    cmd = BaseCommand()
+    import sys
+    cmd.stdout, cmd.stderr = sys.stdout, sys.stderr
+    cmd.check()
     translation.activate(settings.LANGUAGE_CODE)
     if django14:
         return get_internal_wsgi_application()
