@@ -103,6 +103,9 @@ class AsyncWorker(base.Worker):
             respiter = self.wsgi(environ, resp.start_response)
             if respiter == ALREADY_HANDLED:
                 return False
+            # temporary fix to recognize eventlet's own _AlreadyHandled object
+            elif '_AlreadyHandled' in str(type(respiter)):
+                raise StopIteration()
             try:
                 if isinstance(respiter, environ['wsgi.file_wrapper']):
                     resp.write_file(respiter)
