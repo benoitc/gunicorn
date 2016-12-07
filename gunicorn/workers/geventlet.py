@@ -20,6 +20,7 @@ if eventlet.version_info < (0, 9, 7):
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
 from eventlet.hubs import trampoline
+from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.http.wsgi import sendfile as o_sendfile
@@ -90,6 +91,22 @@ class EventletWorker(AsyncWorker):
         hubs.use_hub()
         eventlet.monkey_patch(os=False)
         patch_sendfile()
+
+    def load_wsgi(self):
+        # https://github.com/benoitc/gunicorn/issues/1210
+        # Eventlet has its own ALREADY_HANDLED object
+        super(EventletWorker, self).load_wsgi()
+
+        # detect the ALREADY_HANDLED object with this wrapper
+        def wrap_alreadyhandled(f):
+            def detect_alreadyhandled(*args, **kwargs):
+                resp = f(*args, **kwargs)
+                if resp == EVENTLET_ALREADY_HANDLED:
+                    # raise here to get the same result as resp.should_close() in AsyncWorker
+                    raise StopIteration()
+                return resp
+            return detect_alreadyhandled
+        self.wsgi = wrap_alreadyhandled(self.wsgi)
 
     def init_process(self):
         self.patch()
