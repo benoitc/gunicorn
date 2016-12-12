@@ -112,8 +112,6 @@ class Worker(object):
 
         self.init_signals()
 
-        self.load_wsgi()
-
         # start the reloader
         if self.cfg.reload and self.cfg.reload != 'off':
             def changed(fname):
@@ -133,6 +131,7 @@ class Worker(object):
             self.reloader = reloader_cls(callback=changed)
             self.reloader.start()
 
+        self.load_wsgi()
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
@@ -143,7 +142,7 @@ class Worker(object):
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
-            if not self.cfg.reload:
+            if self.cfg.reload == 'off':
                 raise
 
             self.log.exception(e)
