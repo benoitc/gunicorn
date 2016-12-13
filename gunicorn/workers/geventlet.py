@@ -92,21 +92,11 @@ class EventletWorker(AsyncWorker):
         eventlet.monkey_patch(os=False)
         patch_sendfile()
 
-    def load_wsgi(self):
-        # https://github.com/benoitc/gunicorn/issues/1210
-        # Eventlet has its own ALREADY_HANDLED object
-        super(EventletWorker, self).load_wsgi()
-
-        # detect the ALREADY_HANDLED object with this wrapper
-        def wrap_alreadyhandled(f):
-            def detect_alreadyhandled(*args, **kwargs):
-                resp = f(*args, **kwargs)
-                if resp == EVENTLET_ALREADY_HANDLED:
-                    # raise here to get the same result as resp.should_close() in AsyncWorker
-                    raise StopIteration()
-                return resp
-            return detect_alreadyhandled
-        self.wsgi = wrap_alreadyhandled(self.wsgi)
+    def is_already_handled(self, respiter):
+        if respiter == EVENTLET_ALREADY_HANDLED:
+            raise StopIteration()
+        else:
+            return False
 
     def init_process(self):
         self.patch()

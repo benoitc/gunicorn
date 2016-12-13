@@ -27,6 +27,10 @@ class AsyncWorker(base.Worker):
     def timeout_ctx(self):
         raise NotImplementedError()
 
+    def is_already_handled(self, respiter):
+        # some workers will need to overload this function to raise a StopIteration
+        return respiter == ALREADY_HANDLED
+
     def handle(self, listener, client, addr):
         req = None
         try:
@@ -101,7 +105,7 @@ class AsyncWorker(base.Worker):
                 resp.force_close()
 
             respiter = self.wsgi(environ, resp.start_response)
-            if respiter == ALREADY_HANDLED:
+            if self.is_already_handled(respiter):
                 return False
             try:
                 if isinstance(respiter, environ['wsgi.file_wrapper']):
