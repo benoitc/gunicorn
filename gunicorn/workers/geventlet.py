@@ -96,7 +96,7 @@ class EventletWorker(AsyncWorker):
         if respiter == EVENTLET_ALREADY_HANDLED:
             raise StopIteration()
         else:
-            return super(EventletWorker, self).is_already_handled()
+            return super(EventletWorker, self).is_already_handled(respiter)
 
     def init_process(self):
         self.patch()
