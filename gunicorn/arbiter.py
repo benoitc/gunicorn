@@ -202,6 +202,8 @@ class Arbiter(object):
                     self.log.info("Ignoring unknown signal: %s", sig)
                     continue
 
+                self.cfg.on_signal(self, sig)
+
                 signame = self.SIG_NAMES.get(sig)
                 handler = getattr(self, "handle_%s" % signame, None)
                 if not handler:
