@@ -981,6 +981,11 @@ class WorkerTmpDir(Setting):
         A directory to use for the worker heartbeat temporary file.
 
         If not set, the default temporary directory will be used.
+
+        Warning: the current heartbeat system involves calling ``os.fchmod`` on
+        temporary file handlers and may block a worker for arbitrary time if the
+        directory is on a disk-backed filesystem. See the :ref:`faq` for more
+        detailed information and a solution for avoiding this problem.
         """
 
 
