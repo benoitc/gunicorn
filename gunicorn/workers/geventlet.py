@@ -20,6 +20,7 @@ if eventlet.version_info < (0, 9, 7):
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
 from eventlet.hubs import trampoline
+from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.http.wsgi import sendfile as o_sendfile
@@ -90,6 +91,12 @@ class EventletWorker(AsyncWorker):
         hubs.use_hub()
         eventlet.monkey_patch(os=False)
         patch_sendfile()
+
+    def is_already_handled(self, respiter):
+        if respiter == EVENTLET_ALREADY_HANDLED:
+            raise StopIteration()
+        else:
+            return super(EventletWorker, self).is_already_handled(respiter)
 
     def init_process(self):
         self.patch()
