@@ -76,7 +76,7 @@ APIs will benefit from an asynchronous worker.
 This resource bound assumption is why we require a buffering proxy in front of a
 default configuration Gunicorn. If you exposed synchronous workers to the
 internet, a DOS attack would be trivial by creating a load that trickles data to
-the servers. For the curious, Boom_ is an example of this type of load.
+the servers. For the curious, Hey_ is an example of this type of load.
 
 Some examples of behavior requiring asynchronous workers:
 
@@ -130,5 +130,5 @@ the master process).
 .. _Greenlets: https://github.com/python-greenlet/greenlet
 .. _Eventlet: http://eventlet.net
 .. _Gevent: http://gevent.org
-.. _Boom: http://ha.ckers.org/slowloris/
+.. _Hey: https://github.com/rakyll/hey
 .. _aiohttp: https://github.com/KeepSafe/aiohttp
