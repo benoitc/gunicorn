@@ -982,10 +982,13 @@ class WorkerTmpDir(Setting):
 
         If not set, the default temporary directory will be used.
 
-        Warning: the current heartbeat system involves calling ``os.fchmod`` on
-        temporary file handlers and may block a worker for arbitrary time if the
-        directory is on a disk-backed filesystem. See the :ref:`faq` for more
-        detailed information and a solution for avoiding this problem.
+        .. note::
+           The current heartbeat system involves calling ``os.fchmod`` on
+           temporary file handlers and may block a worker for arbitrary time
+           if the directory is on a disk-backed filesystem.
+
+           See :ref:`blocking-os-fchmod` for more detailed information
+           and a solution for avoiding this problem.
         """
 
 

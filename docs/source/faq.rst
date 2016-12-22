@@ -161,6 +161,8 @@ How do I fix Django reporting an ``ImproperlyConfigured`` error?
 With asynchronous workers, creating URLs with the ``reverse`` function of
 ``django.core.urlresolvers`` may fail. Use ``reverse_lazy`` instead.
 
+.. _blocking-os-fchmod:
+
 How do I avoid Gunicorn excessively blocking in ``os.fchmod``?
 --------------------------------------------------------------
 
