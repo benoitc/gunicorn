@@ -1854,15 +1854,15 @@ class PasteGlobalConf(Setting):
         .. versionadded:: 20.0
         """
 
-class SpawnWorkerSleepTime(Setting):
-    name = "spawn_worker_sleep_time"
+class SpawnJitterTime(Setting):
+    name = "spawn_jitter_time"
     section = "Worker Processes"
-    cli = ['--spawn-worker-sleep-time']
+    cli = ['--spawn-jitter-time']
     validator = validate_float
     default = 0.05
     desc = """\
     Minimum time to sleep between spawning workers in seconds.
 
     The amount of time spent sleeping between spawning new workers will jitter
-    from spawn-worker-sleep-time to 2 * spawn-worker-sleep-time.
+    from spawn-jitter-time to 2 * spawn-jitter-time.
     """
