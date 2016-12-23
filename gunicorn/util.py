@@ -561,6 +561,7 @@ def warn(msg):
 
 
 def make_fail_app(msg):
+    msg = to_bytestring(msg)
 
     def app(environ, start_response):
         start_response("500 Internal Server Error", [
