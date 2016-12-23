@@ -12,6 +12,7 @@ import sys
 import time
 import traceback
 
+from gunicorn import six
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import preferred_reloader, Reloader, InotifyReloader
@@ -155,8 +156,9 @@ class Worker(object):
                 exc_type, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
-                tb_string = traceback.format_tb(exc_tb)
-                self.wsgi = util.make_fail_app(tb_string)
+                tb_string = six.StringIO()
+                traceback.print_tb(exc_tb, file=tb_string)
+                self.wsgi = util.make_fail_app(tb_string.getvalue())
             finally:
                 del exc_tb
 
