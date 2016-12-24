@@ -822,8 +822,10 @@ class Reload(Setting):
     section = 'Debugging'
     cli = ['--reload']
     validator = validate_reloader
+    const = 'auto'
     default = 'off'
     meta = 'RELOADER_TYPE'
+    nargs = '?'
 
     desc = '''\
         Restart workers when code changes.
