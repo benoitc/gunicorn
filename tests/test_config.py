@@ -285,3 +285,24 @@ def test_always_use_configured_logger():
     c.set('statsd_host', 'localhost:12345')
     # still uses custom logger over statsd
     assert c.logger_class == MyLogger
+
+
+def test_load_enviroment_variables_config(monkeypatch):
+    monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
+    with AltArgs():
+        app = NoConfigApp()
+        assert app.cfg.workers == 4
+
+
+def test_invalid_enviroment_variables_config(monkeypatch):
+    monkeypatch.setenv("GUNICORN_CMD_ARGS", "--foo=bar")
+    with AltArgs():
+        with pytest.raises(SystemExit):
+            NoConfigApp()
+
+
+def test_cli_overrides_enviroment_variables_module(monkeypatch):
+    monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
+    with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
+        app = NoConfigApp()
+        assert app.cfg.workers == 3
