@@ -368,6 +368,7 @@ class Arbiter(object):
         if self.reexec_pid == 0 and self.master_pid == 0:
             for l in self.LISTENERS:
                 l.close()
+                l.unlink()
 
         self.LISTENERS = []
         sig = signal.SIGTERM

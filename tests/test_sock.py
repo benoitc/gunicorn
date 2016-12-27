@@ -14,5 +14,6 @@ def test_unix_socket_close_unlink(fromfd, unlink, getpid, close):
     fd = 42
     gsock = sock.UnixSocket('test.sock', mock.Mock(), mock.Mock(), fd=fd)
     gsock.close()
+    gsock.unlink()
     unlink.assert_called_with("test.sock")
     close.assert_called_with(fd)

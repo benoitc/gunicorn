@@ -68,6 +68,9 @@ class BaseSocket(object):
 
         self.sock = None
 
+    def unlink(self):
+        return
+
 
 class TCPSocket(BaseSocket):
 
@@ -100,7 +103,7 @@ class UnixSocket(BaseSocket):
 
     FAMILY = socket.AF_UNIX
 
-    def __init__(self, addr, conf, log, fd=None):
+    def __init__(self, addr, conf, log, fd=None, unlink=True):
         if fd is None:
             try:
                 st = os.stat(addr)
@@ -112,6 +115,7 @@ class UnixSocket(BaseSocket):
                     os.remove(addr)
                 else:
                     raise ValueError("%r is not a socket" % addr)
+        self.can_unlink = unlink
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
@@ -124,8 +128,13 @@ class UnixSocket(BaseSocket):
         os.umask(old_umask)
 
     def close(self):
-        os.unlink(self.cfg_addr)
         super(UnixSocket, self).close()
+
+    def unlink(self):
+        if not self.can_unlink:
+            return
+        os.unlink(self.cfg_addr)
+
 
 
 def _sock_type(addr):
@@ -161,7 +170,8 @@ def create_sockets(conf, log):
                 sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
                 sockname = sock.getsockname()
                 if isinstance(sockname, str) and sockname.startswith('/'):
-                    listeners.append(UnixSocket(sockname, conf, log, fd=fd))
+                    listeners.append(UnixSocket(sockname, conf, log, fd=fd,
+                                                unlink=False))
                 elif len(sockname) == 2 and '.' in sockname[0]:
                     listeners.append(TCPSocket("%s:%s" % sockname, conf, log,
                         fd=fd))
