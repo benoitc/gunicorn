@@ -67,7 +67,7 @@ Read the :ref:`design` page for help on the various worker types.
 What types of workers are there?
 --------------------------------
 
-Check out the configuration docs for worker_class_
+Check out the configuration docs for worker_class_.
 
 How can I figure out the best number of worker processes?
 ---------------------------------------------------------
@@ -94,11 +94,11 @@ Does Gunicorn suffer from the thundering herd problem?
 The thundering herd problem occurs when many sleeping request handlers, which
 may be either threads or processes, wake up at the same time to handle a new
 request. Since only one handler will receive the request, the others will have
-been awakened for no reason, wasting CPU cycles. At this time, Gunicorn does not
-implement any IPC solution for coordinating between worker processes. You may
-experience high load due to this problem when using many workers or threads.
-However `a work has been started <https://github.com/benoitc/gunicorn/issues/792>`_
-to remove this issue.
+been awakened for no reason, wasting CPU cycles. At this time, Gunicorn does
+not implement any IPC solution for coordinating between worker processes. You
+may experience high load due to this problem when using many workers or
+threads. However `a work has been started
+<https://github.com/benoitc/gunicorn/issues/792>`_ to remove this issue.
 
 .. _worker_class: settings.html#worker-class
 .. _`number of workers`: design.html#how-many-workers
@@ -113,8 +113,8 @@ In version R20, Gunicorn logs to the console by default again.
 Kernel Parameters
 =================
 
-When dealing with large numbers of concurrent connections there are a handful of
-kernel parameters that you might need to adjust. Generally these should only
+When dealing with large numbers of concurrent connections there are a handful
+of kernel parameters that you might need to adjust. Generally these should only
 affect sites with a very large concurrent load. These parameters are not
 specific to Gunicorn, they would apply to any sort of network server you may be
 running.
@@ -137,8 +137,8 @@ How can I increase the maximum socket backlog?
 ----------------------------------------------
 
 Listening sockets have an associated queue of incoming connections that are
-waiting to be accepted. If you happen to have a stampede of clients that fill up
-this queue new connections will eventually start getting dropped.
+waiting to be accepted. If you happen to have a stampede of clients that fill
+up this queue new connections will eventually start getting dropped.
 
 ::
 

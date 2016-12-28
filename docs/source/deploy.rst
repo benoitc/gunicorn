@@ -105,11 +105,11 @@ Monitoring
 ==========
 
 .. note::
-    Make sure that when using either of these service monitors you do not
-    enable the Gunicorn's daemon mode. These monitors expect that the process
-    they launch will be the process they need to monitor. Daemonizing
-    will fork-exec which creates an unmonitored process and generally just
-    confuses the monitor services.
+   Make sure that when using either of these service monitors you do not
+   enable the Gunicorn's daemon mode. These monitors expect that the process
+   they launch will be the process they need to monitor. Daemonizing will
+   fork-exec which creates an unmonitored process and generally just
+   confuses the monitor services.
 
 Gaffer
 ------
@@ -135,7 +135,7 @@ Create a ``Procfile`` in your project::
 
 You can launch any other applications that should be launched at the same time.
 
-Then you can start your Gunicorn application using Gaffer_.::
+Then you can start your Gunicorn application using Gaffer_::
 
     gaffer start
 
@@ -188,8 +188,10 @@ Another useful tool to monitor and control Gunicorn is Supervisor_. A
 
 Upstart
 -------
+
 Using Gunicorn with upstart is simple. In this example we will run the app
-"myapp" from a virtualenv. All errors will go to /var/log/upstart/myapp.log.
+"myapp" from a virtualenv. All errors will go to
+``/var/log/upstart/myapp.log``.
 
 **/etc/init/myapp.conf**::
 
@@ -320,9 +322,14 @@ utility::
 
     kill -USR1 $(cat /var/run/gunicorn.pid)
 
-.. note:: overriding the LOGGING dictionary requires to set `disable_existing_loggers: False`` to not interfere with the Gunicorn logging.
+.. note::
+   Overriding the ``LOGGING`` dictionary requires to set
+   ``disable_existing_loggers: False`` to not interfere with the Gunicorn
+   logging.
 
-.. warning:: Gunicorn error log is here to log errors from Gunicorn, not from another application.
+.. warning::
+   Gunicorn error log is here to log errors from Gunicorn, not from another
+   application.
 
 .. _Nginx: http://www.nginx.org
 .. _Hey: https://github.com/rakyll/hey
