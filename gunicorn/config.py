@@ -822,8 +822,10 @@ class Reload(Setting):
     section = 'Debugging'
     cli = ['--reload']
     validator = validate_reloader
+    const = 'auto'
     default = 'off'
     meta = 'RELOADER_TYPE'
+    nargs = '?'
 
     desc = '''\
         Restart workers when code changes.
@@ -981,6 +983,14 @@ class WorkerTmpDir(Setting):
         A directory to use for the worker heartbeat temporary file.
 
         If not set, the default temporary directory will be used.
+
+        .. note::
+           The current heartbeat system involves calling ``os.fchmod`` on
+           temporary file handlers and may block a worker for arbitrary time
+           if the directory is on a disk-backed filesystem.
+
+           See :ref:`blocking-os-fchmod` for more detailed information
+           and a solution for avoiding this problem.
         """
 
 

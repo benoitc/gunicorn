@@ -13,8 +13,6 @@ import time
 from gunicorn import util
 from gunicorn.six import string_types
 
-SD_LISTEN_FDS_START = 3
-
 
 class BaseSocket(object):
 
@@ -123,10 +121,6 @@ class UnixSocket(BaseSocket):
         util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
 
-    def close(self):
-        os.unlink(self.cfg_addr)
-        super(UnixSocket, self).close()
-
 
 def _sock_type(addr):
     if isinstance(addr, tuple):
@@ -141,41 +135,15 @@ def _sock_type(addr):
     return sock_type
 
 
-def create_sockets(conf, log):
+def create_sockets(conf, log, fds=None):
     """
-    Create a new socket for the given address. If the
-    address is a tuple, a TCP socket is created. If it
-    is a string, a Unix socket is created. Otherwise
-    a TypeError is raised.
-    """
+    Create a new socket for the configured addresses or file descriptors.
 
-    # Systemd support, use the sockets managed by systemd and passed to
-    # gunicorn.
-    # http://www.freedesktop.org/software/systemd/man/systemd.socket.html
+    If a configured address is a tuple then a TCP socket is created.
+    If it is a string, a Unix socket is created. Otherwise, a TypeError is
+    raised.
+    """
     listeners = []
-    if ('LISTEN_PID' in os.environ
-            and int(os.environ.get('LISTEN_PID')) == os.getpid()):
-        for i in range(int(os.environ.get('LISTEN_FDS', 0))):
-            fd = i + SD_LISTEN_FDS_START
-            try:
-                sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-                sockname = sock.getsockname()
-                if isinstance(sockname, str) and sockname.startswith('/'):
-                    listeners.append(UnixSocket(sockname, conf, log, fd=fd))
-                elif len(sockname) == 2 and '.' in sockname[0]:
-                    listeners.append(TCPSocket("%s:%s" % sockname, conf, log,
-                        fd=fd))
-                elif len(sockname) == 4 and ':' in sockname[0]:
-                    listeners.append(TCP6Socket("[%s]:%s" % sockname[:2], conf,
-                        log, fd=fd))
-            except socket.error:
-                pass
-        del os.environ['LISTEN_PID'], os.environ['LISTEN_FDS']
-
-        if listeners:
-            log.debug('Socket activation sockets: %s',
-                    ",".join([str(l) for l in listeners]))
-            return listeners
 
     # get it only once
     laddr = conf.address
@@ -189,28 +157,19 @@ def create_sockets(conf, log):
         raise ValueError('keyfile "%s" does not exist' % conf.keyfile)
 
     # sockets are already bound
-    if 'GUNICORN_FD' in os.environ:
-        fds = os.environ.pop('GUNICORN_FD').split(',')
-        for i, fd in enumerate(fds):
-            fd = int(fd)
-            addr = laddr[i]
-            sock_type = _sock_type(addr)
+    if fds is not None:
+        for fd in fds:
+            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            sock_name = sock.getsockname()
+            sock_type = _sock_type(sock_name)
+            listener = sock_type(sock_name, conf, log, fd=fd)
+            listeners.append(listener)
 
-            try:
-                listeners.append(sock_type(addr, conf, log, fd=fd))
-            except socket.error as e:
-                if e.args[0] == errno.ENOTCONN:
-                    log.error("GUNICORN_FD should refer to an open socket.")
-                else:
-                    raise
         return listeners
 
     # no sockets is bound, first initialization of gunicorn in this env.
     for addr in laddr:
         sock_type = _sock_type(addr)
-        # If we fail to create a socket from GUNICORN_FD
-        # we fall through and try and open the socket
-        # normally.
         sock = None
         for i in range(5):
             try:
@@ -235,3 +194,11 @@ def create_sockets(conf, log):
         listeners.append(sock)
 
     return listeners
+
+
+def close_sockets(listeners, unlink=True):
+    for sock in listeners:
+        sock_name = sock.getsockname()
+        sock.close()
+        if unlink and _sock_type(sock_name) is UnixSocket:
+            os.unlink(sock_name)

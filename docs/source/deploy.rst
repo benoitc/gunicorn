@@ -11,7 +11,7 @@ Although there are many HTTP proxies available, we strongly advise that you
 use Nginx_. If you choose another proxy server you need to make sure that it
 buffers slow clients when you use default Gunicorn workers. Without this
 buffering Gunicorn will be easily susceptible to denial-of-service attacks.
-You can use Boom_ to check if your proxy is behaving properly.
+You can use Hey_ to check if your proxy is behaving properly.
 
 An `example configuration`_ file for fast clients with Nginx_:
 
@@ -332,7 +332,7 @@ utility::
    application.
 
 .. _Nginx: http://www.nginx.org
-.. _Boom: https://github.com/rakyll/boom
+.. _Hey: https://github.com/rakyll/hey
 .. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
 .. _runit: http://smarden.org/runit/
 .. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc

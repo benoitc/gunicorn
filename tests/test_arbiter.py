@@ -29,14 +29,89 @@ class DummyApplication(gunicorn.app.base.BaseApplication):
         """No-op"""
 
 
-def test_arbiter_shutdown_closes_listeners():
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_closes_listeners(close_sockets):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     listener1 = mock.Mock()
     listener2 = mock.Mock()
-    arbiter.LISTENERS = [listener1, listener2]
+    listeners = [listener1, listener2]
+    arbiter.LISTENERS = listeners
     arbiter.stop()
-    listener1.close.assert_called_with()
-    listener2.close.assert_called_with()
+    close_sockets.assert_called_with(listeners, True)
+
+
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_child_does_not_unlink_listeners(close_sockets):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.reexec_pid = os.getpid()
+    arbiter.stop()
+    close_sockets.assert_called_with([], False)
+
+
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_parent_does_not_unlink_listeners(close_sockets):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.master_pid = os.getppid()
+    arbiter.stop()
+    close_sockets.assert_called_with([], False)
+
+
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_does_not_unlink_systemd_listeners(close_sockets):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.systemd = True
+    arbiter.stop()
+    close_sockets.assert_called_with([], False)
+
+
+@mock.patch('os.getpid')
+@mock.patch('os.fork')
+@mock.patch('os.execvpe')
+def test_arbiter_reexec_passing_systemd_sockets(execvpe, fork, getpid):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.LISTENERS = [mock.Mock(), mock.Mock()]
+    arbiter.systemd = True
+    fork.return_value = 0
+    getpid.side_effect = [2, 3]
+    arbiter.reexec()
+    environ = execvpe.call_args[0][2]
+    assert environ['GUNICORN_PID'] == '2'
+    assert environ['LISTEN_FDS'] == '2'
+    assert environ['LISTEN_PID'] == '3'
+
+
+@mock.patch('os.getpid')
+@mock.patch('os.fork')
+@mock.patch('os.execvpe')
+def test_arbiter_reexec_passing_gunicorn_sockets(execvpe, fork, getpid):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    listener1 = mock.Mock()
+    listener2 = mock.Mock()
+    listener1.fileno.return_value = 4
+    listener2.fileno.return_value = 5
+    arbiter.LISTENERS = [listener1, listener2]
+    fork.return_value = 0
+    getpid.side_effect = [2, 3]
+    arbiter.reexec()
+    environ = execvpe.call_args[0][2]
+    assert environ['GUNICORN_FD'] == '4,5'
+    assert environ['GUNICORN_PID'] == '2'
+
+
+@mock.patch('os.fork')
+def test_arbiter_reexec_limit_parent(fork):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.reexec_pid = ~os.getpid()
+    arbiter.reexec()
+    assert fork.called is False, "should not fork when there is already a child"
+
+
+@mock.patch('os.fork')
+def test_arbiter_reexec_limit_child(fork):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.master_pid = ~os.getpid()
+    arbiter.reexec()
+    assert fork.called is False, "should not fork when arbiter is a child"
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):

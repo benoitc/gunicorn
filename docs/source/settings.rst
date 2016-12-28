@@ -82,7 +82,7 @@ You'll want to vary this a bit to find the best for your particular
 application's work load.
 
 By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-If it is not defined, the default is 1.
+If it is not defined, the default is ``1``.
 
 worker_class
 ~~~~~~~~~~~~
@@ -172,9 +172,7 @@ timeout
 * ``-t INT, --timeout INT``
 * ``30``
 
-A worker must notify the master process once per timeout interval.
-If it fails do so, the worker is killed and a new worker is spawned
-to replace it.
+Workers silent for more than this many seconds are killed and restarted.
 
 Generally set to thirty seconds. Only set this noticeably higher if
 you're sure of the repercussions for sync workers. For the non sync
@@ -246,8 +244,12 @@ limit_request_field_size
 
 Limit the allowed size of an HTTP request header field.
 
-Value is a number from 0 (unlimited) to 8190. to set the limit
-on the allowed size of an HTTP request header field.
+Value is a positive number or 0. Setting it to 0 will allow unlimited
+header field sizes.
+
+.. warning::
+   Setting this parameter to a very high or unlimited value can open
+   up for DDOS attacks.
 
 Debugging
 ---------
@@ -314,14 +316,19 @@ sendfile
 ~~~~~~~~
 
 * ``--no-sendfile``
-* ``True``
+* ``None``
 
 Disables the use of ``sendfile()``.
+
+If not set, the value of the ``SENDFILE`` environment variable is used
+to enable or disable its usage.
 
 .. versionadded:: 19.2
 .. versionchanged:: 19.4
    Swapped ``--sendfile`` with ``--no-sendfile`` to actually allow
    disabling.
+.. versionchanged:: 19.6
+   added support for the ``SENDFILE`` environment variable
 
 chdir
 ~~~~~
@@ -375,6 +382,14 @@ worker_tmp_dir
 A directory to use for the worker heartbeat temporary file.
 
 If not set, the default temporary directory will be used.
+
+.. note::
+   The current heartbeat system involves calling ``os.fchmod`` on
+   temporary file handlers and may block a worker for arbitrary time
+   if the directory is on a disk-backed filesystem.
+
+   See :ref:`blocking-os-fchmod` for more detailed information
+   and a solution for avoiding this problem.
 
 user
 ~~~~
@@ -457,7 +472,10 @@ Front-end's IPs from which allowed to handle set secure headers.
 
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
-you still trust the environment)
+you still trust the environment).
+
+By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
+variable. If it is not defined, the default is ``"127.0.0.1"``.
 
 Logging
 -------
@@ -480,30 +498,31 @@ access_log_format
 
 The access log format.
 
-==========  ===========
-Identifier  Description
-==========  ===========
-h           remote address
-l           ``'-'``
-u           user name
-t           date of the request
-r           status line (e.g. ``GET / HTTP/1.1``)
-m           request method
-U           URL path without query string
-q           query string
-H           protocol
-s           status
-B           response length
-b           response length or ``'-'`` (CLF format)
-f           referer
-a           user agent
-T           request time in seconds
-D           request time in microseconds
-L           request time in decimal seconds
-p           process ID
-{Header}i   request header
-{Header}o   response header
-==========  ===========
+===========  ===========
+Identifier   Description
+===========  ===========
+h            remote address
+l            ``'-'``
+u            user name
+t            date of the request
+r            status line (e.g. ``GET / HTTP/1.1``)
+m            request method
+U            URL path without query string
+q            query string
+H            protocol
+s            status
+B            response length
+b            response length or ``'-'`` (CLF format)
+f            referer
+a            user agent
+T            request time in seconds
+D            request time in microseconds
+L            request time in decimal seconds
+p            process ID
+{Header}i    request header
+{Header}o    response header
+{Variable}e  environment variable
+===========  ===========
 
 errorlog
 ~~~~~~~~
@@ -513,7 +532,7 @@ errorlog
 
 The Error log file to write to.
 
-``'-'`` means log to stderr.
+Using ``'-'`` for FILE makes gunicorn log to stderr.
 
 .. versionchanged:: 19.2
    Log to stderr by default.
@@ -544,10 +563,6 @@ The logger you want to use to log events in Gunicorn.
 
 The default class (``gunicorn.glogging.Logger``) handle most of
 normal usages in logging. It provides error and access logging.
-
-If you enable statsd support, then a special subclass
-(``gunicorn.instrument.statsd.Statsd``) is used instead, which handles
-sending the metrics to *statsd_host*
 
 You can provide your own worker by giving Gunicorn a
 Python path to a subclass like ``gunicorn.glogging.Logger``.
@@ -613,7 +628,7 @@ enable_stdio_inheritance
 * ``-R, --enable-stdio-inheritance``
 * ``False``
 
-Enable stdio inheritance
+Enable stdio inheritance.
 
 Enable inheritance for stdio file descriptors in daemon mode.
 
@@ -627,12 +642,6 @@ statsd_host
 * ``None``
 
 ``host:port`` of the statsd server to log to.
-
-Note: enabling this switches the default *logger_class* to
-``gunicorn.instrument.statsd.Statsd``. If you wish to use statsd with
-a custom *logger_class*, you should make sure your class is API
-compatible with ``gunicorn.instrument.statsd.Statsd``, or inherit from
-it.
 
 .. versionadded:: 19.1
 
@@ -867,7 +876,7 @@ worker_exit
         def worker_exit(server, worker):
             pass
 
-Called in the worker, right before it terminates.
+Called just after a worker has been exited.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.

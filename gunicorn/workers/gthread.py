@@ -243,6 +243,7 @@ class ThreadWorker(base.Worker):
 
     def finish_request(self, fs):
         if fs.cancelled():
+            self.nr_conns -= 1
             fs.conn.close()
             return
 
