@@ -142,8 +142,7 @@ class Arbiter(object):
         self.init_signals()
 
         if not self.LISTENERS:
-            fds = []
-
+            fds = None
             listen_fds = systemd.listen_fds()
             if listen_fds:
                 self.systemd = True
@@ -151,6 +150,7 @@ class Arbiter(object):
                             systemd.SD_LISTEN_FDS_START + listen_fds)
 
             elif self.master_pid:
+                fds = []
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
 
