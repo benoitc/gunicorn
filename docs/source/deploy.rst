@@ -267,49 +267,34 @@ After running ``curl --unix-socket /run/gunicorn/socket http``, Gunicorn
 should start and you should see some HTML from your server in the terminal.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
-socket. Configure your ``nginx.conf`` like the following:
+socket. Edit your ``nginx.conf`` to include the following:
 
 **/etc/nginx/nginx.conf**::
+
+    ...
     http {
-        include             mime.types;
-        default_type        application/octet-stream;
-        
-        sendfile             on;
-        keepalive_timeout   65;
-        disable_symlinks    off;
-    
-        server { 
+        server {
             listen          8000;
             server_name     127.0.0.1;
-
-        location /static/ {
-            alias /static/;
-        }
-
-        location / {
-            proxy_set_header    Host $http_host;
-            proxy_set_header    X-Real-IP $remote_addr;
-            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header    X-Forwarded-Proto $scheme; 
-            proxy_pass          http://unix:/run/gunicorn/socket;
+            location / {
+                proxy_pass http://unix:/run/gunicorn/socket;
+            }
         }
     }
+    ...
 
-
+Please note that the listen and server_name used here are configured for a local machine. In a production server you will most likely listen on port 80, and use your URL as the server_name.
     
-Now make sure you enable the nginx service so it automatically starts at boot:
+Now make sure you enable the nginx service so it automatically starts at boot::
 
     systemctl enable nginx.service
     
-Either reboot, or start Nginx with the following command:
+Either reboot, or start Nginx with the following command::
 
     systemctl start nginx
     
 Now you should be able to test Nginx with Gunicorn by visiting
-http://127.0.0.1:8000/ in any web browser. Please note that the listen and
-server_name used here are configured for a local machine.  In a production
-server you will most likely listen on port 80, and use your URL as the
-server_name.
+http://127.0.0.1:8000/ in any web browser. Systemd is now set up.
 
 
 Logging
