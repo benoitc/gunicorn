@@ -304,7 +304,7 @@ class Arbiter(object):
         self.reexec()
 
     def handle_winch(self):
-        "SIGWINCH handling"
+        """SIGWINCH handling"""
         if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
