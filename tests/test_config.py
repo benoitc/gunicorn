@@ -291,7 +291,7 @@ def test_load_enviroment_variables_config(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
     with AltArgs():
         app = NoConfigApp()
-        assert app.cfg.workers == 4
+    assert app.cfg.workers == 4
 
 
 def test_invalid_enviroment_variables_config(monkeypatch):
@@ -305,4 +305,4 @@ def test_cli_overrides_enviroment_variables_module(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
     with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
         app = NoConfigApp()
-        assert app.cfg.workers == 3
+    assert app.cfg.workers == 3
