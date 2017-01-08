@@ -283,7 +283,11 @@ socket. Edit your ``nginx.conf`` to include the following:
     }
     ...
 
-Please note that the listen and server_name used here are configured for a local machine. In a production server you will most likely listen on port 80, and use your URL as the server_name.
+.. note::
+
+    The listen and server_name used here are configured for a local machine.
+    In a production server you will most likely listen on port 80,
+    and use your URL as the server_name.
     
 Now make sure you enable the nginx service so it automatically starts at boot::
 
