@@ -477,6 +477,22 @@ you still trust the environment).
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1"``.
 
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--server_name STRING``
+* ``gunicorn/X.Y.Z``
+
+Server name to use in the ``Server`` HTTP Header on responses.
+
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--no_server_name``
+* ``None``
+
+If set, the ``Server`` HTTP Header will not be returned on responses.
+
 Logging
 -------
 
@@ -1012,4 +1028,3 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
-

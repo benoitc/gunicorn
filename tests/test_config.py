@@ -11,6 +11,7 @@ import sys
 import pytest
 
 from gunicorn import config
+from gunicorn import SERVER_SOFTWARE
 from gunicorn.app.base import Application
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
@@ -285,3 +286,17 @@ def test_always_use_configured_logger():
     c.set('statsd_host', 'localhost:12345')
     # still uses custom logger over statsd
     assert c.logger_class == MyLogger
+
+
+def test_server_name():
+    c = config.Config()
+    assert c.server_name == SERVER_SOFTWARE
+    c.set('server_name', 'Server x.y')
+    assert c.server_name == 'Server x.y'
+
+
+def test_no_server_name():
+    c = config.Config()
+    assert c.no_server_name == False
+    c.set('no_server_name', True)
+    assert c.no_server_name == True
