@@ -387,7 +387,7 @@ def import_app(module):
 
     is_debug = logging.root.level == logging.DEBUG
     try:
-        app = eval(obj, mod.__dict__)
+        app = eval(obj, vars(mod))
     except NameError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
