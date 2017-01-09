@@ -334,7 +334,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn/py27/gunicorn/docs``
+* ``/usr/local/insightsquared/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
@@ -395,7 +395,7 @@ user
 ~~~~
 
 * ``-u USER, --user USER``
-* ``501``
+* ``6052``
 
 Switch worker processes to run as this user.
 
@@ -407,7 +407,7 @@ group
 ~~~~~
 
 * ``-g GROUP, --group GROUP``
-* ``20``
+* ``6052``
 
 Switch worker process to run as this group.
 
@@ -429,6 +429,18 @@ A valid value for the ``os.umask(mode)`` call or a string compatible
 with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
 representations)
+
+initgroups
+~~~~~~~~~~
+
+* ``--initgroups``
+* ``False``
+
+If true, set the worker process's group access list with all of the
+groups of which the specified username is a member, plus the specified
+group id.
+
+.. versionadded:: 19.7
 
 tmp_upload_dir
 ~~~~~~~~~~~~~~
@@ -553,6 +565,16 @@ Valid level names are:
 * error
 * critical
 
+capture_output
+~~~~~~~~~~~~~~
+
+* ``--capture-output``
+* ``False``
+
+Redirect stdout/stderr to Error log.
+
+.. versionadded:: 19.6
+
 logger_class
 ~~~~~~~~~~~~
 
@@ -583,7 +605,7 @@ syslog_addr
 ~~~~~~~~~~~
 
 * ``--log-syslog-to SYSLOG_ADDR``
-* ``unix:///var/run/syslog``
+* ``udp://localhost:514``
 
 Address to send syslog messages.
 
@@ -658,6 +680,72 @@ if not provided).
 
 Process Naming
 --------------
+
+proc_name_format
+~~~~~~~~~~~~~~~~
+
+* ``--name-format STRING``
+* ``{proc_name_prefix}: {identifier} [{proc_name}]``
+
+The format to use with setproctitle for process naming. Should be in
+the form of a Python format string with places for "proc_name_prefix",
+"identifier", and "proc_name".
+
+If not set, defaults to "{proc_name_prefix}: {master_identifier} [{proc_name}]"
+and "{proc_name_prefix}: {worker_identifier} [{proc_name}]"
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+proc_name_prefix
+~~~~~~~~~~~~~~~~
+
+* ``--name-prefix STRING``
+* ``gunicorn``
+
+A prefix to use with setproctitle for process naming. Fills the
+"proc_name_prefix" portion of the proc_name_format string.
+
+If not set, defaults to "gunicorn".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+worker_identifier
+~~~~~~~~~~~~~~~~~
+
+* ``--name-worker STRING``
+* ``worker``
+
+How to identify worker processes when using setproctitle. Fills the
+"identifier" portion of the proc_name_format string.
+
+If not set, defaults to "worker".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
+
+master_identifier
+~~~~~~~~~~~~~~~~~
+
+* ``--name-master STRING``
+* ``master``
+
+How to identify the master process when using setproctitle. Fills the
+"identifier" portion of the proc_name_format string.
+
+If not set, defaults to "master".
+
+This affects things like ``ps`` and ``top``. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.
 
 proc_name
 ~~~~~~~~~
@@ -1012,4 +1100,23 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
+
+Server Mechanics
+----------------
+
+raw_paste_global_conf
+~~~~~~~~~~~~~~~~~~~~~
+
+* ``--paste-global CONF``
+* ``[]``
+
+Set a PasteDeploy global config variable (key=value).
+
+The option can be specified multiple times.
+
+The variables are passed to the the PasteDeploy entrypoint. Ex.::
+
+    $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
+
+.. versionadded:: 20.0
 
