@@ -64,6 +64,10 @@ Commonly Used Arguments
   adjust the name of Gunicorn process as they appear in the process system
   table (which affects tools like ``ps`` and ``top``).
 
+.. Gevent note::
+   You must not call monkey.patch_all because it leads to some problems when using ``gevent`` as your ``WORKERCLASS``.
+   To do co-routine tasks in your application write one another file and run it alonside the Gunicorn.
+
 See :ref:`configuration` and :ref:`settings` for detailed usage.
 
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
