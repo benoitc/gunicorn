@@ -17,6 +17,8 @@ for reference on setting at the command line.
     For example, to specify the bind address and number of workers::
 
         $ GUNICORN_CMD_ARGS="--bind=127.0.0.1 --workers=3" gunicorn app:app
+
+    .. versionadded:: 19.7
 Config File
 -----------
 
