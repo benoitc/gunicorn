@@ -13,7 +13,7 @@ for reference on setting at the command line.
 .. note::
 
     Settings can be specified by using environment variable
-    ``GUNICORN_CMD_ARGS``. All avaiable command line arguments can be used.
+    ``GUNICORN_CMD_ARGS``. All available command line arguments can be used.
     For example, to specify the bind address and number of workers::
 
         $ GUNICORN_CMD_ARGS="--bind=127.0.0.1 --workers=3" gunicorn app:app
