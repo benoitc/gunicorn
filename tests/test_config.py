@@ -306,3 +306,17 @@ def test_cli_overrides_enviroment_variables_module(monkeypatch):
     with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
         app = NoConfigApp()
     assert app.cfg.workers == 3
+
+
+@pytest.mark.parametrize("options, expected", [
+    (["myapp:app"], False),
+    (["--reload", "myapp:app"], True),
+    (["--reload", "--", "myapp:app"], True),
+    (["--reload", "-w 2", "myapp:app"], True),
+])
+def test_reload(options, expected):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        app = NoConfigApp()
+    assert app.cfg.reload == expected

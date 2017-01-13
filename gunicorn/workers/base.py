@@ -15,7 +15,7 @@ import traceback
 from gunicorn import six
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import preferred_reloader, Reloader, InotifyReloader
+from gunicorn.reloader import preferred_reloader
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
@@ -114,7 +114,7 @@ class Worker(object):
         self.init_signals()
 
         # start the reloader
-        if self.cfg.reload and self.cfg.reload != 'off':
+        if self.cfg.reload:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
@@ -122,14 +122,7 @@ class Worker(object):
                 time.sleep(0.1)
                 sys.exit(0)
 
-            if self.cfg.reload == 'poll':
-                reloader_cls = Reloader
-            elif self.cfg.reload == 'inotify':
-                reloader_cls = InotifyReloader
-            else:
-                reloader_cls = preferred_reloader
-
-            self.reloader = reloader_cls(callback=changed)
+            self.reloader = preferred_reloader(callback=changed)
             self.reloader.start()
 
         self.load_wsgi()
