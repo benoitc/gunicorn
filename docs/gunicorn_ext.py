@@ -25,6 +25,8 @@ for reference on setting at the command line.
     For example, to specify the bind address and number of workers::
 
         $ GUNICORN_CMD_ARGS="--bind=127.0.0.1 --workers=3" gunicorn app:app
+        
+    .. versionadded:: 19.7
 """
 ISSUE_URI = 'https://github.com/benoitc/gunicorn/issues/%s'
 PULL_REQUEST_URI = 'https://github.com/benoitc/gunicorn/pull/%s'
