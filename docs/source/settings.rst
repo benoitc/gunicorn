@@ -134,7 +134,7 @@ A positive integer generally in the ``2-4 x $(NUM_CORES)`` range.
 You'll want to vary this a bit to find the best for your particular
 application's work load.
 
-If it is not defined, the default is 1.
+If it is not defined, the default is ``1``.
 
 worker_connections
 ~~~~~~~~~~~~~~~~~~
@@ -439,6 +439,18 @@ with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
 representations)
 
+initgroups
+~~~~~~~~~~
+
+* ``--initgroups``
+* ``False``
+
+If true, set the worker process's group access list with all of the
+groups of which the specified username is a member, plus the specified
+group id.
+
+.. versionadded:: 19.7
+
 tmp_upload_dir
 ~~~~~~~~~~~~~~
 
@@ -561,6 +573,16 @@ Valid level names are:
 * warning
 * error
 * critical
+
+capture_output
+~~~~~~~~~~~~~~
+
+* ``--capture-output``
+* ``False``
+
+Redirect stdout/stderr to Error log.
+
+.. versionadded:: 19.6
 
 logger_class
 ~~~~~~~~~~~~
@@ -1021,4 +1043,23 @@ ciphers
 * ``TLSv1``
 
 Ciphers to use (see stdlib ssl module's)
+
+Server Mechanics
+----------------
+
+raw_paste_global_conf
+~~~~~~~~~~~~~~~~~~~~~
+
+* ``--paste-global CONF``
+* ``[]``
+
+Set a PasteDeploy global config variable (key=value).
+
+The option can be specified multiple times.
+
+The variables are passed to the the PasteDeploy entrypoint. Ex.::
+
+    $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
+
+.. versionadded:: 20.0
 
