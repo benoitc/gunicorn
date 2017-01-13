@@ -1842,13 +1842,13 @@ class PasteGlobalConf(Setting):
     default = []
 
     desc = """\
-        Set a PasteDeploy global config variable (key=value).
+        Set a PasteDeploy global config variable in ``key=value`` form.
 
         The option can be specified multiple times.
 
-        The variables are passed to the the PasteDeploy entrypoint. Ex.::
+        The variables are passed to the the PasteDeploy entrypoint. Example::
 
             $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
-        .. versionadded:: 20.0
+        .. versionadded:: 19.7
         """
