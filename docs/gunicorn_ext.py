@@ -18,6 +18,15 @@ able to be set from a configuration file. The setting name is what should be
 used in the configuration file. The command line arguments are listed as well
 for reference on setting at the command line.
 
+.. note::
+
+    Settings can be specified by using environment variable
+    ``GUNICORN_CMD_ARGS``. All avaiable command line arguments can be used.
+    For example, to specify the bind address and number of workers::
+
+        $ GUNICORN_CMD_ARGS="--bind=127.0.0.1 --workers=3" gunicorn app:app
+        
+    .. versionadded:: 19.7
 """
 ISSUE_URI = 'https://github.com/benoitc/gunicorn/issues/%s'
 PULL_REQUEST_URI = 'https://github.com/benoitc/gunicorn/pull/%s'

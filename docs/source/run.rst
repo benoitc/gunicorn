@@ -64,6 +64,9 @@ Commonly Used Arguments
   adjust the name of Gunicorn process as they appear in the process system
   table (which affects tools like ``ps`` and ``top``).
 
+Settings can be specified by using environment variable
+:ref:`GUNICORN_CMD_ARGS <settings>`.
+
 See :ref:`configuration` and :ref:`settings` for detailed usage.
 
 .. _setproctitle: http://pypi.python.org/pypi/setproctitle/
