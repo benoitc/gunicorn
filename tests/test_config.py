@@ -175,6 +175,14 @@ def test_cmd_line():
         app = NoConfigApp()
         assert app.cfg.preload_app
 
+
+def test_cmd_line_invalid_setting(capsys):
+    with AltArgs(["prog_name", "-q", "bar"]):
+        with pytest.raises(SystemExit):
+            NoConfigApp()
+        _, err = capsys.readouterr()
+        assert  "error: unrecognized arguments: -q" in err
+
 def test_app_config():
     with AltArgs():
         app = NoConfigApp()
