@@ -1,2 +1,2 @@
-pytest==2.8.3
+pytest==3.0.5
 pytest-cov==1.7.0
