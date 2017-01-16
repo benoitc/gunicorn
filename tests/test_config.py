@@ -302,12 +302,13 @@ def test_load_enviroment_variables_config(monkeypatch):
     assert app.cfg.workers == 4
 
 
-def test_invalid_enviroment_variables_config(monkeypatch):
+def test_invalid_enviroment_variables_config(monkeypatch, capsys):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--foo=bar")
     with AltArgs():
         with pytest.raises(SystemExit):
             NoConfigApp()
-
+        _, err = capsys.readouterr()
+        assert  "error: unrecognized arguments: --foo" in err
 
 def test_cli_overrides_enviroment_variables_module(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
