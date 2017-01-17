@@ -24,6 +24,7 @@ def cfg_file():
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
+
 class AltArgs(object):
     def __init__(self, args=None):
         self.args = args or []
@@ -34,6 +35,7 @@ class AltArgs(object):
 
     def __exit__(self, exc_type, exc_inst, traceback):
         sys.argv = self.orig
+
 
 class NoConfigApp(Application):
     def __init__(self):
@@ -50,6 +52,7 @@ def test_defaults():
     c = config.Config()
     for s in config.KNOWN_SETTINGS:
         assert c.settings[s.name].validator(s.default) == c.settings[s.name].get()
+
 
 def test_property_access():
     c = config.Config()
@@ -92,6 +95,7 @@ def test_property_access():
     # No setting for name
     pytest.raises(AttributeError, c.set, "baz", "bar")
 
+
 def test_bool_validation():
     c = config.Config()
     assert c.preload_app is False
@@ -103,6 +107,7 @@ def test_bool_validation():
     assert c.preload_app is False
     pytest.raises(ValueError, c.set, "preload_app", "zilch")
     pytest.raises(TypeError, c.set, "preload_app", 4)
+
 
 def test_pos_int_validation():
     c = config.Config()
@@ -118,12 +123,14 @@ def test_pos_int_validation():
     pytest.raises(ValueError, c.set, "workers", -21)
     pytest.raises(TypeError, c.set, "workers", c)
 
+
 def test_str_validation():
     c = config.Config()
     assert c.proc_name == "gunicorn"
     c.set("proc_name", " foo ")
     assert c.proc_name == "foo"
     pytest.raises(TypeError, c.set, "proc_name", 2)
+
 
 def test_str_to_list_validation():
     c = config.Config()
@@ -136,6 +143,7 @@ def test_str_to_list_validation():
     assert c.forwarded_allow_ips == []
     pytest.raises(TypeError, c.set, "forwarded_allow_ips", 1)
 
+
 def test_callable_validation():
     c = config.Config()
     def func(a, b):
@@ -144,6 +152,7 @@ def test_callable_validation():
     assert c.pre_fork == func
     pytest.raises(TypeError, c.set, "pre_fork", 1)
     pytest.raises(TypeError, c.set, "pre_fork", lambda x: True)
+
 
 def test_callable_validation_for_string():
     from os.path import isdir as testfunc
@@ -183,11 +192,13 @@ def test_cmd_line_invalid_setting(capsys):
         _, err = capsys.readouterr()
         assert  "error: unrecognized arguments: -q" in err
 
+
 def test_app_config():
     with AltArgs():
         app = NoConfigApp()
     for s in config.KNOWN_SETTINGS:
         assert app.cfg.settings[s.name].validator(s.default) == app.cfg.settings[s.name].get()
+
 
 def test_load_config():
     with AltArgs(["prog_name", "-c", cfg_file()]):
@@ -196,12 +207,14 @@ def test_load_config():
     assert app.cfg.workers == 3
     assert app.cfg.proc_name == "fooey"
 
+
 def test_load_config_explicit_file():
     with AltArgs(["prog_name", "-c", "file:%s" % cfg_file()]):
         app = NoConfigApp()
     assert app.cfg.bind == ["unix:/tmp/bar/baz"]
     assert app.cfg.workers == 3
     assert app.cfg.proc_name == "fooey"
+
 
 def test_load_config_module():
     with AltArgs(["prog_name", "-c", "python:%s" % cfg_module()]):
@@ -210,17 +223,20 @@ def test_load_config_module():
     assert app.cfg.workers == 3
     assert app.cfg.proc_name == "fooey"
 
+
 def test_cli_overrides_config():
     with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["blarney"]
     assert app.cfg.proc_name == "fooey"
 
+
 def test_cli_overrides_config_module():
     with AltArgs(["prog_name", "-c", "python:%s" % cfg_module(), "-b", "blarney"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["blarney"]
     assert app.cfg.proc_name == "fooey"
+
 
 @pytest.fixture
 def create_config_file(request):
@@ -235,12 +251,14 @@ def create_config_file(request):
 
     return default
 
+
 def test_default_config_file(create_config_file):
     assert config.get_default_config_file() == create_config_file.name
 
     with AltArgs(["prog_name"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["0.0.0.0:9090"]
+
 
 def test_post_request():
     c = config.Config()
