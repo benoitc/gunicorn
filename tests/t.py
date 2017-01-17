@@ -13,6 +13,7 @@ from gunicorn.http.parser import RequestParser
 from gunicorn.config import Config
 from gunicorn.six import BytesIO
 
+
 def data_source(fname):
     buf = BytesIO()
     with open(fname) as handle:
@@ -20,6 +21,7 @@ def data_source(fname):
             line = line.rstrip("\n").replace("\\r\\n", "\r\n")
             buf.write(line.encode('latin1'))
         return buf
+
 
 class request(object):
     def __init__(self, name):
