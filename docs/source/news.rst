@@ -8,11 +8,12 @@ Changelog
 Core & Logging
 ++++++++++++++
 
-- improvement of the binary upgrade behaviour using USR2: remove file locking (:issue:`1270`)
+- improvement of the binary upgrade behaviour using ``USR2``: remove file
+  locking (:issue:`1270`)
 - add the ``--capture-output`` setting to capture stdout/stderr to the log
-file (:issue:`1271`)
+  file (:issue:`1271`)
 - Allow disabling ``sendfile()`` via the ``SENDFILE`` environment variable
-(:issue:`1252`)
+  (:issue:`1252`)
 - fix reload under pycharm (:issue:`1129`)
 
 Workers
@@ -20,7 +21,7 @@ Workers
 
 - fix: make sure to remove the signal from the worker pipe (:issue:`1269`)
 - fix: **gthread** worker, handle removed socket in the select loop
-(:issue:`1258`)
+  (:issue:`1258`)
 
 19.5.0 / 2016/05/10
 ===================
