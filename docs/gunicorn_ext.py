@@ -60,6 +60,7 @@ def fmt_setting(s):
         cli = ", ".join(s.cli)
 
     out = []
+    out.append(".. _%s:\n" % s.name.replace("_", "-"))
     out.append("%s" % s.name)
     out.append("~" * len(s.name))
     out.append("")

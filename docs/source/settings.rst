@@ -22,6 +22,8 @@ for reference on setting at the command line.
 Config File
 -----------
 
+.. _config:
+
 config
 ~~~~~~
 
@@ -42,6 +44,8 @@ application specific configuration.
 Server Socket
 -------------
 
+.. _bind:
+
 bind
 ~~~~
 
@@ -59,6 +63,8 @@ Multiple addresses can be bound. ex.::
 
 will bind the `test:app` application on localhost both on ipv6
 and ipv4 interfaces.
+
+.. _backlog:
 
 backlog
 ~~~~~~~
@@ -78,6 +84,8 @@ Must be a positive integer. Generally set in the 64-2048 range.
 Worker Processes
 ----------------
 
+.. _workers:
+
 workers
 ~~~~~~~
 
@@ -92,6 +100,8 @@ application's work load.
 
 By default, the value of the ``WEB_CONCURRENCY`` environment variable.
 If it is not defined, the default is ``1``.
+
+.. _worker-class:
 
 worker_class
 ~~~~~~~~~~~~
@@ -120,6 +130,8 @@ This alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``. Alternatively, the syntax
 can also load the gevent class with ``egg:gunicorn#gevent``.
 
+.. _threads:
+
 threads
 ~~~~~~~
 
@@ -136,6 +148,8 @@ application's work load.
 
 If it is not defined, the default is ``1``.
 
+.. _worker-connections:
+
 worker_connections
 ~~~~~~~~~~~~~~~~~~
 
@@ -145,6 +159,8 @@ worker_connections
 The maximum number of simultaneous clients.
 
 This setting only affects the Eventlet and Gevent worker types.
+
+.. _max-requests:
 
 max_requests
 ~~~~~~~~~~~~
@@ -161,6 +177,8 @@ to help limit the damage of memory leaks.
 If this is set to zero (the default) then the automatic worker
 restarts are disabled.
 
+.. _max-requests-jitter:
+
 max_requests_jitter
 ~~~~~~~~~~~~~~~~~~~
 
@@ -175,6 +193,8 @@ restarts to avoid all workers restarting at the same time.
 
 .. versionadded:: 19.2
 
+.. _timeout:
+
 timeout
 ~~~~~~~
 
@@ -188,6 +208,8 @@ you're sure of the repercussions for sync workers. For the non sync
 workers it just means that the worker process is still communicating and
 is not tied to the length of time required to handle a single request.
 
+.. _graceful-timeout:
+
 graceful_timeout
 ~~~~~~~~~~~~~~~~
 
@@ -199,6 +221,8 @@ Timeout for graceful workers restart.
 After receiving a restart signal, workers have this much time to finish
 serving requests. Workers still alive after the timeout (starting from
 the receipt of the restart signal) are force killed.
+
+.. _keepalive:
 
 keepalive
 ~~~~~~~~~
@@ -212,6 +236,8 @@ Generally set in the 1-5 seconds range.
 
 Security
 --------
+
+.. _limit-request-line:
 
 limit_request_line
 ~~~~~~~~~~~~~~~~~~
@@ -232,6 +258,8 @@ from 0 (unlimited) to 8190.
 
 This parameter can be used to prevent any DDOS attack.
 
+.. _limit-request-fields:
+
 limit_request_fields
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -244,6 +272,8 @@ This parameter is used to limit the number of headers in a request to
 prevent DDOS attack. Used with the *limit_request_field_size* it allows
 more safety. By default this value is 100 and can't be larger than
 32768.
+
+.. _limit-request-field-size:
 
 limit_request_field_size
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -262,6 +292,8 @@ header field sizes.
 
 Debugging
 ---------
+
+.. _reload:
 
 reload
 ~~~~~~
@@ -287,6 +319,8 @@ is to attempt inotify with a fallback to FS polling.
 Note: In order to use the inotify reloader, you must have the 'inotify'
 package installed.
 
+.. _spew:
+
 spew
 ~~~~
 
@@ -296,6 +330,8 @@ spew
 Install a trace function that spews every line executed by the server.
 
 This is the nuclear option.
+
+.. _check-config:
 
 check_config
 ~~~~~~~~~~~~
@@ -307,6 +343,8 @@ Check the configuration.
 
 Server Mechanics
 ----------------
+
+.. _preload-app:
 
 preload_app
 ~~~~~~~~~~~
@@ -320,6 +358,8 @@ By preloading an application you can save some RAM resources as well as
 speed up server boot times. Although, if you defer application loading
 to each worker process, you can reload your application code easily by
 restarting workers.
+
+.. _sendfile:
 
 sendfile
 ~~~~~~~~
@@ -339,6 +379,8 @@ to enable or disable its usage.
 .. versionchanged:: 19.6
    added support for the ``SENDFILE`` environment variable
 
+.. _chdir:
+
 chdir
 ~~~~~
 
@@ -346,6 +388,8 @@ chdir
 * ``/Users/benoitc/work/gunicorn/py27/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
+
+.. _daemon:
 
 daemon
 ~~~~~~
@@ -357,6 +401,8 @@ Daemonize the Gunicorn process.
 
 Detaches the server from the controlling terminal and enters the
 background.
+
+.. _raw-env:
 
 raw_env
 ~~~~~~~
@@ -372,6 +418,8 @@ Pass variables to the execution environment. Ex.::
 
 and test for the foo variable environment in your application.
 
+.. _pidfile:
+
 pidfile
 ~~~~~~~
 
@@ -381,6 +429,8 @@ pidfile
 A filename to use for the PID file.
 
 If not set, no PID file will be written.
+
+.. _worker-tmp-dir:
 
 worker_tmp_dir
 ~~~~~~~~~~~~~~
@@ -400,6 +450,8 @@ If not set, the default temporary directory will be used.
    See :ref:`blocking-os-fchmod` for more detailed information
    and a solution for avoiding this problem.
 
+.. _user:
+
 user
 ~~~~
 
@@ -412,6 +464,8 @@ A valid user id (as an integer) or the name of a user that can be
 retrieved with a call to ``pwd.getpwnam(value)`` or ``None`` to not
 change the worker process user.
 
+.. _group:
+
 group
 ~~~~~
 
@@ -423,6 +477,8 @@ Switch worker process to run as this group.
 A valid group id (as an integer) or the name of a user that can be
 retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
+
+.. _umask:
 
 umask
 ~~~~~
@@ -439,6 +495,8 @@ with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
 representations)
 
+.. _initgroups:
+
 initgroups
 ~~~~~~~~~~
 
@@ -450,6 +508,8 @@ groups of which the specified username is a member, plus the specified
 group id.
 
 .. versionadded:: 19.7
+
+.. _tmp-upload-dir:
 
 tmp_upload_dir
 ~~~~~~~~~~~~~~
@@ -463,6 +523,8 @@ This may disappear in the near future.
 This path should be writable by the process permissions set for Gunicorn
 workers. If not specified, Gunicorn will choose a system generated
 temporary directory.
+
+.. _secure-scheme-headers:
 
 secure_scheme_headers
 ~~~~~~~~~~~~~~~~~~~~~
@@ -481,6 +543,8 @@ when handling HTTPS requests.
 
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
+
+.. _forwarded-allow-ips:
 
 forwarded_allow_ips
 ~~~~~~~~~~~~~~~~~~~
@@ -501,6 +565,8 @@ variable. If it is not defined, the default is ``"127.0.0.1"``.
 Logging
 -------
 
+.. _accesslog:
+
 accesslog
 ~~~~~~~~~
 
@@ -510,6 +576,8 @@ accesslog
 The Access log file to write to.
 
 ``'-'`` means log to stdout.
+
+.. _access-log-format:
 
 access_log_format
 ~~~~~~~~~~~~~~~~~
@@ -545,6 +613,8 @@ p            process ID
 {Variable}e  environment variable
 ===========  ===========
 
+.. _errorlog:
+
 errorlog
 ~~~~~~~~
 
@@ -557,6 +627,8 @@ Using ``'-'`` for FILE makes gunicorn log to stderr.
 
 .. versionchanged:: 19.2
    Log to stderr by default.
+
+.. _loglevel:
 
 loglevel
 ~~~~~~~~
@@ -574,6 +646,8 @@ Valid level names are:
 * error
 * critical
 
+.. _capture-output:
+
 capture_output
 ~~~~~~~~~~~~~~
 
@@ -583,6 +657,8 @@ capture_output
 Redirect stdout/stderr to Error log.
 
 .. versionadded:: 19.6
+
+.. _logger-class:
 
 logger_class
 ~~~~~~~~~~~~
@@ -600,6 +676,8 @@ Python path to a subclass like ``gunicorn.glogging.Logger``.
 Alternatively the syntax can also load the Logger class
 with ``egg:gunicorn#simple``.
 
+.. _logconfig:
+
 logconfig
 ~~~~~~~~~
 
@@ -609,6 +687,8 @@ logconfig
 The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
+
+.. _syslog-addr:
 
 syslog_addr
 ~~~~~~~~~~~
@@ -626,6 +706,8 @@ Address is a string of the form:
 * ``udp://HOST:PORT`` : for UDP sockets
 * ``tcp://HOST:PORT`` : for TCP sockets
 
+.. _syslog:
+
 syslog
 ~~~~~~
 
@@ -633,6 +715,8 @@ syslog
 * ``False``
 
 Send *Gunicorn* logs to syslog.
+
+.. _syslog-prefix:
 
 syslog_prefix
 ~~~~~~~~~~~~~
@@ -645,6 +729,8 @@ Makes Gunicorn use the parameter as program-name in the syslog entries.
 All entries will be prefixed by ``gunicorn.<prefix>``. By default the
 program name is the name of the process.
 
+.. _syslog-facility:
+
 syslog_facility
 ~~~~~~~~~~~~~~~
 
@@ -652,6 +738,8 @@ syslog_facility
 * ``user``
 
 Syslog facility name
+
+.. _enable-stdio-inheritance:
 
 enable_stdio_inheritance
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -666,6 +754,8 @@ Enable inheritance for stdio file descriptors in daemon mode.
 Note: To disable the Python stdout buffering, you can to set the user
 environment variable ``PYTHONUNBUFFERED`` .
 
+.. _statsd-host:
+
 statsd_host
 ~~~~~~~~~~~
 
@@ -675,6 +765,8 @@ statsd_host
 ``host:port`` of the statsd server to log to.
 
 .. versionadded:: 19.1
+
+.. _statsd-prefix:
 
 statsd_prefix
 ~~~~~~~~~~~~~
@@ -689,6 +781,8 @@ if not provided).
 
 Process Naming
 --------------
+
+.. _proc-name:
 
 proc_name
 ~~~~~~~~~
@@ -705,6 +799,8 @@ module.
 
 If not set, the *default_proc_name* setting will be used.
 
+.. _default-proc-name:
+
 default_proc_name
 ~~~~~~~~~~~~~~~~~
 
@@ -714,6 +810,8 @@ Internal setting that is adjusted for each type of application.
 
 Django
 ------
+
+.. _django-settings:
 
 django_settings
 ~~~~~~~~~~~~~~~
@@ -731,6 +829,8 @@ e.g. ``myproject.settings.main``. If this isn't provided, the
 Server Mechanics
 ----------------
 
+.. _pythonpath:
+
 pythonpath
 ~~~~~~~~~~
 
@@ -741,6 +841,8 @@ A comma-separated list of directories to add to the Python path.
 
 e.g.
 ``'/home/djangoprojects/myproject,/home/python/mylibrary'``.
+
+.. _paste:
 
 paste
 ~~~~~
@@ -758,6 +860,8 @@ command line arguments to control server configuration instead.
 Server Hooks
 ------------
 
+.. _on-starting:
+
 on_starting
 ~~~~~~~~~~~
 
@@ -769,6 +873,8 @@ on_starting
 Called just before the master process is initialized.
 
 The callable needs to accept a single instance variable for the Arbiter.
+
+.. _on-reload:
 
 on_reload
 ~~~~~~~~~
@@ -782,6 +888,8 @@ Called to recycle workers during a reload via SIGHUP.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
+.. _when-ready:
+
 when_ready
 ~~~~~~~~~~
 
@@ -793,6 +901,8 @@ when_ready
 Called just after the server is started.
 
 The callable needs to accept a single instance variable for the Arbiter.
+
+.. _pre-fork:
 
 pre_fork
 ~~~~~~~~
@@ -807,6 +917,8 @@ Called just before a worker is forked.
 The callable needs to accept two instance variables for the Arbiter and
 new Worker.
 
+.. _post-fork:
+
 post_fork
 ~~~~~~~~~
 
@@ -819,6 +931,8 @@ Called just after a worker has been forked.
 
 The callable needs to accept two instance variables for the Arbiter and
 new Worker.
+
+.. _post-worker-init:
 
 post_worker_init
 ~~~~~~~~~~~~~~~~
@@ -833,6 +947,8 @@ Called just after a worker has initialized the application.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
+.. _worker-int:
+
 worker_int
 ~~~~~~~~~~
 
@@ -845,6 +961,8 @@ Called just after a worker exited on SIGINT or SIGQUIT.
 
 The callable needs to accept one instance variable for the initialized
 Worker.
+
+.. _worker-abort:
 
 worker_abort
 ~~~~~~~~~~~~
@@ -861,6 +979,8 @@ This call generally happens on timeout.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
+.. _pre-exec:
+
 pre_exec
 ~~~~~~~~
 
@@ -872,6 +992,8 @@ pre_exec
 Called just before a new master process is forked.
 
 The callable needs to accept a single instance variable for the Arbiter.
+
+.. _pre-request:
 
 pre_request
 ~~~~~~~~~~~
@@ -886,6 +1008,8 @@ Called just before a worker processes the request.
 The callable needs to accept two instance variables for the Worker and
 the Request.
 
+.. _post-request:
+
 post_request
 ~~~~~~~~~~~~
 
@@ -899,6 +1023,8 @@ Called after a worker processes the request.
 The callable needs to accept two instance variables for the Worker and
 the Request.
 
+.. _worker-exit:
+
 worker_exit
 ~~~~~~~~~~~
 
@@ -911,6 +1037,8 @@ Called just after a worker has been exited.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
+
+.. _nworkers-changed:
 
 nworkers_changed
 ~~~~~~~~~~~~~~~~
@@ -928,6 +1056,8 @@ two integers of number of workers after and before change.
 If the number of workers is set for the first time, *old_value* would
 be ``None``.
 
+.. _on-exit:
+
 on_exit
 ~~~~~~~
 
@@ -942,6 +1072,8 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 Server Mechanics
 ----------------
+
+.. _proxy-protocol:
 
 proxy_protocol
 ~~~~~~~~~~~~~~
@@ -965,6 +1097,8 @@ Example for stunnel config::
     cert = /etc/ssl/certs/stunnel.pem
     key = /etc/ssl/certs/stunnel.key
 
+.. _proxy-allow-ips:
+
 proxy_allow_ips
 ~~~~~~~~~~~~~~~
 
@@ -980,6 +1114,8 @@ you still trust the environment)
 SSL
 ---
 
+.. _keyfile:
+
 keyfile
 ~~~~~~~
 
@@ -987,6 +1123,8 @@ keyfile
 * ``None``
 
 SSL key file
+
+.. _certfile:
 
 certfile
 ~~~~~~~~
@@ -996,6 +1134,8 @@ certfile
 
 SSL certificate file
 
+.. _ssl-version:
+
 ssl_version
 ~~~~~~~~~~~
 
@@ -1003,6 +1143,8 @@ ssl_version
 * ``3``
 
 SSL version to use (see stdlib ssl module's)
+
+.. _cert-reqs:
 
 cert_reqs
 ~~~~~~~~~
@@ -1012,6 +1154,8 @@ cert_reqs
 
 Whether client certificate is required (see stdlib ssl module's)
 
+.. _ca-certs:
+
 ca_certs
 ~~~~~~~~
 
@@ -1019,6 +1163,8 @@ ca_certs
 * ``None``
 
 CA certificates file
+
+.. _suppress-ragged-eofs:
 
 suppress_ragged_eofs
 ~~~~~~~~~~~~~~~~~~~~
@@ -1028,6 +1174,8 @@ suppress_ragged_eofs
 
 Suppress ragged EOFs (see stdlib ssl module's)
 
+.. _do-handshake-on-connect:
+
 do_handshake_on_connect
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1035,6 +1183,8 @@ do_handshake_on_connect
 * ``False``
 
 Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+
+.. _ciphers:
 
 ciphers
 ~~~~~~~
@@ -1046,6 +1196,8 @@ Ciphers to use (see stdlib ssl module's)
 
 Server Mechanics
 ----------------
+
+.. _raw-paste-global-conf:
 
 raw_paste_global_conf
 ~~~~~~~~~~~~~~~~~~~~~
