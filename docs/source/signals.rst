@@ -1,8 +1,8 @@
 .. _signals:
 
-================
+===============
 Signal Handling
-================
+===============
 
 A brief description of the signals handled by Gunicorn. We also document the
 signals used internally by Gunicorn to communicate with the workers.
@@ -10,20 +10,21 @@ signals used internally by Gunicorn to communicate with the workers.
 Master process
 ==============
 
-- **QUIT**, **INT**: Quick shutdown
-- **TERM**: Graceful shutdown. Waits for workers to finish their
-  current requests up to the *graceful timeout*.
-- **HUP**: Reload the configuration, start the new worker processes with a new
+- ``QUIT``, ``INT``: Quick shutdown
+- ``TERM``: Graceful shutdown. Waits for workers to finish their
+  current requests up to the :ref:`graceful-timeout`.
+- ``HUP``: Reload the configuration, start the new worker processes with a new
   configuration and gracefully shutdown older workers. If the application is
-  not preloaded (using the ``--preload`` option), Gunicorn will also load the
-  new version.
-- **TTIN**: Increment the number of processes by one
-- **TTOU**: Decrement the number of processes by one
-- **USR1**: Reopen the log files
-- **USR2**: Upgrade the Gunicorn on the fly. A separate **TERM** signal should
-  be used to kill the old process. This signal can also be used to use the new
-  versions of pre-loaded applications.
-- **WINCH**: Gracefully shutdown the worker processes when Gunicorn is
+  not preloaded (using the :ref:`preload-app` option), Gunicorn will also load
+  the new version of it.
+- ``TTIN``: Increment the number of processes by one
+- ``TTOU``: Decrement the number of processes by one
+- ``USR1``: Reopen the log files
+- ``USR2``: Upgrade Gunicorn on the fly. A separate ``TERM`` signal should
+  be used to kill the old master process. This signal can also be used to use
+  the new versions of pre-loaded applications. See :ref:`binary-upgrade` for
+  more information.
+- ``WINCH``: Gracefully shutdown the worker processes when Gunicorn is
   daemonized.
 
 Worker process
@@ -33,9 +34,9 @@ Sending signals directly to the worker processes should not normally be
 needed.  If the master process is running, any exited worker will be
 automatically respawned.
 
-- **QUIT**, **INT**: Quick shutdown
-- **TERM**: Graceful shutdown
-- **USR1**: Reopen the log files
+- ``QUIT``, ``INT``: Quick shutdown
+- ``TERM``: Graceful shutdown
+- ``USR1``: Reopen the log files
 
 Reload the configuration
 ========================
@@ -55,10 +56,12 @@ fly.
     2013-06-29 06:26:55 [20704] [INFO] Booting worker with pid: 20704
 
 
-Sending a **HUP** signal will reload the configuration, start the new
+Sending a ``HUP`` signal will reload the configuration, start the new
 worker processes with a new configuration and gracefully shutdown older
-workers. If the application is not preloaded (using the ``--preload``
-option), Gunicorn will also load the new version.
+workers. If the application is not preloaded (using the :ref:`preload-app`
+option), Gunicorn will also load the new version of it.
+
+.. _binary-upgrade:
 
 Upgrading to a new binary on the fly
 ====================================
@@ -72,11 +75,10 @@ upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be
 lost. Preloaded applications will also be reloaded.
 
-First, replace the old binary with a new one, then send the **USR2** signal to
-the master process. It executes a new binary whose .pid file is
-postfixed with .2 (e.g. /var/run/gunicorn.pid.2),
-which in turn starts a new master process and the new worker processes::
-
+First, replace the old binary with a new one, then send a ``USR2`` signal to
+the current master process. It executes a new binary whose PID file is
+postfixed with ``.2`` (e.g. ``/var/run/gunicorn.pid.2``),
+which in turn starts a new master process and new worker processes::
 
       PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND
     20844 benoitc   20   0 54808  11m 3352 S   0.0  0.1   0:00.36 gunicorn: master [test:app]
@@ -90,24 +92,24 @@ which in turn starts a new master process and the new worker processes::
 
 At this point, two instances of Gunicorn are running, handling the
 incoming requests together. To phase the old instance out, you have to
-send the **WINCH** signal to the old master process, and its worker
+send a ``WINCH`` signal to the old master process, and its worker
 processes will start to gracefully shut down.
 
-At this point you can still revert to the old server because it hasn't closed
+At this point you can still revert to the old process since it hasn't closed
 its listen sockets yet, by following these steps:
 
-- Send the HUP signal to the old master process - it will start the worker
+- Send a ``HUP`` signal to the old master process - it will start the worker
   processes without reloading a configuration file
-- Send the TERM signal to the new master process to gracefully shut down its
+- Send a ``TERM`` signal to the new master process to gracefully shut down its
   worker processes
-- Send the QUIT signal to the new master process to force it quit
+- Send a ``QUIT`` signal to the new master process to force it quit
 
-If for some reason the new worker processes do not quit, send the KILL signal
-to them after the new master process quits, and everything is exactly as before
-the upgrade attempt.
+If for some reason the new worker processes do not quit, send a ``KILL`` signal
+to them after the new master process quits, and everything will back to exactly
+as before the upgrade attempt.
 
-If an update is successful and you want to keep the new server, send
-the TERM signal to the old master process to leave only the new server
+If the update is successful and you want to keep the new master process, send a
+``TERM`` signal to the old master process to leave only the new server
 running::
 
       PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND
