@@ -63,6 +63,10 @@ option), Gunicorn will also load the new version.
 Upgrading to a new binary on the fly
 ====================================
 
+.. versionchanged:: 19.6.0
+   PID file naming format has been changed from ``<name>.pid.oldbin`` to
+   ``<name>.pid.2``.
+
 If you need to replace the Gunicorn binary with a new one (when
 upgrading to a new version or adding/removing server modules), you can
 do it without any service downtime - no incoming requests will be

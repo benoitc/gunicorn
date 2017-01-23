@@ -10,6 +10,8 @@ Core & Logging
 
 - improvement of the binary upgrade behaviour using ``USR2``: remove file
   locking (:issue:`1270`)
+- PID file naming format has been changed from ``<name>.pid.oldbin`` to
+  ``<name>.pid.2`` (:issue:`1270`)
 - add the ``--capture-output`` setting to capture stdout/stderr to the log
   file (:issue:`1271`)
 - Allow disabling ``sendfile()`` via the ``SENDFILE`` environment variable
