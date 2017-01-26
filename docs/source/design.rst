@@ -113,7 +113,7 @@ How Many Threads?
 ===================
 
 Since Gunicorn 19, a threads option can be used to process requests in multiple
-threads. Using threads assumes use of the sync worker. One benefit from threads
+threads. Using threads assumes use of the gthread worker. One benefit from threads
 is that requests can take longer than the worker timeout while notifying the
 master process that it is not frozen and should not be killed. Depending on the
 system, using multiple threads, multiple worker processes, or some mixture, may

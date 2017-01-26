@@ -148,6 +148,8 @@ application's work load.
 
 If it is not defined, the default is ``1``.
 
+This setting only affects the Gthread worker type.
+
 .. _worker-connections:
 
 worker_connections
@@ -1214,4 +1216,3 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
     $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
 .. versionadded:: 19.7
-
