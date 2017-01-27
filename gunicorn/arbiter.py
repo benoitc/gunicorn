@@ -515,8 +515,9 @@ class Arbiter(object):
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
-                    # A worker said it cannot boot. We'll shutdown
-                    # to avoid infinite start/stop cycles.
+                    # A worker was terminated. If the termination reason was
+                    # that it could not boot, we'll shut it down to avoid
+                    # infinite start/stop cycles.
                     exitcode = status >> 8
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
@@ -524,10 +525,12 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
+
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
                     worker.tmp.close()
+                    self.cfg.child_exit(self, worker)
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
@@ -562,14 +565,15 @@ class Arbiter(object):
         self.cfg.pre_fork(self, worker)
         pid = os.fork()
         if pid != 0:
+            worker.pid = pid
             self.WORKERS[pid] = worker
             return pid
 
         # Process Child
-        worker_pid = os.getpid()
+        worker.pid = os.getpid()
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
-            self.log.info("Booting worker with pid: %s", worker_pid)
+            self.log.info("Booting worker with pid: %s", worker.pid)
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
@@ -587,7 +591,7 @@ class Arbiter(object):
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
         finally:
-            self.log.info("Worker exiting (pid: %s)", worker_pid)
+            self.log.info("Worker exiting (pid: %s)", worker.pid)
             try:
                 worker.tmp.close()
                 self.cfg.worker_exit(self, worker)

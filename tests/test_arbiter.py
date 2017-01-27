@@ -16,7 +16,7 @@ import gunicorn.arbiter
 
 class DummyApplication(gunicorn.app.base.BaseApplication):
     """
-    Dummy application that has an default configuration.
+    Dummy application that has a default configuration.
     """
 
     def init(self, parser, opts, args):
@@ -112,6 +112,34 @@ def test_arbiter_reexec_limit_child(fork):
     arbiter.master_pid = ~os.getpid()
     arbiter.reexec()
     assert fork.called is False, "should not fork when arbiter is a child"
+
+
+@mock.patch('os.fork')
+def test_arbiter_calls_worker_exit(mock_os_fork):
+    mock_os_fork.return_value = 0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['worker_exit'] = mock.Mock()
+    arbiter.pid = None
+    mock_worker = mock.Mock()
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+    try:
+        arbiter.spawn_worker()
+    except SystemExit:
+        pass
+    arbiter.cfg.worker_exit.assert_called_with(arbiter, mock_worker)
+
+
+@mock.patch('os.waitpid')
+def test_arbiter_reap_workers(mock_os_waitpid):
+    mock_os_waitpid.side_effect = [(42, 0), (0, 0)]
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+    arbiter.reap_workers()
+    mock_worker.tmp.close.assert_called_with()
+    arbiter.cfg.child_exit.assert_called_with(arbiter, mock_worker)
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
