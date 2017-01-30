@@ -41,6 +41,15 @@ application specific configuration.
    Loading the config from a Python module requires the ``python:``
    prefix.
 
+.. _app-module:
+
+app_module
+~~~~~~~~~~
+
+* ``None``
+
+app module path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+
 Server Socket
 -------------
 

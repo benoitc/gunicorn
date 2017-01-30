@@ -12,7 +12,7 @@ from gunicorn import util
 
 
 class WSGIApplication(Application):
-    def init(self, parser, opts, args):
+    def init(self, parser, opts, args, app_module=None):
         if opts.paste and opts.paste is not None:
             app_name = 'main'
             path = opts.paste
@@ -31,11 +31,15 @@ class WSGIApplication(Application):
             from .pasterapp import paste_config
             return paste_config(self.cfg, self.cfgurl, self.relpath)
 
-        if len(args) < 1:
+        if len(args):
+            _app_module = args[0]
+        elif app_module:
+            _app_module = app_module
+        else:
             parser.error("No application module specified.")
 
-        self.cfg.set("default_proc_name", args[0])
-        self.app_uri = args[0]
+        self.cfg.set("default_proc_name", _app_module)
+        self.app_uri = _app_module
 
     def chdir(self):
         # chdir to the configured path before loading,

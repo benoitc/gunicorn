@@ -18,7 +18,7 @@ gunicorn
 
 Basic usage::
 
-    $ gunicorn [OPTIONS] APP_MODULE
+    $ gunicorn [OPTIONS] [APP_MODULE]
 
 Where ``APP_MODULE`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
 module name can be a full dotted path. The variable name refers to a WSGI
