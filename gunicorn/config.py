@@ -560,6 +560,17 @@ class ConfigFile(Setting):
            prefix.
         """
 
+class WSGIApp(Setting):
+    name = "wsgi_app"
+    section = "Config File"
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+
+        .. versionadded:: 20.1.0
+        """
 
 class Bind(Setting):
     name = "bind"
