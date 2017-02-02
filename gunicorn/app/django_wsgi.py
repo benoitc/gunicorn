@@ -1,20 +1,15 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
 """ module used to build the django wsgi application """
 from __future__ import print_function
 
+import io
 import os
 import re
 import sys
 import time
-try:
-    from StringIO import StringIO
-except:
-    from io import StringIO
-    from imp import reload
+from imp import reload
 
 
 from django.conf import settings
@@ -33,7 +28,7 @@ from gunicorn import util
 
 def make_wsgi_application():
     # validate models
-    s = StringIO()
+    s = io.StringIO()
     if get_validation_errors(s):
         s.seek(0)
         error = s.read()

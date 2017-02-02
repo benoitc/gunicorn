@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
@@ -16,7 +14,6 @@ import threading
 import traceback
 
 from gunicorn import util
-from gunicorn.six import PY3, string_types
 
 
 # syslog facility codes
@@ -99,7 +96,7 @@ class SafeAtoms(dict):
     def __init__(self, atoms):
         dict.__init__(self)
         for key, value in atoms.items():
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 self[key] = value.replace('"', '\\"')
             else:
                 self[key] = value
@@ -253,7 +250,7 @@ class Logger(object):
         self.error_log.exception(msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
-        if isinstance(lvl, string_types):
+        if isinstance(lvl, str):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 
@@ -442,8 +439,7 @@ class Logger(object):
                     # b64decode doesn't accept unicode in Python < 3.3
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
-                    if PY3:  # b64decode returns a byte string in Python 3
-                        auth = auth.decode('utf-8')
+                    auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
                 except TypeError as exc:
                     self.debug("Couldn't get username: %s", exc)

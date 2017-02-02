@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -
-#
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import io
 import re
 import socket
+
+from urllib.parse import urlsplit
 from errno import ENOTCONN
 
 from gunicorn._compat import bytes_to_str
@@ -14,8 +15,6 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.six import BytesIO
-from gunicorn._compat import urlsplit
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -160,7 +159,7 @@ class Request(Message):
         buf.write(data)
 
     def parse(self, unreader):
-        buf = BytesIO()
+        buf = io.BytesIO()
         self.get_data(unreader, buf, stop=True)
 
         # get request line
@@ -169,12 +168,12 @@ class Request(Message):
         # proxy protocol
         if self.proxy_protocol(bytes_to_str(line)):
             # get next request line
-            buf = BytesIO()
+            buf = io.BytesIO()
             buf.write(rbuf)
             line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
         self.parse_request_line(bytes_to_str(line))
-        buf = BytesIO()
+        buf = io.BytesIO()
         buf.write(rbuf)
 
         # Headers
@@ -201,7 +200,7 @@ class Request(Message):
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx + 4:]
-        buf = BytesIO()
+        buf = io.BytesIO()
         return ret
 
     def read_line(self, unreader, buf, limit=0):
