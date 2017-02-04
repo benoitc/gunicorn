@@ -1020,6 +1020,23 @@ Called after a worker processes the request.
 The callable needs to accept two instance variables for the Worker and
 the Request.
 
+.. _child-exit:
+
+child_exit
+~~~~~~~~~~
+
+*  ::
+
+        def child_exit(server, worker):
+            pass
+
+Called just after a worker has been exited, in the master process.
+
+The callable needs to accept two instance variables for the Arbiter and
+the just-exited Worker.
+
+.. versionadded: 19.7
+
 .. _worker-exit:
 
 worker_exit
@@ -1030,7 +1047,7 @@ worker_exit
         def worker_exit(server, worker):
             pass
 
-Called just after a worker has been exited.
+Called just after a worker has been exited, in the worker process.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.

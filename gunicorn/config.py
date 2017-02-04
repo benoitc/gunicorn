@@ -1661,6 +1661,8 @@ class ChildExit(Setting):
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.
+
+        .. versionadded: 19.7
         """
 
 
