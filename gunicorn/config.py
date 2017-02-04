@@ -632,8 +632,7 @@ class WorkerClass(Setting):
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
-        ``gunicorn.workers.ggevent.GeventWorker``. Alternatively, the syntax
-        can also load the gevent class with ``egg:gunicorn#gevent``.
+        ``gunicorn.workers.ggevent.GeventWorker``.
         """
 
 class WorkerThreads(Setting):
@@ -1249,10 +1248,8 @@ class LoggerClass(Setting):
         The default class (``gunicorn.glogging.Logger``) handle most of
         normal usages in logging. It provides error and access logging.
 
-        You can provide your own worker by giving Gunicorn a
+        You can provide your own logger by giving Gunicorn a
         Python path to a subclass like ``gunicorn.glogging.Logger``.
-        Alternatively the syntax can also load the Logger class
-        with ``egg:gunicorn#simple``.
         """
 
 
