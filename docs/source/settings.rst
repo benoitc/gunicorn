@@ -1035,7 +1035,7 @@ Called just after a worker has been exited, in the master process.
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
 
-.. versionadded: 19.7
+.. versionadded:: 19.7
 
 .. _worker-exit:
 
