@@ -8,7 +8,7 @@ Changelog
 Core
 ++++
 
-- The previously deprecated ``gunicorn_django`` command has been deprecated.
+- The previously deprecated ``gunicorn_django`` command has been removed.
   Use the :ref:`gunicorn-cmd` command-line interface instead.
 - The previously deprecated ``django_settings`` setting has been removed.
   Use the :ref:`raw-env` setting instead.
