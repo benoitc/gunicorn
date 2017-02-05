@@ -805,24 +805,6 @@ default_proc_name
 
 Internal setting that is adjusted for each type of application.
 
-Django
-------
-
-.. _django-settings:
-
-django_settings
-~~~~~~~~~~~~~~~
-
-* ``--settings STRING``
-* ``None``
-
-The Python path to a Django settings module. (deprecated)
-
-e.g. ``myproject.settings.main``. If this isn't provided, the
-``DJANGO_SETTINGS_MODULE`` environment variable will be used.
-
-**DEPRECATED**: use the ``--env`` argument instead.
-
 Server Mechanics
 ----------------
 

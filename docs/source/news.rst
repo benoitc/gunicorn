@@ -2,6 +2,17 @@
 Changelog
 =========
 
+19.7.0 / Not yet released
+=========================
+
+Core
+++++
+
+- The previously deprecated ``gunicorn_django`` command has been deprecated.
+  Use the :ref:`gunicorn-cmd` command-line interface instead.
+- The previously deprecated ``django_settings`` setting has been removed.
+  Use the :ref:`raw-env` setting instead.
+
 19.6.0 / 2016/05/21
 ===================
 

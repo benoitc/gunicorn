@@ -1411,23 +1411,6 @@ class DefaultProcName(Setting):
         """
 
 
-class DjangoSettings(Setting):
-    name = "django_settings"
-    section = "Django"
-    cli = ["--settings"]
-    meta = "STRING"
-    validator = validate_string
-    default = None
-    desc = """\
-        The Python path to a Django settings module. (deprecated)
-
-        e.g. ``myproject.settings.main``. If this isn't provided, the
-        ``DJANGO_SETTINGS_MODULE`` environment variable will be used.
-
-        **DEPRECATED**: use the ``--env`` argument instead.
-        """
-
-
 class PythonPath(Setting):
     name = "pythonpath"
     section = "Server Mechanics"

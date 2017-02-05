@@ -13,6 +13,8 @@ Commands
 After installing Gunicorn you will have access to the command line script
 ``gunicorn``.
 
+.. _gunicorn-cmd:
+
 gunicorn
 --------
 

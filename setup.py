@@ -94,7 +94,6 @@ setup(
     entry_points="""
     [console_scripts]
     gunicorn=gunicorn.app.wsgiapp:run
-    gunicorn_django=gunicorn.app.djangoapp:run
     gunicorn_paster=gunicorn.app.pasterapp:run
 
     [paste.server_runner]
