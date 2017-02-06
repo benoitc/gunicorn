@@ -107,7 +107,7 @@ class WebSocketWSGI(object):
 
         try:
             self.handler(ws)
-        except socket.error, e:
+        except socket.error as e:
             if e[0] != errno.EPIPE:
                 raise
         # use this undocumented feature of grainbows to ensure that it

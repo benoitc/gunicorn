@@ -1,8 +1,5 @@
 from datetime import timedelta
 import socket
-
-import t
-
 import logging
 import tempfile
 import shutil

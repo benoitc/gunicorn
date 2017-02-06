@@ -7,7 +7,6 @@
 # pip install validate_email pyDNS
 #
 from __future__ import print_function
-import os
 import sys
 
 from validate_email import validate_email

@@ -3,8 +3,6 @@
 # This file is part of the pywebmachine package released
 # under the MIT license.
 
-import t
-
 import inspect
 import os
 import random
