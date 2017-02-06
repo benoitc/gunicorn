@@ -12,6 +12,8 @@ Core
   Use the :ref:`gunicorn-cmd` command-line interface instead.
 - The previously deprecated ``django_settings`` setting has been removed.
   Use the :ref:`raw-env` setting instead.
+- The default value of :ref:`ssl-version` has been changed from
+  ``ssl.PROTOCOL_TLSv1`` to ``ssl.PROTOCOL_SSLv23``.
 
 19.6.0 / 2016/05/21
 ===================

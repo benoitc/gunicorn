@@ -1142,6 +1142,10 @@ ssl_version
 
 SSL version to use (see stdlib ssl module's)
 
+.. versionchanged:: 19.7
+   The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
+   ``ssl.PROTOCOL_SSLv23``.
+
 .. _cert-reqs:
 
 cert_reqs

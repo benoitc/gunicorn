@@ -1755,9 +1755,13 @@ class SSLVersion(Setting):
     section = "SSL"
     cli = ["--ssl-version"]
     validator = validate_pos_int
-    default = ssl.PROTOCOL_TLSv1
+    default = ssl.PROTOCOL_SSLv23
     desc = """\
     SSL version to use (see stdlib ssl module's)
+
+    .. versionchanged:: 19.7
+       The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
+       ``ssl.PROTOCOL_SSLv23``.
     """
 
 class CertReqs(Setting):
