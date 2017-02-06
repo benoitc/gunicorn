@@ -2,7 +2,7 @@
 import collections
 import errno
 import re
-from hashlib import md5, sha1
+from hashlib import sha1
 import base64
 from base64 import b64encode, b64decode
 import socket
@@ -106,7 +106,7 @@ class WebSocketWSGI(object):
 
         try:
             self.handler(ws)
-        except socket.error, e:
+        except socket.error as e:
             if e[0] != errno.EPIPE:
                 raise
         # use this undocumented feature of grainbows to ensure that it

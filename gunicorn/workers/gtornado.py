@@ -27,7 +27,7 @@ class TornadoWorker(Worker):
 
         def clear(self):
             old_clear(self)
-            if not "Gunicorn" in self._headers["Server"]:
+            if "Gunicorn" not in self._headers["Server"]:
                 self._headers["Server"] += " (Gunicorn/%s)" % gversion
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
@@ -104,13 +104,13 @@ class TornadoWorker(Worker):
             server_class = _HTTPServer
 
         if self.cfg.is_ssl:
-             _ssl_opt = copy.deepcopy(self.cfg.ssl_options)
-             # tornado refuses initialization if ssl_options contains following
-             # options
-             del _ssl_opt["do_handshake_on_connect"]
-             del _ssl_opt["suppress_ragged_eofs"]
-             server = server_class(app, io_loop=self.ioloop,
-                    ssl_options=_ssl_opt)
+            _ssl_opt = copy.deepcopy(self.cfg.ssl_options)
+            # tornado refuses initialization if ssl_options contains following
+            # options
+            del _ssl_opt["do_handshake_on_connect"]
+            del _ssl_opt["suppress_ragged_eofs"]
+            server = server_class(app, io_loop=self.ioloop,
+                                  ssl_options=_ssl_opt)
         else:
             server = server_class(app, io_loop=self.ioloop)
 

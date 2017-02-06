@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import email.utils
 import fcntl
-import grp
 import io
 import os
 import pkg_resources
@@ -15,7 +14,6 @@ import pwd
 import random
 import resource
 import socket
-import stat
 import sys
 import textwrap
 import time
