@@ -653,6 +653,8 @@ class WorkerThreads(Setting):
         application's work load.
 
         If it is not defined, the default is ``1``.
+
+        This setting only affects the Gthread worker type.
         """
 
 
