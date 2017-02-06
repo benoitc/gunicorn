@@ -39,7 +39,7 @@ def test_ssl_version():
     assert SSLVersion.name == 'ssl_version'
     assert SSLVersion.section == 'SSL'
     assert SSLVersion.cli == ['--ssl-version']
-    assert SSLVersion.default == ssl.PROTOCOL_TLSv1
+    assert SSLVersion.default == ssl.PROTOCOL_SSLv23
 
 
 def test_cacerts():
