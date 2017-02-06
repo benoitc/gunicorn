@@ -352,6 +352,20 @@ def validate_pos_int(val):
     return val
 
 
+def validate_ssl_version(val):
+    ssl_versions = {
+        'SSLv23': ssl.PROTOCOL_SSLv23,
+        'TLSv1': ssl.PROTOCOL_TLSv1,
+    }
+    if hasattr(ssl, 'PROTOCOL_TLSv1_1'):
+        ssl_versions['TLSv1_1'] = ssl.PROTOCOL_TLSv1_1
+    if hasattr(ssl, 'PROTOCOL_TLSv1_2'):
+        ssl_versions['TLSv1_2'] = ssl.PROTOCOL_TLSv1_2
+    if val in ssl_versions:
+        return ssl_versions[val]
+    return validate_pos_int(val)
+
+
 def validate_string(val):
     if val is None:
         return None
@@ -1754,7 +1768,7 @@ class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
     cli = ["--ssl-version"]
-    validator = validate_pos_int
+    validator = validate_ssl_version
     default = ssl.PROTOCOL_SSLv23
     desc = """\
     SSL version to use (see stdlib ssl module's)

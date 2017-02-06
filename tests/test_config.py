@@ -6,6 +6,7 @@
 import t
 
 import os
+import ssl
 import sys
 
 import pytest
@@ -347,3 +348,9 @@ def test_reload(options, expected):
     with AltArgs(cmdline):
         app = NoConfigApp()
     assert app.cfg.reload == expected
+
+
+def test_ssl_version_named_constants():
+    with AltArgs(["prog_name", "--ssl-version", "SSLv23"]):
+        app = NoConfigApp()
+    assert app.cfg.ssl_version == ssl.PROTOCOL_SSLv23
