@@ -1,0 +1,31 @@
+test-warnings: true
+
+ignore-paths:
+  - gunicorn/_compat.py
+  - gunicorn/argparse_compat.py
+  - gunicorn/selectors.py
+  - gunicorn/six.py
+  - build
+  - docs
+  - examples
+  - scripts
+  - tests/requests/valid
+  - tests/requests/invalid
+
+pep8:
+  disable:
+    - E126
+    - E128
+    - E129
+    - E302
+    - E501
+
+pyflakes:
+  disable:
+    # Redefinition of unused $X from line $LINE
+    - F811
+    # Access to a protected member $X of a client class
+    - W0212
+
+mccabe:
+  run: false

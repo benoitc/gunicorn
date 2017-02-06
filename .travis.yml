@@ -16,6 +16,8 @@ matrix:
       env: TOXENV=py36-dev
     - python: nightly
       env: TOXENV=py37
+    - python: 3.5
+      env: TOXENV=lint
   allow_failures:
     - env: TOXENV=py36-dev
     - env: TOXENV=py37
