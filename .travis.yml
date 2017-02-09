@@ -27,3 +27,20 @@ cache:
   directories:
     - .tox
     - $HOME/.cache/pip
+after_script:
+  - |
+      if [ ! -f coverage.xml ]; then
+          echo "No coverage.xml found; skipping sending coverage to couverture.io"
+          return
+      fi
+      if [ $TRAVIS_PULL_REQUEST != false ]; then
+          REAL_COMMIT=$(git log -n 1 $TRAVIS_COMMIT_RANGE --format="%H")
+          PR_NUM=$TRAVIS_PULL_REQUEST
+      else
+          REAL_COMMIT=$TRAVIS_COMMIT
+      fi
+      curl \
+          --verbose \
+          --header "X-Couverture-Pull-Request: $PR_NUM" \
+          --data-binary @coverage.xml \
+          "https://app.couverture.io/coverage/github/benoitc/gunicorn/$REAL_COMMIT/$TOXENV"
