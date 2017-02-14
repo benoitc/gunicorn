@@ -10,6 +10,7 @@ import pytest
 
 from gunicorn import config
 from gunicorn.app.base import Application
+from gunicorn.errors import ConfigError
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
 from gunicorn.instrument import statsd
@@ -150,6 +151,17 @@ def test_callable_validation():
     assert c.pre_fork == func
     pytest.raises(TypeError, c.set, "pre_fork", 1)
     pytest.raises(TypeError, c.set, "pre_fork", lambda x: True)
+
+
+def test_reload_engine_validation():
+    c = config.Config()
+
+    assert c.reload_engine == "auto"
+
+    c.set('reload_engine', 'poll')
+    assert c.reload_engine == 'poll'
+
+    pytest.raises(ConfigError, c.set, "reload_engine", "invalid")
 
 
 def test_callable_validation_for_string():

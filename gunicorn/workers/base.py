@@ -15,7 +15,7 @@ import traceback
 from gunicorn import six
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import preferred_reloader
+from gunicorn.reloader import reloader_engines
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
@@ -119,7 +119,8 @@ class Worker(object):
                 time.sleep(0.1)
                 sys.exit(0)
 
-            self.reloader = preferred_reloader(callback=changed)
+            reloader_cls = reloader_engines[self.cfg.reload_engine]
+            self.reloader = reloader_cls(callback=changed)
             self.reloader.start()
 
         self.load_wsgi()
