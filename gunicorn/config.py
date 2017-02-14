@@ -23,6 +23,7 @@ import shlex
 from gunicorn import __version__
 from gunicorn import _compat
 from gunicorn.errors import ConfigError
+from gunicorn.reloader import reloader_engines
 from gunicorn import six
 from gunicorn import util
 
@@ -496,6 +497,13 @@ def validate_hostport(val):
         raise TypeError("Value must consist of: hostname:port")
 
 
+def validate_reload_engine(val):
+    if val not in reloader_engines:
+        raise ConfigError("Invalid reload_engine: %r" % val)
+
+    return val
+
+
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
             'gunicorn.conf.py')
@@ -836,6 +844,26 @@ class Reload(Setting):
            In order to use the inotify reloader, you must have the ``inotify``
            package installed.
         '''
+
+
+class ReloadEngine(Setting):
+    name = "reload_engine"
+    section = "Debugging"
+    cli = ["--reload-engine"]
+    meta = "STRING"
+    validator = validate_reload_engine
+    default = "auto"
+    desc = """\
+        The implementation that should be used to power :ref:`reload`.
+
+        Valid engines are:
+
+        * 'auto'
+        * 'poll'
+        * 'inotify' (requires inotify)
+
+        .. versionadded:: 19.7
+        """
 
 
 class Spew(Setting):

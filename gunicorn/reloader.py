@@ -115,3 +115,9 @@ if has_inotify:
 
 
 preferred_reloader = InotifyReloader if has_inotify else Reloader
+
+reloader_engines = {
+    'auto': preferred_reloader,
+    'poll': Reloader,
+    'inotify': InotifyReloader,
+}
