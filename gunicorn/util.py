@@ -12,7 +12,6 @@ import os
 import pkg_resources
 import pwd
 import random
-import resource
 import socket
 import sys
 import textwrap
@@ -28,14 +27,7 @@ from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
 
-MAXFD = 1024
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
-
-timeout_default = object()
-
-CHUNK_SIZE = (16 * 1024)
-
-MAX_BODY = 1024 * 132
 
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
@@ -271,13 +263,6 @@ def parse_address(netloc, default_port=8000):
     return (host, port)
 
 
-def get_maxfd():
-    maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-    if (maxfd == resource.RLIM_INFINITY):
-        maxfd = MAXFD
-    return maxfd
-
-
 def close_on_exec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC
@@ -333,11 +318,6 @@ def write_nonblock(sock, data, chunked=False):
         return write(sock, data, chunked)
 
 
-def writelines(sock, lines, chunked=False):
-    for line in list(lines):
-        write(sock, line, chunked)
-
-
 def write_error(sock, status_int, reason, mesg):
     html = textwrap.dedent("""\
     <html>
@@ -359,10 +339,6 @@ def write_error(sock, status_int, reason, mesg):
     \r
     %s""") % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
-
-
-def normalize_name(name):
-    return "-".join([w.lower().capitalize() for w in name.split("-")])
 
 
 def import_app(module):
