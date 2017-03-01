@@ -1,6 +1,11 @@
-=========
-Changelog
-=========
+================
+Changelog - 2017
+================
+
+.. note::
+
+   Please see :doc:`news` for the latest changes
+
 
 19.7.0 / 2017/03/01
 ===================
@@ -29,23 +34,3 @@ Changelog
 - add ability to pass settings to GUNICORN_CMD_ARGS environnement variable which helps in container world (:issue:`1385`) 
 - fix:  catch access denied to pid file (:issue:`1091`)
 -  many additions and improvements to the documentation
-
-Breaking Change
-+++++++++++++++
-
-- **Python** 2.6.0* is the last supported version
-
-History
-=======
-
-.. toctree::
-   :titlesonly:
-
-   2017-news
-   2016-news
-   2015-news
-   2014-news
-   2013-news
-   2012-news
-   2011-news
-   2010-news
