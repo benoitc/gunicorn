@@ -11,11 +11,12 @@ Gunicorn uses `GitHub for the project management <https://github.com/benoitc/gun
 for 3 different purposes:
 
   * `Bug tracker <https://github.com/benoitc/gunicorn/projects/2>`_ : to check latest bug 
-  * `Forum <https://github.com/benoitc/gunicorn/projects/4>`_ : Stackoverflow-style questions about Gunicorn usage.
+  * `Forum <https://github.com/benoitc/gunicorn/projects/4>`_ : Stackoverflow-style questions about Gunicorn usage
   * `Mailing list <https://github.com/benoitc/gunicorn/projects/3>`_ : Discussion of Gunicorn development, new features
     and project management.  
 
 Project maintainance guidelines are avaible on the `wiki <https://github.com/benoitc/gunicorn/wiki/Project-management>`_
+.
 
 IRC
 ===
