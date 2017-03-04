@@ -4,21 +4,18 @@ Community
 
 Use these channels to communicate about the project.
 
-Mailing list
-============
+Project Management & Discussions
+================================
 
-The **user** mailing list is general discussion and support list for
-Gunicorn users.
+Gunicorn uses `GitHub for the project management <https://github.com/benoitc/gunicorn/projects>`_. GitHub issues are used
+for 3 different purposes:
 
-  * To **subscribe**, send an email to `user+subscribe@gunicorn.org
-    <mailto:user+subscribe@gunicorn.org>`_
-  * To **unsubscribe**, send an email to `user+unsubscribe@gunicorn.org
-    <mailto:user+unsubscribe@gunicorn.org>`_
-  * Finally, to post a message to the list use the address to
-    `user@gunicorn.org <mailto:user@gunicorn.org>`_
+  * `Bug tracker <https://github.com/benoitc/gunicorn/projects/2>`_ : to check latest bug 
+  * `Forum <https://github.com/benoitc/gunicorn/projects/4>`_ : Stackoverflow-style questions about Gunicorn usage.
+  * `Mailing list <https://github.com/benoitc/gunicorn/projects/3>`_ : Discussion of Gunicorn development, new features and project
+  management.  
 
-The archive for this list can also be `browsed online
-<http://lists.gunicorn.org/user>`_ .
+Project maintainance guidelines are avaible on the `wiki <https://github.com/benoitc/gunicorn/wiki/Project-management>`_
 
 IRC
 ===
