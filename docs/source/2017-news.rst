@@ -31,7 +31,7 @@ Changelog - 2017
 - format boot tracebacks properly with reloader (:issue:`1408`)
 - refactor socket activation and fd inheritance for better support of SystemD (:issue:`1310`)
 - fix: o fds are given by default in gunicorn (:issue:`1423`)
-- add ability to pass settings to GUNICORN_CMD_ARGS environnement variable which helps in container world (:issue:`1385`)
+- add ability to pass settings to GUNICORN_CMD_ARGS environment variable which helps in container world (:issue:`1385`)
 - fix:  catch access denied to pid file (:issue:`1091`)
 -  many additions and improvements to the documentation
 
