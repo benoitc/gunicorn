@@ -163,10 +163,6 @@ class PasterServerApplication(PasterBaseApplication):
                 self.load_config_from_file(default_config)
 
     def load(self):
-        # chdir to the configured path before loading,
-        # default is the current dir
-        os.chdir(self.cfg.chdir)
-
         return self.app
 
 
