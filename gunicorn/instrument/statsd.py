@@ -13,7 +13,6 @@ from gunicorn.glogging import Logger
 from gunicorn import six
 
 # Instrumentation constants
-STATSD_DEFAULT_PORT = 8125
 METRIC_VAR = "metric"
 VALUE_VAR = "value"
 MTYPE_VAR = "mtype"

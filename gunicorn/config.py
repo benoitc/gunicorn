@@ -470,22 +470,6 @@ def validate_chdir(val):
     return path
 
 
-def validate_file(val):
-    if val is None:
-        return None
-
-    # valid if the value is a string
-    val = validate_string(val)
-
-    # transform relative paths
-    path = os.path.abspath(os.path.normpath(os.path.join(util.getcwd(), val)))
-
-    # test if the path exists
-    if not os.path.exists(path):
-        raise ConfigError("%r not found" % val)
-
-    return path
-
 def validate_hostport(val):
     val = validate_string(val)
     if val is None:
