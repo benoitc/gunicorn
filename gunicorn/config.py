@@ -48,6 +48,13 @@ def make_settings(ignore=None):
     return settings
 
 
+def auto_int(_, x):
+    if x.startswith('0') and not x.lower().startswith('0x'):
+        # for compatible with octal numbers in python3
+        x = x.replace('0', '0o', 1)
+    return int(x, 0)
+
+
 class Config(object):
 
     def __init__(self, usage=None, prog=None):
@@ -1027,14 +1034,13 @@ class Group(Setting):
         change the worker processes group.
         """
 
-
 class Umask(Setting):
     name = "umask"
     section = "Server Mechanics"
     cli = ["-m", "--umask"]
     meta = "INT"
     validator = validate_pos_int
-    type = int
+    type = auto_int
     default = 0
     desc = """\
         A bit mask for the file mode on files written by Gunicorn.

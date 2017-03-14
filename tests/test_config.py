@@ -357,3 +357,16 @@ def test_reload(options, expected):
     with AltArgs(cmdline):
         app = NoConfigApp()
     assert app.cfg.reload == expected
+
+
+@pytest.mark.parametrize("options, expected", [
+    (["--umask 0", "myapp:app"], 0),
+    (["--umask", "0xFF", "myapp:app"], 255),
+    (["--umask", "0022", "myapp:app"], 18),
+])
+def test_umask_config(options, expected):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        app = NoConfigApp()
+    assert app.cfg.umask == expected
