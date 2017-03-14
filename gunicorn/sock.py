@@ -39,8 +39,12 @@ class BaseSocket(object):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if hasattr(socket, 'SO_REUSEPORT'):
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        if hasattr(socket, 'SO_REUSEPORT'):  # pragma: no cover
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except socket.error as err:
+                if err[0] not in (errno.ENOPROTOOPT, errno.EINVAL):
+                    raise
         if not bound:
             self.bind(sock)
         sock.setblocking(0)
