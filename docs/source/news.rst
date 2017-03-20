@@ -2,6 +2,12 @@
 Changelog
 =========
 
+19.7.1 / Not yet released
+=========================
+
+- fix: continue if SO_REUSEPORT seems to be available but fails (:issue:`1480`)
+- fix: support non-decimal values for the umask command line option (:issue:`1325`)
+
 19.7.0 / 2017/03/01
 ===================
 
