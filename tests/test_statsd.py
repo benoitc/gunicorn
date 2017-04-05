@@ -104,6 +104,22 @@ def test_prefix():
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert logger.sock.msgs[0] == b"test.gunicorn.test:666|g"
 
+def test_default_sampling_rate():
+    c = Config()
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.access(SimpleNamespace(status="200 OK"), None, {}, timedelta(seconds=7))
+    assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
+
+def test_default_modified_rate():
+    c = Config()
+    c.set("statsd_rate", "0.2")
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+
+    logger.access(SimpleNamespace(status="200 OK"), None, {}, timedelta(seconds=7))
+    assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@0.2"
 
 def test_prefix_no_dot():
     c = Config()

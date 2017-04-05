@@ -359,6 +359,11 @@ def validate_pos_int(val):
         raise ValueError("Value must be positive: %s" % val)
     return val
 
+def validate_pos_float(val):
+    val = float(val)
+    if val < 0:
+        raise ValueError("Value must be positive: %s" % val)
+    return val
 
 def validate_string(val):
     if val is None:
@@ -1384,6 +1389,18 @@ class StatsdPrefix(Setting):
     .. versionadded:: 19.2
     """
 
+class StatsdRate(Setting):
+    name = "statsd_rate"
+    section = "Logging"
+    cli = ["--statsd-rate"]
+    meta = "STATSD_RATE"
+    default = 1.0
+    validator = validate_pos_float
+    desc = """\
+    Sampling rate to use when emitting statsd metrics. Defaults to 1.0
+
+    .. versionadded:: ????
+    """
 
 class Procname(Setting):
     name = "proc_name"

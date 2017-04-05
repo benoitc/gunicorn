@@ -23,6 +23,7 @@ HISTOGRAM_TYPE = "histogram"
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
     """
+
     def __init__(self, cfg):
         """host, port: statsD server
         """
@@ -30,6 +31,7 @@ class Statsd(Logger):
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
+            self.sampling_rate = cfg.statsd_rate
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.connect((host, int(port)))
         except Exception:
@@ -38,19 +40,19 @@ class Statsd(Logger):
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
         Logger.critical(self, msg, *args, **kwargs)
-        self.increment("gunicorn.log.critical", 1)
+        self.increment("gunicorn.log.critical", self.sampling_rate)
 
     def error(self, msg, *args, **kwargs):
         Logger.error(self, msg, *args, **kwargs)
-        self.increment("gunicorn.log.error", 1)
+        self.increment("gunicorn.log.error", self.sampling_rate)
 
     def warning(self, msg, *args, **kwargs):
         Logger.warning(self, msg, *args, **kwargs)
-        self.increment("gunicorn.log.warning", 1)
+        self.increment("gunicorn.log.warning", self.sampling_rate)
 
     def exception(self, msg, *args, **kwargs):
         Logger.exception(self, msg, *args, **kwargs)
-        self.increment("gunicorn.log.exception", 1)
+        self.increment("gunicorn.log.exception", self.sampling_rate)
 
     # Special treatement for info, the most common log level
     def info(self, msg, *args, **kwargs):
@@ -96,8 +98,8 @@ class Statsd(Logger):
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])
         self.histogram("gunicorn.request.duration", duration_in_ms)
-        self.increment("gunicorn.requests", 1)
-        self.increment("gunicorn.request.status.%d" % status, 1)
+        self.increment("gunicorn.requests", self.sampling_rate)
+        self.increment("gunicorn.request.status.%d" % status, self.sampling_rate)
 
     # statsD methods
     # you can use those directly if you want
