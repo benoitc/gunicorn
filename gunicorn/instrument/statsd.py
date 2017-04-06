@@ -29,9 +29,9 @@ class Statsd(Logger):
         """
         Logger.__init__(self, cfg)
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
+        self.sampling_rate = cfg.statsd_rate
         try:
             host, port = cfg.statsd_host
-            self.sampling_rate = cfg.statsd_rate
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.connect((host, int(port)))
         except Exception:
