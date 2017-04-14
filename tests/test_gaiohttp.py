@@ -6,9 +6,8 @@
 import unittest
 import pytest
 aiohttp = pytest.importorskip("aiohttp")
-
-
-from aiohttp.wsgi import WSGIServerHttpProtocol
+WSGIServerHttpProtocol = pytest.importorskip(
+    "aiohttp.wsgi.WSGIServerHttpProtocol")
 
 import asyncio
 from gunicorn.workers import gaiohttp
