@@ -94,6 +94,9 @@ def loggers():
     return [logging.getLogger(name) for name in existing]
 
 
+    def isatty(self):
+        return bool(self.fileobj and self.fileobj.isatty())
+
 class SafeAtoms(dict):
 
     def __init__(self, atoms):
