@@ -127,6 +127,8 @@ class EventletWorker(AsyncWorker):
             acceptors.append(acceptor)
             eventlet.sleep(0.0)
 
+            acceptors.append(acceptor)
+
         while self.alive:
             self.notify()
             eventlet.sleep(1.0)
