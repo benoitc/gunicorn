@@ -357,6 +357,22 @@ class Logger(object):
                     finally:
                         handler.release()
 
+    def close_handlers(self):
+        if self.cfg.errorlog != "-":
+            with self.lock:
+                if self.logfile is not None:
+                    self.logfile.close()
+
+        for log in loggers():
+            for handler in log.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.acquire()
+                    try:
+                        if handler.stream:
+                            handler.stream.close()
+                    finally:
+                        handler.release()
+
     def close_on_exec(self):
         for log in loggers():
             for handler in log.handlers:
