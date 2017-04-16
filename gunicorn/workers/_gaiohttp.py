@@ -21,7 +21,7 @@ from aiohttp.wsgi import WSGIServerHttpProtocol as OldWSGIServerHttpProtocol
 
 class WSGIServerHttpProtocol(OldWSGIServerHttpProtocol):
     def log_access(self, request, environ, response, time):
-        self.logger.access(response, request, environ, datetime.timedelta(0, 0, time))
+        self.logger.access(response, request, environ, datetime.timedelta(0, time))
 
 
 class AiohttpWorker(base.Worker):
