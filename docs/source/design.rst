@@ -42,6 +42,10 @@ Gevent_). Greenlets are an implementation of cooperative multi-threading for
 Python. In general, an application should be able to make use of these worker
 classes with no changes.
 
+Some application servers like Django_ load certain configurations lazily during
+the first request. Asynchronous workers might lead to issues like 527_ if applications
+are not carefully designed.
+
 Tornado Workers
 ---------------
 
@@ -134,3 +138,5 @@ code in the master process).
 .. _Gevent: http://gevent.org
 .. _Hey: https://github.com/rakyll/hey
 .. _aiohttp: https://github.com/KeepSafe/aiohttp
+.. _527: https://github.com/benoitc/gunicorn/issues/527
+.. _Django: https://www.djangoproject.com/
