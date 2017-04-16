@@ -9,6 +9,7 @@ import os
 import random
 import select
 import signal
+import socket
 import sys
 import time
 import traceback
@@ -137,6 +138,19 @@ class Arbiter(object):
                 pidname += ".2"
             self.pidfile = Pidfile(pidname)
             self.pidfile.create(self.pid)
+
+        notify_socket = os.environ.get("NOTIFY_SOCKET", None)
+        if notify_socket and notify_socket[0] in ("@", "/"):
+            if notify_socket[0] == "@":
+                notify_socket = "\0" + notify_socket[1:]
+            try:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+                sock.sendto("MAINPID=%s\n" % self.pid, notify_socket)
+            except:
+                pass
+            finally:
+                sock.close()
+
         self.cfg.on_starting(self)
 
         self.init_signals()
