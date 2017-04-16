@@ -9,7 +9,6 @@ from random import randint
 import signal
 from ssl import SSLError
 import sys
-import time
 import traceback
 
 from gunicorn import six
@@ -183,7 +182,6 @@ class Worker(object):
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
-        time.sleep(0.1)
         sys.exit(0)
 
     def handle_abort(self, sig, frame):
