@@ -56,11 +56,11 @@ class Message(object):
     def parse(self):
         raise NotImplementedError()
 
-    def parse_headers(self, data):
+    def parse_headers(self, data, eol_marker):
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
-        lines = [bytes_to_str(line) + "\r\n" for line in data.split(b"\r\n")]
+        lines = [bytes_to_str(line) + "\r\n" for line in data.split(eol_marker)]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -164,7 +164,7 @@ class Request(Message):
         self.get_data(unreader, buf, stop=True)
 
         # get request line
-        line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
+        line, rbuf, eol_marker = self.read_line(unreader, buf, self.limit_request_line)
 
         # proxy protocol
         if self.proxy_protocol(bytes_to_str(line)):
@@ -179,12 +179,12 @@ class Request(Message):
 
         # Headers
         data = buf.getvalue()
-        idx = data.find(b"\r\n\r\n")
+        idx = data.find(eol_marker + eol_marker)
 
-        done = data[:2] == b"\r\n"
+        done = data[:len(eol_marker)] == eol_marker
         while True:
-            idx = data.find(b"\r\n\r\n")
-            done = data[:2] == b"\r\n"
+            idx = data.find(eol_marker + eol_marker)
+            done = data[:len(eol_marker)] == eol_marker
 
             if idx < 0 and not done:
                 self.get_data(unreader, buf)
@@ -195,20 +195,27 @@ class Request(Message):
                 break
 
         if done:
-            self.unreader.unread(data[2:])
+            self.unreader.unread(data[len(eol_marker):])
             return b""
 
-        self.headers = self.parse_headers(data[:idx])
+        self.headers = self.parse_headers(data[:idx], eol_marker)
 
-        ret = data[idx + 4:]
+        ret = data[idx + (len(eol_marker) * 2):]
         buf = BytesIO()
         return ret
 
     def read_line(self, unreader, buf, limit=0):
         data = buf.getvalue()
+        eol_marker = None
 
         while True:
-            idx = data.find(b"\r\n")
+            if not eol_marker:
+                if b"\r\n" in data:
+                    eol_marker = b"\r\n"
+                elif b"\n" in data:
+                    eol_marker = b"\n"
+
+            idx = data.find(eol_marker)
             if idx >= 0:
                 # check if the request line is too large
                 if idx > limit > 0:
@@ -220,7 +227,8 @@ class Request(Message):
             data = buf.getvalue()
 
         return (data[:idx],  # request line,
-                data[idx + 2:])  # residue in the buffer, skip \r\n
+                data[idx + len(eol_marker):],
+                eol_marker)  # residue in the buffer, skip eol_marker
 
     def proxy_protocol(self, line):
         """\
