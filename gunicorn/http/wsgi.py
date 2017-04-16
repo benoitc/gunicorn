@@ -93,7 +93,8 @@ def default_environ(req, sock, cfg):
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version])
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version]),
+        "HTTP_ACCEPT": "*/*"
     })
     return env
 
@@ -149,6 +150,9 @@ def create(req, sock, client, server, cfg):
             continue
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
+            continue
+        elif hdr_name == "ACCEPT":
+            environ['ACCEPT'] = hdr_value
             continue
 
         key = 'HTTP_' + hdr_name.replace('-', '_')
