@@ -339,6 +339,11 @@ class Response(object):
 
     def write(self, arg):
         self.send_headers()
+
+        if self.req.method == "HEAD":
+            # response to HEAD requests must not have body
+            return
+
         if not isinstance(arg, binary_type):
             raise TypeError('%r is not a byte' % arg)
         arglen = len(arg)
