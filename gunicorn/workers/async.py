@@ -15,7 +15,8 @@ import gunicorn.util as util
 import gunicorn.workers.base as base
 from gunicorn import six
 
-ALREADY_HANDLED = object()
+
+ALREADY_HANDLED = ['']
 
 
 class AsyncWorker(base.Worker):
