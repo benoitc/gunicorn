@@ -235,7 +235,7 @@ class Worker(object):
                 self.log.exception("Error handling request %s", req.uri)
             status_int = 500
             reason = "Internal Server Error"
-            mesg = ""
+            mesg = "%s" % str(exc)
 
         if req is not None:
             request_time = datetime.now() - request_start
