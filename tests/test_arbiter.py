@@ -10,6 +10,8 @@ try:
 except ImportError:
     import mock
 
+import pytest
+
 import gunicorn.app.base
 import gunicorn.arbiter
 
@@ -180,3 +182,25 @@ def test_env_vars_available_during_preload():
     # Note that we aren't making any assertions here, they are made in the
     # dummy application object being loaded here instead.
     gunicorn.arbiter.Arbiter(PreloadedAppWithEnvSettings())
+
+
+class DummyWorkerWithID(object):
+    def __init__(self, worker_id):
+        self.worker_id = worker_id
+
+
+@pytest.mark.parametrize("existing_ids,expected_next_id", [
+    ([], 1),      # First worker.
+    ([1, 2], 3),  # Following worker.
+    ([1, 3], 2),  # A worker has died.
+])
+def test_next_worker_id(existing_ids, expected_next_id):
+    """Ensure Worker._next_worker_id picks the correct next id."""
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.WORKERS = dict(
+        (pid, DummyWorkerWithID(id))
+        for pid, id
+        in enumerate(existing_ids)
+    )
+
+    assert arbiter._next_worker_id() == expected_next_id

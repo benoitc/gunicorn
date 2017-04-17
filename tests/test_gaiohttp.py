@@ -27,7 +27,8 @@ class WorkerTests(unittest.TestCase):
                                              'app',
                                              'timeout',
                                              Config(),
-                                             'log')
+                                             'log',
+                                             1)
 
     def tearDown(self):
         self.loop.close()
