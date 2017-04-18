@@ -355,8 +355,16 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
+
+        timeout = 1.0
+        if self.WORKERS:
+            oldest_update = min(worker.tmp.last_update() for worker in self.WORKERS.values())
+            timeout = self.timeout - (time.time() - oldest_update)
+            # The timeout can be reached, so don't wait for a negative value
+            timeout = max(timeout, 1.0)
+ 
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
+            ready = select.select([self.PIPE[0]], [], [], timeout)
             if not ready[0]:
                 return
             while os.read(self.PIPE[0], 1):
