@@ -523,6 +523,16 @@ class ConfigFile(Setting):
            prefix.
         """
 
+class AppModule(Setting):
+    name = "app_module"
+    section = "Config File"
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        app module path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+        """
+
 class Bind(Setting):
     name = "bind"
     action = "append"

@@ -102,7 +102,7 @@ class Application(BaseApplication):
     def get_config_from_module_name(self, module_name):
         return vars(util.import_module(module_name))
 
-    def load_config_from_module_name_or_filename(self, location):
+    def get_config_from_module_name_or_filename(self, location):
         """
         Loads the configuration file: the file is a python file, otherwise raise an RuntimeError
         Exception or stop the process if the configuration file contains a syntax error.
@@ -118,17 +118,6 @@ class Application(BaseApplication):
                 filename = location
             cfg = self.get_config_from_filename(filename)
 
-        for k, v in cfg.items():
-            # Ignore unknown names
-            if k not in self.cfg.settings:
-                continue
-            try:
-                self.cfg.set(k.lower(), v)
-            except:
-                print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
-                sys.stderr.flush()
-                raise
-
         return cfg
 
     def load_config_from_file(self, filename):
@@ -139,8 +128,14 @@ class Application(BaseApplication):
         parser = self.cfg.parser()
         args = parser.parse_args()
 
+        app_module = None
+        if args.config:
+            file_cfg = self.get_config_from_filename(args.config)
+            if 'app_module' in file_cfg:
+                app_module = file_cfg['app_module']
+
         # optional settings from apps
-        cfg = self.init(parser, args, args.args)
+        cfg = self.init(parser, args, args.args, app_module)
 
         # Load up the any app specific configuration
         if cfg and cfg is not None:
@@ -148,7 +143,16 @@ class Application(BaseApplication):
                 self.cfg.set(k.lower(), v)
 
         if args.config:
-            self.load_config_from_file(args.config)
+            for k, v in file_cfg.items():
+                # Ignore unknown names
+                if k not in self.cfg.settings:
+                    continue
+                try:
+                    self.cfg.set(k.lower(), v)
+                except:
+                    print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
+                    sys.stderr.flush()
+                    raise
         else:
             default_config = get_default_config_file()
             if default_config is not None:
