@@ -1478,6 +1478,20 @@ class StatsdHost(Setting):
     .. versionadded:: 19.1
     """
 
+# Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
+class DogstatsdTags(Setting):
+    name = "dogstatsd_tags"
+    section = "Logging"
+    cli = ["--dogstatsd-tags"]
+    meta = "DOGSTATSD_TAGS"
+    default = ""
+    validator = validate_string
+    desc = """\
+    A comma-delimited list of datadog statsd (dogstatsd) tags to append to statsd metrics.
+
+    .. versionadded:: 20
+    """
+
 class StatsdPrefix(Setting):
     name = "statsd_prefix"
     section = "Logging"

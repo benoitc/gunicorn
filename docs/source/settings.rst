@@ -376,6 +376,17 @@ if not provided).
 
 .. versionadded:: 19.2
 
+dogstatsd_tags
+~~~~~~~~~~~~~~
+
+* ``--dogstatsd-tags DOGSTATSD_TAGS``
+* ``(empty string)``
+
+Comma-delimited list of static dogstatsd (datadog statsd) tags sent with all statsd metrics
+See: `Datadog Docs <https://docs.datadoghq.com/developers/dogstatsd/>`
+
+.. versionadded:: 20
+
 Process Naming
 --------------
 

@@ -34,6 +34,8 @@ class Statsd(Logger):
         except Exception:
             self.sock = None
 
+        self.dogstatsd_tags = cfg.dogstatsd_tags
+
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
         Logger.critical(self, msg, *args, **kwargs)
@@ -116,6 +118,11 @@ class Statsd(Logger):
         try:
             if isinstance(msg, str):
                 msg = msg.encode("ascii")
+
+            # http://docs.datadoghq.com/guides/dogstatsd/#datagram-format
+            if self.dogstatsd_tags:
+                msg = msg + b"|#" + self.dogstatsd_tags.encode('ascii')
+
             if self.sock:
                 self.sock.send(msg)
         except Exception:

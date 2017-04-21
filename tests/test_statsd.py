@@ -59,6 +59,17 @@ def test_statsd_fail():
     logger.exception("No impact on logging")
 
 
+def test_dogstatsd_tags():
+    c = Config()
+    tags = 'yucatan,libertine:rhubarb'
+    c.set('dogstatsd_tags', tags)
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+    logger.info("Twill", extra={"mtype": "gauge", "metric": "barb.westerly",
+                                "value": 2})
+    assert logger.sock.msgs[0] == b"barb.westerly:2|g|#" + tags.encode('ascii')
+
+
 def test_instrument():
     logger = Statsd(Config())
     # Capture logged messages
