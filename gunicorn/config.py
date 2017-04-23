@@ -715,6 +715,19 @@ class Timeout(Setting):
         """
 
 
+class StartupTimeout(Setting):
+    name = 'startup_timeout'
+    section = "Worker Processes"
+    cli = ["--startup-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 30
+    desc = """\
+        Timeout for workers startup.
+        """
+
+
 class GracefulTimeout(Setting):
     name = "graceful_timeout"
     section = "Worker Processes"

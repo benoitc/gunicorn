@@ -491,6 +491,8 @@ class Arbiter(object):
         workers = list(self.WORKERS.items())
         for (pid, worker) in workers:
             try:
+                if not worker.booted and time.time() - worker.tmp.last_update() <= self.cfg.startup_timeout:
+                    continue
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except (OSError, ValueError):
