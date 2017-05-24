@@ -27,5 +27,9 @@ pyflakes:
     # Access to a protected member $X of a client class
     - W0212
 
+pylint:
+  disable:
+    - too-many-locals
+
 mccabe:
   run: false
