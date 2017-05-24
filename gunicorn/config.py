@@ -5,6 +5,8 @@
 
 # Please remember to run "make -C docs html" after update "desc" attributes.
 
+# pylint: disable=duplicate-bases,no-staticmethod-decorator
+
 import copy
 import grp
 import inspect
@@ -32,7 +34,7 @@ PLATFORM = sys.platform
 
 
 def wrap_method(func):
-    def _wrapped(instance, *args, **kwargs):
+    def _wrapped(_instance, *args, **kwargs):
         return func(*args, **kwargs)
     return _wrapped
 
@@ -151,8 +153,8 @@ class Config(object):
         pn = self.settings['proc_name'].get()
         if pn is not None:
             return pn
-        else:
-            return self.settings['default_proc_name'].get()
+
+        return self.settings['default_proc_name'].get()
 
     @property
     def logger_class(self):
@@ -314,6 +316,7 @@ class Setting(object):
     def get(self):
         return self.value
 
+    # pylint: disable=not-callable
     def set(self, val):
         if not six.callable(self.validator):
             raise TypeError('Invalid validator: %s' % self.name)
