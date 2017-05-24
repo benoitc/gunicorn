@@ -29,6 +29,7 @@ pyflakes:
 
 pylint:
   disable:
+    - import-error
     - too-many-locals
 
 mccabe:
