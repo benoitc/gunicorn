@@ -109,12 +109,12 @@ class SafeAtoms(dict):
             kl = k.lower()
             if kl in self:
                 return super(SafeAtoms, self).__getitem__(kl)
-            else:
-                return "-"
+            return "-"
+
         if k in self:
             return super(SafeAtoms, self).__getitem__(k)
-        else:
-            return '-'
+
+        return '-'
 
 
 def parse_syslog_address(addr):
@@ -309,6 +309,7 @@ class Logger(object):
 
         return atoms
 
+    # pylint: disable=logging-not-lazy
     def access(self, resp, req, environ, request_time):
         """ See http://httpd.apache.org/docs/2.0/logs.html#combined
         for format details
@@ -332,6 +333,7 @@ class Logger(object):
         """ return date in Apache Common Log Format """
         return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
 
+    # pylint: disable=not-context-manager
     def reopen_files(self):
         if self.cfg.capture_output and self.cfg.errorlog != "-":
             for stream in sys.stdout, sys.stderr:
@@ -373,6 +375,7 @@ class Logger(object):
             if getattr(h, "_gunicorn", False):
                 return h
 
+    # pylint: disable=protected-access
     def _set_handler(self, log, output, fmt, stream=None):
         # remove previous gunicorn log handler
         h = self._get_gunicorn_handler(log)
@@ -397,6 +400,7 @@ class Logger(object):
             h._gunicorn = True
             log.addHandler(h)
 
+    # pylint: disable=protected-access
     def _set_syslog_handler(self, log, cfg, fmt, name):
         # setup format
         if not cfg.syslog_prefix:
