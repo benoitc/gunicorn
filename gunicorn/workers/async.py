@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# pylint: disable=too-many-branches,too-many-nested-blocks
+
 from datetime import datetime
 import errno
 import socket

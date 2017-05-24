@@ -80,7 +80,7 @@ class Statsd(Logger):
                         pass
 
             # Log to parent logger only if there is something to say
-            if msg is not None and len(msg) > 0:
+            if msg:
                 Logger.log(self, lvl, msg, *args, **kwargs)
         except Exception:
             Logger.warning(self, "Failed to log to statsd", exc_info=True)
@@ -108,7 +108,7 @@ class Statsd(Logger):
         self._sock_send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
 
     def decrement(self, name, value, sampling_rate=1.0):
-        self._sock_send("{0){1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+        self._sock_send("{0}{1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
 
     def histogram(self, name, value):
         self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))

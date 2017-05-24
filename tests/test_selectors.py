@@ -26,6 +26,7 @@ from gunicorn import selectors
 import support
 
 
+# pylint: disable=redefined-builtin
 if hasattr(socket, 'socketpair'):
     socketpair = socket.socketpair
 else:
@@ -47,7 +48,6 @@ else:
                 c.close()
                 raise
 
-
 def find_ready_matching(ready, flag):
     match = []
     for key, events in ready:
@@ -68,7 +68,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         key = s.register(rd, selectors.EVENT_READ, "data")
         self.assertIsInstance(key, selectors.SelectorKey)
@@ -94,7 +94,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         s.register(rd, selectors.EVENT_READ)
         s.unregister(rd)
@@ -132,7 +132,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         key = s.register(rd, selectors.EVENT_READ)
 
@@ -183,7 +183,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         key = s.register(rd, selectors.EVENT_READ, "data")
         self.assertEqual(key, s.get_key(rd))
@@ -195,7 +195,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         keys = s.get_map()
         self.assertFalse(keys)
@@ -210,6 +210,7 @@ class BaseSelectorTestCase(object):
 
         # unknown file obj
         with self.assertRaises(KeyError):
+            # pylint: disable=pointless-statement
             keys[999999]
 
         # Read-only mapping
@@ -268,7 +269,7 @@ class BaseSelectorTestCase(object):
         r2w = {}
         w2r = {}
 
-        for i in range(NUM_SOCKETS):
+        for _ in range(NUM_SOCKETS):
             rd, wr = self.make_socketpair()
             s.register(rd, selectors.EVENT_READ)
             s.register(wr, selectors.EVENT_WRITE)
@@ -287,7 +288,7 @@ class BaseSelectorTestCase(object):
             wr = random.choice(ready_writers)
             wr.send(MSG)
 
-            for i in range(10):
+            for _ in range(10):
                 ready = s.select()
                 ready_readers = find_ready_matching(ready,
                                                     selectors.EVENT_READ)
@@ -340,7 +341,7 @@ class BaseSelectorTestCase(object):
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        rd, wr = self.make_socketpair()
+        rd, _ = self.make_socketpair()
 
         orig_alrm_handler = signal.signal(signal.SIGALRM, lambda *args: None)
         self.addCleanup(signal.signal, signal.SIGALRM, orig_alrm_handler)
@@ -378,7 +379,7 @@ class ScalableSelectorMixIn:
         s = self.SELECTOR()
         self.addCleanup(s.close)
 
-        for i in range(NUM_FDS // 2):
+        for _ in range(NUM_FDS // 2):
             try:
                 rd, wr = self.make_socketpair()
             except (IOError, OSError):

@@ -20,9 +20,9 @@ import traceback
 import inspect
 import errno
 import warnings
-import cgi
 import logging
 
+from gunicorn import _compat
 from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -49,7 +49,7 @@ try:
     def _setproctitle(title):
         setproctitle("gunicorn: %s" % title)
 except ImportError:
-    def _setproctitle(title):
+    def _setproctitle(_title):
         return
 
 
@@ -61,7 +61,7 @@ except ImportError:
         if not hasattr(package, 'rindex'):
             raise ValueError("'package' not set to a string")
         dot = len(package)
-        for x in range(level, 1, -1):
+        for _ in range(level, 1, -1):
             try:
                 dot = package.rindex('.', 0, dot)
             except ValueError:
@@ -329,7 +329,7 @@ def write_error(sock, status_int, reason, mesg):
         %(mesg)s
       </body>
     </html>
-    """) % {"reason": reason, "mesg": cgi.escape(mesg)}
+    """) % {"reason": reason, "mesg": _compat.html_escape(mesg)}
 
     http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
@@ -340,7 +340,7 @@ def write_error(sock, status_int, reason, mesg):
     %s""") % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
 
-
+# pylint: disable=eval-used
 def import_app(module):
     parts = module.split(":", 1)
     if len(parts) == 1:
@@ -401,6 +401,7 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 
+# pylint: disable=protected-access
 def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
@@ -537,7 +538,7 @@ def warn(msg):
 def make_fail_app(msg):
     msg = to_bytestring(msg)
 
-    def app(environ, start_response):
+    def app(_environ, start_response):
         start_response("500 Internal Server Error", [
             ("Content-Type", "text/plain"),
             ("Content-Length", str(len(msg)))

@@ -113,6 +113,7 @@ def proxy_environ(req):
     }
 
 
+# pylint: disable=too-many-branches
 def create(req, sock, client, server, cfg):
     resp = Response(req, sock, cfg)
 
@@ -183,7 +184,7 @@ def create(req, sock, client, server, cfg):
                 server = host.split(':')
                 if len(server) == 1:
                     if url_scheme == "http":
-                        server.append(80),
+                        server.append(80)
                     elif url_scheme == "https":
                         server.append(443)
                     else:

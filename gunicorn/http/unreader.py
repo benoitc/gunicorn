@@ -40,7 +40,7 @@ class Unreader(object):
 
         while self.buf.tell() < size:
             chunk = self.chunk()
-            if not len(chunk):
+            if not chunk:
                 ret = self.buf.getvalue()
                 self.buf = six.BytesIO()
                 return ret

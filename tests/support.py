@@ -33,6 +33,8 @@ def requires_mac_ver(*min_version):
         return wrapper
     return decorator
 
+# pylint: disable=unused-import
+
 try:
     from types import SimpleNamespace
 except ImportError:

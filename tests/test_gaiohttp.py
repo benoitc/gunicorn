@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# pylint: disable=protected-access
+
 import unittest
 import pytest
 
@@ -65,7 +67,7 @@ class WorkerTests(unittest.TestCase):
         self.assertIsInstance(f, WSGIServerHttpProtocol)
 
     @mock.patch('gunicorn.workers._gaiohttp.asyncio')
-    def test__run(self, m_asyncio):
+    def test__run(self, _):
         self.worker.ppid = 1
         self.worker.alive = True
         self.worker.servers = []
@@ -85,7 +87,7 @@ class WorkerTests(unittest.TestCase):
         self.assertTrue(self.worker.notify.called)
 
     @mock.patch('gunicorn.workers._gaiohttp.asyncio')
-    def test__run_unix_socket(self, m_asyncio):
+    def test__run_unix_socket(self, _):
         self.worker.ppid = 1
         self.worker.alive = True
         self.worker.servers = []

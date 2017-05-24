@@ -5,6 +5,8 @@
 
 # Please remember to run "make -C docs html" after update "desc" attributes.
 
+# pylint: disable=duplicate-bases,no-staticmethod-decorator
+
 import copy
 import grp
 import inspect
@@ -32,7 +34,7 @@ PLATFORM = sys.platform
 
 
 def wrap_method(func):
-    def _wrapped(instance, *args, **kwargs):
+    def _wrapped(_instance, *args, **kwargs):
         return func(*args, **kwargs)
     return _wrapped
 
@@ -151,8 +153,8 @@ class Config(object):
         pn = self.settings['proc_name'].get()
         if pn is not None:
             return pn
-        else:
-            return self.settings['default_proc_name'].get()
+
+        return self.settings['default_proc_name'].get()
 
     @property
     def logger_class(self):
@@ -314,6 +316,7 @@ class Setting(object):
     def get(self):
         return self.value
 
+    # pylint: disable=not-callable
     def set(self, val):
         if not six.callable(self.validator):
             raise TypeError('Invalid validator: %s' % self.name)
@@ -396,6 +399,8 @@ def validate_class(val):
     return validate_string(val)
 
 
+# pylint: disable=deprecated-method
+# We may use getargspec here but only when getfullargspec is not available.
 def validate_callable(arity):
     def _validate_callable(val):
         if isinstance(val, six.string_types):
@@ -414,7 +419,7 @@ def validate_callable(arity):
                     "" % (obj_name, mod_name))
         if not six.callable(val):
             raise TypeError("Value is not six.callable: %s" % val)
-        if arity != -1 and arity != len(inspect.getargspec(val)[0]):
+        if arity != -1 and arity != len(_compat.getargspec(val)[0]):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
@@ -449,10 +454,12 @@ def validate_group(val):
             raise ConfigError("No such group: '%s'" % val)
 
 
+# pylint: disable=deprecated-method
+# We may use getargspec here but only when getfullargspec is not available.
 def validate_post_request(val):
     val = validate_callable(-1)(val)
 
-    largs = len(inspect.getargspec(val)[0])
+    largs = len(_compat.getargspec(val)[0])
     if largs == 4:
         return val
     elif largs == 3:

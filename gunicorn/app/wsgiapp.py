@@ -61,8 +61,7 @@ class WSGIApplication(Application):
     def load(self):
         if self.cfg.paste is not None:
             return self.load_pasteapp()
-        else:
-            return self.load_wsgiapp()
+        return self.load_wsgiapp()
 
 
 def run():
@@ -70,7 +69,6 @@ def run():
     The ``gunicorn`` command line runner for launching Gunicorn with
     generic WSGI applications.
     """
-    from gunicorn.app.wsgiapp import WSGIApplication
     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]").run()
 
 

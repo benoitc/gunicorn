@@ -27,5 +27,13 @@ pyflakes:
     # Access to a protected member $X of a client class
     - W0212
 
+pylint:
+  disable:
+    - bare-except
+    - import-error
+    - too-many-arguments
+    - too-many-locals
+    - wrong-import-position
+
 mccabe:
   run: false
