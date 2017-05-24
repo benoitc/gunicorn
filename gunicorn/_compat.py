@@ -262,3 +262,14 @@ if PY26:
 
 else:
     from gunicorn.six.moves.urllib.parse import urlsplit
+
+try:
+    import html
+
+    def html_escape(s):
+        return html.escape(s)
+except ImportError:
+    import cgi
+
+    def html_escape(s):
+        return cgi.escape(s, quote=True)
