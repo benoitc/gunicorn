@@ -417,7 +417,7 @@ def validate_callable(arity):
                     "" % (obj_name, mod_name))
         if not six.callable(val):
             raise TypeError("Value is not six.callable: %s" % val)
-        if arity != -1 and arity != len(inspect.getargspec(val)[0]):
+        if arity != -1 and arity != len(_compat.getargspec(val)[0]):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
