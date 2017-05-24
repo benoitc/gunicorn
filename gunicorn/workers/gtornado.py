@@ -3,6 +3,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# pylint: disable=protected-access
+
 import copy
 import os
 import sys
