@@ -262,3 +262,7 @@ if PY26:
 
 else:
     from gunicorn.six.moves.urllib.parse import urlsplit
+
+import inspect
+
+getargspec = getattr(inspect, 'getfullargspec', inspect.getargspec)
