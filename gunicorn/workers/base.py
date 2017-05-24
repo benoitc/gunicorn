@@ -101,7 +101,8 @@ class Worker(object):
             util.close_on_exec(p)
 
         # Prevent fd inheritance
-        [util.close_on_exec(s) for s in self.sockets]
+        for s in self.sockets:
+            util.close_on_exec(s)
         util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
@@ -144,7 +145,7 @@ class Worker(object):
             # per https://docs.python.org/2/library/sys.html#sys.exc_info warning,
             # delete the traceback after use.
             try:
-                exc_type, exc_val, exc_tb = sys.exc_info()
+                _exc_type, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
                 tb_string = six.StringIO()
@@ -155,7 +156,8 @@ class Worker(object):
 
     def init_signals(self):
         # reset signaling
-        [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
@@ -173,20 +175,20 @@ class Worker(object):
         if hasattr(signal, 'set_wakeup_fd'):
             signal.set_wakeup_fd(self.PIPE[1])
 
-    def handle_usr1(self, sig, frame):
+    def handle_usr1(self, _sig, _frame):
         self.log.reopen_files()
 
-    def handle_exit(self, sig, frame):
+    def handle_exit(self, _sig, _frame):
         self.alive = False
 
-    def handle_quit(self, sig, frame):
+    def handle_quit(self, _sig, _frame):
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
         time.sleep(0.1)
         sys.exit(0)
 
-    def handle_abort(self, sig, frame):
+    def handle_abort(self, _sig, _frame):
         self.alive = False
         self.cfg.worker_abort(self)
         sys.exit(1)
@@ -252,6 +254,6 @@ class Worker(object):
         except:
             self.log.debug("Failed to send error message.")
 
-    def handle_winch(self, sig, fname):
+    def handle_winch(self, _sig, _fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
         self.log.debug("worker: SIGWINCH ignored.")
