@@ -49,7 +49,7 @@ try:
     def _setproctitle(title):
         setproctitle("gunicorn: %s" % title)
 except ImportError:
-    def _setproctitle(title):
+    def _setproctitle(_title):
         return
 
 
@@ -61,7 +61,7 @@ except ImportError:
         if not hasattr(package, 'rindex'):
             raise ValueError("'package' not set to a string")
         dot = len(package)
-        for x in range(level, 1, -1):
+        for _ in range(level, 1, -1):
             try:
                 dot = package.rindex('.', 0, dot)
             except ValueError:
@@ -340,7 +340,7 @@ def write_error(sock, status_int, reason, mesg):
     %s""") % (str(status_int), reason, len(html), html)
     write_nonblock(sock, http.encode('latin1'))
 
-
+# pylint: disable=eval-used
 def import_app(module):
     parts = module.split(":", 1)
     if len(parts) == 1:
@@ -401,6 +401,7 @@ def is_hoppish(header):
     return header.lower().strip() in hop_headers
 
 
+# pylint: disable=protected-access
 def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
@@ -537,7 +538,7 @@ def warn(msg):
 def make_fail_app(msg):
     msg = to_bytestring(msg)
 
-    def app(environ, start_response):
+    def app(_environ, start_response):
         start_response("500 Internal Server Error", [
             ("Content-Type", "text/plain"),
             ("Content-Length", str(len(msg)))
