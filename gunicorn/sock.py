@@ -31,7 +31,7 @@ class BaseSocket(object):
 
         self.sock = self.set_options(sock, bound=bound)
 
-    def __str__(self, name):
+    def __str__(self):
         return "<socket %d>" % self.sock.fileno()
 
     def __getattr__(self, name):
@@ -94,7 +94,7 @@ class TCP6Socket(TCPSocket):
     FAMILY = socket.AF_INET6
 
     def __str__(self):
-        (host, port, fl, sc) = self.sock.getsockname()
+        (host, port, _fl, _sc) = self.sock.getsockname()
         return "http://[%s]:%d" % (host, port)
 
 
