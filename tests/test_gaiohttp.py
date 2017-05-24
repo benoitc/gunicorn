@@ -5,13 +5,13 @@
 
 # pylint: disable=protected-access
 
-import asyncio
 import unittest
 import pytest
 
 aiohttp = pytest.importorskip("aiohttp")
 WSGIServerHttpProtocol = pytest.importorskip("aiohttp.wsgi.WSGIServerHttpProtocol")
 
+import asyncio
 from gunicorn.workers import gaiohttp
 from gunicorn.workers._gaiohttp import _wrp
 from gunicorn.config import Config
