@@ -87,6 +87,7 @@ class GeventWorker(AsyncWorker):
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
 
+    # pylint: disable=not-callable
     def run(self):
         servers = []
         ssl_args = {}
@@ -143,13 +144,15 @@ class GeventWorker(AsyncWorker):
 
             # Force kill all active the handlers
             self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
-            [server.stop(timeout=1) for server in servers]
+            for server in servers:
+                server.stop(timeout=1)
         except:
             pass
 
-    def handle_request(self, *args):
+    def handle_request(self, listener_name, req, sock, addr):
         try:
-            super(GeventWorker, self).handle_request(*args)
+            super(GeventWorker, self).handle_request(listener_name, req, sock,
+                                                     addr)
         except gevent.GreenletExit:
             pass
         except SystemExit:
