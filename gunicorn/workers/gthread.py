@@ -108,7 +108,7 @@ class ThreadWorker(base.Worker):
         self._lock = RLock()
         super(ThreadWorker, self).init_process()
 
-    def handle_quit(self, sig, frame):
+    def handle_quit(self, _sig, _frame):
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
