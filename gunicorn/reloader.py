@@ -61,11 +61,6 @@ except ImportError:
     has_inotify = False
 
 
-class InotifyReloader():
-    def __init__(self, callback=None):
-        raise ImportError('You must have the inotify module installed to use '
-                          'the inotify reloader')
-
 if has_inotify:
 
     class InotifyReloader(threading.Thread):
@@ -74,7 +69,7 @@ if has_inotify:
                       | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM
                       | inotify.constants.IN_MOVED_TO)
 
-        def __init__(self, extra_files=None, callback=None):
+        def __init__(self, _extra_files=None, callback=None):
             super(InotifyReloader, self).__init__()
             self.setDaemon(True)
             self._callback = callback
@@ -112,6 +107,13 @@ if has_inotify:
                 filename = event[3]
 
                 self._callback(filename)
+
+else:
+
+    class InotifyReloader():
+        def __init__(self, _callback=None):
+            raise ImportError('You must have the inotify module installed to use '
+                              'the inotify reloader')
 
 
 preferred_reloader = InotifyReloader if has_inotify else Reloader
