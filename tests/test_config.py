@@ -77,7 +77,7 @@ def test_property_access():
     assert os.getegid() == c.gid
 
     # Proc name
-    assert "gunicorn" == c.proc_name
+    assert c.proc_name == 'gunicorn'
 
     # Not a config property
     pytest.raises(AttributeError, getattr, c, "foo")
@@ -145,7 +145,7 @@ def test_str_to_list_validation():
 
 def test_callable_validation():
     c = config.Config()
-    def func(a, b):
+    def func(_a, _b):
         pass
     c.set("pre_fork", func)
     assert c.pre_fork == func
@@ -273,13 +273,13 @@ def test_default_config_file(create_config_file):
 def test_post_request():
     c = config.Config()
 
-    def post_request_4(worker, req, environ, resp):
+    def post_request_4(_worker, _req, _environ, _resp):
         return 4
 
-    def post_request_3(worker, req, environ):
+    def post_request_3(_worker, _req, _environ):
         return 3
 
-    def post_request_2(worker, req):
+    def post_request_2(_worker, _req):
         return 2
 
     c.set("post_request", post_request_4)
@@ -295,7 +295,7 @@ def test_post_request():
 def test_nworkers_changed():
     c = config.Config()
 
-    def nworkers_changed_3(server, new_value, old_value):
+    def nworkers_changed_3(_server, _new_value, _old_value):
         return 3
 
     c.set("nworkers_changed", nworkers_changed_3)
