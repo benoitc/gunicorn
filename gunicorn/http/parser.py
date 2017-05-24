@@ -7,6 +7,7 @@ from gunicorn.http.message import Request
 from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 
+# pylint: disable=not-callable
 class Parser(object):
 
     mesg_class = None
