@@ -60,7 +60,7 @@ class AiohttpWorker(base.Worker):
             proto, proto.connection_lost, self.connections, False)
         return proto
 
-    def factory(self, wsgi, addr):
+    def factory(self, wsgi, _addr):
         # are we in debug level
         is_debug = self.log.loglevel == logging.DEBUG
 
@@ -74,7 +74,7 @@ class AiohttpWorker(base.Worker):
             access_log_format=self.cfg.access_log_format)
         return self.wrap_protocol(proto)
 
-    def get_factory(self, sock, addr):
+    def get_factory(self, _sock, addr):
         return functools.partial(self.factory, self.wsgi, addr)
 
     @asyncio.coroutine
