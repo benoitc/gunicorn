@@ -253,7 +253,7 @@ class request(object):
         p = RequestParser(cfg, sender())
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
-        assert cases
+        assert not cases
 
     def same(self, req, sizer, matcher, exp):
         assert req.method == exp["method"]
