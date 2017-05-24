@@ -29,6 +29,7 @@ pyflakes:
 
 pylint:
   disable:
+    - bare-except
     - import-error
     - too-many-locals
     - wrong-import-position
