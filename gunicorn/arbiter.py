@@ -2,6 +2,9 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+
+# pylint: disable=protected-access
+
 from __future__ import print_function
 
 import errno
@@ -174,7 +177,8 @@ class Arbiter(object):
         """
         # close old PIPE
         if self.PIPE:
-            [os.close(p) for p in self.PIPE]
+            for p in self.PIPE:
+                os.close(p)
 
         # initialize the pipe
         self.PIPE = pair = os.pipe()
@@ -185,10 +189,11 @@ class Arbiter(object):
         self.log.close_on_exec()
 
         # initialize all signals
-        [signal.signal(s, self.signal) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, self.signal)
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
-    def signal(self, sig, frame):
+    def signal(self, sig, _frame):
         if len(self.SIG_QUEUE) < 5:
             self.SIG_QUEUE.append(sig)
             self.wakeup()
@@ -204,7 +209,7 @@ class Arbiter(object):
             while True:
                 self.maybe_promote_master()
 
-                sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
+                sig = self.SIG_QUEUE.pop(0, None)
                 if sig is None:
                     self.sleep()
                     self.murder_workers()
@@ -239,7 +244,7 @@ class Arbiter(object):
                 self.pidfile.unlink()
             sys.exit(-1)
 
-    def handle_chld(self, sig, frame):
+    def handle_chld(self, _sig, _frame):
         "SIGCHLD handling"
         self.reap_workers()
         self.wakeup()
@@ -350,6 +355,7 @@ class Arbiter(object):
         self.cfg.on_exit(self)
         sys.exit(exit_status)
 
+    # pylint: disable=duplicate-except
     def sleep(self):
         """\
         Sleep until PIPE is readable or we timeout.
@@ -454,7 +460,8 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            [l.close() for l in self.LISTENERS]
+            for l in self.LISTENERS:
+                l.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])
@@ -476,7 +483,7 @@ class Arbiter(object):
         util._setproctitle("master [%s]" % self.proc_name)
 
         # spawn new workers
-        for i in range(self.cfg.workers):
+        for _ in range(self.cfg.workers):
             self.spawn_worker()
 
         # manage workers
@@ -586,7 +593,7 @@ class Arbiter(object):
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except:
-            self.log.exception("Exception in worker process"),
+            self.log.exception("Exception in worker process")
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
@@ -607,7 +614,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for i in range(self.num_workers - len(self.WORKERS.keys())):
+        for _ in range(self.num_workers - len(self.WORKERS.keys())):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 
