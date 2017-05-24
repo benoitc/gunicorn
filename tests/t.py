@@ -7,10 +7,11 @@
 import os
 import tempfile
 
-dirname = os.path.dirname(__file__)
-
 from gunicorn.http.parser import RequestParser
 from gunicorn.six import BytesIO
+
+
+dirname = os.path.dirname(__file__)
 
 
 def data_source(fname):
@@ -29,7 +30,7 @@ class request(object):
     def __call__(self, func):
         def run():
             src = data_source(self.fname)
-            func(src, RequestParser(src))
+            func(src, RequestParser(src, None))
         run.func_name = func.func_name
         return run
 
