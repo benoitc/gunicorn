@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-# pylint: disable=protected-access,wrong-import-position
+# pylint: disable=protected-access
 
 import asyncio
 import unittest

@@ -31,6 +31,7 @@ pylint:
   disable:
     - import-error
     - too-many-locals
+    - wrong-import-position
 
 mccabe:
   run: false
