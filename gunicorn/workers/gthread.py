@@ -211,7 +211,7 @@ class ThreadWorker(base.Worker):
             if self.nr_conns < self.worker_connections:
                 # wait for an event
                 events = self.poller.select(1.0)
-                for key, mask in events:
+                for key, _mask in events:
                     callback = key.data
                     callback(key.fileobj)
 
@@ -241,6 +241,7 @@ class ThreadWorker(base.Worker):
 
         futures.wait(self.futures, timeout=self.cfg.graceful_timeout)
 
+    # pylint: disable=bare-except
     def finish_request(self, fs):
         if fs.cancelled():
             self.nr_conns -= 1
@@ -310,6 +311,7 @@ class ThreadWorker(base.Worker):
 
         return (False, conn)
 
+    # pylint: disable=too-many-branches
     def handle_request(self, req, conn):
         environ = {}
         resp = None
