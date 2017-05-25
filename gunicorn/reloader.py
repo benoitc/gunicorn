@@ -61,11 +61,6 @@ except ImportError:
     has_inotify = False
 
 
-class InotifyReloader():
-    def __init__(self, callback=None):
-        raise ImportError('You must have the inotify module installed to use '
-                          'the inotify reloader')
-
 if has_inotify:
 
     class InotifyReloader(threading.Thread):
@@ -112,6 +107,13 @@ if has_inotify:
                 filename = event[3]
 
                 self._callback(filename)
+
+else:
+
+    class InotifyReloader():
+        def __init__(self, callback=None):
+            raise ImportError('You must have the inotify module installed to '
+                              'use the inotify reloader')
 
 
 preferred_reloader = InotifyReloader if has_inotify else Reloader
