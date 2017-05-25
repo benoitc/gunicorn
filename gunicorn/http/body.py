@@ -210,7 +210,7 @@ class Body(object):
 
         while size > self.buf.tell():
             data = self.reader.read(1024)
-            if not len(data):
+            if not data:
                 break
             self.buf.write(data)
 
@@ -248,7 +248,7 @@ class Body(object):
     def readlines(self, size=None):
         ret = []
         data = self.read()
-        while len(data):
+        while data:
             pos = data.find(b"\n")
             if pos < 0:
                 ret.append(data)

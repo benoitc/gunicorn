@@ -64,7 +64,7 @@ class Message(object):
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
-        while len(lines):
+        while lines:
             if len(headers) >= self.limit_request_fields:
                 raise LimitRequestHeaders("limit request headers fields")
 
@@ -81,7 +81,7 @@ class Message(object):
             name, value = name.strip(), [value.lstrip()]
 
             # Consume value continuation lines
-            while len(lines) and lines[0].startswith((" ", "\t")):
+            while lines and lines[0].startswith((" ", "\t")):
                 curr = lines.pop(0)
                 header_length += len(curr)
                 if header_length > self.limit_request_field_size > 0:
