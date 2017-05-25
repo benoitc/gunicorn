@@ -173,8 +173,8 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         # close old PIPE
-        if self.PIPE:
-            [os.close(p) for p in self.PIPE]
+        for p in self.PIPE:
+            os.close(p)
 
         # initialize the pipe
         self.PIPE = pair = os.pipe()
@@ -185,7 +185,8 @@ class Arbiter(object):
         self.log.close_on_exec()
 
         # initialize all signals
-        [signal.signal(s, self.signal) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, self.signal)
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
@@ -454,7 +455,8 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            [l.close() for l in self.LISTENERS]
+            for l in self.LISTENERS:
+                l.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])

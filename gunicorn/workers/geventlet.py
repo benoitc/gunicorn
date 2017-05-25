@@ -134,9 +134,12 @@ class EventletWorker(AsyncWorker):
         self.notify()
         try:
             with eventlet.Timeout(self.cfg.graceful_timeout) as t:
-                [a.kill(eventlet.StopServe()) for a in acceptors]
-                [a.wait() for a in acceptors]
+                for a in acceptors:
+                    a.kill(eventlet.StopServe())
+                for a in acceptors:
+                    a.wait()
         except eventlet.Timeout as te:
             if te != t:
                 raise
-            [a.kill() for a in acceptors]
+            for a in acceptors:
+                a.kill()

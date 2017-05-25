@@ -101,7 +101,8 @@ class Worker(object):
             util.close_on_exec(p)
 
         # Prevent fd inheritance
-        [util.close_on_exec(s) for s in self.sockets]
+        for s in self.sockets:
+            util.close_on_exec(s)
         util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
@@ -156,7 +157,8 @@ class Worker(object):
 
     def init_signals(self):
         # reset signaling
-        [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
