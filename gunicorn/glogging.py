@@ -109,12 +109,10 @@ class SafeAtoms(dict):
             kl = k.lower()
             if kl in self:
                 return super(SafeAtoms, self).__getitem__(kl)
-            else:
-                return "-"
+            return "-"
         if k in self:
             return super(SafeAtoms, self).__getitem__(k)
-        else:
-            return '-'
+        return '-'
 
 
 def parse_syslog_address(addr):

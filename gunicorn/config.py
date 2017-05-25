@@ -151,8 +151,7 @@ class Config(object):
         pn = self.settings['proc_name'].get()
         if pn is not None:
             return pn
-        else:
-            return self.settings['default_proc_name'].get()
+        return self.settings['default_proc_name'].get()
 
     @property
     def logger_class(self):
