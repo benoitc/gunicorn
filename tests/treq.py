@@ -74,7 +74,7 @@ class request(object):
             yield lines[:pos+2]
             lines = lines[pos+2:]
             pos = lines.find(b"\r\n")
-        if len(lines):
+        if lines:
             yield lines
 
     def send_bytes(self):
@@ -137,7 +137,7 @@ class request(object):
     def match_read(self, req, body, sizes):
         data = self.szread(req.body.read, sizes)
         count = 1000
-        while len(body):
+        while body:
             if body[:len(data)] != data:
                 raise AssertionError("Invalid body data read: %r != %r" % (
                                         data, body[:len(data)]))
@@ -148,9 +148,9 @@ class request(object):
             if count <= 0:
                 raise AssertionError("Unexpected apparent EOF")
 
-        if len(body):
+        if body:
             raise AssertionError("Failed to read entire body: %r" % body)
-        elif len(data):
+        elif data:
             raise AssertionError("Read beyond expected body: %r" % data)
         data = req.body.read(sizes())
         if data:
@@ -159,7 +159,7 @@ class request(object):
     def match_readline(self, req, body, sizes):
         data = self.szread(req.body.readline, sizes)
         count = 1000
-        while len(body):
+        while body:
             if body[:len(data)] != data:
                 raise AssertionError("Invalid data read: %r" % data)
             if b'\n' in data[:-1]:
@@ -170,9 +170,9 @@ class request(object):
                 count -= 1
             if count <= 0:
                 raise AssertionError("Apparent unexpected EOF")
-        if len(body):
+        if body:
             raise AssertionError("Failed to read entire body: %r" % body)
-        elif len(data):
+        elif data:
             raise AssertionError("Read beyond expected body: %r" % data)
         data = req.body.readline(sizes())
         if data:
@@ -190,7 +190,7 @@ class request(object):
                 raise AssertionError("Invalid body data read: %r != %r" % (
                                                     line, body[:len(line)]))
             body = body[len(line):]
-        if len(body):
+        if body:
             raise AssertionError("Failed to read entire body: %r" % body)
         data = req.body.readlines(sizes())
         if data:
@@ -207,7 +207,7 @@ class request(object):
                 raise AssertionError("Invalid body data read: %r != %r" % (
                                                     line, body[:len(line)]))
             body = body[len(line):]
-        if len(body):
+        if body:
             raise AssertionError("Failed to read entire body: %r" % body)
         try:
             data = six.next(iter(req.body))
@@ -254,7 +254,7 @@ class request(object):
         p = RequestParser(cfg, sender())
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
-        assert len(cases) == 0
+        assert not cases
 
     def same(self, req, sizer, matcher, exp):
         assert req.method == exp["method"]

@@ -80,7 +80,7 @@ class Statsd(Logger):
                         pass
 
             # Log to parent logger only if there is something to say
-            if msg is not None and len(msg) > 0:
+            if msg:
                 Logger.log(self, lvl, msg, *args, **kwargs)
         except Exception:
             Logger.warning(self, "Failed to log to statsd", exc_info=True)

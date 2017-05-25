@@ -205,7 +205,7 @@ class Arbiter(object):
             while True:
                 self.maybe_promote_master()
 
-                sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
+                sig = self.SIG_QUEUE.pop(0, None)
                 if sig is None:
                     self.sleep()
                     self.murder_workers()
