@@ -31,7 +31,7 @@ class BaseSocket(object):
 
         self.sock = self.set_options(sock, bound=bound)
 
-    def __str__(self, name):
+    def __str__(self):
         return "<socket %d>" % self.sock.fileno()
 
     def __getattr__(self, name):
