@@ -414,7 +414,7 @@ def validate_callable(arity):
                     "" % (obj_name, mod_name))
         if not six.callable(val):
             raise TypeError("Value is not six.callable: %s" % val)
-        if arity != -1 and arity != len(inspect.getargspec(val)[0]):
+        if arity != -1 and arity != _compat.get_arity(val):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
@@ -452,7 +452,7 @@ def validate_group(val):
 def validate_post_request(val):
     val = validate_callable(-1)(val)
 
-    largs = len(inspect.getargspec(val)[0])
+    largs = _compat.get_arity(val)
     if largs == 4:
         return val
     elif largs == 3:
