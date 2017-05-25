@@ -27,5 +27,30 @@ pyflakes:
     # Access to a protected member $X of a client class
     - W0212
 
+pylint:
+  disable:
+    - bare-except
+    - duplicate-bases
+    - duplicate-except
+    - eval-used
+    - import-error
+    - import-self
+    - logging-not-lazy
+    - no-staticmethod-decorator
+    - not-callable
+    - not-context-manager
+    - pointless-statement
+    - protected-access
+    - redefined-builtin
+    - too-many-arguments
+    - too-many-branches
+    - too-many-function-args
+    - too-many-locals
+    - too-many-nested-blocks
+    - unused-argument
+    - unused-import
+    - unused-variable
+    - wrong-import-position
+
 mccabe:
   run: false
