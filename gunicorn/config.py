@@ -1180,6 +1180,19 @@ class AccessLog(Setting):
         ``'-'`` means log to stdout.
         """
 
+class DisableRedirectAccessToSyslog(Setting):
+    name = "disable_redirect_access_to_syslog"
+    section = "Logging"
+    cli = ["--disable-redirect-access-to-syslog"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+    Disable redirect access logs to syslog.
+
+    .. versionadded:: 19.8
+    """
+
 
 class AccessLogFormat(Setting):
     name = "access_log_format"
@@ -1342,6 +1355,11 @@ class Syslog(Setting):
     default = False
     desc = """\
     Send *Gunicorn* logs to syslog.
+
+    .. versionchanged:: 19.8
+
+     You can now disable sending access logs by using the
+     :ref:`disable-redirect-access-to-syslog` setting.
     """
 
 
