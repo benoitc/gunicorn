@@ -81,6 +81,9 @@ if has_inotify:
             self._dirs = set()
             self._watcher = Inotify()
 
+            for extra_file in extra_files:
+                self.add_extra_file(extra_file)
+
         def add_extra_file(self, filename):
             dirname = os.path.dirname(filename)
 

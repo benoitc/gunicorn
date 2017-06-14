@@ -368,6 +368,14 @@ def validate_string(val):
     return val.strip()
 
 
+def validate_file_exists(val):
+    if val is None:
+        return None
+    if not os.path.exists(val):
+        raise ValueError("File %s does not exists." % val)
+    return val
+
+
 def validate_list_string(val):
     if not val:
         return []
@@ -377,6 +385,10 @@ def validate_list_string(val):
         val = [val]
 
     return [validate_string(v) for v in val]
+
+
+def validate_list_of_existing_files(val):
+    return [validate_file_exists(v) for v in validate_list_string(val)]
 
 
 def validate_string_to_list(val):
@@ -854,6 +866,20 @@ class ReloadEngine(Setting):
         * 'inotify' (requires inotify)
 
         .. versionadded:: 19.7
+        """
+
+
+class ReloadExtraFiles(Setting):
+    name = "reload_extra_files"
+    action = "append"
+    section = "Debugging"
+    cli = ["--reload-extra-file"]
+    meta = "FILES"
+    validator = validate_list_of_existing_files
+    default = []
+    desc = """\
+        Extends --reload option to also watch and reload on additional files
+        (e.g., templates, configurations, specifications, etc.).
         """
 
 
