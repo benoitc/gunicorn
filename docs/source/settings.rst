@@ -210,6 +210,16 @@ you're sure of the repercussions for sync workers. For the non sync
 workers it just means that the worker process is still communicating and
 is not tied to the length of time required to handle a single request.
 
+.. _startup-timeout:
+
+startup_timeout
+~~~~~~~~~~~~~~~
+
+* ``--startup-timeout INT``
+* ``30``
+
+Timeout for workers startup.
+
 .. _graceful-timeout:
 
 graceful_timeout
@@ -319,6 +329,24 @@ because it consumes less system resources.
 .. note::
    In order to use the inotify reloader, you must have the ``inotify``
    package installed.
+
+.. _reload-engine:
+
+reload_engine
+~~~~~~~~~~~~~
+
+* ``--reload-engine STRING``
+* ``auto``
+
+The implementation that should be used to power :ref:`reload`.
+
+Valid engines are:
+
+* 'auto'
+* 'poll'
+* 'inotify' (requires inotify)
+
+.. versionadded:: 19.7
 
 .. _spew:
 
@@ -1138,7 +1166,7 @@ ssl_version
 ~~~~~~~~~~~
 
 * ``--ssl-version``
-* ``3``
+* ``_SSLMethod.PROTOCOL_TLS``
 
 SSL version to use (see stdlib ssl module's)
 
@@ -1152,7 +1180,7 @@ cert_reqs
 ~~~~~~~~~
 
 * ``--cert-reqs``
-* ``0``
+* ``VerifyMode.CERT_NONE``
 
 Whether client certificate is required (see stdlib ssl module's)
 
