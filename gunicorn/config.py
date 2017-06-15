@@ -760,7 +760,14 @@ class Keepalive(Setting):
     desc = """\
         The number of seconds to wait for requests on a Keep-Alive connection.
 
-        Generally set in the 1-5 seconds range.
+        Generally set in the 1-5 seconds range for servers with direct connection
+        to the client (e.g. when you don't have separate load balancer). When
+        Gunicorn is deployed behind a load balancer, it often makes sense to
+        set this to a higher value.
+
+        .. note::
+           ``sync`` worker does not support persistent connections and will
+           ignore this option.
         """
 
 
