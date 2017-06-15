@@ -34,6 +34,10 @@ as any errors will affect at most a single request. Though as we describe below
 only processing a single request at a time requires some assumptions about how
 applications are programmed.
 
+``sync`` worker does not support persistent connections - each connection is
+closed after response has been sent (even if you manually add ``Keep-Alive``
+or ``Connection: keep-alive`` header in your application).
+
 Async Workers
 -------------
 
