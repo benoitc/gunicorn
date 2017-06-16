@@ -320,6 +320,24 @@ because it consumes less system resources.
    In order to use the inotify reloader, you must have the ``inotify``
    package installed.
 
+.. _reload-engine:
+
+reload_engine
+~~~~~~~~~~~~~
+
+* ``--reload-engine STRING``
+* ``auto``
+
+The implementation that should be used to power :ref:`reload`.
+
+Valid engines are:
+
+* 'auto'
+* 'poll'
+* 'inotify' (requires inotify)
+
+.. versionadded:: 19.7
+
 .. _reload-extra-files:
 
 reload_extra_files
