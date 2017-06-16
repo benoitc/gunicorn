@@ -878,8 +878,10 @@ class ReloadExtraFiles(Setting):
     validator = validate_list_of_existing_files
     default = []
     desc = """\
-        Extends --reload option to also watch and reload on additional files
+        Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
+
+        .. versionadded:: 19.8
         """
 
 

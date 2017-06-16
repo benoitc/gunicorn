@@ -320,6 +320,19 @@ because it consumes less system resources.
    In order to use the inotify reloader, you must have the ``inotify``
    package installed.
 
+.. _reload-extra-files:
+
+reload_extra_files
+~~~~~~~~~~~~~~~~~~
+
+* ``--reload-extra-file FILES``
+* ``[]``
+
+Extends :ref:`reload` option to also watch and reload on additional files
+(e.g., templates, configurations, specifications, etc.).
+
+.. versionadded:: 19.8
+
 .. _spew:
 
 spew
