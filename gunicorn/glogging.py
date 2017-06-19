@@ -119,10 +119,12 @@ class SafeAtoms(dict):
 
 def parse_syslog_address(addr):
 
+    # unix domain socket type depends on backend
+    # SysLogHandler will try both when given None
     if addr.startswith("unix://"):
-        sock_type = socket.SOCK_STREAM
+        sock_type = None
 
-        # are we using a different socket type?
+        # set socket type only if explicitly requested
         parts = addr.split("#", 1)
         if len(parts) == 2:
             addr = parts[0]
