@@ -652,6 +652,11 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
+        
+        .. note::
+           If you try to use the ``sync`` worker type and set the ``threads``
+           setting to more than 1, the ``gthread`` worker type will be used
+           instead.
         """
 
 
