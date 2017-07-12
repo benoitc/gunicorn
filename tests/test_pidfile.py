@@ -35,6 +35,7 @@ def test_validate_no_file(_open):
 def test_validate_file_pid_exists(kill, _open):
     pidfile = gunicorn.pidfile.Pidfile('test.pid')
     assert pidfile.validate() == 1
+    assert kill.called
 
 
 @mock.patch(builtin('open'), new_callable=mock.mock_open, read_data='a')
