@@ -34,7 +34,7 @@ def requires_mac_ver(*min_version):
     return decorator
 
 try:
-    from types import SimpleNamespace
+    from types import SimpleNamespace  # noqa
 except ImportError:
     class SimpleNamespace(object):
         def __init__(self, **kwargs):
