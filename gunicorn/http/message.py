@@ -53,7 +53,7 @@ class Message(object):
         self.unreader.unread(unused)
         self.set_body_reader()
 
-    def parse(self):
+    def parse(self, unreader):
         raise NotImplementedError()
 
     def parse_headers(self, data):

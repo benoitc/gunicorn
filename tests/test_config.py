@@ -77,7 +77,7 @@ def test_property_access():
     assert os.getegid() == c.gid
 
     # Proc name
-    assert "gunicorn" == c.proc_name
+    assert c.proc_name == "gunicorn" # misplaced-comparison-constant
 
     # Not a config property
     pytest.raises(AttributeError, getattr, c, "foo")

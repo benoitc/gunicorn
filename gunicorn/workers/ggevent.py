@@ -148,9 +148,10 @@ class GeventWorker(AsyncWorker):
         except:
             pass
 
-    def handle_request(self, *args):
+    def handle_request(self, listener_name, req, sock, addr): #arguments-differ
         try:
-            super(GeventWorker, self).handle_request(*args)
+            super(GeventWorker, self).handle_request(listener_name, req, sock,
+                                                     addr)
         except gevent.GreenletExit:
             pass
         except SystemExit:
