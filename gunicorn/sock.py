@@ -94,7 +94,7 @@ class TCP6Socket(TCPSocket):
     FAMILY = socket.AF_INET6
 
     def __str__(self):
-        (host, port, fl, sc) = self.sock.getsockname()
+        (host, port, _, _) = self.sock.getsockname()
         return "http://[%s]:%d" % (host, port)
 
 
