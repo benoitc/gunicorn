@@ -478,7 +478,7 @@ class Arbiter(object):
         util._setproctitle("master [%s]" % self.proc_name)
 
         # spawn new workers
-        for i in range(self.cfg.workers):
+        for _ in range(self.cfg.workers):
             self.spawn_worker()
 
         # manage workers
@@ -609,7 +609,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for i in range(self.num_workers - len(self.WORKERS.keys())):
+        for _ in range(self.num_workers - len(self.WORKERS.keys())):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 

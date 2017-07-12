@@ -211,7 +211,7 @@ class ThreadWorker(base.Worker):
             if self.nr_conns < self.worker_connections:
                 # wait for an event
                 events = self.poller.select(1.0)
-                for key, mask in events:
+                for key, _ in events:
                     callback = key.data
                     callback(key.fileobj)
 

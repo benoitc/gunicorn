@@ -146,7 +146,7 @@ class Worker(object):
             # per https://docs.python.org/2/library/sys.html#sys.exc_info warning,
             # delete the traceback after use.
             try:
-                exc_type, exc_val, exc_tb = sys.exc_info()
+                _, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
                 tb_string = six.StringIO()
