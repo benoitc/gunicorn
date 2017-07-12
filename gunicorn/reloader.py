@@ -53,12 +53,14 @@ class Reloader(threading.Thread):
                         self._callback(filename)
             time.sleep(self._interval)
 
-try:
-    from inotify.adapters import Inotify
-    import inotify.constants
-    has_inotify = True
-except ImportError:
-    has_inotify = False
+has_inotify = False
+if sys.platform.startswith('linux'):
+    try:
+        from inotify.adapters import Inotify
+        import inotify.constants
+        has_inotify = True
+    except ImportError:
+        pass
 
 
 class InotifyReloader():
