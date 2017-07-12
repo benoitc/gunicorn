@@ -11,21 +11,34 @@ ignore-paths:
   - scripts
   - tests/requests/valid
   - tests/requests/invalid
+  - tests/treq.py  # We are going to replace this with pytest.
+  - tests/t.py  # Same as above.
+  - tests/test_selectors.py  # This basically port of upstream selectors tests.
+  - tests/test_gaiohttp.py  # TODO: We are going to remove this worker.
 
 pep8:
-  disable:
-    - E126
-    - E128
-    - E129
-    - E302
-    - E501
+  run: false
 
 pyflakes:
+  run: false
+
+pylint:
   disable:
-    # Redefinition of unused $X from line $LINE
-    - F811
-    # Access to a protected member $X of a client class
-    - W0212
+    - bare-except
+    - misplaced-comparison-constant
+    - protected-access
+    - import-error
+    - too-many-branches
+    - too-many-arguments
+    - too-many-nested-blocks
+    - eval-used
+    - no-else-return
+    - wrong-import-position
+    - unused-argument
+    - import-self
+    - duplicate-bases
+    - no-staticmethod-decorator
+    - not-callable
 
 mccabe:
   run: false
