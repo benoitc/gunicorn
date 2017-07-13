@@ -364,8 +364,8 @@ class Arbiter(object):
                 pass
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
-            errno = getattr(e, 'errno', e.args[0])
-            if errno not in [errno.EAGAIN, errno.EINTR]:
+            error_number = getattr(e, 'errno', e.args[0])
+            if error_number not in [errno.EAGAIN, errno.EINTR]:
                 raise
         except KeyboardInterrupt:
             sys.exit()
