@@ -426,7 +426,7 @@ def validate_callable(arity):
                     "" % (obj_name, mod_name))
         if not six.callable(val):
             raise TypeError("Value is not six.callable: %s" % val)
-        if arity != -1 and arity != len(inspect.getargspec(val)[0]):
+        if arity != -1 and arity != _compat.get_arity(val):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
@@ -464,7 +464,7 @@ def validate_group(val):
 def validate_post_request(val):
     val = validate_callable(-1)(val)
 
-    largs = len(inspect.getargspec(val)[0])
+    largs = _compat.get_arity(val)
     if largs == 4:
         return val
     elif largs == 3:
@@ -652,6 +652,11 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
+        
+        .. note::
+           If you try to use the ``sync`` worker type and set the ``threads``
+           setting to more than 1, the ``gthread`` worker type will be used
+           instead.
         """
 
 
@@ -878,8 +883,10 @@ class ReloadExtraFiles(Setting):
     validator = validate_list_of_existing_files
     default = []
     desc = """\
-        Extends --reload option to also watch and reload on additional files
+        Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
+
+        .. versionadded:: 19.8
         """
 
 

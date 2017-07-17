@@ -173,8 +173,8 @@ class Arbiter(object):
         are queued. Child signals only wake up the master.
         """
         # close old PIPE
-        if self.PIPE:
-            [os.close(p) for p in self.PIPE]
+        for p in self.PIPE:
+            os.close(p)
 
         # initialize the pipe
         self.PIPE = pair = os.pipe()
@@ -185,7 +185,8 @@ class Arbiter(object):
         self.log.close_on_exec()
 
         # initialize all signals
-        [signal.signal(s, self.signal) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, self.signal)
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
@@ -204,7 +205,7 @@ class Arbiter(object):
             while True:
                 self.maybe_promote_master()
 
-                sig = self.SIG_QUEUE.pop(0) if len(self.SIG_QUEUE) else None
+                sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
                 if sig is None:
                     self.sleep()
                     self.murder_workers()
@@ -361,11 +362,10 @@ class Arbiter(object):
                 return
             while os.read(self.PIPE[0], 1):
                 pass
-        except select.error as e:
-            if e.args[0] not in [errno.EAGAIN, errno.EINTR]:
-                raise
-        except OSError as e:
-            if e.errno not in [errno.EAGAIN, errno.EINTR]:
+        except (select.error, OSError) as e:
+            # TODO: select.error is a subclass of OSError since Python 3.3.
+            error_number = getattr(e, 'errno', e.args[0])
+            if error_number not in [errno.EAGAIN, errno.EINTR]:
                 raise
         except KeyboardInterrupt:
             sys.exit()
@@ -454,7 +454,8 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            [l.close() for l in self.LISTENERS]
+            for l in self.LISTENERS:
+                l.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])
@@ -476,7 +477,7 @@ class Arbiter(object):
         util._setproctitle("master [%s]" % self.proc_name)
 
         # spawn new workers
-        for i in range(self.cfg.workers):
+        for _ in range(self.cfg.workers):
             self.spawn_worker()
 
         # manage workers
@@ -586,7 +587,7 @@ class Arbiter(object):
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except:
-            self.log.exception("Exception in worker process"),
+            self.log.exception("Exception in worker process")
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
@@ -607,7 +608,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for i in range(self.num_workers - len(self.WORKERS.keys())):
+        for _ in range(self.num_workers - len(self.WORKERS.keys())):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 

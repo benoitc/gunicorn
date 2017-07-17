@@ -262,3 +262,37 @@ if PY26:
 
 else:
     from gunicorn.six.moves.urllib.parse import urlsplit
+
+
+import inspect
+
+if hasattr(inspect, 'signature'):
+    positionals = (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )
+
+    def get_arity(f):
+        sig = inspect.signature(f)
+        arity = 0
+
+        for param in sig.parameters.values():
+            if param.kind in positionals:
+                arity += 1
+
+        return arity
+else:
+    def get_arity(f):
+        return len(inspect.getargspec(f)[0])
+
+
+try:
+    import html
+
+    def html_escape(s):
+        return html.escape(s)
+except ImportError:
+    import cgi
+
+    def html_escape(s):
+        return cgi.escape(s, quote=True)

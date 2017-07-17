@@ -101,7 +101,8 @@ class Worker(object):
             util.close_on_exec(p)
 
         # Prevent fd inheritance
-        [util.close_on_exec(s) for s in self.sockets]
+        for s in self.sockets:
+            util.close_on_exec(s)
         util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
@@ -145,7 +146,7 @@ class Worker(object):
             # per https://docs.python.org/2/library/sys.html#sys.exc_info warning,
             # delete the traceback after use.
             try:
-                exc_type, exc_val, exc_tb = sys.exc_info()
+                _, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
                 tb_string = six.StringIO()
@@ -156,7 +157,8 @@ class Worker(object):
 
     def init_signals(self):
         # reset signaling
-        [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
         # init new signaling
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
