@@ -193,7 +193,7 @@ class Application(BaseApplication):
             util.daemonize(self.cfg.enable_stdio_inheritance)
 
         # set python paths
-        if self.cfg.pythonpath and self.cfg.pythonpath is not None:
+        if self.cfg.pythonpath:
             paths = self.cfg.pythonpath.split(",")
             for path in paths:
                 pythonpath = os.path.abspath(path)
