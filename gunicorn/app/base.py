@@ -143,7 +143,7 @@ class Application(BaseApplication):
         cfg = self.init(parser, args, args.args)
 
         # Load up the any app specific configuration
-        if cfg and cfg is not None:
+        if cfg:
             for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
 
