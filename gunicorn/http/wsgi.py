@@ -179,7 +179,7 @@ def create(req, sock, client, server, cfg):
         server = server.split(":")
         if len(server) == 1:
             # unix socket
-            if host and host is not None:
+            if host:
                 server = host.split(':')
                 if len(server) == 1:
                     if url_scheme == "http":
