@@ -13,7 +13,7 @@ from gunicorn import util
 
 class WSGIApplication(Application):
     def init(self, parser, opts, args):
-        if opts.paste and opts.paste is not None:
+        if opts.paste:
             app_name = 'main'
             path = opts.paste
             if '#' in path:
