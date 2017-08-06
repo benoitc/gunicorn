@@ -851,12 +851,8 @@ class Reload(Setting):
         paste configuration be sure that the server block does not import any
         application code or the reload will not work as designed.
 
-        The default behavior is to attempt inotify with a fallback to file
-        system polling. Generally, inotify should be preferred if available
-        because it consumes less system resources.
-
         .. note::
-           In order to use the inotify reloader, you must have the ``inotify``
+           In order to use the reloader, you must have the ``watchdog``
            package installed.
         '''
 
@@ -875,9 +871,13 @@ class ReloadEngine(Setting):
 
         * 'auto'
         * 'poll'
-        * 'inotify' (requires inotify)
+        * 'inotify'
 
         .. versionadded:: 19.7
+
+        .. versionchanged:: 19.8
+           A value of 'inotify' is an alias for 'auto' and uses the
+           best implementation available on the platform.
         """
 
 
