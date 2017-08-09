@@ -2,6 +2,12 @@
 Changelog
 =========
 
+19.8.0 / not released
+=====================
+
+- :pr:`1569`, :pr:`1418` and :issue:`1338`: The ``gaiohttp`` worker is
+  deprecated. See the :ref:`worker-class` documentation for more information.
+
 19.7.1 / 2017/03/21
 ===================
 
