@@ -316,9 +316,6 @@ class Logger(object):
         for format details
         """
 
-        if not (self.cfg.accesslog or self.cfg.logconfig or self.cfg.syslog):
-            return
-
         # wrap atoms:
         # - make sure atoms will be test case insensitively
         # - if atom doesn't exist replace it by '-'
