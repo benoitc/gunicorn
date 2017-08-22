@@ -22,6 +22,7 @@ matrix:
     - env: TOXENV=py36-dev
     - env: TOXENV=py37
 install: pip install tox
+# TODO: https://github.com/tox-dev/tox/issues/149
 script: tox --recreate
 cache:
   directories:
