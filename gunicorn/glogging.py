@@ -221,9 +221,10 @@ class Logger(object):
             self._set_syslog_handler(
                 self.error_log, cfg, self.syslog_fmt, "error"
             )
-            self._set_syslog_handler(
-                self.access_log, cfg, self.syslog_fmt, "access"
-            )
+            if not cfg.disable_redirect_access_to_syslog:
+                self._set_syslog_handler(
+                    self.access_log, cfg, self.syslog_fmt, "access"
+                )
 
         if cfg.logconfig:
             if os.path.exists(cfg.logconfig):
@@ -316,7 +317,8 @@ class Logger(object):
         for format details
         """
 
-        if not (self.cfg.accesslog or self.cfg.logconfig or self.cfg.syslog):
+        if not (self.cfg.accesslog or self.cfg.logconfig or
+           (self.cfg.syslog and not self.cfg.disable_access_log_redirection)):
             return
 
         # wrap atoms:

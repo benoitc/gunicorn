@@ -616,6 +616,18 @@ The Access log file to write to.
 
 ``'-'`` means log to stdout.
 
+.. _disable-redirect-access-to-syslog:
+
+disable-redirect-access-to-syslog
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``--disable-redirect-access-to-syslog``
+* ``False``
+
+Disable redirect access logs to syslog.
+
+.. versionadded:: 19.8
+
 .. _access-log-format:
 
 access_log_format
@@ -752,6 +764,11 @@ syslog
 * ``False``
 
 Send *Gunicorn* logs to syslog.
+
+.. versionchanged:: 19.8
+
+ You can now disable sending access logs by using the
+ :ref:`disable-redirect-access-to-syslog` setting.
 
 .. _syslog-prefix:
 
