@@ -173,7 +173,7 @@ class Request(Message):
             buf.write(rbuf)
             line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
-        self.parse_request_line(bytes_to_str(line))
+        self.parse_request_line(line)
         buf = BytesIO()
         buf.write(rbuf)
 
@@ -301,10 +301,10 @@ class Request(Message):
             "proxy_port": d_port
         }
 
-    def parse_request_line(self, line):
-        bits = line.split(None, 2)
+    def parse_request_line(self, line_bytes):
+        bits = [bytes_to_str(bit) for bit in line_bytes.split(None, 2)]
         if len(bits) != 3:
-            raise InvalidRequestLine(line)
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
 
         # Method
         if not METH_RE.match(bits[0]):
@@ -325,7 +325,7 @@ class Request(Message):
         try:
             parts = urlsplit(self.uri)
         except ValueError:
-            raise InvalidRequestLine(line)
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
