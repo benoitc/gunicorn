@@ -1,7 +1,9 @@
 import datetime
+import logging
 
 from gunicorn.config import Config
-from gunicorn.glogging import Logger
+from gunicorn.glogging import Logger, add_instrumentation
+from gunicorn.six import StringIO
 
 from support import SimpleNamespace
 
@@ -46,3 +48,41 @@ def test_get_username_from_basic_auth_header():
     logger = Logger(Config())
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
     assert atoms['u'] == 'brk0v'
+
+
+class ConfigMock(Config):
+    def __init__(self, sio):
+        Config.__init__(self)
+        self.sio = sio
+
+    @property
+    def instrumentation_classes(self):
+        return [InstrumentationMock]
+
+
+class InstrumentationMock(object):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.sio = cfg.sio
+
+    def info(self, *args, **kwargs):
+        self.sio.write('instrumentation-called')
+
+    def debug(self):
+        self.sio.write('instrumentation-called')
+
+
+def test_add_inst_methods():
+    sio = StringIO()
+    c = ConfigMock(sio)
+    add_instrumentation(c)
+    logger = Logger(c)
+
+    logger.error_log.addHandler(logging.StreamHandler(sio))
+
+    logger.info('logger-info-called')
+    assert sio.getvalue() == "logger-info-called\ninstrumentation-called"
+
+    logger.debug('argument-mismatch')
+    # Nothing will be logged due to argument mismatch of instrumentation class
+    assert sio.getvalue() == "logger-info-called\ninstrumentation-called"
