@@ -458,3 +458,32 @@ class Logger(object):
                 if len(auth) == 2:
                     user = auth[0]
         return user
+
+
+def add_instrumentation(cfg):
+    insts = []
+    for inst_class in cfg.instrumentation_classes:
+        insts.append(inst_class(cfg))
+
+    for inst in insts:
+        add_inst_methods(cfg.logger_class, inst)
+
+
+def add_inst_methods(logger_class, inst):
+    for method in ['critical', 'error', 'warning', 'exception', 'info', 'debug', 'log', 'access']:
+        if hasattr(logger_class, method) and hasattr(inst, method):
+            log_method = getattr(logger_class, method)
+            inst_method = getattr(inst, method)
+            setattr(logger_class, method, _wrap_log_method(log_method, inst_method))
+
+
+def _wrap_log_method(log_method, inst_method):
+    def wrap_func(*args, **kwargs):
+        try:
+            log_method(*args, **kwargs)
+            inst_method(*args, **kwargs)
+        except TypeError:
+            # Argument mismatch between logger and instrumentation
+            pass
+
+    return wrap_func
