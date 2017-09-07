@@ -508,7 +508,7 @@ class Arbiter(object):
         """\
         Reap workers to avoid zombie processes
         """
-        for pid, _ in self.WORKERS.items():
+        for pid in tuple(self.WORKERS):
             try:
                 wpid, status = os.waitpid(pid, os.WNOHANG)
                 if not wpid:
