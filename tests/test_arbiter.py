@@ -10,6 +10,8 @@ try:
 except ImportError:
     import mock
 
+import pytest
+
 import gunicorn.app.base
 import gunicorn.arbiter
 
@@ -159,7 +161,9 @@ def test_arbiter_reap_workers_with_unexpected_exception(mock_os_waitpid):
     arbiter.cfg.settings['child_exit'] = mock.Mock()
     mock_worker = mock.Mock()
     arbiter.WORKERS = {42: mock_worker}
-    self.assertRaises(OSError, arbiter.reap_workers)
+    with pytest.raises(OSError) as excinfo:
+        arbiter.reap_workers()
+    assert excinfo.errno == 11
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
