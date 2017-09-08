@@ -163,7 +163,7 @@ def test_arbiter_reap_workers_with_unexpected_exception(mock_os_waitpid):
     arbiter.WORKERS = {42: mock_worker}
     with pytest.raises(OSError) as excinfo:
         arbiter.reap_workers()
-    assert excinfo.errno == 11
+    assert excinfo.value.errno == 11
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
