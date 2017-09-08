@@ -152,6 +152,16 @@ def test_arbiter_reap_workers_with_waitpid_exception(mock_os_waitpid):
     arbiter.reap_workers()
 
 
+@mock.patch('os.waitpid')
+def test_arbiter_reap_workers_with_unexpected_exception(mock_os_waitpid):
+    mock_os_waitpid.side_effect = OSError(11, "Any other error")
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+    self.assertRaises(OSError, arbiter.reap_workers)
+
+
 class PreloadedAppWithEnvSettings(DummyApplication):
     """
     Simple application that makes use of the 'preload' feature to
