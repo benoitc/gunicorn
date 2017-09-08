@@ -144,7 +144,7 @@ def test_arbiter_reap_workers(mock_os_waitpid):
 
 @mock.patch('os.waitpid')
 def test_arbiter_reap_workers_with_waitpid_exception(mock_os_waitpid):
-    mock_os_waitpid.side_effect = [lambda : OSError(10, "No child processes")]
+    mock_os_waitpid.side_effect = OSError(10, "No child processes")
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     arbiter.cfg.settings['child_exit'] = mock.Mock()
     mock_worker = mock.Mock()
