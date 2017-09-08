@@ -511,8 +511,6 @@ class Arbiter(object):
         for pid in tuple(self.WORKERS):
             try:
                 wpid, status = os.waitpid(pid, os.WNOHANG)
-                if not wpid:
-                    continue
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
