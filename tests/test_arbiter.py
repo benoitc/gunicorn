@@ -10,6 +10,8 @@ try:
 except ImportError:
     import mock
 
+import pytest
+
 import gunicorn.app.base
 import gunicorn.arbiter
 
@@ -132,7 +134,7 @@ def test_arbiter_calls_worker_exit(mock_os_fork):
 
 @mock.patch('os.waitpid')
 def test_arbiter_reap_workers(mock_os_waitpid):
-    mock_os_waitpid.side_effect = [(42, 0), (0, 0)]
+    mock_os_waitpid.side_effect = [(42, 0)]
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     arbiter.cfg.settings['child_exit'] = mock.Mock()
     mock_worker = mock.Mock()
@@ -140,6 +142,28 @@ def test_arbiter_reap_workers(mock_os_waitpid):
     arbiter.reap_workers()
     mock_worker.tmp.close.assert_called_with()
     arbiter.cfg.child_exit.assert_called_with(arbiter, mock_worker)
+
+
+@mock.patch('os.waitpid')
+def test_arbiter_reap_workers_with_waitpid_exception(mock_os_waitpid):
+    mock_os_waitpid.side_effect = OSError(10, "No child processes")
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+    arbiter.reap_workers()
+
+
+@mock.patch('os.waitpid')
+def test_arbiter_reap_workers_with_unexpected_exception(mock_os_waitpid):
+    mock_os_waitpid.side_effect = OSError(11, "Any other error")
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+    with pytest.raises(OSError) as excinfo:
+        arbiter.reap_workers()
+    assert excinfo.value.errno == 11
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):

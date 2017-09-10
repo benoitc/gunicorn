@@ -508,11 +508,9 @@ class Arbiter(object):
         """\
         Reap workers to avoid zombie processes
         """
-        try:
-            while True:
-                wpid, status = os.waitpid(-1, os.WNOHANG)
-                if not wpid:
-                    break
+        for pid in self.WORKERS.keys():
+            try:
+                wpid, status = os.waitpid(pid, os.WNOHANG)
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
@@ -532,9 +530,9 @@ class Arbiter(object):
                         continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
-        except OSError as e:
-            if e.errno != errno.ECHILD:
-                raise
+            except OSError as e:
+                if e.errno != errno.ECHILD:
+                    raise
 
     def manage_workers(self):
         """\
