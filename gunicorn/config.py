@@ -31,12 +31,6 @@ KNOWN_SETTINGS = []
 PLATFORM = sys.platform
 
 
-def wrap_method(func):
-    def _wrapped(instance, *args, **kwargs):
-        return func(*args, **kwargs)
-    return _wrapped
-
-
 def make_settings(ignore=None):
     settings = {}
     ignore = ignore or ()
@@ -246,7 +240,7 @@ class SettingMeta(type):
             return super_new(cls, name, bases, attrs)
 
         attrs["order"] = len(KNOWN_SETTINGS)
-        attrs["validator"] = wrap_method(attrs["validator"])
+        attrs["validator"] = staticmethod(attrs["validator"])
 
         new_class = super_new(cls, name, bases, attrs)
         new_class.fmt_desc(attrs.get("desc", ""))
