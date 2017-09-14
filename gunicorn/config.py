@@ -120,14 +120,6 @@ class Config(object):
         return worker_class
 
     @property
-    def threads(self):
-        return self.settings['threads'].get()
-
-    @property
-    def workers(self):
-        return self.settings['workers'].get()
-
-    @property
     def address(self):
         s = self.settings['bind'].get()
         return [util.parse_address(_compat.bytes_to_str(bind)) for bind in s]
