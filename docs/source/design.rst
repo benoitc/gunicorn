@@ -134,7 +134,7 @@ code in the master process).
    feature.
 
 .. _Greenlets: https://github.com/python-greenlet/greenlet
-.. _Eventlet: http://eventlet.net
-.. _Gevent: http://gevent.org
+.. _Eventlet: http://eventlet.net/
+.. _Gevent: http://www.gevent.org/
 .. _Hey: https://github.com/rakyll/hey
 .. _aiohttp: https://github.com/KeepSafe/aiohttp

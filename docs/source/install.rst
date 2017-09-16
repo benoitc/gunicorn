@@ -134,8 +134,8 @@ you can install it in the usual way::
 
 .. _`design docs`: design.html
 .. _Eventlet: http://eventlet.net
-.. _Gevent: http://gevent.org
-.. _libevent: http://monkey.org/~provos/libevent
-.. _Debian: http://www.debian.org/
-.. _`Debian Backports`: http://backports.debian.org/
-.. _Ubuntu: http://www.ubuntu.com/
+.. _Gevent: http://www.gevent.org/
+.. _libevent: http://libevent.org/
+.. _Debian: https://www.debian.org/
+.. _`Debian Backports`: https://backports.debian.org/
+.. _Ubuntu: https://www.ubuntu.com/

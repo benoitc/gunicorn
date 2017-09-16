@@ -30,4 +30,4 @@ all requests. The following metrics are generated:
 * ``gunicorn.log.warning``: rate of warning log messages
 * ``gunicorn.log.exception``: rate of exceptional log messages
 
-.. _statsD: http://github.com/etsy/statsd
+.. _statsD: https://github.com/etsy/statsd

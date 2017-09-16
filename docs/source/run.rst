@@ -71,7 +71,7 @@ Settings can be specified by using environment variable
 
 See :ref:`configuration` and :ref:`settings` for detailed usage.
 
-.. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _setproctitle: https://pypi.python.org/pypi/setproctitle
 
 Integration
 ===========

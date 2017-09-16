@@ -52,7 +52,7 @@ handle unbuffered requests (ie, serving requests directly from the internet)
 you should use one of the async workers.
 
 .. _Hey: https://github.com/rakyll/hey
-.. _setproctitle: http://pypi.python.org/pypi/setproctitle
+.. _setproctitle: https://pypi.python.org/pypi/setproctitle
 .. _proc_name: settings.html#proc-name
 
 
