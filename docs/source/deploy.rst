@@ -331,4 +331,4 @@ utility::
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: http://pypi.python.org/pypi/virtualenv
 .. _Systemd: http://www.freedesktop.org/wiki/Software/systemd
-.. _Gaffer <https://gaffer.readthedocs.io/en/latest/index.html>:
+.. _Gaffer: https://gaffer.readthedocs.io/
