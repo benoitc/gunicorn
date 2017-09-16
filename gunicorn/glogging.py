@@ -9,6 +9,11 @@ import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 from logging.config import fileConfig
+try:
+    from logging.config import dictConfig
+except ImportError:
+    # python 2.6
+    dictConfig = None
 import os
 import socket
 import sys
@@ -226,7 +231,11 @@ class Logger(object):
                     self.access_log, cfg, self.syslog_fmt, "access"
                 )
 
-        if cfg.logconfig:
+        if dictConfig and cfg.logconfig_dict:
+            config = CONFIG_DEFAULTS.copy()
+            config.update(cfg.logconfig_dict)
+            dictConfig(config)
+        elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
                 defaults['__file__'] = cfg.logconfig
