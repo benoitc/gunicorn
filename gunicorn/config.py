@@ -31,12 +31,6 @@ KNOWN_SETTINGS = []
 PLATFORM = sys.platform
 
 
-def wrap_method(func):
-    def _wrapped(instance, *args, **kwargs):
-        return func(*args, **kwargs)
-    return _wrapped
-
-
 def make_settings(ignore=None):
     settings = {}
     ignore = ignore or ()
@@ -124,14 +118,6 @@ class Config(object):
         if hasattr(worker_class, "setup"):
             worker_class.setup()
         return worker_class
-
-    @property
-    def threads(self):
-        return self.settings['threads'].get()
-
-    @property
-    def workers(self):
-        return self.settings['workers'].get()
 
     @property
     def address(self):
@@ -246,7 +232,7 @@ class SettingMeta(type):
             return super_new(cls, name, bases, attrs)
 
         attrs["order"] = len(KNOWN_SETTINGS)
-        attrs["validator"] = wrap_method(attrs["validator"])
+        attrs["validator"] = staticmethod(attrs["validator"])
 
         new_class = super_new(cls, name, bases, attrs)
         new_class.fmt_desc(attrs.get("desc", ""))
@@ -1510,9 +1496,10 @@ class OnStarting(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def on_starting(server):
+    @staticmethod
+    def default(server):
         pass
-    default = staticmethod(on_starting)
+
     desc = """\
         Called just before the master process is initialized.
 
@@ -1526,9 +1513,10 @@ class OnReload(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def on_reload(server):
+    @staticmethod
+    def default(server):
         pass
-    default = staticmethod(on_reload)
+
     desc = """\
         Called to recycle workers during a reload via SIGHUP.
 
@@ -1542,9 +1530,10 @@ class WhenReady(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def when_ready(server):
+    @staticmethod
+    def default(server):
         pass
-    default = staticmethod(when_ready)
+
     desc = """\
         Called just after the server is started.
 
@@ -1558,9 +1547,10 @@ class Prefork(Setting):
     validator = validate_callable(2)
     type = six.callable
 
-    def pre_fork(server, worker):
+    @staticmethod
+    def default(server, worker):
         pass
-    default = staticmethod(pre_fork)
+
     desc = """\
         Called just before a worker is forked.
 
@@ -1575,9 +1565,10 @@ class Postfork(Setting):
     validator = validate_callable(2)
     type = six.callable
 
-    def post_fork(server, worker):
+    @staticmethod
+    def default(server, worker):
         pass
-    default = staticmethod(post_fork)
+
     desc = """\
         Called just after a worker has been forked.
 
@@ -1592,10 +1583,10 @@ class PostWorkerInit(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def post_worker_init(worker):
+    @staticmethod
+    def default(worker):
         pass
 
-    default = staticmethod(post_worker_init)
     desc = """\
         Called just after a worker has initialized the application.
 
@@ -1609,10 +1600,10 @@ class WorkerInt(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def worker_int(worker):
+    @staticmethod
+    def default(worker):
         pass
 
-    default = staticmethod(worker_int)
     desc = """\
         Called just after a worker exited on SIGINT or SIGQUIT.
 
@@ -1627,10 +1618,11 @@ class WorkerAbort(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def worker_abort(worker):
+
+    @staticmethod
+    def default(worker):
         pass
 
-    default = staticmethod(worker_abort)
     desc = """\
         Called when a worker received the SIGABRT signal.
 
@@ -1647,9 +1639,10 @@ class PreExec(Setting):
     validator = validate_callable(1)
     type = six.callable
 
-    def pre_exec(server):
+    @staticmethod
+    def default(server):
         pass
-    default = staticmethod(pre_exec)
+
     desc = """\
         Called just before a new master process is forked.
 
@@ -1663,9 +1656,10 @@ class PreRequest(Setting):
     validator = validate_callable(2)
     type = six.callable
 
-    def pre_request(worker, req):
+    @staticmethod
+    def default(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
-    default = staticmethod(pre_request)
+
     desc = """\
         Called just before a worker processes the request.
 
@@ -1680,9 +1674,10 @@ class PostRequest(Setting):
     validator = validate_post_request
     type = six.callable
 
-    def post_request(worker, req, environ, resp):
+    @staticmethod
+    def default(worker, req, environ, resp):
         pass
-    default = staticmethod(post_request)
+
     desc = """\
         Called after a worker processes the request.
 
@@ -1697,9 +1692,10 @@ class ChildExit(Setting):
     validator = validate_callable(2)
     type = six.callable
 
-    def child_exit(server, worker):
+    @staticmethod
+    def default(server, worker):
         pass
-    default = staticmethod(child_exit)
+
     desc = """\
         Called just after a worker has been exited, in the master process.
 
@@ -1716,9 +1712,10 @@ class WorkerExit(Setting):
     validator = validate_callable(2)
     type = six.callable
 
-    def worker_exit(server, worker):
+    @staticmethod
+    def default(server, worker):
         pass
-    default = staticmethod(worker_exit)
+
     desc = """\
         Called just after a worker has been exited, in the worker process.
 
@@ -1733,9 +1730,10 @@ class NumWorkersChanged(Setting):
     validator = validate_callable(3)
     type = six.callable
 
-    def nworkers_changed(server, new_value, old_value):
+    @staticmethod
+    def default(server, new_value, old_value):
         pass
-    default = staticmethod(nworkers_changed)
+
     desc = """\
         Called just after *num_workers* has been changed.
 
@@ -1751,10 +1749,10 @@ class OnExit(Setting):
     section = "Server Hooks"
     validator = validate_callable(1)
 
-    def on_exit(server):
+    @staticmethod
+    def default(server):
         pass
 
-    default = staticmethod(on_exit)
     desc = """\
         Called just before exiting Gunicorn.
 
