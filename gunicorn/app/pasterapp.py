@@ -175,13 +175,7 @@ def run():
     The ``gunicorn_paster`` command for launching Paster compatible
     applications like Pylons or Turbogears2
     """
-    util.warn("""This command is deprecated.
-
-    You should now use the `--paste` option. Ex.:
-
-        gunicorn --paste development.ini
-    """)
-
+    util.warn_removed_in_version_20("gunicorn.app.run will be removed in version 20. Use the --paste command line option instead.")
     from gunicorn.app.pasterapp import PasterApplication
     PasterApplication("%(prog)s [OPTIONS] pasteconfig.ini").run()
 
@@ -198,13 +192,6 @@ def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     port = 5000
 
     """
-
-    util.warn("""This command is deprecated.
-
-    You should now use the `--paste` option. Ex.:
-
-        gunicorn --paste development.ini
-    """)
-
+    util.warn_removed_in_version_20("gunicorn.app.paste_server will be removed in version 20. Use the --paste command line option instead.")
     from gunicorn.app.pasterapp import PasterServerApplication
     PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()

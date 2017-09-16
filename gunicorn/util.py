@@ -534,6 +534,14 @@ def warn(msg):
     sys.stderr.flush()
 
 
+class RemovedInNextVersionWarning(DeprecationWarning):
+    pass
+
+def warn_removed_in_version_20(message):
+    warnings.warn(message, RemovedInNextVersionWarning)
+    warn(message)
+
+
 def make_fail_app(msg):
     msg = to_bytestring(msg)
 
