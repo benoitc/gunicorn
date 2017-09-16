@@ -7,7 +7,7 @@ Requirements
 To generate documentation you need to install:
 
  - Python >= 2.5
- - Sphinx (http://sphinx.pocoo.org/)
+ - Sphinx (http://sphinx-doc.org/)
 
 
 Generate html

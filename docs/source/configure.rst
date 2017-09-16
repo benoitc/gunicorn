@@ -77,7 +77,7 @@ settings. If you have ideas for providing settings to WSGI applications or
 pulling information from Django's settings.py feel free to open an issue_ to
 let us know.
 
-.. _issue: http://github.com/benoitc/gunicorn/issues
+.. _issue: https://github.com/benoitc/gunicorn/issues
 
 Paster Applications
 -------------------

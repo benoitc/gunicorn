@@ -320,15 +320,15 @@ utility::
    Gunicorn error log is here to log errors from Gunicorn, not from another
    application.
 
-.. _Nginx: http://www.nginx.org
+.. _Nginx: https://nginx.org/
 .. _Hey: https://github.com/rakyll/hey
-.. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
+.. _`example configuration`: https://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
 .. _runit: http://smarden.org/runit/
-.. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
-.. _Supervisor: http://supervisord.org
-.. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
+.. _`example service`: https://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
+.. _Supervisor: http://supervisord.org/
+.. _`simple configuration`: https://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
 .. _`configuration documentation`: http://docs.gunicorn.org/en/latest/settings.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
-.. _Virtualenv: http://pypi.python.org/pypi/virtualenv
-.. _Systemd: http://www.freedesktop.org/wiki/Software/systemd
-.. _Gaffer <https://gaffer.readthedocs.io/en/latest/index.html>:
+.. _Virtualenv: https://pypi.python.org/pypi/virtualenv
+.. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/
+.. _Gaffer: https://gaffer.readthedocs.io/

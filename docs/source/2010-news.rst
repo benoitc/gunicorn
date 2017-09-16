@@ -204,8 +204,8 @@ Changelog - 2010
 * Allow multiple keys in request and response headers
 
 .. _Tornado: http://www.tornadoweb.org/
-.. _`PEP 333`: http://www.python.org/dev/peps/pep-0333/
-.. _Eventlet: http://eventlet.net
-.. _Gevent: http://gevent.org
-.. _OpenBSD: http://openbsd.org
-.. _Websockets: http://dev.w3.org/html5/websockets/
+.. _`PEP 333`: https://www.python.org/dev/peps/pep-0333/
+.. _Eventlet: http://eventlet.net/
+.. _Gevent: http://www.gevent.org/
+.. _OpenBSD: https://www.openbsd.org/
+.. _Websockets: https://html.spec.whatwg.org/multipage/web-sockets.html
