@@ -14,6 +14,7 @@ from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 
+
 class BaseApplication(object):
     """
     An application interface for configuring and loading

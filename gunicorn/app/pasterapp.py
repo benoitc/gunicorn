@@ -65,15 +65,16 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
 
 
 def load_pasteapp(config_url, relative_to, global_conf=None):
-    return loadapp(config_url, relative_to=relative_to,
-            global_conf=global_conf)
+    return loadapp(config_url,
+                   relative_to=relative_to, global_conf=global_conf)
+
 
 class PasterBaseApplication(Application):
     gcfg = None
 
     def app_config(self):
         return paste_config(self.cfg, self.cfgurl, self.relpath,
-                global_conf=self.gcfg)
+                            global_conf=self.gcfg)
 
     def load_config(self):
         super(PasterBaseApplication, self).load_config()

@@ -26,6 +26,7 @@ import greenlet
 from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.async import AsyncWorker
 
+
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:

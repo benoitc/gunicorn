@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 
 
-# we inherit from BaseException here to make sure to not be caucght 
+# we inherit from BaseException here to make sure to not be caucght
 # at application level
 class HaltServer(BaseException):
     def __init__(self, reason, exit_status=1):

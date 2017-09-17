@@ -35,7 +35,7 @@ SYSLOG_FACILITIES = {
         "lpr":      6,
         "mail":     2,
         "news":     7,
-        "security": 4,  #  DEPRECATED
+        "security": 4,  #  DEPRECATED # noqa
         "syslog":   5,
         "user":     1,
         "uucp":     8,
@@ -218,8 +218,10 @@ class Logger(object):
 
         # set gunicorn.access handler
         if cfg.accesslog is not None:
-            self._set_handler(self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout)
+            self._set_handler(
+                self.access_log, cfg.accesslog,
+                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout
+            )
 
         # set syslog handler
         if cfg.syslog:
@@ -293,7 +295,8 @@ class Logger(object):
             'u': self._get_user(environ) or '-',
             't': self.now(),
             'r': "%s %s %s" % (environ['REQUEST_METHOD'],
-                environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
+                               environ['RAW_URI'],
+                               environ["SERVER_PROTOCOL"]),
             's': status,
             'm': environ.get('REQUEST_METHOD'),
             'U': environ.get('PATH_INFO'),
@@ -345,8 +348,9 @@ class Logger(object):
         # wrap atoms:
         # - make sure atoms will be test case insensitively
         # - if atom doesn't exist replace it by '-'
-        safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
-            request_time))
+        safe_atoms = self.atoms_wrapper_class(
+            self.atoms(resp, req, environ, request_time)
+        )
 
         try:
             self.access_log.info(self.cfg.access_log_format, safe_atoms)
@@ -369,7 +373,6 @@ class Logger(object):
                 os.dup2(self.logfile.fileno(), sys.stdout.fileno())
                 os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
-
         for log in loggers():
             for handler in log.handlers:
                 if isinstance(handler, logging.FileHandler):
@@ -378,7 +381,7 @@ class Logger(object):
                         if handler.stream:
                             handler.stream.close()
                             handler.stream = open(handler.baseFilename,
-                                    handler.mode)
+                                                  handler.mode)
                     finally:
                         handler.release()
 
@@ -445,13 +448,14 @@ class Logger(object):
 
         # finally setup the syslog handler
         if sys.version_info >= (2, 7):
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility, socktype=socktype)
+            h = logging.handlers.SysLogHandler(
+                    address=addr, facility=facility, socktype=socktype
+                )
         else:
             # socktype is only supported in 2.7 and sup
             # fix issue #541
             h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility)
+                                               facility=facility)
 
         h.setFormatter(fmt)
         h._gunicorn = True

@@ -27,8 +27,9 @@ from gunicorn.six import MAXSIZE
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
+                   "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
+               )]
 
     PIPE = []
 
@@ -197,11 +198,13 @@ class Worker(object):
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
-        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
+        if isinstance(exc, (
+                InvalidRequestLine, InvalidRequestMethod,
                 InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
                 LimitRequestLine, LimitRequestHeaders,
                 InvalidProxyLine, ForbiddenProxyRequest,
-                SSLError)):
+                SSLError,
+            )):
 
             status_int = 400
             reason = "Bad Request"

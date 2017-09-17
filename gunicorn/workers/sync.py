@@ -18,8 +18,10 @@ import gunicorn.util as util
 import gunicorn.workers.base as base
 from gunicorn import six
 
+
 class StopWaiting(Exception):
     """ exception raised to stop waiting for a connnection """
+
 
 class SyncWorker(base.Worker):
 
@@ -73,7 +75,7 @@ class SyncWorker(base.Worker):
 
             except EnvironmentError as e:
                 if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
-                        errno.EWOULDBLOCK):
+                                   errno.EWOULDBLOCK):
                     raise
 
             if not self.is_parent_alive():
@@ -102,7 +104,7 @@ class SyncWorker(base.Worker):
                         self.accept(listener)
                     except EnvironmentError as e:
                         if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
-                                errno.EWOULDBLOCK):
+                                           errno.EWOULDBLOCK):
                             raise
 
             if not self.is_parent_alive():
@@ -128,7 +130,7 @@ class SyncWorker(base.Worker):
         try:
             if self.cfg.is_ssl:
                 client = ssl.wrap_socket(client, server_side=True,
-                    **self.cfg.ssl_options)
+                                         **self.cfg.ssl_options)
 
             parser = http.RequestParser(self.cfg, client)
             req = six.next(parser)
@@ -164,7 +166,7 @@ class SyncWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
-                    listener.getsockname(), self.cfg)
+                                        listener.getsockname(), self.cfg)
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.

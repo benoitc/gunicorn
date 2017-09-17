@@ -10,9 +10,11 @@ from errno import ENOTCONN
 from gunicorn._compat import bytes_to_str
 from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
-from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
+from gunicorn.http.errors import (
+    InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
-    LimitRequestLine, LimitRequestHeaders)
+    LimitRequestLine, LimitRequestHeaders,
+)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.six import BytesIO
 from gunicorn._compat import urlsplit
@@ -86,7 +88,7 @@ class Message(object):
                 header_length += len(curr)
                 if header_length > self.limit_request_field_size > 0:
                     raise LimitRequestHeaders("limit request headers "
-                            + "fields size")
+                                              "fields size")
                 value.append(curr)
             value = ''.join(value).rstrip()
 
