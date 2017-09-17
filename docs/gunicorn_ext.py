@@ -51,6 +51,8 @@ def fmt_setting(s):
         val = inspect.getsource(s.default)
         val = "\n".join("    %s" % l for l in val.splitlines())
         val = " ::\n\n" + val
+    elif s.default == '':
+        val = "``(empty string)``"
     else:
         val = "``%s``" % s.default
 

@@ -150,6 +150,11 @@ If it is not defined, the default is ``1``.
 
 This setting only affects the Gthread worker type.
 
+.. note::
+   If you try to use the ``sync`` worker type and set the ``threads``
+   setting to more than 1, the ``gthread`` worker type will be used
+   instead.
+
 .. _worker-connections:
 
 worker_connections
@@ -618,8 +623,8 @@ The Access log file to write to.
 
 .. _disable-redirect-access-to-syslog:
 
-disable-redirect-access-to-syslog
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+disable_redirect_access_to_syslog
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * ``--disable-redirect-access-to-syslog``
 * ``False``
@@ -826,7 +831,7 @@ statsd_prefix
 ~~~~~~~~~~~~~
 
 * ``--statsd-prefix STATSD_PREFIX``
-* ````
+* ``(empty string)``
 
 Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
 if not provided).
@@ -1271,3 +1276,4 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
     $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
 .. versionadded:: 19.7
+
