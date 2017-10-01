@@ -35,7 +35,7 @@ Core
 - fix: Ensure response to HEAD request won't have message body
 - fix: lock domain socket and remove on last arbiter exit (:issue:`1220`)
 - improvement: use EnvironmentError instead of socket.error (:issue:`939`)
-- add: new ``FORWARDDED_ALLOW_IPS`` environment variable (:issue:`1205`)
+- add: new ``FORWARDED_ALLOW_IPS`` environment variable (:issue:`1205`)
 - fix: infinite recursion when destroying sockets (:issue:`1219`)
 - fix: close sockets on shutdown (:issue:`922`)
 - fix: clean up sys.exc_info calls to drop circular refs (:issue:`1228`)
