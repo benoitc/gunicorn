@@ -20,7 +20,7 @@ import sys
 import textwrap
 import shlex
 
-from gunicorn import __version__
+from gunicorn import __version__, SERVER_SOFTWARE
 from gunicorn import _compat
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
