@@ -1870,6 +1870,38 @@ class DoHandshakeOnConnect(Setting):
     """
 
 
+class ServerName(Setting):
+    name = "server_name"
+    section = "Server Mechanics"
+    cli = ["--server-name"]
+    validator = validate_string
+    default = SERVER_SOFTWARE
+
+    desc = """\
+        Server name to use in the ``Server`` HTTP Header on responses.
+
+        If not set, the default Gunicorn server name will be used:
+        ``gunicorn/X.Y.Z``.
+
+        .. versionadded:: 19.6
+        """
+
+
+class NoServerName(Setting):
+    name = "no_server_name"
+    section = "Server Mechanics"
+    cli = ["--no-server-name"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = """\
+        If set, the ``Server`` HTTP Header will not be returned on responses.
+
+        .. versionadded:: 19.6
+        """
+
+
 if sys.version_info >= (2, 7):
     class Ciphers(Setting):
         name = "ciphers"

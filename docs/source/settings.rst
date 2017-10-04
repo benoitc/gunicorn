@@ -1277,3 +1277,18 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
 
 .. versionadded:: 19.7
 
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--server-name STRING``
+* ``gunicorn/X.Y.Z``
+
+Server name to use in the ``Server`` HTTP Header on responses.
+
+server_name
+~~~~~~~~~~~~~~~~~~~
+
+* ``--no-server-name``
+* ``None``
+
+If set, the ``Server`` HTTP Header will not be returned on responses.

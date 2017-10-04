@@ -9,6 +9,7 @@ import sys
 import pytest
 
 from gunicorn import config
+from gunicorn import SERVER_SOFTWARE
 from gunicorn.app.base import Application
 from gunicorn.errors import ConfigError
 from gunicorn.workers.sync import SyncWorker
@@ -357,6 +358,20 @@ def test_cli_overrides_enviroment_variables_module(monkeypatch):
     with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
         app = NoConfigApp()
     assert app.cfg.workers == 3
+
+
+def test_server_name():
+    c = config.Config()
+    assert c.server_name == SERVER_SOFTWARE
+    c.set('server_name', 'Server x.y')
+    assert c.server_name == 'Server x.y'
+
+
+def test_no_server_name():
+    c = config.Config()
+    assert c.no_server_name == False
+    c.set('no_server_name', True)
+    assert c.no_server_name == True
 
 
 @pytest.mark.parametrize("options, expected", [
