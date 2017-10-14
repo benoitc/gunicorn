@@ -21,6 +21,7 @@ import inspect
 import errno
 import warnings
 import logging
+import re
 
 from gunicorn import _compat
 from gunicorn.errors import AppImportError
@@ -232,11 +233,8 @@ def is_ipv6(addr):
 
 
 def parse_address(netloc, default_port=8000):
-    if netloc.startswith("unix://"):
-        return netloc.split("unix://")[1]
-
-    if netloc.startswith("unix:"):
-        return netloc.split("unix:")[1]
+    if re.match(r'unix:(//)?', netloc):
+        return re.split(r'unix:(//)?', netloc)[-1]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
