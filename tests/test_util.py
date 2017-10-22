@@ -8,7 +8,7 @@ import pytest
 from gunicorn import util
 
 
-@pytest.mark.parametrize("test_input, expected", [
+@pytest.mark.parametrize('test_input, expected', [
     ('unix://var/run/test.sock', 'var/run/test.sock'),
     ('unix:/var/run/test.sock', '/var/run/test.sock'),
     ('', ('0.0.0.0', 8000)),
