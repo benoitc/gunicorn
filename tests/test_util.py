@@ -23,5 +23,5 @@ def test_parse_address(test_input, expected):
 
 def test_parse_address_invalid():
     with pytest.raises(RuntimeError) as err:
-        assert util.parse_address('127.0.0.1:test')
+        util.parse_address('127.0.0.1:test')
     assert "'test' is not a valid port number." in str(err)
