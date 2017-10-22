@@ -25,3 +25,23 @@ def test_parse_address_invalid():
     with pytest.raises(RuntimeError) as err:
         util.parse_address('127.0.0.1:test')
     assert "'test' is not a valid port number." in str(err)
+
+
+def test_http_date():
+    assert util.http_date(1508607753.740316) == 'Sat, 21 Oct 2017 17:42:33 GMT'
+
+
+@pytest.mark.parametrize('test_input, expected', [
+    ('1200:0000:AB00:1234:0000:2552:7777:1313', True),
+    ('1200::AB00:1234::2552:7777:1313', False),
+    ('21DA:D3:0:2F3B:2AA:FF:FE28:9C5A', True),
+    ('1200:0000:AB00:1234:O000:2552:7777:1313', False),
+])
+def test_is_ipv6(test_input, expected):
+    assert util.is_ipv6(test_input) == expected
+
+
+def test_warn(capsys):
+    util.warn('test warn')
+    _, err = capsys.readouterr()
+    assert '!!! WARNING: test warn' in err
