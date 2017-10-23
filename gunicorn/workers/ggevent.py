@@ -213,7 +213,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         resp_headers = getattr(self, 'response_headers', {})
         resp = GeventResponse(self.status, resp_headers, self.response_length)
         if hasattr(self, 'headers'):
-            req_headers = [h.split(":", 1) for h in self.headers.headers]
+            req_headers = self.headers.items()
         else:
             req_headers = []
         self.server.log.access(resp, req_headers, self.environ, response_time)
