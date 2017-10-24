@@ -43,8 +43,8 @@ def make_settings(ignore=None):
 
 
 def auto_int(_, x):
-    if x.startswith('0') and not x.lower().startswith('0x'):
-        # for compatible with octal numbers in python3
+    # for compatible with octal numbers in python3
+    if re.match(r'0(\d)', x, re.IGNORECASE):
         x = x.replace('0', '0o', 1)
     return int(x, 0)
 
