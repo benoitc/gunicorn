@@ -374,7 +374,9 @@ def test_reload(options, expected):
 
 
 @pytest.mark.parametrize("options, expected", [
-    (["--umask 0", "myapp:app"], 0),
+    (["--umask", "0", "myapp:app"], 0),
+    (["--umask", "0o0", "myapp:app"], 0),
+    (["--umask", "0x0", "myapp:app"], 0),
     (["--umask", "0xFF", "myapp:app"], 255),
     (["--umask", "0022", "myapp:app"], 18),
 ])
