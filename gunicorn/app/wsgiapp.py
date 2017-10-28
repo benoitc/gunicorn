@@ -4,7 +4,6 @@
 # See the NOTICE for more information.
 
 import os
-import sys
 
 from gunicorn.errors import ConfigError
 from gunicorn.app.base import Application
@@ -37,23 +36,11 @@ class WSGIApplication(Application):
         self.cfg.set("default_proc_name", args[0])
         self.app_uri = args[0]
 
-    def chdir(self):
-        # chdir to the configured path before loading,
-        # default is the current dir
-        os.chdir(self.cfg.chdir)
-
-        # add the path to sys.path
-        sys.path.insert(0, self.cfg.chdir)
-
     def load_wsgiapp(self):
-        self.chdir()
-
         # load the app
         return util.import_app(self.app_uri)
 
     def load_pasteapp(self):
-        self.chdir()
-
         # load the paste app
         from .pasterapp import load_pasteapp
         return load_pasteapp(self.cfgurl, self.relpath, global_conf=self.cfg.paste_global_conf)
