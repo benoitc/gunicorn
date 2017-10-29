@@ -14,9 +14,40 @@ import socket
 import sys
 import threading
 import traceback
+from datetime import datetime, timedelta, tzinfo
 
 from gunicorn import util
 from gunicorn.six import PY3, string_types
+
+
+# based on http://stackoverflow.com/a/27865750
+class LocalTimeZone(tzinfo):
+    _offset = timedelta(seconds=-time.timezone)
+    _dst = timedelta(0)
+    _name = "local time zone"
+    def utcoffset(self, dt):
+        return self.__class__._offset
+    def dst(self, dt):
+        return self.__class__._dst
+    def tzname(self, dt):
+        return self.__class__._name
+
+def posix2local(timestamp, tz=LocalTimeZone()):
+    """Seconds since the epoch -> local time as an aware datetime object."""
+    return datetime.fromtimestamp(timestamp, tz)
+
+class Formatter(logging.Formatter):
+    def converter(self, timestamp):
+        return posix2local(timestamp)
+
+    def formatTime(self, record, datefmt=None):
+        dt = self.converter(record.created)
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            t = dt.strftime(self.default_time_format)
+            s = self.default_msec_format % (t, record.msecs)
+        return s
 
 
 # syslog facility codes
@@ -81,7 +112,7 @@ CONFIG_DEFAULTS = dict(
             "generic": {
                 "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
-                "class": "logging.Formatter"
+                "class": "gunicorn.glogging.Formatter"
             }
         }
 )
@@ -209,12 +240,12 @@ class Logger(object):
             os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
         self._set_handler(self.error_log, cfg.errorlog,
-                          logging.Formatter(self.error_fmt, self.datefmt))
+                          Formatter(self.error_fmt, self.datefmt))
 
         # set gunicorn.access handler
         if cfg.accesslog is not None:
             self._set_handler(self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout)
+                fmt=Formatter(self.access_fmt), stream=sys.stdout)
 
         # set syslog handler
         if cfg.syslog:
@@ -411,7 +442,7 @@ class Logger(object):
         prefix = "gunicorn.%s.%s" % (prefix, name)
 
         # set format
-        fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+        fmt = Formatter(r"%s: %s" % (prefix, fmt))
 
         # syslog facility
         try:
