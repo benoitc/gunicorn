@@ -231,10 +231,22 @@ class Logger(object):
                     self.access_log, cfg, self.syslog_fmt, "access"
                 )
 
+        if dictConfig is None and cfg.logconfig_dict:
+            util.warn("Dictionary-based log configuration requires "
+                      "Python 2.7 or above.")
+
         if dictConfig and cfg.logconfig_dict:
             config = CONFIG_DEFAULTS.copy()
             config.update(cfg.logconfig_dict)
-            dictConfig(config)
+            try:
+                dictConfig(config)
+            except (
+                    AttributeError,
+                    ImportError,
+                    ValueError,
+                    TypeError
+            ) as exc:
+                raise RuntimeError(str(exc))
         elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
