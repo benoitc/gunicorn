@@ -1309,6 +1309,24 @@ class LogConfig(Setting):
     """
 
 
+class LogConfigDict(Setting):
+    name = "logconfig_dict"
+    section = "Logging"
+    cli = ["--log-config-dict"]
+    validator = validate_dict
+    default = {}
+    desc = """\
+    The log config dictionary to use, using the standard Python
+    logging module's dictionary configuration format. This option
+    takes precedence over the :ref:`logconfig` option, which uses the
+    older file configuration format.
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
+
+    .. versionadded:: 19.8
+    """
+
+
 class SyslogTo(Setting):
     name = "syslog_addr"
     section = "Logging"
