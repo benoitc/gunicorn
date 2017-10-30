@@ -1312,6 +1312,7 @@ class LogConfig(Setting):
 class LogConfigDict(Setting):
     name = "logconfig_dict"
     section = "Logging"
+    cli = ["--log-config-dict"]
     validator = validate_dict
     default = {}
     desc = """\
