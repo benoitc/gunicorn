@@ -238,6 +238,20 @@ def test_load_config_module():
     assert app.cfg.proc_name == "fooey"
 
 
+@pytest.mark.parametrize("options", [
+    ["-c", cfg_module()],
+    ["-c", cfg_file()],
+])
+def test_load_fallback(options):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        app = NoConfigApp()
+    assert app.cfg.bind == ["unix:/tmp/bar/baz"]
+    assert app.cfg.workers == 3
+    assert app.cfg.proc_name == "fooey"
+
+
 def test_cli_overrides_config():
     with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
         app = NoConfigApp()
