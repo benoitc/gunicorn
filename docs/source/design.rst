@@ -53,6 +53,9 @@ There's also a Tornado worker class. It can be used to write applications using
 the Tornado framework. Although the Tornado workers are capable of serving a
 WSGI application, this is not a recommended configuration.
 
+
+.. _asyncio-workers:
+
 AsyncIO Workers
 ---------------
 
@@ -65,6 +68,23 @@ waiting for an event. If no event happen after the keep alive timeout,
 the connection is closed.
 
 The worker `gaiohttp` is a full asyncio worker using aiohttp_.
+
+.. note::
+   The ``gaiohttp`` worker requires the aiohttp_ module to be installed.
+   aiohttp_ has removed its native WSGI application support in version 2.
+   If you want to continue to use the ``gaiohttp`` worker with your WSGI
+   application (e.g. an application that uses Flask or Django), there are
+   three options available:
+
+   #. Install aiohttp_ version 1.3.5 instead of version 2::
+
+        $ pip install aiohttp==1.3.5
+
+   #. Use aiohttp_wsgi_ to wrap your WSGI application. You can take a look
+      at the `example`_ in the Gunicorn repository.
+   #. Port your application to use aiohttp_'s ``web.Application`` API.
+   #. Use the ``aiohttp.worker.GunicornWebWorker`` worker instead of the
+      deprecated ``gaiohttp`` worker.
 
 Choosing a Worker Type
 ======================
@@ -137,4 +157,6 @@ code in the master process).
 .. _Eventlet: http://eventlet.net/
 .. _Gevent: http://www.gevent.org/
 .. _Hey: https://github.com/rakyll/hey
-.. _aiohttp: https://github.com/KeepSafe/aiohttp
+.. _aiohttp: https://aiohttp.readthedocs.io/en/stable/
+.. _aiohttp_wsgi: https://aiohttp-wsgi.readthedocs.io/en/stable/index.html
+.. _`example`: https://github.com/benoitc/gunicorn/blob/master/examples/frameworks/flaskapp_aiohttp_wsgi.py

@@ -123,12 +123,17 @@ A string referring to one of the following bundled classes:
 * ``gevent``   - Requires gevent >= 0.13
 * ``tornado``  - Requires tornado >= 0.2
 * ``gthread``  - Python 2 requires the futures package to be installed
-* ``gaiohttp`` - Requires Python 3.4 and aiohttp >= 0.21.5
+* ``gaiohttp`` - Deprecated.
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
 This alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``.
+
+.. deprecated:: 19.8
+   The ``gaiohttp`` worker is deprecated. Please use
+   ``aiohttp.worker.GunicornWebWorker`` instead. See
+   :ref:`asyncio-workers` for more information on how to use it.
 
 .. _threads:
 
