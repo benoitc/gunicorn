@@ -242,7 +242,7 @@ def test_load_config_module():
     ["-c", cfg_module()],
     ["-c", cfg_file()],
 ])
-def test_load_fallback(options):
+def test_load_config_fallback(options):
     cmdline = ["prog_name"]
     cmdline.extend(options)
     with AltArgs(cmdline):
