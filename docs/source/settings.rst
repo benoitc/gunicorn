@@ -123,9 +123,7 @@ A string referring to one of the following bundled classes:
 * ``gevent``   - Requires gevent >= 0.13
 * ``tornado``  - Requires tornado >= 0.2
 * ``gthread``  - Python 2 requires the futures package to be installed
-* ``gaiohttp`` - Deprecated. Please use
-  ``aiohttp.worker.GunicornWebWorker`` instead. See :ref:`asyncio-workers`
-  for more information on how to use it.
+* ``gaiohttp`` - Deprecated.
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
@@ -1261,3 +1259,4 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
     $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
 .. versionadded:: 19.7
+

@@ -83,6 +83,8 @@ The worker `gaiohttp` is a full asyncio worker using aiohttp_.
    #. Use aiohttp_wsgi_ to wrap your WSGI application. You can take a look
       at the `example`_ in the Gunicorn repository.
    #. Port your application to use aiohttp_'s ``web.Application`` API.
+   #. Use the ``aiohttp.worker.GunicornWebWorker`` worker instead of the
+      deprecated ``gaiohttp`` worker.
 
 Choosing a Worker Type
 ======================

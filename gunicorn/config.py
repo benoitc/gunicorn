@@ -624,9 +624,7 @@ class WorkerClass(Setting):
         * ``gevent``   - Requires gevent >= 0.13
         * ``tornado``  - Requires tornado >= 0.2
         * ``gthread``  - Python 2 requires the futures package to be installed
-        * ``gaiohttp`` - Deprecated. Please use
-          ``aiohttp.worker.GunicornWebWorker`` instead. See :ref:`asyncio-workers`
-          for more information on how to use it.
+        * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.

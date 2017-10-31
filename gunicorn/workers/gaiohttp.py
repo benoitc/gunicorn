@@ -19,8 +19,8 @@ if sys.version_info >= (3, 4):
             from gunicorn.workers._gaiohttp import AiohttpWorker
 
         util.warn(
-            "The 'gaiohttp' worker is deprecated. Please install 'aiohttp' "
-            "and pass 'aiohttp.worker.GunicornWebWorker' to --worker-class."
+            "The 'gaiohttp' worker is deprecated. See --worker-class "
+            "documentation for more information."
         )
         __all__ = ['AiohttpWorker']
 else:
