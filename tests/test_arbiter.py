@@ -130,6 +130,33 @@ def test_arbiter_calls_worker_exit(mock_os_fork):
     arbiter.cfg.worker_exit.assert_called_with(arbiter, mock_worker)
 
 
+@mock.patch('os.fork')
+def test_arbiter_logs_worker_exit_errors(mock_os_fork):
+    mock_os_fork.return_value = 0
+
+    error = ValueError('testing')
+    class WorkerExit(object):
+        @staticmethod
+        def worker_exit(arbiter, worker):
+            raise error
+
+        def get(self):
+            return self.worker_exit
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['worker_exit'] = WorkerExit()
+    arbiter.pid = None
+    mock_worker = mock.Mock()
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+    arbiter.log = mock.Mock()
+    try:
+        arbiter.spawn_worker()
+    except SystemExit:
+        pass
+    arbiter.log.warning.assert_called_with(
+        'Exception during worker exit', exc_info=error)
+
+
 @mock.patch('os.waitpid')
 def test_arbiter_reap_workers(mock_os_waitpid):
     mock_os_waitpid.side_effect = [(42, 0), (0, 0)]

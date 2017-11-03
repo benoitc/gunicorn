@@ -294,12 +294,11 @@ class ThreadWorker(base.Worker):
                 self.log.debug("ssl connection closed")
                 conn.sock.close()
             else:
-                self.log.debug("Error processing SSL request.")
                 self.handle_error(req, conn.sock, conn.client, e)
 
         except EnvironmentError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET):
-                self.log.exception("Socket error processing request.")
+                self.log.exception("Socket error processing request", exc_info=e)
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
@@ -351,11 +350,11 @@ class ThreadWorker(base.Worker):
         except EnvironmentError:
             # pass to next try-except level
             six.reraise(*sys.exc_info())
-        except Exception:
+        except Exception as error:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                self.log.exception("Error handling request")
+                self.log.exception("Error handling request", exc_info=error)
                 try:
                     conn.sock.shutdown(socket.SHUT_RDWR)
                     conn.sock.close()
@@ -366,7 +365,7 @@ class ThreadWorker(base.Worker):
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)
-            except Exception:
-                self.log.exception("Exception in post_request hook")
+            except Exception as error:
+                self.log.exception("Exception in post_request hook", exc_info=error)
 
         return True

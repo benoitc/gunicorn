@@ -66,7 +66,7 @@ class BaseSocket(object):
         try:
             self.sock.close()
         except socket.error as e:
-            self.log.info("Error while closing socket %s", str(e))
+            self.log.info("Error while closing socket", exc_info=e)
 
         self.sock = None
 

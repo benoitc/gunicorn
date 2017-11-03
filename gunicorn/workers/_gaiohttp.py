@@ -82,8 +82,8 @@ class AiohttpWorker(base.Worker):
         try:
             if hasattr(self.wsgi, 'close'):
                 yield from self.wsgi.close()
-        except:
-            self.log.exception('Process shutdown exception')
+        except Exception as e:
+            self.log.exception('Process shutdown exception', exc_info=e)
 
     @asyncio.coroutine
     def _run(self):

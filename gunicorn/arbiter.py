@@ -11,7 +11,6 @@ import select
 import signal
 import sys
 import time
-import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -590,8 +589,8 @@ class Arbiter(object):
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
-        except:
-            self.log.exception("Exception in worker process")
+        except Exception as e:
+            self.log.exception("Exception in worker process", exc_info=e)
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
@@ -600,9 +599,8 @@ class Arbiter(object):
             try:
                 worker.tmp.close()
                 self.cfg.worker_exit(self, worker)
-            except:
-                self.log.warning("Exception during worker exit:\n%s",
-                                  traceback.format_exc())
+            except Exception as e:
+                self.log.warning("Exception during worker exit", exc_info=e)
 
     def spawn_workers(self):
         """\

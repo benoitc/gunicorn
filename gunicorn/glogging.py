@@ -18,7 +18,6 @@ import os
 import socket
 import sys
 import threading
-import traceback
 
 from gunicorn import util
 from gunicorn.six import PY3, string_types
@@ -350,8 +349,8 @@ class Logger(object):
 
         try:
             self.access_log.info(self.cfg.access_log_format, safe_atoms)
-        except:
-            self.error(traceback.format_exc())
+        except Exception as error:
+            self.error('access logging failed', exc_info=error)
 
     def now(self):
         """ return date in Apache Common Log Format """

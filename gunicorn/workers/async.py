@@ -55,9 +55,9 @@ class AsyncWorker(base.Worker):
                             req.proxy_protocol_info = proxy_protocol_info
                         self.handle_request(listener_name, req, client, addr)
             except http.errors.NoMoreData as e:
-                self.log.debug("Ignored premature client disconnection. %s", e)
+                self.log.debug("Ignored premature client disconnection", exc_info=e)
             except StopIteration as e:
-                self.log.debug("Closing connection. %s", e)
+                self.log.debug("Closing connection", exc_info=e)
             except ssl.SSLError:
                 # pass to next try-except level
                 six.reraise(*sys.exc_info())
@@ -71,11 +71,10 @@ class AsyncWorker(base.Worker):
                 self.log.debug("ssl connection closed")
                 client.close()
             else:
-                self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except EnvironmentError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET):
-                self.log.exception("Socket error processing request.")
+                self.log.exception("Socket error processing request", exc_info=e)
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
@@ -127,11 +126,11 @@ class AsyncWorker(base.Worker):
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)
             six.reraise(*sys.exc_info())
-        except Exception:
+        except Exception as error:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
-                self.log.exception("Error handling request")
+                self.log.exception("Error handling request", exc_info=error)
                 try:
                     sock.shutdown(socket.SHUT_RDWR)
                     sock.close()
@@ -142,6 +141,6 @@ class AsyncWorker(base.Worker):
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)
-            except Exception:
-                self.log.exception("Exception in post_request hook")
+            except Exception as error:
+                self.log.exception("Exception in post_request hook", exc_info=error)
         return True

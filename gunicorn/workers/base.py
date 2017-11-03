@@ -139,7 +139,7 @@ class Worker(object):
             if self.cfg.reload == 'off':
                 raise
 
-            self.log.exception(e)
+            self.log.exception(e, exec_info=e)
 
             # fix from PR #1228
             # storing the traceback into exc_tb will create a circular reference.
@@ -235,7 +235,10 @@ class Worker(object):
             self.log.debug(msg.format(ip=addr[0], error=str(exc)))
         else:
             if hasattr(req, "uri"):
-                self.log.exception("Error handling request %s", req.uri)
+                self.log.exception("Error handling request %s", req.uri, exc_info=exc)
+            else:
+                self.log.exception("Error handling request", exc_info=exc)
+
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
@@ -252,8 +255,8 @@ class Worker(object):
 
         try:
             util.write_error(client, status_int, reason, mesg)
-        except:
-            self.log.debug("Failed to send error message.")
+        except Exception as error:
+            self.log.debug("Failed to send error message", exc_info=error)
 
     def handle_winch(self, sig, fname):
         # Ignore SIGWINCH in worker. Fixes a crash on OpenBSD.
