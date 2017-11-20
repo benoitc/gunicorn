@@ -186,6 +186,17 @@ class SyncWorker(base.Worker):
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
+            # Discard data in the body before closing the socket to prevent
+            # unexpected TCP RST from being sent.
+            try:
+                discarded_len = req.body.discard()
+                if discarded_len > 0:
+                    self.log.debug("Discarding %d bytes in the body.",
+                                   discarded_len)
+            except Exception:
+                # Response has been sent.  Ignore exceptions while discarding
+                # data in order not to invoke handle_error.
+                pass
         except EnvironmentError:
             # pass to next try-except level
             six.reraise(*sys.exc_info())

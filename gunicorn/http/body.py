@@ -257,3 +257,12 @@ class Body(object):
                 line, data = data[:pos + 1], data[pos + 1:]
                 ret.append(line)
         return ret
+
+    def discard(self):
+        discarded_len = 0
+        bytes_read = six.MAXSIZE
+        while bytes_read > 0:
+            data = self.reader.read(1024)
+            bytes_read = len(data)
+            discarded_len += bytes_read
+        return discarded_len
