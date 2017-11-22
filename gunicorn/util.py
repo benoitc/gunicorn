@@ -363,7 +363,7 @@ def import_app(module):
     except NameError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application: %r" % module)
+        raise AppImportError("Failed to instantiate %r in %r" % (obj,module) )
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
