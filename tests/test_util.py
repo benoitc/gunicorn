@@ -5,7 +5,13 @@
 
 import pytest
 
+import sys
+sys.path.append("./examples")
+sys.path.insert(0, "../examples")
+sys.path.insert(0,"../gunicorn")
+
 from gunicorn import util
+from gunicorn.util import import_app
 
 
 @pytest.mark.parametrize('test_input, expected', [
@@ -17,9 +23,9 @@ from gunicorn import util
     ('127.0.0.1:8000', ('127.0.0.1', 8000)),
     ('localhost', ('localhost', 8000))
 ])
+
 def test_parse_address(test_input, expected):
     assert util.parse_address(test_input) == expected
-
 
 def test_parse_address_invalid():
     with pytest.raises(RuntimeError) as err:
@@ -45,3 +51,4 @@ def test_warn(capsys):
     util.warn('test warn')
     _, err = capsys.readouterr()
     assert '!!! WARNING: test warn' in err
+
