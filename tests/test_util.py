@@ -5,27 +5,25 @@
 
 import pytest
 
-import sys
-sys.path.append("./examples")
-sys.path.insert(0, "../examples")
-sys.path.insert(0,"../gunicorn")
+import context
 
 from gunicorn import util
 from gunicorn.util import import_app
+from gunicorn.errors import AppImportError
+import os
 
 
-@pytest.mark.parametrize('test_input, expected', [
-    ('unix://var/run/test.sock', 'var/run/test.sock'),
-    ('unix:/var/run/test.sock', '/var/run/test.sock'),
-    ('', ('0.0.0.0', 8000)),
-    ('[::1]:8000', ('::1', 8000)),
-    ('localhost:8000', ('localhost', 8000)),
-    ('127.0.0.1:8000', ('127.0.0.1', 8000)),
-    ('localhost', ('localhost', 8000))
-])
-
+@pytest.mark.parametrize(
+    'test_input, expected',
+    [('unix://var/run/test.sock', 'var/run/test.sock'),
+     ('unix:/var/run/test.sock', '/var/run/test.sock'), ('',
+                                                         ('0.0.0.0', 8000)),
+     ('[::1]:8000', ('::1', 8000)), ('localhost:8000', ('localhost', 8000)),
+     ('127.0.0.1:8000', ('127.0.0.1', 8000)), ('localhost',
+                                               ('localhost', 8000))])
 def test_parse_address(test_input, expected):
     assert util.parse_address(test_input) == expected
+
 
 def test_parse_address_invalid():
     with pytest.raises(RuntimeError) as err:
@@ -52,3 +50,12 @@ def test_warn(capsys):
     _, err = capsys.readouterr()
     assert '!!! WARNING: test warn' in err
 
+
+def test_import_app():
+    assert util.import_app("test:app")
+
+    with pytest.raises(ModuleNotFoundError) as e_info:
+        util.import_app("a:app")
+
+    with pytest.raises(AppImportError) as e_info:
+        util.import_app("test:wrong_app")
