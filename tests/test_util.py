@@ -49,7 +49,7 @@ def test_warn(capsys):
 
 
 def test_import_app():
-    assert util.import_app('support:wrong_app')
+    assert util.import_app('support:app')
 
     with pytest.raises(ImportError) as err:
         util.import_app('a:app')
