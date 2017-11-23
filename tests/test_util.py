@@ -50,6 +50,8 @@ def test_warn(capsys):
 
 def test_import_app():
     object_app = "support"
+    msg = "Failed to find application object 'wrong_app' in '{0}'"
+
     assert util.import_app(object_app + ":app")
 
     with pytest.raises(ImportError) as err:
@@ -58,4 +60,4 @@ def test_import_app():
 
     with pytest.raises(AppImportError) as err:
         util.import_app(object_app + ":wrong_app")
-    assert "Failed to find application object 'wrong_app' in '{}'".format(object_app) in str(err)
+    assert msg.format(object_app) in str(err)
