@@ -61,9 +61,8 @@ def test_import_app():
 
     with pytest.raises(ImportError) as e_info:
         util.import_app("a:app")
-    print(e_info)
     assert "No module" in str(e_info)
     
     with pytest.raises(AppImportError) as e_info:
         util.import_app("test:wrong_app")
-    assert "Failed to instantiate" in str(e_info)
+    assert "Failed to " in str(e_info)
