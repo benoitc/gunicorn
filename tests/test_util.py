@@ -60,3 +60,4 @@ def test_import_app():
 
     with pytest.raises(AppImportError) as e_info:
         util.import_app("test:wrong_app")
+    assert "Failed to instantiate" in str(e_info)
