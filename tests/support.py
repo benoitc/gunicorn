@@ -19,7 +19,6 @@ def app(environ, start_response):
     response_headers = [
         ('Content-type', 'text/plain'),
         ('Content-Length', str(len(data))),
-        ('X-Gunicorn-Version', __version__),
     ]
     start_response(status, response_headers)
     return iter([data])
@@ -28,11 +27,9 @@ def app(environ, start_response):
 def requires_mac_ver(*min_version):
     """Decorator raising SkipTest if the OS is Mac OS X and the OS X
     version if less than min_version.
-
     For example, @requires_mac_ver(10, 5) raises SkipTest if the OS X version
     is lesser than 10.5.
     """
-
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
@@ -46,20 +43,16 @@ def requires_mac_ver(*min_version):
                     if version < min_version:
                         min_version_txt = '.'.join(map(str, min_version))
                         raise unittest.SkipTest(
-                            "Mac OS X %s or higher required, not %s" %
-                            (min_version_txt, version_txt))
+                            "Mac OS X %s or higher required, not %s"
+                            % (min_version_txt, version_txt))
             return func(*args, **kw)
-
         wrapper.min_version = min_version
         return wrapper
-
     return decorator
-
 
 try:
     from types import SimpleNamespace  # noqa
 except ImportError:
-
     class SimpleNamespace(object):
         def __init__(self, **kwargs):
             vars(self).update(kwargs)
