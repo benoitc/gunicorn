@@ -5,13 +5,17 @@
 
 import pytest
 
-import context
-
 from gunicorn import util
-from gunicorn.util import import_app
 from gunicorn.errors import AppImportError
+import sys
 import os
 
+# Obtain project root path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# For finding modules to test
+sys.path.insert(0, project_root)
+sys.path.insert(0, project_root + '/examples')
 
 @pytest.mark.parametrize('test_input, expected', [
     ('unix://var/run/test.sock', 'var/run/test.sock'),
@@ -55,9 +59,11 @@ def test_warn(capsys):
 def test_import_app():
     assert util.import_app("test:app")
 
-    with pytest.raises(ModuleNotFoundError) as e_info:
+    with pytest.raises(ImportError) as e_info:
         util.import_app("a:app")
-
+    print(e_info)
+    assert "No module" in str(e_info)
+    
     with pytest.raises(AppImportError) as e_info:
         util.import_app("test:wrong_app")
     assert "Failed to instantiate" in str(e_info)
