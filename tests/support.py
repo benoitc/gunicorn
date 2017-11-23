@@ -2,8 +2,28 @@ import functools
 import sys
 import unittest
 import platform
+from wsgiref.validate import validator
+
+from gunicorn import __version__
 
 HOST = "127.0.0.1"
+
+
+@validator
+def app(environ, start_response):
+    """Simplest possible application object"""
+
+    data = b'Hello, World!\n'
+    status = '200 OK'
+
+    response_headers = [
+        ('Content-type', 'text/plain'),
+        ('Content-Length', str(len(data))),
+        ('X-Gunicorn-Version', __version__),
+        # ("Test", "test тест"),
+    ]
+    start_response(status, response_headers)
+    return iter([data])
 
 
 def requires_mac_ver(*min_version):
@@ -13,6 +33,7 @@ def requires_mac_ver(*min_version):
     For example, @requires_mac_ver(10, 5) raises SkipTest if the OS X version
     is lesser than 10.5.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
@@ -26,16 +47,20 @@ def requires_mac_ver(*min_version):
                     if version < min_version:
                         min_version_txt = '.'.join(map(str, min_version))
                         raise unittest.SkipTest(
-                            "Mac OS X %s or higher required, not %s"
-                            % (min_version_txt, version_txt))
+                            "Mac OS X %s or higher required, not %s" %
+                            (min_version_txt, version_txt))
             return func(*args, **kw)
+
         wrapper.min_version = min_version
         return wrapper
+
     return decorator
+
 
 try:
     from types import SimpleNamespace  # noqa
 except ImportError:
+
     class SimpleNamespace(object):
         def __init__(self, **kwargs):
             vars(self).update(kwargs)
