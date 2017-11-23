@@ -4,8 +4,6 @@ import unittest
 import platform
 from wsgiref.validate import validator
 
-from gunicorn import __version__
-
 HOST = "127.0.0.1"
 
 
@@ -27,6 +25,7 @@ def app(environ, start_response):
 def requires_mac_ver(*min_version):
     """Decorator raising SkipTest if the OS is Mac OS X and the OS X
     version if less than min_version.
+
     For example, @requires_mac_ver(10, 5) raises SkipTest if the OS X version
     is lesser than 10.5.
     """
