@@ -49,15 +49,13 @@ def test_warn(capsys):
 
 
 def test_import_app():
-    object_app = "support"
-    msg = "Failed to find application object 'wrong_app' in '{0}'"
-
-    assert util.import_app(object_app + ":app")
+    assert util.import_app('support:wrong_app')
 
     with pytest.raises(ImportError) as err:
-        util.import_app("a:app")
-    assert "No module" in str(err)
+        util.import_app('a:app')
+    assert 'No module' in str(err)
 
     with pytest.raises(AppImportError) as err:
-        util.import_app(object_app + ":wrong_app")
-    assert msg.format(object_app) in str(err)
+        util.import_app('support:wrong_app')
+    msg = "Failed to find application object 'wrong_app' in 'support'"
+    assert msg in str(err)
