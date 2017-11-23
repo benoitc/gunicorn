@@ -59,10 +59,10 @@ def test_warn(capsys):
 def test_import_app():
     assert util.import_app("test:app")
 
-    with pytest.raises(ImportError) as e_info:
+    with pytest.raises(ImportError) as err:
         util.import_app("a:app")
-    assert "No module" in str(e_info)
+    assert "No module" in str(err)
     
-    with pytest.raises(AppImportError) as e_info:
+    with pytest.raises(AppImportError) as err:
         util.import_app("test:wrong_app")
-    assert "Failed to " in str(e_info)
+    assert "Failed to find application object 'wrong_app' in 'test'" in str(err)
