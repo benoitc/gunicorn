@@ -6,6 +6,7 @@
 import pytest
 
 from gunicorn import util
+from gunicorn.errors import AppImportError
 
 
 @pytest.mark.parametrize('test_input, expected', [
@@ -45,3 +46,16 @@ def test_warn(capsys):
     util.warn('test warn')
     _, err = capsys.readouterr()
     assert '!!! WARNING: test warn' in err
+
+
+def test_import_app():
+    assert util.import_app('support:app')
+
+    with pytest.raises(ImportError) as err:
+        util.import_app('a:app')
+    assert 'No module' in str(err)
+
+    with pytest.raises(AppImportError) as err:
+        util.import_app('support:wrong_app')
+    msg = "Failed to find application object 'wrong_app' in 'support'"
+    assert msg in str(err)
