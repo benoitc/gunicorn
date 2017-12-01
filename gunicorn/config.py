@@ -1755,6 +1755,7 @@ class NumWorkersChanged(Setting):
         be ``None``.
         """
 
+
 class OnExit(Setting):
     name = "on_exit"
     section = "Server Hooks"
@@ -1768,6 +1769,23 @@ class OnExit(Setting):
         Called just before exiting Gunicorn.
 
         The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+
+class onSignal(Setting):
+    name = "on_signal"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+
+    def on_signal(server, sig):
+        pass
+
+    default = staticmethod(on_signal)
+    desc = """\
+        Called just after master received a signal and before handler.
+
+        The callable needs to accept two instance variable for the Arbiter and
+        the signal.
         """
 
 
