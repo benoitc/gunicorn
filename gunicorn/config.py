@@ -939,8 +939,9 @@ class PreloadApp(Setting):
 
         .. note::
            Using this setting with the ``'gevent'`` and ``'eventlet'`` workers
-           is discouraged. When ``--reload`` is used, these workers will try to
-           monkeypatch the standard library *after* the application is loaded.
+           is discouraged. When ``--preload`` is used, these workers will try
+           to monkeypatch the standard library *after* the application is
+           loaded.
         """
 
 
