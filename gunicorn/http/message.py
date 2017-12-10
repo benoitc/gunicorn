@@ -201,7 +201,7 @@ class Request(Message):
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx + 4:]
-        buf = BytesIO()
+        buf = None
         return ret
 
     def read_line(self, unreader, buf, limit=0):
