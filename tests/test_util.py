@@ -59,3 +59,13 @@ def test_import_app():
         util.import_app('support:wrong_app')
     msg = "Failed to find application object 'wrong_app' in 'support'"
     assert msg in str(err)
+
+
+def test_to_bytestring():
+    assert util.to_bytestring('test_str', 'ascii') == b'test_str'
+    assert util.to_bytestring('test_str®') == b'test_str\xc2\xae'
+    assert util.to_bytestring(b'byte_test_str') == b'byte_test_str'
+    with pytest.raises(TypeError) as err:
+        util.to_bytestring(100)
+    msg = '100 is not a string'
+    assert msg in str(err)
