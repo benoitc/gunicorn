@@ -121,12 +121,14 @@ class Application(BaseApplication):
         if location.startswith("python:"):
             module_name = location[len("python:"):]
             cfg = self.get_config_from_module_name(module_name)
-        else:
-            if location.startswith("file:"):
-                filename = location[len("file:"):]
-            else:
-                filename = location
+        elif location.startswith("file:"):
+            filename = location[len("file:"):]
             cfg = self.get_config_from_filename(filename)
+        else:
+            try:
+                cfg = self.get_config_from_module_name(location)
+            except ImportError:
+                cfg = self.get_config_from_filename(location)
 
         for k, v in cfg.items():
             # Ignore unknown names
