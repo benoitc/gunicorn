@@ -15,7 +15,7 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.six import BytesIO
-from gunicorn._compat import urlsplit
+from gunicorn.util import split_request_uri
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -312,18 +312,10 @@ class Request(Message):
         self.method = bits[0].upper()
 
         # URI
-        # When the path starts with //, urlsplit considers it as a
-        # relative uri while the RDF says it shouldnt
-        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
-        # considers it as an absolute url.
-        # fix issue #297
-        if bits[1].startswith("//"):
-            self.uri = bits[1][1:]
-        else:
-            self.uri = bits[1]
+        self.uri = bits[1]
 
         try:
-            parts = urlsplit(self.uri)
+            parts = split_request_uri(self.uri)
         except ValueError:
             raise InvalidRequestLine(bytes_to_str(line_bytes))
         self.path = parts.path or ""

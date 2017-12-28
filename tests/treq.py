@@ -10,7 +10,7 @@ import random
 from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
-from gunicorn.six.moves.urllib.parse import urlparse
+from gunicorn.util import split_request_uri
 from gunicorn import six
 
 dirname = os.path.dirname(__file__)
@@ -19,19 +19,11 @@ random.seed()
 
 def uri(data):
     ret = {"raw": data}
-    parts = urlparse(data)
+    parts = split_request_uri(data)
     ret["scheme"] = parts.scheme or ''
     ret["host"] = parts.netloc.rsplit(":", 1)[0] or None
     ret["port"] = parts.port or 80
-    if parts.path and parts.params:
-        ret["path"] = ";".join([parts.path, parts.params])
-    elif parts.path:
-        ret["path"] = parts.path
-    elif parts.params:
-        # Don't think this can happen
-        ret["path"] = ";" + parts.path
-    else:
-        ret["path"] = ''
+    ret["path"] = parts.path or ''
     ret["query"] = parts.query or ''
     ret["fragment"] = parts.fragment or ''
     return ret
