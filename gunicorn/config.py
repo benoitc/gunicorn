@@ -962,8 +962,8 @@ class ReusePort(Setting):
     section = "Server Mechanics"
     cli = ["--reuse-port"]
     validator = validate_bool
-    action = "store_const"
-    const = True
+    action = "store_true"
+    default = False
 
     desc = """\
         Set the ``SO_REUSEPORT`` flag on the listening socket.        
