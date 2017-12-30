@@ -428,6 +428,14 @@ to enable or disable its usage.
 .. versionchanged:: 19.6
    added support for the ``SENDFILE`` environment variable
 
+.. _reuse-port:
+
+reuse_port
+~~~~~~~~~~
+
+* ``--reuse-port``
+* ``False``
+
 .. _chdir:
 
 chdir
