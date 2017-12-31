@@ -436,6 +436,10 @@ reuse_port
 * ``--reuse-port``
 * ``False``
 
+Set the ``SO_REUSEPORT`` flag on the listening socket.
+
+.. versionadded:: 19.8
+
 .. _chdir:
 
 chdir
