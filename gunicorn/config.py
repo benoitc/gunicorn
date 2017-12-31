@@ -957,6 +957,7 @@ class Sendfile(Setting):
            added support for the ``SENDFILE`` environment variable
         """
 
+
 class ReusePort(Setting):
     name = "reuse_port"
     section = "Server Mechanics"
@@ -966,7 +967,9 @@ class ReusePort(Setting):
     default = False
 
     desc = """\
-        Set the ``SO_REUSEPORT`` flag on the listening socket.        
+        Set the ``SO_REUSEPORT`` flag on the listening socket.
+
+        .. versionadded:: 19.8
         """
 
 
