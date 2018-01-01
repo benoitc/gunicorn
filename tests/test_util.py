@@ -13,8 +13,12 @@ from urllib.parse import SplitResult
 @pytest.mark.parametrize('test_input, expected', [
     ('unix://var/run/test.sock', 'var/run/test.sock'),
     ('unix:/var/run/test.sock', '/var/run/test.sock'),
+    ('tcp://localhost', ('localhost', 8000)),
+    ('tcp://localhost:5000', ('localhost', 5000)),
     ('', ('0.0.0.0', 8000)),
     ('[::1]:8000', ('::1', 8000)),
+    ('[::1]:5000', ('::1', 5000)),
+    ('[::1]', ('::1', 8000)),
     ('localhost:8000', ('localhost', 8000)),
     ('127.0.0.1:8000', ('127.0.0.1', 8000)),
     ('localhost', ('localhost', 8000))
