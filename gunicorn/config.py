@@ -205,6 +205,10 @@ class Config(object):
         return True
 
     @property
+    def reuse_port(self):
+        return self.settings['reuse_port'].get()
+
+    @property
     def paste_global_conf(self):
         raw_global_conf = self.settings['raw_paste_global_conf'].get()
         if raw_global_conf is None:
@@ -951,6 +955,21 @@ class Sendfile(Setting):
            disabling.
         .. versionchanged:: 19.6
            added support for the ``SENDFILE`` environment variable
+        """
+
+
+class ReusePort(Setting):
+    name = "reuse_port"
+    section = "Server Mechanics"
+    cli = ["--reuse-port"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = """\
+        Set the ``SO_REUSEPORT`` flag on the listening socket.
+
+        .. versionadded:: 19.8
         """
 
 
