@@ -161,7 +161,7 @@ def set_owner_process(uid, gid, initgroups=False):
 
         if initgroups:
             os.initgroups(username, gid)
-        else:
+        elif gid != os.getgid():
             os.setgid(gid)
 
     if uid:
