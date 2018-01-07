@@ -32,6 +32,7 @@ from gunicorn.http.wsgi import sendfile as o_sendfile
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
+
 def _gevent_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
@@ -41,6 +42,7 @@ def _gevent_sendfile(fdout, fdin, offset, nbytes):
                 wait_write(fdout)
             else:
                 raise
+
 
 def patch_sendfile():
     from gunicorn.http import wsgi
@@ -72,10 +74,10 @@ class GeventWorker(AsyncWorker):
         for s in self.sockets:
             if sys.version_info[0] == 3:
                 sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
-                    fileno=s.sock.fileno()))
+                                      fileno=s.sock.fileno()))
             else:
                 sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
-                    _sock=s))
+                                      _sock=s))
         self.sockets = sockets
 
     def notify(self):
@@ -178,8 +180,8 @@ class GeventWorker(AsyncWorker):
             import gevent.core
             gevent.core.reinit()
 
-            #gevent 0.13 and older doesn't reinitialize dns for us after forking
-            #here's the workaround
+            # gevent 0.13 and older doesn't reinitialize dns for us after forking
+            # here's the workaround
             gevent.core.dns_shutdown(fail_requests=1)
             gevent.core.dns_init()
             super(GeventWorker, self).init_process()

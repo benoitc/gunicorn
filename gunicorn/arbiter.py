@@ -573,7 +573,7 @@ class Arbiter(object):
         # Do not inherit the temporary files of other workers
         for sibling in self.WORKERS.values():
             sibling.tmp.close()
-        
+
         # Process Child
         worker.pid = os.getpid()
         try:
@@ -602,7 +602,7 @@ class Arbiter(object):
                 self.cfg.worker_exit(self, worker)
             except:
                 self.log.warning("Exception during worker exit:\n%s",
-                                  traceback.format_exc())
+                                 traceback.format_exc())
 
     def spawn_workers(self):
         """\

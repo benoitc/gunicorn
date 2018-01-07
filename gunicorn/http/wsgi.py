@@ -137,8 +137,9 @@ def create(req, sock, client, server, cfg):
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
-        elif secure_headers and (hdr_name in secure_headers and
-              hdr_value == secure_headers[hdr_name]):
+        elif (secure_headers
+              and hdr_name in secure_headers
+              and hdr_value == secure_headers[hdr_name]):
             url_scheme = "https"
         elif hdr_name == 'HOST':
             host = hdr_value
@@ -318,7 +319,7 @@ class Response(object):
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection

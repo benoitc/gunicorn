@@ -56,8 +56,10 @@ def sendfile(fdout, fdin, offset, nbytes):
         return _sbytes.value
 
     else:
-        _sendfile.argtypes = [ctypes.c_int, ctypes.c_int,
-                ctypes.POINTER(ctypes.c_uint64), ctypes.c_size_t]
+        _sendfile.argtypes = [
+            ctypes.c_int, ctypes.c_int,
+            ctypes.POINTER(ctypes.c_uint64), ctypes.c_size_t,
+        ]
 
         _offset = ctypes.c_uint64(offset)
         sent = _sendfile(fdout, fdin, _offset, nbytes)

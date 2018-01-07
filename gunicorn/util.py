@@ -92,7 +92,7 @@ relative import to an absolute import.
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
-        section="gunicorn.workers"):
+               section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -122,8 +122,9 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point("gunicorn",
-                                section, uri)
+                    return pkg_resources.load_entry_point(
+                        "gunicorn", section, uri
+                    )
                 except:
                     exc = traceback.format_exc()
                     msg = "class uri %r invalid or not found: \n\n[%s]"
@@ -249,7 +250,7 @@ def parse_address(netloc, default_port=8000):
     else:
         host = netloc.lower()
 
-    #get port
+    # get port
     netloc = netloc.split(']')[-1]
     if ":" in netloc:
         port = netloc.split(':', 1)[1]
@@ -505,6 +506,7 @@ def to_bytestring(value, encoding="utf8"):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
+
 
 def has_fileno(obj):
     if not hasattr(obj, "fileno"):
