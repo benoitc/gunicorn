@@ -16,7 +16,8 @@ matrix:
       env: TOXENV=py36-dev
     - python: nightly
       env: TOXENV=py37
-    - python: 3.6
+    # TODO: See https://github.com/benoitc/gunicorn/issues/1674
+    - python: 3.4
       env: TOXENV=lint
   allow_failures:
     - env: TOXENV=py36-dev
