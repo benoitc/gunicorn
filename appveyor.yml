@@ -17,9 +17,6 @@ matrix:
 init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 install:
   - pip install tox
-  # Convert from Linux to Windows style paths to work around:
-  # https://github.com/landscapeio/prospector/issues/203
-  - sed -i "s_/_\\\_g" .prospector.yaml
 build: off
 test_script: tox
 cache:
