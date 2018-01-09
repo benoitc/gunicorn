@@ -27,7 +27,7 @@ class Statsd(Logger):
         """host, port: statsD server
         """
         Logger.__init__(self, cfg)
-        self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
+        self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

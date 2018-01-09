@@ -4,6 +4,8 @@
 # See the NOTICE for more information.
 from __future__ import print_function
 
+# pylint: skip-file
+
 import os
 import pkg_resources
 import sys
@@ -120,7 +122,8 @@ class PasterApplication(PasterBaseApplication):
 
 class PasterServerApplication(PasterBaseApplication):
 
-    def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
+    def __init__(self, app, gcfg=None, host="127.0.0.1", port=None, **kwargs):
+        # pylint: disable=super-init-not-called
         self.cfg = Config()
         self.gcfg = gcfg  # need to hold this for app_config
         self.app = app
@@ -182,7 +185,7 @@ def run():
     PasterApplication("%(prog)s [OPTIONS] pasteconfig.ini").run()
 
 
-def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
+def paste_server(app, gcfg=None, host="127.0.0.1", port=None, **kwargs):
     """\
     A paster server.
 
@@ -203,4 +206,4 @@ def paste_server(app, gcfg=None, host="127.0.0.1", port=None, *args, **kwargs):
     """)
 
     from gunicorn.app.pasterapp import PasterServerApplication
-    PasterServerApplication(app, gcfg=gcfg, host=host, port=port, *args, **kwargs).run()
+    PasterServerApplication(app, gcfg=gcfg, host=host, port=port, **kwargs).run()

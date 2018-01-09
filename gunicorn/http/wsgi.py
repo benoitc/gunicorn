@@ -52,6 +52,9 @@ class FileWrapper(object):
 class WSGIErrorsWrapper(io.RawIOBase):
 
     def __init__(self, cfg):
+        # There is no public __init__ method for RawIOBase so
+        # we don't need to call super() in the __init__ method.
+        # pylint: disable=super-init-not-called
         errorlog = logging.getLogger("gunicorn.error")
         handlers = errorlog.handlers
         self.streams = []

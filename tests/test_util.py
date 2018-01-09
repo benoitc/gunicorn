@@ -7,7 +7,7 @@ import pytest
 
 from gunicorn import util
 from gunicorn.errors import AppImportError
-from gunicorn.six.moves.urllib.parse import SplitResult
+from gunicorn.six.moves.urllib.parse import SplitResult  # pylint: disable=no-name-in-module
 
 
 @pytest.mark.parametrize('test_input, expected', [
