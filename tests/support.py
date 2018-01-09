@@ -50,7 +50,7 @@ def requires_mac_ver(*min_version):
     return decorator
 
 try:
-    from types import SimpleNamespace  # noqa
+    from types import SimpleNamespace  # pylint: disable=unused-import
 except ImportError:
     class SimpleNamespace(object):
         def __init__(self, **kwargs):

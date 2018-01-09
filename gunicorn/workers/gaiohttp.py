@@ -9,7 +9,7 @@ from gunicorn import util
 
 if sys.version_info >= (3, 4):
     try:
-        import aiohttp  # NOQA
+        import aiohttp  # pylint: disable=unused-import
     except ImportError:
         raise RuntimeError("You need aiohttp installed to use this worker.")
     else:
