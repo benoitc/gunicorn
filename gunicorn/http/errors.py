@@ -107,3 +107,8 @@ class ForbiddenProxyRequest(ParseException):
 
     def __str__(self):
         return "Proxy request from %r not allowed" % self.host
+
+
+class InvalidSchemeHeaders(ParseException):
+    def __str__(self):
+        return "Contradictory scheme headers"

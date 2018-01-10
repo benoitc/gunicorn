@@ -1,0 +1,4 @@
+GET /test HTTP/1.1\r\n
+X-Forwarded-Proto: https\r\n
+X-Forwarded-Ssl: off\r\n
+\r\n

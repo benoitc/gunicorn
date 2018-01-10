@@ -37,11 +37,12 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   }
   ...
 
-When Nginx is handling SSL it is helpful to pass the protocol information
-to Gunicorn. Many web frameworks use this information to generate URLs.
-Without this information, the application may mistakenly generate 'http'
-URLs in 'https' responses, leading to mixed content warnings or broken
-applications. In this case, configure Nginx to pass an appropriate header::
+It is recommended to pass protocol information to Gunicorn. Many web
+frameworks use this information to generate URLs. Without this
+information, the application may mistakenly generate 'http' URLs in
+'https' responses, leading to mixed content warnings or broken
+applications. To configure Nginx to pass an appropriate header, add
+a ``proxy_set_header`` directive to your ``location`` block::
 
     ...
     proxy_set_header X-Forwarded-Proto $scheme;
