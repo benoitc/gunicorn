@@ -1217,7 +1217,30 @@ ssl_version
 * ``--ssl-version``
 * ``3``
 
-SSL version to use (see stdlib ssl module's)
+SSL version to use as an integer constant (see stdlib ssl module's)
+
+One-liners to establish available protocols and their constants:
+
+* Python 2: `python -c $'import ssl;\nfor protocol in [i for i in dir(ssl) if i.startswith("PROTOCOL")]: print(protocol + ":" + str(getattr(ssl, protocol)));'`
+
+```
+PROTOCOL_SSLv2:0
+PROTOCOL_SSLv23:2
+PROTOCOL_SSLv3:1
+PROTOCOL_TLSv1:3
+```
+
+* Python 3: `python3 -c $'import ssl;\nfor protocol in [i for i in dir(ssl) if i.startswith("PROTOCOL")]: print(protocol + ":" + str(getattr(ssl, protocol).value));'`
+
+```
+PROTOCOL_SSLv23:2
+PROTOCOL_TLS:2
+PROTOCOL_TLS_CLIENT:16
+PROTOCOL_TLS_SERVER:17
+PROTOCOL_TLSv1:3
+PROTOCOL_TLSv1_1:4
+PROTOCOL_TLSv1_2:5
+```
 
 .. versionchanged:: 19.7
    The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
