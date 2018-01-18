@@ -65,6 +65,3 @@ def test_get_username_handles_malformed_basic_auth_header():
 
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
     assert atoms['u'] == '-'
-    
-
-    
