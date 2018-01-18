@@ -471,10 +471,7 @@ class Logger(object):
                     if PY3:  # b64decode returns a byte string in Python 3
                         auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
-                except TypeError as exc:
-                    self.debug("Couldn't get username: %s", exc)
-                    return user
-                except binascii.Error as exc:
+                except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
                     return user
                 if len(auth) == 2:

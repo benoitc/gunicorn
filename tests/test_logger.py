@@ -46,3 +46,22 @@ def test_get_username_from_basic_auth_header():
     logger = Logger(Config())
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
     assert atoms['u'] == 'brk0v'
+
+
+def test_get_username_handles_malformed_basic_auth_header():
+    """Should catch a malformed auth header"""
+    request = SimpleNamespace(headers=())
+    response = SimpleNamespace(
+        status='200', response_length=1024, sent=1024,
+        headers=(('Content-Type', 'text/plain'),),
+    )
+    environ = {
+        'REQUEST_METHOD': 'GET', 'RAW_URI': '/my/path?foo=bar',
+        'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
+        'SERVER_PROTOCOL': 'HTTP/1.1',
+        'HTTP_AUTHORIZATION': 'Basic ixsTtkKzIpVTncfQjbBcnoRNoDfbnaXG',
+    }
+    logger = Logger(Config())
+
+    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    assert atoms['u'] == '-'
