@@ -44,7 +44,7 @@ class BaseSocket(object):
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except socket.error as err:
-                if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL):
+                if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL, 92):
                     raise
         if not bound:
             self.bind(sock)
