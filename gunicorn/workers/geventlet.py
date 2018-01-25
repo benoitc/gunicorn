@@ -105,6 +105,9 @@ class EventletWorker(AsyncWorker):
     def handle_quit(self, sig, frame):
         eventlet.spawn(super(EventletWorker, self).handle_quit, sig, frame)
 
+    def handle_usr1(self, sig, frame):
+        eventlet.spawn(super(EventletWorker, self).handle_usr1, sig, frame)
+
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
 

@@ -168,6 +168,11 @@ class GeventWorker(AsyncWorker):
         # blocking calls. See #1126
         gevent.spawn(super(GeventWorker, self).handle_quit, sig, frame)
 
+    def handle_usr1(self, sig, frame):
+        # Make the gevent workers handle the usr1 signal
+        # by deferring to a new greenlet. See #1645
+        gevent.spawn(super(GeventWorker, self).handle_usr1, sig, frame)
+
     if gevent.version_info[0] == 0:
 
         def init_process(self):
