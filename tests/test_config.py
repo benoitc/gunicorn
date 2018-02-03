@@ -5,6 +5,7 @@
 
 import os
 import sys
+import py_compile
 
 import pytest
 
@@ -22,10 +23,18 @@ def alt_cfg_module():
     return 'config.test_cfg_alt'
 def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
+def pyc_cfg_file():
+    file_path = os.path.join(dirname, "config", "test_cfg.py")
+    pyc_file_path = file_path + 'c'
+    py_compile.compile(file_path, pyc_file_path)
+    return pyc_file_path
 def alt_cfg_file():
     return os.path.join(dirname, "config", "test_cfg_alt.py")
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
+
+def teardown_module():
+    os.remove(os.path.join(dirname, "config", "test_cfg.pyc"))
 
 
 class AltArgs(object):
@@ -216,6 +225,14 @@ def test_app_config():
 
 def test_load_config():
     with AltArgs(["prog_name", "-c", cfg_file()]):
+        app = NoConfigApp()
+    assert app.cfg.bind == ["unix:/tmp/bar/baz"]
+    assert app.cfg.workers == 3
+    assert app.cfg.proc_name == "fooey"
+
+
+def test_load_pyc_config():
+    with AltArgs(["prog_name", "-c", pyc_cfg_file()]):
         app = NoConfigApp()
     assert app.cfg.bind == ["unix:/tmp/bar/baz"]
     assert app.cfg.workers == 3

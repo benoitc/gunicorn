@@ -50,7 +50,8 @@ def _get_codeobj(pyfile):
         # So to get code object, just read the 8th byte onwards till EOF, and
         # UN-marshal it.
         import marshal
-        code_obj = marshal.loads(data[8:])
+        header_size = 12 if PY33 else 8 # TODO Remove in 20.0
+        code_obj = marshal.loads(data[header_size:])
 
     elif result is PY_SOURCE:
         # This is a .py file.
