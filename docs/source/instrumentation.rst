@@ -17,7 +17,7 @@ To use statsD, just tell Gunicorn where the statsD server is:
 
 .. code-block:: bash
 
-    $ gunicorn --statsd-host=localhost:8125 ...
+    $ gunicorn --statsd-host=localhost:8125 --statsd-prefix=service.app ...
 
 The ``Statsd`` logger overrides ``gunicorn.glogging.Logger`` to track
 all requests. The following metrics are generated:
@@ -30,13 +30,6 @@ all requests. The following metrics are generated:
 * ``gunicorn.log.warning``: rate of warning log messages
 * ``gunicorn.log.exception``: rate of exceptional log messages
 
-
-``Statsd`` logger also provides a prefix for the metrics:
-
-* ``--statsd-prefix STATSD_PREFIX``
-* ````
-
-A trailing ``.`` is added, if not provided.
 
 
 .. _statsD: https://github.com/etsy/statsd
