@@ -845,7 +845,7 @@ class InputDirectory:
 
   def __init__(self, attributes, base_url):
     self._path         = None               # The directory
-    self._url          = None               # The URL equivelant
+    self._url          = None               # The URL equivalent
     self._default_file = None
 
     if not ValidateAttributes('DIRECTORY', attributes, ('path', 'url',

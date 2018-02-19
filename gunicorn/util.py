@@ -191,7 +191,7 @@ if sys.platform.startswith("win"):
         # required when contention occurs.
         timeout = 0.001
         while timeout < 1.0:
-            # Note we are only testing for the existance of the file(s) in
+            # Note we are only testing for the existence of the file(s) in
             # the contents of the directory regardless of any security or
             # access rights.  If we have made it this far, we have sufficient
             # permissions to do that much using Python's equivalent of the
@@ -415,7 +415,7 @@ def daemonize(enable_stdio_inheritance=False):
         os.umask(0o22)
 
         # In both the following any file descriptors above stdin
-        # stdout and stderr are left untouched. The inheritence
+        # stdout and stderr are left untouched. The inheritance
         # option simply allows one to have output go to a file
         # specified by way of shell redirection when not wanting
         # to use --error-log option.
