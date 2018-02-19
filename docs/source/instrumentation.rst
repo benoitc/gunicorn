@@ -30,6 +30,7 @@ all requests. The following metrics are generated:
 * ``gunicorn.log.warning``: rate of warning log messages
 * ``gunicorn.log.exception``: rate of exceptional log messages
 
+See the statsd-host_ setting for more information.
 
-
+.. _statsd-host: settings.html#statsd-host
 .. _statsD: https://github.com/etsy/statsd
