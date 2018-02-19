@@ -28,7 +28,7 @@ class Reloader(threading.Thread):
         fnames = [
             re.sub('py[co]$', 'py', module.__file__)
             for module in list(sys.modules.values())
-            if hasattr(module, '__file__')
+            if getattr(module, '__file__', None)
         ]
 
         with self._extra_files_lock:
