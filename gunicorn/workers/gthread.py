@@ -74,11 +74,6 @@ class TConn(object):
     def close(self):
         util.close(self.sock)
 
-    def __lt__(self, other):
-        return self.timeout < other.timeout
-
-    __cmp__ = __lt__
-
 
 class ThreadWorker(base.Worker):
 
