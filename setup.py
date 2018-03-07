@@ -72,6 +72,16 @@ class PyTestCommand(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+
+extra_require = {
+    'gevent':  ["gevent>=0.13"],
+    'eventlet': ["eventlet>=0.9.7"],
+    'tornado': ["tornado>=0.2"],
+    'gthread': []
+}
+if sys.version_info[0] < 3:
+    extra_require['gthread'] = ["futures"]
+
 setup(
     name='gunicorn',
     version=__version__,
@@ -99,9 +109,5 @@ setup(
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server
     """,
-    extras_require={
-        'gevent':  ["gevent"],
-        'eventlet': ["eventlet"],
-        'tornado': ["tornado"],
-    },
+    extras_require=extra_require
 )
