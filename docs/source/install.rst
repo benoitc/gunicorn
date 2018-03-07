@@ -33,12 +33,12 @@ want to consider one of the alternate worker types.
 
 ::
 
-    $ pip install greenlet  # Required for both
-    $ pip install eventlet  # For eventlet workers
-    $ pip install gevent    # For gevent workers
+    $ pip install gunicorn[eventlet]  # For eventlet workers
+    $ pip install gunicorn[gevent]    # For gevent workers
 
 .. note::
-    If installing ``greenlet`` fails you probably need to install
+    Both require ``greenlet``, which should get installed automatically,
+    If its installation fails, you probably need to install
     the Python headers. These headers are available in most package
     managers. On Ubuntu the package name for ``apt-get`` is
     ``python-dev``.

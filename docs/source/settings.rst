@@ -119,10 +119,12 @@ you might want to choose one of the other worker classes.
 A string referring to one of the following bundled classes:
 
 * ``sync``
-* ``eventlet`` - Requires eventlet >= 0.9.7
-* ``gevent``   - Requires gevent >= 0.13
-* ``tornado``  - Requires tornado >= 0.2
-* ``gthread``  - Python 2 requires the futures package to be installed
+* ``eventlet`` - Requires eventlet >= 0.9.7 (or install using
+  gunicorn[eventlet])
+* ``gevent``   - Requires gevent >= 0.13 (or install using gunicorn[gevent])
+* ``tornado``  - Requires tornado >= 0.2 (or install using gunicorn[tornado])
+* ``gthread``  - Python 2 requires the futures package to be installed (or
+  install using gunicorn[gthread])
 * ``gaiohttp`` - Deprecated.
 
 Optionally, you can provide your own worker by giving Gunicorn a
