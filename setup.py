@@ -98,5 +98,10 @@ setup(
 
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server
-    """
+    """,
+    extras_require={
+        'gevent':  ["gevent"],
+        'eventlet': ["eventlet"],
+        'tornado': ["tornado"],
+    },
 )
