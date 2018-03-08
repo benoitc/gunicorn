@@ -33,8 +33,11 @@ want to consider one of the alternate worker types.
 
 ::
 
-    $ pip install gunicorn[eventlet]  # For eventlet workers
-    $ pip install gunicorn[gevent]    # For gevent workers
+    $ pip install greenlet            # Required for both
+    $ pip install eventlet            # For eventlet workers
+    $ pip install gunicorn[eventlet]  # Or, using extra
+    $ pip install gevent              # For gevent workers
+    $ pip install gunicorn[gevent]    # Or, using extra
 
 .. note::
     Both require ``greenlet``, which should get installed automatically,
