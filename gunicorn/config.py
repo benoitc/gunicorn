@@ -606,16 +606,19 @@ class WorkerClass(Setting):
         The default class (``sync``) should handle most "normal" types of
         workloads. You'll want to read :doc:`design` for information on when
         you might want to choose one of the other worker classes. Required
-        libraries may be installed using setuptools' extra_require feature.
+        libraries may be installed using setuptools' ``extra_require`` feature.
 
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (extra gunicorn[eventlet])
-        * ``gevent``   - Requires gevent >= 0.13 (extra gunicorn[gevent])
-        * ``tornado``  - Requires tornado >= 0.2 (extra gunicorn[tornado])
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+          ``pip install gunicorn[eventlet]``)
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+          ``pip install gunicorn[gevent]``)
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+          ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
-          (extra gunicorn[gthread])
+          (or install it via ``pip install gunicorn[gthread]``)
         * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
