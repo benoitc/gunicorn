@@ -74,13 +74,13 @@ class PyTestCommand(TestCommand):
 
 
 extra_require = {
-    'gevent':  ["gevent>=0.13"],
-    'eventlet': ["eventlet>=0.9.7"],
-    'tornado': ["tornado>=0.2"],
-    'gthread': []
+    'gevent':  ['gevent>=0.13'],
+    'eventlet': ['eventlet>=0.9.7'],
+    'tornado': ['tornado>=0.2'],
+    'gthread': [],
 }
 if sys.version_info[0] < 3:
-    extra_require['gthread'] = ["futures"]
+    extra_require['gthread'] = ['futures']
 
 setup(
     name='gunicorn',
@@ -109,5 +109,5 @@ setup(
     [paste.server_runner]
     main=gunicorn.app.pasterapp:paste_server
     """,
-    extras_require=extra_require
+    extras_require=extra_require,
 )
