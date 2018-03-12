@@ -221,20 +221,9 @@ def unlink(filename):
         if error.errno not in (errno.ENOENT, errno.ENOTDIR):
             raise
 
-
-def is_ipv6(addr):
-    try:
-        socket.inet_pton(socket.AF_INET6, addr)
-    except socket.error:  # not a valid address
-        return False
-    except ValueError:  # ipv6 not supported on this platform
-        return False
-    return True
-
-
 def parse_address(netloc, default_port=8000):
     if re.match(r'unix:(//)?', netloc):
-        return re.split(r'unix:(//)?', netloc)[-1]
+        return [ ( socket.AF_UNIX,socket.SOCK_STREAM,0,'',re.split(r'unix:(//)?', netloc)[-1] ) ]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
@@ -258,7 +247,7 @@ def parse_address(netloc, default_port=8000):
         port = int(port)
     else:
         port = default_port
-    return (host, port)
+    return socket.getaddrinfo(host,port,socket.AF_UNSPEC, socket.SOCK_STREAM)
 
 
 def close_on_exec(fd):

@@ -15,17 +15,17 @@ from gunicorn.six import string_types
 
 
 class BaseSocket(object):
-
+    
     def __init__(self, address, conf, log, fd=None):
         self.log = log
         self.conf = conf
 
-        self.cfg_addr = address
+        self.cfg_addr = address[4]
         if fd is None:
-            sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
+            sock = socket.socket(address[0], socket.SOCK_STREAM)
             bound = False
         else:
-            sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
+            sock = socket.fromfd(fd, address[0], socket.SOCK_STREAM)
             os.close(fd)
             bound = True
 
@@ -74,8 +74,6 @@ class BaseSocket(object):
 
 class TCPSocket(BaseSocket):
 
-    FAMILY = socket.AF_INET
-
     def __str__(self):
         if self.conf.is_ssl:
             scheme = "https"
@@ -92,8 +90,6 @@ class TCPSocket(BaseSocket):
 
 class TCP6Socket(TCPSocket):
 
-    FAMILY = socket.AF_INET6
-
     def __str__(self):
         (host, port, _, _) = self.sock.getsockname()
         return "http://[%s]:%d" % (host, port)
@@ -101,18 +97,16 @@ class TCP6Socket(TCPSocket):
 
 class UnixSocket(BaseSocket):
 
-    FAMILY = socket.AF_UNIX
-
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
             try:
-                st = os.stat(addr)
+                st = os.stat(addr[4])
             except OSError as e:
                 if e.args[0] != errno.ENOENT:
                     raise
             else:
                 if stat.S_ISSOCK(st.st_mode):
-                    os.remove(addr)
+                    os.remove(addr[4])
                 else:
                     raise ValueError("%r is not a socket" % addr)
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
@@ -128,12 +122,11 @@ class UnixSocket(BaseSocket):
 
 
 def _sock_type(addr):
-    if isinstance(addr, tuple):
-        if util.is_ipv6(addr[0]):
-            sock_type = TCP6Socket
-        else:
-            sock_type = TCPSocket
-    elif isinstance(addr, string_types):
+    if addr[0] == socket.AF_INET6:
+        sock_type = TCP6Socket
+    elif addr[0] == socket.AF_INET:
+        sock_type = TCPSocket
+    elif addr[0] == socket.AF_UNIX:
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
