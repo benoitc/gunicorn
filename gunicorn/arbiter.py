@@ -502,6 +502,7 @@ class Arbiter(object):
                 worker.aborted = True
                 self.kill_worker(pid, signal.SIGABRT)
             else:
+                self.log.info("murder_workers pid:%s sig:%s", pid, signal.SIGKILL)
                 self.kill_worker(pid, signal.SIGKILL)
 
     def reap_workers(self):
@@ -530,6 +531,7 @@ class Arbiter(object):
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
+                    self.log.info("reap_workers close worker")
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:
@@ -547,6 +549,7 @@ class Arbiter(object):
         workers = self.WORKERS.items()
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
+            self.log.info("manage_workers workers:%d, num_workers:%d", len(workers), self.num_workers)
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
@@ -621,6 +624,7 @@ class Arbiter(object):
         Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
+        self.log.info("kill_works sig:%s", sig)
         worker_pids = list(self.WORKERS.keys())
         for pid in worker_pids:
             self.kill_worker(pid, sig)
@@ -633,6 +637,7 @@ class Arbiter(object):
         :attr sig: `signal.SIG*` value
          """
         try:
+            self.log.info("kill_worker pid:%s sig:%s", pid, sig)
             os.kill(pid, sig)
         except OSError as e:
             if e.errno == errno.ESRCH:
