@@ -15,7 +15,7 @@ from gunicorn.six import string_types
 
 
 class BaseSocket(object):
-    
+
     def __init__(self, address, conf, log, fd=None):
         self.log = log
         self.conf = conf

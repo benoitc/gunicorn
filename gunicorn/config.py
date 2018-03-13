@@ -125,7 +125,7 @@ class Config(object):
         
         addresses = []
         for bind in s:
-            addresses=addresses+util.parse_address(_compat.bytes_to_str(bind))
+            addresses.extend(util.parse_address(_compat.bytes_to_str(bind)))
         return addresses
 
     @property

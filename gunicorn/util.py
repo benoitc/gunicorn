@@ -223,7 +223,7 @@ def unlink(filename):
 
 def parse_address(netloc, default_port=8000):
     if re.match(r'unix:(//)?', netloc):
-        return [ ( socket.AF_UNIX,socket.SOCK_STREAM,0,'',re.split(r'unix:(//)?', netloc)[-1] ) ]
+        return [(socket.AF_UNIX, socket.SOCK_STREAM, 0, '', re.split(r'unix:(//)?', netloc)[-1])]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
