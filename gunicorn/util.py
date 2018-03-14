@@ -247,7 +247,7 @@ def parse_address(netloc, default_port=8000):
         port = int(port)
     else:
         port = default_port
-    return socket.getaddrinfo(host,port,socket.AF_UNSPEC, socket.SOCK_STREAM)
+    return socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
 
 
 def close_on_exec(fd):
