@@ -159,7 +159,8 @@ def create_sockets(conf, log, fds=None):
         for fd in fds:
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
-            sock_type = _sock_type(sock_name)
+            sockinfo = (sock.family, sock.type, sock.proto, '', socket.getsockname())
+            sock_type = _sock_type(sockinfo)
             listener = sock_type(sock_name, conf, log, fd=fd)
             listeners.append(listener)
 
@@ -197,6 +198,7 @@ def create_sockets(conf, log, fds=None):
 def close_sockets(listeners, unlink=True):
     for sock in listeners:
         sock_name = sock.getsockname()
+        socket_family = sock.family
         sock.close()
-        if unlink and _sock_type(sock_name) is UnixSocket:
+        if unlink and socket_family == socket.AF_UNIX:
             os.unlink(sock_name)
