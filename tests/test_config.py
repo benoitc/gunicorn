@@ -15,6 +15,7 @@ from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
 from gunicorn.instrument import statsd
 from socket import AF_INET
+from socket import AF_INET6
 from socket import SOCK_STREAM
 
 dirname = os.path.dirname(__file__)
@@ -76,7 +77,7 @@ def test_property_access():
     assert c.workers == 3
 
     # Address is parsed
-    assert c.address == [(AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8000))]
+    assert c.address == [(AF_INET6, SOCK_STREAM, 6, '', ('::1', 8000, 0, 0)), (AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8000))]
 
     # User and group defaults
     assert os.geteuid() == c.uid
