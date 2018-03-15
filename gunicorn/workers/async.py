@@ -36,7 +36,7 @@ class AsyncWorker(base.Worker):
         try:
             parser = http.RequestParser(self.cfg, client)
             try:
-                listener_name = listener.getsockname()
+                listener_name = client.getsockname()
                 if not self.cfg.keepalive:
                     req = six.next(parser)
                     self.handle_request(listener_name, req, client, addr)

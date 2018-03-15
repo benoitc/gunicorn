@@ -48,13 +48,18 @@ def _eventlet_serve(sock, handle, concurrency):
     pool = eventlet.greenpool.GreenPool(concurrency)
     server_gt = eventlet.greenthread.getcurrent()
 
+    def _eventlet_handle(conn, addr):
+        gt = pool.spawn(handle, conn, addr)
+        gt.link(_eventlet_stop, server_gt, conn)
+
     while True:
+        conn, addr = None, None
         try:
             conn, addr = sock.accept()
-            gt = pool.spawn(handle, conn, addr)
-            gt.link(_eventlet_stop, server_gt, conn)
-            conn, addr, gt = None, None, None
+            _eventlet_handle(conn, addr)
         except eventlet.StopServe:
+            if conn and addr:
+                _eventlet_handle(conn, addr)
             sock.close()
             pool.waitall()
             return
