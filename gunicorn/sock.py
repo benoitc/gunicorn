@@ -121,12 +121,12 @@ class UnixSocket(BaseSocket):
         os.umask(old_umask)
 
 
-def _sock_type(addr):
-    if addr[0] == socket.AF_INET6:
+def _sock_type(af_type):
+    if af_type == socket.AF_INET6:
         sock_type = TCP6Socket
-    elif addr[0] == socket.AF_INET:
+    elif af_type == socket.AF_INET:
         sock_type = TCPSocket
-    elif addr[0] == socket.AF_UNIX:
+    elif af_type == socket.AF_UNIX:
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
@@ -159,8 +159,7 @@ def create_sockets(conf, log, fds=None):
         for fd in fds:
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
-            sockinfo = (sock.family, sock.type, sock.proto, '', socket.getsockname())
-            sock_type = _sock_type(sockinfo)
+            sock_type = _sock_type(sock.family)
             listener = sock_type(sock_name, conf, log, fd=fd)
             listeners.append(listener)
 
@@ -168,7 +167,7 @@ def create_sockets(conf, log, fds=None):
 
     # no sockets is bound, first initialization of gunicorn in this env.
     for addr in laddr:
-        sock_type = _sock_type(addr)
+        sock_type = _sock_type(addr[0])
         sock = None
         for i in range(5):
             try:
@@ -200,5 +199,6 @@ def close_sockets(listeners, unlink=True):
         sock_name = sock.getsockname()
         socket_family = sock.family
         sock.close()
+        print(socket_family,end="a\n")
         if unlink and socket_family == socket.AF_UNIX:
             os.unlink(sock_name)
