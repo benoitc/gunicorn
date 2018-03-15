@@ -74,14 +74,15 @@ class BaseSocket(object):
 
 class TCPSocket(BaseSocket):
 
-    def __str__(self):
+    def scheme(self):
         if self.conf.is_ssl:
-            scheme = "https"
+            return "https"
         else:
-            scheme = "http"
+            return "http"
 
+    def __str__(self):
         addr = self.sock.getsockname()
-        return "%s://%s:%d" % (scheme, addr[0], addr[1])
+        return "%s://%s:%d" % (self.scheme(), addr[0], addr[1])
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -92,7 +93,7 @@ class TCP6Socket(TCPSocket):
 
     def __str__(self):
         (host, port, _, _) = self.sock.getsockname()
-        return "http://[%s]:%d" % (host, port)
+        return "%s://[%s]:%d" % (self.scheme(), host, port)
 
 
 class UnixSocket(BaseSocket):
@@ -129,7 +130,7 @@ def _sock_type(af_type):
     elif af_type == socket.AF_UNIX:
         sock_type = UnixSocket
     else:
-        raise TypeError("Unable to create socket from: %r" % addr)
+        raise TypeError("Unable to create socket family: %r" % af_type)
     return sock_type
 
 
