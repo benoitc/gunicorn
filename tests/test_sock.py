@@ -8,6 +8,8 @@ try:
 except ImportError:
     import mock
 
+from socket import SOCK_STREAM
+
 from gunicorn import sock
 
 
@@ -25,6 +27,7 @@ def test_socket_close():
 def test_unix_socket_close_unlink(unlink):
     listener = mock.Mock()
     listener.getsockname.return_value = '/var/run/test.sock'
+    listener.family = SOCK_STREAM
     sock.close_sockets([listener])
     listener.close.assert_called_with()
     unlink.assert_called_once_with('/var/run/test.sock')
@@ -34,6 +37,7 @@ def test_unix_socket_close_unlink(unlink):
 def test_unix_socket_close_without_unlink(unlink):
     listener = mock.Mock()
     listener.getsockname.return_value = '/var/run/test.sock'
+    listener.family = SOCK_STREAM
     sock.close_sockets([listener], False)
     listener.close.assert_called_with()
     assert not unlink.called, 'unlink should not have been called'

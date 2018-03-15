@@ -199,6 +199,5 @@ def close_sockets(listeners, unlink=True):
         sock_name = sock.getsockname()
         socket_family = sock.family
         sock.close()
-        print(socket_family,end="a\n")
         if unlink and socket_family == socket.AF_UNIX:
             os.unlink(sock_name)
