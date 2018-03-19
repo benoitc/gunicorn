@@ -1,8 +1,7 @@
 Gunicorn
 --------
 
-.. image::
-    https://secure.travis-ci.org/benoitc/gunicorn.png?branch=master
+.. image:: https://travis-ci.org/benoitc/gunicorn.svg?branch=master
     :alt: Build Status
     :target: https://travis-ci.org/benoitc/gunicorn
 
