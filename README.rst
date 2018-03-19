@@ -1,6 +1,14 @@
 Gunicorn
 --------
 
+.. image:: https://img.shields.io/pypi/v/gunicorn.svg?style=flat
+    :alt: PyPI version
+    :target: https://pypi.python.org/pypi/gunicorn
+
+.. image:: https://img.shields.io/pypi/pyversions/gunicorn.svg
+    :alt: Supported Python versions
+    :target: https://pypi.python.org/pypi/gunicorn
+
 .. image:: https://travis-ci.org/benoitc/gunicorn.svg?branch=master
     :alt: Build Status
     :target: https://travis-ci.org/benoitc/gunicorn
