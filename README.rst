@@ -58,7 +58,7 @@ License
 Gunicorn is released under the MIT License. See the LICENSE_ file for more
 details.
 
-.. _Unicorn: http://unicorn.bogomips.org/
-.. _`#gunicorn`: http://webchat.freenode.net/?channels=gunicorn
-.. _Freenode: http://freenode.net
-.. _LICENSE: http://github.com/benoitc/gunicorn/blob/master/LICENSE
+.. _Unicorn: https://bogomips.org/unicorn/
+.. _`#gunicorn`: https://webchat.freenode.net/?channels=gunicorn
+.. _Freenode: https://freenode.net/
+.. _LICENSE: https://github.com/benoitc/gunicorn/blob/master/LICENSE
