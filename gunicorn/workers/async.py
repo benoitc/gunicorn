@@ -8,6 +8,7 @@ import errno
 import socket
 import ssl
 import sys
+import signal
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
@@ -93,7 +94,7 @@ class AsyncWorker(base.Worker):
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
-                    listener_name, self.cfg)
+                                        listener_name, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
             if self.alive and self.nr >= self.max_requests:
@@ -104,7 +105,19 @@ class AsyncWorker(base.Worker):
             if not self.cfg.keepalive:
                 resp.force_close()
 
+            def request_timeout_handler(signum, frame):
+                self.log.critical("REQUEST TIMEOUT")
+                raise StopIteration()
+
+            # setup signal for request timeout
+            signal.signal(signal.SIGALRM, request_timeout_handler)
+            signal.alarm(self.cfg.request_timeout)
+
             respiter = self.wsgi(environ, resp.start_response)
+
+            # reset alarm
+            signal.alarm(0)
+
             if self.is_already_handled(respiter):
                 return False
             try:

@@ -611,11 +611,11 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
@@ -652,7 +652,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-        
+
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used
@@ -746,6 +746,20 @@ class GracefulTimeout(Setting):
         After receiving a restart signal, workers have this much time to finish
         serving requests. Workers still alive after the timeout (starting from
         the receipt of the restart signal) are force killed.
+        """
+
+
+class RequestTimeout(Setting):
+    name = "request_timeout"
+    section = "Worker Processes"
+    cli = ["--request-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        Worker is killed and restarted if the request running in it takes more
+        than this many seconds.
         """
 
 
