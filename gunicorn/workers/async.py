@@ -28,6 +28,9 @@ class AsyncWorker(base.Worker):
     def timeout_ctx(self):
         raise NotImplementedError()
 
+    def request_timeout(self):
+        raise NotImplementedError()
+
     def is_already_handled(self, respiter):
         # some workers will need to overload this function to raise a StopIteration
         return respiter == ALREADY_HANDLED
@@ -91,6 +94,7 @@ class AsyncWorker(base.Worker):
         request_start = datetime.now()
         environ = {}
         resp = None
+        respiter = None
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
@@ -105,18 +109,14 @@ class AsyncWorker(base.Worker):
             if not self.cfg.keepalive:
                 resp.force_close()
 
-            def request_timeout_handler(signum, frame):
+            with self.request_timeout():
+                respiter = self.wsgi(environ, resp.start_response)
+            if not respiter:
+                # the request timed out
                 self.log.critical("REQUEST TIMEOUT")
-                raise StopIteration()
-
-            # setup signal for request timeout
-            signal.signal(signal.SIGALRM, request_timeout_handler)
-            signal.alarm(self.cfg.request_timeout)
-
-            respiter = self.wsgi(environ, resp.start_response)
-
-            # reset alarm
-            signal.alarm(0)
+                resp.force_close()
+                self.alive = False
+                return False
 
             if self.is_already_handled(respiter):
                 return False

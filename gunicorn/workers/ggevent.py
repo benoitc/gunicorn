@@ -32,6 +32,7 @@ from gunicorn.http.wsgi import sendfile as o_sendfile
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
+
 def _gevent_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
@@ -41,6 +42,7 @@ def _gevent_sendfile(fdout, fdin, offset, nbytes):
                 wait_write(fdout)
             else:
                 raise
+
 
 def patch_sendfile():
     from gunicorn.http import wsgi
@@ -86,6 +88,9 @@ class GeventWorker(AsyncWorker):
 
     def timeout_ctx(self):
         return gevent.Timeout(self.cfg.keepalive, False)
+
+    def request_timeout(self):
+        return gevent.Timeout(self.cfg.request_timeout, False)
 
     def run(self):
         servers = []
