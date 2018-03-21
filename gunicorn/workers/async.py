@@ -8,7 +8,6 @@ import errno
 import socket
 import ssl
 import sys
-import signal
 
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
