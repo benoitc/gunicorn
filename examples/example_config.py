@@ -89,6 +89,8 @@ spew = False
 #
 #       True or False
 #
+#   raw_env - Pass environment variables to the execution environment.
+#
 #   pidfile - The path to a pid file to write
 #
 #       A path string or None to not write a pid file.
@@ -121,6 +123,10 @@ spew = False
 #
 
 daemon = False
+raw_env = [
+    'DJANGO_SECRET_KEY=something',
+    'SPAM=eggs',
+]
 pidfile = None
 umask = 0
 user = None
