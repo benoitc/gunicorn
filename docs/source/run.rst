@@ -30,16 +30,21 @@ Example with the test app:
 
 .. code-block:: python
 
+    from gunicorn.six import PY3
+
+
     def app(environ, start_response):
         """Simplest possible application object"""
         data = 'Hello, World!\n'
+        if PY3:
+            data = data.encode()
         status = '200 OK'
         response_headers = [
-            ('Content-type','text/plain'),
+            ('Content-type', 'text/plain'),
             ('Content-Length', str(len(data)))
         ]
         start_response(status, response_headers)
-        return iter([data])
+        return [data]
 
 You can now run the app with the following command::
 
