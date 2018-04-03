@@ -377,9 +377,8 @@ class Logger(object):
                     handler.acquire()
                     try:
                         if handler.stream:
-                            handler.stream.close()
-                            handler.stream = open(handler.baseFilename,
-                                    handler.mode)
+                            handler.close()
+                            handler.stream = handler._open()
                     finally:
                         handler.release()
 
