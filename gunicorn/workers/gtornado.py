@@ -8,14 +8,20 @@ import os
 import sys
 
 try:
-    import tornado.web
+    import tornado
 except ImportError:
     raise RuntimeError("You need tornado installed to use this worker.")
+import tornado.web
 import tornado.httpserver
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer
 from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
+
+
+# `io_loop` arguments to many Tornado functions have been removed in Tornado 5.0
+# <http://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes>
+IOLOOP_PARAMETER_REMOVED = tornado.version_info >= (5, 0, 0)
 
 
 class TornadoWorker(Worker):
@@ -67,8 +73,12 @@ class TornadoWorker(Worker):
         self.ioloop = IOLoop.instance()
         self.alive = True
         self.server_alive = False
-        PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
-        PeriodicCallback(self.heartbeat, 1000, io_loop=self.ioloop).start()
+        if IOLOOP_PARAMETER_REMOVED:
+            PeriodicCallback(self.watchdog, 1000).start()
+            PeriodicCallback(self.heartbeat, 1000).start()
+        else:
+            PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
+            PeriodicCallback(self.heartbeat, 1000, io_loop=self.ioloop).start()
 
         # Assume the app is a WSGI callable if its not an
         # instance of tornado.web.Application or is an
@@ -109,10 +119,16 @@ class TornadoWorker(Worker):
             # options
             del _ssl_opt["do_handshake_on_connect"]
             del _ssl_opt["suppress_ragged_eofs"]
-            server = server_class(app, io_loop=self.ioloop,
-                                  ssl_options=_ssl_opt)
+            if IOLOOP_PARAMETER_REMOVED:
+                server = server_class(app, ssl_options=_ssl_opt)
+            else:
+                server = server_class(app, io_loop=self.ioloop,
+                                      ssl_options=_ssl_opt)
         else:
-            server = server_class(app, io_loop=self.ioloop)
+            if IOLOOP_PARAMETER_REMOVED:
+                server = server_class(app)
+            else:
+                server = server_class(app, io_loop=self.ioloop)
 
         self.server = server
         self.server_alive = True
