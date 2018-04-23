@@ -480,6 +480,9 @@ class Arbiter(object):
         for _ in range(self.cfg.workers):
             self.spawn_worker()
 
+        # call post_reload_spawn hook
+        self.cfg.post_reload_spawn(self)
+
         # manage workers
         self.manage_workers()
 

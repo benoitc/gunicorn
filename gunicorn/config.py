@@ -1568,6 +1568,20 @@ class OnReload(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+class OnReloadSpawn(Setting):
+    name = "on_reload_spawn"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = six.callable
+
+    def post_reload_spawn(server):
+        pass
+    default = staticmethod(post_reload_spawn)
+    desc = """\
+        Called after spawn_worker() and before manage_workers() during a reload via SIGHUP.
+
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
 
 class WhenReady(Setting):
     name = "when_ready"
