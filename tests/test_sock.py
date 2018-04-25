@@ -52,7 +52,7 @@ def test_unix_socket_close_without_unlink(unlink):
     (AF_INET, sock.TCPSocket),
     (AF_INET6, sock.TCP6Socket)])
 def test__sock_type(test_input, expected):
-     assert sock._sock_type(test_input) is expected
+    assert sock._sock_type(test_input) is expected
 
 def test__sock_type2():
     with pytest.raises(TypeError) as err:

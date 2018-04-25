@@ -122,7 +122,6 @@ class Config(object):
     @property
     def address(self):
         s = self.settings['bind'].get()
-        
         addresses = []
         for bind in s:
             addresses.extend(util.parse_address(_compat.bytes_to_str(bind)))
