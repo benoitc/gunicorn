@@ -4,7 +4,7 @@ import unittest
 import platform
 from wsgiref.validate import validator
 
-HOST = "127.0.0.1"
+HOST = '127.0.0.1'
 
 
 @validator
