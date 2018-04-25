@@ -87,7 +87,7 @@ def test_property_access():
     assert "gunicorn" == c.proc_name
 
     # Not a config property
-    pytest.raises(AttributeError, getattr, c, "foo")
+    pytest.raises(AttributeError, getattr, c, 'foo')
     # Force to be not an error
     class Baz(object):
         def get(self):
