@@ -1568,8 +1568,8 @@ class OnReload(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
-class OnReloadSpawn(Setting):
-    name = "on_reload_spawn"
+class PostReloadSpawn(Setting):
+    name = "post_reload_spawn"
     section = "Server Hooks"
     validator = validate_callable(1)
     type = six.callable
