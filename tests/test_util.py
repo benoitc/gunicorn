@@ -23,7 +23,7 @@ from socket import SOCK_STREAM
     #(AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8007))]),
     ('127.0.0.1:8007', [(AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8007))]),
     ('tcp://127.0.0.1:8007', [(AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8007))]),
-    #('localhost', [(AF_INET6, SOCK_STREAM, 6, '', ('::1', 8000, 0, 0)), 
+    #('localhost', [(AF_INET6, SOCK_STREAM, 6, '', ('::1', 8000, 0, 0)),
     #(AF_INET, SOCK_STREAM, 6, '', ('127.0.0.1', 8000))])
 ])
 def test_parse_address(test_input, expected):
