@@ -3,15 +3,12 @@ environment:
   matrix:
     - TOXENV: lint
       PYTHON: "C:\\Python35-x64"
-    - TOXENV: py27
-      PYTHON: "C:\\Python27-x64"
     - TOXENV: py35
       PYTHON: "C:\\Python35-x64"
     - TOXENV: py36
       PYTHON: "C:\\Python36-x64"
 matrix:
   allow_failures:
-    - TOXENV: py27
     - TOXENV: py35
     - TOXENV: py36
 init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"

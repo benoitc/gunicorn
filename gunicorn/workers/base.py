@@ -170,12 +170,10 @@ class Worker(object):
 
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
-        if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGTERM, False)
-            signal.siginterrupt(signal.SIGUSR1, False)
+        signal.siginterrupt(signal.SIGTERM, False)
+        signal.siginterrupt(signal.SIGUSR1, False)
 
-        if hasattr(signal, 'set_wakeup_fd'):
-            signal.set_wakeup_fd(self.PIPE[1])
+        signal.set_wakeup_fd(self.PIPE[1])
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()

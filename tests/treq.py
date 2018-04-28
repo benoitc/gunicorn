@@ -71,10 +71,7 @@ class request(object):
 
     def send_bytes(self):
         for d in self.data:
-            if six.PY3:
-                yield bytes([d])
-            else:
-                yield d
+            yield bytes([d])
 
     def send_random(self):
         maxs = round(len(self.data) / 10)

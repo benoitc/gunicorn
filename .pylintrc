@@ -6,7 +6,6 @@ ignore=
     examples,
     scripts,
     _compat.py,
-    argparse_compat.py,
     six.py,
     selectors.py,
     _gaiohttp.py,

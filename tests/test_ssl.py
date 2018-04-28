@@ -5,8 +5,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import sys
-
 import pytest
 
 from gunicorn.config import (
@@ -69,8 +67,6 @@ def test_do_handshake_on_connect():
     assert DoHandshakeOnConnect.default is False
 
 
-@pytest.mark.skipif(sys.version_info < (2, 7),
-                    reason="requires Python 2.7+")
 def test_ciphers():
     from gunicorn.config import Ciphers
 

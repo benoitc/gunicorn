@@ -1914,16 +1914,15 @@ class DoHandshakeOnConnect(Setting):
     """
 
 
-if sys.version_info >= (2, 7):
-    class Ciphers(Setting):
-        name = "ciphers"
-        section = "SSL"
-        cli = ["--ciphers"]
-        validator = validate_string
-        default = 'TLSv1'
-        desc = """\
-        Ciphers to use (see stdlib ssl module's)
-        """
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "SSL"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
+    """
 
 
 class PasteGlobalConf(Setting):
