@@ -1300,7 +1300,7 @@ class CaptureOutput(Setting):
     action = 'store_true'
     default = False
     desc = """\
-        Redirect stdout/stderr to Error log.
+        Redirect stdout/stderr to specified file in :ref:`errorlog`.
 
         .. versionadded:: 19.6
         """
