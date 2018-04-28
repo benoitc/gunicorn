@@ -2,8 +2,8 @@
 Changelog
 =========
 
-19.8.0 / not released
-=====================
+19.8.0 / 2018/04/28
+===================
 
 - Eventlet 0.21.0 support (:issue:`1584`)
 - Tornado 5 support (:issue:`1728`, :pr:`1752`)
