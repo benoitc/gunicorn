@@ -45,11 +45,11 @@ SYSLOG_FACILITIES = {
         }
 
 
-CONFIG_DEFAULTS = dict(
-        version=1,
-        disable_existing_loggers=False,
+CONFIG_DEFAULTS = {
+        "version": 1,
+        "disable_existing_loggers": False,
 
-        loggers={
+        "loggers": {
             "root": {"level": "INFO", "handlers": ["console"]},
             "gunicorn.error": {
                 "level": "INFO",
@@ -65,7 +65,7 @@ CONFIG_DEFAULTS = dict(
                 "qualname": "gunicorn.access"
             }
         },
-        handlers={
+        "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
@@ -77,14 +77,14 @@ CONFIG_DEFAULTS = dict(
                 "stream": "sys.stderr"
             },
         },
-        formatters={
+        "formatters": {
             "generic": {
                 "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             }
         }
-)
+}
 
 
 def loggers():

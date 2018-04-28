@@ -87,8 +87,8 @@ class PasterBaseApplication(Application):
             if parser.has_section('loggers'):
                 from logging.config import fileConfig
                 config_file = os.path.abspath(self.cfgfname)
-                fileConfig(config_file, dict(__file__=config_file,
-                                             here=os.path.dirname(config_file)))
+                fileConfig(config_file, {'__file__': config_file,
+                                         'here': os.path.dirname(config_file)})
 
 
 class PasterApplication(PasterBaseApplication):
