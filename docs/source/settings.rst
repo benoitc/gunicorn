@@ -451,7 +451,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/benoitc/work/gunicorn/py27/gunicorn/docs``
+* ``/usr/src/app``
 
 Chdir to specified directory before apps loading.
 
@@ -763,6 +763,23 @@ logconfig
 The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
+
+.. _logconfig-dict:
+
+logconfig_dict
+~~~~~~~~~~~~~~
+
+* ``--log-config-dict``
+* ``{}``
+
+The log config dictionary to use, using the standard Python
+logging module's dictionary configuration format. This option
+takes precedence over the :ref:`logconfig` option, which uses the
+older file configuration format.
+
+Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
+
+.. versionadded:: 19.8
 
 .. _syslog-addr:
 
@@ -1220,7 +1237,7 @@ ssl_version
 ~~~~~~~~~~~
 
 * ``--ssl-version``
-* ``3``
+* ``_SSLMethod.PROTOCOL_TLS``
 
 SSL version to use (see stdlib ssl module's)
 
@@ -1234,7 +1251,7 @@ cert_reqs
 ~~~~~~~~~
 
 * ``--cert-reqs``
-* ``0``
+* ``VerifyMode.CERT_NONE``
 
 Whether client certificate is required (see stdlib ssl module's)
 
