@@ -21,8 +21,6 @@ CLASSIFIERS = [
     'Operating System :: POSIX',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.2',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
@@ -43,9 +41,6 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
 fname = os.path.join(os.path.dirname(__file__), 'requirements_test.txt')
 with open(fname) as f:
     tests_require = [l.strip() for l in f.readlines()]
-
-if sys.version_info[:2] < (3, 3):
-    tests_require.append('mock')
 
 class PyTestCommand(TestCommand):
     user_options = [

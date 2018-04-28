@@ -4,27 +4,26 @@
 # See the NOTICE for more information.
 from __future__ import print_function
 
-# pylint: skip-file
-
+import configparser
 import os
-import pkg_resources
 import sys
 
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
+import pkg_resources
 
-from paste.deploy import loadapp, loadwsgi
-SERVER = loadwsgi.SERVER
-
+from gunicorn import util
 from gunicorn.app.base import Application
 from gunicorn.config import Config, get_default_config_file
-from gunicorn import util
+from paste.deploy import loadapp, loadwsgi
+
+# pylint: skip-file
+
+
+SERVER = loadwsgi.SERVER
+
 
 
 def _has_logging_config(paste_file):
-    cfg_parser = ConfigParser.ConfigParser()
+    cfg_parser = configparser.ConfigParser()
     cfg_parser.read([paste_file])
     return cfg_parser.has_section('loggers')
 
@@ -82,7 +81,7 @@ class PasterBaseApplication(Application):
 
         # reload logging conf
         if hasattr(self, "cfgfname"):
-            parser = ConfigParser.ConfigParser()
+            parser = configparser.ConfigParser()
             parser.read([self.cfgfname])
             if parser.has_section('loggers'):
                 from logging.config import fileConfig
