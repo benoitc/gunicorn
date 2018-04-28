@@ -104,9 +104,9 @@ class Arbiter(object):
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
 
-        self.log.debug('Current configuration:\n{0}'.format(
+        self.log.debug('Current configuration:\n{}'.format(
             '\n'.join(
-                '  {0}: {1}'.format(config, value.value)
+                '  {}: {}'.format(config, value.value)
                 for config, value
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
@@ -553,7 +553,7 @@ class Arbiter(object):
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
             self._last_logged_active_worker_count = active_worker_count
-            self.log.debug("{0} workers".format(active_worker_count),
+            self.log.debug("{} workers".format(active_worker_count),
                            extra={"metric": "gunicorn.workers",
                                   "value": active_worker_count,
                                   "mtype": "gauge"})

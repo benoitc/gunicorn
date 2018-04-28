@@ -531,7 +531,7 @@ class Bind(Setting):
     validator = validate_list_string
 
     if 'PORT' in os.environ:
-        default = ['0.0.0.0:{0}'.format(os.environ.get('PORT'))]
+        default = ['0.0.0.0:{}'.format(os.environ.get('PORT'))]
     else:
         default = ['127.0.0.1:8000']
 

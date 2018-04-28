@@ -14,7 +14,7 @@ import gunicorn.pidfile
 
 
 def builtin(name):
-    return '{0}.{1}'.format('builtins', name)
+    return '{}.{}'.format('builtins', name)
 
 
 @mock.patch(builtin('open'), new_callable=mock.mock_open)

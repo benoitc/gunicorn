@@ -41,9 +41,9 @@ def _fileobj_to_fd(fileobj):
             fd = int(fileobj.fileno())
         except (AttributeError, TypeError, ValueError):
             raise ValueError("Invalid file object: "
-                             "{0!r}".format(fileobj))
+                             "{!r}".format(fileobj))
     if fd < 0:
-        raise ValueError("Invalid file descriptor: {0}".format(fd))
+        raise ValueError("Invalid file descriptor: {}".format(fd))
     return fd
 
 
@@ -66,7 +66,7 @@ class _SelectorMapping(Mapping):
             fd = self._selector._fileobj_lookup(fileobj)
             return self._selector._fd_to_key[fd]
         except KeyError:
-            raise KeyError("{0!r} is not registered".format(fileobj))
+            raise KeyError("{!r} is not registered".format(fileobj))
 
     def __iter__(self):
         return iter(self._selector._fd_to_key)
@@ -182,7 +182,7 @@ class BaseSelector(six.with_metaclass(ABCMeta)):
         try:
             return mapping[fileobj]
         except KeyError:
-            raise KeyError("{0!r} is not registered".format(fileobj))
+            raise KeyError("{!r} is not registered".format(fileobj))
 
     @abstractmethod
     def get_map(self):
@@ -226,12 +226,12 @@ class _BaseSelectorImpl(BaseSelector):
 
     def register(self, fileobj, events, data=None):
         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
-            raise ValueError("Invalid events: {0!r}".format(events))
+            raise ValueError("Invalid events: {!r}".format(events))
 
         key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
 
         if key.fd in self._fd_to_key:
-            raise KeyError("{0!r} (FD {1}) is already registered"
+            raise KeyError("{!r} (FD {}) is already registered"
                            .format(fileobj, key.fd))
 
         self._fd_to_key[key.fd] = key
@@ -241,7 +241,7 @@ class _BaseSelectorImpl(BaseSelector):
         try:
             key = self._fd_to_key.pop(self._fileobj_lookup(fileobj))
         except KeyError:
-            raise KeyError("{0!r} is not registered".format(fileobj))
+            raise KeyError("{!r} is not registered".format(fileobj))
         return key
 
     def modify(self, fileobj, events, data=None):
@@ -249,7 +249,7 @@ class _BaseSelectorImpl(BaseSelector):
         try:
             key = self._fd_to_key[self._fileobj_lookup(fileobj)]
         except KeyError:
-            raise KeyError("{0!r} is not registered".format(fileobj))
+            raise KeyError("{!r} is not registered".format(fileobj))
         if events != key.events:
             self.unregister(fileobj)
             key = self.register(fileobj, events, data)

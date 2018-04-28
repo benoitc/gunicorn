@@ -21,7 +21,7 @@ def _check_if_pyc(fname):
         fileobj, fullpath, (_, _, pytype) = find_module(module_name, [dirpath])
     except ImportError:
         raise IOError("Cannot find config file. "
-                      "Path maybe incorrect! : {0}".format(filepath))
+                      "Path maybe incorrect! : {}".format(filepath))
     return pytype, fileobj, fullpath
 
 
@@ -57,7 +57,7 @@ def _get_codeobj(pyfile):
 
     else:
         # Unsupported extension
-        raise Exception("Input file is unknown format: {0}".format(fullpath))
+        raise Exception("Input file is unknown format: {}".format(fullpath))
 
     # Return code object
     return code_obj

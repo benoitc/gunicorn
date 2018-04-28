@@ -102,16 +102,16 @@ class Statsd(Logger):
     # statsD methods
     # you can use those directly if you want
     def gauge(self, name, value):
-        self._sock_send("{0}{1}:{2}|g".format(self.prefix, name, value))
+        self._sock_send("{}{}:{}|g".format(self.prefix, name, value))
 
     def increment(self, name, value, sampling_rate=1.0):
-        self._sock_send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+        self._sock_send("{}{}:{}|c|@{}".format(self.prefix, name, value, sampling_rate))
 
     def decrement(self, name, value, sampling_rate=1.0):
-        self._sock_send("{0}{1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+        self._sock_send("{}{}:-{}|c|@{}".format(self.prefix, name, value, sampling_rate))
 
     def histogram(self, name, value):
-        self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
+        self._sock_send("{}{}:{}|ms".format(self.prefix, name, value))
 
     def _sock_send(self, msg):
         try:
