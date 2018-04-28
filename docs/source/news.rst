@@ -10,7 +10,7 @@ Changelog
 - support watching additional files with ``--reload-extra-file``
   (:pr:`1527`)
 - support configuring logging with a dictionary with ``--logging-config-dict``
-  (issue:`1087`, :pr:`1110`, :pr:`1602`)
+  (:issue:`1087`, :pr:`1110`, :pr:`1602`)
 - add support for the ``--config`` flag in the ``GUNICORN_CMD_ARGS`` environment
   variable (:issue:`1576`, :pr:`1581`)
 - disable ``SO_REUSEPORT`` by default and add the ``--reuse-port`` setting
