@@ -45,10 +45,10 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
-    SIG_NAMES = dict(
-        (getattr(signal, name), name[3:].lower()) for name in dir(signal)
+    SIG_NAMES = {
+        getattr(signal, name): name[3:].lower() for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
-    )
+    }
 
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
