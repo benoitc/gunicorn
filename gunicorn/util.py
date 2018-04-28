@@ -121,10 +121,6 @@ def set_owner_process(uid, gid, initgroups=False):
             except KeyError:
                 initgroups = False
 
-        # versions of python < 2.6.2 don't manage unsigned int for
-        # groups like on osx or fedora
-        gid = abs(gid) & 0x7FFFFFFF
-
         if initgroups:
             os.initgroups(username, gid)
         elif gid != os.getgid():
@@ -135,7 +131,6 @@ def set_owner_process(uid, gid, initgroups=False):
 
 
 def chown(path, uid, gid):
-    gid = abs(gid) & 0x7FFFFFFF  # see note above.
     os.chown(path, uid, gid)
 
 

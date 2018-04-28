@@ -9,7 +9,7 @@ import pytest
 
 from gunicorn.config import (
     KeyFile, CertFile, SSLVersion, CACerts, SuppressRaggedEOFs,
-    DoHandshakeOnConnect, Setting,
+    DoHandshakeOnConnect, Setting, Ciphers,
 )
 
 ssl = pytest.importorskip('ssl')
@@ -68,8 +68,6 @@ def test_do_handshake_on_connect():
 
 
 def test_ciphers():
-    from gunicorn.config import Ciphers
-
     assert issubclass(Ciphers, Setting)
     assert Ciphers.name == 'ciphers'
     assert Ciphers.section == 'SSL'
