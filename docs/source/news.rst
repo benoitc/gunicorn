@@ -2,6 +2,12 @@
 Changelog
 =========
 
+19.8.1 / 2018/04/30
+===================
+
+- fix: secure scheme headers when bound to a unix socket
+  (:issue:`1766`, :pr:`1767`)
+
 19.8.0 / 2018/04/28
 ===================
 
