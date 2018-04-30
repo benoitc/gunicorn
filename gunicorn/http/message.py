@@ -15,7 +15,7 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
-from gunicorn.six import BytesIO
+from gunicorn.six import BytesIO, string_types
 from gunicorn.util import split_request_uri
 
 MAX_REQUEST_LINE = 8190
@@ -76,6 +76,8 @@ class Message(object):
                 remote_host = remote_addr[0]
                 if remote_host in cfg.forwarded_allow_ips:
                     secure_scheme_headers = cfg.secure_scheme_headers
+            elif isinstance(remote_addr, string_types):
+                secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
