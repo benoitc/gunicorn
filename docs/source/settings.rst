@@ -42,10 +42,6 @@ application specific configuration.
    Loading the config from a Python module requires the ``python:``
    prefix.
 
-.. versionchanged:: 19.8
-   Pre-19.4 behavior of loading a config file without a ``python:``
-   prefix is now restored.
-
 Server Socket
 -------------
 
