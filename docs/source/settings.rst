@@ -814,9 +814,8 @@ syslog
 Send *Gunicorn* logs to syslog.
 
 .. versionchanged:: 19.8
-
- You can now disable sending access logs by using the
- :ref:`disable-redirect-access-to-syslog` setting.
+   You can now disable sending access logs by using the
+   :ref:`disable-redirect-access-to-syslog` setting.
 
 .. _syslog-prefix:
 
