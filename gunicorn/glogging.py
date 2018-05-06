@@ -340,7 +340,7 @@ class Logger(object):
 
         if not (self.cfg.accesslog or self.cfg.logconfig or
            self.cfg.logconfig_dict or
-           (self.cfg.syslog and not self.cfg.disable_access_log_redirection)):
+           (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
             return
 
         # wrap atoms:
