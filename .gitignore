@@ -5,6 +5,7 @@
 .coverage
 .pytest_cache
 .tox
+.cache
 __pycache__
 build
 coverage.xml
