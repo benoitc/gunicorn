@@ -337,7 +337,6 @@ class Logger(object):
         """ See http://httpd.apache.org/docs/2.0/logs.html#combined
         for format details
         """
-
         if not (self.cfg.accesslog or self.cfg.logconfig or
            self.cfg.logconfig_dict or
            (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
@@ -348,9 +347,8 @@ class Logger(object):
         # - if atom doesn't exist replace it by '-'
         safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
             request_time))
-
         try:
-            self.access_log.info(self.cfg.access_log_format, safe_atoms)
+            self.access_log.info(self.cfg.access_log_format % safe_atoms)
         except:
             self.error(traceback.format_exc())
 
