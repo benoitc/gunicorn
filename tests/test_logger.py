@@ -1,5 +1,4 @@
 import datetime
-import logging
 from datetime import timedelta
 
 from gunicorn.config import Config
