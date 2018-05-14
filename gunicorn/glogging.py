@@ -350,7 +350,7 @@ class Logger(object):
             request_time))
 
         try:
-            self.access_log.info(self.cfg.access_log_format, safe_atoms)
+            self.access_log.info(self.cfg.access_log_format % safe_atoms)
         except:
             self.error(traceback.format_exc())
 
