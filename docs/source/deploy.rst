@@ -15,6 +15,9 @@ You can use Hey_ to check if your proxy is behaving properly.
 
 An `example configuration`_ file for fast clients with Nginx_:
 
+*nginx.conf*
+
+
 .. literalinclude:: ../../examples/nginx.conf
    :language: nginx
 
