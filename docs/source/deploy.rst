@@ -15,11 +15,9 @@ You can use Hey_ to check if your proxy is behaving properly.
 
 An `example configuration`_ file for fast clients with Nginx_:
 
-*nginx.conf*
-
-
 .. literalinclude:: ../../examples/nginx.conf
    :language: nginx
+   :caption: nginx.conf
 
 If you want to be able to handle streaming request/responses or other fancy
 features like Comet, Long polling, or Web sockets, you need to turn off the
