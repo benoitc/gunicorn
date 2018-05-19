@@ -17,7 +17,7 @@ An `example configuration`_ file for fast clients with Nginx_:
 
 .. literalinclude:: ../../examples/nginx.conf
    :language: nginx
-   :caption: nginx.conf
+   :caption: **nginx.conf**
 
 If you want to be able to handle streaming request/responses or other fancy
 features like Comet, Long polling, or Web sockets, you need to turn off the
