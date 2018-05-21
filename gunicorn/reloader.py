@@ -14,7 +14,7 @@ import threading
 COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
-class Reloader(threading.Thread):
+class ReloaderBase(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
         super().__init__()
         self.setDaemon(True)
@@ -36,6 +36,8 @@ class Reloader(threading.Thread):
 
         return fnames
 
+
+class Reloader(ReloaderBase):
     def run(self):
         mtimes = {}
         while True:
@@ -66,24 +68,21 @@ if sys.platform.startswith('linux'):
 
 if has_inotify:
 
-    class InotifyReloader(threading.Thread):
+    class InotifyReloader(ReloaderBase):
         event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE
                       | inotify.constants.IN_DELETE_SELF | inotify.constants.IN_MODIFY
                       | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM
                       | inotify.constants.IN_MOVED_TO)
 
         def __init__(self, extra_files=None, callback=None):
-            super().__init__()
-            self.setDaemon(True)
-            self._callback = callback
+            super().__init__(extra_files=extra_files, callback=callback)
             self._dirs = set()
             self._watcher = Inotify()
 
-            for extra_file in extra_files:
-                self.add_extra_file(extra_file)
-
         def add_extra_file(self, filename):
             dirname = os.path.dirname(filename)
+
+            super(InotifyReloader, self).add_extra_file(filename)
 
             if dirname in self._dirs:
                 return
@@ -92,13 +91,8 @@ if has_inotify:
             self._dirs.add(dirname)
 
         def get_dirs(self):
-            fnames = [
-                os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
-                for module in tuple(sys.modules.values())
-                if getattr(module, '__file__', None)
-            ]
-
-            return set(fnames)
+            dirnames = [os.path.dirname(os.path.abspath(fname)) for fname in self.get_files()]
+            return set(dirnames)
 
         def run(self):
             self._dirs = self.get_dirs()
@@ -118,7 +112,7 @@ if has_inotify:
 else:
 
     class InotifyReloader(object):
-        def __init__(self, callback=None):
+        def __init__(self, extra_files=None, callback=None):
             raise ImportError('You must have the inotify module installed to '
                               'use the inotify reloader')
 
