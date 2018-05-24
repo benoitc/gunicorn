@@ -74,12 +74,12 @@ CONFIG_DEFAULTS = dict(
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stdout"
+                "stream": "ext://sys.stdout"
             },
             "error_console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stderr"
+                "stream": "ext://sys.stderr"
             },
         },
         formatters={
