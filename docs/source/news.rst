@@ -5,7 +5,7 @@ Changelog
 19.9.0 / 2018/05/26
 ===================
 
-- the internal module `gunicorn.workers.async` was renamed to `gunicorn.workers.async`
+- the internal module `gunicorn.workers.async` was renamed to `gunicorn.workers.base_async`
   since ``async`` is now a reserved word in Python 3.7
   (:pr:`1527`)
 
