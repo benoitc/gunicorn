@@ -74,12 +74,12 @@ CONFIG_DEFAULTS = dict(
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stdout"
+                "stream": "ext://sys.stdout"
             },
             "error_console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stderr"
+                "stream": "ext://sys.stderr"
             },
         },
         formatters={
@@ -299,7 +299,7 @@ class Logger(object):
             'U': environ.get('PATH_INFO'),
             'q': environ.get('QUERY_STRING'),
             'H': environ.get('SERVER_PROTOCOL'),
-            'b': getattr(resp, 'sent', None) and str(resp.sent) or '-',
+            'b': getattr(resp, 'sent', None) is not None and str(resp.sent) or '-',
             'B': getattr(resp, 'sent', None),
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
