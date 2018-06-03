@@ -15,5 +15,3 @@ examples/frameworks/pylonstest/pylonstest.egg-info/
 MANIFEST
 nohup.out
 setuptools-*
-.cache
-.eggs
