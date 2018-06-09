@@ -36,9 +36,9 @@ PULL_REQUEST_URI = 'https://github.com/benoitc/gunicorn/pull/%s'
 def format_settings(app):
     settings_file = os.path.join(app.srcdir, "settings.rst")
     ret = []
-    sorted_known_settings = sorted(guncfg.KNOWN_SETTINGS, key=lambda s: s.section)
-    for i, s in enumerate(sorted_known_settings):
-        if i == 0 or s.section != sorted_known_settings[i - 1].section:
+    known_settings = sorted(guncfg.KNOWN_SETTINGS, key=lambda s: s.section)
+    for i, s in enumerate(known_settings):
+        if i == 0 or s.section != known_settings[i - 1].section:
             ret.append("%s\n%s\n\n" % (s.section, "-" * len(s.section)))
         ret.append(fmt_setting(s))
 
