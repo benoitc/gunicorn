@@ -2,6 +2,13 @@
 Changelog
 =========
 
+19.x / not released
+===================
+
+- fix: prevent raising :exc:`AttributeError` when ``--reload`` is not passed
+  in case of a :exc:`SyntaxError` raised from the WSGI application.
+  (:issue:`1805`, :pr:`1806`)
+
 19.8.1 / 2018/04/30
 ===================
 
