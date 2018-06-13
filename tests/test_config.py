@@ -386,3 +386,9 @@ def test_umask_config(options, expected):
     with AltArgs(cmdline):
         app = NoConfigApp()
     assert app.cfg.umask == expected
+
+
+def test_bind_fd():
+    with AltArgs(["prog_name", "-b", "fd://42"]):
+        app = NoConfigApp()
+    assert app.cfg.bind == ["fd://42"]

@@ -11,6 +11,7 @@ import sys
 import time
 
 from gunicorn import util
+from gunicorn.socketfromfd import fromfd
 
 
 class BaseSocket(object):
@@ -150,7 +151,11 @@ def create_sockets(conf, log, fds=None):
     listeners = []
 
     # get it only once
-    laddr = conf.address
+    addr = conf.address
+    fdaddr = [bind for bind in addr if isinstance(bind, int)]
+    if fds:
+        fdaddr += list(fds)
+    laddr = [bind for bind in addr if not isinstance(bind, int)]
 
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
@@ -161,9 +166,9 @@ def create_sockets(conf, log, fds=None):
         raise ValueError('keyfile "%s" does not exist' % conf.keyfile)
 
     # sockets are already bound
-    if fds is not None:
-        for fd in fds:
-            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+    if fdaddr:
+        for fd in fdaddr:
+            sock = fromfd(fd)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)
             listener = sock_type(sock_name, conf, log, fd=fd)

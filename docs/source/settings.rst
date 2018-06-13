@@ -1103,8 +1103,11 @@ bind
 
 The socket to bind.
 
-A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``. An IP is
-a valid ``HOST``.
+A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``,
+``fd://FD``. An IP is a valid ``HOST``.
+
+.. versionchanged:: 20.0
+   Support for ``fd://FD`` got added.
 
 Multiple addresses can be bound. ex.::
 
