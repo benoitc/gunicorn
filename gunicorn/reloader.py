@@ -10,6 +10,8 @@ import sys
 import time
 import threading
 
+COMPILED_EXT_RE = re.compile(r'py[co]$')
+
 
 class Reloader(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
@@ -26,8 +28,8 @@ class Reloader(threading.Thread):
 
     def get_files(self):
         fnames = [
-            re.sub('py[co]$', 'py', module.__file__)
-            for module in list(sys.modules.values())
+            COMPILED_EXT_RE.sub('py', module.__file__)
+            for module in tuple(sys.modules.values())
             if getattr(module, '__file__', None)
         ]
 
@@ -92,8 +94,8 @@ if has_inotify:
 
         def get_dirs(self):
             fnames = [
-                os.path.dirname(re.sub('py[co]$', 'py', module.__file__))
-                for module in list(sys.modules.values())
+                os.path.dirname(COMPILED_EXT_RE.sub('py', module.__file__))
+                for module in tuple(sys.modules.values())
                 if hasattr(module, '__file__')
             ]
 
