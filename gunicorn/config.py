@@ -621,6 +621,14 @@ class WorkerClass(Setting):
           (or install it via ``pip install gunicorn[gthread]``)
         * ``gaiohttp`` - Deprecated.
 
+        .. note::
+           If you want to use ``'gevent'`` and ``'eventlet'`` workers, avoid
+           monkeypatching (e.g. calling the ``gevent.monkey.patch_all()`` and
+           ``eventlet.monkey_patch()`` functions respectively) in your
+           application. Gunicorn will do it for you after the ``on_starting``
+           hook ran. See also the documentation for the :ref:`preload-app`
+           setting.
+
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
@@ -937,6 +945,12 @@ class PreloadApp(Setting):
         speed up server boot times. Although, if you defer application loading
         to each worker process, you can reload your application code easily by
         restarting workers.
+
+        .. note::
+           Using this setting with the ``'gevent'`` and ``'eventlet'`` workers
+           is discouraged. When ``--preload`` is used, these workers will try
+           to monkeypatch the standard library *after* the application is
+           loaded.
         """
 
 
