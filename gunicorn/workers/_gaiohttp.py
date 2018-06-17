@@ -46,7 +46,7 @@ class AiohttpWorker(base.Worker):
         super().init_process()
 
     def run(self):
-        self._runner = asyncio.async(self._run(), loop=self.loop)
+        self._runner = asyncio.ensure_future(self._run(), loop=self.loop)
 
         try:
             self.loop.run_until_complete(self._runner)

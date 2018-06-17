@@ -17,6 +17,6 @@ SUPPORTED_WORKERS = {
 }
 
 
-if sys.version_info >= (3, 3):
-    # gaiohttp worker can be used with Python 3.3+ only.
+if sys.version_info >= (3, 4):
+    # gaiohttp worker can be used with Python 3.4+ only.
     SUPPORTED_WORKERS["gaiohttp"] = "gunicorn.workers.gaiohttp.AiohttpWorker"
