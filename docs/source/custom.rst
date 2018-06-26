@@ -19,26 +19,33 @@ Direct Usage of Existing WSGI Apps
 ----------------------------------
 
 If necessary, you can run Gunicorn straight from python, allowing you to 
-specify a WSGI-compatible application at runtime. This might be useful for 
+specify a WSGI-compatible application at runtime. This can be handy for 
 rolling deploys or in the case of using PEX files to deploy your application,
-as the app and Gunicorn can be bundled in the same PEX file. At the time of
-writing, you can import and instantiate a WSGIApplication like so:
+as the app and Gunicorn can be bundled in the same PEX file. Gunicorn has
+this functionality built-in as a first class citizen known as 
+:class:`gunicorn.app.wsgiapp`. This can be used to run WSGI-compatible app 
+instances such as those produced by Flask or Django. Assuming your WSGI api 
+package is `exampleapi`, and your application instance is `app`, this is all 
+you need to get going:
 
 .. code-block:: python
-    from gunicorn.app.wsgiapp import WSGIApplication
-    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]").run()
-
-This can be used to run WSGI-compatible app instances such as those produced
-by Flask or Django. Assuming that the code above is in a file called `run.py`,
-your application's WSGI instance is called `app`, and it's exported by a package
-called `exampleapi`, then you should be able to fire up your server with a
-command similar to '``python run.py exampleapi:app``'. 
+    gunicorn.app.wsgiapp exampleapi:app
 
 This command will work with any Gunicorn CLI parameters or a config file - just
-pass them along as if you're directly giving them to Gunicorn as below
+pass them along as if you're directly giving them to Gunicorn
 
 .. code-block:: python
     # Custom parameters
-    python run.py exampleapi:app --bind=0.0.0.0:8081 --workers=4
+    python gunicorn.app.wsgiapp exampleapi:app --bind=0.0.0.0:8081 --workers=4
     # Using a config file
-    python run.py exampleapi:app -c config.py
+    python gunicorn.app.wsgiapp exampleapi:app -c config.py
+    
+Note for those using PEX: use `-e gunicorn.app.wsgiapp` as your entry at build
+time, and your compiled app should work with the entry point passed to it at
+run time. 
+
+.. code-block:: bash
+    # Generic pex build command via bash from root of exampleapi project
+    pex . -v -e gunicorn.app.wsgiapp -o compiledapp.pex
+    # Running it
+    ./compiledapp.pex exampleapi:app -c config.py
