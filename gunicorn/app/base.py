@@ -68,7 +68,7 @@ class BaseApplication(object):
     def wsgi(self):
         if self.callable is None:
             self.callable = self.load()
-            self.callable = self.add_prometheus_endpoint(self.callable)
+            self.add_prometheus_endpoint()
         return self.callable
 
     def run(self):
@@ -79,16 +79,19 @@ class BaseApplication(object):
             sys.stderr.flush()
             sys.exit(1)
 
-    def add_prometheus_endpoint(self, callable):
+    def add_prometheus_endpoint(self):
         if not self.cfg.prometheus_path:
-            return callable
+            return
+
+        original_callable = self.callable
 
         def callable_with_prometheus(environ, start_response):
-            if environ['REQUEST_METHOD'] == 'GET' and environ['PATH_INFO'] == self.cfg.prometheus_path:
+            if environ['REQUEST_METHOD'] == 'GET' and \
+                    environ['PATH_INFO'] == self.cfg.prometheus_path:
                 return self.handle_prometheus_request(environ, start_response)
-            return callable(environ, start_response)
+            return original_callable(environ, start_response)
 
-        return callable_with_prometheus
+        self.callable = callable_with_prometheus
 
     def handle_prometheus_request(self, environ, start_response):
         start_response('200 OK', [('Content-Type', 'text/plain')])

@@ -655,8 +655,7 @@ class Arbiter(object):
 
         metrics = MetricsStore()
 
-        workers = list(self.WORKERS.items())
-        for (pid, worker) in workers:
+        for worker in self.WORKERS.values():
             metrics.add_worker(worker)
 
         self.app.tmp.write(pickle.dumps(metrics))

@@ -36,7 +36,7 @@ class MetricsStore(object):
         self.add('idle_time_seconds_sum', 'summary', idle_time_sum, pid=worker.pid)
 
     def __iter__(self):
-        for (metric_name, tags_hash), (metric_type, value, tags) in six.iteritems(self.data):
+        for (metric_name, _), (metric_type, value, tags) in six.iteritems(self.data):
             yield self.Item(metric_name, metric_type, tags, value)
 
     def prometheus_iter(self):
