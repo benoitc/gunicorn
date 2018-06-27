@@ -1475,6 +1475,21 @@ class StatsdPrefix(Setting):
     """
 
 
+class PrometheusPath(Setting):
+    name = "prometheus_path"
+    section = "Logging"
+    cli = ["--prometheus-path"]
+    meta = "PROMETHEUS_PATH"
+    default = None
+    validator = validate_string
+    desc = """\
+    Endpoint path (e.g ``/metrics``) to use for exporting metrics in
+    Prometheus format.
+
+    .. versionadded:: 19.9
+    """
+
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"

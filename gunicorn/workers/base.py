@@ -10,6 +10,7 @@ import signal
 from ssl import SSLError
 import sys
 import time
+import pickle
 import traceback
 
 from gunicorn import six
@@ -49,6 +50,7 @@ class Worker(object):
         self.booted = False
         self.aborted = False
         self.reloader = None
+        self.stats = None
 
         self.nr = 0
         jitter = randint(0, cfg.max_requests_jitter)
@@ -66,7 +68,10 @@ class Worker(object):
         once every ``self.timeout`` seconds. If you fail in accomplishing
         this task, the master process will murder your workers.
         """
-        self.tmp.notify()
+        if self.stats:
+            self.tmp.write(pickle.dumps(self.stats))
+        else:
+            self.tmp.notify()
 
     def run(self):
         """\

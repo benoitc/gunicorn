@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import os
 import sys
+import pickle
 import traceback
 
 from gunicorn._compat import execfile_
@@ -13,6 +14,7 @@ from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
+from gunicorn.workers.workertmp import WorkerTmp
 
 class BaseApplication(object):
     """
@@ -26,6 +28,7 @@ class BaseApplication(object):
         self.prog = prog
         self.logger = None
         self.do_load_config()
+        self.tmp = WorkerTmp(self.cfg)
 
     def do_load_config(self):
         """
@@ -65,6 +68,7 @@ class BaseApplication(object):
     def wsgi(self):
         if self.callable is None:
             self.callable = self.load()
+            self.callable = self.add_prometheus_endpoint(self.callable)
         return self.callable
 
     def run(self):
@@ -74,6 +78,21 @@ class BaseApplication(object):
             print("\nError: %s\n" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(1)
+
+    def add_prometheus_endpoint(self, callable):
+        if not self.cfg.prometheus_path:
+            return callable
+
+        def callable_with_prometheus(environ, start_response):
+            if environ['REQUEST_METHOD'] == 'GET' and environ['PATH_INFO'] == self.cfg.prometheus_path:
+                return self.handle_prometheus_request(environ, start_response)
+            return callable(environ, start_response)
+
+        return callable_with_prometheus
+
+    def handle_prometheus_request(self, environ, start_response):
+        start_response('200 OK', [('Content-Type', 'text/plain')])
+        return pickle.loads(self.tmp.read()).prometheus_dump(),
 
 
 class Application(BaseApplication):

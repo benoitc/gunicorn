@@ -11,8 +11,10 @@ import select
 import signal
 import sys
 import time
+import pickle
 import traceback
 
+from gunicorn.metrics.store import MetricsStore
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
@@ -210,6 +212,7 @@ class Arbiter(object):
                     self.sleep()
                     self.murder_workers()
                     self.manage_workers()
+                    self.collect_workers_stats()
                     continue
 
                 if sig not in self.SIG_NAMES:
@@ -489,6 +492,7 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
+
         workers = list(self.WORKERS.items())
         for (pid, worker) in workers:
             try:
@@ -644,3 +648,15 @@ class Arbiter(object):
                 except (KeyError, OSError):
                     return
             raise
+
+    def collect_workers_stats(self):
+        if not self.cfg.prometheus_path:
+            return
+
+        metrics = MetricsStore()
+
+        workers = list(self.WORKERS.items())
+        for (pid, worker) in workers:
+            metrics.add_worker(worker)
+
+        self.app.tmp.write(pickle.dumps(metrics))
