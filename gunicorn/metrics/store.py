@@ -12,6 +12,13 @@ class MetricsStore(object):
         self.data = {}
         self.log = log
 
+    def __getstate__(self):
+        return self.data
+
+    def __setstate__(self, state):
+        self.data = state
+        self.log = None
+
     def clear(self):
         self.data = {}
 
