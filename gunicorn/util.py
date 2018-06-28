@@ -20,7 +20,6 @@ import traceback
 import inspect
 import errno
 import warnings
-import logging
 import re
 
 from gunicorn import _compat
@@ -357,13 +356,12 @@ def import_app(module):
 
     mod = sys.modules[module]
 
-    is_debug = logging.root.level == logging.DEBUG
     try:
         app = eval(obj, vars(mod))
     except NameError:
-        if is_debug:
-            traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application object %r in %r" % (obj, module))
+        raise AppImportError("Failed to find application object '{0}' in '{1}':\n{2}".format(
+            obj, module, traceback.format_exc()
+        ))
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
