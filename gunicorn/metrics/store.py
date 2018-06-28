@@ -8,8 +8,9 @@ from gunicorn import six
 class MetricsStore(object):
     Item = namedtuple('Item', ['metric_name', 'metric_type', 'tags', 'value'])
 
-    def __init__(self):
+    def __init__(self, log):
         self.data = {}
+        self.log = log
 
     def clear(self):
         self.data = {}
@@ -22,6 +23,9 @@ class MetricsStore(object):
         try:
             stats = pickle.loads(worker.tmp.read())
         except EOFError:
+            return
+        except Exception:
+            self.log.exception('Failed to load worker stats')
             return
 
         if stats.request_ended_at >= stats.request_started_at:

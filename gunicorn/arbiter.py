@@ -653,7 +653,7 @@ class Arbiter(object):
         if not self.cfg.prometheus_path:
             return
 
-        metrics = MetricsStore()
+        metrics = MetricsStore(self.log)
 
         for worker in self.WORKERS.values():
             metrics.add_worker(worker)
