@@ -18,7 +18,7 @@ if sys.platform == "darwin":
 
 try:
     import gevent
-except ImportError, e:
+except ImportError as e:
     raise RuntimeError("You need gevent installed to use this worker: %s" % e.message)
 from gevent.pool import Pool
 from gevent.server import StreamServer
