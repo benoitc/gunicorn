@@ -5,6 +5,12 @@ Changelog
 19.x / not released
 ===================
 
+- fix: address a regression that prevented syslog support from working
+  (:issue:`1668`, :pr:`1773`)
+- fix: correctly set `REMOTE_ADDR` on versions of Python 3 affected by
+  `Python Issue 30205 <https://bugs.python.org/issue30205>`_
+  (:issue:`1755`, :pr:`1796`)
+- fix: show zero response length correctly in access log (:pr:`1787`)
 - fix: prevent raising :exc:`AttributeError` when ``--reload`` is not passed
   in case of a :exc:`SyntaxError` raised from the WSGI application.
   (:issue:`1805`, :pr:`1806`)
