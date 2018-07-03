@@ -28,7 +28,7 @@ The documentation is hosted at http://docs.gunicorn.org.
 Installation
 ------------
 
-Gunicorn requires **Python 2.x >= 2.6** or **Python 3.x >= 3.2**.
+Gunicorn requires **Python 2.x >= 2.6** or **Python 3.x >= 3.3**.
 
 Install from PyPI::
 
