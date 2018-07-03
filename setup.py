@@ -24,11 +24,10 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.6',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.2',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Topic :: Internet',
     'Topic :: Utilities',
     'Topic :: Software Development :: Libraries :: Python Modules',
@@ -46,7 +45,7 @@ fname = os.path.join(os.path.dirname(__file__), 'requirements_test.txt')
 with open(fname) as f:
     tests_require = [l.strip() for l in f.readlines()]
 
-if sys.version_info[:2] < (3, 3):
+if sys.version_info[:2] < (3, 4):
     tests_require.append('mock')
 if sys.version_info[:2] < (2, 7):
     tests_require.append('unittest2')
