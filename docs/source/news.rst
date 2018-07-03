@@ -2,7 +2,7 @@
 Changelog
 =========
 
-19.x / not released
+19.9.0 / 2018/07/03
 ===================
 
 - fix: address a regression that prevented syslog support from working
