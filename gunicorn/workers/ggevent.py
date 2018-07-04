@@ -17,9 +17,13 @@ if sys.platform == "darwin":
     os.environ['EVENT_NOKQUEUE'] = "1"
 
 try:
-    import gevent
+    from gevent import monkey
+
+    monkey.patch_all(subprocess=True)
 except ImportError:
     raise RuntimeError("You need gevent installed to use this worker.")
+
+import gevent
 from gevent.pool import Pool
 from gevent.server import StreamServer
 from gevent.socket import wait_write, socket
@@ -55,15 +59,6 @@ class GeventWorker(AsyncWorker):
     wsgi_handler = None
 
     def patch(self):
-        from gevent import monkey
-        monkey.noisy = False
-
-        # if the new version is used make sure to patch subprocess
-        if gevent.version_info[0] == 0:
-            monkey.patch_all()
-        else:
-            monkey.patch_all(subprocess=True)
-
         # monkey patch sendfile to make it none blocking
         patch_sendfile()
 
@@ -121,10 +116,7 @@ class GeventWorker(AsyncWorker):
         try:
             # Stop accepting requests
             for server in servers:
-                if hasattr(server, 'close'):  # gevent 1.0
-                    server.close()
-                if hasattr(server, 'kill'):  # gevent < 1.0
-                    server.kill()
+                server.close()
 
             # Handle current requests until graceful_timeout
             ts = time.time()

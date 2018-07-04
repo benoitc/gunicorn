@@ -74,7 +74,7 @@ class PyTestCommand(TestCommand):
 
 
 extra_require = {
-    'gevent':  ['gevent>=0.13'],
+    'gevent':  ['gevent>=1.0'],
     'eventlet': ['eventlet>=0.9.7'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
