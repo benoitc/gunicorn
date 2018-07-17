@@ -69,6 +69,10 @@ class TornadoWorker(Worker):
                 if not self.ioloop._callbacks:
                     self.ioloop.stop()
 
+    def init_process(self):
+        IOLoop.clear_current()
+        super(TornadoWorker, self).init_process()
+
     def run(self):
         self.ioloop = IOLoop.instance()
         self.alive = True
