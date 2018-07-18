@@ -53,3 +53,4 @@ disable=
     useless-object-inheritance,
     useless-import-alias,
     comparison-with-callable,
+    try-except-raise,

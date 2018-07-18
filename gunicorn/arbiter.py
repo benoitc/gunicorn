@@ -230,6 +230,8 @@ class Arbiter(object):
             self.halt()
         except HaltServer as inst:
             self.halt(reason=inst.reason, exit_status=inst.exit_status)
+        except SystemExit:
+            raise
         except Exception:
             self.log.info("Unhandled exception in main loop",
                           exc_info=True)
@@ -580,6 +582,8 @@ class Arbiter(object):
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
+        except SystemExit:
+            raise
         except AppImportError as e:
             self.log.debug("Exception while loading the application",
                            exc_info=True)
