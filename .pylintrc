@@ -50,3 +50,9 @@ disable=
     wrong-import-order,
     ungrouped-imports,
     unused-argument,
+    useless-object-inheritance,
+    useless-import-alias,
+    comparison-with-callable,
+    try-except-raise,
+    # TODO: use dict comprehensions once we drop Python 2.6 support. 
+    consider-using-dict-comprehension,

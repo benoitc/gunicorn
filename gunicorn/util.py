@@ -51,7 +51,7 @@ try:
         setproctitle("gunicorn: %s" % title)
 except ImportError:
     def _setproctitle(title):
-        return
+        pass
 
 
 try:
