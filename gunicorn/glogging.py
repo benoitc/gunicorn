@@ -318,18 +318,18 @@ class Logger(object):
         if hasattr(req_headers, "items"):
             req_headers = req_headers.items()
 
-        atoms.update({"{%s}i" % k.lower(): v for k, v in req_headers})
+        atoms.update(dict([("{%s}i" % k.lower(), v) for k, v in req_headers]))
 
         resp_headers = resp.headers
         if hasattr(resp_headers, "items"):
             resp_headers = resp_headers.items()
 
         # add response headers
-        atoms.update({"{%s}o" % k.lower(): v for k, v in resp_headers})
+        atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp_headers]))
 
         # add environ variables
         environ_variables = environ.items()
-        atoms.update({"{%s}e" % k.lower(): v for k, v in environ_variables})
+        atoms.update(dict([("{%s}e" % k.lower(), v) for k, v in environ_variables]))
 
         return atoms
 
