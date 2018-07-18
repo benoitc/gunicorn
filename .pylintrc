@@ -52,3 +52,4 @@ disable=
     unused-argument,
     useless-object-inheritance,
     useless-import-alias,
+    comparison-with-callable,
