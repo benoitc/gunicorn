@@ -50,3 +50,4 @@ disable=
     wrong-import-order,
     ungrouped-imports,
     unused-argument,
+    useless-object-inheritance,
