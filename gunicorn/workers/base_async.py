@@ -121,8 +121,6 @@ class AsyncWorker(base.Worker):
                     respiter.close()
             if resp.should_close():
                 raise StopIteration()
-        except StopIteration:
-            raise
         except EnvironmentError:
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)

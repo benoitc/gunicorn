@@ -51,3 +51,4 @@ disable=
     ungrouped-imports,
     unused-argument,
     useless-object-inheritance,
+    useless-import-alias,
