@@ -70,12 +70,10 @@ class TornadoWorker(Worker):
                     self.ioloop.stop()
 
     def init_process(self):
-        """\
-        IOLoop cannot survive a fork or be shared across processes
-        in any way. When multiple processes are being used, each process
-        should create its own IOLoop. We should clear current IOLoop
-        if exists before os.fork.
-        """
+        # IOLoop cannot survive a fork or be shared across processes
+        # in any way. When multiple processes are being used, each process
+        # should create its own IOLoop. We should clear current IOLoop
+        # if exists before os.fork.
         IOLoop.clear_current()
         super(TornadoWorker, self).init_process()
 
