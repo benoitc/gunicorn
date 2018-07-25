@@ -287,7 +287,7 @@ class Logger(object):
             'l': '-',
             'u': self._get_user(environ) or '-',
             't': self.now(),
-            'r': "%s %s %s" % (environ['REQUEST_METHOD'],
+            'r': "{} {} {}".format(environ['REQUEST_METHOD'],
                 environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
             's': status,
             'm': environ.get('REQUEST_METHOD'),
@@ -424,10 +424,10 @@ class Logger(object):
         else:
             prefix = cfg.syslog_prefix
 
-        prefix = "gunicorn.%s.%s" % (prefix, name)
+        prefix = "gunicorn.{}.{}".format(prefix, name)
 
         # set format
-        fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+        fmt = logging.Formatter(r"{}: {}".format(prefix, fmt))
 
         # syslog facility
         try:

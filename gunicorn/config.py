@@ -270,7 +270,7 @@ class Setting(object):
             return
         args = tuple(self.cli)
 
-        help_txt = "%s [%s]" % (self.short, self.default)
+        help_txt = "{} [{}]".format(self.short, self.default)
         help_txt = help_txt.replace("%", "%%")
 
         kwargs = {
@@ -1693,7 +1693,7 @@ class PreRequest(Setting):
     type = six.callable
 
     def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        worker.log.debug("{} {}".format(req.method, req.path))
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.

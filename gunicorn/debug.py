@@ -41,16 +41,16 @@ class Spew(object):
                     line = 'Unknown code named [%s].  VM instruction #%d' % (
                         frame.f_code.co_name, frame.f_lasti)
             if self.trace_names is None or name in self.trace_names:
-                print('%s:%s: %s' % (name, lineno, line.rstrip()))
+                print('{}:{}: {}'.format(name, lineno, line.rstrip()))
                 if not self.show_values:
                     return self
                 details = []
                 tokens = _token_spliter.split(line)
                 for tok in tokens:
                     if tok in frame.f_globals:
-                        details.append('%s=%r' % (tok, frame.f_globals[tok]))
+                        details.append('{}={!r}'.format(tok, frame.f_globals[tok]))
                     if tok in frame.f_locals:
-                        details.append('%s=%r' % (tok, frame.f_locals[tok]))
+                        details.append('{}={!r}'.format(tok, frame.f_locals[tok]))
                 if details:
                     print("\t%s" % ' '.join(details))
         return self

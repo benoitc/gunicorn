@@ -41,7 +41,7 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
 
     host, port = lc.pop('host', ''), lc.pop('port', '')
     if host and port:
-        cfg['bind'] = '%s:%s' % (host, port)
+        cfg['bind'] = '{}:{}'.format(host, port)
     elif host:
         cfg['bind'] = host.split(',')
 
@@ -138,7 +138,7 @@ class PasterServerApplication(PasterBaseApplication):
         cfg = kwargs.copy()
 
         if port and not host.startswith("unix:"):
-            bind = "%s:%s" % (host, port)
+            bind = "{}:{}".format(host, port)
         else:
             bind = host
         cfg["bind"] = bind.split(',')

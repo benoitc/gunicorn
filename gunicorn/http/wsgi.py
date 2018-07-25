@@ -145,7 +145,7 @@ def create(req, sock, client, server, cfg):
 
         key = 'HTTP_' + hdr_name.replace('-', '_')
         if key in environ:
-            hdr_value = "%s,%s" % (environ[key], hdr_value)
+            hdr_value = "{},{}".format(environ[key], hdr_value)
         environ[key] = hdr_value
 
     # set the url scheme
@@ -309,7 +309,7 @@ class Response(object):
             connection = "keep-alive"
 
         headers = [
-            "HTTP/%s.%s %s\r\n" % (self.req.version[0],
+            "HTTP/{}.{} {}\r\n".format(self.req.version[0],
                 self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
@@ -323,7 +323,7 @@ class Response(object):
         if self.headers_sent:
             return
         tosend = self.default_headers()
-        tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
+        tosend.extend(["{}: {}\r\n".format(k, v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
         util.write(self.sock, util.to_bytestring(header_str, "ascii"))

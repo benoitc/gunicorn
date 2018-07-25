@@ -324,7 +324,7 @@ def import_app(module):
     except NameError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application object %r in %r" % (obj, module))
+        raise AppImportError("Failed to find application object {!r} in {!r}".format(obj, module))
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
@@ -447,14 +447,14 @@ def seed():
     try:
         random.seed(os.urandom(64))
     except NotImplementedError:
-        random.seed('%s.%s' % (time.time(), os.getpid()))
+        random.seed('{}.{}'.format(time.time(), os.getpid()))
 
 
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
     except IOError as e:
-        raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
+        raise RuntimeError("Error: '{}' isn't writable [{!r}]".format(path, e))
     f.close()
 
 

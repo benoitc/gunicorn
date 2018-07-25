@@ -139,7 +139,7 @@ class Application(BaseApplication):
             try:
                 self.cfg.set(k.lower(), v)
             except:
-                print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
+                print("Invalid value for {}: {}\n".format(k, v), file=sys.stderr)
                 sys.stderr.flush()
                 raise
 
