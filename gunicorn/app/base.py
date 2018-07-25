@@ -2,8 +2,6 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-from __future__ import print_function
-
 import os
 import sys
 import traceback
