@@ -24,7 +24,7 @@ from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.http.wsgi import sendfile as o_sendfile
-from gunicorn.workers.async import AsyncWorker
+from gunicorn.workers.base_async import AsyncWorker
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:

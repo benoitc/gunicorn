@@ -54,7 +54,7 @@ try:
         setproctitle("gunicorn: %s" % title)
 except ImportError:
     def _setproctitle(title):
-        return
+        pass
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",

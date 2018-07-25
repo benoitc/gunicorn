@@ -31,6 +31,23 @@ def test_atoms_defaults():
     assert atoms['{content-type}o'] == 'application/json'
 
 
+def test_atoms_zero_bytes():
+    response = SimpleNamespace(
+        status='200', response_length=0,
+        headers=(('Content-Type', 'application/json'),), sent=0,
+    )
+    request = SimpleNamespace(headers=(('Accept', 'application/json'),))
+    environ = {
+        'REQUEST_METHOD': 'GET', 'RAW_URI': '/my/path?foo=bar',
+        'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
+        'SERVER_PROTOCOL': 'HTTP/1.1',
+    }
+    logger = Logger(Config())
+    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    assert atoms['b'] == '0'
+    assert atoms['B'] == 0
+
+
 def test_get_username_from_basic_auth_header():
     request = SimpleNamespace(headers=())
     response = SimpleNamespace(

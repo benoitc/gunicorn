@@ -2,8 +2,30 @@
 Changelog
 =========
 
-19.8.0 / not released
-=====================
+19.9.0 / 2018/07/03
+===================
+
+- fix: address a regression that prevented syslog support from working
+  (:issue:`1668`, :pr:`1773`)
+- fix: correctly set `REMOTE_ADDR` on versions of Python 3 affected by
+  `Python Issue 30205 <https://bugs.python.org/issue30205>`_
+  (:issue:`1755`, :pr:`1796`)
+- fix: show zero response length correctly in access log (:pr:`1787`)
+- fix: prevent raising :exc:`AttributeError` when ``--reload`` is not passed
+  in case of a :exc:`SyntaxError` raised from the WSGI application.
+  (:issue:`1805`, :pr:`1806`)
+- The internal module ``gunicorn.workers.async`` was renamed to ``gunicorn.workers.base_async``
+  since ``async`` is now a reserved word in Python 3.7.
+  (:pr:`1527`)
+
+19.8.1 / 2018/04/30
+===================
+
+- fix: secure scheme headers when bound to a unix socket
+  (:issue:`1766`, :pr:`1767`)
+
+19.8.0 / 2018/04/28
+===================
 
 - Eventlet 0.21.0 support (:issue:`1584`)
 - Tornado 5 support (:issue:`1728`, :pr:`1752`)
