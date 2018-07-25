@@ -24,7 +24,7 @@ class WSGIApplication(Application):
                 raise ConfigError("%r not found" % path)
 
             # paste application, load the config
-            self.cfgurl = 'config:%s#%s' % (path, app_name)
+            self.cfgurl = 'config:{}#{}'.format(path, app_name)
             self.relpath = os.path.dirname(path)
 
             from .pasterapp import paste_config

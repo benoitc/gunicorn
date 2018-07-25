@@ -2,8 +2,6 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-from __future__ import print_function
-
 import errno
 import os
 import random
@@ -45,10 +43,10 @@ class Arbiter(object):
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
-    SIG_NAMES = dict(
-        (getattr(signal, name), name[3:].lower()) for name in dir(signal)
+    SIG_NAMES = {
+        getattr(signal, name): name[3:].lower() for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
-    )
+    }
 
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
@@ -104,9 +102,9 @@ class Arbiter(object):
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
 
-        self.log.debug('Current configuration:\n{0}'.format(
+        self.log.debug('Current configuration:\n{}'.format(
             '\n'.join(
-                '  {0}: {1}'.format(config, value.value)
+                '  {}: {}'.format(config, value.value)
                 for config, value
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
@@ -553,7 +551,7 @@ class Arbiter(object):
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
             self._last_logged_active_worker_count = active_worker_count
-            self.log.debug("{0} workers".format(active_worker_count),
+            self.log.debug("{} workers".format(active_worker_count),
                            extra={"metric": "gunicorn.workers",
                                   "value": active_worker_count,
                                   "mtype": "gauge"})

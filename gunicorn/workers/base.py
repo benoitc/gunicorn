@@ -170,12 +170,10 @@ class Worker(object):
 
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
-        if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGTERM, False)
-            signal.siginterrupt(signal.SIGUSR1, False)
+        signal.siginterrupt(signal.SIGTERM, False)
+        signal.siginterrupt(signal.SIGUSR1, False)
 
-        if hasattr(signal, 'set_wakeup_fd'):
-            signal.set_wakeup_fd(self.PIPE[1])
+        signal.set_wakeup_fd(self.PIPE[1])
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()
@@ -250,7 +248,7 @@ class Worker(object):
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
             resp = Response(req, client, self.cfg)
-            resp.status = "%s %s" % (status_int, reason)
+            resp.status = "{} {}".format(status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
 

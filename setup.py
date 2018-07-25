@@ -20,15 +20,11 @@ CLASSIFIERS = [
     'Operating System :: MacOS :: MacOS X',
     'Operating System :: POSIX',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 2.6',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.2',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3 :: Only',
     'Topic :: Internet',
     'Topic :: Utilities',
     'Topic :: Software Development :: Libraries :: Python Modules',
@@ -45,11 +41,6 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
 fname = os.path.join(os.path.dirname(__file__), 'requirements_test.txt')
 with open(fname) as f:
     tests_require = [l.strip() for l in f.readlines()]
-
-if sys.version_info[:2] < (3, 3):
-    tests_require.append('mock')
-if sys.version_info[:2] < (2, 7):
-    tests_require.append('unittest2')
 
 class PyTestCommand(TestCommand):
     user_options = [
@@ -79,8 +70,6 @@ extra_require = {
     'tornado': ['tornado>=0.2'],
     'gthread': [],
 }
-if sys.version_info[0] < 3:
-    extra_require['gthread'] = ['futures']
 
 setup(
     name='gunicorn',
@@ -93,7 +82,7 @@ setup(
     license='MIT',
     url='http://gunicorn.org',
 
-    python_requires='>=2.6, !=3.0.*, !=3.1.*',
+    python_requires='>=3.2',
     classifiers=CLASSIFIERS,
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),

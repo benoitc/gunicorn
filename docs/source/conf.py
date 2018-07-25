@@ -21,8 +21,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Gunicorn'
-copyright = u'2009-%s, Benoit Chesneau' % time.strftime('%Y')
+project = 'Gunicorn'
+copyright = '2009-%s, Benoit Chesneau' % time.strftime('%Y')
 # gunicorn version
 import gunicorn
 release = version = gunicorn.__version__
@@ -55,19 +55,19 @@ latex_elements = {
 }
 
 latex_documents = [
-  ('index', 'Gunicorn.tex', u'Gunicorn Documentation',
-   u'Benoit Chesneau', 'manual'),
+  ('index', 'Gunicorn.tex', 'Gunicorn Documentation',
+   'Benoit Chesneau', 'manual'),
 ]
 
 
 # -- Options for manual page output --------------------------------------------
 man_pages = [
-    ('index', 'gunicorn', u'Gunicorn Documentation',
-     [u'Benoit Chesneau'], 1)
+    ('index', 'gunicorn', 'Gunicorn Documentation',
+     ['Benoit Chesneau'], 1)
 ]
 
 texinfo_documents = [
-  ('index', 'Gunicorn', u'Gunicorn Documentation',
-   u'Benoit Chesneau', 'Gunicorn', 'One line description of project.',
+  ('index', 'Gunicorn', 'Gunicorn Documentation',
+   'Benoit Chesneau', 'Gunicorn', 'One line description of project.',
    'Miscellaneous'),
 ]

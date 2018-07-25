@@ -2,29 +2,26 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-from __future__ import print_function
+import configparser
+import os
+import sys
+
+import pkg_resources
+
+from gunicorn import util
+from gunicorn.app.base import Application
+from gunicorn.config import Config, get_default_config_file
+from paste.deploy import loadapp, loadwsgi
 
 # pylint: skip-file
 
-import os
-import pkg_resources
-import sys
 
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
-
-from paste.deploy import loadapp, loadwsgi
 SERVER = loadwsgi.SERVER
 
-from gunicorn.app.base import Application
-from gunicorn.config import Config, get_default_config_file
-from gunicorn import util
 
 
 def _has_logging_config(paste_file):
-    cfg_parser = ConfigParser.ConfigParser()
+    cfg_parser = configparser.ConfigParser()
     cfg_parser.read([paste_file])
     return cfg_parser.has_section('loggers')
 
@@ -42,7 +39,7 @@ def paste_config(gconfig, config_url, relative_to, global_conf=None):
 
     host, port = lc.pop('host', ''), lc.pop('port', '')
     if host and port:
-        cfg['bind'] = '%s:%s' % (host, port)
+        cfg['bind'] = '{}:{}'.format(host, port)
     elif host:
         cfg['bind'] = host.split(',')
 
@@ -82,13 +79,13 @@ class PasterBaseApplication(Application):
 
         # reload logging conf
         if hasattr(self, "cfgfname"):
-            parser = ConfigParser.ConfigParser()
+            parser = configparser.ConfigParser()
             parser.read([self.cfgfname])
             if parser.has_section('loggers'):
                 from logging.config import fileConfig
                 config_file = os.path.abspath(self.cfgfname)
-                fileConfig(config_file, dict(__file__=config_file,
-                                             here=os.path.dirname(config_file)))
+                fileConfig(config_file, {'__file__': config_file,
+                                         'here': os.path.dirname(config_file)})
 
 
 class PasterApplication(PasterBaseApplication):
@@ -139,7 +136,7 @@ class PasterServerApplication(PasterBaseApplication):
         cfg = kwargs.copy()
 
         if port and not host.startswith("unix:"):
-            bind = "%s:%s" % (host, port)
+            bind = "{}:{}".format(host, port)
         else:
             bind = host
         cfg["bind"] = bind.split(',')

@@ -30,7 +30,7 @@ from gunicorn.http.wsgi import base_environ
 from gunicorn.workers.base_async import AsyncWorker
 from gunicorn.http.wsgi import sendfile as o_sendfile
 
-VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
+VERSION = "gevent/{} gunicorn/{}".format(gevent.__version__, gunicorn.__version__)
 
 def _gevent_sendfile(fdout, fdin, offset, nbytes):
     while True:
@@ -70,12 +70,8 @@ class GeventWorker(AsyncWorker):
         # patch sockets
         sockets = []
         for s in self.sockets:
-            if sys.version_info[0] == 3:
-                sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
-                    fileno=s.sock.fileno()))
-            else:
-                sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
-                    _sock=s))
+            sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
+                fileno=s.sock.fileno()))
         self.sockets = sockets
 
     def notify(self):

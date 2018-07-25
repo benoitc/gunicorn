@@ -3,27 +3,28 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import print_function
-
 import email.utils
+import errno
 import fcntl
+import html
+import inspect
 import io
+import logging
 import os
-import pkg_resources
 import pwd
 import random
+import re
 import socket
 import sys
 import textwrap
 import time
 import traceback
-import inspect
-import errno
 import warnings
-import logging
-import re
+from importlib import import_module
+from urllib.parse import urlsplit
 
-from gunicorn import _compat
+import pkg_resources
+
 from gunicorn.errors import AppImportError
 from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -52,43 +53,6 @@ try:
 except ImportError:
     def _setproctitle(title):
         pass
-
-
-try:
-    from importlib import import_module
-except ImportError:
-    def _resolve_name(name, package, level):
-        """Return the absolute name of the module to be imported."""
-        if not hasattr(package, 'rindex'):
-            raise ValueError("'package' not set to a string")
-        dot = len(package)
-        for _ in range(level, 1, -1):
-            try:
-                dot = package.rindex('.', 0, dot)
-            except ValueError:
-                msg = "attempted relative import beyond top-level package"
-                raise ValueError(msg)
-        return "%s.%s" % (package[:dot], name)
-
-    def import_module(name, package=None):
-        """Import a module.
-
-The 'package' argument is required when performing a relative import. It
-specifies the package to use as the anchor point from which to resolve the
-relative import to an absolute import.
-
-"""
-        if name.startswith('.'):
-            if not package:
-                raise TypeError("relative imports require the 'package' argument")
-            level = 0
-            for character in name:
-                if character != '.':
-                    break
-                level += 1
-            name = _resolve_name(name[level:], package, level)
-        __import__(name)
-        return sys.modules[name]
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
@@ -155,10 +119,6 @@ def set_owner_process(uid, gid, initgroups=False):
             except KeyError:
                 initgroups = False
 
-        # versions of python < 2.6.2 don't manage unsigned int for
-        # groups like on osx or fedora
-        gid = abs(gid) & 0x7FFFFFFF
-
         if initgroups:
             os.initgroups(username, gid)
         elif gid != os.getgid():
@@ -169,7 +129,6 @@ def set_owner_process(uid, gid, initgroups=False):
 
 
 def chown(path, uid, gid):
-    gid = abs(gid) & 0x7FFFFFFF  # see note above.
     os.chown(path, uid, gid)
 
 
@@ -317,7 +276,7 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
-    html = textwrap.dedent("""\
+    markup = textwrap.dedent("""\
     <html>
       <head>
         <title>%(reason)s</title>
@@ -327,7 +286,7 @@ def write_error(sock, status_int, reason, mesg):
         %(mesg)s
       </body>
     </html>
-    """) % {"reason": reason, "mesg": _compat.html_escape(mesg)}
+    """) % {"reason": reason, "mesg": html.escape(mesg)}
 
     http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
@@ -335,7 +294,7 @@ def write_error(sock, status_int, reason, mesg):
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
-    %s""") % (str(status_int), reason, len(html), html)
+    %s""") % (str(status_int), reason, len(markup), markup)
     write_nonblock(sock, http.encode('latin1'))
 
 
@@ -363,7 +322,7 @@ def import_app(module):
     except NameError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application object %r in %r" % (obj, module))
+        raise AppImportError("Failed to find application object {!r} in {!r}".format(obj, module))
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
@@ -486,14 +445,14 @@ def seed():
     try:
         random.seed(os.urandom(64))
     except NotImplementedError:
-        random.seed('%s.%s' % (time.time(), os.getpid()))
+        random.seed('{}.{}'.format(time.time(), os.getpid()))
 
 
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
     except IOError as e:
-        raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
+        raise RuntimeError("Error: '{}' isn't writable [{!r}]".format(path, e))
     f.close()
 
 
@@ -551,7 +510,7 @@ def split_request_uri(uri):
         # relative uri while the RFC says we should consider it as abs_path
         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
         # We use temporary dot prefix to workaround this behaviour
-        parts = _compat.urlsplit("." + uri)
+        parts = urlsplit("." + uri)
         return parts._replace(path=parts.path[1:])
 
-    return _compat.urlsplit(uri)
+    return urlsplit(uri)

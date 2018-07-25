@@ -8,10 +8,7 @@
 import copy
 import grp
 import inspect
-try:
-    import argparse
-except ImportError:  # python 2.6
-    from . import argparse_compat as argparse
+import argparse
 import os
 import pwd
 import re
@@ -273,7 +270,7 @@ class Setting(object):
             return
         args = tuple(self.cli)
 
-        help_txt = "%s [%s]" % (self.short, self.default)
+        help_txt = "{} [{}]".format(self.short, self.default)
         help_txt = help_txt.replace("%", "%%")
 
         kwargs = {
@@ -534,7 +531,7 @@ class Bind(Setting):
     validator = validate_list_string
 
     if 'PORT' in os.environ:
-        default = ['0.0.0.0:{0}'.format(os.environ.get('PORT'))]
+        default = ['0.0.0.0:{}'.format(os.environ.get('PORT'))]
     else:
         default = ['127.0.0.1:8000']
 
@@ -1696,7 +1693,7 @@ class PreRequest(Setting):
     type = six.callable
 
     def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        worker.log.debug("{} {}".format(req.method, req.path))
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.
@@ -1916,16 +1913,15 @@ class DoHandshakeOnConnect(Setting):
     """
 
 
-if sys.version_info >= (2, 7):
-    class Ciphers(Setting):
-        name = "ciphers"
-        section = "SSL"
-        cli = ["--ciphers"]
-        validator = validate_string
-        default = 'TLSv1'
-        desc = """\
-        Ciphers to use (see stdlib ssl module's)
-        """
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "SSL"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
+    """
 
 
 class PasteGlobalConf(Setting):

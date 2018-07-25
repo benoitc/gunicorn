@@ -39,7 +39,7 @@ def format_settings(app):
     known_settings = sorted(guncfg.KNOWN_SETTINGS, key=lambda s: s.section)
     for i, s in enumerate(known_settings):
         if i == 0 or s.section != known_settings[i - 1].section:
-            ret.append("%s\n%s\n\n" % (s.section, "-" * len(s.section)))
+            ret.append("{}\n{}\n\n".format(s.section, "-" * len(s.section)))
         ret.append(fmt_setting(s))
 
     with open(settings_file, 'w') as settings:
@@ -58,7 +58,7 @@ def fmt_setting(s):
         val = "``%s``" % s.default
 
     if s.cli and s.meta:
-        args = ["%s %s" % (arg, s.meta) for arg in s.cli]
+        args = ["{} {}".format(arg, s.meta) for arg in s.cli]
         cli = ', '.join(args)
     elif s.cli:
         cli = ", ".join(s.cli)

@@ -71,10 +71,7 @@ class request(object):
 
     def send_bytes(self):
         for d in self.data:
-            if six.PY3:
-                yield bytes([d])
-            else:
-                yield d
+            yield bytes([d])
 
     def send_random(self):
         maxs = round(len(self.data) / 10)
@@ -134,7 +131,7 @@ class request(object):
         count = 1000
         while body:
             if body[:len(data)] != data:
-                raise AssertionError("Invalid body data read: %r != %r" % (
+                raise AssertionError("Invalid body data read: {!r} != {!r}".format(
                                         data, body[:len(data)]))
             body = body[len(data):]
             data = self.szread(req.body.read, sizes)
@@ -182,7 +179,7 @@ class request(object):
             if b'\n' in line[:-1]:
                 raise AssertionError("Embedded new line: %r" % line)
             if line != body[:len(line)]:
-                raise AssertionError("Invalid body data read: %r != %r" % (
+                raise AssertionError("Invalid body data read: {!r} != {!r}".format(
                                                     line, body[:len(line)]))
             body = body[len(line):]
         if body:
@@ -199,7 +196,7 @@ class request(object):
             if b'\n' in line[:-1]:
                 raise AssertionError("Embedded new line: %r" % line)
             if line != body[:len(line)]:
-                raise AssertionError("Invalid body data read: %r != %r" % (
+                raise AssertionError("Invalid body data read: {!r} != {!r}".format(
                                                     line, body[:len(line)]))
             body = body[len(line):]
         if body:
@@ -239,7 +236,7 @@ class request(object):
 
             def test_req(sn, sz, mt):
                 self.check(cfg, sn, sz, mt)
-            desc = "%s: MT: %s SZ: %s SN: %s" % (self.name, mtn, szn, snn)
+            desc = "{}: MT: {} SZ: {} SN: {}".format(self.name, mtn, szn, snn)
             test_req.description = desc
             ret.append((test_req, sn, sz, mt))
         return ret

@@ -2,17 +2,16 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-from __future__ import print_function
-
 import os
 import sys
 import traceback
+from importlib import import_module
 
+from gunicorn import debug, util
 from gunicorn._compat import execfile_
-from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
-from gunicorn import debug
+
 
 class BaseApplication(object):
     """
@@ -113,7 +112,7 @@ class Application(BaseApplication):
         return cfg
 
     def get_config_from_module_name(self, module_name):
-        return vars(util.import_module(module_name))
+        return vars(import_module(module_name))
 
     def load_config_from_module_name_or_filename(self, location):
         """
@@ -138,7 +137,7 @@ class Application(BaseApplication):
             try:
                 self.cfg.set(k.lower(), v)
             except:
-                print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
+                print("Invalid value for {}: {}\n".format(k, v), file=sys.stderr)
                 sys.stderr.flush()
                 raise
 

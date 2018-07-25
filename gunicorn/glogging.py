@@ -8,12 +8,7 @@ import binascii
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
-from logging.config import fileConfig
-try:
-    from logging.config import dictConfig
-except ImportError:
-    # python 2.6
-    dictConfig = None
+from logging.config import dictConfig, fileConfig
 import os
 import socket
 import sys
@@ -21,7 +16,7 @@ import threading
 import traceback
 
 from gunicorn import util
-from gunicorn.six import PY3, string_types
+from gunicorn.six import string_types
 
 
 # syslog facility codes
@@ -50,11 +45,11 @@ SYSLOG_FACILITIES = {
         }
 
 
-CONFIG_DEFAULTS = dict(
-        version=1,
-        disable_existing_loggers=False,
+CONFIG_DEFAULTS = {
+        "version": 1,
+        "disable_existing_loggers": False,
 
-        loggers={
+        "loggers": {
             "root": {"level": "INFO", "handlers": ["console"]},
             "gunicorn.error": {
                 "level": "INFO",
@@ -70,7 +65,7 @@ CONFIG_DEFAULTS = dict(
                 "qualname": "gunicorn.access"
             }
         },
-        handlers={
+        "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
@@ -82,14 +77,14 @@ CONFIG_DEFAULTS = dict(
                 "stream": "ext://sys.stderr"
             },
         },
-        formatters={
+        "formatters": {
             "generic": {
                 "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             }
         }
-)
+}
 
 
 def loggers():
@@ -231,11 +226,11 @@ class Logger(object):
                     self.access_log, cfg, self.syslog_fmt, "access"
                 )
 
-        if dictConfig is None and cfg.logconfig_dict:
+        if cfg.logconfig_dict:
             util.warn("Dictionary-based log configuration requires "
                       "Python 2.7 or above.")
 
-        if dictConfig and cfg.logconfig_dict:
+        if cfg.logconfig_dict:
             config = CONFIG_DEFAULTS.copy()
             config.update(cfg.logconfig_dict)
             try:
@@ -292,7 +287,7 @@ class Logger(object):
             'l': '-',
             'u': self._get_user(environ) or '-',
             't': self.now(),
-            'r': "%s %s %s" % (environ['REQUEST_METHOD'],
+            'r': "{} {} {}".format(environ['REQUEST_METHOD'],
                 environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
             's': status,
             'm': environ.get('REQUEST_METHOD'),
@@ -318,18 +313,18 @@ class Logger(object):
         if hasattr(req_headers, "items"):
             req_headers = req_headers.items()
 
-        atoms.update(dict([("{%s}i" % k.lower(), v) for k, v in req_headers]))
+        atoms.update({"{%s}i" % k.lower(): v for k, v in req_headers})
 
         resp_headers = resp.headers
         if hasattr(resp_headers, "items"):
             resp_headers = resp_headers.items()
 
         # add response headers
-        atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp_headers]))
+        atoms.update({"{%s}o" % k.lower(): v for k, v in resp_headers})
 
         # add environ variables
         environ_variables = environ.items()
-        atoms.update(dict([("{%s}e" % k.lower(), v) for k, v in environ_variables]))
+        atoms.update({"{%s}e" % k.lower(): v for k, v in environ_variables})
 
         return atoms
 
@@ -429,10 +424,10 @@ class Logger(object):
         else:
             prefix = cfg.syslog_prefix
 
-        prefix = "gunicorn.%s.%s" % (prefix, name)
+        prefix = "gunicorn.{}.{}".format(prefix, name)
 
         # set format
-        fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+        fmt = logging.Formatter(r"{}: {}".format(prefix, fmt))
 
         # syslog facility
         try:
@@ -444,14 +439,8 @@ class Logger(object):
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        if sys.version_info >= (2, 7):
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility, socktype=socktype)
-        else:
-            # socktype is only supported in 2.7 and sup
-            # fix issue #541
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility)
+        h = logging.handlers.SysLogHandler(address=addr,
+                facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
@@ -467,8 +456,8 @@ class Logger(object):
                     # b64decode doesn't accept unicode in Python < 3.3
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
-                    if PY3:  # b64decode returns a byte string in Python 3
-                        auth = auth.decode('utf-8')
+                    # b64decode returns a byte string in Python 3
+                    auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
                 except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
