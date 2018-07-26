@@ -8,7 +8,6 @@ ignore=
     _compat.py,
     argparse_compat.py,
     six.py,
-    selectors.py,
     _gaiohttp.py,
 
 [MESSAGES CONTROL]

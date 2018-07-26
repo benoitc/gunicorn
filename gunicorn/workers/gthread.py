@@ -36,10 +36,7 @@ except ImportError:
     Python version.
     """)
 
-try:
-    from asyncio import selectors
-except ImportError:
-    from gunicorn import selectors
+import selectors
 
 
 class TConn(object):
