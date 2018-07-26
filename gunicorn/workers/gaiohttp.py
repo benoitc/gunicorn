@@ -7,7 +7,7 @@ import sys
 
 from gunicorn import util
 
-if sys.version_info >= (3, 4):
+if sys.version_info[0] >= 3:
     try:
         import aiohttp  # pylint: disable=unused-import
     except ImportError:

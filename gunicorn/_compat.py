@@ -3,7 +3,7 @@ import sys
 from gunicorn import six
 
 PY26 = (sys.version_info[:2] == (2, 6))
-PY33 = (sys.version_info >= (3, 3))
+PY3 = (sys.version_info[0] >= 3)
 
 
 def _check_if_pyc(fname):
@@ -110,7 +110,7 @@ def _wrap_error(exc, mapping, key):
     six.reraise(new_err_cls, new_err,
                 exc.__traceback__ if hasattr(exc, '__traceback__') else sys.exc_info()[2])
 
-if PY33:
+if PY3:
     import builtins
 
     BlockingIOError = builtins.BlockingIOError

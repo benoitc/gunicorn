@@ -15,7 +15,7 @@ import gunicorn.pidfile
 
 
 def builtin(name):
-    if sys.version_info >= (3, 0):
+    if sys.version_info[0] >= 3:
         module = 'builtins'
     else:
         module = '__builtin__'
