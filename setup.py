@@ -91,7 +91,7 @@ setup(
     license='MIT',
     url='http://gunicorn.org',
 
-    python_requires='>=2.6, !=3.0.*, !=3.1.*',
+    python_requires='>=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=CLASSIFIERS,
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),
