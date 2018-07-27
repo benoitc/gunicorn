@@ -36,8 +36,18 @@ except ImportError:
     Python version.
     """)
 
-import selectors
-
+try:
+    # Python 3.4+
+    import selectors
+except ImportError:
+    # Python 2
+    try:
+        import selectors34 as selectors
+    except ImportError:
+        raise RuntimeError(
+            "You need to install the 'selectors34' package to use this worker "
+            "with this Python version."
+        )
 
 class TConn(object):
 
