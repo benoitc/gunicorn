@@ -1235,7 +1235,7 @@ max_requests
 
 The maximum number of requests a worker will process before restarting.
 
-Any value greater than zero will limit the number of requests a work
+Any value greater than zero will limit the number of requests a worker
 will process before automatically restarting. This is a simple method
 to help limit the damage of memory leaks.
 
