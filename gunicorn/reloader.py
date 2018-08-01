@@ -29,12 +29,12 @@ class Reloader(threading.Thread):
             self._extra_files.add(filename)
 
     def add_extra_extension(self, extensions):
-        for path, dirs, files in os.walk(os.getcwd()):
-            for file in files:
-                for extension in extensions:
-                    if file.endswith("."+extension):
-                        with self._extra_files_lock:
-                            self._extra_files.add(path + '/' + file)
+        extra_files = [os_path.join(path, file) for path, dirs, files in os.walk(os.getcwd())
+                                                for file in files
+                                                for extension in extensions
+                                                if file.endswith("." + extension)]
+        for extra_file in extra_files:
+            self.add_extra_file(extra_file)
 
     def get_files(self):
         fnames = [
@@ -42,10 +42,8 @@ class Reloader(threading.Thread):
             for module in tuple(sys.modules.values())
             if getattr(module, '__file__', None)
         ]
-
         with self._extra_files_lock:
             fnames.extend(self._extra_files)
-
         return fnames
 
     def run(self):
