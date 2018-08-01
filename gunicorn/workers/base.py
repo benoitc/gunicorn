@@ -123,6 +123,7 @@ class Worker(object):
 
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
+                                         extra_extension=self.cfg.reload_extra_extension,
                                          callback=changed)
             self.reloader.start()
 

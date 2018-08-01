@@ -366,6 +366,12 @@ def validate_file_exists(val):
     return val
 
 
+def validate_extension(val):
+    if val is None:
+        return None
+    return val
+
+
 def validate_list_string(val):
     if not val:
         return []
@@ -895,6 +901,19 @@ class ReloadExtraFiles(Setting):
 
         .. versionadded:: 19.8
         """
+
+
+class ReloadExtraExtension(Setting):
+    name = "reload_extra_extension"
+    action = "append"
+    section = "Debugging"
+    cli = ["--reload-extra-extension"]
+    meta = "EXTENSIONS"
+    validator = validate_extension
+    default = ""
+    desc = """\
+            Extends :ref: 'reload'
+            """
 
 
 class Spew(Setting):

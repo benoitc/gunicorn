@@ -14,17 +14,27 @@ COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
 class Reloader(threading.Thread):
-    def __init__(self, extra_files=None, interval=1, callback=None):
+    def __init__(self, extra_files=None, interval=1, callback=None, extra_extension=None):
         super(Reloader, self).__init__()
         self.setDaemon(True)
         self._extra_files = set(extra_files or ())
         self._extra_files_lock = threading.RLock()
         self._interval = interval
         self._callback = callback
+        if extra_extension is not None:
+            self.add_extra_extension(extra_extension)
 
     def add_extra_file(self, filename):
         with self._extra_files_lock:
             self._extra_files.add(filename)
+
+    def add_extra_extension(self, extensions):
+        for path, dirs, files in os.walk(os.getcwd()):
+            for file in files:
+                for extension in extensions:
+                     if file.endswith("."+extension):
+                        with self._extra_files_lock:
+                            self._extra_files.add(path + '/' + file)
 
     def get_files(self):
         fnames = [
@@ -35,7 +45,7 @@ class Reloader(threading.Thread):
 
         with self._extra_files_lock:
             fnames.extend(self._extra_files)
-
+        
         return fnames
 
     def run(self):
