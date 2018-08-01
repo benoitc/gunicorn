@@ -29,7 +29,7 @@ class Reloader(threading.Thread):
             self._extra_files.add(filename)
 
     def add_extra_extension(self, extensions):
-        extra_files = [os_path.join(path, file) for path, dirs, files in os.walk(os.getcwd())
+        extra_files = [os.path.join(path, file) for path, dirs, files in os.walk(os.getcwd())
                                                 for file in files
                                                 for extension in extensions
                                                 if file.endswith("." + extension)]
