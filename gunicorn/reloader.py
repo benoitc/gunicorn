@@ -32,7 +32,7 @@ class Reloader(threading.Thread):
         for path, dirs, files in os.walk(os.getcwd()):
             for file in files:
                 for extension in extensions:
-                     if file.endswith("."+extension):
+                    if file.endswith("."+extension):
                         with self._extra_files_lock:
                             self._extra_files.add(path + '/' + file)
 
@@ -45,7 +45,7 @@ class Reloader(threading.Thread):
 
         with self._extra_files_lock:
             fnames.extend(self._extra_files)
-        
+
         return fnames
 
     def run(self):
