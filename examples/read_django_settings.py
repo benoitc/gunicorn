@@ -2,8 +2,6 @@
 Use this config file in your script like this:
 
     $ gunicorn project_name.wsgi:application -c read_django_settings.py
-
-You need to replace the exec() call if you want it to work on Python 2.
 """
 
 settings_dict = {}

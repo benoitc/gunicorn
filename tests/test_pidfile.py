@@ -4,7 +4,6 @@
 # See the NOTICE for more information.
 
 import errno
-import sys
 
 try:
     import unittest.mock as mock
@@ -15,12 +14,7 @@ import gunicorn.pidfile
 
 
 def builtin(name):
-    if sys.version_info >= (3, 0):
-        module = 'builtins'
-    else:
-        module = '__builtin__'
-
-    return '{0}.{1}'.format(module, name)
+    return 'builtins.{}'.format(name)
 
 
 @mock.patch(builtin('open'), new_callable=mock.mock_open)

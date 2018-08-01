@@ -4,17 +4,17 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import io
 import os
 import tempfile
 
 dirname = os.path.dirname(__file__)
 
 from gunicorn.http.parser import RequestParser
-from gunicorn.six import BytesIO
 
 
 def data_source(fname):
-    buf = BytesIO()
+    buf = io.BytesIO()
     with open(fname) as handle:
         for line in handle:
             line = line.rstrip("\n").replace("\\r\\n", "\r\n")

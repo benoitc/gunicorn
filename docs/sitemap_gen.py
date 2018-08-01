@@ -50,15 +50,6 @@ Usage: python sitemap_gen.py --config=config.xml [--help] [--testing]
             --testing, specified when user is experimenting
 """
 
-# Please be careful that all syntax used in this file can be parsed on
-# Python 1.5 -- this version check is not evaluated until after the
-# entire file has been parsed.
-import sys
-if sys.hexversion < 0x02020000:
-  print 'This script requires Python 2.2 or later.'
-  print 'Currently run with version: %s' % sys.version
-  sys.exit(1)
-
 import fnmatch
 import glob
 import gzip
@@ -71,14 +62,6 @@ import types
 import urllib
 import urlparse
 import xml.sax
-
-# True and False were introduced in Python2.2.2
-try:
-  testTrue=True
-  del testTrue
-except NameError:
-  True=1
-  False=0
 
 # Text encodings
 ENC_ASCII = 'ASCII'

@@ -5,13 +5,11 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import sys
-
 import pytest
 
 from gunicorn.config import (
     KeyFile, CertFile, SSLVersion, CACerts, SuppressRaggedEOFs,
-    DoHandshakeOnConnect, Setting,
+    DoHandshakeOnConnect, Setting, Ciphers,
 )
 
 ssl = pytest.importorskip('ssl')
@@ -69,11 +67,7 @@ def test_do_handshake_on_connect():
     assert DoHandshakeOnConnect.default is False
 
 
-@pytest.mark.skipif(sys.version_info < (2, 7),
-                    reason="requires Python 2.7+")
 def test_ciphers():
-    from gunicorn.config import Ciphers
-
     assert issubclass(Ciphers, Setting)
     assert Ciphers.name == 'ciphers'
     assert Ciphers.section == 'SSL'

@@ -11,7 +11,6 @@ from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
 from gunicorn.util import split_request_uri
-from gunicorn import six
 
 dirname = os.path.dirname(__file__)
 random.seed()
@@ -71,10 +70,7 @@ class request(object):
 
     def send_bytes(self):
         for d in self.data:
-            if six.PY3:
-                yield bytes([d])
-            else:
-                yield d
+            yield bytes([d])
 
     def send_random(self):
         maxs = round(len(self.data) / 10)
@@ -205,7 +201,7 @@ class request(object):
         if body:
             raise AssertionError("Failed to read entire body: %r" % body)
         try:
-            data = six.next(iter(req.body))
+            data = next(iter(req.body))
             raise AssertionError("Read data after body finished: %r" % data)
         except StopIteration:
             pass
@@ -284,4 +280,4 @@ class badrequest(object):
 
     def check(self, cfg):
         p = RequestParser(cfg, self.send())
-        six.next(p)
+        next(p)

@@ -10,23 +10,22 @@
 # If no event happen after the keep alive timeout, the connectoin is
 # closed.
 
-from collections import deque
-from datetime import datetime
 import errno
-from functools import partial
 import os
+import selectors
 import socket
 import ssl
 import sys
-from threading import RLock
 import time
+from collections import deque
+from datetime import datetime
+from functools import partial
+from threading import RLock
 
-from .. import http
-from ..http import wsgi
-from .. import util
 from . import base
-from .. import six
-
+from .. import http
+from .. import util
+from ..http import wsgi
 
 try:
     import concurrent.futures as futures
@@ -35,19 +34,6 @@ except ImportError:
     You need to install the 'futures' package to use this worker with this
     Python version.
     """)
-
-try:
-    # Python 3.4+
-    import selectors
-except ImportError:
-    # Python 2
-    try:
-        import selectors34 as selectors
-    except ImportError:
-        raise RuntimeError(
-            "You need to install the 'selectors34' package to use this worker "
-            "with this Python version."
-        )
 
 class TConn(object):
 
@@ -278,7 +264,7 @@ class ThreadWorker(base.Worker):
         keepalive = False
         req = None
         try:
-            req = six.next(conn.parser)
+            req = next(conn.parser)
             if not req:
                 return (False, conn)
 
@@ -352,7 +338,7 @@ class ThreadWorker(base.Worker):
                 return False
         except EnvironmentError:
             # pass to next try-except level
-            six.reraise(*sys.exc_info())
+            util.reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the

@@ -8,12 +8,8 @@ import binascii
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
+from logging.config import dictConfig
 from logging.config import fileConfig
-try:
-    from logging.config import dictConfig
-except ImportError:
-    # python 2.6
-    dictConfig = None
 import os
 import socket
 import sys
@@ -21,7 +17,6 @@ import threading
 import traceback
 
 from gunicorn import util
-from gunicorn.six import PY3, string_types
 
 
 # syslog facility codes
@@ -104,7 +99,7 @@ class SafeAtoms(dict):
     def __init__(self, atoms):
         dict.__init__(self)
         for key, value in atoms.items():
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 self[key] = value.replace('"', '\\"')
             else:
                 self[key] = value
@@ -231,11 +226,7 @@ class Logger(object):
                     self.access_log, cfg, self.syslog_fmt, "access"
                 )
 
-        if dictConfig is None and cfg.logconfig_dict:
-            util.warn("Dictionary-based log configuration requires "
-                      "Python 2.7 or above.")
-
-        if dictConfig and cfg.logconfig_dict:
+        if cfg.logconfig_dict:
             config = CONFIG_DEFAULTS.copy()
             config.update(cfg.logconfig_dict)
             try:
@@ -277,7 +268,7 @@ class Logger(object):
         self.error_log.exception(msg, *args, **kwargs)
 
     def log(self, lvl, msg, *args, **kwargs):
-        if isinstance(lvl, string_types):
+        if isinstance(lvl, str):
             lvl = self.LOG_LEVELS.get(lvl.lower(), logging.INFO)
         self.error_log.log(lvl, msg, *args, **kwargs)
 
@@ -318,18 +309,18 @@ class Logger(object):
         if hasattr(req_headers, "items"):
             req_headers = req_headers.items()
 
-        atoms.update(dict([("{%s}i" % k.lower(), v) for k, v in req_headers]))
+        atoms.update({"{%s}i" % k.lower(): v for k, v in req_headers})
 
         resp_headers = resp.headers
         if hasattr(resp_headers, "items"):
             resp_headers = resp_headers.items()
 
         # add response headers
-        atoms.update(dict([("{%s}o" % k.lower(), v) for k, v in resp_headers]))
+        atoms.update({"{%s}o" % k.lower(): v for k, v in resp_headers})
 
         # add environ variables
         environ_variables = environ.items()
-        atoms.update(dict([("{%s}e" % k.lower(), v) for k, v in environ_variables]))
+        atoms.update({"{%s}e" % k.lower(): v for k, v in environ_variables})
 
         return atoms
 
@@ -444,14 +435,8 @@ class Logger(object):
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        if sys.version_info >= (2, 7):
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility, socktype=socktype)
-        else:
-            # socktype is only supported in 2.7 and sup
-            # fix issue #541
-            h = logging.handlers.SysLogHandler(address=addr,
-                    facility=facility)
+        h = logging.handlers.SysLogHandler(address=addr,
+                facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
@@ -467,8 +452,8 @@ class Logger(object):
                     # b64decode doesn't accept unicode in Python < 3.3
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
-                    if PY3:  # b64decode returns a byte string in Python 3
-                        auth = auth.decode('utf-8')
+                    # b64decode returns a byte string
+                    auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
                 except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)

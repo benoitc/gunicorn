@@ -5,12 +5,11 @@
 
 "Bare-bones implementation of statsD's protocol, client-side"
 
-import socket
 import logging
+import socket
 from re import sub
 
 from gunicorn.glogging import Logger
-from gunicorn import six
 
 # Instrumentation constants
 METRIC_VAR = "metric"
@@ -115,7 +114,7 @@ class Statsd(Logger):
 
     def _sock_send(self, msg):
         try:
-            if isinstance(msg, six.text_type):
+            if isinstance(msg, str):
                 msg = msg.encode("ascii")
             if self.sock:
                 self.sock.send(msg)

@@ -3,30 +3,29 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import print_function
-
 import email.utils
+import errno
 import fcntl
+import html
+import inspect
 import io
+import logging
 import os
-import pkg_resources
 import pwd
 import random
+import re
 import socket
 import sys
 import textwrap
 import time
 import traceback
-import inspect
-import errno
 import warnings
-import logging
-import re
 
-from gunicorn import _compat
+import pkg_resources
+
 from gunicorn.errors import AppImportError
-from gunicorn.six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
+import urllib.parse
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
@@ -140,6 +139,23 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
         return getattr(mod, klass)
 
 
+positionals = (
+    inspect.Parameter.POSITIONAL_ONLY,
+    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+)
+
+
+def get_arity(f):
+    sig = inspect.signature(f)
+    arity = 0
+
+    for param in sig.parameters.values():
+        if param.kind in positionals:
+            arity += 1
+
+    return arity
+
+
 def get_username(uid):
     """ get the username for a user id"""
     return pwd.getpwuid(uid).pw_name
@@ -169,7 +185,6 @@ def set_owner_process(uid, gid, initgroups=False):
 
 
 def chown(path, uid, gid):
-    gid = abs(gid) & 0x7FFFFFFF  # see note above.
     os.chown(path, uid, gid)
 
 
@@ -291,7 +306,7 @@ except ImportError:
 
 
 def write_chunk(sock, data):
-    if isinstance(data, text_type):
+    if isinstance(data, str):
         data = data.encode('utf-8')
     chunk_size = "%X\r\n" % len(data)
     chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
@@ -317,7 +332,7 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
-    html = textwrap.dedent("""\
+    html_error = textwrap.dedent("""\
     <html>
       <head>
         <title>%(reason)s</title>
@@ -327,7 +342,7 @@ def write_error(sock, status_int, reason, mesg):
         %(mesg)s
       </body>
     </html>
-    """) % {"reason": reason, "mesg": _compat.html_escape(mesg)}
+    """) % {"reason": reason, "mesg": html.escape(mesg)}
 
     http = textwrap.dedent("""\
     HTTP/1.1 %s %s\r
@@ -335,7 +350,7 @@ def write_error(sock, status_int, reason, mesg):
     Content-Type: text/html\r
     Content-Length: %d\r
     \r
-    %s""") % (str(status_int), reason, len(html), html)
+    %s""") % (str(status_int), reason, len(html_error), html_error)
     write_nonblock(sock, http.encode('latin1'))
 
 
@@ -501,7 +516,7 @@ def to_bytestring(value, encoding="utf8"):
     """Converts a string argument to a byte string"""
     if isinstance(value, bytes):
         return value
-    if not isinstance(value, text_type):
+    if not isinstance(value, str):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
@@ -551,7 +566,30 @@ def split_request_uri(uri):
         # relative uri while the RFC says we should consider it as abs_path
         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
         # We use temporary dot prefix to workaround this behaviour
-        parts = _compat.urlsplit("." + uri)
+        parts = urllib.parse.urlsplit("." + uri)
         return parts._replace(path=parts.path[1:])
 
-    return _compat.urlsplit(uri)
+    return urllib.parse.urlsplit(uri)
+
+
+# From six.reraise
+def reraise(tp, value, tb=None):
+    try:
+        if value is None:
+            value = tp()
+        if value.__traceback__ is not tb:
+            raise value.with_traceback(tb)
+        raise value
+    finally:
+        value = None
+        tb = None
+
+
+def bytes_to_str(b):
+    if isinstance(b, str):
+        return b
+    return str(b, 'latin1')
+
+
+def unquote_to_wsgi_str(string):
+    return urllib.parse.unquote_to_bytes(string).decode('latin-1')

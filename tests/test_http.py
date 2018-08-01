@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
+import io
 import t
 import pytest
 
@@ -7,7 +8,6 @@ from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
-from gunicorn.six import BytesIO
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 
 try:
@@ -17,7 +17,7 @@ except ImportError:
 
 
 def assert_readline(payload, size, expected):
-    body = Body(BytesIO(payload))
+    body = Body(io.BytesIO(payload))
     assert body.readline(size) == expected
 
 
@@ -32,28 +32,28 @@ def test_readline_zero_size():
 
 
 def test_readline_new_line_before_size():
-    body = Body(BytesIO(b"abc\ndef"))
+    body = Body(io.BytesIO(b"abc\ndef"))
     assert body.readline(4) == b"abc\n"
     assert body.readline() == b"def"
 
 
 def test_readline_new_line_after_size():
-    body = Body(BytesIO(b"abc\ndef"))
+    body = Body(io.BytesIO(b"abc\ndef"))
     assert body.readline(2) == b"ab"
     assert body.readline() == b"c\n"
 
 
 def test_readline_no_new_line():
-    body = Body(BytesIO(b"abcdef"))
+    body = Body(io.BytesIO(b"abcdef"))
     assert body.readline() == b"abcdef"
-    body = Body(BytesIO(b"abcdef"))
+    body = Body(io.BytesIO(b"abcdef"))
     assert body.readline(2) == b"ab"
     assert body.readline(2) == b"cd"
     assert body.readline(2) == b"ef"
 
 
 def test_readline_buffer_loaded():
-    reader = BytesIO(b"abc\ndef")
+    reader = io.BytesIO(b"abc\ndef")
     body = Body(reader)
     body.read(1) # load internal buffer
     reader.write(b"g\nhi")
@@ -64,7 +64,7 @@ def test_readline_buffer_loaded():
 
 
 def test_readline_buffer_loaded_with_size():
-    body = Body(BytesIO(b"abc\ndef"))
+    body = Body(io.BytesIO(b"abc\ndef"))
     body.read(1)  # load internal buffer
     assert body.readline(2) == b"bc"
     assert body.readline(2) == b"\n"
@@ -82,7 +82,7 @@ def test_http_header_encoding():
     response = Response(mocked_request, mocked_socket, None)
 
     # set umlaut header
-    response.headers.append(('foo', u'häder'))
+    response.headers.append(('foo', 'häder'))
     with pytest.raises(UnicodeEncodeError):
         response.send_headers()
 
@@ -169,7 +169,7 @@ def test_iter_unreader_chunk():
 
 
 def test_socket_unreader_chunk():
-    fake_sock = t.FakeSocket(BytesIO(b'Lorem ipsum dolor'))
+    fake_sock = t.FakeSocket(io.BytesIO(b'Lorem ipsum dolor'))
     sock_unreader = SocketUnreader(fake_sock, max_chunk=5)
 
     assert sock_unreader.chunk() == b'Lorem'
