@@ -366,12 +366,6 @@ def validate_file_exists(val):
     return val
 
 
-def validate_extension(val):
-    if val is None:
-        return None
-    return val
-
-
 def validate_list_string(val):
     if not val:
         return []
@@ -617,11 +611,11 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
@@ -658,7 +652,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-
+        
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used
@@ -889,31 +883,20 @@ class ReloadEngine(Setting):
 
 class ReloadExtraFiles(Setting):
     name = "reload_extra_files"
-    action = "append"
+    action = "store"
     section = "Debugging"
     cli = ["--reload-extra-file"]
+    nargs = "+"
     meta = "FILES"
     validator = validate_list_of_existing_files
-    default = []
+    type = str
+    default = ""
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
         .. versionadded:: 19.8
         """
-
-
-class ReloadExtraExtension(Setting):
-    name = "reload_extra_extension"
-    action = "append"
-    section = "Debugging"
-    cli = ["--reload-extra-extension"]
-    meta = "EXTENSIONS"
-    validator = validate_extension
-    default = []
-    desc = """\
-            Extends :ref: 'reload'
-            """
 
 
 class Spew(Setting):
