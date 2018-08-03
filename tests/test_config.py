@@ -318,6 +318,36 @@ def test_nworkers_changed():
     assert c.nworkers_changed(1, 2, 3) == 3
 
 
+def test_reload_extra_files(tmp_path):
+    try:
+        tmp_path.mkdir()
+    except FileExistsError:
+        pass
+
+    foo_path = tmp_path / 'foo'
+    bar_path = tmp_path / 'bar'
+    baz_path = tmp_path / 'baz'
+    foo_path.touch()
+    bar_path.touch()
+    baz_path.touch()
+
+    args = ["prog_name", "--config", cfg_file()]
+    with AltArgs(args):
+        app = NoConfigApp()
+    assert app.cfg.reload_extra_files == []
+
+    args.extend(['--reload-extra-file', str(foo_path)])
+    with AltArgs(args):
+        app = NoConfigApp()
+    print(app.cfg.reload_extra_files)
+    assert app.cfg.reload_extra_files == [str(foo_path)]
+
+    args.extend(['--reload-extra-file', str(bar_path), str(baz_path)])
+    with AltArgs(args):
+        app = NoConfigApp()
+    assert app.cfg.reload_extra_files == [str(foo_path), str(bar_path), str(baz_path)]
+
+
 def test_statsd_host():
     c = config.Config()
     assert c.statsd_host is None
