@@ -896,12 +896,14 @@ class ReloadEngine(Setting):
 
 class ReloadExtraFiles(Setting):
     name = "reload_extra_files"
-    action = "append"
+    action = "store"
     section = "Debugging"
     cli = ["--reload-extra-file"]
     meta = "FILES"
     validator = validate_list_of_existing_files
-    default = []
+    default = ""
+    nargs = "+"
+    type = str
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
