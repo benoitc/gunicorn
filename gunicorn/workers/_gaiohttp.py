@@ -100,7 +100,10 @@ class AiohttpWorker(base.Worker):
 
                 if (self.alive and
                         pid == os.getpid() and self.ppid != os.getppid()):
-                    self.log.info("Parent changed, shutting down: %s", self)
+                    self.log.info("Parent changed, shutting down: %s self.ppid=%s os.getppid()=%s",
+                                  self,
+                                  self.ppid,
+                                  os.getppid())
                     self.alive = False
 
                 # stop accepting requests
