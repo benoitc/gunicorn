@@ -81,7 +81,10 @@ class GeventWorker(AsyncWorker):
     def notify(self):
         super(GeventWorker, self).notify()
         if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s", self)
+            self.log.info("Parent changed, shutting down: %s self.ppid=%s os.getppid()=%s",
+                          self,
+                          self.ppid,
+                          os.getppid())
             sys.exit(0)
 
     def timeout_ctx(self):
