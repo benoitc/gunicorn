@@ -21,6 +21,7 @@ import inspect
 import errno
 import warnings
 import logging
+import re
 
 from gunicorn import _compat
 from gunicorn.errors import AppImportError
@@ -50,7 +51,7 @@ try:
         setproctitle("gunicorn: %s" % title)
 except ImportError:
     def _setproctitle(title):
-        return
+        pass
 
 
 try:
@@ -160,7 +161,7 @@ def set_owner_process(uid, gid, initgroups=False):
 
         if initgroups:
             os.initgroups(username, gid)
-        else:
+        elif gid != os.getgid():
             os.setgid(gid)
 
     if uid:
@@ -190,7 +191,7 @@ if sys.platform.startswith("win"):
         # required when contention occurs.
         timeout = 0.001
         while timeout < 1.0:
-            # Note we are only testing for the existance of the file(s) in
+            # Note we are only testing for the existence of the file(s) in
             # the contents of the directory regardless of any security or
             # access rights.  If we have made it this far, we have sufficient
             # permissions to do that much using Python's equivalent of the
@@ -198,7 +199,7 @@ if sys.platform.startswith("win"):
             # Other Windows APIs can fail or give incorrect results when
             # dealing with files that are pending deletion.
             L = os.listdir(dirname)
-            if not (L if waitall else name in L):
+            if not L if waitall else name in L:
                 return
             # Increase the timeout and try again
             time.sleep(timeout)
@@ -232,11 +233,8 @@ def is_ipv6(addr):
 
 
 def parse_address(netloc, default_port=8000):
-    if netloc.startswith("unix://"):
-        return netloc.split("unix://")[1]
-
-    if netloc.startswith("unix:"):
-        return netloc.split("unix:")[1]
+    if re.match(r'unix:(//)?', netloc):
+        return re.split(r'unix:(//)?', netloc)[-1]
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
@@ -365,7 +363,7 @@ def import_app(module):
     except NameError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application: %r" % module)
+        raise AppImportError("Failed to find application object %r in %r" % (obj, module))
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
@@ -417,7 +415,7 @@ def daemonize(enable_stdio_inheritance=False):
         os.umask(0o22)
 
         # In both the following any file descriptors above stdin
-        # stdout and stderr are left untouched. The inheritence
+        # stdout and stderr are left untouched. The inheritance
         # option simply allows one to have output go to a file
         # specified by way of shell redirection when not wanting
         # to use --error-log option.
@@ -545,3 +543,15 @@ def make_fail_app(msg):
         return [msg]
 
     return app
+
+
+def split_request_uri(uri):
+    if uri.startswith("//"):
+        # When the path starts with //, urlsplit considers it as a
+        # relative uri while the RFC says we should consider it as abs_path
+        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
+        # We use temporary dot prefix to workaround this behaviour
+        parts = _compat.urlsplit("." + uri)
+        return parts._replace(path=parts.path[1:])
+
+    return _compat.urlsplit(uri)

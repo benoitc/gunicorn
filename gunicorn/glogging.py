@@ -10,6 +10,11 @@ import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1
 from logging.config import fileConfig
+try:
+    from logging.config import dictConfig
+except ImportError:
+    # python 2.6
+    dictConfig = None
 import os
 import socket
 import sys
@@ -70,12 +75,12 @@ CONFIG_DEFAULTS = dict(
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stdout"
+                "stream": "ext://sys.stdout"
             },
             "error_console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "sys.stderr"
+                "stream": "ext://sys.stderr"
             },
         },
         formatters={
@@ -227,7 +232,23 @@ class Logger(object):
                     self.access_log, cfg, self.syslog_fmt, "access"
                 )
 
-        if cfg.logconfig:
+        if dictConfig is None and cfg.logconfig_dict:
+            util.warn("Dictionary-based log configuration requires "
+                      "Python 2.7 or above.")
+
+        if dictConfig and cfg.logconfig_dict:
+            config = CONFIG_DEFAULTS.copy()
+            config.update(cfg.logconfig_dict)
+            try:
+                dictConfig(config)
+            except (
+                    AttributeError,
+                    ImportError,
+                    ValueError,
+                    TypeError
+            ) as exc:
+                raise RuntimeError(str(exc))
+        elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
                 defaults['__file__'] = cfg.logconfig
@@ -279,7 +300,7 @@ class Logger(object):
             'U': environ.get('PATH_INFO'),
             'q': environ.get('QUERY_STRING'),
             'H': environ.get('SERVER_PROTOCOL'),
-            'b': getattr(resp, 'sent', None) and str(resp.sent) or '-',
+            'b': getattr(resp, 'sent', None) is not None and str(resp.sent) or '-',
             'B': getattr(resp, 'sent', None),
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
@@ -319,7 +340,8 @@ class Logger(object):
         """
 
         if not (self.cfg.accesslog or self.cfg.logconfig or
-           (self.cfg.syslog and not self.cfg.disable_access_log_redirection)):
+           self.cfg.logconfig_dict or
+           (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
             return
 
         # wrap atoms:
@@ -356,9 +378,8 @@ class Logger(object):
                     handler.acquire()
                     try:
                         if handler.stream:
-                            handler.stream.close()
-                            handler.stream = open(handler.baseFilename,
-                                    handler.mode)
+                            handler.close()
+                            handler.stream = handler._open()
                     finally:
                         handler.release()
 
@@ -450,10 +471,7 @@ class Logger(object):
                     if PY3:  # b64decode returns a byte string in Python 3
                         auth = auth.decode('utf-8')
                     auth = auth.split(":", 1)
-                except TypeError as exc:
-                    self.debug("Couldn't get username: %s", exc)
-                    return user
-                except binascii.Error as exc:
+                except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
                     return user
                 if len(auth) == 2:

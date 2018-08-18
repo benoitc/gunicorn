@@ -52,6 +52,9 @@ class FileWrapper(object):
 class WSGIErrorsWrapper(io.RawIOBase):
 
     def __init__(self, cfg):
+        # There is no public __init__ method for RawIOBase so
+        # we don't need to call super() in the __init__ method.
+        # pylint: disable=super-init-not-called
         errorlog = logging.getLogger("gunicorn.error")
         handlers = errorlog.handlers
         self.streams = []
@@ -121,15 +124,7 @@ def create(req, sock, client, server, cfg):
 
     # default variables
     host = None
-    url_scheme = "https" if cfg.is_ssl else "http"
     script_name = os.environ.get("SCRIPT_NAME", "")
-
-    # set secure_headers
-    secure_headers = cfg.secure_scheme_headers
-    if client and not isinstance(client, string_types):
-        if ('*' not in cfg.forwarded_allow_ips
-                and client[0] not in cfg.forwarded_allow_ips):
-            secure_headers = {}
 
     # add the headers to the environ
     for hdr_name, hdr_value in req.headers:
@@ -137,9 +132,6 @@ def create(req, sock, client, server, cfg):
             # handle expect
             if hdr_value.lower() == "100-continue":
                 sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
-        elif secure_headers and (hdr_name in secure_headers and
-              hdr_value == secure_headers[hdr_name]):
-            url_scheme = "https"
         elif hdr_name == 'HOST':
             host = hdr_value
         elif hdr_name == "SCRIPT_NAME":
@@ -157,7 +149,7 @@ def create(req, sock, client, server, cfg):
         environ[key] = hdr_value
 
     # set the url scheme
-    environ['wsgi.url_scheme'] = url_scheme
+    environ['wsgi.url_scheme'] = req.scheme
 
     # set the REMOTE_* keys in environ
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
@@ -166,7 +158,7 @@ def create(req, sock, client, server, cfg):
     if isinstance(client, string_types):
         environ['REMOTE_ADDR'] = client
     elif isinstance(client, binary_type):
-        environ['REMOTE_ADDR'] = str(client)
+        environ['REMOTE_ADDR'] = client.decode()
     else:
         environ['REMOTE_ADDR'] = client[0]
         environ['REMOTE_PORT'] = str(client[1])
@@ -182,9 +174,9 @@ def create(req, sock, client, server, cfg):
             if host:
                 server = host.split(':')
                 if len(server) == 1:
-                    if url_scheme == "http":
+                    if req.scheme == "http":
                         server.append(80)
-                    elif url_scheme == "https":
+                    elif req.scheme == "https":
                         server.append(443)
                     else:
                         server.append('')

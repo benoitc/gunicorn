@@ -32,10 +32,10 @@ Example with the test app:
 
     def app(environ, start_response):
         """Simplest possible application object"""
-        data = 'Hello, World!\n'
+        data = b'Hello, World!\n'
         status = '200 OK'
         response_headers = [
-            ('Content-type','text/plain'),
+            ('Content-type', 'text/plain'),
             ('Content-Length', str(len(data)))
         ]
         start_response(status, response_headers)
@@ -60,8 +60,10 @@ Commonly Used Arguments
 * ``-k WORKERCLASS, --worker-class=WORKERCLASS`` - The type of worker process
   to run. You'll definitely want to read the production page for the
   implications of this parameter. You can set this to ``$(NAME)``
-  where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``, or
-  ``tornado``, ``gthread``, ``gaiohttp``. ``sync`` is the default.
+  where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``,
+  ``tornado``, ``gthread``, ``gaiohttp`` (deprecated).
+  ``sync`` is the default. See the :ref:`worker-class` documentation for more
+  information.
 * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
   adjust the name of Gunicorn process as they appear in the process system
   table (which affects tools like ``ps`` and ``top``).
@@ -71,7 +73,7 @@ Settings can be specified by using environment variable
 
 See :ref:`configuration` and :ref:`settings` for detailed usage.
 
-.. _setproctitle: http://pypi.python.org/pypi/setproctitle/
+.. _setproctitle: https://pypi.python.org/pypi/setproctitle
 
 Integration
 ===========

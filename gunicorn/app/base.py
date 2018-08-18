@@ -75,7 +75,20 @@ class BaseApplication(object):
             sys.stderr.flush()
             sys.exit(1)
 
+
 class Application(BaseApplication):
+
+    # 'init' and 'load' methods are implemented by WSGIApplication.
+    # pylint: disable=abstract-method
+
+    def chdir(self):
+        # chdir to the configured path before loading,
+        # default is the current dir
+        os.chdir(self.cfg.chdir)
+
+        # add the path to sys.path
+        if self.cfg.chdir not in sys.path:
+            sys.path.insert(0, self.cfg.chdir)
 
     def get_config_from_filename(self, filename):
 
@@ -142,37 +155,44 @@ class Application(BaseApplication):
         # optional settings from apps
         cfg = self.init(parser, args, args.args)
 
+        # set up import paths and follow symlinks
+        self.chdir()
+
         # Load up the any app specific configuration
         if cfg:
             for k, v in cfg.items():
                 self.cfg.set(k.lower(), v)
 
+        env_args = parser.parse_args(self.cfg.get_cmd_args_from_env())
+
         if args.config:
             self.load_config_from_file(args.config)
+        elif env_args.config:
+            self.load_config_from_file(env_args.config)
         else:
             default_config = get_default_config_file()
             if default_config is not None:
                 self.load_config_from_file(default_config)
 
         # Load up environment configuration
-        env_vars = self.cfg.get_cmd_args_from_env()
-        if env_vars:
-            env_args = parser.parse_args(env_vars)
-            for k, v in vars(env_args).items():
-                if v is None:
-                    continue
-                if k == "args":
-                    continue
-                self.cfg.set(k.lower(), v)
+        for k, v in vars(env_args).items():
+            if v is None:
+                continue
+            if k == "args":
+                continue
+            self.cfg.set(k.lower(), v)
 
-        # Lastly, update the configuration with any command line
-        # settings.
+        # Lastly, update the configuration with any command line settings.
         for k, v in vars(args).items():
             if v is None:
                 continue
             if k == "args":
                 continue
             self.cfg.set(k.lower(), v)
+
+        # current directory might be changed by the config now
+        # set up import paths and follow symlinks
+        self.chdir()
 
     def run(self):
         if self.cfg.check_config:

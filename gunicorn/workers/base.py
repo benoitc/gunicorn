@@ -21,6 +21,7 @@ from gunicorn.http.errors import (
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
+from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.http.wsgi import default_environ, Response
 from gunicorn.six import MAXSIZE
 
@@ -136,7 +137,7 @@ class Worker(object):
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
-            if self.cfg.reload == 'off':
+            if not self.cfg.reload:
                 raise
 
             self.log.exception(e)
@@ -201,6 +202,7 @@ class Worker(object):
                 InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
                 LimitRequestLine, LimitRequestHeaders,
                 InvalidProxyLine, ForbiddenProxyRequest,
+                InvalidSchemeHeaders,
                 SSLError)):
 
             status_int = 400
@@ -226,6 +228,8 @@ class Worker(object):
                 reason = "Forbidden"
                 mesg = "Request forbidden"
                 status_int = 403
+            elif isinstance(exc, InvalidSchemeHeaders):
+                mesg = "%s" % str(exc)
             elif isinstance(exc, SSLError):
                 reason = "Forbidden"
                 mesg = "'%s'" % str(exc)

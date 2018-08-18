@@ -14,14 +14,15 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.six import BytesIO
-from gunicorn._compat import urlsplit
+from gunicorn.http.errors import InvalidSchemeHeaders
+from gunicorn.six import BytesIO, string_types
+from gunicorn.util import split_request_uri
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
-HEADER_RE = re.compile("[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
+HEADER_RE = re.compile(r"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
@@ -34,6 +35,7 @@ class Message(object):
         self.headers = []
         self.trailers = []
         self.body = None
+        self.scheme = "https" if cfg.is_ssl else "http"
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
@@ -57,10 +59,25 @@ class Message(object):
         raise NotImplementedError()
 
     def parse_headers(self, data):
+        cfg = self.cfg
         headers = []
 
         # Split lines on \r\n keeping the \r\n on each line
         lines = [bytes_to_str(line) + "\r\n" for line in data.split(b"\r\n")]
+
+        # handle scheme headers
+        scheme_header = False
+        secure_scheme_headers = {}
+        if '*' in cfg.forwarded_allow_ips:
+            secure_scheme_headers = cfg.secure_scheme_headers
+        elif isinstance(self.unreader, SocketUnreader):
+            remote_addr = self.unreader.sock.getpeername()
+            if isinstance(remote_addr, tuple):
+                remote_host = remote_addr[0]
+                if remote_host in cfg.forwarded_allow_ips:
+                    secure_scheme_headers = cfg.secure_scheme_headers
+            elif isinstance(remote_addr, string_types):
+                secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -92,7 +109,19 @@ class Message(object):
 
             if header_length > self.limit_request_field_size > 0:
                 raise LimitRequestHeaders("limit request headers fields size")
+
+            if name in secure_scheme_headers:
+                secure = value == secure_scheme_headers[name]
+                scheme = "https" if secure else "http"
+                if scheme_header:
+                    if scheme != self.scheme:
+                        raise InvalidSchemeHeaders()
+                else:
+                    scheme_header = True
+                    self.scheme = scheme
+
             headers.append((name, value))
+
         return headers
 
     def set_body_reader(self):
@@ -201,7 +230,7 @@ class Request(Message):
         self.headers = self.parse_headers(data[:idx])
 
         ret = data[idx + 4:]
-        buf = BytesIO()
+        buf = None
         return ret
 
     def read_line(self, unreader, buf, limit=0):
@@ -312,18 +341,10 @@ class Request(Message):
         self.method = bits[0].upper()
 
         # URI
-        # When the path starts with //, urlsplit considers it as a
-        # relative uri while the RDF says it shouldnt
-        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
-        # considers it as an absolute url.
-        # fix issue #297
-        if bits[1].startswith("//"):
-            self.uri = bits[1][1:]
-        else:
-            self.uri = bits[1]
+        self.uri = bits[1]
 
         try:
-            parts = urlsplit(self.uri)
+            parts = split_request_uri(self.uri)
         except ValueError:
             raise InvalidRequestLine(bytes_to_str(line_bytes))
         self.path = parts.path or ""

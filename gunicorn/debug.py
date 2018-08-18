@@ -13,12 +13,11 @@ import inspect
 
 __all__ = ['spew', 'unspew']
 
-_token_spliter = re.compile('\W+')
+_token_spliter = re.compile(r'\W+')
 
 
 class Spew(object):
-    """
-    """
+
     def __init__(self, trace_names=None, show_values=True):
         self.trace_names = trace_names
         self.show_values = show_values

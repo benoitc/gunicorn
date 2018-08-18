@@ -27,7 +27,7 @@ from gevent import pywsgi
 
 import gunicorn
 from gunicorn.http.wsgi import base_environ
-from gunicorn.workers.async import AsyncWorker
+from gunicorn.workers.base_async import AsyncWorker
 from gunicorn.http.wsgi import sendfile as o_sendfile
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
@@ -148,6 +148,12 @@ class GeventWorker(AsyncWorker):
         except:
             pass
 
+    def handle(self, listener, client, addr):
+        # Connected socket timeout defaults to socket.getdefaulttimeout().
+        # This forces to blocking mode.
+        client.setblocking(1)
+        super(GeventWorker, self).handle(listener, client, addr)
+
     def handle_request(self, listener_name, req, sock, addr):
         try:
             super(GeventWorker, self).handle_request(listener_name, req, sock,
@@ -161,6 +167,11 @@ class GeventWorker(AsyncWorker):
         # Move this out of the signal handler so we can use
         # blocking calls. See #1126
         gevent.spawn(super(GeventWorker, self).handle_quit, sig, frame)
+
+    def handle_usr1(self, sig, frame):
+        # Make the gevent workers handle the usr1 signal
+        # by deferring to a new greenlet. See #1645
+        gevent.spawn(super(GeventWorker, self).handle_usr1, sig, frame)
 
     if gevent.version_info[0] == 0:
 
@@ -213,7 +224,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         resp_headers = getattr(self, 'response_headers', {})
         resp = GeventResponse(self.status, resp_headers, self.response_length)
         if hasattr(self, 'headers'):
-            req_headers = [h.split(":", 1) for h in self.headers.headers]
+            req_headers = self.headers.items()
         else:
             req_headers = []
         self.server.log.access(resp, req_headers, self.environ, response_time)

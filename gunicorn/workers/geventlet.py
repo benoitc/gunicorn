@@ -24,7 +24,7 @@ from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.http.wsgi import sendfile as o_sendfile
-from gunicorn.workers.async import AsyncWorker
+from gunicorn.workers.base_async import AsyncWorker
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
@@ -99,11 +99,14 @@ class EventletWorker(AsyncWorker):
             return super(EventletWorker, self).is_already_handled(respiter)
 
     def init_process(self):
-        self.patch()
         super(EventletWorker, self).init_process()
+        self.patch()
 
     def handle_quit(self, sig, frame):
         eventlet.spawn(super(EventletWorker, self).handle_quit, sig, frame)
+
+    def handle_usr1(self, sig, frame):
+        eventlet.spawn(super(EventletWorker, self).handle_usr1, sig, frame)
 
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)

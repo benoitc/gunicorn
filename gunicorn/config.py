@@ -31,12 +31,6 @@ KNOWN_SETTINGS = []
 PLATFORM = sys.platform
 
 
-def wrap_method(func):
-    def _wrapped(instance, *args, **kwargs):
-        return func(*args, **kwargs)
-    return _wrapped
-
-
 def make_settings(ignore=None):
     settings = {}
     ignore = ignore or ()
@@ -49,8 +43,8 @@ def make_settings(ignore=None):
 
 
 def auto_int(_, x):
-    if x.startswith('0') and not x.lower().startswith('0x'):
-        # for compatible with octal numbers in python3
+    # for compatible with octal numbers in python3
+    if re.match(r'0(\d)', x, re.IGNORECASE):
         x = x.replace('0', '0o', 1)
     return int(x, 0)
 
@@ -124,14 +118,6 @@ class Config(object):
         if hasattr(worker_class, "setup"):
             worker_class.setup()
         return worker_class
-
-    @property
-    def threads(self):
-        return self.settings['threads'].get()
-
-    @property
-    def workers(self):
-        return self.settings['workers'].get()
 
     @property
     def address(self):
@@ -218,6 +204,10 @@ class Config(object):
         return True
 
     @property
+    def reuse_port(self):
+        return self.settings['reuse_port'].get()
+
+    @property
     def paste_global_conf(self):
         raw_global_conf = self.settings['raw_paste_global_conf'].get()
         if raw_global_conf is None:
@@ -245,7 +235,7 @@ class SettingMeta(type):
             return super_new(cls, name, bases, attrs)
 
         attrs["order"] = len(KNOWN_SETTINGS)
-        attrs["validator"] = wrap_method(attrs["validator"])
+        attrs["validator"] = staticmethod(attrs["validator"])
 
         new_class = super_new(cls, name, bases, attrs)
         new_class.fmt_desc(attrs.get("desc", ""))
@@ -614,21 +604,31 @@ class WorkerClass(Setting):
 
         The default class (``sync``) should handle most "normal" types of
         workloads. You'll want to read :doc:`design` for information on when
-        you might want to choose one of the other worker classes.
+        you might want to choose one of the other worker classes. Required
+        libraries may be installed using setuptools' ``extra_require`` feature.
 
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7
-        * ``gevent``   - Requires gevent >= 0.13
-        * ``tornado``  - Requires tornado >= 0.2
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+          ``pip install gunicorn[eventlet]``)
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+          ``pip install gunicorn[gevent]``)
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+          ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
-        * ``gaiohttp`` - Requires Python 3.4 and aiohttp >= 0.21.5
+          (or install it via ``pip install gunicorn[gthread]``)
+        * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
+
+        .. deprecated:: 19.8
+           The ``gaiohttp`` worker is deprecated. Please use
+           ``aiohttp.worker.GunicornWebWorker`` instead. See
+           :ref:`asyncio-workers` for more information on how to use it.
         """
 
 class WorkerThreads(Setting):
@@ -685,7 +685,7 @@ class MaxRequests(Setting):
     desc = """\
         The maximum number of requests a worker will process before restarting.
 
-        Any value greater than zero will limit the number of requests a work
+        Any value greater than zero will limit the number of requests a worker
         will process before automatically restarting. This is a simple method
         to help limit the damage of memory leaks.
 
@@ -959,6 +959,21 @@ class Sendfile(Setting):
            disabling.
         .. versionchanged:: 19.6
            added support for the ``SENDFILE`` environment variable
+        """
+
+
+class ReusePort(Setting):
+    name = "reuse_port"
+    section = "Server Mechanics"
+    cli = ["--reuse-port"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = """\
+        Set the ``SO_REUSEPORT`` flag on the listening socket.
+
+        .. versionadded:: 19.8
         """
 
 
@@ -1284,7 +1299,7 @@ class CaptureOutput(Setting):
     action = 'store_true'
     default = False
     desc = """\
-        Redirect stdout/stderr to Error log.
+        Redirect stdout/stderr to specified file in :ref:`errorlog`.
 
         .. versionadded:: 19.6
         """
@@ -1319,6 +1334,24 @@ class LogConfig(Setting):
     The log config file to use.
     Gunicorn uses the standard Python logging module's Configuration
     file format.
+    """
+
+
+class LogConfigDict(Setting):
+    name = "logconfig_dict"
+    section = "Logging"
+    cli = ["--log-config-dict"]
+    validator = validate_dict
+    default = {}
+    desc = """\
+    The log config dictionary to use, using the standard Python
+    logging module's dictionary configuration format. This option
+    takes precedence over the :ref:`logconfig` option, which uses the
+    older file configuration format.
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
+
+    .. versionadded:: 19.8
     """
 
 
@@ -1363,9 +1396,8 @@ class Syslog(Setting):
     Send *Gunicorn* logs to syslog.
 
     .. versionchanged:: 19.8
-
-     You can now disable sending access logs by using the
-     :ref:`disable-redirect-access-to-syslog` setting.
+       You can now disable sending access logs by using the
+       :ref:`disable-redirect-access-to-syslog` setting.
     """
 
 

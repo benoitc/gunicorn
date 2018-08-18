@@ -572,6 +572,10 @@ class Arbiter(object):
             self.WORKERS[pid] = worker
             return pid
 
+        # Do not inherit the temporary files of other workers
+        for sibling in self.WORKERS.values():
+            sibling.tmp.close()
+
         # Process Child
         worker.pid = os.getpid()
         try:

@@ -4,7 +4,7 @@ Installation
 
 .. highlight:: bash
 
-:Requirements: **Python 2.x >= 2.6** or **Python 3.x >= 3.2**
+:Requirements: **Python 2.x >= 2.6** or **Python 3.x >= 3.4**
 
 To install the latest released version of Gunicorn::
 
@@ -33,12 +33,15 @@ want to consider one of the alternate worker types.
 
 ::
 
-    $ pip install greenlet  # Required for both
-    $ pip install eventlet  # For eventlet workers
-    $ pip install gevent    # For gevent workers
+    $ pip install greenlet            # Required for both
+    $ pip install eventlet            # For eventlet workers
+    $ pip install gunicorn[eventlet]  # Or, using extra
+    $ pip install gevent              # For gevent workers
+    $ pip install gunicorn[gevent]    # Or, using extra
 
 .. note::
-    If installing ``greenlet`` fails you probably need to install
+    Both require ``greenlet``, which should get installed automatically,
+    If its installation fails, you probably need to install
     the Python headers. These headers are available in most package
     managers. On Ubuntu the package name for ``apt-get`` is
     ``python-dev``.
@@ -71,18 +74,39 @@ advantages:
   rolled back in case of incompatibility. The package can also be purged
   entirely from the system in seconds.
 
-stable ("jessie")
------------------
+stable ("stretch")
+------------------
 
-The version of Gunicorn in the Debian_ "stable" distribution is 19.0 (June
-2014). You can install it using::
+The version of Gunicorn in the Debian_ "stable" distribution is 19.6.0 (June
+2017). You can install it using::
 
     $ sudo apt-get install gunicorn
 
 You can also use the most recent version by using `Debian Backports`_.
 First, copy the following line to your ``/etc/apt/sources.list``::
 
-    deb http://backports.debian.org/debian-backports jessie-backports main
+    deb http://ftp.debian.org/debian stretch-backports main
+
+Then, update your local package lists::
+
+    $ sudo apt-get update
+
+You can then install the latest version using::
+
+    $ sudo apt-get -t stretch-backports install gunicorn
+
+oldstable ("jessie")
+--------------------
+
+The version of Gunicorn in the Debian_ "oldstable" distribution is 19.0 (June
+2014). you can install it using::
+
+    $ sudo apt-get install gunicorn
+
+You can also use the most recent version by using `Debian Backports`_.
+First, copy the following line to your ``/etc/apt/sources.list``::
+
+    deb http://ftp.debian.org/debian jessie-backports main
 
 Then, update your local package lists::
 
@@ -92,31 +116,10 @@ You can then install the latest version using::
 
     $ sudo apt-get -t jessie-backports install gunicorn
 
-oldstable ("wheezy")
---------------------
+Testing ("buster") / Unstable ("sid")
+-------------------------------------
 
-The version of Gunicorn in the Debian_ "oldstable" distribution is 0.14.5 (June
-2012). you can install it using::
-
-    $ sudo apt-get install gunicorn
-
-You can also use the most recent version by using `Debian Backports`_.
-First, copy the following line to your ``/etc/apt/sources.list``::
-
-    deb http://backports.debian.org/debian-backports wheezy-backports main
-
-Then, update your local package lists::
-
-    $ sudo apt-get update
-
-You can then install the latest version using::
-
-    $ sudo apt-get -t wheezy-backports install gunicorn
-
-Testing ("stretch") / Unstable ("sid")
---------------------------------------
-
-"stretch" and "sid" contain the latest released version of Gunicorn. You can
+"buster" and "sid" contain the latest released version of Gunicorn. You can
 install it in the usual way::
 
     $ sudo apt-get install gunicorn
@@ -134,8 +137,8 @@ you can install it in the usual way::
 
 .. _`design docs`: design.html
 .. _Eventlet: http://eventlet.net
-.. _Gevent: http://gevent.org
-.. _libevent: http://monkey.org/~provos/libevent
-.. _Debian: http://www.debian.org/
-.. _`Debian Backports`: http://backports.debian.org/
-.. _Ubuntu: http://www.ubuntu.com/
+.. _Gevent: http://www.gevent.org/
+.. _libevent: http://libevent.org/
+.. _Debian: https://www.debian.org/
+.. _`Debian Backports`: https://backports.debian.org/
+.. _Ubuntu: https://www.ubuntu.com/

@@ -17,6 +17,7 @@ An `example configuration`_ file for fast clients with Nginx_:
 
 .. literalinclude:: ../../examples/nginx.conf
    :language: nginx
+   :caption: **nginx.conf**
 
 If you want to be able to handle streaming request/responses or other fancy
 features like Comet, Long polling, or Web sockets, you need to turn off the
@@ -37,11 +38,12 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   }
   ...
 
-When Nginx is handling SSL it is helpful to pass the protocol information
-to Gunicorn. Many web frameworks use this information to generate URLs.
-Without this information, the application may mistakenly generate 'http'
-URLs in 'https' responses, leading to mixed content warnings or broken
-applications. In this case, configure Nginx to pass an appropriate header::
+It is recommended to pass protocol information to Gunicorn. Many web
+frameworks use this information to generate URLs. Without this
+information, the application may mistakenly generate 'http' URLs in
+'https' responses, leading to mixed content warnings or broken
+applications. To configure Nginx to pass an appropriate header, add
+a ``proxy_set_header`` directive to your ``location`` block::
 
     ...
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -320,15 +322,15 @@ utility::
    Gunicorn error log is here to log errors from Gunicorn, not from another
    application.
 
-.. _Nginx: http://www.nginx.org
+.. _Nginx: https://nginx.org/
 .. _Hey: https://github.com/rakyll/hey
-.. _`example configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
+.. _`example configuration`: https://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf
 .. _runit: http://smarden.org/runit/
-.. _`example service`: http://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
-.. _Supervisor: http://supervisord.org
-.. _`simple configuration`: http://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
+.. _`example service`: https://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
+.. _Supervisor: http://supervisord.org/
+.. _`simple configuration`: https://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
 .. _`configuration documentation`: http://docs.gunicorn.org/en/latest/settings.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
-.. _Virtualenv: http://pypi.python.org/pypi/virtualenv
-.. _Systemd: http://www.freedesktop.org/wiki/Software/systemd
-.. _Gaffer <https://gaffer.readthedocs.io/en/latest/index.html>:
+.. _Virtualenv: https://pypi.python.org/pypi/virtualenv
+.. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/
+.. _Gaffer: https://gaffer.readthedocs.io/

@@ -92,7 +92,7 @@ def test_http_header_encoding():
     header_str = "%s\r\n" % "".join(tosend)
 
     with pytest.raises(UnicodeEncodeError):
-        mocked_socket.sendall(util.to_bytestring(header_str,"ascii"))
+        mocked_socket.sendall(util.to_bytestring(header_str, "ascii"))
 
 
 def test_http_invalid_response_header():

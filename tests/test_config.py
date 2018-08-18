@@ -18,8 +18,12 @@ from gunicorn.instrument import statsd
 dirname = os.path.dirname(__file__)
 def cfg_module():
     return 'config.test_cfg'
+def alt_cfg_module():
+    return 'config.test_cfg_alt'
 def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
+def alt_cfg_file():
+    return os.path.join(dirname, "config", "test_cfg_alt.py")
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
@@ -328,6 +332,16 @@ def test_load_enviroment_variables_config(monkeypatch):
         app = NoConfigApp()
     assert app.cfg.workers == 4
 
+def test_config_file_environment_variable(monkeypatch):
+    monkeypatch.setenv("GUNICORN_CMD_ARGS", "--config=" + alt_cfg_file())
+    with AltArgs():
+        app = NoConfigApp()
+    assert app.cfg.proc_name == "not-fooey"
+    assert app.cfg.config == alt_cfg_file()
+    with AltArgs(["prog_name", "--config", cfg_file()]):
+        app = NoConfigApp()
+    assert app.cfg.proc_name == "fooey"
+    assert app.cfg.config == cfg_file()
 
 def test_invalid_enviroment_variables_config(monkeypatch, capsys):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--foo=bar")
@@ -359,7 +373,9 @@ def test_reload(options, expected):
 
 
 @pytest.mark.parametrize("options, expected", [
-    (["--umask 0", "myapp:app"], 0),
+    (["--umask", "0", "myapp:app"], 0),
+    (["--umask", "0o0", "myapp:app"], 0),
+    (["--umask", "0x0", "myapp:app"], 0),
     (["--umask", "0xFF", "myapp:app"], 255),
     (["--umask", "0022", "myapp:app"], 18),
 ])
