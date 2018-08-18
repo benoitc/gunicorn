@@ -4,8 +4,6 @@
 # See the NOTICE for more information.
 
 "Bare-bones implementation of statsD's protocol, client-side"
-from __future__ import print_function
-import sys
 import socket
 from re import sub
 
@@ -32,15 +30,9 @@ class Statsd(object):
         """host, port: statsD server
         """
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
-        try:
-            host, port = cfg.statsd_host
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.connect((host, int(port)))
-        except Exception as e:
-            self.sock = None
-            if sys.stderr:
-                print("Error initializing statsd connection: %s" % str(e), file=sys.stderr)
-                sys.stderr.flush()
+        host, port = cfg.statsd_host
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.connect((host, int(port)))
 
     # Log errors and warnings
     def critical(self, *args, **kwargs):

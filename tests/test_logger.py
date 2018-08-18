@@ -68,13 +68,17 @@ def test_get_username_from_basic_auth_header():
 
 
 class ConfigMock(Config):
-    def __init__(self, sio):
+    def __init__(self, sio, inst_init_fail=False):
         Config.__init__(self)
         self.sio = sio
+        self.inst_init_fail = inst_init_fail
 
     @property
     def instrumentation_classes(self):
-        return [InstrumentationMock]
+        if self.inst_init_fail:
+            return [InstrumentationMockInitFail]
+        else:
+            return [InstrumentationMock]
 
 
 class InstrumentationMock(object):
@@ -90,6 +94,11 @@ class InstrumentationMock(object):
 
     def error(self, *args, **kwargs):
         raise Exception('instrumentation-raised-exception')
+
+
+class InstrumentationMockInitFail(object):
+    def __init__(self, cfg):
+        raise Exception('instrumentation-init-failed')
 
 
 def test_add_inst_methods():
@@ -120,6 +129,15 @@ def test_add_inst_methods():
     print(sio.getvalue())
     assert log_msg in sio.getvalue()
     assert exception_msg in sio.getvalue()
+
+
+def test_add_inst_methods_exception():
+    sio = StringIO()
+    c = ConfigMock(sio, True)
+    logger = Logger(c)
+    logger.error_log.addHandler(logging.StreamHandler(sio))
+    add_instrumentation(logger, c)
+    assert sio.getvalue() == 'Error in adding instrumentation: instrumentation-init-failed\n'
 
 
 def test_get_username_handles_malformed_basic_auth_header():

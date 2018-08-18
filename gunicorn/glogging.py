@@ -481,7 +481,10 @@ class Logger(object):
 
 def add_instrumentation(logger, cfg):
     for inst_class in cfg.instrumentation_classes:
-        add_inst_methods(logger, inst_class(cfg))
+        try:
+            add_inst_methods(logger, inst_class(cfg))
+        except Exception as e:
+            logger.error('Error in adding instrumentation: %s' % str(e))
 
 
 def add_inst_methods(logger, inst):

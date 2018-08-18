@@ -235,15 +235,6 @@ def test_statsd_no_sock():
     assert sio.getvalue() == "test-info\n"
 
 
-@mock.patch('socket.socket.connect')
-def test_statsd_fail_connect(connect_mock):
-    connect_mock.side_effect = StatsdTestException()
-    c = Config()
-    c.set('statsd_host', 'localhost:12345')
-    statsd = Statsd(c)
-    assert statsd.sock is None
-
-
 def test_statsd_fail():
     "UDP socket fails"
     c = Config()
