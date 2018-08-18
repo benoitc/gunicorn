@@ -92,9 +92,9 @@ class Arbiter(object):
         self.cfg = app.cfg
 
         if self.log is None:
-            if self.cfg.instrumentation_classes:
-                glogging.add_instrumentation(self.cfg)
-            self.log = self.cfg.logger_class(app.cfg)
+            logger = self.cfg.logger_class(app.cfg)
+            glogging.add_instrumentation(logger, self.cfg)
+            self.log = logger
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:

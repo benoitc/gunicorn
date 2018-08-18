@@ -461,31 +461,30 @@ class Logger(object):
         return user
 
 
-def add_instrumentation(cfg):
-    insts = []
+def add_instrumentation(logger, cfg):
     for inst_class in cfg.instrumentation_classes:
-        insts.append(inst_class(cfg))
-
-    for inst in insts:
-        add_inst_methods(cfg.logger_class, inst)
+        add_inst_methods(logger, inst_class(cfg))
 
 
-def add_inst_methods(logger_class, inst):
+def add_inst_methods(logger, inst):
+    error_method = getattr(logger, 'error', None)
     for method in ['critical', 'error', 'warning', 'exception', 'info', 'debug', 'log', 'access']:
-        if hasattr(logger_class, method) and hasattr(inst, method):
-            log_method = getattr(logger_class, method)
+        if hasattr(logger, method) and hasattr(inst, method):
+            log_method = getattr(logger, method)
             inst_method = getattr(inst, method)
-            setattr(logger_class, method, _wrap_log_method(log_method, inst_method))
+            setattr(logger, method, _wrap_log_method(log_method, inst_method, error_method))
 
 
-def _wrap_log_method(log_method, inst_method):
+def _wrap_log_method(log_method, inst_method, error_log_method):
     def wrap_func(*args, **kwargs):
+        log_method(*args, **kwargs)
         try:
-            log_method(*args, **kwargs)
             inst_method(*args, **kwargs)
         except TypeError:
-            if sys.stderr:
-                print("Error: Argument mismatch between logger and instrumentation", file=sys.stderr)
-                sys.stderr.flush()
+            if error_log_method:
+                error_log_method('Error: Argument mismatch between logger and instrumentation')
+        except Exception as e:
+            if error_log_method:
+                error_log_method("Error in instrumentation: %s" % str(e))
 
     return wrap_func

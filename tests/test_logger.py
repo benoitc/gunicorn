@@ -66,23 +66,40 @@ class InstrumentationMock(object):
         self.sio = cfg.sio
 
     def info(self, *args, **kwargs):
-        self.sio.write('instrumentation-called')
+        self.sio.write('instrumentation-info-called')
 
-    def debug(self):
-        self.sio.write('instrumentation-called')
+    def critical(self):
+        self.sio.write('instrumentation-critical-called')
+
+    def error(self, *args, **kwargs):
+        raise Exception('instrumentation-raised-exception')
 
 
 def test_add_inst_methods():
     sio = StringIO()
     c = ConfigMock(sio)
-    add_instrumentation(c)
     logger = Logger(c)
+    add_instrumentation(logger, c)
 
     logger.error_log.addHandler(logging.StreamHandler(sio))
 
-    logger.info('logger-info-called')
-    assert sio.getvalue() == "logger-info-called\ninstrumentation-called"
+    log_msg = 'logger-info-called'
+    logger.info(log_msg, extra={})
+    inst_msg = 'instrumentation-info-called'
+    assert log_msg in sio.getvalue()
+    assert inst_msg in sio.getvalue()
 
-    logger.debug('argument-mismatch')
-    # Nothing will be logged due to argument mismatch of instrumentation class
-    assert sio.getvalue() == "logger-info-called\ninstrumentation-called"
+    # TypeError should be caught and logged by logger
+    log_msg = 'logger-critical-called'
+    logger.critical(log_msg)
+    mismatch_msg = 'Error: Argument mismatch between logger and instrumentation'
+    assert log_msg in sio.getvalue()
+    assert mismatch_msg in sio.getvalue()
+
+    # Any other exception from instrumentation should be caught and logged by logger
+    log_msg = 'logger-error-called'
+    logger.error(log_msg)
+    exception_msg = 'Error in instrumentation: instrumentation-raised-exception'
+    print(sio.getvalue())
+    assert log_msg in sio.getvalue()
+    assert exception_msg in sio.getvalue()

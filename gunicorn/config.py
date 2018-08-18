@@ -172,15 +172,8 @@ class Config(object):
 
     @property
     def instrumentation_classes(self):
-        inst_class_uris = []
-        inst_classes = []
         if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-            inst_class_uris.append("gunicorn.instrument.statsd.Statsd")
-
-        for uri in inst_class_uris:
-            inst_classes.append(util.load_class(uri))
-
-        return inst_classes
+            yield util.load_class('gunicorn.instrument.statsd.Statsd')
 
     @property
     def is_ssl(self):

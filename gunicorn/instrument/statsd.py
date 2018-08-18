@@ -27,10 +27,11 @@ class Statsd(object):
     access) will get wrapped in glogging._wrap_log_method by
     glogging.add_inst_methods, receiving logger and arguments.
     """
+
     def __init__(self, cfg):
         """host, port: statsD server
         """
-        self.prefix = sub(r"^(.+[^.]+)\.*$", "\g<1>.", cfg.statsd_prefix)
+        self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -55,7 +56,7 @@ class Statsd(object):
         self.increment("gunicorn.log.exception", 1)
 
     # Special treatement for info, the most common log level
-    def info(self, *args,  **kwargs):
+    def info(self, *args, **kwargs):
         self.log(*args, **kwargs)
 
     # skip the run-of-the-mill logs
@@ -70,7 +71,6 @@ class Statsd(object):
             metric = extra.get(METRIC_VAR, None)
             value = extra.get(VALUE_VAR, None)
             typ = extra.get(MTYPE_VAR, None)
-            print(typ)
             if metric and value and typ:
                 if typ == GAUGE_TYPE:
                     self.gauge(metric, value)
@@ -80,7 +80,7 @@ class Statsd(object):
                     self.histogram(metric, value)
 
     # access logging
-    def access(self, logger, resp, req, environ, request_time):
+    def access(self, resp, req, environ, request_time):
         """Measure request duration
         request_time is a datetime.timedelta
         """
@@ -107,15 +107,9 @@ class Statsd(object):
         self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
 
     def _sock_send(self, msg):
-        try:
-            if isinstance(msg, six.text_type):
-                msg = msg.encode("ascii")
-            if self.sock:
-                self.sock.send(msg)
-            elif sys.stderr:
-                print("Statsd connection is not initialized", file=sys.stderr)
-                sys.stderr.flush()
-        except Exception as e:
-            if sys.stderr:
-                print("Error sending message to statsd: %s" % str(e), file=sys.stderr)
-                sys.stderr.flush()
+        if isinstance(msg, six.text_type):
+            msg = msg.encode("ascii")
+        if self.sock:
+            self.sock.send(msg)
+        else:
+            raise Exception("Statsd connection is not initialized")

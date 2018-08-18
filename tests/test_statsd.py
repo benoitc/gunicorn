@@ -24,13 +24,14 @@ class StatsdTestException(Exception):
 
 class MockSocket(object):
     "Pretend to be a UDP socket"
+
     def __init__(self, failp):
         self.failp = failp
         self.msgs = []  # accumulate messages for later inspection
 
     def send(self, msg):
         if self.failp:
-            raise StatsdTestException("Should not interrupt the logger")
+            raise StatsdTestException("Send failed")
 
         sock_dir = tempfile.mkdtemp()
         sock_file = os.path.join(sock_dir, "test.sock")
@@ -66,10 +67,10 @@ def test_instrument(time_mock):
     c = Config()
     c.set('statsd_host', 'localhost:12345')
     c.set('accesslog', '-')
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     # Capture logged messages
     sio = StringIO()
@@ -101,19 +102,22 @@ def test_instrument(time_mock):
     statsd.sock.reset()
 
     # Log with counter
-    logger.log(logging.INFO, "Yay", extra={"mtype": "counter", "metric": "gunicorn.info", "value": 667})
+    logger.log(logging.INFO, "Yay",
+               extra={"mtype": "counter", "metric": "gunicorn.info", "value": 667})
     assert statsd.sock.msgs[0] == b"gunicorn.info:667|c|@1.0"
     assert sio.getvalue() == "Blah\n\nBoom\nYay\n"
     statsd.sock.reset()
 
     # Log with histogram
-    logger.log(logging.INFO, "Wow", extra={"mtype": "histogram", "metric": "gunicorn.info", "value": 667})
+    logger.log(logging.INFO, "Wow",
+               extra={"mtype": "histogram", "metric": "gunicorn.info", "value": 667})
     assert statsd.sock.msgs[0] == b"gunicorn.info:667|ms"
     assert sio.getvalue() == "Blah\n\nBoom\nYay\nWow\n"
     statsd.sock.reset()
 
     # Log with unknown
-    logger.log(logging.INFO, "Wow", extra={"mtype": "unknown", "metric": "gunicorn.info", "value": 667})
+    logger.log(logging.INFO, "Wow",
+               extra={"mtype": "unknown", "metric": "gunicorn.info", "value": 667})
     assert statsd.sock.msgs == []
     assert sio.getvalue() == "Blah\n\nBoom\nYay\nWow\nWow\n"
     statsd.sock.reset()
@@ -124,13 +128,14 @@ def test_instrument(time_mock):
         'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
         'SERVER_PROTOCOL': 'HTTP/1.1'
     }
-    logger.access(SimpleNamespace(status="200 OK", headers=()), SimpleNamespace(headers=()), environ,
-                  timedelta(seconds=7))
+    logger.access(SimpleNamespace(status="200 OK", headers=()), SimpleNamespace(headers=()),
+                  environ, timedelta(seconds=7))
     assert statsd.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
     assert statsd.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
     assert statsd.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
     assert sio.getvalue() == ('Blah\n\nBoom\nYay\nWow\nWow\n'
-                              '- - - 01/Jan/2017:00:00:00 +0800 "GET /my/path?foo=bar HTTP/1.1" 200 - "-" "-"\n')
+                              '- - - 01/Jan/2017:00:00:00 +0800 "GET /my/path?foo=bar HTTP/1.1" '
+                              '200 - "-" "-"\n')
     statsd.sock.reset()
 
     # Exception
@@ -146,17 +151,17 @@ def test_access_no_log():
         'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
         'SERVER_PROTOCOL': 'HTTP/1.1'
     }
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     # Capture logged messages
     sio = StringIO()
     logger.access_log.handlers = [logging.StreamHandler(sio)]
 
-    logger.access(SimpleNamespace(status="200 OK", headers=()), SimpleNamespace(headers=()), environ,
-                  timedelta(seconds=7))
+    logger.access(SimpleNamespace(status="200 OK", headers=()), SimpleNamespace(headers=()),
+                  environ, timedelta(seconds=7))
     assert statsd.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
     assert statsd.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
     assert statsd.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
@@ -167,10 +172,10 @@ def test_prefix():
     c = Config()
     c.set('statsd_host', 'localhost:12345')
     c.set("statsd_prefix", "test.")
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert statsd.sock.msgs[0] == b"test.gunicorn.test:666|g"
@@ -180,10 +185,10 @@ def test_prefix_no_dot():
     c = Config()
     c.set('statsd_host', 'localhost:12345')
     c.set("statsd_prefix", "test")
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert statsd.sock.msgs[0] == b"test.gunicorn.test:666|g"
@@ -193,10 +198,10 @@ def test_prefix_multiple_dots():
     c = Config()
     c.set('statsd_host', 'localhost:12345')
     c.set("statsd_prefix", "test...")
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert statsd.sock.msgs[0] == b"test.gunicorn.test:666|g"
@@ -206,10 +211,10 @@ def test_prefix_nested():
     c = Config()
     c.set('statsd_host', 'localhost:12345')
     c.set("statsd_prefix", "test.asdf.")
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(False)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert statsd.sock.msgs[0] == b"test.asdf.gunicorn.test:666|g"
@@ -218,10 +223,10 @@ def test_prefix_nested():
 def test_statsd_no_sock():
     c = Config()
     c.set('statsd_host', 'localhost:12345')
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = None
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     sio = StringIO()
     logger.error_log.handlers = [logging.StreamHandler(sio)]
@@ -243,19 +248,27 @@ def test_statsd_fail():
     "UDP socket fails"
     c = Config()
     c.set('statsd_host', 'localhost:12345')
+    logger = Logger(c)
     statsd = Statsd(c)
     statsd.sock = MockSocket(True)
-    add_inst_methods(Logger, statsd)
-    logger = Logger(c)
+    add_inst_methods(logger, statsd)
 
     sio = StringIO()
     logger.error_log.handlers = [logging.StreamHandler(sio)]
 
-    logger.info("test-info")
-    assert sio.getvalue() == "test-info\n"
+    logger.info("test-info", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
+    expected_output = "test-info\nError in instrumentation: Send failed\n"
+    assert sio.getvalue() == expected_output
+
     logger.critical("test-critical")
-    assert sio.getvalue() == "test-info\ntest-critical\n"
+    expected_output += "test-critical\nError in instrumentation: Send failed\n"
+    print(sio.getvalue())
+    assert sio.getvalue() == expected_output
+
     logger.error("test-error")
-    assert sio.getvalue() == "test-info\ntest-critical\ntest-error\n"
+    expected_output += "test-error\nError in instrumentation: Send failed\n"
+    assert sio.getvalue() == expected_output
+
     logger.warning("test-warning")
-    assert sio.getvalue() == "test-info\ntest-critical\ntest-error\ntest-warning\n"
+    expected_output += "test-warning\nError in instrumentation: Send failed\n"
+    assert sio.getvalue() == expected_output

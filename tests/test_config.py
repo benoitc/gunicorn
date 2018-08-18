@@ -305,7 +305,7 @@ def test_nworkers_changed():
 def test_instrumentation_class_statsd():
     c = config.Config()
     c.set('statsd_host', 'localhost:12345')
-    assert c.instrumentation_classes[0] == statsd.Statsd
+    assert next(c.instrumentation_classes) == statsd.Statsd
 
 
 class MyLogger(glogging.Logger):
