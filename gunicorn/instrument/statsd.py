@@ -23,7 +23,7 @@ class Statsd(object):
     Statsd instrumentation.
     Logging methods (critical, error, warning, exception, info, debug, log,
     access) will get wrapped in glogging._wrap_log_method by
-    glogging.add_inst_methods, receiving logger and arguments.
+    glogging.add_inst_methods.
     """
 
     def __init__(self, cfg):
@@ -99,7 +99,7 @@ class Statsd(object):
         self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
 
     def _sock_send(self, msg):
-        if isinstance(msg, six.text_type):
+        if isinstance(msg, str):
             msg = msg.encode("ascii")
         if self.sock:
             self.sock.send(msg)

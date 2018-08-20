@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from __future__ import print_function
 import base64
 import binascii
 import time
@@ -351,7 +350,7 @@ class Logger(object):
             request_time))
 
         try:
-            self.access_log.info(self.cfg.access_log_format, dict(safe_atoms))
+            self.access_log.info(self.cfg.access_log_format, safe_atoms)
         except:
             self.error(traceback.format_exc())
 
