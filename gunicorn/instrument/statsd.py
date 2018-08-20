@@ -7,8 +7,6 @@
 import socket
 from re import sub
 
-from gunicorn import six
-
 # Instrumentation constants
 METRIC_VAR = "metric"
 VALUE_VAR = "value"
