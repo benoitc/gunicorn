@@ -15,7 +15,7 @@ import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
-from gunicorn import sock, systemd, util
+from gunicorn import sock, systemd, util, glogging
 
 from gunicorn import __version__, SERVER_SOFTWARE
 
@@ -92,7 +92,9 @@ class Arbiter(object):
         self.cfg = app.cfg
 
         if self.log is None:
-            self.log = self.cfg.logger_class(app.cfg)
+            logger = self.cfg.logger_class(app.cfg)
+            glogging.add_instrumentation(logger, self.cfg)
+            self.log = logger
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:

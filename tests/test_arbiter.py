@@ -180,3 +180,12 @@ def test_env_vars_available_during_preload():
     # Note that we aren't making any assertions here, they are made in the
     # dummy application object being loaded here instead.
     gunicorn.arbiter.Arbiter(PreloadedAppWithEnvSettings())
+
+
+class InstrumentationMockApplication(DummyApplication):
+    def load_config(self):
+        self.cfg.set('statsd_host', 'localhost:12345')
+
+
+def test_app_with_instrumentation():
+    gunicorn.arbiter.Arbiter(InstrumentationMockApplication())

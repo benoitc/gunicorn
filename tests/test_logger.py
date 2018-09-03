@@ -1,7 +1,9 @@
 import datetime
+import logging
 
 from gunicorn.config import Config
-from gunicorn.glogging import Logger
+from gunicorn.glogging import Logger, add_instrumentation
+from gunicorn.six import StringIO
 
 from support import SimpleNamespace
 
@@ -63,6 +65,79 @@ def test_get_username_from_basic_auth_header():
     logger = Logger(Config())
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
     assert atoms['u'] == 'brk0v'
+
+
+class ConfigMock(Config):
+    def __init__(self, sio, inst_init_fail=False):
+        Config.__init__(self)
+        self.sio = sio
+        self.inst_init_fail = inst_init_fail
+
+    @property
+    def instrumentation_classes(self):
+        if self.inst_init_fail:
+            return [InstrumentationMockInitFail]
+        else:
+            return [InstrumentationMock]
+
+
+class InstrumentationMock(object):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.sio = cfg.sio
+
+    def info(self, *args, **kwargs):
+        self.sio.write('instrumentation-info-called')
+
+    def critical(self):
+        self.sio.write('instrumentation-critical-called')
+
+    def error(self, *args, **kwargs):
+        raise Exception('instrumentation-raised-exception')
+
+
+class InstrumentationMockInitFail(object):
+    def __init__(self, cfg):
+        raise Exception('instrumentation-init-failed')
+
+
+def test_add_inst_methods():
+    sio = StringIO()
+    c = ConfigMock(sio)
+    logger = Logger(c)
+    add_instrumentation(logger, c)
+
+    logger.error_log.addHandler(logging.StreamHandler(sio))
+
+    log_msg = 'logger-info-called'
+    logger.info(log_msg, extra={})
+    inst_msg = 'instrumentation-info-called'
+    assert log_msg in sio.getvalue()
+    assert inst_msg in sio.getvalue()
+
+    # TypeError should be caught and logged by logger
+    log_msg = 'logger-critical-called'
+    logger.critical(log_msg)
+    mismatch_msg = 'Error: Argument mismatch between logger and instrumentation'
+    assert log_msg in sio.getvalue()
+    assert mismatch_msg in sio.getvalue()
+
+    # Any other exception from instrumentation should be caught and logged by logger
+    log_msg = 'logger-error-called'
+    logger.error(log_msg)
+    exception_msg = 'Error in instrumentation: instrumentation-raised-exception'
+    print(sio.getvalue())
+    assert log_msg in sio.getvalue()
+    assert exception_msg in sio.getvalue()
+
+
+def test_add_inst_methods_exception():
+    sio = StringIO()
+    c = ConfigMock(sio, True)
+    logger = Logger(c)
+    logger.error_log.addHandler(logging.StreamHandler(sio))
+    add_instrumentation(logger, c)
+    assert sio.getvalue() == 'Error in adding instrumentation: instrumentation-init-failed\n'
 
 
 def test_get_username_handles_malformed_basic_auth_header():
