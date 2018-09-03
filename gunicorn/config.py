@@ -122,7 +122,10 @@ class Config(object):
     @property
     def address(self):
         s = self.settings['bind'].get()
-        return [util.parse_address(_compat.bytes_to_str(bind)) for bind in s]
+        addresses = []
+        for bind in s:
+            addresses.extend(util.parse_address(_compat.bytes_to_str(bind)))
+        return addresses
 
     @property
     def uid(self):
@@ -534,9 +537,9 @@ class Bind(Setting):
     validator = validate_list_string
 
     if 'PORT' in os.environ:
-        default = ['0.0.0.0:{0}'.format(os.environ.get('PORT'))]
+        default = ['[::]:{0}'.format(os.environ.get('PORT'))]
     else:
-        default = ['127.0.0.1:8000']
+        default = ['localhost:8000']
 
     desc = """\
         The socket to bind.

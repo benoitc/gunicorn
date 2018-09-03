@@ -11,7 +11,6 @@ import sys
 import time
 
 from gunicorn import util
-from gunicorn.six import string_types
 
 
 class BaseSocket(object):
@@ -20,12 +19,12 @@ class BaseSocket(object):
         self.log = log
         self.conf = conf
 
-        self.cfg_addr = address
+        self.cfg_addr = address[4]
         if fd is None:
-            sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
+            sock = socket.socket(address[0], socket.SOCK_STREAM)
             bound = False
         else:
-            sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
+            sock = socket.fromfd(fd, address[0], socket.SOCK_STREAM)
             os.close(fd)
             bound = True
 
@@ -74,16 +73,15 @@ class BaseSocket(object):
 
 class TCPSocket(BaseSocket):
 
-    FAMILY = socket.AF_INET
+    def scheme(self):
+        if self.conf.is_ssl:
+            return "https"
+        else:
+            return "http"
 
     def __str__(self):
-        if self.conf.is_ssl:
-            scheme = "https"
-        else:
-            scheme = "http"
-
         addr = self.sock.getsockname()
-        return "%s://%s:%d" % (scheme, addr[0], addr[1])
+        return "%s://%s:%d" % (self.scheme(), addr[0], addr[1])
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -92,27 +90,23 @@ class TCPSocket(BaseSocket):
 
 class TCP6Socket(TCPSocket):
 
-    FAMILY = socket.AF_INET6
-
     def __str__(self):
         (host, port, _, _) = self.sock.getsockname()
-        return "http://[%s]:%d" % (host, port)
+        return "%s://[%s]:%d" % (self.scheme(), host, port)
 
 
 class UnixSocket(BaseSocket):
 
-    FAMILY = socket.AF_UNIX
-
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
             try:
-                st = os.stat(addr)
+                st = os.stat(addr[4])
             except OSError as e:
                 if e.args[0] != errno.ENOENT:
                     raise
             else:
                 if stat.S_ISSOCK(st.st_mode):
-                    os.remove(addr)
+                    os.remove(addr[4])
                 else:
                     raise ValueError("%r is not a socket" % addr)
         super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
@@ -127,16 +121,15 @@ class UnixSocket(BaseSocket):
         os.umask(old_umask)
 
 
-def _sock_type(addr):
-    if isinstance(addr, tuple):
-        if util.is_ipv6(addr[0]):
-            sock_type = TCP6Socket
-        else:
-            sock_type = TCPSocket
-    elif isinstance(addr, string_types):
+def _sock_type(af_type):
+    if af_type == socket.AF_INET6:
+        sock_type = TCP6Socket
+    elif af_type == socket.AF_INET:
+        sock_type = TCPSocket
+    elif af_type == socket.AF_UNIX:
         sock_type = UnixSocket
     else:
-        raise TypeError("Unable to create socket from: %r" % addr)
+        raise TypeError("Unable to create socket family: %r" % af_type)
     return sock_type
 
 
@@ -166,7 +159,7 @@ def create_sockets(conf, log, fds=None):
         for fd in fds:
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
-            sock_type = _sock_type(sock_name)
+            sock_type = _sock_type(sock.family)
             listener = sock_type(sock_name, conf, log, fd=fd)
             listeners.append(listener)
 
@@ -174,7 +167,7 @@ def create_sockets(conf, log, fds=None):
 
     # no sockets is bound, first initialization of gunicorn in this env.
     for addr in laddr:
-        sock_type = _sock_type(addr)
+        sock_type = _sock_type(addr[0])
         sock = None
         for i in range(5):
             try:
@@ -204,6 +197,7 @@ def create_sockets(conf, log, fds=None):
 def close_sockets(listeners, unlink=True):
     for sock in listeners:
         sock_name = sock.getsockname()
+        socket_family = sock.family
         sock.close()
-        if unlink and _sock_type(sock_name) is UnixSocket:
+        if unlink and socket_family == socket.AF_UNIX:
             os.unlink(sock_name)

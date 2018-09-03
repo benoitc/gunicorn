@@ -8,6 +8,13 @@ try:
 except ImportError:
     import mock
 
+import pytest
+
+from socket import SOCK_STREAM
+from socket import AF_UNIX
+from socket import AF_INET
+from socket import AF_INET6
+
 from gunicorn import sock
 
 
@@ -25,6 +32,7 @@ def test_socket_close():
 def test_unix_socket_close_unlink(unlink):
     listener = mock.Mock()
     listener.getsockname.return_value = '/var/run/test.sock'
+    listener.family = SOCK_STREAM
     sock.close_sockets([listener])
     listener.close.assert_called_with()
     unlink.assert_called_once_with('/var/run/test.sock')
@@ -34,6 +42,19 @@ def test_unix_socket_close_unlink(unlink):
 def test_unix_socket_close_without_unlink(unlink):
     listener = mock.Mock()
     listener.getsockname.return_value = '/var/run/test.sock'
+    listener.family = SOCK_STREAM
     sock.close_sockets([listener], False)
     listener.close.assert_called_with()
     assert not unlink.called, 'unlink should not have been called'
+
+@pytest.mark.parametrize('test_input, expected', [
+    (AF_UNIX, sock.UnixSocket),
+    (AF_INET, sock.TCPSocket),
+    (AF_INET6, sock.TCP6Socket)])
+def test__sock_type(test_input, expected):
+    assert sock._sock_type(test_input) is expected
+
+def test__sock_type2():
+    with pytest.raises(TypeError) as err:
+        sock._sock_type(17)
+    assert 'Unable to create socket family:' in str(err)
