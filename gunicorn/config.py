@@ -5,27 +5,21 @@
 
 # Please remember to run "make -C docs html" after update "desc" attributes.
 
+import argparse
 import copy
 import grp
 import inspect
-try:
-    import argparse
-except ImportError:  # python 2.6
-    from . import argparse_compat as argparse
 import os
 import pwd
 import re
+import shlex
 import ssl
 import sys
 import textwrap
-import shlex
 
-from gunicorn import __version__
-from gunicorn import _compat
+from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
-from gunicorn import six
-from gunicorn import util
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -122,7 +116,7 @@ class Config(object):
     @property
     def address(self):
         s = self.settings['bind'].get()
-        return [util.parse_address(_compat.bytes_to_str(bind)) for bind in s]
+        return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
 
     @property
     def uid(self):
@@ -183,7 +177,7 @@ class Config(object):
             return env
 
         for e in raw_env:
-            s = _compat.bytes_to_str(e)
+            s = util.bytes_to_str(e)
             try:
                 k, v = s.split('=', 1)
             except ValueError:
@@ -216,7 +210,7 @@ class Config(object):
 
         global_conf = {}
         for e in raw_global_conf:
-            s = _compat.bytes_to_str(e)
+            s = util.bytes_to_str(e)
             try:
                 k, v = re.split(r'(?<!\\)=', s, 1)
             except ValueError:
@@ -305,7 +299,7 @@ class Setting(object):
         return self.value
 
     def set(self, val):
-        if not six.callable(self.validator):
+        if not callable(self.validator):
             raise TypeError('Invalid validator: %s' % self.name)
         self.value = self.validator(val)
 
@@ -323,7 +317,7 @@ def validate_bool(val):
 
     if isinstance(val, bool):
         return val
-    if not isinstance(val, six.string_types):
+    if not isinstance(val, str):
         raise TypeError("Invalid type for casting: %s" % val)
     if val.lower().strip() == "true":
         return True
@@ -340,7 +334,7 @@ def validate_dict(val):
 
 
 def validate_pos_int(val):
-    if not isinstance(val, six.integer_types):
+    if not isinstance(val, int):
         val = int(val, 0)
     else:
         # Booleans are ints!
@@ -353,7 +347,7 @@ def validate_pos_int(val):
 def validate_string(val):
     if val is None:
         return None
-    if not isinstance(val, six.string_types):
+    if not isinstance(val, str):
         raise TypeError("Not a string: %s" % val)
     return val.strip()
 
@@ -371,7 +365,7 @@ def validate_list_string(val):
         return []
 
     # legacy syntax
-    if isinstance(val, six.string_types):
+    if isinstance(val, str):
         val = [val]
 
     return [validate_string(v) for v in val]
@@ -400,7 +394,7 @@ def validate_class(val):
 
 def validate_callable(arity):
     def _validate_callable(val):
-        if isinstance(val, six.string_types):
+        if isinstance(val, str):
             try:
                 mod_name, obj_name = val.rsplit(".", 1)
             except ValueError:
@@ -414,9 +408,9 @@ def validate_callable(arity):
             except AttributeError:
                 raise TypeError("Can not load '%s' from '%s'"
                     "" % (obj_name, mod_name))
-        if not six.callable(val):
-            raise TypeError("Value is not six.callable: %s" % val)
-        if arity != -1 and arity != _compat.get_arity(val):
+        if not callable(val):
+            raise TypeError("Value is not callable: %s" % val)
+        if arity != -1 and arity != util.get_arity(val):
             raise TypeError("Value must have an arity of: %s" % arity)
         return val
     return _validate_callable
@@ -454,7 +448,7 @@ def validate_group(val):
 def validate_post_request(val):
     val = validate_callable(-1)(val)
 
-    largs = _compat.get_arity(val)
+    largs = util.get_arity(val)
     if largs == 4:
         return val
     elif largs == 3:
@@ -1540,7 +1534,7 @@ class OnStarting(Setting):
     name = "on_starting"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def on_starting(server):
         pass
@@ -1556,7 +1550,7 @@ class OnReload(Setting):
     name = "on_reload"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def on_reload(server):
         pass
@@ -1572,7 +1566,7 @@ class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def when_ready(server):
         pass
@@ -1588,7 +1582,7 @@ class Prefork(Setting):
     name = "pre_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = six.callable
+    type = callable
 
     def pre_fork(server, worker):
         pass
@@ -1605,7 +1599,7 @@ class Postfork(Setting):
     name = "post_fork"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = six.callable
+    type = callable
 
     def post_fork(server, worker):
         pass
@@ -1622,7 +1616,7 @@ class PostWorkerInit(Setting):
     name = "post_worker_init"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def post_worker_init(worker):
         pass
@@ -1639,7 +1633,7 @@ class WorkerInt(Setting):
     name = "worker_int"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def worker_int(worker):
         pass
@@ -1657,7 +1651,7 @@ class WorkerAbort(Setting):
     name = "worker_abort"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def worker_abort(worker):
         pass
@@ -1677,7 +1671,7 @@ class PreExec(Setting):
     name = "pre_exec"
     section = "Server Hooks"
     validator = validate_callable(1)
-    type = six.callable
+    type = callable
 
     def pre_exec(server):
         pass
@@ -1693,7 +1687,7 @@ class PreRequest(Setting):
     name = "pre_request"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = six.callable
+    type = callable
 
     def pre_request(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
@@ -1710,7 +1704,7 @@ class PostRequest(Setting):
     name = "post_request"
     section = "Server Hooks"
     validator = validate_post_request
-    type = six.callable
+    type = callable
 
     def post_request(worker, req, environ, resp):
         pass
@@ -1727,7 +1721,7 @@ class ChildExit(Setting):
     name = "child_exit"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = six.callable
+    type = callable
 
     def child_exit(server, worker):
         pass
@@ -1746,7 +1740,7 @@ class WorkerExit(Setting):
     name = "worker_exit"
     section = "Server Hooks"
     validator = validate_callable(2)
-    type = six.callable
+    type = callable
 
     def worker_exit(server, worker):
         pass
@@ -1763,7 +1757,7 @@ class NumWorkersChanged(Setting):
     name = "nworkers_changed"
     section = "Server Hooks"
     validator = validate_callable(3)
-    type = six.callable
+    type = callable
 
     def nworkers_changed(server, new_value, old_value):
         pass
@@ -1916,16 +1910,15 @@ class DoHandshakeOnConnect(Setting):
     """
 
 
-if sys.version_info >= (2, 7):
-    class Ciphers(Setting):
-        name = "ciphers"
-        section = "SSL"
-        cli = ["--ciphers"]
-        validator = validate_string
-        default = 'TLSv1'
-        desc = """\
-        Ciphers to use (see stdlib ssl module's)
-        """
+class Ciphers(Setting):
+    name = "ciphers"
+    section = "SSL"
+    cli = ["--ciphers"]
+    validator = validate_string
+    default = 'TLSv1'
+    desc = """\
+    Ciphers to use (see stdlib ssl module's)
+    """
 
 
 class PasteGlobalConf(Setting):

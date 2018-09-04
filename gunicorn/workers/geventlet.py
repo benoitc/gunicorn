@@ -5,6 +5,7 @@
 
 from functools import partial
 import errno
+import os
 import sys
 
 try:
@@ -23,13 +24,12 @@ from eventlet.hubs import trampoline
 from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
-from gunicorn.http.wsgi import sendfile as o_sendfile
 from gunicorn.workers.base_async import AsyncWorker
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
-            return o_sendfile(fdout, fdin, offset, nbytes)
+            return os.sendfile(fdout, fdin, offset, nbytes)
         except OSError as e:
             if e.args[0] == errno.EAGAIN:
                 trampoline(fdout, write=True)
@@ -79,10 +79,7 @@ def _eventlet_stop(client, server, conn):
 
 
 def patch_sendfile():
-    from gunicorn.http import wsgi
-
-    if o_sendfile is not None:
-        setattr(wsgi, "sendfile", _eventlet_sendfile)
+    setattr(os, "sendfile", _eventlet_sendfile)
 
 
 class EventletWorker(AsyncWorker):

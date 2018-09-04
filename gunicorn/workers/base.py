@@ -3,27 +3,27 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from datetime import datetime
+import io
 import os
-from random import randint
 import signal
-from ssl import SSLError
 import sys
 import time
 import traceback
+from datetime import datetime
+from random import randint
+from ssl import SSLError
 
-from gunicorn import six
 from gunicorn import util
-from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import reloader_engines
 from gunicorn.http.errors import (
-    InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
-    InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
+    ForbiddenProxyRequest, InvalidHeader,
+    InvalidHeaderName, InvalidHTTPVersion,
+    InvalidProxyLine, InvalidRequestLine,
+    InvalidRequestMethod, InvalidSchemeHeaders,
+    LimitRequestHeaders, LimitRequestLine,
 )
-from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.http.errors import InvalidSchemeHeaders
-from gunicorn.http.wsgi import default_environ, Response
-from gunicorn.six import MAXSIZE
+from gunicorn.http.wsgi import Response, default_environ
+from gunicorn.reloader import reloader_engines
+from gunicorn.workers.workertmp import WorkerTmp
 
 
 class Worker(object):
@@ -52,7 +52,7 @@ class Worker(object):
 
         self.nr = 0
         jitter = randint(0, cfg.max_requests_jitter)
-        self.max_requests = cfg.max_requests + jitter or MAXSIZE
+        self.max_requests = cfg.max_requests + jitter or sys.maxsize
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
@@ -150,7 +150,7 @@ class Worker(object):
                 _, exc_val, exc_tb = sys.exc_info()
                 self.reloader.add_extra_file(exc_val.filename)
 
-                tb_string = six.StringIO()
+                tb_string = io.StringIO()
                 traceback.print_tb(exc_tb, file=tb_string)
                 self.wsgi = util.make_fail_app(tb_string.getvalue())
             finally:
@@ -170,9 +170,8 @@ class Worker(object):
 
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
-        if hasattr(signal, 'siginterrupt'):  # python >= 2.6
-            signal.siginterrupt(signal.SIGTERM, False)
-            signal.siginterrupt(signal.SIGUSR1, False)
+        signal.siginterrupt(signal.SIGTERM, False)
+        signal.siginterrupt(signal.SIGUSR1, False)
 
         if hasattr(signal, 'set_wakeup_fd'):
             signal.set_wakeup_fd(self.PIPE[1])

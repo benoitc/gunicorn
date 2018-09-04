@@ -9,21 +9,10 @@ import os
 import re
 import sys
 
-from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn.six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
-
-try:
-    # Python 3.3 has os.sendfile().
-    from os import sendfile
-except ImportError:
-    try:
-        from ._sendfile import sendfile
-    except ImportError:
-        sendfile = None
 
 # Send files in at most 1GB blocks as some operating systems can have problems
 # with sending files in blocks over 2GB.
@@ -155,9 +144,9 @@ def create(req, sock, client, server, cfg):
     # authors should be aware that REMOTE_HOST and REMOTE_ADDR
     # may not qualify the remote addr:
     # http://www.ietf.org/rfc/rfc3875
-    if isinstance(client, string_types):
+    if isinstance(client, str):
         environ['REMOTE_ADDR'] = client
-    elif isinstance(client, binary_type):
+    elif isinstance(client, bytes):
         environ['REMOTE_ADDR'] = client.decode()
     else:
         environ['REMOTE_ADDR'] = client[0]
@@ -167,7 +156,7 @@ def create(req, sock, client, server, cfg):
     # Normally only the application should use the Host header but since the
     # WSGI spec doesn't support unix sockets, we are using it to create
     # viable SERVER_* if possible.
-    if isinstance(server, string_types):
+    if isinstance(server, str):
         server = server.split(":")
         if len(server) == 1:
             # unix socket
@@ -191,7 +180,7 @@ def create(req, sock, client, server, cfg):
     path_info = req.path
     if script_name:
         path_info = path_info.split(script_name, 1)[1]
-    environ['PATH_INFO'] = unquote_to_wsgi_str(path_info)
+    environ['PATH_INFO'] = util.unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
     # override the environ with the correct remote and server address if
@@ -234,7 +223,7 @@ class Response(object):
         if exc_info:
             try:
                 if self.status and self.headers_sent:
-                    reraise(exc_info[0], exc_info[1], exc_info[2])
+                    util.reraise(exc_info[0], exc_info[1], exc_info[2])
             finally:
                 exc_info = None
         elif self.status is not None:
@@ -256,7 +245,7 @@ class Response(object):
 
     def process_headers(self, headers):
         for name, value in headers:
-            if not isinstance(name, string_types):
+            if not isinstance(name, str):
                 raise TypeError('%r is not a string' % name)
 
             if HEADER_RE.search(name):
@@ -331,7 +320,7 @@ class Response(object):
 
     def write(self, arg):
         self.send_headers()
-        if not isinstance(arg, binary_type):
+        if not isinstance(arg, bytes):
             raise TypeError('%r is not a byte' % arg)
         arglen = len(arg)
         tosend = arglen
@@ -353,7 +342,7 @@ class Response(object):
         util.write(self.sock, arg, self.chunked)
 
     def can_sendfile(self):
-        return self.cfg.sendfile is not False and sendfile is not None
+        return self.cfg.sendfile is not False
 
     def sendfile(self, respiter):
         if self.cfg.is_ssl or not self.can_sendfile():
@@ -390,7 +379,7 @@ class Response(object):
 
         while sent != nbytes:
             count = min(nbytes - sent, BLKSIZE)
-            sent += sendfile(sockno, fileno, offset + sent, count)
+            sent += os.sendfile(sockno, fileno, offset + sent, count)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")

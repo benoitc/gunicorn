@@ -1,14 +1,13 @@
-from datetime import timedelta
-import socket
+import io
 import logging
-import tempfile
-import shutil
 import os
+import shutil
+import socket
+import tempfile
+from datetime import timedelta
 
 from gunicorn.config import Config
 from gunicorn.instrument.statsd import Statsd
-from gunicorn.six import StringIO
-
 from support import SimpleNamespace
 
 
@@ -63,7 +62,7 @@ def test_statsd_fail():
 def test_instrument():
     logger = Statsd(Config())
     # Capture logged messages
-    sio = StringIO()
+    sio = io.StringIO()
     logger.error_log.addHandler(logging.StreamHandler(sio))
     logger.sock = MockSocket(False)
 

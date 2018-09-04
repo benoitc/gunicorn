@@ -38,13 +38,8 @@ class WorkerTmp(object):
         self.spinner = 0
 
     def notify(self):
-        try:
-            self.spinner = (self.spinner + 1) % 2
-            os.fchmod(self._tmp.fileno(), self.spinner)
-        except AttributeError:
-            # python < 2.6
-            self._tmp.truncate(0)
-            os.write(self._tmp.fileno(), b"X")
+        self.spinner = (self.spinner + 1) % 2
+        os.fchmod(self._tmp.fileno(), self.spinner)
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_ctime
