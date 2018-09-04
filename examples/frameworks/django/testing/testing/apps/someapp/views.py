@@ -3,7 +3,7 @@ import io
 import os
 from django import forms
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext
 
 
@@ -38,12 +38,14 @@ def home(request):
     else:
         form = MsgForm()
 
-    return render_to_response('home.html', {
+
+
+    return render(request, 'home.html', {
         'form': form,
         'subject': subject,
         'message': message,
         'size': size
-    }, RequestContext(request))
+    })
 
 
 def acsv(request):
