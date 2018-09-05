@@ -172,10 +172,10 @@ disk-backed filesystem. For example, by default ``/tmp`` is not mounted as
 ``tmpfs`` in Ubuntu; in AWS an EBS root instance volume may sometimes hang for
 half a minute and during this time Gunicorn workers may completely block in
 ``os.fchmod``. ``os.fchmod`` may introduce extra delays if the disk gets full.
-Also Gunicon may refuse to start if it can't create the files when the disk is
+Also Gunicorn may refuse to start if it can't create the files when the disk is
 full.
 
-Currently to avoid these problems you can create a ``tmpfs`` mount (for a new
+Currently to avoid these problems you can use a ``tmpfs`` mount (for a new
 directory or for ``/tmp``) and pass its path to ``--worker-tmp-dir``. First,
 check whether your ``/tmp`` is disk-backed or RAM-backed::
 
@@ -183,7 +183,15 @@ check whether your ``/tmp`` is disk-backed or RAM-backed::
     Filesystem     1K-blocks    Used Available Use% Mounted on
     /dev/xvda1           ...     ...       ...  ... /
 
-No luck. Let's create a new ``tmpfs`` mount::
+No luck. If you are using Fedora or Ubuntu, you should already have a ``tmpfs``
+mount at ``/dev/shm``::
+
+    $ df /dev/shm
+    Filesystem     1K-blocks     Used Available Use% Mounted on
+    tmpfs                 ...     ...       ...  ... /dev/shm
+
+In this case you can set ``--worker-tmp-dir /dev/shm``, otherwise you can
+create a new ``tmpfs`` mount::
 
     sudo cp /etc/fstab /etc/fstab.orig
     sudo mkdir /mem
