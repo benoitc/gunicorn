@@ -539,7 +539,7 @@ class Arbiter(object):
         Maintain the number of workers by spawning or killing
         as required.
         """
-        if len(self.WORKERS.keys()) < self.num_workers:
+        if len(self.WORKERS) < self.num_workers:
             self.spawn_workers()
 
         workers = self.WORKERS.items()
@@ -610,7 +610,7 @@ class Arbiter(object):
         of the master process.
         """
 
-        for _ in range(self.num_workers - len(self.WORKERS.keys())):
+        for _ in range(self.num_workers - len(self.WORKERS)):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
 
