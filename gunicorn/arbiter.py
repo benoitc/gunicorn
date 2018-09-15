@@ -415,9 +415,6 @@ class Arbiter(object):
         for i in range(self.cfg.workers):
             self.spawn_worker()
 
-        #Sleeping so that new workers get time to boot
-        time.sleep(2)
-
         # manage workers
         self.manage_workers()
 
