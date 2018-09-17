@@ -96,7 +96,7 @@ if has_inotify:
             fnames = [
                 os.path.dirname(COMPILED_EXT_RE.sub('py', module.__file__))
                 for module in tuple(sys.modules.values())
-                if hasattr(module, '__file__')
+                if getattr(module, '__file__', None)
             ]
 
             return set(fnames)
