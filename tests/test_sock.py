@@ -11,6 +11,27 @@ except ImportError:
 from gunicorn import sock
 
 
+@mock.patch('os.stat')
+def test_create_sockets_unix_bytes(stat):
+    conf = mock.Mock(address=[b'127.0.0.1:8000'])
+    log = mock.Mock()
+    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
+        listeners = sock.create_sockets(conf, log)
+        assert len(listeners) == 1
+        print(type(listeners[0]))
+        assert isinstance(listeners[0], sock.UnixSocket)
+
+
+@mock.patch('os.stat')
+def test_create_sockets_unix_strings(stat):
+    conf = mock.Mock(address=['127.0.0.1:8000'])
+    log = mock.Mock()
+    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
+        listeners = sock.create_sockets(conf, log)
+        assert len(listeners) == 1
+        assert isinstance(listeners[0], sock.UnixSocket)
+
+
 def test_socket_close():
     listener1 = mock.Mock()
     listener1.getsockname.return_value = ('127.0.0.1', '80')

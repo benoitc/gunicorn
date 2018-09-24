@@ -71,11 +71,11 @@ class Message(object):
             secure_scheme_headers = cfg.secure_scheme_headers
         elif isinstance(self.unreader, SocketUnreader):
             remote_addr = self.unreader.sock.getpeername()
-            if isinstance(remote_addr, tuple):
+            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
                 remote_host = remote_addr[0]
                 if remote_host in cfg.forwarded_allow_ips:
                     secure_scheme_headers = cfg.secure_scheme_headers
-            elif isinstance(remote_addr, str):
+            elif self.unreader.sock.family == socket.AF_UNIX:
                 secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
