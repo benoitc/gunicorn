@@ -15,7 +15,7 @@ from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     LimitRequestLine, LimitRequestHeaders)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
-from gunicorn.six import BytesIO, string_types
+from gunicorn.six import BytesIO
 from gunicorn.util import split_request_uri
 
 MAX_REQUEST_LINE = 8190
@@ -72,11 +72,11 @@ class Message(object):
             secure_scheme_headers = cfg.secure_scheme_headers
         elif isinstance(self.unreader, SocketUnreader):
             remote_addr = self.unreader.sock.getpeername()
-            if isinstance(remote_addr, tuple):
+            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
                 remote_host = remote_addr[0]
                 if remote_host in cfg.forwarded_allow_ips:
                     secure_scheme_headers = cfg.secure_scheme_headers
-            elif isinstance(remote_addr, string_types):
+            elif self.unreader.sock.family == socket.AF_UNIX:
                 secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
