@@ -144,7 +144,7 @@ class Worker(object):
         # reset signaling
         [signal.signal(s, signal.SIG_DFL) for s in self.SIGNALS]
         # init new signaling
-        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        signal.signal(signal.SIGHUP, self.handle_exit)
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_quit)
