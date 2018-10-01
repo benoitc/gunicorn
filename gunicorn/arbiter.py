@@ -376,11 +376,7 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
 
-        unlink = (
-            self.reexec_pid == self.master_pid == 0 
-            and not self.systemd
-            and not self.cfg.reuse_port
-        )
+        unlink = self.reexec_pid == self.master_pid == 0 and not self.systemd
         sock.close_sockets(self.LISTENERS, unlink)
 
         self.LISTENERS = []
