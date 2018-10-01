@@ -7,10 +7,8 @@ environment:
       PYTHON: "C:\\Python35-x64"
     - TOXENV: py36
       PYTHON: "C:\\Python36-x64"
-matrix:
-  allow_failures:
-    - TOXENV: py35
-    - TOXENV: py36
+    - TOXENV: py37
+      PYTHON: "C:\\Python37-x64"
 init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 install:
   - pip install tox
