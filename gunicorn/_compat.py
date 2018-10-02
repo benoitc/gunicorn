@@ -60,6 +60,6 @@ def execfile_(fname, *args):
     if fname.endswith(".pyc"):
         code = _get_codeobj(fname)
     else:
-        from pathlib import Path
-        code = compile(Path(fname).read_bytes(), fname, 'exec')
+        with open(fname, 'rb') as file:
+            code = compile(file.read(), fname, 'exec')
     return exec(code, *args)
