@@ -377,8 +377,11 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
-
-        unlink = self.reexec_pid == self.master_pid == 0 and not self.systemd
+        unlink = (
+            self.reexec_pid == self.master_pid == 0
+            and not self.systemd
+            and not self.cfg.reuse_port
+        )
         sock.close_sockets(self.LISTENERS, unlink)
 
         self.LISTENERS = []
