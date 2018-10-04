@@ -40,12 +40,12 @@ pass them along as if you're directly giving them to Gunicorn
     # Using a config file
     python gunicorn.app.wsgiapp exampleapi:app -c config.py
     
-Note for those using PEX: use `-e gunicorn.app.wsgiapp` as your entry at build
+Note for those using PEX: use `-c gunicorn` as your entry at build
 time, and your compiled app should work with the entry point passed to it at
 run time. 
 
 .. code-block:: bash
     # Generic pex build command via bash from root of exampleapi project
-    pex . -v -e gunicorn.app.wsgiapp -o compiledapp.pex
+    pex . -v -c gunicorn -o compiledapp.pex
     # Running it
-    ./compiledapp.pex exampleapi:app -c config.py
+    ./compiledapp.pex exampleapi:app -c gunicorn_config.py
