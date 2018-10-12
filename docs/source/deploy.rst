@@ -233,7 +233,7 @@ unix socket:
     RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
     ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid   \
-              --bind unix:/run/gunicorn/socket applicationname.wsgi
+              --bind unix:/run/gunicorn.sock applicationname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
     ExecStop=/bin/kill -s TERM $MAINPID
     PrivateTmp=true
@@ -247,8 +247,10 @@ unix socket:
     Description=gunicorn socket
 
     [Socket]
-    ListenStream=/run/gunicorn/socket
-
+    ListenStream=/run/gunicorn.sock
+    User=someuser
+    Group=someuser
+    
     [Install]
     WantedBy=sockets.target
 
@@ -265,7 +267,7 @@ Either reboot, or start the services manually::
     systemctl start gunicorn.socket
 
 
-After running ``curl --unix-socket /run/gunicorn/socket http``, Gunicorn
+After running ``curl --unix-socket /run/gunicorn.sock http``, Gunicorn
 should start and you should see some HTML from your server in the terminal.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
@@ -279,7 +281,7 @@ socket. Edit your ``nginx.conf`` to include the following:
             listen          8000;
             server_name     127.0.0.1;
             location / {
-                proxy_pass http://unix:/run/gunicorn/socket;
+                proxy_pass http://unix:/run/gunicorn.sock;
             }
         }
     }
