@@ -51,9 +51,11 @@ def sd_notify(state, unset_environment=False, debug=False):
     the man page of sd_notify (http://www.freedesktop.org/software/systemd/man/sd_notify.html)
     for a description of the allowable values.
 
-    If the unset_environment parameter is non-zero, sd_notify() will unset the $NOTIFY_SOCKET environment variable before
-    returning (regardless of whether the function call itself succeeded or not). Further calls to sd_notify() will then fail, but
-    the variable is no longer inherited by child processes.
+    If the unset_environment parameter is True, sd_notify() will unset
+    the $NOTIFY_SOCKET environment variable before returning (regardless of
+    whether the function call itself succeeded or not). Further calls to
+    sd_notify() will then fail, but the variable is no longer inherited by
+    child processes.
 
     Normally this method silently ignores exceptions (for example, if the
     systemd notification socket is not available) to allow applications to
@@ -62,7 +64,7 @@ def sd_notify(state, unset_environment=False, debug=False):
     aid in debugging."""
 
     addr = os.getenv('NOTIFY_SOCKET')
-    if addr == None:
+    if addr is None:
         # not run in a service, just a noop
         return
     if unset_environment:
