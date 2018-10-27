@@ -72,7 +72,7 @@ address of **the proxy** and **not the actual user**.
 To have access logs indicate **the actual user** IP, use ``access-logformat``
 format such as::
 
-    "%({x-forwarded-for}i)s %(l)s %(u)s %(t)s %(r)s %(s)s %(b)s %(f)s %(a)s"
+    %({x-forwarded-for}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 It is also worth noting that the ``REMOTE_ADDR`` will be completely empty if
 you bind Gunicorn to a UNIX socket and not a TCP ``host:port`` tuple.
