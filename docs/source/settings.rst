@@ -186,6 +186,11 @@ p            process ID
 {Variable}e  environment variable
 ===========  ===========
 
+Use lowercase for header and environment variable names, and put
+``{...}x`` names inside ``%(...)s``. For example::
+
+    %({x-forwarded-for}i)s
+
 .. _errorlog:
 
 errorlog
