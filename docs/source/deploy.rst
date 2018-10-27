@@ -67,13 +67,12 @@ Gunicorn 19 introduced a breaking change concerning how ``REMOTE_ADDR`` is
 handled. Previous to Gunicorn 19 this was set to the value of
 ``X-Forwarded-For`` if received from a trusted proxy. However, this was not in
 compliance with :rfc:`3875` which is why the ``REMOTE_ADDR`` is now the IP
-address of **the proxy** and **not the actual user**. You should instead
-configure Nginx to send the user's IP address through the ``X-Forwarded-For``
-header like this::
+address of **the proxy** and **not the actual user**.
 
-    ...
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    ...
+To have access logs indicate **the actual user** IP, use ``access-logformat``
+format such as::
+
+    "%({x-forwarded-for}i)s %(l)s %(u)s %(t)s %(r)s %(s)s %(b)s %(f)s %(a)s"
 
 It is also worth noting that the ``REMOTE_ADDR`` will be completely empty if
 you bind Gunicorn to a UNIX socket and not a TCP ``host:port`` tuple.
