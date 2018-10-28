@@ -1241,9 +1241,9 @@ class AccessLogFormat(Setting):
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
-        {Header}i    request header
-        {Header}o    response header
-        {Variable}e  environment variable
+        {header}i    request header
+        {header}o    response header
+        {variable}e  environment variable
         ===========  ===========
 
         Use lowercase for header and environment variable names, and put
