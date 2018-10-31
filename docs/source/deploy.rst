@@ -69,8 +69,9 @@ handled. Previous to Gunicorn 19 this was set to the value of
 compliance with :rfc:`3875` which is why the ``REMOTE_ADDR`` is now the IP
 address of **the proxy** and **not the actual user**.
 
-To have access logs indicate **the actual user** IP, use ``access-logformat``
-format such as::
+To have access logs indicate **the actual user** IP when proxied, set
+:ref:`access-log-format` with a format which includes ``X-Forwarded-For``. For
+example, this format uses ``X-Forwarded-For`` in place of ``REMOTE_ADDR``::
 
     %({x-forwarded-for}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
