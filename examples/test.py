@@ -20,7 +20,8 @@ def app(environ, start_response):
     response_headers = [
         ('Content-type', 'text/plain'),
         ('Content-Length', str(len(data))),
-        ('X-Gunicorn-Version', __version__)
+        ('X-Gunicorn-Version', __version__),
+        ('Foo', 'B\u00e5r'),  # Foo: Bår
     ]
     start_response(status, response_headers)
     return iter([data])
