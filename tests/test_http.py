@@ -81,8 +81,13 @@ def test_http_header_encoding():
     mocked_request = mock.MagicMock()
     response = Response(mocked_request, mocked_socket, None)
 
-    # set umlaut header
+    # set umlaut header value - latin-1 is OK
     response.headers.append(('foo', 'häder'))
+    response.send_headers()
+
+    # set a-breve header value - unicode, non-latin-1 fails
+    response = Response(mocked_request, mocked_socket, None)
+    response.headers.append(('apple', 'măr'))
     with pytest.raises(UnicodeEncodeError):
         response.send_headers()
 
