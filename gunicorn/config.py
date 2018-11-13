@@ -627,11 +627,11 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
@@ -668,7 +668,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-        
+
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used
@@ -1368,12 +1368,28 @@ class LogConfigDict(Setting):
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` option, which uses the
-    older file configuration format.
+    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options, which uses the
+    older file configuration format and JSON respectively.
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
     .. versionadded:: 19.8
+    """
+
+
+class LogConfigJson(Setting):
+    name = "logconfig_json"
+    section = "Logging"
+    cli = ["--log-config-json"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    The log config JSON reads config from a JSON file
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
+
+    .. versionadded:: 19.9
     """
 
 

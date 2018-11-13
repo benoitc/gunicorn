@@ -264,6 +264,16 @@ The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
 
+.. _logconfig-json:
+
+logiconfig_json
+~~~~~~~~~
+
+* ``--log-config-json FILE``
+* ``None``
+
+The log config file written in JSON.
+
 .. _logconfig-dict:
 
 logconfig_dict
@@ -274,8 +284,9 @@ logconfig_dict
 
 The log config dictionary to use, using the standard Python
 logging module's dictionary configuration format. This option
-takes precedence over the :ref:`logconfig` option, which uses the
-older file configuration format.
+takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options, which uses the
+older file configuration format and JSON respectively.
+
 
 Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
@@ -1173,11 +1184,11 @@ libraries may be installed using setuptools' ``extra_require`` feature.
 A string referring to one of the following bundled classes:
 
 * ``sync``
-* ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+* ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via
   ``pip install gunicorn[eventlet]``)
-* ``gevent``   - Requires gevent >= 0.13 (or install it via 
+* ``gevent``   - Requires gevent >= 0.13 (or install it via
   ``pip install gunicorn[gevent]``)
-* ``tornado``  - Requires tornado >= 0.2 (or install it via 
+* ``tornado``  - Requires tornado >= 0.2 (or install it via
   ``pip install gunicorn[tornado]``)
 * ``gthread``  - Python 2 requires the futures package to be installed
   (or install it via ``pip install gunicorn[gthread]``)
