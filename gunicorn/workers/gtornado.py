@@ -88,9 +88,9 @@ class TornadoWorker(Worker):
         self.ioloop = IOLoop.instance()
         self.alive = True
         self.server_alive = False
-        self.callbacks = []
 
         if TORNADO5:
+            self.callbacks = []
             self.callbacks.append(PeriodicCallback(self.watchdog, 1000))
             self.callbacks.append(PeriodicCallback(self.heartbeat, 1000))
             for callback in self.callbacks:
