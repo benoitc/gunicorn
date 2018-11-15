@@ -66,24 +66,25 @@ class TornadoWorker(Worker):
                         pass
                 self.server_alive = False
             else:
-                if not self.ioloop._callbacks:
+                if IOLOOP_PARAMETER_REMOVED:
+                    for callback in self.callbacks:
+                        callback.stop()
                     self.ioloop.stop()
-
-    def init_process(self):
-        # IOLoop cannot survive a fork or be shared across processes
-        # in any way. When multiple processes are being used, each process
-        # should create its own IOLoop. We should clear current IOLoop
-        # if exists before os.fork.
-        IOLoop.clear_current()
-        super(TornadoWorker, self).init_process()
+                else:
+                    if not self.ioloop._callbacks:
+                        self.ioloop.stop()
 
     def run(self):
         self.ioloop = IOLoop.instance()
         self.alive = True
         self.server_alive = False
+        self.callbacks = []
+
         if IOLOOP_PARAMETER_REMOVED:
-            PeriodicCallback(self.watchdog, 1000).start()
-            PeriodicCallback(self.heartbeat, 1000).start()
+            self.callbacks.append(PeriodicCallback(self.watchdog, 1000))
+            self.callbacks.append(PeriodicCallback(self.heartbeat, 1000))
+            for callback in self.callbacks:
+                callback.start()
         else:
             PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
             PeriodicCallback(self.heartbeat, 1000, io_loop=self.ioloop).start()
