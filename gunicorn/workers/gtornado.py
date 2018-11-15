@@ -19,9 +19,11 @@ from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
 
 
-# `io_loop` arguments to many Tornado functions have been removed in Tornado 5.0
+# Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many Tornado functions have
+# been removed in Tornado 5.0. Also, they no longer store PeriodCallbacks in ioloop._callbacks.
+# Instead we store them on our side, and use .stop() on them when stopping the worker
 # <http://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes>
-IOLOOP_PARAMETER_REMOVED = tornado.version_info >= (5, 0, 0)
+TORNADO5 = tornado.version_info >= (5, 0, 0)
 
 
 class TornadoWorker(Worker):
@@ -66,7 +68,7 @@ class TornadoWorker(Worker):
                         pass
                 self.server_alive = False
             else:
-                if IOLOOP_PARAMETER_REMOVED:
+                if TORNADO5:
                     for callback in self.callbacks:
                         callback.stop()
                     self.ioloop.stop()
@@ -74,13 +76,21 @@ class TornadoWorker(Worker):
                     if not self.ioloop._callbacks:
                         self.ioloop.stop()
 
+    def init_process(self):
+        # IOLoop cannot survive a fork or be shared across processes
+        # in any way. When multiple processes are being used, each process
+        # should create its own IOLoop. We should clear current IOLoop
+        # if exists before os.fork.
+        IOLoop.clear_current()
+        super(TornadoWorker, self).init_process()
+
     def run(self):
         self.ioloop = IOLoop.instance()
         self.alive = True
         self.server_alive = False
         self.callbacks = []
 
-        if IOLOOP_PARAMETER_REMOVED:
+        if TORNADO5:
             self.callbacks.append(PeriodicCallback(self.watchdog, 1000))
             self.callbacks.append(PeriodicCallback(self.heartbeat, 1000))
             for callback in self.callbacks:
@@ -128,13 +138,13 @@ class TornadoWorker(Worker):
             # options
             del _ssl_opt["do_handshake_on_connect"]
             del _ssl_opt["suppress_ragged_eofs"]
-            if IOLOOP_PARAMETER_REMOVED:
+            if TORNADO5:
                 server = server_class(app, ssl_options=_ssl_opt)
             else:
                 server = server_class(app, io_loop=self.ioloop,
                                       ssl_options=_ssl_opt)
         else:
-            if IOLOOP_PARAMETER_REMOVED:
+            if TORNADO5:
                 server = server_class(app)
             else:
                 server = server_class(app, io_loop=self.ioloop)
