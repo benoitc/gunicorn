@@ -429,3 +429,9 @@ def _test_ssl_version(options, expected):
     with AltArgs(cmdline):
         app = NoConfigApp()
     assert app.cfg.ssl_version == expected
+
+
+def test_bind_fd():
+    with AltArgs(["prog_name", "-b", "fd://42"]):
+        app = NoConfigApp()
+    assert app.cfg.bind == ["fd://42"]

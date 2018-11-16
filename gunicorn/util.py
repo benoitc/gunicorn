@@ -251,6 +251,13 @@ def parse_address(netloc, default_port=8000):
     if re.match(r'unix:(//)?', netloc):
         return re.split(r'unix:(//)?', netloc)[-1]
 
+    if netloc.startswith("fd://"):
+        fd = netloc[5:]
+        try:
+            return int(fd)
+        except ValueError:
+            raise RuntimeError("%r is not a valid file descriptor." % fd) from None
+
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
 

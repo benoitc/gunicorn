@@ -52,8 +52,8 @@ Commonly Used Arguments
 * ``-c CONFIG, --config=CONFIG`` - Specify a config file in the form
   ``$(PATH)``, ``file:$(PATH)``, or ``python:$(MODULE_NAME)``.
 * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
-  can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
-  An IP is a valid ``$(HOST)``.
+  can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, ``fd://$(FD)``, or
+  ``unix:$(PATH)``. An IP is a valid ``$(HOST)``.
 * ``-w WORKERS, --workers=WORKERS`` - The number of worker processes. This
   number should generally be between 2-4 workers per core in the server.
   Check the :ref:`faq` for ideas on tuning this parameter.

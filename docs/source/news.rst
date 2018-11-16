@@ -2,6 +2,11 @@
 Changelog
 =========
 
+20.0 / not released
+===================
+
+- fix: Added support for binding to file descriptors (:issue:`1107`, :pr:`1809`)
+
 19.9.0 / 2018/07/03
 ===================
 
