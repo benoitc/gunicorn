@@ -19,10 +19,12 @@ from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
 
 
-# Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many Tornado functions have
-# been removed in Tornado 5.0. Also, they no longer store PeriodCallbacks in ioloop._callbacks.
-# Instead we store them on our side, and use .stop() on them when stopping the worker
-# <http://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes>
+# Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many
+# Tornado functions have been removed in Tornado 5.0. Also, they no
+# longer store PeriodCallbacks in ioloop._callbacks. Instead we store
+# them on our side, and use stop() on them when stopping the worker.
+# See https://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes
+# for more details.
 TORNADO5 = tornado.version_info >= (5, 0, 0)
 
 
