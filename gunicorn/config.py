@@ -344,6 +344,28 @@ def validate_pos_int(val):
     return val
 
 
+def validate_ssl_version(val):
+    ssl_versions = {}
+    for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
+        ssl_versions[protocol[9:]] = getattr(ssl, protocol)
+    if val in ssl_versions:
+        # string matching PROTOCOL_...
+        return ssl_versions[val]
+
+    try:
+        intval = validate_pos_int(val)
+        if intval in ssl_versions.values():
+            # positive int matching a protocol int constant
+            return intval
+    except (ValueError, TypeError):
+        # negative integer or not an integer
+        # drop this in favour of the more descriptive ValueError below
+        pass
+
+    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
+                     % (val, ', '.join(ssl_versions)))
+
+
 def validate_string(val):
     if val is None:
         return None
@@ -1244,10 +1266,15 @@ class AccessLogFormat(Setting):
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
-        {Header}i    request header
-        {Header}o    response header
-        {Variable}e  environment variable
+        {header}i    request header
+        {header}o    response header
+        {variable}e  environment variable
         ===========  ===========
+
+        Use lowercase for header and environment variable names, and put
+        ``{...}x`` names inside ``%(...)s``. For example::
+
+            %({x-forwarded-for}i)s
         """
 
 
@@ -1859,14 +1886,31 @@ class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
     cli = ["--ssl-version"]
-    validator = validate_pos_int
+    validator = validate_ssl_version
     default = ssl.PROTOCOL_SSLv23
     desc = """\
-    SSL version to use (see stdlib ssl module's)
+    SSL version to use.
+
+    ============= ============
+    --ssl-version Description
+    ============= ============
+    SSLv3         SSLv3 is not-secure and is strongly discouraged.
+    SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
+    TLS           Negotiate highest possible version between client/server.
+                  Can yield SSL. (Python 3.6+)
+    TLSv1         TLS 1.0
+    TLSv1_1       TLS 1.1 (Python 3.4+)
+    TLSv2         TLS 1.2 (Python 3.4+)
+    TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
+                  but only support server-side SSLSocket connections.
+                  (Python 3.6+)
 
     .. versionchanged:: 19.7
        The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
        ``ssl.PROTOCOL_SSLv23``.
+    .. versionchanged:: 20.0
+       This setting now accepts string names based on ``ssl.PROTOCOL_``
+       constants.
     """
 
 class CertReqs(Setting):

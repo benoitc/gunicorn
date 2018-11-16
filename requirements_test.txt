@@ -1,3 +1,4 @@
+aiohttp
 coverage>=4.0,<4.4  # TODO: https://github.com/benoitc/gunicorn/issues/1548
 pytest
 pytest-cov==2.5.1

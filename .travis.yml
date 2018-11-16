@@ -2,8 +2,10 @@ sudo: false
 language: python
 matrix:
   include:
-    - python: 3.6
+    - python: 3.7
       env: TOXENV=lint
+      dist: xenial
+      sudo: true
     - python: 3.4
       env: TOXENV=py34
     - python: 3.5
