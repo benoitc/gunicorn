@@ -246,7 +246,7 @@ class Logger(object):
                     config_json = json.load(open(cfg.logconfig_json))
                     config.update(config_json)
                     dictConfig(config)
-                except(
+                except (
                     json.JSONDecodeError,
                     AttributeError,
                     ImportError,
