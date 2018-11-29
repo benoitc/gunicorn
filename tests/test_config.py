@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from gunicorn import config
+from gunicorn import config, SERVER_SOFTWARE
 from gunicorn.app.base import Application
 from gunicorn.errors import ConfigError
 from gunicorn.workers.sync import SyncWorker
@@ -435,3 +435,14 @@ def test_bind_fd():
     with AltArgs(["prog_name", "-b", "fd://42"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["fd://42"]
+
+
+def test_server_tokens():
+    c = config.Config()
+    assert c.server_tokens == SERVER_SOFTWARE
+    c.set('server_tokens', 'false')
+    assert c.server_tokens == 'gunicorn'
+    c.set('server_tokens', 'server software')
+    assert c.server_tokens == 'server software'
+    c.set('server_tokens', '')
+    assert c.server_tokens == ''

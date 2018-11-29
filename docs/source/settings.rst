@@ -1095,6 +1095,23 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
 
 .. versionadded:: 19.7
 
+.. _server-tokens:
+
+server_tokens
+~~~~~~~~~~~~~
+
+* ``--server-tokens``
+* ``true``
+
+Enable or disable emitting gunicorn version in the ``Server`` http response header.
+
+This setting may also be used to emit a custom ``Server`` header value
+or disable the header entirely.
+
+A value of ``true`` will result in the default behavior. ``false`` will disable
+emittance of gunicorn version. A string value will emit itself as a custom ``Server``
+header value, and an empty string will disable the ``Server`` response header.
+
 Server Socket
 -------------
 

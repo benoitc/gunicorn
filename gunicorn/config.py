@@ -17,7 +17,7 @@ import ssl
 import sys
 import textwrap
 
-from gunicorn import __version__, util
+from gunicorn import __version__, util, SERVER_SOFTWARE
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
 
@@ -220,6 +220,17 @@ class Config(object):
             global_conf[k] = v
 
         return global_conf
+
+    @property
+    def server_tokens(self):
+        s = self.settings['server_tokens'].get()
+        if s == 'true':
+            return SERVER_SOFTWARE
+
+        if s == 'false':
+            return 'gunicorn'
+
+        return s
 
 
 class SettingMeta(type):
@@ -1988,3 +1999,20 @@ class PasteGlobalConf(Setting):
 
         .. versionadded:: 19.7
         """
+
+class ServerTokens(Setting):
+    name = "server_tokens"
+    section = "Server Mechanics"
+    cli = ["--server-tokens"]
+    validator = validate_string
+    default = 'true'
+    desc = """\
+        Enable or disable emitting gunicorn version in the ``Server`` http response header.
+        
+        This setting may also be used to emit a custom ``Server`` header value
+        or disable the header entirely.
+        
+        A value of ``true`` will result in the default behavior. ``false`` will disable
+        emittance of gunicorn version. A string value will emit itself as a custom ``Server``
+        header value, and an empty string will disable the ``Server`` response header.
+    """
