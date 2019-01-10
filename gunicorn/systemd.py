@@ -63,12 +63,12 @@ def sd_notify(state, unset_environment=False, debug=False):
     cause this method to raise any exceptions generated to the caller, to
     aid in debugging."""
 
-    addr = os.getenv('NOTIFY_SOCKET')
+    addr = os.environ.get('NOTIFY_SOCKET')
     if addr is None:
         # not run in a service, just a noop
         return
     if unset_environment:
-        os.unsetenv('NOTIFY_SOCKET')
+        os.environ.pop('NOTIFY_SOCKET')
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM | socket.SOCK_CLOEXEC)
         if addr[0] == '@':
