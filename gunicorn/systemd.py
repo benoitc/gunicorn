@@ -46,7 +46,7 @@ def listen_fds(unset_environment=True):
     return fds
 
 
-def sd_notify(state, unset_environment=False, debug=False):
+def sd_notify(state, logger, unset_environment=False):
     """Send a notification to systemd. state is a string; see
     the man page of sd_notify (http://www.freedesktop.org/software/systemd/man/sd_notify.html)
     for a description of the allowable values.
@@ -56,12 +56,8 @@ def sd_notify(state, unset_environment=False, debug=False):
     whether the function call itself succeeded or not). Further calls to
     sd_notify() will then fail, but the variable is no longer inherited by
     child processes.
+    """
 
-    Normally this method silently ignores exceptions (for example, if the
-    systemd notification socket is not available) to allow applications to
-    function on non-systemd based systems. However, setting debug=True will
-    cause this method to raise any exceptions generated to the caller, to
-    aid in debugging."""
 
     addr = os.environ.get('NOTIFY_SOCKET')
     if addr is None:
@@ -74,8 +70,7 @@ def sd_notify(state, unset_environment=False, debug=False):
         sock.connect(addr)
         sock.sendall(state.encode('utf-8'))
     except:
-        if debug:
-            raise
+        logger.debug("Exception while invoking sd_notify()", exc_info=True)
     finally:
         if unset_environment:
             os.environ.pop('NOTIFY_SOCKET')

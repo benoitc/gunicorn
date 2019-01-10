@@ -158,7 +158,7 @@ class Arbiter(object):
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
-        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted")
+        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
 
         # check worker class requirements
         if hasattr(self.worker_class, "check_config"):
