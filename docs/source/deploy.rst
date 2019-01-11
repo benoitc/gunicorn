@@ -227,7 +227,7 @@ unix socket:
     After=network.target
 
     [Service]
-    PIDFile=/run/gunicorn/pid
+    Type=notify
     User=someuser
     Group=someuser
     RuntimeDirectory=gunicorn
