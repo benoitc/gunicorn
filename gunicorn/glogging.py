@@ -54,8 +54,8 @@ CONFIG_DEFAULTS = dict(
         version=1,
         disable_existing_loggers=False,
 
+        root={"level": "INFO", "handlers": ["console"]},
         loggers={
-            "root": {"level": "INFO", "handlers": ["console"]},
             "gunicorn.error": {
                 "level": "INFO",
                 "handlers": ["error_console"],
