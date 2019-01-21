@@ -436,11 +436,29 @@ ssl_version
 * ``--ssl-version``
 * ``_SSLMethod.PROTOCOL_TLS``
 
-SSL version to use (see stdlib ssl module's)
+SSL version to use.
+
+============= ============
+--ssl-version Description
+============= ============
+SSLv3         SSLv3 is not-secure and is strongly discouraged.
+SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
+TLS           Negotiate highest possible version between client/server.
+              Can yield SSL. (Python 3.6+)
+TLSv1         TLS 1.0
+TLSv1_1       TLS 1.1 (Python 3.4+)
+TLSv1_2       TLS 1.2 (Python 3.4+)
+TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
+              but only support server-side SSLSocket connections.
+              (Python 3.6+)
+============= ============
 
 .. versionchanged:: 19.7
    The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
    ``ssl.PROTOCOL_SSLv23``.
+.. versionchanged:: 20.0
+   This setting now accepts string names based on ``ssl.PROTOCOL_``
+   constants.
 
 .. _cert-reqs:
 
@@ -834,7 +852,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/usr/src/app``
+* ``/Users/bsrandal/git/gunicorn/docs``
 
 Chdir to specified directory before apps loading.
 
