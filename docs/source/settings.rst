@@ -852,7 +852,7 @@ chdir
 ~~~~~
 
 * ``--chdir``
-* ``/Users/bsrandal/git/gunicorn/docs``
+* ``/usr/src/app``
 
 Chdir to specified directory before apps loading.
 
