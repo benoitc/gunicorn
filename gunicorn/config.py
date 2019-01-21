@@ -1900,10 +1900,11 @@ class SSLVersion(Setting):
                   Can yield SSL. (Python 3.6+)
     TLSv1         TLS 1.0
     TLSv1_1       TLS 1.1 (Python 3.4+)
-    TLSv2         TLS 1.2 (Python 3.4+)
+    TLSv1_2       TLS 1.2 (Python 3.4+)
     TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
                   but only support server-side SSLSocket connections.
                   (Python 3.6+)
+    ============= ============
 
     .. versionchanged:: 19.7
        The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
