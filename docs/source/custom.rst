@@ -34,6 +34,7 @@ This command will work with any Gunicorn CLI parameters or a config file - just
 pass them along as if you're directly giving them to Gunicorn:
 
 .. code-block:: bash
+
    # Custom parameters
    $ python gunicorn.app.wsgiapp exampleapi:app --bind=0.0.0.0:8081 --workers=4
    # Using a config file
@@ -44,6 +45,7 @@ time, and your compiled app should work with the entry point passed to it at
 run time. 
 
 .. code-block:: bash
+
    # Generic pex build command via bash from root of exampleapi project
    $ pex . -v -c gunicorn -o compiledapp.pex
    # Running it
