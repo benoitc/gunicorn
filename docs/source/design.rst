@@ -59,7 +59,7 @@ WSGI application, this is not a recommended configuration.
 AsyncIO Workers
 ---------------
 
-These workers are compatible with python3.
+These workers are compatible with Python 3.
 
 The worker `gthread` is a threaded worker. It accepts connections in the
 main loop, accepted connections are added to the thread pool as a
