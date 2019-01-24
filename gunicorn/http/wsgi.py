@@ -84,6 +84,7 @@ def base_environ(cfg):
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "wsgi.file_wrapper": FileWrapper,
+        "wsgi.input_terminated": True,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
     }
 
@@ -141,6 +142,7 @@ def create(req, sock, client, server, cfg):
             continue
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
+            environ['wsgi.input_terminated'] = False
             continue
 
         key = 'HTTP_' + hdr_name.replace('-', '_')
