@@ -630,25 +630,19 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+        * ``gevent``   - Requires gevent >= 0.13 (or install it via
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
-        * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
-
-        .. deprecated:: 19.8
-           The ``gaiohttp`` worker is deprecated. Please use
-           ``aiohttp.worker.GunicornWebWorker`` instead. See
-           :ref:`asyncio-workers` for more information on how to use it.
         """
 
 class WorkerThreads(Setting):
@@ -671,7 +665,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-        
+
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used

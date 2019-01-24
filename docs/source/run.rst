@@ -61,7 +61,7 @@ Commonly Used Arguments
   to run. You'll definitely want to read the production page for the
   implications of this parameter. You can set this to ``$(NAME)``
   where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``,
-  ``tornado``, ``gthread``, ``gaiohttp`` (deprecated).
+  ``tornado``, ``gthread``.
   ``sync`` is the default. See the :ref:`worker-class` documentation for more
   information.
 * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
