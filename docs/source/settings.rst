@@ -506,9 +506,22 @@ ciphers
 ~~~~~~~
 
 * ``--ciphers``
-* ``TLSv1``
+* ``None``
 
-Ciphers to use (see stdlib ssl module's)
+SSL Cipher suite to use, in the format of an OpenSSL cipher list.
+
+By default we use the default cipher list from Python's ``ssl`` module,
+which contains ciphers considered strong at the time of each Python
+release.
+
+As a recommended alternative, the Open Web App Security Project (OWASP)
+offers `a vetted set of strong cipher strings rated A+ to C-
+<https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet>`_.
+OWASP provides details on user-agent compatibility at each security level.
+
+See the `OpenSSL Cipher List Format Documentation
+<https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
+for details on the format of an OpenSSL cipher list.
 
 Security
 --------
