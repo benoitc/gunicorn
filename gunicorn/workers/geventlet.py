@@ -11,12 +11,11 @@ import sys
 try:
     import eventlet
 except ImportError:
-    raise RuntimeError("You need eventlet installed to use this worker.")
-
-# validate the eventlet version
-if eventlet.version_info < (0, 9, 7):
-    raise RuntimeError("You need eventlet >= 0.9.7")
-
+    raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
+else:
+    from pkg_resources import parse_version
+    if parse_version(eventlet.__version__) < parse_version('0.24'):
+        raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
 
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
@@ -25,6 +24,7 @@ from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.workers.base_async import AsyncWorker
+
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
@@ -86,7 +86,7 @@ class EventletWorker(AsyncWorker):
 
     def patch(self):
         hubs.use_hub()
-        eventlet.monkey_patch(os=False)
+        eventlet.monkey_patch()
         patch_sendfile()
 
     def is_already_handled(self, respiter):
