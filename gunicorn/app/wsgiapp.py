@@ -13,22 +13,21 @@ from gunicorn import util
 class WSGIApplication(Application):
     def init(self, parser, opts, args):
         if opts.paste:
-            app_name = 'main'
-            path = opts.paste
-            if '#' in path:
-                path, app_name = path.split('#')
-            path = os.path.abspath(os.path.normpath(
-                os.path.join(util.getcwd(), path)))
+            from .pasterapp import has_logging_config
 
-            if not os.path.exists(path):
-                raise ConfigError("%r not found" % path)
+            config_uri = os.path.abspath(opts.paste)
+            config_file = config_uri.split('#')[0]
 
-            # paste application, load the config
-            self.cfgurl = 'config:%s#%s' % (path, app_name)
-            self.relpath = os.path.dirname(path)
+            if not os.path.exists(config_file):
+                raise ConfigError("%r not found" % config_file)
 
-            from .pasterapp import paste_config
-            return paste_config(self.cfg, self.cfgurl, self.relpath)
+            self.cfg.set("default_proc_name", config_file)
+            self.app_uri = config_uri
+
+            if has_logging_config(config_file):
+                self.cfg.set("logconfig", config_file)
+
+            return
 
         if not args:
             parser.error("No application module specified.")
@@ -37,13 +36,11 @@ class WSGIApplication(Application):
         self.app_uri = args[0]
 
     def load_wsgiapp(self):
-        # load the app
         return util.import_app(self.app_uri)
 
     def load_pasteapp(self):
-        # load the paste app
-        from .pasterapp import load_pasteapp
-        return load_pasteapp(self.cfgurl, self.relpath, global_conf=self.cfg.paste_global_conf)
+        from .pasterapp import get_wsgi_app
+        return get_wsgi_app(self.app_uri, defaults=self.cfg.paste_global_conf)
 
     def load(self):
         if self.cfg.paste is not None:
