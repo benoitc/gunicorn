@@ -51,8 +51,13 @@ class Worker(object):
         self.reloader = None
 
         self.nr = 0
-        jitter = randint(0, cfg.max_requests_jitter)
-        self.max_requests = cfg.max_requests + jitter or MAXSIZE
+
+        if cfg.max_requests > 0:
+            jitter = randint(0, cfg.max_requests_jitter)
+            self.max_requests = cfg.max_requests + jitter
+        else:
+            self.max_requests = MAXSIZE
+
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
