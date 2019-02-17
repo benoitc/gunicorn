@@ -42,7 +42,7 @@ class WorkerTmp(object):
 
     def notify(self):
         new_time = time.monotonic()
-        os.utime(self._tmp.name, (new_time, new_time))
+        os.utime(self._tmp.fileno(), (new_time, new_time))
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_mtime
