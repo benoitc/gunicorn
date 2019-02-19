@@ -10,6 +10,7 @@
 # If no event happen after the keep alive timeout, the connection is
 # closed.
 
+import concurrent.futures as futures
 import errno
 import os
 import selectors
@@ -27,13 +28,6 @@ from .. import http
 from .. import util
 from ..http import wsgi
 
-try:
-    import concurrent.futures as futures
-except ImportError:
-    raise RuntimeError("""
-    You need to install the 'futures' package to use this worker with this
-    Python version.
-    """)
 
 class TConn(object):
 
