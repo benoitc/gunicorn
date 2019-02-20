@@ -85,10 +85,14 @@ class ThreadWorker(base.Worker):
                     "Check the number of worker connections and threads.")
 
     def init_process(self):
-        self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
+        self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
         self._lock = RLock()
         super(ThreadWorker, self).init_process()
+
+    def get_thread_pool(self):
+        """Override this method to customize how the thread pool is created"""
+        return futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
 
     def handle_quit(self, sig, frame):
         self.alive = False
