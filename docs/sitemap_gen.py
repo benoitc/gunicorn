@@ -457,9 +457,7 @@ class URL(object):
       return False
     narrow = encoder.NarrowText(loc, None)
     (scheme, netloc, path, query, frag) = urlparse.urlsplit(narrow)
-    if (not scheme) or (not netloc):
-      return False
-    return True
+    return scheme and netloc
   #end def IsAbsolute
   IsAbsolute = staticmethod(IsAbsolute)
 
@@ -543,26 +541,16 @@ class URL(object):
 
     # Test the lastmod
     if self.lastmod:
-      match = False
       self.lastmod = self.lastmod.upper()
-      for pattern in LASTMOD_PATTERNS:
-        match = pattern.match(self.lastmod)
-        if match:
-          break
-      if not match:
+      if not any(pattern.match(self.lastmod) for pattern in LASTMOD_PATTERNS):
         output.Warn('Lastmod "%s" does not appear to be in ISO8601 format on '
                     'URL: %s' % (self.lastmod, self.loc))
         self.lastmod = None
 
     # Test the changefreq
     if self.changefreq:
-      match = False
       self.changefreq = self.changefreq.lower()
-      for pattern in CHANGEFREQ_PATTERNS:
-        if self.changefreq == pattern:
-          match = True
-          break
-      if not match:
+      if all(self.changefreq != pattern for pattern in CHANGEFREQ_PATTERNS):
         output.Warn('Changefreq "%s" is not a valid change frequency on URL '
                     ': %s' % (self.changefreq, self.loc))
         self.changefreq = None
@@ -1490,7 +1478,7 @@ class InputSitemap(xml.sax.handler.ContentHandler):
 
     # Switch contexts
     if (self._current < 0) or (self._contexts[self._current].AcceptTag(tag)):
-      self._current = self._current + 1
+      self._current += 1
       assert self._current < len(self._contexts)
       self._contexts[self._current].Open()
     else:
@@ -1663,7 +1651,7 @@ class PerURLStatistics:
 
   def Log(self):
     """ Dump out stats to the output. """
-    if len(self._extensions):
+    if self._extensions:
       output.Log('Count of file extensions on URLs:', 1)
       set = self._extensions.keys()
       set.sort()
@@ -1758,7 +1746,7 @@ class Sitemap(xml.sax.handler.ContentHandler):
       input.ProduceURLs(self.ConsumeURL)
 
     # Do last flushes
-    if len(self._set):
+    if self._set:
       self.FlushSet()
     if not self._sitemaps:
       output.Warn('No URLs were recorded, writing an empty sitemap.')

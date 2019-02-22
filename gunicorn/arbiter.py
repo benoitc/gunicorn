@@ -491,20 +491,19 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        workers = list(self.WORKERS.items())
-        for (pid, worker) in workers:
+        for pid, worker in self.WORKERS.items():
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
             except (OSError, ValueError):
                 continue
 
-            if not worker.aborted:
+            if worker.aborted:
+                self.kill_worker(pid, signal.SIGKILL)
+            else:
                 self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
                 worker.aborted = True
                 self.kill_worker(pid, signal.SIGABRT)
-            else:
-                self.kill_worker(pid, signal.SIGKILL)
 
     def reap_workers(self):
         """\

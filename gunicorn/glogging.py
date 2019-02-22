@@ -415,10 +415,7 @@ class Logger(object):
 
     def _set_syslog_handler(self, log, cfg, fmt, name):
         # setup format
-        if not cfg.syslog_prefix:
-            prefix = cfg.proc_name.replace(":", ".")
-        else:
-            prefix = cfg.syslog_prefix
+        prefix = cfg.syslog_prefix or cfg.proc_name.replace(":", ".")
 
         prefix = "gunicorn.%s.%s" % (prefix, name)
 
