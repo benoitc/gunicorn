@@ -65,7 +65,7 @@ class TConn(object):
 class ThreadWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        super(ThreadWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
@@ -88,7 +88,7 @@ class ThreadWorker(base.Worker):
         self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
         self._lock = RLock()
-        super(ThreadWorker, self).init_process()
+        super().init_process()
 
     def get_thread_pool(self):
         """Override this method to customize how the thread pool is created"""

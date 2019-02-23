@@ -63,7 +63,7 @@ class GeventWorker(AsyncWorker):
         self.sockets = sockets
 
     def notify(self):
-        super(GeventWorker, self).notify()
+        super().notify()
         if self.ppid != os.getppid():
             self.log.info("Parent changed, shutting down: %s", self)
             sys.exit(0)
@@ -136,12 +136,11 @@ class GeventWorker(AsyncWorker):
         # Connected socket timeout defaults to socket.getdefaulttimeout().
         # This forces to blocking mode.
         client.setblocking(1)
-        super(GeventWorker, self).handle(listener, client, addr)
+        super().handle(listener, client, addr)
 
     def handle_request(self, listener_name, req, sock, addr):
         try:
-            super(GeventWorker, self).handle_request(listener_name, req, sock,
-                                                     addr)
+            super().handle_request(listener_name, req, sock, addr)
         except gevent.GreenletExit:
             pass
         except SystemExit:
@@ -150,17 +149,17 @@ class GeventWorker(AsyncWorker):
     def handle_quit(self, sig, frame):
         # Move this out of the signal handler so we can use
         # blocking calls. See #1126
-        gevent.spawn(super(GeventWorker, self).handle_quit, sig, frame)
+        gevent.spawn(super().handle_quit, sig, frame)
 
     def handle_usr1(self, sig, frame):
         # Make the gevent workers handle the usr1 signal
         # by deferring to a new greenlet. See #1645
-        gevent.spawn(super(GeventWorker, self).handle_usr1, sig, frame)
+        gevent.spawn(super().handle_usr1, sig, frame)
 
     def init_process(self):
         self.patch()
         hub.reinit()
-        super(GeventWorker, self).init_process()
+        super().init_process()
 
 
 class GeventResponse(object):
@@ -190,7 +189,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         self.server.log.access(resp, req_headers, self.environ, response_time)
 
     def get_environ(self):
-        env = super(PyWSGIHandler, self).get_environ()
+        env = super().get_environ()
         env['gunicorn.sock'] = self.socket
         env['RAW_URI'] = self.path
         return env

@@ -10,7 +10,7 @@ def child_process(queue):
 
 class GunicornSubProcessTestMiddleware(object):
     def __init__(self):
-        super(GunicornSubProcessTestMiddleware, self).__init__()
+        super().__init__()
         self.queue = Queue()
         self.process = Process(target=child_process, args=(self.queue,))
         self.process.start()

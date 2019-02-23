@@ -44,7 +44,7 @@ class TornadoWorker(Worker):
 
     def handle_exit(self, sig, frame):
         if self.alive:
-            super(TornadoWorker, self).handle_exit(sig, frame)
+            super().handle_exit(sig, frame)
 
     def handle_request(self):
         self.nr += 1
@@ -84,7 +84,7 @@ class TornadoWorker(Worker):
         # should create its own IOLoop. We should clear current IOLoop
         # if exists before os.fork.
         IOLoop.clear_current()
-        super(TornadoWorker, self).init_process()
+        super().init_process()
 
     def run(self):
         self.ioloop = IOLoop.instance()

@@ -93,17 +93,17 @@ class EventletWorker(AsyncWorker):
         if respiter == EVENTLET_ALREADY_HANDLED:
             raise StopIteration()
         else:
-            return super(EventletWorker, self).is_already_handled(respiter)
+            return super().is_already_handled(respiter)
 
     def init_process(self):
-        super(EventletWorker, self).init_process()
+        super().init_process()
         self.patch()
 
     def handle_quit(self, sig, frame):
-        eventlet.spawn(super(EventletWorker, self).handle_quit, sig, frame)
+        eventlet.spawn(super().handle_quit, sig, frame)
 
     def handle_usr1(self, sig, frame):
-        eventlet.spawn(super(EventletWorker, self).handle_usr1, sig, frame)
+        eventlet.spawn(super().handle_usr1, sig, frame)
 
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
@@ -113,7 +113,7 @@ class EventletWorker(AsyncWorker):
             client = eventlet.wrap_ssl(client, server_side=True,
                                        **self.cfg.ssl_options)
 
-        super(EventletWorker, self).handle(listener, client, addr)
+        super().handle(listener, client, addr)
 
     def run(self):
         acceptors = []
