@@ -59,7 +59,7 @@ class Config(object):
     def __setattr__(self, name, value):
         if name != "settings" and name in self.settings:
             raise AttributeError("Invalid access!")
-        super(Config, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
     def set(self, name, value):
         if name not in self.settings:
@@ -224,7 +224,7 @@ class Config(object):
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
-        super_new = super(SettingMeta, cls).__new__
+        super_new = super().__new__
         parents = [b for b in bases if isinstance(b, SettingMeta)]
         if not parents:
             return super_new(cls, name, bases, attrs)

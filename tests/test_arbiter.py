@@ -173,7 +173,7 @@ class PreloadedAppWithEnvSettings(DummyApplication):
         'preloaded' application.
         """
         verify_env_vars()
-        return super(PreloadedAppWithEnvSettings, self).wsgi()
+        return super().wsgi()
 
 
 def verify_env_vars():

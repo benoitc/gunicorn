@@ -42,7 +42,7 @@ class AltArgs(object):
 
 class NoConfigApp(Application):
     def __init__(self):
-        super(NoConfigApp, self).__init__("no_usage", prog="gunicorn_test")
+        super().__init__("no_usage", prog="gunicorn_test")
 
     def init(self, parser, opts, args):
         pass

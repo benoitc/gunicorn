@@ -15,7 +15,7 @@ COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 class Reloader(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
-        super(Reloader, self).__init__()
+        super().__init__()
         self.setDaemon(True)
         self._extra_files = set(extra_files or ())
         self._extra_files_lock = threading.RLock()
@@ -74,7 +74,7 @@ if has_inotify:
                       | inotify.constants.IN_MOVED_TO)
 
         def __init__(self, extra_files=None, callback=None):
-            super(InotifyReloader, self).__init__()
+            super().__init__()
             self.setDaemon(True)
             self._callback = callback
             self._dirs = set()

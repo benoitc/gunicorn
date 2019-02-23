@@ -85,8 +85,7 @@ class Worker(object):
         """\
         If you override this method in a subclass, the last statement
         in the function should be to call this method with
-        super(MyWorkerClass, self).init_process() so that the ``run()``
-        loop is initiated.
+        super().init_process() so that the ``run()`` loop is initiated.
         """
 
         # set environment' variables

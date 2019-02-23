@@ -108,11 +108,11 @@ class SafeAtoms(dict):
         if k.startswith("{"):
             kl = k.lower()
             if kl in self:
-                return super(SafeAtoms, self).__getitem__(kl)
+                return super().__getitem__(kl)
             else:
                 return "-"
         if k in self:
-            return super(SafeAtoms, self).__getitem__(k)
+            return super().__getitem__(k)
         else:
             return '-'
 

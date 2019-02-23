@@ -218,4 +218,4 @@ class Application(BaseApplication):
                 if pythonpath not in sys.path:
                     sys.path.insert(0, pythonpath)
 
-        super(Application, self).run()
+        super().run()
