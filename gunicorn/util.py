@@ -369,8 +369,7 @@ def import_app(module):
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
-        else:
-            raise
+        raise
 
     mod = sys.modules[module]
 
