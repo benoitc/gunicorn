@@ -9,7 +9,7 @@
 #
 # Launch a server with the app in a terminal
 #
-#     $ gunicorn -w3 readline:app
+#     $ gunicorn -w3 readline_app:app
 #
 # Then in another terminal launch the following command:
 #
@@ -27,8 +27,7 @@ def app(environ, start_response):
     response_headers = [
         ('Content-type', 'text/plain'),
         ('Transfer-Encoding', "chunked"),
-        ('X-Gunicorn-Version', __version__),
-        #("Test", "test тест"),
+        ('X-Gunicorn-Version', __version__)
     ]
     start_response(status, response_headers)
 

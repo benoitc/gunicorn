@@ -59,7 +59,7 @@ class Config(object):
     def __setattr__(self, name, value):
         if name != "settings" and name in self.settings:
             raise AttributeError("Invalid access!")
-        super(Config, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
     def set(self, name, value):
         if name not in self.settings:
@@ -224,7 +224,7 @@ class Config(object):
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
-        super_new = super(SettingMeta, cls).__new__
+        super_new = super().__new__
         parents = [b for b in bases if isinstance(b, SettingMeta)]
         if not parents:
             return super_new(cls, name, bases, attrs)
@@ -342,6 +342,28 @@ def validate_pos_int(val):
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
     return val
+
+
+def validate_ssl_version(val):
+    ssl_versions = {}
+    for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
+        ssl_versions[protocol[9:]] = getattr(ssl, protocol)
+    if val in ssl_versions:
+        # string matching PROTOCOL_...
+        return ssl_versions[val]
+
+    try:
+        intval = validate_pos_int(val)
+        if intval in ssl_versions.values():
+            # positive int matching a protocol int constant
+            return intval
+    except (ValueError, TypeError):
+        # negative integer or not an integer
+        # drop this in favour of the more descriptive ValueError below
+        pass
+
+    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
+                     % (val, ', '.join(ssl_versions)))
 
 
 def validate_string(val):
@@ -535,8 +557,11 @@ class Bind(Setting):
     desc = """\
         The socket to bind.
 
-        A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``. An IP is
-        a valid ``HOST``.
+        A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``,
+        ``fd://FD``. An IP is a valid ``HOST``.
+
+        .. versionchanged:: 20.0
+           Support for ``fd://FD`` got added.
 
         Multiple addresses can be bound. ex.::
 
@@ -605,25 +630,19 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+        * ``eventlet`` - Requires eventlet >= 0.24 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+        * ``gevent``   - Requires gevent >= 1.4 (or install it via
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
-        * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
-
-        .. deprecated:: 19.8
-           The ``gaiohttp`` worker is deprecated. Please use
-           ``aiohttp.worker.GunicornWebWorker`` instead. See
-           :ref:`asyncio-workers` for more information on how to use it.
         """
 
 class WorkerThreads(Setting):
@@ -646,7 +665,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-        
+
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used
@@ -1241,10 +1260,15 @@ class AccessLogFormat(Setting):
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
-        {Header}i    request header
-        {Header}o    response header
-        {Variable}e  environment variable
+        {header}i    request header
+        {header}o    response header
+        {variable}e  environment variable
         ===========  ===========
+
+        Use lowercase for header and environment variable names, and put
+        ``{...}x`` names inside ``%(...)s``. For example::
+
+            %({x-forwarded-for}i)s
         """
 
 
@@ -1856,14 +1880,32 @@ class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
     cli = ["--ssl-version"]
-    validator = validate_pos_int
+    validator = validate_ssl_version
     default = ssl.PROTOCOL_SSLv23
     desc = """\
-    SSL version to use (see stdlib ssl module's)
+    SSL version to use.
+
+    ============= ============
+    --ssl-version Description
+    ============= ============
+    SSLv3         SSLv3 is not-secure and is strongly discouraged.
+    SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
+    TLS           Negotiate highest possible version between client/server.
+                  Can yield SSL. (Python 3.6+)
+    TLSv1         TLS 1.0
+    TLSv1_1       TLS 1.1 (Python 3.4+)
+    TLSv1_2       TLS 1.2 (Python 3.4+)
+    TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
+                  but only support server-side SSLSocket connections.
+                  (Python 3.6+)
+    ============= ============
 
     .. versionchanged:: 19.7
        The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
        ``ssl.PROTOCOL_SSLv23``.
+    .. versionchanged:: 20.0
+       This setting now accepts string names based on ``ssl.PROTOCOL_``
+       constants.
     """
 
 class CertReqs(Setting):
@@ -1915,9 +1957,22 @@ class Ciphers(Setting):
     section = "SSL"
     cli = ["--ciphers"]
     validator = validate_string
-    default = 'TLSv1'
+    default = None
     desc = """\
-    Ciphers to use (see stdlib ssl module's)
+    SSL Cipher suite to use, in the format of an OpenSSL cipher list.
+
+    By default we use the default cipher list from Python's ``ssl`` module,
+    which contains ciphers considered strong at the time of each Python
+    release.
+
+    As a recommended alternative, the Open Web App Security Project (OWASP)
+    offers `a vetted set of strong cipher strings rated A+ to C-
+    <https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet>`_.
+    OWASP provides details on user-agent compatibility at each security level.
+
+    See the `OpenSSL Cipher List Format Documentation
+    <https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
+    for details on the format of an OpenSSL cipher list.
     """
 
 

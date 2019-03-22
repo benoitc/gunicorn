@@ -4,8 +4,9 @@ Running Gunicorn
 
 .. highlight:: bash
 
-You can run Gunicorn by using commands or integrate with Django or Paster. For
-deploying Gunicorn in production see :doc:`deploy`.
+You can run Gunicorn by using commands or integrate with popular frameworks
+like Django, Pyramid, or TurboGears. For deploying Gunicorn in production see
+:doc:`deploy`.
 
 Commands
 ========
@@ -52,8 +53,8 @@ Commonly Used Arguments
 * ``-c CONFIG, --config=CONFIG`` - Specify a config file in the form
   ``$(PATH)``, ``file:$(PATH)``, or ``python:$(MODULE_NAME)``.
 * ``-b BIND, --bind=BIND`` - Specify a server socket to bind. Server sockets
-  can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, or ``unix:$(PATH)``.
-  An IP is a valid ``$(HOST)``.
+  can be any of ``$(HOST)``, ``$(HOST):$(PORT)``, ``fd://$(FD)``, or
+  ``unix:$(PATH)``. An IP is a valid ``$(HOST)``.
 * ``-w WORKERS, --workers=WORKERS`` - The number of worker processes. This
   number should generally be between 2-4 workers per core in the server.
   Check the :ref:`faq` for ideas on tuning this parameter.
@@ -61,7 +62,7 @@ Commonly Used Arguments
   to run. You'll definitely want to read the production page for the
   implications of this parameter. You can set this to ``$(NAME)``
   where ``$(NAME)`` is one of ``sync``, ``eventlet``, ``gevent``,
-  ``tornado``, ``gthread``, ``gaiohttp`` (deprecated).
+  ``tornado``, ``gthread``.
   ``sync`` is the default. See the :ref:`worker-class` documentation for more
   information.
 * ``-n APP_NAME, --name=APP_NAME`` - If setproctitle_ is installed you can
@@ -78,7 +79,7 @@ See :ref:`configuration` and :ref:`settings` for detailed usage.
 Integration
 ===========
 
-We also provide integration for both Django and Paster applications.
+Gunicorn also provides integration for Django and Paste Deploy applications.
 
 Django
 ------
@@ -104,13 +105,40 @@ option::
 
     $ gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi
 
-Paste
------
+Paste Deployment
+----------------
 
-If you are a user/developer of a paste-compatible framework/app (as
-Pyramid, Pylons and Turbogears) you can use the
-`--paste <http://docs.gunicorn.org/en/latest/settings.html#paste>`_ option
-to run your application.
+Frameworks such as Pyramid and Turbogears are typically configured using Paste
+Deployment configuration files. If you would like to use these files with
+Gunicorn, there are two approaches.
+
+As a server runner, Gunicorn can serve your application using the commands from
+your framework, such as ``pserve`` or ``gearbox``. To use Gunicorn with these
+commands, specify it as a server in your configuration file:
+
+.. code-block:: ini
+
+    [server:main]
+    use = egg:gunicorn#main
+    host = 127.0.0.1
+    port = 8080
+    workers = 3
+
+This approach is the quickest way to get started with Gunicorn, but there are
+some limitations. Gunicorn will have no control over how the application is
+loaded, so settings such as reload_ will have no effect and Gunicorn will be
+unable to hot upgrade a running application. Using the daemon_ option may
+confuse your command line tool. Instead, use the built-in support for these
+features provided by that tool. For example, run ``pserve --reload`` instead of
+specifying ``reload = True`` in the server configuration block. For advanced
+configuration of Gunicorn, such as `Server Hooks`_ specifying a Gunicorn
+configuration file using the ``config`` key is supported.
+
+To use the full power of Gunicorn's reloading and hot code upgrades, use the
+`paste option`_ to run your application instead. When used this way, Gunicorn
+will use the application defined by the PasteDeploy configuration file, but
+Gunicorn will not use any server configuration defined in the file. Instead,
+`configure gunicorn`_.
 
 For example::
 
@@ -120,4 +148,13 @@ Or use a different application::
 
     $ gunicorn --paste development.ini#admin -b :8080 --chdir /path/to/project
 
-It is all here. No configuration files nor additional Python modules to write!
+With both approaches, Gunicorn will use any loggers section found in Paste
+Deployment configuration file, unless instructed otherwise by specifying
+additional `logging settings`_.
+
+.. _reload: http://docs.gunicorn.org/en/latest/settings.html#reload
+.. _daemon: http://docs.gunicorn.org/en/latest/settings.html#daemon
+.. _Server Hooks: http://docs.gunicorn.org/en/latest/settings.html#server-hooks
+.. _paste option: http://docs.gunicorn.org/en/latest/settings.html#paste
+.. _configure gunicorn: http://docs.gunicorn.org/en/latest/configure.html
+.. _logging settings: http://docs.gunicorn.org/en/latest/settings.html#logging

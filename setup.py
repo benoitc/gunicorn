@@ -65,6 +65,14 @@ class PyTestCommand(TestCommand):
         sys.exit(errno)
 
 
+install_requires = [
+    # We depend on functioning pkg_resources.working_set.add_entry() and
+    # pkg_resources.load_entry_point(). These both work as of 3.0 which
+    # is the first version to support Python 3.4 which we require as a
+    # floor.
+    'setuptools>=3.0',
+]
+
 extra_require = {
     'gevent':  ['gevent>=0.13'],
     'eventlet': ['eventlet>=0.9.7'],
@@ -84,6 +92,7 @@ setup(
     url='http://gunicorn.org',
 
     python_requires='>=3.4',
+    install_requires=install_requires,
     classifiers=CLASSIFIERS,
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),
@@ -95,10 +104,9 @@ setup(
     entry_points="""
     [console_scripts]
     gunicorn=gunicorn.app.wsgiapp:run
-    gunicorn_paster=gunicorn.app.pasterapp:run
 
     [paste.server_runner]
-    main=gunicorn.app.pasterapp:paste_server
+    main=gunicorn.app.pasterapp:serve
     """,
     extras_require=extra_require,
 )

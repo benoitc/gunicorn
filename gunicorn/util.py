@@ -247,33 +247,35 @@ def is_ipv6(addr):
     return True
 
 
-def parse_address(netloc, default_port=8000):
+def parse_address(netloc, default_port='8000'):
     if re.match(r'unix:(//)?', netloc):
         return re.split(r'unix:(//)?', netloc)[-1]
 
+    if netloc.startswith("fd://"):
+        fd = netloc[5:]
+        try:
+            return int(fd)
+        except ValueError:
+            raise RuntimeError("%r is not a valid file descriptor." % fd) from None
+
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
+    host, port = netloc, default_port
 
-    # get host
     if '[' in netloc and ']' in netloc:
-        host = netloc.split(']')[0][1:].lower()
+        host = netloc.split(']')[0][1:]
+        port = (netloc.split(']:') + [default_port])[1]
     elif ':' in netloc:
-        host = netloc.split(':')[0].lower()
+        host, port = (netloc.split(':') + [default_port])[:2]
     elif netloc == "":
-        host = "0.0.0.0"
-    else:
-        host = netloc.lower()
+        host, port = "0.0.0.0", default_port
 
-    #get port
-    netloc = netloc.split(']')[-1]
-    if ":" in netloc:
-        port = netloc.split(':', 1)[1]
-        if not port.isdigit():
-            raise RuntimeError("%r is not a valid port number." % port)
+    try:
         port = int(port)
-    else:
-        port = default_port
-    return (host, port)
+    except ValueError:
+        raise RuntimeError("%r is not a valid port number." % port)
+
+    return host.lower(), port
 
 
 def close_on_exec(fd):
@@ -367,8 +369,7 @@ def import_app(module):
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
-        else:
-            raise
+        raise
 
     mod = sys.modules[module]
 

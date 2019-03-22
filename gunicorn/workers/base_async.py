@@ -20,7 +20,7 @@ ALREADY_HANDLED = object()
 class AsyncWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        super(AsyncWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
 
     def timeout_ctx(self):

@@ -51,8 +51,13 @@ class Worker(object):
         self.reloader = None
 
         self.nr = 0
-        jitter = randint(0, cfg.max_requests_jitter)
-        self.max_requests = cfg.max_requests + jitter or sys.maxsize
+
+        if cfg.max_requests > 0:
+            jitter = randint(0, cfg.max_requests_jitter)
+            self.max_requests = cfg.max_requests + jitter
+        else:
+            self.max_requests = sys.maxsize
+
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
@@ -80,8 +85,7 @@ class Worker(object):
         """\
         If you override this method in a subclass, the last statement
         in the function should be to call this method with
-        super(MyWorkerClass, self).init_process() so that the ``run()``
-        loop is initiated.
+        super().init_process() so that the ``run()`` loop is initiated.
         """
 
         # set environment' variables

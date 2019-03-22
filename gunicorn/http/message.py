@@ -177,7 +177,7 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-        super(Request, self).__init__(cfg, unreader)
+        super().__init__(cfg, unreader)
 
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
@@ -357,6 +357,6 @@ class Request(Message):
         self.version = (int(match.group(1)), int(match.group(2)))
 
     def set_body_reader(self):
-        super(Request, self).set_body_reader()
+        super().set_body_reader()
         if isinstance(self.body.reader, EOFReader):
             self.body = Body(LengthReader(self.unreader, 0))

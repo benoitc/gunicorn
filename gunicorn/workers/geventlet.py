@@ -11,12 +11,11 @@ import sys
 try:
     import eventlet
 except ImportError:
-    raise RuntimeError("You need eventlet installed to use this worker.")
-
-# validate the eventlet version
-if eventlet.version_info < (0, 9, 7):
-    raise RuntimeError("You need eventlet >= 0.9.7")
-
+    raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
+else:
+    from pkg_resources import parse_version
+    if parse_version(eventlet.__version__) < parse_version('0.24'):
+        raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
 
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
@@ -25,6 +24,7 @@ from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
 import greenlet
 
 from gunicorn.workers.base_async import AsyncWorker
+
 
 def _eventlet_sendfile(fdout, fdin, offset, nbytes):
     while True:
@@ -86,24 +86,23 @@ class EventletWorker(AsyncWorker):
 
     def patch(self):
         hubs.use_hub()
-        eventlet.monkey_patch(os=False)
+        eventlet.monkey_patch()
         patch_sendfile()
 
     def is_already_handled(self, respiter):
         if respiter == EVENTLET_ALREADY_HANDLED:
             raise StopIteration()
-        else:
-            return super(EventletWorker, self).is_already_handled(respiter)
+        return super().is_already_handled(respiter)
 
     def init_process(self):
         self.patch()
-        super(EventletWorker, self).init_process()
+        super().init_process()
 
     def handle_quit(self, sig, frame):
-        eventlet.spawn(super(EventletWorker, self).handle_quit, sig, frame)
+        eventlet.spawn(super().handle_quit, sig, frame)
 
     def handle_usr1(self, sig, frame):
-        eventlet.spawn(super(EventletWorker, self).handle_usr1, sig, frame)
+        eventlet.spawn(super().handle_usr1, sig, frame)
 
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
@@ -113,7 +112,7 @@ class EventletWorker(AsyncWorker):
             client = eventlet.wrap_ssl(client, server_side=True,
                                        **self.cfg.ssl_options)
 
-        super(EventletWorker, self).handle(listener, client, addr)
+        super().handle(listener, client, addr)
 
     def run(self):
         acceptors = []

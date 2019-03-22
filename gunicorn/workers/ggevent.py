@@ -10,20 +10,18 @@ from datetime import datetime
 from functools import partial
 import time
 
-_socket = __import__("socket")
-
-# workaround on osx, disable kqueue
-if sys.platform == "darwin":
-    os.environ['EVENT_NOKQUEUE'] = "1"
-
 try:
     import gevent
 except ImportError:
-    raise RuntimeError("You need gevent installed to use this worker.")
+    raise RuntimeError("gevent worker requires gevent 1.4 or higher")
+else:
+    from pkg_resources import parse_version
+    if parse_version(gevent.__version__) < parse_version('1.4'):
+        raise RuntimeError("gevent worker requires gevent 1.4 or higher")
+
 from gevent.pool import Pool
 from gevent.server import StreamServer
-from gevent.socket import wait_write, socket
-from gevent import pywsgi
+from gevent import hub, monkey, socket, pywsgi
 
 import gunicorn
 from gunicorn.http.wsgi import base_environ
@@ -31,13 +29,14 @@ from gunicorn.workers.base_async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
+
 def _gevent_sendfile(fdout, fdin, offset, nbytes):
     while True:
         try:
             return os.sendfile(fdout, fdin, offset, nbytes)
         except OSError as e:
             if e.args[0] == errno.EAGAIN:
-                wait_write(fdout)
+                socket.wait_write(fdout)
             else:
                 raise
 
@@ -51,14 +50,7 @@ class GeventWorker(AsyncWorker):
     wsgi_handler = None
 
     def patch(self):
-        from gevent import monkey
-        monkey.noisy = False
-
-        # if the new version is used make sure to patch subprocess
-        if gevent.version_info[0] == 0:
-            monkey.patch_all()
-        else:
-            monkey.patch_all(subprocess=True)
+        monkey.patch_all()
 
         # monkey patch sendfile to make it none blocking
         patch_sendfile()
@@ -66,12 +58,12 @@ class GeventWorker(AsyncWorker):
         # patch sockets
         sockets = []
         for s in self.sockets:
-            sockets.append(socket(s.FAMILY, _socket.SOCK_STREAM,
+            sockets.append(socket.socket(s.FAMILY, socket.SOCK_STREAM,
                 fileno=s.sock.fileno()))
         self.sockets = sockets
 
     def notify(self):
-        super(GeventWorker, self).notify()
+        super().notify()
         if self.ppid != os.getppid():
             self.log.info("Parent changed, shutting down: %s", self)
             sys.exit(0)
@@ -144,12 +136,11 @@ class GeventWorker(AsyncWorker):
         # Connected socket timeout defaults to socket.getdefaulttimeout().
         # This forces to blocking mode.
         client.setblocking(1)
-        super(GeventWorker, self).handle(listener, client, addr)
+        super().handle(listener, client, addr)
 
     def handle_request(self, listener_name, req, sock, addr):
         try:
-            super(GeventWorker, self).handle_request(listener_name, req, sock,
-                                                     addr)
+            super().handle_request(listener_name, req, sock, addr)
         except gevent.GreenletExit:
             pass
         except SystemExit:
@@ -158,41 +149,17 @@ class GeventWorker(AsyncWorker):
     def handle_quit(self, sig, frame):
         # Move this out of the signal handler so we can use
         # blocking calls. See #1126
-        gevent.spawn(super(GeventWorker, self).handle_quit, sig, frame)
+        gevent.spawn(super().handle_quit, sig, frame)
 
     def handle_usr1(self, sig, frame):
         # Make the gevent workers handle the usr1 signal
         # by deferring to a new greenlet. See #1645
-        gevent.spawn(super(GeventWorker, self).handle_usr1, sig, frame)
+        gevent.spawn(super().handle_usr1, sig, frame)
 
-    if gevent.version_info[0] == 0:
-
-        def init_process(self):
-            # monkey patch here
-            self.patch()
-
-            # reinit the hub
-            import gevent.core
-            gevent.core.reinit()
-
-            #gevent 0.13 and older doesn't reinitialize dns for us after forking
-            #here's the workaround
-            gevent.core.dns_shutdown(fail_requests=1)
-            gevent.core.dns_init()
-            super(GeventWorker, self).init_process()
-
-    else:
-
-        def init_process(self):
-            # monkey patch here
-            self.patch()
-
-            # reinit the hub
-            from gevent import hub
-            hub.reinit()
-
-            # then initialize the process
-            super(GeventWorker, self).init_process()
+    def init_process(self):
+        self.patch()
+        hub.reinit()
+        super().init_process()
 
 
 class GeventResponse(object):
@@ -222,7 +189,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         self.server.log.access(resp, req_headers, self.environ, response_time)
 
     def get_environ(self):
-        env = super(PyWSGIHandler, self).get_environ()
+        env = super().get_environ()
         env['gunicorn.sock'] = self.socket
         env['RAW_URI'] = self.path
         return env

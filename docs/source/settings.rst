@@ -181,10 +181,15 @@ T            request time in seconds
 D            request time in microseconds
 L            request time in decimal seconds
 p            process ID
-{Header}i    request header
-{Header}o    response header
-{Variable}e  environment variable
+{header}i    request header
+{header}o    response header
+{variable}e  environment variable
 ===========  ===========
+
+Use lowercase for header and environment variable names, and put
+``{...}x`` names inside ``%(...)s``. For example::
+
+    %({x-forwarded-for}i)s
 
 .. _errorlog:
 
@@ -431,11 +436,29 @@ ssl_version
 * ``--ssl-version``
 * ``_SSLMethod.PROTOCOL_TLS``
 
-SSL version to use (see stdlib ssl module's)
+SSL version to use.
+
+============= ============
+--ssl-version Description
+============= ============
+SSLv3         SSLv3 is not-secure and is strongly discouraged.
+SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
+TLS           Negotiate highest possible version between client/server.
+              Can yield SSL. (Python 3.6+)
+TLSv1         TLS 1.0
+TLSv1_1       TLS 1.1 (Python 3.4+)
+TLSv1_2       TLS 1.2 (Python 3.4+)
+TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
+              but only support server-side SSLSocket connections.
+              (Python 3.6+)
+============= ============
 
 .. versionchanged:: 19.7
    The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
    ``ssl.PROTOCOL_SSLv23``.
+.. versionchanged:: 20.0
+   This setting now accepts string names based on ``ssl.PROTOCOL_``
+   constants.
 
 .. _cert-reqs:
 
@@ -483,9 +506,22 @@ ciphers
 ~~~~~~~
 
 * ``--ciphers``
-* ``TLSv1``
+* ``None``
 
-Ciphers to use (see stdlib ssl module's)
+SSL Cipher suite to use, in the format of an OpenSSL cipher list.
+
+By default we use the default cipher list from Python's ``ssl`` module,
+which contains ciphers considered strong at the time of each Python
+release.
+
+As a recommended alternative, the Open Web App Security Project (OWASP)
+offers `a vetted set of strong cipher strings rated A+ to C-
+<https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet>`_.
+OWASP provides details on user-agent compatibility at each security level.
+
+See the `OpenSSL Cipher List Format Documentation
+<https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
+for details on the format of an OpenSSL cipher list.
 
 Security
 --------
@@ -1103,8 +1139,11 @@ bind
 
 The socket to bind.
 
-A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``. An IP is
-a valid ``HOST``.
+A string of the form: ``HOST``, ``HOST:PORT``, ``unix:PATH``,
+``fd://FD``. An IP is a valid ``HOST``.
+
+.. versionchanged:: 20.0
+   Support for ``fd://FD`` got added.
 
 Multiple addresses can be bound. ex.::
 
@@ -1223,7 +1262,7 @@ worker_connections
 
 The maximum number of simultaneous clients.
 
-This setting only affects the Eventlet and Gevent worker types.
+This setting only affects the Eventlet, Gevent and Gthread worker types.
 
 .. _max-requests:
 
