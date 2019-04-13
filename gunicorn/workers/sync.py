@@ -126,8 +126,37 @@ class SyncWorker(base.Worker):
         req = None
         try:
             if self.cfg.is_ssl:
-                client = ssl.wrap_socket(client, server_side=True,
-                    **self.cfg.ssl_options)
+                # TODO: Make this reusable by gthread worker. Move to BaseWorker?
+                context = ssl.SSLContext(self.cfg.ssl_options['ssl_version'])
+                context.set_default_verify_paths()
+                ciphers = self.cfg.ssl_options['ciphers']
+                # set_ciphers() will raise an exception if we pass None (default value)
+                if ciphers is not None and isinstance(ciphers, str):
+                    try:
+                        context.set_ciphers(self.cfg.ssl_options['ciphers'])
+                    except ssl.SSLError as exc:
+                        # TODO: Log this in a better way.
+                        print(exc)
+                        raise exc
+                # TODO: OP_CIPHER_SERVER_PREFERENCE is set by default since Python 3.6+.
+                context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+                context.verify_mode = self.cfg.ssl_options['cert_reqs']
+                try:
+                    context.load_verify_locations(self.cfg.ssl_options['ca_certs'])
+                except ssl.SSLError as exc:
+                    # TODO: Log this in a better way.
+                    print(exc)
+                    raise exc
+                context.load_cert_chain(
+                    self.cfg.ssl_options['certfile'],
+                    keyfile=self.cfg.ssl_options['keyfile'],
+                )
+                client = context.wrap_socket(
+                    client,
+                    server_side=True,
+                    suppress_ragged_eofs=self.cfg.ssl_options['suppress_ragged_eofs'],
+                    do_handshake_on_connect=self.cfg.ssl_options['do_handshake_on_connect'],
+                )
 
             parser = http.RequestParser(self.cfg, client)
             req = next(parser)
