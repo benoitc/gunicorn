@@ -95,8 +95,8 @@ class EventletWorker(AsyncWorker):
         return super().is_already_handled(respiter)
 
     def init_process(self):
-        super().init_process()
         self.patch()
+        super().init_process()
 
     def handle_quit(self, sig, frame):
         eventlet.spawn(super().handle_quit, sig, frame)
