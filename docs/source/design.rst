@@ -46,6 +46,13 @@ Gevent_). Greenlets are an implementation of cooperative multi-threading for
 Python. In general, an application should be able to make use of these worker
 classes with no changes.
 
+For full greenlet support applications might need to be adapted.
+When using, e.g., Gevent_ and Psycopg_ it makes sense to ensure psycogreen_ is
+installed and `setup <http://www.gevent.org/api/gevent.monkey.html#plugins>`_.
+
+Other applications might not be compatible at all as they, e.g., rely on
+the original unpatched behavior.
+
 Tornado Workers
 ---------------
 
@@ -143,3 +150,5 @@ code in the master process).
 .. _Hey: https://github.com/rakyll/hey
 .. _aiohttp: https://docs.aiohttp.org/en/stable/deployment.html#nginx-gunicorn
 .. _`example`: https://github.com/benoitc/gunicorn/blob/master/examples/frameworks/flaskapp_aiohttp_wsgi.py
+.. _Psycopg: http://initd.org/psycopg/
+.. _psycogreen: https://bitbucket.org/dvarrazzo/psycogreen
