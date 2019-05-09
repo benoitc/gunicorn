@@ -73,7 +73,7 @@ install_requires = [
     'setuptools>=3.0',
 ]
 
-extra_require = {
+extras_require = {
     'gevent':  ['gevent>=0.13'],
     'eventlet': ['eventlet>=0.9.7'],
     'tornado': ['tornado>=0.2'],
@@ -108,5 +108,5 @@ setup(
     [paste.server_runner]
     main=gunicorn.app.pasterapp:serve
     """,
-    extras_require=extra_require,
+    extras_require=extras_require,
 )

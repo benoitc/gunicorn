@@ -363,6 +363,18 @@ statsd_host
 
 .. versionadded:: 19.1
 
+.. _dogstatsd-tags:
+
+dogstatsd_tags
+~~~~~~~~~~~~~~
+
+* ``--dogstatsd-tags DOGSTATSD_TAGS``
+* ``(empty string)``
+
+A comma-delimited list of datadog statsd (dogstatsd) tags to append to statsd metrics.
+
+.. versionadded:: 20
+
 .. _statsd-prefix:
 
 statsd_prefix
@@ -375,17 +387,6 @@ Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
 if not provided).
 
 .. versionadded:: 19.2
-
-dogstatsd_tags
-~~~~~~~~~~~~~~
-
-* ``--dogstatsd-tags DOGSTATSD_TAGS``
-* ``(empty string)``
-
-Comma-delimited list of static dogstatsd (datadog statsd) tags sent with all statsd metrics
-See: `Datadog Docs <https://docs.datadoghq.com/developers/dogstatsd/>`
-
-.. versionadded:: 20
 
 Process Naming
 --------------
@@ -1213,30 +1214,24 @@ The type of workers to use.
 The default class (``sync``) should handle most "normal" types of
 workloads. You'll want to read :doc:`design` for information on when
 you might want to choose one of the other worker classes. Required
-libraries may be installed using setuptools' ``extra_require`` feature.
+libraries may be installed using setuptools' ``extras_require`` feature.
 
 A string referring to one of the following bundled classes:
 
 * ``sync``
-* ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+* ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
   ``pip install gunicorn[eventlet]``)
-* ``gevent``   - Requires gevent >= 0.13 (or install it via 
+* ``gevent``   - Requires gevent >= 1.4 (or install it via
   ``pip install gunicorn[gevent]``)
-* ``tornado``  - Requires tornado >= 0.2 (or install it via 
+* ``tornado``  - Requires tornado >= 0.2 (or install it via
   ``pip install gunicorn[tornado]``)
 * ``gthread``  - Python 2 requires the futures package to be installed
   (or install it via ``pip install gunicorn[gthread]``)
-* ``gaiohttp`` - Deprecated.
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
 This alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``.
-
-.. deprecated:: 19.8
-   The ``gaiohttp`` worker is deprecated. Please use
-   ``aiohttp.worker.GunicornWebWorker`` instead. See
-   :ref:`asyncio-workers` for more information on how to use it.
 
 .. _threads:
 
@@ -1273,7 +1268,7 @@ worker_connections
 
 The maximum number of simultaneous clients.
 
-This setting only affects the Eventlet, Gevent and Gthread worker types.
+This setting only affects the Eventlet and Gevent worker types.
 
 .. _max-requests:
 
