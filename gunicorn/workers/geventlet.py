@@ -11,11 +11,11 @@ import sys
 try:
     import eventlet
 except ImportError:
-    raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
+    raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
 else:
     from pkg_resources import parse_version
-    if parse_version(eventlet.__version__) < parse_version('0.24'):
-        raise RuntimeError("eventlet worker requires eventlet 0.24 or higher")
+    if parse_version(eventlet.__version__) < parse_version('0.24.1'):
+        raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
 
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
@@ -95,8 +95,8 @@ class EventletWorker(AsyncWorker):
         return super().is_already_handled(respiter)
 
     def init_process(self):
-        super().init_process()
         self.patch()
+        super().init_process()
 
     def handle_quit(self, sig, frame):
         eventlet.spawn(super().handle_quit, sig, frame)
