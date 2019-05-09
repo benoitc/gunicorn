@@ -1213,7 +1213,7 @@ The type of workers to use.
 The default class (``sync``) should handle most "normal" types of
 workloads. You'll want to read :doc:`design` for information on when
 you might want to choose one of the other worker classes. Required
-libraries may be installed using setuptools' ``extra_require`` feature.
+libraries may be installed using setuptools' ``extras_require`` feature.
 
 A string referring to one of the following bundled classes:
 
