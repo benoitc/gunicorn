@@ -40,7 +40,7 @@ want to consider one of the alternate worker types.
     $ pip install gunicorn[gevent]    # Or, using extra
 
 .. note::
-    Both require ``greenlet``, which should get installed automatically,
+    Both require ``greenlet``, which should get installed automatically.
     If its installation fails, you probably need to install
     the Python headers. These headers are available in most package
     managers. On Ubuntu the package name for ``apt-get`` is
@@ -55,7 +55,7 @@ want to consider one of the alternate worker types.
 Debian GNU/Linux
 ================
 
-If you are using Debian GNU/Linux and it is recommended that you use
+If you are using Debian GNU/Linux it is recommended that you use
 system packages to install Gunicorn except maybe when you want to use
 different versions of Gunicorn with virtualenv. This has a number of
 advantages:
@@ -99,7 +99,7 @@ oldstable ("jessie")
 --------------------
 
 The version of Gunicorn in the Debian_ "oldstable" distribution is 19.0 (June
-2014). you can install it using::
+2014). You can install it using::
 
     $ sudo apt-get install gunicorn
 
@@ -128,7 +128,7 @@ install it in the usual way::
 Ubuntu
 ======
 
-Ubuntu_ 12.04 (trusty) or later contains Gunicorn package by default so that
+Ubuntu_ 12.04 (trusty) or later contains the Gunicorn package by default so that
 you can install it in the usual way::
 
     $ sudo apt-get update
