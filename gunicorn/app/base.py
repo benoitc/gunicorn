@@ -95,14 +95,15 @@ class Application(BaseApplication):
             raise RuntimeError("%r doesn't exist" % filename)
 
         try:
-            mod = SourceFileLoader('__config__', filename).load_module()
+            module_name = '__config__'
+            mod = SourceFileLoader(module_name, filename).load_module(module_name)
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 
-        return {k: getattr(mod, k, None) for k in dir(mod)}
+        return mod.__dict__
 
     def get_config_from_module_name(self, module_name):
         return vars(util.import_module(module_name))

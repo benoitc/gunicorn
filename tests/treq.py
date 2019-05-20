@@ -6,7 +6,6 @@
 import inspect
 import os
 import random
-from importlib.machinery import SourceFileLoader
 
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
@@ -29,10 +28,13 @@ def uri(data):
 
 
 def load_py(fname):
-    mod = SourceFileLoader('__config__', fname).load_module()
-    config = {k: getattr(mod, k, None) for k in dir(mod)}
+    config = globals().copy()
     config["uri"] = uri
     config["cfg"] = Config()
+
+    with open(fname, 'rb') as file:
+        code = compile(file.read(), fname, 'exec')
+    exec(code, config)
     return config
 
 
