@@ -5,12 +5,13 @@
 import os
 import sys
 import traceback
+from importlib.machinery import SourceFileLoader
 
-from gunicorn._compat import execfile_
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
+
 
 class BaseApplication(object):
     """
@@ -93,22 +94,15 @@ class Application(BaseApplication):
         if not os.path.exists(filename):
             raise RuntimeError("%r doesn't exist" % filename)
 
-        cfg = {
-            "__builtins__": __builtins__,
-            "__name__": "__config__",
-            "__file__": filename,
-            "__doc__": None,
-            "__package__": None
-        }
         try:
-            execfile_(filename, cfg, cfg)
+            mod = SourceFileLoader('__config__', filename).load_module()
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 
-        return cfg
+        return {k: getattr(mod, k, None) for k in dir(mod)}
 
     def get_config_from_module_name(self, module_name):
         return vars(util.import_module(module_name))

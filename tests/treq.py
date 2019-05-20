@@ -6,8 +6,8 @@
 import inspect
 import os
 import random
+from importlib.machinery import SourceFileLoader
 
-from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
 from gunicorn.util import split_request_uri
@@ -29,10 +29,10 @@ def uri(data):
 
 
 def load_py(fname):
-    config = globals().copy()
+    mod = SourceFileLoader('__config__', fname).load_module()
+    config = {k: getattr(mod, k, None) for k in dir(mod)}
     config["uri"] = uri
     config["cfg"] = Config()
-    execfile_(fname, config)
     return config
 
 
