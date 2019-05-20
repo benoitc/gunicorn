@@ -17,6 +17,7 @@ import selectors
 import socket
 import ssl
 import sys
+import threading
 import time
 from collections import deque
 from datetime import datetime
@@ -66,7 +67,7 @@ class ThreadWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.worker_connections = self.cfg.worker_connections
+        self.semaphore = threading.Semaphore(self.cfg.worker_connections)
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
         self.tpool = None
@@ -74,7 +75,6 @@ class ThreadWorker(base.Worker):
         self._lock = None
         self.futures = deque()
         self._keep = deque()
-        self.nr_conns = 0
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -118,7 +118,6 @@ class ThreadWorker(base.Worker):
             sock, client = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, sock, client, server)
-            self.nr_conns += 1
             # enqueue the job
             self.enqueue_req(conn)
         except EnvironmentError as e:
@@ -157,7 +156,7 @@ class ThreadWorker(base.Worker):
                     self._keep.appendleft(conn)
                 break
             else:
-                self.nr_conns -= 1
+                self.semaphore.release()
                 # remove the socket from the poller
                 with self._lock:
                     try:
@@ -194,7 +193,7 @@ class ThreadWorker(base.Worker):
             self.notify()
 
             # can we accept more connections?
-            if self.nr_conns < self.worker_connections:
+            if self.semaphore.acquire(blocking=False):
                 # wait for an event
                 events = self.poller.select(1.0)
                 for key, _ in events:
@@ -229,7 +228,7 @@ class ThreadWorker(base.Worker):
 
     def finish_request(self, fs):
         if fs.cancelled():
-            self.nr_conns -= 1
+            self.semaphore.release()
             fs.conn.close()
             return
 
@@ -250,12 +249,12 @@ class ThreadWorker(base.Worker):
                     self.poller.register(conn.sock, selectors.EVENT_READ,
                             partial(self.reuse_connection, conn))
             else:
-                self.nr_conns -= 1
+                self.semaphore.release()
                 conn.close()
         except:
             # an exception happened, make sure to close the
             # socket.
-            self.nr_conns -= 1
+            self.semaphore.release()
             fs.conn.close()
 
     def handle(self, conn):
