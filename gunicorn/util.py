@@ -190,7 +190,7 @@ def chown(path, uid, gid):
 
 if sys.platform.startswith("win"):
     def _waitfor(func, pathname, waitall=False):
-        # Peform the operation
+        # Perform the operation
         func(pathname)
         # Now setup the wait loop
         if waitall:
