@@ -216,7 +216,7 @@ class ThreadWorker(base.Worker):
             if not self.is_parent_alive():
                 break
 
-            # hanle keepalive timeouts
+            # handle keepalive timeouts
             self.murder_keepalived()
 
         self.tpool.shutdown(False)
