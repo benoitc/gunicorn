@@ -7,6 +7,7 @@ import email.utils
 import errno
 import fcntl
 import html
+import importlib
 import inspect
 import io
 import logging
@@ -364,14 +365,12 @@ def import_app(module):
         module, obj = parts[0], parts[1]
 
     try:
-        __import__(module)
-    except ImportError:
+        mod = importlib.import_module(module)
+    except ModuleNotFoundError:
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
-            raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
+            raise ModuleNotFoundError(msg % (module.rsplit(".", 1)[0], obj))
         raise
-
-    mod = sys.modules[module]
 
     is_debug = logging.root.level == logging.DEBUG
     try:
