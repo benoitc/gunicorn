@@ -102,7 +102,7 @@ class Application(BaseApplication):
             sys.stderr.flush()
             sys.exit(1)
 
-        return {k: getattr(mod, k, None) for k in dir(mod)}
+        return mod.__dict__
 
     def get_config_from_module_name(self, module_name):
         return vars(util.import_module(module_name))
