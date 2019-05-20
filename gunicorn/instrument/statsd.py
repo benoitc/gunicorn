@@ -53,7 +53,7 @@ class Statsd(Logger):
         Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
-    # Special treatement for info, the most common log level
+    # Special treatment for info, the most common log level
     def info(self, msg, *args, **kwargs):
         self.log(logging.INFO, msg, *args, **kwargs)
 
