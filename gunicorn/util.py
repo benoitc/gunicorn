@@ -367,7 +367,6 @@ def import_app(module):
     try:
         mod = importlib.import_module(module)
     except ImportError:
-        # ModuleNotFoundError (a subclass of ImportError) is new in version 3.6.
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
