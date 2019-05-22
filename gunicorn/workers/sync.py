@@ -18,7 +18,7 @@ import gunicorn.util as util
 import gunicorn.workers.base as base
 
 class StopWaiting(Exception):
-    """ exception raised to stop waiting for a connnection """
+    """ exception raised to stop waiting for a connection """
 
 class SyncWorker(base.Worker):
 
