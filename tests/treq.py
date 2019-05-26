@@ -4,10 +4,10 @@
 # under the MIT license.
 
 import inspect
+import importlib.machinery
 import os
 import random
 import types
-from importlib.machinery import SourceFileLoader
 
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
@@ -34,9 +34,9 @@ def load_py(fname):
     mod = types.ModuleType(module_name)
     setattr(mod, 'uri', uri)
     setattr(mod, 'cfg', Config())
-    loader = SourceFileLoader(module_name, fname)
+    loader = importlib.machinery.SourceFileLoader(module_name, fname)
     loader.exec_module(mod)
-    return mod.__dict__
+    return vars(mod)
 
 
 class request(object):

@@ -2,11 +2,11 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+import importlib.machinery
 import os
 import sys
 import traceback
 import types
-from importlib.machinery import SourceFileLoader
 
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
@@ -98,7 +98,7 @@ class Application(BaseApplication):
         try:
             module_name = '__config__'
             mod = types.ModuleType(module_name)
-            loader = SourceFileLoader(module_name, filename)
+            loader = importlib.machinery.SourceFileLoader(module_name, filename)
             loader.exec_module(mod)
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
@@ -106,7 +106,7 @@ class Application(BaseApplication):
             sys.stderr.flush()
             sys.exit(1)
 
-        return mod.__dict__
+        return vars(mod)
 
     def get_config_from_module_name(self, module_name):
         return vars(util.import_module(module_name))
