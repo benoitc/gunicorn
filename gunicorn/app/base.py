@@ -5,6 +5,7 @@
 import os
 import sys
 import traceback
+import types
 from importlib.machinery import SourceFileLoader
 
 from gunicorn import util
@@ -96,7 +97,9 @@ class Application(BaseApplication):
 
         try:
             module_name = '__config__'
-            mod = SourceFileLoader(module_name, filename).load_module(module_name)
+            mod = types.ModuleType(module_name)
+            loader = SourceFileLoader(module_name, filename)
+            loader.exec_module(mod)
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
