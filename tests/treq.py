@@ -4,10 +4,11 @@
 # under the MIT license.
 
 import inspect
+import importlib.machinery
 import os
 import random
+import types
 
-from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
 from gunicorn.util import split_request_uri
@@ -29,11 +30,13 @@ def uri(data):
 
 
 def load_py(fname):
-    config = globals().copy()
-    config["uri"] = uri
-    config["cfg"] = Config()
-    execfile_(fname, config)
-    return config
+    module_name = '__config__'
+    mod = types.ModuleType(module_name)
+    setattr(mod, 'uri', uri)
+    setattr(mod, 'cfg', Config())
+    loader = importlib.machinery.SourceFileLoader(module_name, fname)
+    loader.exec_module(mod)
+    return vars(mod)
 
 
 class request(object):
