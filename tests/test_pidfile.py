@@ -5,12 +5,8 @@
 
 import errno
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
-
 import gunicorn.pidfile
+import unittest.mock as mock
 
 
 def builtin(name):

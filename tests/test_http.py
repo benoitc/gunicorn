@@ -3,17 +3,13 @@
 import io
 import t
 import pytest
+import unittest.mock as mock
 
 from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
 
 
 def assert_readline(payload, size, expected):
