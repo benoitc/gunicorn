@@ -109,7 +109,7 @@ class Application(BaseApplication):
         return vars(mod)
 
     def get_config_from_module_name(self, module_name):
-        return vars(util.import_module(module_name))
+        return vars(importlib.import_module(module_name))
 
     def load_config_from_module_name_or_filename(self, location):
         """

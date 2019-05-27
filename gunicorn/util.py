@@ -54,43 +54,6 @@ except ImportError:
         pass
 
 
-try:
-    from importlib import import_module
-except ImportError:
-    def _resolve_name(name, package, level):
-        """Return the absolute name of the module to be imported."""
-        if not hasattr(package, 'rindex'):
-            raise ValueError("'package' not set to a string")
-        dot = len(package)
-        for _ in range(level, 1, -1):
-            try:
-                dot = package.rindex('.', 0, dot)
-            except ValueError:
-                msg = "attempted relative import beyond top-level package"
-                raise ValueError(msg)
-        return "%s.%s" % (package[:dot], name)
-
-    def import_module(name, package=None):
-        """Import a module.
-
-The 'package' argument is required when performing a relative import. It
-specifies the package to use as the anchor point from which to resolve the
-relative import to an absolute import.
-
-"""
-        if name.startswith('.'):
-            if not package:
-                raise TypeError("relative imports require the 'package' argument")
-            level = 0
-            for character in name:
-                if character != '.':
-                    break
-                level += 1
-            name = _resolve_name(name[level:], package, level)
-        __import__(name)
-        return sys.modules[name]
-
-
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
         section="gunicorn.workers"):
     if inspect.isclass(uri):
@@ -132,7 +95,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
         klass = components.pop(-1)
 
         try:
-            mod = import_module('.'.join(components))
+            mod = importlib.import_module('.'.join(components))
         except:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
@@ -520,6 +483,7 @@ def to_bytestring(value, encoding="utf8"):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
+
 
 def has_fileno(obj):
     if not hasattr(obj, "fileno"):
