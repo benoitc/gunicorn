@@ -48,18 +48,3 @@ def requires_mac_ver(*min_version):
         wrapper.min_version = min_version
         return wrapper
     return decorator
-
-try:
-    from types import SimpleNamespace  # pylint: disable=unused-import
-except ImportError:
-    class SimpleNamespace(object):
-        def __init__(self, **kwargs):
-            vars(self).update(kwargs)
-
-        def __repr__(self):
-            keys = sorted(vars(self))
-            items = ("{}={!r}".format(k, vars(self)[k]) for k in keys)
-            return "{}({})".format(type(self).__name__, ", ".join(items))
-
-        def __eq__(self, other):
-            return vars(self) == vars(other)

@@ -5,10 +5,10 @@ import shutil
 import socket
 import tempfile
 from datetime import timedelta
+from types import SimpleNamespace
 
 from gunicorn.config import Config
 from gunicorn.instrument.statsd import Statsd
-from support import SimpleNamespace
 
 
 class StatsdTestException(Exception):
