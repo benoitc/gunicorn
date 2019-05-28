@@ -1,9 +1,8 @@
 import datetime
+from types import SimpleNamespace
 
 from gunicorn.config import Config
 from gunicorn.glogging import Logger
-
-from support import SimpleNamespace
 
 
 def test_atoms_defaults():
