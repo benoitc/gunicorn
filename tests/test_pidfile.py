@@ -4,9 +4,9 @@
 # See the NOTICE for more information.
 
 import errno
+import unittest.mock as mock
 
 import gunicorn.pidfile
-import unittest.mock as mock
 
 
 def builtin(name):
