@@ -252,6 +252,9 @@ to the newly created unix socket:
 
     [Unit]
     Description=gunicorn socket
+    # Restart the socket as PartOf the service so we never lose the
+    # socket file on a restart causing a 502 in nginx.
+    PartOf=gunicorn.service
 
     [Socket]
     ListenStream=/run/gunicorn.sock
