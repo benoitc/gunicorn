@@ -57,8 +57,8 @@ class Config(object):
         for k in sorted(self.settings):
             v = self.settings[k].value
             if callable(v):
-                v = "<%s()>" % v.__qualname__
-            lines.append(f"{k:{kmax}} = {v}")
+                v = "<{}()>".format(v.__qualname__)
+            lines.append("{k:{kmax}} = {v}".format(k=k, v=v, kmax=kmax))
         return "\n".join(lines)
 
     def __getattr__(self, name):

@@ -454,7 +454,7 @@ def test_str():
     }
     for i, line in enumerate(o.splitlines()):
         m = re.match(r'^(\w+)\s+= ', line)
-        assert m, f"Config line {i} didn't match expected format: {line!r}"
+        assert m, "Line {} didn't match expected format: {!r}".format(i, line)
 
         key = m.group(1)
         try:
@@ -462,10 +462,12 @@ def test_str():
         except KeyError:
             continue
 
-        line_re = fr'^{key}\s+= {re.escape(s)}$'
-        assert re.match(line_re, line), f'{line_re!r} != {line!r}'
+        line_re = r'^{}\s+= {}$'.format(key, re.escape(s))
+        assert re.match(line_re, line), '{!r} != {!r}'.format(line_re, line)
 
         if not OUTPUT_MATCH:
             break
     else:
-        assert False, f'missing expected setting lines? {list(OUTPUT_MATCH.keys())}'
+        assert False, 'missing expected setting lines? {}'.format(
+            OUTPUT_MATCH.keys()
+        )
