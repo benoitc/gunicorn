@@ -106,7 +106,6 @@ class TornadoWorker(Worker):
         # instance of tornado.wsgi.WSGIApplication
         app = self.wsgi
 
-        # Patch for tornado5
         if tornado.version_info[0] < 6:
             if not isinstance(app, tornado.web.Application) or \
             isinstance(app, tornado.wsgi.WSGIApplication):
