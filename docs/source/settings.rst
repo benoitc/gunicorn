@@ -363,6 +363,17 @@ statsd_host
 
 .. versionadded:: 19.1
 
+.. _statsd-socket:
+
+statsd_socket
+~~~~~~~~~~~~~
+
+* ``--statsd-socket STATSD_SOCKET``
+* ``None``
+
+Unix domain socket of the statsd server to log to.
+Supersedes ``statsd_host`` if provided.
+
 .. _dogstatsd-tags:
 
 dogstatsd_tags

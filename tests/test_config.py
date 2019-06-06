@@ -306,10 +306,17 @@ def test_nworkers_changed():
     assert c.nworkers_changed(1, 2, 3) == 3
 
 
-def test_statsd_changes_logger():
+def test_statsd_host_changes_logger():
     c = config.Config()
     assert c.logger_class == glogging.Logger
     c.set('statsd_host', 'localhost:12345')
+    assert c.logger_class == statsd.Statsd
+
+
+def test_statsd_socket_changes_logger():
+    c = config.Config()
+    assert c.logger_class == glogging.Logger
+    c.set('statsd_socket', '/var/run/sock')
     assert c.logger_class == statsd.Statsd
 
 

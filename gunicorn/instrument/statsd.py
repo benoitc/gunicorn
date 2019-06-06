@@ -27,10 +27,18 @@ class Statsd(Logger):
         """
         Logger.__init__(self, cfg)
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
-        try:
+
+        if cfg.statsd_socket:
+            address_family = socket.AF_UNIX
+            address = cfg.statsd_socket
+        elif cfg.statsd_host:
+            address_family = socket.AF_INET
             host, port = cfg.statsd_host
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.connect((host, int(port)))
+            address = (host, int(port))
+
+        try:
+            self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
+            self.sock.connect(address)
         except Exception:
             self.sock = None
 

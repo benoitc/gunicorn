@@ -144,7 +144,9 @@ class Config(object):
         # if default logger is in use, and statsd is on, automagically switch
         # to the statsd logger
         if uri == LoggerClass.default:
-            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+            statsd_address = 'statsd_socket' in self.settings and self.settings['statsd_socket'].value or \
+                             'statsd_host' in self.settings and self.settings['statsd_host'].value
+            if statsd_address is not None:
                 uri = "gunicorn.instrument.statsd.Statsd"
 
         logger_class = util.load_class(
@@ -1476,6 +1478,18 @@ class StatsdHost(Setting):
     ``host:port`` of the statsd server to log to.
 
     .. versionadded:: 19.1
+    """
+
+class StatsdSocket(Setting):
+    name = "statsd_socket"
+    section = "Logging"
+    cli = ["--statsd-socket"]
+    meta = "STATSD_SOCKET"
+    default = None
+    validator = validate_string
+    desc = """\
+    Unix domain socket of the statsd server to log to.
+    Supersedes ``statsd_host`` if provided.
     """
 
 # Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
