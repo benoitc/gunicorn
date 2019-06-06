@@ -144,8 +144,10 @@ class Config(object):
         # if default logger is in use, and statsd is on, automagically switch
         # to the statsd logger
         if uri == LoggerClass.default:
-            statsd_address = 'statsd_socket' in self.settings and self.settings['statsd_socket'].value or \
-                             'statsd_host' in self.settings and self.settings['statsd_host'].value
+            statsd_address = 'statsd_socket' in self.settings and \
+                             self.settings['statsd_socket'].value or \
+                             'statsd_host' in self.settings and \
+                             self.settings['statsd_host'].value
             if statsd_address is not None:
                 uri = "gunicorn.instrument.statsd.Statsd"
 
