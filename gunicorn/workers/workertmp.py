@@ -21,10 +21,12 @@ class WorkerTmp(object):
         if fdir and not os.path.isdir(fdir):
             raise RuntimeError("%s doesn't exist. Can't create workertmp." % fdir)
         fd, name = tempfile.mkstemp(prefix="wgunicorn-", dir=fdir)
-
-        # allows the process to write to the file
-        util.chown(name, cfg.uid, cfg.gid)
         os.umask(old_umask)
+
+        # change the owner and group of the file if the worker will run as
+        # a different user or group, so that the worker can modify the file
+        if cfg.uid != os.geteuid() or cfg.gid != os.getegid():
+            util.chown(name, cfg.uid, cfg.gid)
 
         # unlink the file so we don't leak tempory files
         try:
