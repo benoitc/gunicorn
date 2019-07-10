@@ -308,6 +308,15 @@ class Setting(object):
                 self.order < other.order)
     __cmp__ = __lt__
 
+    def __repr__(self):
+        return "<%s.%s object at %x with value %r>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            id(self),
+            self.value,
+        )
+
+
 Setting = SettingMeta('Setting', (Setting,), {})
 
 
