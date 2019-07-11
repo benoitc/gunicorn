@@ -29,15 +29,15 @@ def test_parse_address(test_input, expected):
 
 
 def test_parse_address_invalid():
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(RuntimeError) as exc_info:
         util.parse_address('127.0.0.1:test')
-    assert "'test' is not a valid port number." in str(err)
+    assert "'test' is not a valid port number." in str(exc_info.value)
 
 
 def test_parse_fd_invalid():
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(RuntimeError) as exc_info:
         util.parse_address('fd://asd')
-    assert "'asd' is not a valid file descriptor." in str(err)
+    assert "'asd' is not a valid file descriptor." in str(exc_info.value)
 
 
 def test_http_date():
@@ -63,24 +63,24 @@ def test_warn(capsys):
 def test_import_app():
     assert util.import_app('support:app')
 
-    with pytest.raises(ImportError) as err:
+    with pytest.raises(ImportError) as exc_info:
         util.import_app('a:app')
-    assert 'No module' in str(err)
+    assert 'No module' in str(exc_info.value)
 
-    with pytest.raises(AppImportError) as err:
+    with pytest.raises(AppImportError) as exc_info:
         util.import_app('support:wrong_app')
     msg = "Failed to find application object 'wrong_app' in 'support'"
-    assert msg in str(err)
+    assert msg in str(exc_info.value)
 
 
 def test_to_bytestring():
     assert util.to_bytestring('test_str', 'ascii') == b'test_str'
     assert util.to_bytestring('test_str®') == b'test_str\xc2\xae'
     assert util.to_bytestring(b'byte_test_str') == b'byte_test_str'
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError) as exc_info:
         util.to_bytestring(100)
     msg = '100 is not a string'
-    assert msg in str(err)
+    assert msg in str(exc_info.value)
 
 
 @pytest.mark.parametrize('test_input, expected', [
