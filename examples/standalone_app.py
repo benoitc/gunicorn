@@ -14,7 +14,7 @@ import multiprocessing
 
 import gunicorn.app.base
 
-from gunicorn.six import iteritems
+from six import iteritems
 
 
 def number_of_workers():

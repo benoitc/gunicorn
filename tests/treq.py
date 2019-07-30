@@ -6,12 +6,12 @@
 import inspect
 import os
 import random
+import six
 
 from gunicorn._compat import execfile_
 from gunicorn.config import Config
 from gunicorn.http.parser import RequestParser
 from gunicorn.util import split_request_uri
-from gunicorn import six
 
 dirname = os.path.dirname(__file__)
 random.seed()

@@ -12,7 +12,7 @@ import sys
 import time
 import traceback
 
-from gunicorn import six
+import six
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import reloader_engines
@@ -23,7 +23,7 @@ from gunicorn.http.errors import (
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.http.wsgi import default_environ, Response
-from gunicorn.six import MAXSIZE
+from six import MAXSIZE
 
 
 class Worker(object):

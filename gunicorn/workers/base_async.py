@@ -13,7 +13,7 @@ import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
-from gunicorn import six
+import six
 
 ALREADY_HANDLED = object()
 

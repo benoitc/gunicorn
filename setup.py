@@ -98,6 +98,7 @@ setup(
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),
     include_package_data=True,
+    install_requires=['six>=1.10.0'],
 
     tests_require=tests_require,
     cmdclass={'test': PyTestCommand},

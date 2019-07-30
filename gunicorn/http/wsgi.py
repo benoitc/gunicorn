@@ -12,7 +12,7 @@ import sys
 from gunicorn._compat import unquote_to_wsgi_str
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn.six import string_types, binary_type, reraise
+from six import string_types, binary_type, reraise
 from gunicorn import SERVER_SOFTWARE
 import gunicorn.util as util
 

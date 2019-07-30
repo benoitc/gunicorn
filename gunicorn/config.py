@@ -24,7 +24,7 @@ from gunicorn import __version__
 from gunicorn import _compat
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
-from gunicorn import six
+import six
 from gunicorn import util
 
 KNOWN_SETTINGS = []

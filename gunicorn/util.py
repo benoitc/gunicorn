@@ -25,7 +25,7 @@ import re
 
 from gunicorn import _compat
 from gunicorn.errors import AppImportError
-from gunicorn.six import text_type
+from six import text_type
 from gunicorn.workers import SUPPORTED_WORKERS
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')

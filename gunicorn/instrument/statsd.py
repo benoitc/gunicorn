@@ -10,7 +10,7 @@ import logging
 from re import sub
 
 from gunicorn.glogging import Logger
-from gunicorn import six
+import six
 
 # Instrumentation constants
 METRIC_VAR = "metric"

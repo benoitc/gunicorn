@@ -10,7 +10,7 @@ import tempfile
 dirname = os.path.dirname(__file__)
 
 from gunicorn.http.parser import RequestParser
-from gunicorn.six import BytesIO
+from six import BytesIO
 
 
 def data_source(fname):

@@ -7,7 +7,7 @@ from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
-from gunicorn.six import BytesIO
+from six import BytesIO
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 
 try:

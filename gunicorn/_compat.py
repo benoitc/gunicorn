@@ -1,6 +1,6 @@
 import sys
 
-from gunicorn import six
+import six
 
 PY26 = (sys.version_info[:2] == (2, 6))
 PY33 = (sys.version_info >= (3, 3))
@@ -261,7 +261,7 @@ if PY26:
         return v
 
 else:
-    from gunicorn.six.moves.urllib.parse import urlsplit
+    from six.moves.urllib.parse import urlsplit
 
 
 import inspect

@@ -5,7 +5,7 @@
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
         InvalidChunkSize)
-from gunicorn import six
+import six
 
 
 class ChunkedReader(object):

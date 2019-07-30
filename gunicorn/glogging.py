@@ -21,7 +21,7 @@ import threading
 import traceback
 
 from gunicorn import util
-from gunicorn.six import PY3, string_types
+from six import PY3, string_types
 
 
 # syslog facility codes

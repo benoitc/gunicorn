@@ -5,7 +5,7 @@
 
 import os
 
-from gunicorn import six
+import six
 
 # Classes that can undo reading data from
 # a given type of data source.

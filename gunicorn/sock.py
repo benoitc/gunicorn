@@ -11,7 +11,7 @@ import sys
 import time
 
 from gunicorn import util
-from gunicorn.six import string_types
+from six import string_types
 
 
 class BaseSocket(object):
