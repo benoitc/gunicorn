@@ -83,7 +83,7 @@ if sys.version_info[0] < 3:
     extra_require['gthread'] = ['futures']
 
 setup(
-    name='gunicorn',
+    name='optibus-gunicorn',
     version=__version__,
 
     description='WSGI HTTP Server for UNIX',
