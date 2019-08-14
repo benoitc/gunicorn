@@ -174,10 +174,11 @@ class EOFReader(object):
         return ret
 
 
-class Body(object):
+class Body(io.IOBase):
     def __init__(self, reader):
         self.reader = reader
         self.buf = io.BytesIO()
+        super().__init__()
 
     def __iter__(self):
         return self
@@ -188,6 +189,9 @@ class Body(object):
             raise StopIteration()
         return ret
     next = __next__
+
+    def readable(self):
+        return True
 
     def getsize(self, size):
         if size is None:

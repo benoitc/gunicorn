@@ -227,3 +227,10 @@ def test_eof_reader_read_invalid_size():
         reader.read([100])
     with pytest.raises(ValueError):
         reader.read(-100)
+
+
+def test_body_is_file_like():
+    body = Body(io.BytesIO(b"abc\ndef\nghij\n"))
+    assert body.readable()
+    assert not body.writable()
+    assert list(io.TextIOWrapper(body)) == ["abc\n", "def\n", "ghij\n"]
