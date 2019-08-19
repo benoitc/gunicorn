@@ -13,7 +13,8 @@ Here is a small example where we create a very small WSGI app and load it with
 a custom Application:
 
 .. literalinclude:: ../../examples/standalone_app.py
-    :lines: 11-60
+    :start-after: # See the NOTICE for more information
+    :lines: 2-
 
 Direct Usage of Existing WSGI Apps
 ----------------------------------
