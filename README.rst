@@ -25,12 +25,6 @@ Documentation
 
 The documentation is hosted at http://docs.gunicorn.org.
 
-Contributing
-------------
-
-See `our complete contributor's guide <https://github.com/benoitc/gunicorn/blob/master/CONTRIBUTING.md>`_ for more info.
-
-
 Installation
 ------------
 
@@ -56,6 +50,12 @@ Example with test app::
 
     $ cd examples
     $ gunicorn --workers=2 test:app
+
+
+Contributing
+------------
+
+See `our complete contributor's guide <CONTRIBUTING.md>`_ for more details.
 
 
 License
