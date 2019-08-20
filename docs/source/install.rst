@@ -52,6 +52,28 @@ want to consider one of the alternate worker types.
     installed, this is the most likely reason.
 
 
+Extra Packages
+==============
+Some Gunicorn options require additional packages. You can use the ``[extra]``
+syntax to install these at the same time as Gunicorn.
+
+Most extra packages are needed for alternate worker types. See the
+`design docs`_ for more information on when you'll want to consider an
+alternate worker type.
+
+* ``gunicorn[eventlet]`` - Eventlet-based greenlets workers
+* ``gunicorn[gevent]`` - Gevent-based greenlets workers
+* ``gunicorn[gthread]`` - Threaded workers
+* ``gunicorn[tornado]`` - Tornado-based workers, not recommended
+
+If you are running more than one instance of Gunicorn, the :ref:`proc-name`
+setting will help distinguish between them in tools like ``ps`` and ``top``.
+
+* ``gunicorn[setproctitle]`` - Enables setting the process name
+
+Multiple extras can be combined, like
+``pip install gunicorn[gevent,setproctitle]``.
+
 Debian GNU/Linux
 ================
 

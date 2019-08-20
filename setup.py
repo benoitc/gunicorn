@@ -78,6 +78,7 @@ extras_require = {
     'eventlet': ['eventlet>=0.9.7'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
+    'setproctitle': ['setproctitle'],
 }
 
 setup(
