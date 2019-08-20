@@ -223,9 +223,7 @@ class Arbiter(object):
                 self.log.info("Handling signal: %s", signame)
                 handler()
                 self.wakeup()
-        except StopIteration:
-            self.halt()
-        except KeyboardInterrupt:
+        except (StopIteration, KeyboardInterrupt):
             self.halt()
         except HaltServer as inst:
             self.halt(reason=inst.reason, exit_status=inst.exit_status)
