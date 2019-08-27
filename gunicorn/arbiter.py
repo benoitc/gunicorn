@@ -147,7 +147,7 @@ class Arbiter(object):
                 fds = range(systemd.SD_LISTEN_FDS_START,
                             systemd.SD_LISTEN_FDS_START + listen_fds)
 
-            elif self.master_pid:
+            elif os.environ.get('GUNICORN_FD', ''):
                 fds = []
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
