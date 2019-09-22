@@ -2,7 +2,7 @@ version: '{branch}.{build}'
 environment:
   matrix:
     - TOXENV: lint
-      PYTHON: "C:\\Python35-x64"
+      PYTHON: "C:\\Python37-x64"
     - TOXENV: py27
       PYTHON: "C:\\Python27-x64"
     - TOXENV: py35
