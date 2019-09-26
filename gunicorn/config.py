@@ -119,6 +119,11 @@ class Config(object):
         return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
 
     @property
+    def no_ssl_address(self):
+        s = self.settings['bind_no_ssl'].get()
+        return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
+
+    @property
     def uid(self):
         return self.settings['user'].get()
 
@@ -570,6 +575,20 @@ class Bind(Setting):
         will bind the `test:app` application on localhost both on ipv6
         and ipv4 interfaces.
         """
+
+
+class BindNoSSL(Setting):
+    name = "bind_no_ssl"
+    action = "append"
+    section = "Server Socket"
+    cli = ["--bind-no-ssl"]
+    meta = "ADDRESS"
+    validator = validate_list_string
+    default = None
+
+    desc = """\
+        TODO
+    """
 
 
 class Backlog(Setting):
