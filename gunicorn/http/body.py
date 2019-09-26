@@ -7,7 +7,7 @@ import io
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
-        InvalidChunkSize)
+                                  InvalidChunkSize)
 
 
 class ChunkedReader(object):
@@ -187,6 +187,7 @@ class Body(object):
         if not ret:
             raise StopIteration()
         return ret
+
     next = __next__
 
     def getsize(self, size):
