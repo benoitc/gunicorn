@@ -584,7 +584,7 @@ class BindNoSSL(Setting):
     cli = ["--bind-no-ssl"]
     meta = "ADDRESS"
     validator = validate_list_string
-    default = None
+    default = []
 
     desc = """\
         TODO

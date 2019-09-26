@@ -10,23 +10,52 @@ from gunicorn import sock
 
 @mock.patch('os.stat')
 def test_create_sockets_unix_bytes(stat):
-    conf = mock.Mock(address=[b'127.0.0.1:8000'])
+    conf = mock.Mock(address=[b'127.0.0.1:8000'], non_ssl_address=[])
     log = mock.Mock()
     with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
         listeners = sock.create_sockets(conf, log)
         assert len(listeners) == 1
-        print(type(listeners[0]))
-        assert isinstance(listeners[0], sock.UnixSocket)
+        print(type(listeners[0][0]))
+        assert isinstance(listeners[0][0], sock.UnixSocket)
 
 
 @mock.patch('os.stat')
 def test_create_sockets_unix_strings(stat):
-    conf = mock.Mock(address=['127.0.0.1:8000'])
+    conf = mock.Mock(address=['127.0.0.1:8000'], non_ssl_address=[])
     log = mock.Mock()
     with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
         listeners = sock.create_sockets(conf, log)
         assert len(listeners) == 1
-        assert isinstance(listeners[0], sock.UnixSocket)
+        assert isinstance(listeners[0][0], sock.UnixSocket)
+
+@mock.patch('os.stat')
+def test_create_non_ssl_sockets(stat):
+    conf = mock.Mock(address=[], non_ssl_address=['127.0.0.1:8000'])
+    log = mock.Mock()
+    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
+        listeners = sock.create_sockets(conf, log)
+        assert len(listeners) == 1
+        assert isinstance(listeners[0][0], sock.UnixSocket)
+        assert not listeners[0][1]
+
+@mock.patch('os.stat')
+def test_create_ssl_and_non_ssl_sockets(stat):
+    conf = mock.Mock(
+        address=['127.0.0.1:8000'],
+        non_ssl_address=['127.0.0.1:8001'],
+        certfile='fake-certfile',
+    )
+    log = mock.Mock()
+    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
+        listeners = sock.create_sockets(conf, log)
+        assert len(listeners) == 2
+
+        assert isinstance(listeners[0][0], sock.UnixSocket)
+        assert listeners[0][1]
+
+        assert isinstance(listeners[1][0], sock.UnixSocket)
+        assert not listeners[1][1]
+
 
 
 def test_socket_close():

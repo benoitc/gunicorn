@@ -31,11 +31,12 @@ from ..http import wsgi
 
 class TConn(object):
 
-    def __init__(self, cfg, sock, client, server):
+    def __init__(self, cfg, sock, client, server, is_ssl=False):
         self.cfg = cfg
         self.sock = sock
         self.client = client
         self.server = server
+        self.is_ssl = is_ssl
 
         self.timeout = None
         self.parser = None
@@ -47,7 +48,7 @@ class TConn(object):
         self.sock.setblocking(True)
         if self.parser is None:
             # wrap the socket if needed
-            if self.cfg.is_ssl:
+            if self.is_ssl:
                 self.sock = ssl.wrap_socket(self.sock, server_side=True,
                         **self.cfg.ssl_options)
 
@@ -113,11 +114,11 @@ class ThreadWorker(base.Worker):
         fs = self.tpool.submit(self.handle, conn)
         self._wrap_future(fs, conn)
 
-    def accept(self, server, listener):
+    def accept(self, server, listener, is_ssl=False):
         try:
             sock, client = listener.accept()
             # initialize the connection object
-            conn = TConn(self.cfg, sock, client, server)
+            conn = TConn(self.cfg, sock, client, server, is_ssl=is_ssl)
             self.nr_conns += 1
             # enqueue the job
             self.enqueue_req(conn)
@@ -186,7 +187,8 @@ class ThreadWorker(base.Worker):
             # a race condition during graceful shutdown may make the listener
             # name unavailable in the request handler so capture it once here
             server = sock.getsockname()
-            acceptor = partial(self.accept, server)
+            is_ssl = self.socket_ssl_mapping[sock]
+            acceptor = partial(self.accept, server, is_ssl=is_ssl)
             self.poller.register(sock, selectors.EVENT_READ, acceptor)
 
         while self.alive:

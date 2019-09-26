@@ -57,10 +57,15 @@ class GeventWorker(AsyncWorker):
 
         # patch sockets
         sockets = []
+        socket_ssl_mapping = {}
         for s in self.sockets:
-            sockets.append(socket.socket(s.FAMILY, socket.SOCK_STREAM,
-                fileno=s.sock.fileno()))
+            new_s = socket.socket(s.FAMILY, socket.SOCK_STREAM, 
+                fileno=s.sock.fileno())
+            sockets.append(new_s)
+            socket_ssl_mapping[new_s] = self.socket_ssl_mapping[s]
+
         self.sockets = sockets
+        self.socket_ssl_mapping = socket_ssl_mapping
 
     def notify(self):
         super().notify()
@@ -73,14 +78,18 @@ class GeventWorker(AsyncWorker):
 
     def run(self):
         servers = []
-        ssl_args = {}
+        main_ssl_args = {}
 
         if self.cfg.is_ssl:
-            ssl_args = dict(server_side=True, **self.cfg.ssl_options)
+            main_ssl_args = dict(server_side=True, **self.cfg.ssl_options)
 
         for s in self.sockets:
             s.setblocking(1)
             pool = Pool(self.worker_connections)
+            ssl_args = {}
+            if not self.socket_ssl_mapping[s]:
+                ssl_args = main_ssl_args
+
             if self.server_class is not None:
                 environ = base_environ(self.cfg)
                 environ.update({
