@@ -253,10 +253,12 @@ class Response(object):
             if HEADER_RE.search(name):
                 raise InvalidHeaderName('%r' % name)
 
+            value = str(value)
+
             if HEADER_VALUE_RE.search(value):
                 raise InvalidHeader('%r' % value)
 
-            value = str(value).strip()
+            value = value.strip()
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
