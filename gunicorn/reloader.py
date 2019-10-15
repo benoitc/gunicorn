@@ -58,7 +58,7 @@ class Reloader(threading.Thread):
 has_inotify = False
 if sys.platform.startswith('linux'):
     try:
-        from inotify.adapters import Inotify
+        from inotify.adapters import InotifyTrees
         import inotify.constants
         has_inotify = True
     except ImportError:
@@ -78,7 +78,7 @@ if has_inotify:
             self.setDaemon(True)
             self._callback = callback
             self._dirs = set()
-            self._watcher = Inotify()
+            self._watcher = InotifyTrees(mask=self.event_mask)
 
             for extra_file in extra_files:
                 self.add_extra_file(extra_file)
@@ -89,7 +89,7 @@ if has_inotify:
             if dirname in self._dirs:
                 return
 
-            self._watcher.add_watch(dirname, mask=self.event_mask)
+            self._watcher.__load_trees([dirname])
             self._dirs.add(dirname)
 
         def get_dirs(self):
@@ -105,7 +105,7 @@ if has_inotify:
             self._dirs = self.get_dirs()
 
             for dirname in self._dirs:
-                self._watcher.add_watch(dirname, mask=self.event_mask)
+                self._watcher.__load_trees(dirname)
 
             for event in self._watcher.event_gen():
                 if event is None:
