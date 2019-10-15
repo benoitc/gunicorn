@@ -104,8 +104,7 @@ if has_inotify:
         def run(self):
             self._dirs = self.get_dirs()
 
-            for dirname in self._dirs:
-                self._watcher.__load_trees(dirname)
+            self._watcher.__load_trees(self._dirs)
 
             for event in self._watcher.event_gen():
                 if event is None:
