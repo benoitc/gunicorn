@@ -253,7 +253,8 @@ class Response(object):
             if HEADER_RE.search(name):
                 raise InvalidHeaderName('%r' % name)
 
-            value = str(value)
+            if not isinstance(value, str):
+                raise TypeError('%r is not a string' % value)
 
             if HEADER_VALUE_RE.search(value):
                 raise InvalidHeader('%r' % value)
