@@ -323,7 +323,7 @@ def write_error(sock, status_int, reason, mesg):
 def import_app(module):
     parts = module.split(":", 1)
     if len(parts) == 1:
-        module, obj = module, "application"
+        obj = "application"
     else:
         module, obj = parts[0], parts[1]
 

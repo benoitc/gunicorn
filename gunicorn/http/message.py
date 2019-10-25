@@ -242,7 +242,7 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
-            elif len(data) - 2 > limit > 0:
+            if len(data) - 2 > limit > 0:
                 raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
