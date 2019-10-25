@@ -9,6 +9,7 @@
 # keepalive connections are put back in the loop waiting for an event.
 # If no event happen after the keep alive timeout, the connectoin is
 # closed.
+# pylint: disable=no-else-break
 
 from collections import deque
 from datetime import datetime
