@@ -52,6 +52,12 @@ Example with test app::
     $ gunicorn --workers=2 test:app
 
 
+Contributing
+------------
+
+See `our complete contributor's guide <CONTRIBUTING.md>`_ for more details.
+
+
 License
 -------
 

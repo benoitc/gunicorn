@@ -26,6 +26,8 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
     'Topic :: Internet',
     'Topic :: Utilities',
     'Topic :: Software Development :: Libraries :: Python Modules',
@@ -78,6 +80,7 @@ extras_require = {
     'eventlet': ['eventlet>=0.9.7'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
+    'setproctitle': ['setproctitle'],
 }
 
 setup(

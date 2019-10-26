@@ -5,12 +5,9 @@
 #
 # Example code from Eventlet sources
 
-from wsgiref.validate import validator
-
 from gunicorn import __version__
 
 
-@validator
 def app(environ, start_response):
     """Simplest possible application object"""
 
