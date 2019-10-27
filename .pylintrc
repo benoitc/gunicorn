@@ -21,6 +21,7 @@ disable=
     eval-used,
     fixme,
     import-error,
+    import-outside-toplevel,
     import-self,
     inconsistent-return-statements,
     invalid-name,

@@ -9,6 +9,7 @@
 # Keepalive connections are put back in the loop waiting for an event.
 # If no event happen after the keep alive timeout, the connection is
 # closed.
+# pylint: disable=no-else-break
 
 import concurrent.futures as futures
 import errno
