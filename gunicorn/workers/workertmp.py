@@ -32,7 +32,9 @@ class WorkerTmp(object):
         try:
             if not IS_CYGWIN:
                 util.unlink(name)
-            self._tmp = os.fdopen(fd, 'w+b', 1)
+            # In Python 3.8, open() emits RuntimeWarning if buffering=1 for binary mode.
+            # Because we never write to this file, pass 0 to switch buffering off.
+            self._tmp = os.fdopen(fd, 'w+b', 0)
         except:
             os.close(fd)
             raise
