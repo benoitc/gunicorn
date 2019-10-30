@@ -1,11 +1,10 @@
-=========
-Changelog
-=========
+================
+Changelog - 2018
+================
 
-20.0 / not released
-===================
+.. note::
 
-- fix: Added support for binding to file descriptors (:issue:`1107`, :pr:`1809`)
+   Please see :doc:`news` for the latest changes
 
 19.9.0 / 2018/07/03
 ===================
@@ -67,20 +66,3 @@ Changelog
 - deprecation: the ``gaiohttp`` worker is deprecated, see the
   :ref:`worker-class` documentation for more information
   (:issue:`1338`, :pr:`1418`, :pr:`1569`)
-
-
-History
-=======
-
-.. toctree::
-   :titlesonly:
-
-   2018-news
-   2017-news
-   2016-news
-   2015-news
-   2014-news
-   2013-news
-   2012-news
-   2011-news
-   2010-news
