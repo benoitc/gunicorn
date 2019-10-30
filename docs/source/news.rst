@@ -26,7 +26,7 @@ Changelog
 - Fixed worker_connections` setting to also affects the Gthread worker type
 - Fixed setting max_requests
 -  Bump minimum Eventlet and Gevent versions to 0.24 and 1.4
-- Use Python's default SSL cipher list by default
+- Use Python default SSL cipher list by default
 - handle `wsgi.input_terminated` extension
 - Simplify Paste Deployment documentation
 - Fix root logging: root and logger are same level.
