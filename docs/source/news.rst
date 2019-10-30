@@ -39,14 +39,14 @@ Changelog
 - Added support to `--bind` to open file descriptors
 - Document how to serve WSGI app modules from Gunicorn
 - Provide guidance on X-Forwarded-For access log in documentation
-- Add support for named constants in the --ssl-version flag
+- Add support for named constants in the `--ssl-version` flag
 - Clarify log format usage of header & environment in documentation
 - Fixed systemd documentation to properly setup gunicorn unix socket
 - Prevent removal unix socket for reuse_port
 - Fix `ResourceWarning` when reading a Python config module
 - Remove unnecessary call to dict keys method
 - Support str and bytes for UNIX socket addresses
-- fixed InotifyReloadeder:  handle `module.__file__ is None
+- fixed `InotifyReloadeder`:  handle `module.__file__` is None
 - `/dev/shm` as a convenient alternative to making your own tmpfs mount in fchmod FAQ
 - fix examples to work on python3
 - Fix typo in `--max-requests` documentation
