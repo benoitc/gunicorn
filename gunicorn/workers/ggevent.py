@@ -30,10 +30,10 @@ from gunicorn.workers.base_async import AsyncWorker
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
 
-def _gevent_sendfile(fdout, fdin, offset, nbytes):
+def _gevent_sendfile(fdout, fdin, offset, nbytes, _os_sendfile=os.sendfile):
     while True:
         try:
-            return os.sendfile(fdout, fdin, offset, nbytes)
+            return _os_sendfile(fdout, fdin, offset, nbytes)
         except OSError as e:
             if e.args[0] == errno.EAGAIN:
                 socket.wait_write(fdout)
