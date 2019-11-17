@@ -2,6 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+import os
 
 import pytest
 
@@ -60,17 +61,49 @@ def test_warn(capsys):
     assert '!!! WARNING: test warn' in err
 
 
-def test_import_app():
-    assert util.import_app('support:app')
+@pytest.mark.parametrize(
+    "value",
+    [
+        "support",
+        "support:app",
+        "support:create_app()",
+        "support:create_app('Gunicorn', 3)",
+        "support:create_app(count=3)",
+    ],
+)
+def test_import_app_good(value):
+    assert util.import_app(value)
+
+
+@pytest.mark.parametrize(
+    ("value", "exc_type", "msg"),
+    [
+        ("a:app", ImportError, "No module"),
+        ("support:create_app(", AppImportError, "Failed to parse"),
+        ("support:create.app()", AppImportError, "Function reference"),
+        ("support:create_app(Gunicorn)", AppImportError, "literal values"),
+        ("support:create.app", AppImportError, "attribute name"),
+        ("support:wrong_app", AppImportError, "find attribute"),
+        ("support:error_factory(1)", AppImportError, "error_factory() takes"),
+        ("support:error_factory()", TypeError, "inner"),
+        ("support:none_app", AppImportError, "find application object"),
+        ("support:HOST", AppImportError, "callable"),
+    ],
+)
+def test_import_app_bad(value, exc_type, msg):
+    with pytest.raises(exc_type) as exc_info:
+        util.import_app(value)
+
+    assert msg in str(exc_info.value)
+
+
+def test_import_app_py_ext(monkeypatch):
+    monkeypatch.chdir(os.path.dirname(__file__))
 
     with pytest.raises(ImportError) as exc_info:
-        util.import_app('a:app')
-    assert 'No module' in str(exc_info.value)
+        util.import_app("support.py")
 
-    with pytest.raises(AppImportError) as exc_info:
-        util.import_app('support:wrong_app')
-    msg = "Failed to find application object 'wrong_app' in 'support'"
-    assert msg in str(exc_info.value)
+    assert "did you mean" in str(exc_info.value)
 
 
 def test_to_bytestring():
