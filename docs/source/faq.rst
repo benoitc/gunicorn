@@ -128,9 +128,13 @@ How can I increase the maximum number of file descriptors?
 One of the first settings that usually needs to be bumped is the maximum number
 of open file descriptors for a given process. For the confused out there,
 remember that Unices treat sockets as files.
+
+.. warning:: ``sudo ulimit`` may not work
 Considering non-privileged users are not able to relax the limit, you should
 firstly switch to root user, increase the limit, then run gunicorn. Using ``sudo
 ulimit`` would not take effect.
+
+Try systemd's service unit file, or an initscript which runs as root.
 
 How can I increase the maximum socket backlog?
 ----------------------------------------------
