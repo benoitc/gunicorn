@@ -12,7 +12,7 @@ from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
-    LimitRequestLine, LimitRequestHeaders)
+    LimitRequestLine, LimitRequestHeaders, UnsupportedTransferEncoding)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
@@ -135,7 +135,13 @@ class Message(object):
                     raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == "chunked"
+                normalized_value = value.lower()
+                if normalized_value == "identity":
+                    pass
+                elif normalized_value == "chunked":
+                    chunked = True
+                else:
+                    raise UnsupportedTransferEncoding(normalized_value)
             elif name == "SEC-WEBSOCKET-KEY1":
                 content_length = 8
 
