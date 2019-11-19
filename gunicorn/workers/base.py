@@ -18,7 +18,7 @@ from gunicorn.workers.workertmp import WorkerTmp
 from gunicorn.reloader import reloader_engines
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
-    InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
+    InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
