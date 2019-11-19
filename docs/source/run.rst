@@ -44,8 +44,29 @@ Example with the test app:
 
 You can now run the app with the following command::
 
+.. code-block:: text
+
     $ gunicorn --workers=2 test:app
 
+The variable name can also be a function call. In that case the name
+will be imported from the module, then called to get the application
+object. This is commonly referred to as the "application factory"
+pattern.
+
+.. code-block:: python
+
+    def create_app():
+        app = FrameworkApp()
+        ...
+        return app
+
+.. code-block:: text
+
+    $ gunicorn --workers=2 'test:create_app()'
+
+Positional and keyword arguments can also be passed, but it is
+recommended to load configuration from environment variables rather than
+the command line.
 
 Commonly Used Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^
