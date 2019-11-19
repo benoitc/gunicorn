@@ -130,7 +130,8 @@ of open file descriptors for a given process. For the confused out there,
 remember that Unices treat sockets as files.
 
 .. warning:: ``sudo ulimit`` may not work
-  Considering non-privileged users are not able to relax the limit, you should
+
+Considering non-privileged users are not able to relax the limit, you should
 firstly switch to root user, increase the limit, then run gunicorn. Using ``sudo
 ulimit`` would not take effect.
 
