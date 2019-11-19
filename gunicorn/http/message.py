@@ -131,6 +131,8 @@ class Message(object):
         content_length = None
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
+                if content_length is not None:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
                 chunked = value.lower() == "chunked"
