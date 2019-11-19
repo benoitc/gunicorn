@@ -2010,3 +2010,20 @@ class PasteGlobalConf(Setting):
 
         .. versionadded:: 19.7
         """
+
+
+class StripHeaderSpaces(Setting):
+    name = "strip_header_spaces"
+    section = "Server Mechanics"
+    cli = ["--strip-header-spaces"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Strip spaces present between the header name and the the ``:``.
+        
+        This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+        See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
+        
+        Use with care and only if necessary.
+        """

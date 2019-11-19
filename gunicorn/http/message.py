@@ -90,7 +90,10 @@ class Message(object):
             if curr.find(":") < 0:
                 raise InvalidHeader(curr.strip())
             name, value = curr.split(":", 1)
-            name = name.rstrip(" \t").upper()
+            if self.cfg.strip_header_spaces:
+                name = name.rstrip(" \t").upper()
+            else:
+                name = name.upper()
             if HEADER_RE.search(name):
                 raise InvalidHeaderName(name)
 
