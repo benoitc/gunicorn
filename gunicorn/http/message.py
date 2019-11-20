@@ -33,6 +33,7 @@ class Message(object):
         self.version = None
         self.headers = []
         self.trailers = []
+        self.terminated = True
         self.body = None
         self.scheme = "https" if cfg.is_ssl else "http"
 
@@ -151,6 +152,7 @@ class Message(object):
             if content_length < 0:
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
 
+            self.terminated = False
             self.body = Body(LengthReader(self.unreader, content_length))
         else:
             self.body = Body(EOFReader(self.unreader))
