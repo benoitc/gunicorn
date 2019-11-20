@@ -650,17 +650,19 @@ def _findWalk_ldpath(name):
         return name
 
     # search LD_LIBRARY_PATH list
-    paths = os.environ.get('LD_LIBRARY_PATH', '').split(':')
-    if paths:
-        for d in paths:
-            f = os.path.join(d, name)
-            if _is_elf(f):
-                return os.path.basename(f)
-            prefix = os.path.join(d, 'lib'+name)
-            for suffix in ['.so', '.so.*']:
-                for f in glob('{0}{1}'.format(prefix, suffix)):
-                    if _is_elf(f):
-                        return os.path.basename(f)
+    paths = ['/lib', '/usr/local/lib', '/usr/lib']
+    if 'LD_LIBRARY_PATH' in os.environ:
+        paths = os.environ['LD_LIBRARY_PATH'].split(':') + paths
+
+    for d in paths:
+        f = os.path.join(d, name)
+        if _is_elf(f):
+            return os.path.basename(f)
+        prefix = os.path.join(d, 'lib'+name)
+        for suffix in ['so', 'so.*']:
+            for f in glob('{0}.{1}'.format(prefix, suffix)):
+                if _is_elf(f):
+                    return os.path.basename(f)
 
 
 def find_library(name):
