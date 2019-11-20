@@ -118,11 +118,3 @@ class ForbiddenProxyRequest(ParseException):
 class InvalidSchemeHeaders(ParseException):
     def __str__(self):
         return "Contradictory scheme headers"
-
-
-class UnsupportedTransferEncoding(ParseException):
-    def __init__(self, te):
-        self.te = te
-
-    def __str__(self):
-        return "Unsupported Transfer-Encoding: %s" % self.te

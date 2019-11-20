@@ -20,7 +20,6 @@ from gunicorn.http.errors import (
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
     LimitRequestHeaders, LimitRequestLine,
-    UnsupportedTransferEncoding
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
@@ -207,7 +206,7 @@ class Worker(object):
                 LimitRequestLine, LimitRequestHeaders,
                 InvalidProxyLine, ForbiddenProxyRequest,
                 InvalidSchemeHeaders,
-                SSLError, UnsupportedTransferEncoding)):
+                SSLError)):
 
             status_int = 400
             reason = "Bad Request"
@@ -238,10 +237,6 @@ class Worker(object):
                 reason = "Forbidden"
                 mesg = "'%s'" % str(exc)
                 status_int = 403
-            elif isinstance(exc, UnsupportedTransferEncoding):
-                reason = "Not implemented"
-                mesg = "'%s'" % str(exc)
-                status_int = 501
 
             msg = "Invalid request from ip={ip}: {error}"
             self.log.debug(msg.format(ip=addr[0], error=str(exc)))

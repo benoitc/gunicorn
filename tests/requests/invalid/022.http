@@ -1,5 +1,0 @@
-GET /stuff/here?foo=bar HTTP/1.1\r\n
-Transfer-Encoding: chunked\r\n
-Transfer-Encoding: compress\r\n
-\r\n
-xyz
