@@ -10,6 +10,8 @@ import ctypes
 import os
 import socket
 import sys
+import platform
+
 from ctypes.util import find_library
 
 __all__ = ('fromfd',)
@@ -34,8 +36,10 @@ def _errcheck_errno(result, func, arguments):
         raise OSError(errno, os.strerror(errno))
     return arguments
 
-
-_libc_getsockopt = libc.getsockopt
+if platform.system() == 'SunOS':
+    _libc_getsockopt = libc._so_getsockopt
+else:
+    _libc_getsockopt = libc.getsockopt
 _libc_getsockopt.argtypes = [
     ctypes.c_int,  # int sockfd
     ctypes.c_int,  # int level
