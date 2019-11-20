@@ -19,13 +19,11 @@ class Reloader(threading.Thread):
         super().__init__()
         self.setDaemon(True)
         self._extra_files = set(extra_files or ())
-        self._extra_files_lock = threading.RLock()
         self._interval = interval
         self._callback = callback
 
     def add_extra_file(self, filename):
-        with self._extra_files_lock:
-            self._extra_files.add(filename)
+        self._extra_files.add(filename)
 
     def get_files(self):
         fnames = [
@@ -34,8 +32,7 @@ class Reloader(threading.Thread):
             if getattr(module, '__file__', None)
         ]
 
-        with self._extra_files_lock:
-            fnames.extend(self._extra_files)
+        fnames.extend(self._extra_files)
 
         return fnames
 

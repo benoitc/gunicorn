@@ -116,6 +116,8 @@ class Worker(object):
 
         self.init_signals()
 
+        self.load_wsgi()
+
         # start the reloader
         if self.cfg.reload:
             def changed(fname):
@@ -130,7 +132,6 @@ class Worker(object):
                                          callback=changed)
             self.reloader.start()
 
-        self.load_wsgi()
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
