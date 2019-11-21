@@ -12,7 +12,7 @@ import socket
 import sys
 import platform
 
-from ctypes.util import find_library
+from .util import find_library
 
 __all__ = ('fromfd',)
 
