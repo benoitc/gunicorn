@@ -82,7 +82,6 @@ def default_environ(req, sock, cfg):
     env = base_environ(cfg)
     env.update({
         "wsgi.input": req.body,
-        "wsgi.input_terminated": req.terminated,
         "gunicorn.socket": sock,
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
@@ -132,6 +131,7 @@ def create(req, sock, client, server, cfg):
             continue
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
+            environ['wsgi.input_terminated'] = False
             continue
 
         key = 'HTTP_' + hdr_name.replace('-', '_')
