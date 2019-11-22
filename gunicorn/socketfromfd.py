@@ -20,10 +20,18 @@ SO_DOMAIN = getattr(socket, 'SO_DOMAIN', 39)
 SO_TYPE = getattr(socket, 'SO_TYPE', 3)
 SO_PROTOCOL = getattr(socket, 'SO_PROTOCOL', 38)
 
-
 _libc_name = find_library('c')
 if _libc_name is not None:
-    libc = ctypes.CDLL(_libc_name, use_errno=True)
+    if sys.platform.startswith("aix"):
+        member = (
+            '(shr_64.o)' if ctypes.sizeof(ctypes.c_voidp) == 8 else '(shr.o)')
+        # 0x00040000 correspondes to RTLD_MEMBER, undefined in Python <= 3.6
+        dlopen_mode = (ctypes.DEFAULT_MODE | 0x00040000 | os.RTLD_NOW)
+        libc = ctypes.CDLL(_libc_name+member,
+                           use_errno=True,
+                           mode=dlopen_mode)
+    else:
+        libc = ctypes.CDLL(_libc_name, use_errno=True)
 else:
     raise OSError('libc not found')
 
@@ -35,6 +43,7 @@ def _errcheck_errno(result, func, arguments):
         errno = ctypes.get_errno()
         raise OSError(errno, os.strerror(errno))
     return arguments
+
 
 if platform.system() == 'SunOS':
     _libc_getsockopt = libc._so_getsockopt

@@ -659,9 +659,9 @@ def _findWalk_ldpath(name):
         if _is_elf(f):
             return os.path.basename(f)
         prefix = os.path.join(d, 'lib'+name)
-        for suffix in ['so', 'so.*', '*.so.*']:
+        for suffix in ['so', 'so.*', '*.so.*', 'a']:
             for f in glob('{0}.{1}'.format(prefix, suffix)):
-                if _is_elf(f):
+                if _is_elf(f) or suffix == 'a':
                     return os.path.basename(f)
 
 
