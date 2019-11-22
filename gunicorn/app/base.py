@@ -6,7 +6,6 @@ import importlib.util
 import os
 import sys
 import traceback
-import types
 
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
