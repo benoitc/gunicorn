@@ -59,6 +59,7 @@ Breaking Change
 - Removed gaiohttp worker
 - Drop support for Python 2.x
 - Drop support for EOL Python 3.2 and 3.3
+- Drop support for Paste Deploy server blocks
 
 
 History
