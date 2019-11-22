@@ -123,6 +123,7 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
+                os.write(self.PIPE[1], b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
