@@ -1895,6 +1895,20 @@ class SSLVersion(Setting):
     section = "SSL"
     cli = ["--ssl-version"]
     validator = validate_ssl_version
+
+    if hasattr(ssl, "PROTOCOL_TLS"):
+        default = ssl.PROTOCOL_TLS
+    else:
+        default = ssl.PROTOCOL_SSLv23
+
+    desc = """\
+    SSL version to use (see stdlib ssl module's)
+
+    .. versionchanged:: 20.0.1
+       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
+
+    """
     default = ssl.PROTOCOL_SSLv23
     desc = """\
     SSL version to use.
