@@ -106,9 +106,9 @@ threads. However `a work has been started
 Why I don't see any logs in the console?
 ----------------------------------------
 
-In version R19, Gunicorn doesn't log by default in the console.
+In version 19.0, Gunicorn doesn't log by default in the console.
 To watch the logs in the console you need to use the option ``--log-file=-``.
-In version R20, Gunicorn logs to the console by default again.
+In version 19.2, Gunicorn logs to the console by default again.
 
 Kernel Parameters
 =================
