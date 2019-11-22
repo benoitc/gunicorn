@@ -2,7 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-import importlib.machinery
+import importlib.util
 import os
 import sys
 import traceback
@@ -97,9 +97,10 @@ class Application(BaseApplication):
 
         try:
             module_name = '__config__'
-            mod = types.ModuleType(module_name)
-            loader = importlib.machinery.SourceFileLoader(module_name, filename)
-            loader.exec_module(mod)
+            spec = importlib.util.spec_from_file_location(module_name, filename)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = mod
+            spec.loader.exec_module(mod)
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
