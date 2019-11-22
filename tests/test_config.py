@@ -435,3 +435,10 @@ def test_bind_fd():
     with AltArgs(["prog_name", "-b", "fd://42"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["fd://42"]
+
+
+def test_repr():
+    c = config.Config()
+    c.set("workers", 5)
+
+    assert "with value 5" in repr(c.settings['workers'])
