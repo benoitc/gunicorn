@@ -2,6 +2,23 @@
 Changelog
 =========
 
+
+19.9.10 / 2019/11/23
+====================
+
+- unblock select loop during reload of a sync worker
+- security fix: http desync attack
+- handle `wsgi.input_terminated`
+- added support for str and bytes in unix  socket addresses
+- fixed `max_requests` setting
+- headers values are now encoded as LATN1, not ASCII
+- fixed `InotifyReloadeder`:  handle `module.__file__` is None
+- fixed compatibility with tornado 6
+- fixed root logging
+- Prevent removalof unix sockets from `reuse_port`
+- Clear tornado ioloop before os.fork
+- Miscellaneous fixes and improvement for linting using Pylint
+
 20.0 / 2019/10/30
 =================
 
@@ -25,7 +42,7 @@ Changelog
 - Simplify `futures` import in gthread module
 - Fixed worker_connections` setting to also affects the Gthread worker type
 - Fixed setting max_requests
--  Bump minimum Eventlet and Gevent versions to 0.24 and 1.4
+- Bump minimum Eventlet and Gevent versions to 0.24 and 1.4
 - Use Python default SSL cipher list by default
 - handle `wsgi.input_terminated` extension
 - Simplify Paste Deployment documentation
