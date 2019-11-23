@@ -2,6 +2,25 @@
 Changelog
 =========
 
+20.0.1 / 2019/11/23
+=================
+
+- fixed the way the config module is loaded. `__file__` is now available
+- fixed `wsgi.input_terminated`. It is always true.
+- use the highest protocol version of openssl by default
+- only support Python >= 3.5
+- added `__repr__` method to `Config` instance
+- fixed support of AIX platform and musl libc in  `socketfromfd.fromfd` function
+- fixed support of applications loaded from a factory function
+- fixed chunked encoding support to prevent any `request smuggling <https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn>`_
+- Capture os.sendfile before patching in gevent and eventlet workers.
+  fix `RecursionError`.
+- removed locking in reloader when adding new files
+- load the WSGI application before the loader to pick up all files
+
+.. note:: this release add official support for applications loaded from a factory function
+   as documented in Flask and other places.
+
 
 19.9.10 / 2019/11/23
 ====================
