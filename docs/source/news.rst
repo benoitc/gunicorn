@@ -22,7 +22,7 @@ Changelog
    as documented in Flask and other places.
 
 
-19.10.0s:w / 2019/11/23
+19.10.0 / 2019/11/23
 ====================
 
 - unblock select loop during reload of a sync worker
