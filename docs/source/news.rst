@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Unreleased
+==========
+
+- remove support for the `bdist_rpm` build
+
 20.0.2 / 2019/11/23
 ===================
 
