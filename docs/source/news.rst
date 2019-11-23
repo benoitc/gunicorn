@@ -2,7 +2,7 @@
 Changelog
 =========
 
-19.9.10 / 2019/11/23
+19.10.0 / 2019/11/23
 ====================
 
 - unblock select loop during reload of a sync worker
