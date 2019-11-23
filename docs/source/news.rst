@@ -3,7 +3,7 @@ Changelog
 =========
 
 20.0.1 / 2019/11/23
-=================
+===================
 
 - fixed the way the config module is loaded. `__file__` is now available
 - fixed `wsgi.input_terminated`. It is always true.
