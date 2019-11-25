@@ -95,15 +95,8 @@ def fromfd(fd, keep_fd=True):
     family = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_DOMAIN)
     typ = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_TYPE)
     proto = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_PROTOCOL)
-    if sys.version_info.major == 2:
-        # Python 2 has no fileno argument and always duplicates the fd
-        sockobj = socket.fromfd(fd, family, typ, proto)
-        sock = socket.socket(None, None, None, _sock=sockobj)
-        if not keep_fd:
-            os.close(fd)
-        return sock
+    s
+    if keep_fd:
+        return socket.fromfd(fd, family, typ, proto)
     else:
-        if keep_fd:
-            return socket.fromfd(fd, family, typ, proto)
-        else:
-            return socket.socket(family, typ, proto, fileno=fd)
+        return socket.socket(family, typ, proto, fileno=fd)
