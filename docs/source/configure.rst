@@ -53,9 +53,9 @@ Configuration File
 
 The configuration file should be a valid Python source file with a **python
 extension** (e.g. `gunicorn.conf.py`). It only needs to be readable from the
-file system. More specifically, it does not need to be importable. Any Python
-is valid. Just consider that this will be run every time you start Gunicorn
-(including when you signal Gunicorn to reload).
+file system. More specifically, it does not have to be on the module path
+(sys.path, PYTHONPATH). Any Python is valid. Just consider that this will be
+run every time you start Gunicorn (including when you signal Gunicorn to reload).
 
 To set a parameter, just assign to it. There's no special syntax. The values
 you provide will be used for the configuration values.
