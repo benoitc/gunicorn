@@ -14,7 +14,6 @@ Unreleased
 - fixed `socketfromfd.fromfd` when defaults are not set
 
 .. note:: we now warn when we load a config file without Python Extension
->>>>>>> 5257d92... changelog for the 20.0.3
 
 20.0.2 / 2019/11/23
 ===================
