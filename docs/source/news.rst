@@ -2,6 +2,14 @@
 Changelog
 =========
 
+20.0.3 / 2019/11/24
+===================
+
+- fixed load of a config file without a Python extension
+- fixed `socketfromfd.fromfd` when defaults are not set
+
+.. note:: we now warn when we load a config file without Python Extension
+
 20.0.2 / 2019/11/23
 ===================
 
