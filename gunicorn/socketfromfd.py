@@ -16,10 +16,6 @@ from .util import find_library
 
 __all__ = ('fromfd',)
 
-SO_DOMAIN = getattr(socket, 'SO_DOMAIN', 39)
-SO_TYPE = getattr(socket, 'SO_TYPE', 3)
-SO_PROTOCOL = getattr(socket, 'SO_PROTOCOL', 38)
-
 _libc_name = find_library('c')
 if _libc_name is not None:
     if sys.platform.startswith("aix"):
@@ -47,8 +43,12 @@ def _errcheck_errno(result, func, arguments):
 
 if platform.system() == 'SunOS':
     _libc_getsockopt = libc._so_getsockopt
+    _libc_getsockname = libc._so_getsockname
 else:
     _libc_getsockopt = libc.getsockopt
+    _libc_getsockname = libc.getsockname
+
+
 _libc_getsockopt.argtypes = [
     ctypes.c_int,  # int sockfd
     ctypes.c_int,  # int level
@@ -59,6 +59,17 @@ _libc_getsockopt.argtypes = [
 _libc_getsockopt.restype = ctypes.c_int  # 0: ok, -1: err
 _libc_getsockopt.errcheck = _errcheck_errno
 
+class SockAddr(ctypes.Structure):
+    _fields_ = [
+        ('sa_len', ctypes.c_uint8),
+        ('sa_family', ctypes.c_uint8),
+        ('sa_data', ctypes.c_char * 14)
+    ]
+_libc_getsockname.argtypes = [
+    ctypes.c_int,
+    ctypes.POINTER(SockAddr),
+    ctypes.POINTER(ctypes.c_int)
+]
 
 def _raw_getsockopt(fd, level, optname):
     """Make raw getsockopt() call for int32 optval
@@ -74,6 +85,11 @@ def _raw_getsockopt(fd, level, optname):
                      ctypes.byref(optval), ctypes.byref(optlen))
     return optval.value
 
+def _raw_getsockname(fd):
+    sockaddr = SockAddr()
+    len = ctypes.c_int(ctypes.sizeof(sockaddr))
+    _libc_getsockname(fd, sockaddr, len)
+    return sockaddr.sa_family
 
 def fromfd(fd, keep_fd=True):
     """Create a socket from a file descriptor
@@ -92,10 +108,15 @@ def fromfd(fd, keep_fd=True):
     :return: socket.socket instance
     :raises OSError: for invalid socket fd
     """
-    family = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_DOMAIN)
-    typ = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_TYPE)
-    proto = _raw_getsockopt(fd, socket.SOL_SOCKET, SO_PROTOCOL)
-    s
+    family = _raw_getsockname(fd)
+    if hasattr(socket, 'SO_TYPE'):
+        typ = _raw_getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_TYPE'))
+    else:
+        typ = socket.SOCK_STREAM
+    if hasattr(socket, 'SO_PROTOCOL'):
+        proto = _raw_getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_PROTOCOL'))
+    else:
+        proto = 0
     if keep_fd:
         return socket.fromfd(fd, family, typ, proto)
     else:
