@@ -154,7 +154,11 @@ class Arbiter(object):
 
             self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
-        listeners_str = ",".join([str(l) for l in self.LISTENERS])
+        l_strs = []
+        for l, is_ssl in self.LISTENERS:
+            l_strs.append('%s:%s' % ('ssl' if is_ssl else 'plaintext', str(l)))
+
+        listeners_str = ",".join(l_strs)
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
@@ -379,7 +383,7 @@ class Arbiter(object):
             and not self.systemd
             and not self.cfg.reuse_port
         )
-        sock.close_sockets(self.LISTENERS, unlink)
+        sock.close_sockets([l for l, _ in self.LISTENERS], unlink)
 
         self.LISTENERS = []
         sig = signal.SIGTERM
@@ -421,7 +425,7 @@ class Arbiter(object):
             environ['LISTEN_FDS'] = str(len(self.LISTENERS))
         else:
             environ['GUNICORN_FD'] = ','.join(
-                str(l.fileno()) for l in self.LISTENERS)
+                str(l.fileno()) for l, _ in self.LISTENERS)
 
         os.chdir(self.START_CTX['cwd'])
 
@@ -454,11 +458,17 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            for l in self.LISTENERS:
+            for l, _ in self.LISTENERS:
                 l.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
-            listeners_str = ",".join([str(l) for l in self.LISTENERS])
+            l_strs = []
+            for l, is_ssl in self.LISTENERS:
+                l_strs.append(
+                    '%s:%s' % ('ssl' if is_ssl else 'plaintext', str(l))
+                )
+            listeners_str = ",".join(l_strs)
+
             self.log.info("Listening at: %s", listeners_str)
 
         # do some actions on reload

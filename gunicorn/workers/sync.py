@@ -22,11 +22,11 @@ class StopWaiting(Exception):
 
 class SyncWorker(base.Worker):
 
-    def accept(self, listener):
+    def accept(self, listener, is_ssl=False):
         client, addr = listener.accept()
         client.setblocking(1)
         util.close_on_exec(client)
-        self.handle(listener, client, addr)
+        self.handle(listener, client, addr, is_ssl=False)
 
     def wait(self, timeout):
         try:
@@ -56,6 +56,7 @@ class SyncWorker(base.Worker):
 
     def run_for_one(self, timeout):
         listener = self.sockets[0]
+        is_ssl = self.socket_ssl_mapping[listener]
         while self.alive:
             self.notify()
 
@@ -64,7 +65,7 @@ class SyncWorker(base.Worker):
             # select which is where we'll wait for a bit for new
             # workers to come give us some love.
             try:
-                self.accept(listener)
+                self.accept(listener, is_ssl=is_ssl)
                 # Keep processing clients until no one is waiting. This
                 # prevents the need to select() for every client that we
                 # process.
@@ -94,11 +95,12 @@ class SyncWorker(base.Worker):
 
             if ready is not None:
                 for listener in ready:
+                    is_ssl = self.socket_ssl_mapping[listener]
                     if listener == self.PIPE[0]:
                         continue
 
                     try:
-                        self.accept(listener)
+                        self.accept(listener, is_ssl=is_ssl)
                     except EnvironmentError as e:
                         if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                 errno.EWOULDBLOCK):
@@ -122,10 +124,10 @@ class SyncWorker(base.Worker):
         else:
             self.run_for_one(timeout)
 
-    def handle(self, listener, client, addr):
+    def handle(self, listener, client, addr, is_ssl=False):
         req = None
         try:
-            if self.cfg.is_ssl:
+            if is_ssl:
                 client = ssl.wrap_socket(client, server_side=True,
                     **self.cfg.ssl_options)
 

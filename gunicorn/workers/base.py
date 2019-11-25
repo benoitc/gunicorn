@@ -42,7 +42,8 @@ class Worker(object):
         self.age = age
         self.pid = "[booting]"
         self.ppid = ppid
-        self.sockets = sockets
+        self.sockets = [s for s , _ in sockets]
+        self.socket_ssl_mapping = {s: is_ssl for s, is_ssl in sockets}
         self.app = app
         self.timeout = timeout
         self.cfg = cfg

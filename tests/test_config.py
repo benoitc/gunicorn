@@ -54,7 +54,9 @@ class NoConfigApp(Application):
 def test_defaults():
     c = config.Config()
     for s in config.KNOWN_SETTINGS:
-        assert c.settings[s.name].validator(s.default) == c.settings[s.name].get()
+        expected = c.settings[s.name].validator(s.default)
+        got = c.settings[s.name].get()
+        assert expected == got, '%r == %r' % (expected, got)
 
 
 def test_property_access():

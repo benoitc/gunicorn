@@ -148,14 +148,7 @@ def create_sockets(conf, log, fds=None):
     If it is a string, a Unix socket is created. Otherwise, a TypeError is
     raised.
     """
-    listeners = []
-
-    # get it only once
-    addr = conf.address
-    fdaddr = [bind for bind in addr if isinstance(bind, int)]
-    if fds:
-        fdaddr += list(fds)
-    laddr = [bind for bind in addr if not isinstance(bind, int)]
+    listeners = []  # List[Tuple[BaseSocket, bool]]  (socket, is_secure)
 
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
@@ -165,19 +158,38 @@ def create_sockets(conf, log, fds=None):
     if conf.keyfile and not os.path.exists(conf.keyfile):
         raise ValueError('keyfile "%s" does not exist' % conf.keyfile)
 
+
+    # get it only once
+    addr = set(conf.address)
+    non_ssl_addr = set(conf.non_ssl_address)
+
+    # ssl address list takes priority
+    non_ssl_addr -= addr
+
+    addrs = []
+    addrs.extend([(a, conf.is_ssl) for a in addr])
+    addrs.extend([(a, False) for a in non_ssl_addr])
+
+    fdaddr = [bind for bind, _ in addrs if isinstance(bind, int)]
+    if fds:
+        fdaddr.extend([(fd, conf.is_ssl) for fd in fds])
+
+    laddr = [(b, is_ssl) for b, is_ssl in addrs if not isinstance(b, int)]
+
+
     # sockets are already bound
     if fdaddr:
-        for fd in fdaddr:
+        for fd, is_ssl in fdaddr:
             sock = fromfd(fd)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)
             listener = sock_type(sock_name, conf, log, fd=fd)
-            listeners.append(listener)
+            listeners.append((listener, is_ssl))
 
         return listeners
 
     # no sockets is bound, first initialization of gunicorn in this env.
-    for addr in laddr:
+    for addr, is_ssl in laddr:
         sock_type = _sock_type(addr)
         sock = None
         for i in range(5):
@@ -200,7 +212,7 @@ def create_sockets(conf, log, fds=None):
             log.error("Can't connect to %s", str(addr))
             sys.exit(1)
 
-        listeners.append(sock)
+        listeners.append((sock, is_ssl))
 
     return listeners
 

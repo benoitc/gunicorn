@@ -107,8 +107,8 @@ class EventletWorker(AsyncWorker):
     def timeout_ctx(self):
         return eventlet.Timeout(self.cfg.keepalive or None, False)
 
-    def handle(self, listener, client, addr):
-        if self.cfg.is_ssl:
+    def handle(self, listener, client, addr, is_ssl=False):
+        if is_ssl:
             client = eventlet.wrap_ssl(client, server_side=True,
                                        **self.cfg.ssl_options)
 
@@ -119,7 +119,11 @@ class EventletWorker(AsyncWorker):
         for sock in self.sockets:
             gsock = GreenSocket(sock)
             gsock.setblocking(1)
-            hfun = partial(self.handle, gsock)
+            hfun = partial(
+                self.handle,
+                gsock,
+                is_ssl=self.socket_ssl_mapping[sock]
+            )
             acceptor = eventlet.spawn(_eventlet_serve, gsock, hfun,
                                       self.worker_connections)
 

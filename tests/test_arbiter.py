@@ -31,10 +31,10 @@ def test_arbiter_stop_closes_listeners(close_sockets):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     listener1 = mock.Mock()
     listener2 = mock.Mock()
-    listeners = [listener1, listener2]
+    listeners = [(listener1, False), (listener2, False)]
     arbiter.LISTENERS = listeners
     arbiter.stop()
-    close_sockets.assert_called_with(listeners, True)
+    close_sockets.assert_called_with([x for x, _ in listeners], True)
 
 
 @mock.patch('gunicorn.sock.close_sockets')
@@ -75,7 +75,7 @@ def test_arbiter_stop_does_not_unlink_when_using_reuse_port(close_sockets):
 @mock.patch('os.execvpe')
 def test_arbiter_reexec_passing_systemd_sockets(execvpe, fork, getpid):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    arbiter.LISTENERS = [mock.Mock(), mock.Mock()]
+    arbiter.LISTENERS = [(mock.Mock(), False), (mock.Mock(), False)]
     arbiter.systemd = True
     fork.return_value = 0
     getpid.side_effect = [2, 3]
@@ -95,7 +95,7 @@ def test_arbiter_reexec_passing_gunicorn_sockets(execvpe, fork, getpid):
     listener2 = mock.Mock()
     listener1.fileno.return_value = 4
     listener2.fileno.return_value = 5
-    arbiter.LISTENERS = [listener1, listener2]
+    arbiter.LISTENERS = [(listener1, False), (listener2, False)]
     fork.return_value = 0
     getpid.side_effect = [2, 3]
     arbiter.reexec()
