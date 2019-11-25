@@ -7,6 +7,15 @@ Unreleased
 
 - remove support for the `bdist_rpm` build
 
+20.0.3 / 2019/11/24
+===================
+
+- fixed load of a config file without a Python extension
+- fixed `socketfromfd.fromfd` when defaults are not set
+
+.. note:: we now warn when we load a config file without Python Extension
+>>>>>>> 5257d92... changelog for the 20.0.3
+
 20.0.2 / 2019/11/23
 ===================
 
