@@ -122,3 +122,11 @@ util/unlink.py
 --------------
 
 backport frop python3 Lib/test/support.py
+
+
+gunicorn.socketfromfd
+---------------------
+
+Under Apache License 2
+
+Copyright (C) 2016  Christian Heimes
