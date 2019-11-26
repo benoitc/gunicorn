@@ -2,9 +2,10 @@
 Changelog
 =========
 
-Unreleased
-==========
+20.0.4 / 2019/11/26
+===================
 
+- fix binding a socket using the file descriptor
 - remove support for the `bdist_rpm` build
 
 20.0.3 / 2019/11/24
