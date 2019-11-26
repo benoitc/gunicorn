@@ -87,8 +87,8 @@ def _raw_getsockopt(fd, level, optname):
 
 def _raw_getsockname(fd):
     sockaddr = SockAddr()
-    sockaddrlen = ctypes.c_int(ctypes.sizeof(sockaddr))
-    _libc_getsockname(fd, sockaddr, sockaddrlen)
+    len = ctypes.c_int(ctypes.sizeof(sockaddr))
+    _libc_getsockname(fd, sockaddr, len)
     return sockaddr.sa_family
 
 def fromfd(fd, keep_fd=True):
