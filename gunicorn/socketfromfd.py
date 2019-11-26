@@ -1,20 +1,9 @@
-# -*- coding: utf-8 -
-#
-# This file is part of gunicorn
-# See the NOTICE for more information.
+# Copyright (C) 2016  Christian Heimes
+"""socketfromfd -- socket.fromd() with auto-discovery
 
-# Copyright (C) 2016  Christian Heimes under Apache License 2
-
-# source code based on https://github.com/tiran/socketfromfd/blob/master/socketfromfd.py
-# and https://github.com/python/cpython/blob/master/Modules/socketmodule.c
-
-"""socketfromfd -- create a socket from its file descriptor
-This module detect the socket properties.
-
-note: Before python 3.7 auto detecting the socket was not working.
-See  https://bugs.python.org/issue28134 for details.
+ATTENTION: Do not remove this backport till the minimum required version is
+           Python 3.7. See https://bugs.python.org/issue28134 for details.
 """
-
 from __future__ import print_function
 
 import ctypes
@@ -54,7 +43,7 @@ def _errcheck_errno(result, func, arguments):
 
 if platform.system() == 'SunOS':
     _libc_getsockopt = libc._so_getsockopt
-    _lib_getsockname = libc._so_getsockname
+    _libc_getsockname = libc._so_getsockname
 else:
     _libc_getsockopt = libc.getsockopt
     _libc_getsockname = libc.getsockname
@@ -76,17 +65,13 @@ class SockAddr(ctypes.Structure):
         ('sa_family', ctypes.c_uint8),
         ('sa_data', ctypes.c_char * 14)
     ]
-
-
 _libc_getsockname.argtypes = [
     ctypes.c_int,
     ctypes.POINTER(SockAddr),
     ctypes.POINTER(ctypes.c_int)
 ]
-_libc_getsockname.restype = ctypes.c_int  # 0: ok, -1: err
-_libc_getsockname.errcheck = _errcheck_errno
 
-def _getsockopt(fd, level, optname):
+def _raw_getsockopt(fd, level, optname):
     """Make raw getsockopt() call for int32 optval
 
     :param fd: socket fd
@@ -100,11 +85,11 @@ def _getsockopt(fd, level, optname):
                      ctypes.byref(optval), ctypes.byref(optlen))
     return optval.value
 
-def _getsockname(fd):
+def _raw_getsockname(fd):
     sockaddr = SockAddr()
     sockaddrlen = ctypes.c_int(ctypes.sizeof(sockaddr))
     _libc_getsockname(fd, sockaddr, sockaddrlen)
-    return sockaddr
+    return sockaddr.sa_family
 
 def fromfd(fd, keep_fd=True):
     """Create a socket from a file descriptor
@@ -123,15 +108,13 @@ def fromfd(fd, keep_fd=True):
     :return: socket.socket instance
     :raises OSError: for invalid socket fd
     """
-    sockaddr = _getsockname(fd)
-    family = sockaddr.sa_family
+    family = _raw_getsockname(fd)
     if hasattr(socket, 'SO_TYPE'):
-        typ = _getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_TYPE'))
+        typ = _raw_getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_TYPE'))
     else:
         typ = socket.SOCK_STREAM
-
     if hasattr(socket, 'SO_PROTOCOL'):
-        proto = _getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_PROTOCOL'))
+        proto = _raw_getsockopt(fd, socket.SOL_SOCKET, getattr(socket, 'SO_PROTOCOL'))
     else:
         proto = 0
     if keep_fd:
