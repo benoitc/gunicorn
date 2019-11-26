@@ -11,7 +11,6 @@ import sys
 import time
 
 from gunicorn import util
-from gunicorn.socketfromfd import fromfd
 
 
 class BaseSocket(object):
@@ -168,7 +167,7 @@ def create_sockets(conf, log, fds=None):
     # sockets are already bound
     if fdaddr:
         for fd in fdaddr:
-            sock = fromfd(fd)
+            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)
             listener = sock_type(sock_name, conf, log, fd=fd)
