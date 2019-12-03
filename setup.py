@@ -94,7 +94,7 @@ setup(
     license='MIT',
     url='http://gunicorn.org',
 
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     install_requires=install_requires,
     classifiers=CLASSIFIERS,
     zip_safe=False,
