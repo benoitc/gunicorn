@@ -7,7 +7,6 @@
 
 import argparse
 import copy
-import grp
 import inspect
 import os
 import pwd
@@ -471,9 +470,12 @@ def validate_group(val):
         return int(val)
     else:
         try:
+            import grp
             return grp.getgrnam(val).gr_gid
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
+        except ImportError:
+            pass
 
 
 def validate_post_request(val):
