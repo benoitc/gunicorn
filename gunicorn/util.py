@@ -6,7 +6,6 @@ import ast
 import ctypes.util
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
@@ -24,6 +23,7 @@ import traceback
 import warnings
 
 import pkg_resources
+
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -244,14 +244,22 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    try:
+        import fcntl
+        flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+        flags |= fcntl.FD_CLOEXEC
+        fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    except ImportError:
+        pass
 
 
 def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    try:
+        import fcntl
+        flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    except ImportError:
+        pass
 
 
 def close(sock):
