@@ -12,7 +12,6 @@ import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -24,6 +23,11 @@ import warnings
 
 import pkg_resources
 
+try:
+    import pwd
+except ImportError:
+    import getpass
+    pwd = None
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -123,7 +127,10 @@ def get_arity(f):
 
 def get_username(uid):
     """ get the username for a user id"""
-    return pwd.getpwuid(uid).pw_name
+    if pwd:
+        return pwd.getpwuid(uid).pw_name
+    else:
+        return getpass.getuser()
 
 
 def set_owner_process(uid, gid, initgroups=False):

@@ -9,12 +9,17 @@ import argparse
 import copy
 import inspect
 import os
-import pwd
 import re
 import shlex
 import ssl
 import sys
 import textwrap
+
+try:
+    import pwd
+except ImportError:
+    # import getpass
+    pwd = None
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
@@ -454,10 +459,13 @@ def validate_user(val):
     elif val.isdigit():
         return int(val)
     else:
-        try:
-            return pwd.getpwnam(val).pw_uid
-        except KeyError:
-            raise ConfigError("No such user: '%s'" % val)
+        if pwd:
+            try:
+                return pwd.getpwnam(val).pw_uid
+            except KeyError:
+                raise ConfigError("No such user: '%s'" % val)
+        else:
+            raise ConfigError("Cannot validate user: '%s'" % val)
 
 
 def validate_group(val):
