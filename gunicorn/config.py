@@ -716,6 +716,23 @@ class MaxRequests(Setting):
         restarts are disabled.
         """
 
+class MinRequestsJitter(Setting):
+    name = "min_requests_jitter"
+    section = "Worker Processes"
+    cli = ["--min-requests-jitter"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        The minimum jitter to add to the *max_requests* setting.
+
+        The jitter causes the restart per worker to be randomized by
+        ``randint(minimum_requests_jitter, max_requests_jitter)``. This is intended to stagger worker
+        restarts to avoid all workers restarting at the same time.
+
+        Minimum_requests_jitter can optionally be used if the default (0) should be overwritten.
+        """
 
 class MaxRequestsJitter(Setting):
     name = "max_requests_jitter"

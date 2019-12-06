@@ -53,7 +53,7 @@ class Worker(object):
         self.nr = 0
 
         if cfg.max_requests > 0:
-            jitter = randint(0, cfg.max_requests_jitter)
+            jitter = randint(cfg.min_requests_jitter, cfg.max_requests_jitter)
             self.max_requests = cfg.max_requests + jitter
         else:
             self.max_requests = sys.maxsize
