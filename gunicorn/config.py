@@ -1266,6 +1266,7 @@ class AccessLogFormat(Setting):
         f            referer
         a            user agent
         T            request time in seconds
+        M            request time in milliseconds
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
