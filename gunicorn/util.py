@@ -56,7 +56,7 @@ except ImportError:
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
-        section="gunicorn.workers"):
+               section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -70,7 +70,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
 
         try:
             return pkg_resources.load_entry_point(dist, section, name)
-        except:
+        except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
             raise RuntimeError(msg % (uri, exc))
@@ -86,9 +86,10 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point("gunicorn",
-                                section, uri)
-                except:
+                    return pkg_resources.load_entry_point(
+                        "gunicorn", section, uri
+                    )
+                except Exception:
                     exc = traceback.format_exc()
                     msg = "class uri %r invalid or not found: \n\n[%s]"
                     raise RuntimeError(msg % (uri, exc))
@@ -259,6 +260,7 @@ def close(sock):
         sock.close()
     except socket.error:
         pass
+
 
 try:
     from os import closerange
@@ -439,7 +441,7 @@ def getcwd():
             cwd = os.environ['PWD']
         else:
             cwd = os.getcwd()
-    except:
+    except Exception:
         cwd = os.getcwd()
     return cwd
 

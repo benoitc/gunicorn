@@ -40,6 +40,7 @@ def _gevent_sendfile(fdout, fdin, offset, nbytes, _os_sendfile=os.sendfile):
             else:
                 raise
 
+
 def patch_sendfile():
     setattr(os, "sendfile", _gevent_sendfile)
 
@@ -129,7 +130,7 @@ class GeventWorker(AsyncWorker):
             self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
             for server in servers:
                 server.stop(timeout=1)
-        except:
+        except Exception:
             pass
 
     def handle(self, listener, client, addr):

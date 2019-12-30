@@ -303,7 +303,7 @@ class Response(object):
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
