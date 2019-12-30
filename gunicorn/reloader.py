@@ -93,7 +93,7 @@ if has_inotify:
 
         def get_dirs(self):
             fnames = [
-                os.path.dirname(COMPILED_EXT_RE.sub('py', module.__file__))
+                os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
                 for module in tuple(sys.modules.values())
                 if getattr(module, '__file__', None)
             ]
