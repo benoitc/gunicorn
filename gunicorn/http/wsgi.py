@@ -360,12 +360,6 @@ class Response(object):
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
                 filesize = os.fstat(fileno).st_size
-
-                # The file may be special and sendfile will fail.
-                # It may also be zero-length, but that is okay.
-                if filesize == 0:
-                    return False
-
                 nbytes = filesize - offset
             else:
                 nbytes = self.response_length
@@ -378,12 +372,7 @@ class Response(object):
             chunk_size = "%X\r\n" % nbytes
             self.sock.sendall(chunk_size.encode('utf-8'))
 
-        sockno = self.sock.fileno()
-        sent = 0
-
-        while sent != nbytes:
-            count = min(nbytes - sent, BLKSIZE)
-            sent += os.sendfile(sockno, fileno, offset + sent, count)
+        self.sock.sendfile(respiter.filelike, count=nbytes)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")
