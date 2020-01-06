@@ -76,8 +76,8 @@ install_requires = [
 ]
 
 extras_require = {
-    'gevent':  ['gevent>=0.13'],
-    'eventlet': ['eventlet>=0.9.7'],
+    'gevent':  ['gevent>=1.4.0'],
+    'eventlet': ['eventlet>=0.24.1'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
     'setproctitle': ['setproctitle'],
