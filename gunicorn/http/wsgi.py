@@ -11,7 +11,7 @@ import sys
 
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn import SERVER_SOFTWARE
+from gunicorn import SERVER_SOFTWARE, SERVER
 import gunicorn.util as util
 
 # Send files in at most 1GB blocks as some operating systems can have problems
@@ -195,7 +195,7 @@ class Response(object):
     def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
-        self.version = SERVER_SOFTWARE
+        self.version = SERVER
         self.status = None
         self.chunked = False
         self.must_close = False
