@@ -299,7 +299,7 @@ class Logger(object):
             'a': environ.get('HTTP_USER_AGENT', '-'),
             'T': request_time.seconds,
             'D': (request_time.seconds * 1000000) + request_time.microseconds,
-            'M': (request_time.seconds*1000) + int(request_time.microseconds/1000),
+            'M': (request_time.seconds * 1000) + int(request_time.microseconds/1000),
             'L': "%d.%06d" % (request_time.seconds, request_time.microseconds),
             'p': "<%s>" % os.getpid()
         }
