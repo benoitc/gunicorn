@@ -42,7 +42,7 @@ Example with the test app:
         start_response(status, response_headers)
         return iter([data])
 
-You can now run the app with the following command::
+You can now run the app with the following command:
 
 .. code-block:: text
 

@@ -35,7 +35,7 @@ class WorkerTmp(object):
             # In Python 3.8, open() emits RuntimeWarning if buffering=1 for binary mode.
             # Because we never write to this file, pass 0 to switch buffering off.
             self._tmp = os.fdopen(fd, 'w+b', 0)
-        except:
+        except Exception:
             os.close(fd)
             raise
 

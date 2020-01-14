@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import errno
 import os
 import sys
 from datetime import datetime
@@ -30,20 +29,6 @@ from gunicorn.workers.base_async import AsyncWorker
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
 
-def _gevent_sendfile(fdout, fdin, offset, nbytes, _os_sendfile=os.sendfile):
-    while True:
-        try:
-            return _os_sendfile(fdout, fdin, offset, nbytes)
-        except OSError as e:
-            if e.args[0] == errno.EAGAIN:
-                socket.wait_write(fdout)
-            else:
-                raise
-
-def patch_sendfile():
-    setattr(os, "sendfile", _gevent_sendfile)
-
-
 class GeventWorker(AsyncWorker):
 
     server_class = None
@@ -51,9 +36,6 @@ class GeventWorker(AsyncWorker):
 
     def patch(self):
         monkey.patch_all()
-
-        # monkey patch sendfile to make it none blocking
-        patch_sendfile()
 
         # patch sockets
         sockets = []
@@ -129,7 +111,7 @@ class GeventWorker(AsyncWorker):
             self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
             for server in servers:
                 server.stop(timeout=1)
-        except:
+        except Exception:
             pass
 
     def handle(self, listener, client, addr):

@@ -19,6 +19,7 @@ GAUGE_TYPE = "gauge"
 COUNTER_TYPE = "counter"
 HISTOGRAM_TYPE = "histogram"
 
+
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
     """

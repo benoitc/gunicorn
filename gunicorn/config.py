@@ -78,9 +78,9 @@ class Config(object):
         }
         parser = argparse.ArgumentParser(**kwargs)
         parser.add_argument("-v", "--version",
-                action="version", default=argparse.SUPPRESS,
-                version="%(prog)s (version " + __version__ + ")\n",
-                help="show program's version number and exit")
+                            action="version", default=argparse.SUPPRESS,
+                            version="%(prog)s (version " + __version__ + ")\n",
+                            help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = sorted(self.settings, key=self.settings.__getitem__)
@@ -93,7 +93,7 @@ class Config(object):
     def worker_class_str(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             return "threads"
@@ -103,7 +103,7 @@ class Config(object):
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
@@ -524,7 +524,7 @@ def validate_reload_engine(val):
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
-            'gunicorn.conf.py')
+                               'gunicorn.conf.py')
     if os.path.exists(config_path):
         return config_path
     return None
@@ -549,6 +549,7 @@ class ConfigFile(Setting):
            Loading the config from a Python module requires the ``python:``
            prefix.
         """
+
 
 class Bind(Setting):
     name = "bind"
@@ -653,6 +654,7 @@ class WorkerClass(Setting):
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
         """
+
 
 class WorkerThreads(Setting):
     name = "threads"
@@ -1025,6 +1027,7 @@ class Daemon(Setting):
         background.
         """
 
+
 class Env(Setting):
     name = "raw_env"
     action = "append"
@@ -1057,6 +1060,7 @@ class Pidfile(Setting):
 
         If not set, no PID file will be written.
         """
+
 
 class WorkerTmpDir(Setting):
     name = "worker_tmp_dir"
@@ -1110,6 +1114,7 @@ class Group(Setting):
         retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
         change the worker processes group.
         """
+
 
 class Umask(Setting):
     name = "umask"
@@ -1223,6 +1228,7 @@ class AccessLog(Setting):
 
         ``'-'`` means log to stdout.
         """
+
 
 class DisableRedirectAccessToSyslog(Setting):
     name = "disable_redirect_access_to_syslog"
@@ -1677,6 +1683,7 @@ class PostWorkerInit(Setting):
         Worker.
         """
 
+
 class WorkerInt(Setting):
     name = "worker_int"
     section = "Server Hooks"
@@ -1820,6 +1827,7 @@ class NumWorkersChanged(Setting):
         be ``None``.
         """
 
+
 class OnExit(Setting):
     name = "on_exit"
     section = "Server Hooks"
@@ -1900,6 +1908,7 @@ class CertFile(Setting):
     SSL certificate file
     """
 
+
 class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
@@ -1946,6 +1955,7 @@ class SSLVersion(Setting):
        constants.
     """
 
+
 class CertReqs(Setting):
     name = "cert_reqs"
     section = "SSL"
@@ -1955,6 +1965,7 @@ class CertReqs(Setting):
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
     """
+
 
 class CACerts(Setting):
     name = "ca_certs"
@@ -1967,6 +1978,7 @@ class CACerts(Setting):
     CA certificates file
     """
 
+
 class SuppressRaggedEOFs(Setting):
     name = "suppress_ragged_eofs"
     section = "SSL"
@@ -1977,6 +1989,7 @@ class SuppressRaggedEOFs(Setting):
     desc = """\
     Suppress ragged EOFs (see stdlib ssl module's)
     """
+
 
 class DoHandshakeOnConnect(Setting):
     name = "do_handshake_on_connect"
