@@ -1164,6 +1164,10 @@ Multiple addresses can be bound. ex.::
 will bind the `test:app` application on localhost both on ipv6
 and ipv4 interfaces.
 
+If the ``PORT`` environment variable is defined, the default
+is ``['0.0.0.0:$PORT']``. If it is not defined, the default
+is ``['127.0.0.1:8000']``.
+
 .. _backlog:
 
 backlog
