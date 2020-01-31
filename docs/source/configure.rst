@@ -6,15 +6,16 @@ Configuration Overview
 
 Gunicorn reads configuration information from five places.
 
-Gunicorn first reads environment variables for some
-configuration :ref:`settings <settings>`.
+Gunicorn first reads environment variables for some configuration
+:ref:`settings <settings>`.
 
-Gunicorn will then read configuration from a framework
-specific configuration file. Currently this only affects Paster applications.
+Gunicorn then reads configuration from a framework specific configuration
+file. Currently this only affects Paster applications.
 
-The third source of configuration information is a configuration file that is
-optionally specified using command line arguments. Anything specified in the
-Gunicorn config file will override any framework specific settings.
+The third source of configuration information is an optional configuration file
+``gunicorn.conf.py`` searched in the current working directory or specified
+using a command line argument. Anything specified in this configuration file
+will override any framework specific settings.
 
 The fourth place of configuration information are command line arguments
 stored in an environment variable named ``GUNICORN_CMD_ARGS``.
