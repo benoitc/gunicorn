@@ -361,7 +361,7 @@ def import_app(module):
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
-        if os.path.isdir(module):
+        if '/' in module or '\\' in module:
             msg = "Path to files are not supported. Try --chdir %s"
             raise ImportError(msg % (os.path.split(module)[0]))
         raise
