@@ -362,8 +362,10 @@ def import_app(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
         if '/' in module or '\\' in module:
-            msg = "Path to files are not supported. Try --chdir %s"
-            raise ImportError(msg % (os.path.split(module)[0]))
+            msg = "Path to files are not supported. Gunicorn expects a module. Try gunicorn --chdir %s %s:%s"
+            path = os.path.split(module)[0]
+            file_module = os.path.split(module)[1]
+            raise ImportError(msg % (path,file_module,obj))
         raise
 
 
