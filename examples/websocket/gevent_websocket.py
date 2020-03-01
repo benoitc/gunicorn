@@ -353,7 +353,7 @@ class WebSocket(object):
     def send(self, message):
         """Send a message to the browser.
 
-        *message* should be convertable to a string; unicode objects should be
+        *message* should be convertible to a string; unicode objects should be
         encodable as utf-8.  Raises socket.error with errno of 32
         (broken pipe) if the socket has already been closed by the client."""
         if self.version in ['7', '8', '13']:
