@@ -110,6 +110,8 @@ class GeventWorker(AsyncWorker):
             else:
                 hfun = partial(self.handle, s)
                 server = StreamServer(s, handle=hfun, spawn=pool, **ssl_args)
+                if self.cfg.workers > 1:
+                    server.max_accept = 1
 
             server.start()
             servers.append(server)
