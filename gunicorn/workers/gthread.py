@@ -238,7 +238,7 @@ class ThreadWorker(base.Worker):
             (keepalive, conn) = fs.result()
             # if the connection should be kept alived add it
             # to the eventloop and record it
-            if keepalive:
+            if keepalive and self.alive:
                 # flag the socket as non blocked
                 conn.sock.setblocking(False)
 
@@ -307,7 +307,7 @@ class ThreadWorker(base.Worker):
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
+            if self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
                 resp.force_close()
                 self.alive = False
