@@ -200,7 +200,10 @@ class Application(BaseApplication):
         self.chdir()
 
     def run(self):
-        if self.cfg.check_config:
+        if self.cfg.print_config:
+            print(self.cfg)
+
+        if self.cfg.print_config or self.cfg.check_config:
             try:
                 self.load()
             except Exception:

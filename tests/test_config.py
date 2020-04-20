@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import os
+import re
 import sys
 
 import pytest
@@ -442,3 +443,38 @@ def test_repr():
     c.set("workers", 5)
 
     assert "with value 5" in repr(c.settings['workers'])
+
+
+def test_str():
+    c = config.Config()
+    o = str(c)
+
+    # match the first few lines, some different types, but don't go OTT
+    # to avoid needless test fails with changes
+    OUTPUT_MATCH = {
+        'access_log_format': '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"',
+        'accesslog': 'None',
+        'backlog': '2048',
+        'bind': "['127.0.0.1:8000']",
+        'capture_output': 'False',
+        'child_exit': '<ChildExit.child_exit()>',
+    }
+    for i, line in enumerate(o.splitlines()):
+        m = re.match(r'^(\w+)\s+= ', line)
+        assert m, "Line {} didn't match expected format: {!r}".format(i, line)
+
+        key = m.group(1)
+        try:
+            s = OUTPUT_MATCH.pop(key)
+        except KeyError:
+            continue
+
+        line_re = r'^{}\s+= {}$'.format(key, re.escape(s))
+        assert re.match(line_re, line), '{!r} != {!r}'.format(line_re, line)
+
+        if not OUTPUT_MATCH:
+            break
+    else:
+        assert False, 'missing expected setting lines? {}'.format(
+            OUTPUT_MATCH.keys()
+        )

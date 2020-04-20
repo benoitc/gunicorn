@@ -123,6 +123,16 @@ check_config
 
 Check the configuration.
 
+.. _print-config:
+
+print_config
+~~~~~~~~~~~~
+
+* ``--print-config``
+* ``False``
+
+Print the configuration settings as fully resolved. Implies :ref:`check-config`.
+
 Logging
 -------
 

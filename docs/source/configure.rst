@@ -38,7 +38,12 @@ Once again, in order of least to most authoritative:
 
 .. note::
 
-    To check your configuration when using the command line or the
+    To print your resolved configuration when using the command line or the
+    configuration file you can run the following command::
+
+        $ gunicorn --print-config APP_MODULE
+
+    To check your resolved configuration when using the command line or the
     configuration file you can run the following command::
 
         $ gunicorn --check-config APP_MODULE

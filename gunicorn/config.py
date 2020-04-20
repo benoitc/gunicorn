@@ -51,6 +51,16 @@ class Config(object):
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
 
+    def __str__(self):
+        lines = []
+        kmax = max(len(k) for k in self.settings)
+        for k in sorted(self.settings):
+            v = self.settings[k].value
+            if callable(v):
+                v = "<{}()>".format(v.__qualname__)
+            lines.append("{k:{kmax}} = {v}".format(k=k, v=v, kmax=kmax))
+        return "\n".join(lines)
+
     def __getattr__(self, name):
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
@@ -948,6 +958,18 @@ class ConfigCheck(Setting):
     default = False
     desc = """\
         Check the configuration.
+        """
+
+
+class PrintConfig(Setting):
+    name = "print_config"
+    section = "Debugging"
+    cli = ["--print-config"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Print the configuration settings as fully resolved. Implies :ref:`check-config`.
         """
 
 
