@@ -42,10 +42,10 @@ class Arbiter(object):
     # I love dynamic languages
     SIG_QUEUE = []
     SIGNALS = [getattr(signal, "SIG%s" % x)
-               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+               for x in "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
-        if name[:3] == "SIG" and name[3] != "_"
+        if name[:3] == "SIG" and name[3] != "_" and name[3:] != "CLD"
     )
 
     def __init__(self, app):
@@ -186,10 +186,10 @@ class Arbiter(object):
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
-        signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
-        if len(self.SIG_QUEUE) < 5:
+        # limit overload, but do not miss unique signals
+        if len(self.SIG_QUEUE) < 5 or sig not in self.SIG_QUEUE:
             self.SIG_QUEUE.append(sig)
             self.wakeup()
 
@@ -237,10 +237,25 @@ class Arbiter(object):
                 self.pidfile.unlink()
             sys.exit(-1)
 
-    def handle_chld(self, sig, frame):
-        "SIGCHLD handling"
+    def handle_chld(self):
+        """\
+        SIGCHLD handling.
+
+        Reap workers and re-install the signal handler, in case it is not reset
+        by the OS, as described in the signal module documentation:
+
+            A handler for a particular signal, once set, remains installed
+            until it is explicitly reset (Python emulates the BSD style
+            interface regardless of the underlying implementation), with the
+            exception of the handler for SIGCHLD, which follows the underlying
+            implementation.
+
+        Python makes this exception to avoid infinite recursion on platforms
+        that invoke the handler immediately when installing it from a process
+        with dead children.
+        """
         self.reap_workers()
-        self.wakeup()
+        signal.signal(signal.SIGCHLD, self.signal)
 
     def handle_hup(self):
         """\
@@ -391,9 +406,11 @@ class Arbiter(object):
         limit = time.time() + self.cfg.graceful_timeout
         # instruct the workers to exit
         self.kill_workers(sig)
+        self.reap_workers()
         # wait until the graceful timeout
         while self.WORKERS and time.time() < limit:
             time.sleep(0.1)
+            self.reap_workers()
 
         self.kill_workers(signal.SIGKILL)
 
@@ -492,8 +509,7 @@ class Arbiter(object):
         """
         if not self.timeout:
             return
-        workers = list(self.WORKERS.items())
-        for (pid, worker) in workers:
+        for (pid, worker) in self.WORKERS.items():
             try:
                 if time.time() - worker.tmp.last_update() <= self.timeout:
                     continue
@@ -519,6 +535,12 @@ class Arbiter(object):
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
+                    worker = self.WORKERS.pop(wpid, None)
+                    if not worker:
+                        continue
+
+                    worker.tmp.close()
+
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
@@ -553,10 +575,6 @@ class Arbiter(object):
                             msg += " Perhaps out of memory?"
                         self.log.error(msg)
 
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
-                    worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:
             if e.errno != errno.ECHILD:
@@ -647,8 +665,7 @@ class Arbiter(object):
         Kill all workers with the signal `sig`
         :attr sig: `signal.SIG*` value
         """
-        worker_pids = list(self.WORKERS.keys())
-        for pid in worker_pids:
+        for pid in self.WORKERS:
             self.kill_worker(pid, sig)
 
     def kill_worker(self, pid, sig):
@@ -662,11 +679,5 @@ class Arbiter(object):
             os.kill(pid, sig)
         except OSError as e:
             if e.errno == errno.ESRCH:
-                try:
-                    worker = self.WORKERS.pop(pid)
-                    worker.tmp.close()
-                    self.cfg.worker_exit(self, worker)
-                    return
-                except (KeyError, OSError):
-                    return
+                return
             raise
