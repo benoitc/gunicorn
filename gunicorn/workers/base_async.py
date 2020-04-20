@@ -42,7 +42,7 @@ class AsyncWorker(base.Worker):
                 else:
                     # keepalive loop
                     proxy_protocol_info = {}
-                    while self.alive:
+                    while True:
                         req = None
                         with self.timeout_ctx():
                             req = next(parser)
