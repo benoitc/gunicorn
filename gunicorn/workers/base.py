@@ -117,8 +117,6 @@ class Worker(object):
 
         self.init_signals()
 
-        self.load_wsgi()
-
         # start the reloader
         if self.cfg.reload:
             def changed(fname):
@@ -132,6 +130,9 @@ class Worker(object):
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
                                          callback=changed)
+
+        self.load_wsgi()
+        if self.reloader:
             self.reloader.start()
 
         self.cfg.post_worker_init(self)
