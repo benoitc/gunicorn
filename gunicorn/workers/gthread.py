@@ -308,9 +308,10 @@ class ThreadWorker(base.Worker):
             environ["wsgi.multithread"] = True
             self.nr += 1
             if self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
                 resp.force_close()
-                self.alive = False
 
             if not self.cfg.keepalive:
                 resp.force_close()

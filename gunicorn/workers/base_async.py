@@ -95,10 +95,11 @@ class AsyncWorker(base.Worker):
                                         listener_name, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
                 resp.force_close()
-                self.alive = False
 
             if not self.cfg.keepalive:
                 resp.force_close()
