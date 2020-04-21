@@ -340,9 +340,12 @@ class Arbiter(object):
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
-        self.log.info("Shutting down: %s", self.master_name)
+
+        log_func = self.log.info if exit_status == 0 else self.log.error
+        log_func("Shutting down: %s", self.master_name)
         if reason is not None:
-            self.log.info("Reason: %s", reason)
+            log_func("Reason: %s", reason)
+
         if self.pidfile is not None:
             self.pidfile.unlink()
         self.cfg.on_exit(self)
