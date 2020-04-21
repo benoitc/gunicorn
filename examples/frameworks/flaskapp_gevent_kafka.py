@@ -14,9 +14,9 @@
 #
 ###############################
 
+from json import loads, dumps
 from flask import Flask
 from gevent import monkey
-from json import loads, dumps
 from kafka import KafkaConsumer, KafkaProducer
 
 app = Flask(__name__)
@@ -34,20 +34,20 @@ def read_kafka():
     for message in get_consumer():
         message = message.value
         sent = producer.send('test_producer',
-                             json.dumps(data).encode())
+                             dumps(message).encode())
         return sent.get()
 
 
 def get_consumer():
     return KafkaConsumer(
-                    'test_consumer',
-                     bootstrap_servers=['localhost:9092'],
-                     auto_offset_reset='earliest',
-                     enable_auto_commit=True,
-                     group_id='my-group',
-                     value_deserializer=lambda x: loads(x.decode('utf-8')))
+        'test_consumer',
+        bootstrap_servers=['localhost:9092'],
+        auto_offset_reset='earliest',
+        enable_auto_commit=True,
+        group_id='my-group',
+        value_deserializer=lambda x: loads(x.decode('utf-8')))
 
-def producer():
+def get_producer():
     return KafkaProducer(bootstrap_servers=['localhost:9092'],
                          value_serializer=lambda x:
                          dumps(x).encode('utf-8'))
