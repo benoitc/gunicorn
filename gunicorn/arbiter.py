@@ -520,6 +520,8 @@ class Arbiter(object):
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
                     exitcode = status >> 8
+                    if exitcode != 0:
+                        self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
