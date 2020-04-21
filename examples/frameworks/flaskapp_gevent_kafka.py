@@ -34,7 +34,7 @@ def read_kafka():
     for message in get_consumer():
         message = message.value
         sent = producer.send('test_producer',
-                             dumps(message).encode())
+                             message)
         return sent.get()
 
 
