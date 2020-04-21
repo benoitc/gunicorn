@@ -313,7 +313,7 @@ class ThreadWorker(base.Worker):
                     self.alive = False
                 resp.force_close()
 
-            if not self.cfg.keepalive:
+            if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
             elif len(self._keep) >= self.max_keepalived:
                 resp.force_close()
