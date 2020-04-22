@@ -1328,10 +1328,14 @@ timeout
 
 Workers silent for more than this many seconds are killed and restarted.
 
-Generally set to thirty seconds. Only set this noticeably higher if
-you're sure of the repercussions for sync workers. For the non sync
-workers it just means that the worker process is still communicating and
-is not tied to the length of time required to handle a single request.
+Value is a positive number or 0. Setting it to 0 has the effect of
+infinite timeouts by disabling timeouts for all workers entirely.
+
+Generally, the default of thirty seconds should suffice. Only set this
+noticeably higher if you're sure of the repercussions for sync workers.
+For the non sync workers it just means that the worker process is still
+communicating and is not tied to the length of time required to handle a
+single request.
 
 .. _graceful-timeout:
 
