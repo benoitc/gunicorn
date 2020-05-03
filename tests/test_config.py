@@ -11,6 +11,7 @@ import pytest
 
 from gunicorn import config
 from gunicorn.app.base import Application
+from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
@@ -25,6 +26,8 @@ def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
 def alt_cfg_file():
     return os.path.join(dirname, "config", "test_cfg_alt.py")
+def cfg_file_with_wsgi_app():
+    return os.path.join(dirname, "config", "test_cfg_with_wsgi_app.py")
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
@@ -47,6 +50,14 @@ class NoConfigApp(Application):
 
     def init(self, parser, opts, args):
         pass
+
+    def load(self):
+        pass
+
+
+class WSGIApp(WSGIApplication):
+    def __init__(self):
+        super().__init__("no_usage", prog="gunicorn_test")
 
     def load(self):
         pass
@@ -353,11 +364,40 @@ def test_invalid_enviroment_variables_config(monkeypatch, capsys):
         _, err = capsys.readouterr()
         assert  "error: unrecognized arguments: --foo" in err
 
+
 def test_cli_overrides_enviroment_variables_module(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
     with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
         app = NoConfigApp()
     assert app.cfg.workers == 3
+
+
+@pytest.mark.parametrize("options, expected", [
+    (["app:app"], 'app:app'),
+    (["-c", cfg_file(), "app:app"], 'app:app'),
+    (["-c", cfg_file_with_wsgi_app(), "app:app"], 'app:app'),
+    (["-c", cfg_file_with_wsgi_app()], 'app1:app1'),
+])
+def test_wsgi_app_config(options, expected):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        app = WSGIApp()
+    assert app.app_uri == expected
+
+
+@pytest.mark.parametrize("options", [
+    ([]),
+    (["-c", cfg_file()]),
+])
+def test_non_wsgi_app(options, capsys):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        with pytest.raises(SystemExit):
+            WSGIApp()
+        _, err = capsys.readouterr()
+        assert  "Error: No application module specified." in err
 
 
 @pytest.mark.parametrize("options, expected", [
