@@ -258,9 +258,9 @@ to the newly created unix socket:
     # Our service won't need permissions for the socket, since it
     # inherits the file descriptor by socket activation
     # only the nginx daemon will need access to the socket
-    User=www-data
+    SocketUser=www-data
     # Optionally restrict the socket permissions even more.
-    # Mode=600
+    # SocketMode=600
 
     [Install]
     WantedBy=sockets.target
@@ -286,8 +286,8 @@ HTML from your server in the terminal.
 
 .. note::
 
-    ``www-data`` is the default nginx user in debian, other distriburions use
-    different users (for example: ``http`` or ``nginx``). Check you distro to
+    ``www-data`` is the default nginx user in debian, other distributions use
+    different users (for example: ``http`` or ``nginx``). Check your distro to
     know what to put for the socket user, and for the sudo command.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
