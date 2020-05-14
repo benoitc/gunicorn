@@ -1160,6 +1160,21 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
 
 .. versionadded:: 19.7
 
+.. _strip-header-spaces:
+
+strip_header_spaces
+~~~~~~~~~~~~~~~~~~~
+
+* ``--strip-header-spaces``
+* ``False``
+
+Strip spaces present between the header name and the the ``:``.
+
+This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
+
+Use with care and only if necessary.
+
 Server Socket
 -------------
 
