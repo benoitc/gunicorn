@@ -166,7 +166,11 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
         resp_headers = getattr(self, 'response_headers', {})
-        resp = GeventResponse(self.status, resp_headers, self.response_length)
+
+        # Status is expected to be a string but is encoded to bytes in gevent for PY3
+        # Except when it isn't because gevent uses hardcoded strings for network errors.
+        status = self.status.decode() if isinstance(self.status, bytes) else self.status
+        resp = GeventResponse(status, resp_headers, self.response_length)
         if hasattr(self, 'headers'):
             req_headers = self.headers.items()
         else:
