@@ -118,21 +118,9 @@ class LengthReader(object):
         size = min(self.length, size)
         if size < 0:
             raise ValueError("Size must be positive.")
-        if size == 0:
-            return b""
 
-        buf = io.BytesIO()
-        data = self.unreader.read()
-        while data:
-            buf.write(data)
-            if buf.tell() >= size:
-                break
-            data = self.unreader.read()
-
-        buf = buf.getvalue()
-        ret, rest = buf[:size], buf[size:]
-        self.unreader.unread(rest)
-        self.length -= size
+        ret = self.unreader.read(size)
+        self.length -= len(ret)
         return ret
 
 
@@ -147,30 +135,12 @@ class EOFReader(object):
             raise TypeError("size must be an integral type")
         if size < 0:
             raise ValueError("Size must be positive.")
-        if size == 0:
-            return b""
 
         if self.finished:
-            data = self.buf.getvalue()
-            ret, rest = data[:size], data[size:]
-            self.buf = io.BytesIO()
-            self.buf.write(rest)
-            return ret
-
-        data = self.unreader.read()
-        while data:
-            self.buf.write(data)
-            if self.buf.tell() > size:
-                break
-            data = self.unreader.read()
-
-        if not data:
+            return self.unreader.read()
+        ret = self.unreader.read(size)
+        if not ret and size != 0:
             self.finished = True
-
-        data = self.buf.getvalue()
-        ret, rest = data[:size], data[size:]
-        self.buf = io.BytesIO()
-        self.buf.write(rest)
         return ret
 
 
