@@ -128,6 +128,18 @@ def test_unreader_unread():
     assert b'hi there' in unreader.read()
 
 
+def test_unreader_unread_prepends_data():
+    items = (b'123', b'456')
+    chunk_size = len(items[0]) + 1
+    unreader = IterUnreader(items)
+
+    chunk = unreader.read(chunk_size)
+    unreader.unread(b'0')
+
+    assert chunk == b'1234'
+    assert unreader.read(1024) == b'056'
+
+
 def test_unreader_read_zero_size():
     unreader = Unreader()
     unreader.chunk = mock.MagicMock(side_effect=[b'qwerty', b'asdfgh'])
