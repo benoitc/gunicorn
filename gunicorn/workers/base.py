@@ -50,6 +50,7 @@ class Worker(object):
         self.booted = False
         self.aborted = False
         self.reloader = None
+        self.created = time.time()
 
         self.nr = 0
 

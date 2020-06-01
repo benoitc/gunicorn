@@ -1363,6 +1363,23 @@ For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.
 
+.. _timeout-start-after:
+
+timeout_start_after
+~~~~~~~~~~~~~~~~~~~
+
+* ``--timeout-start-after INT``
+* ``0``
+
+Wait this many seconds before enforcing timeout on a worker.
+
+Some workers may take a long time to initialize, even though they are
+expected to be highly available once they're ready. Such a worker should
+have a small timeout setting, but Gunicorn needs a way to "forgive" the
+long delay during initialization. When non-zero (zero is the default),
+Gunicorn waits this many seconds after a worker is created before
+enforcing timeout.
+
 .. _graceful-timeout:
 
 graceful_timeout
