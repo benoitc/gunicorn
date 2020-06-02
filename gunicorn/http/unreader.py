@@ -49,6 +49,32 @@ class Unreader(object):
         self.buf.write(data[size:])
         return data[:size]
 
+    def readline(self):
+        buf = io.BytesIO()
+        chunk = self.read()
+        while chunk:
+            idx = chunk.find(b'\r\n')
+            offset = buf.tell()
+            buf.write(chunk)
+            if idx >= 0:
+                idx +=  offset
+                break
+            elif chunk.endswith(b'\r'):
+                lf = self.read(1)
+                buf.write(lf)
+                if lf == b'\n':
+                    idx = buf.tell()
+                    break
+            chunk = self.read()
+        else:
+            return buf.getvalue()
+
+        data = self.buf.getvalue()
+        self.buf = io.BytesIO()
+        self.buf.write(buf.getvalue()[idx + 2:])
+        self.buf.write(data)
+        return buf.getvalue()[:idx + 2]
+
     def unread(self, data):
         self.buf.seek(0, os.SEEK_END)
         self.buf.write(data)
