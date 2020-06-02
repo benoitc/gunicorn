@@ -57,9 +57,9 @@ class Unreader(object):
             offset = buf.tell()
             buf.write(chunk)
             if idx >= 0:
-                idx +=  offset
+                idx += offset
                 break
-            elif chunk.endswith(b'\r'):
+            if chunk.endswith(b'\r'):
                 lf = self.read(1)
                 buf.write(lf)
                 if lf == b'\n':

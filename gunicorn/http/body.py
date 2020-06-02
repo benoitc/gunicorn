@@ -25,20 +25,20 @@ class ChunkedReader(object):
         return self.source.read(size)
 
     def parse_trailers(self):
-        current = self.unreader.readline()
-        if not current:
+        current_line = self.unreader.readline()
+        if not current_line:
             raise NoMoreData()
-        if current[:2] == b'\r\n':
+        if current_line[:2] == b'\r\n':
             return b''
         buf = io.BytesIO()
-        buf.write(current)
-        next = self.unreader.readline()
-        while current and next:
-            if current.endswith(b'\r\n') and next == b'\r\n':
+        buf.write(current_line)
+        next_line = self.unreader.readline()
+        while current_line and next_line:
+            if current_line.endswith(b'\r\n') and next_line == b'\r\n':
                 break
-            buf.write(next)
-            current = next
-            next = self.unreader.readline()
+            buf.write(next_line)
+            current_line = next_line
+            next_line = self.unreader.readline()
         else:
             raise NoMoreData()
         self.req.trailers = self.req.parse_headers(buf.getvalue()[:-2])
@@ -94,7 +94,6 @@ class LengthReader(object):
 class EOFReader(object):
     def __init__(self, unreader):
         self.unreader = unreader
-        self.buf = io.BytesIO()
         self.finished = False
 
     def read(self, size):
