@@ -31,16 +31,14 @@ class ChunkedReader(object):
         if current_line[:2] == b'\r\n':
             return b''
         buf = io.BytesIO()
-        buf.write(current_line)
-        next_line = self.unreader.readline()
-        while current_line and next_line:
+        while True:
+            buf.write(current_line)
+            next_line = self.unreader.readline()
+            if not next_line:
+                raise NoMoreData()
             if current_line.endswith(b'\r\n') and next_line == b'\r\n':
                 break
-            buf.write(next_line)
             current_line = next_line
-            next_line = self.unreader.readline()
-        else:
-            raise NoMoreData()
         self.req.trailers = self.req.parse_headers(buf.getvalue()[:-2])
 
     def parse_chunked(self):
