@@ -113,6 +113,37 @@ def test_http_invalid_response_header():
         response.start_response("200 OK", [('foo\r\n', 'essai')])
 
 
+def test_unreader_returns_whole_content_when_crlf_does_not_exist():
+    unreader = Unreader()
+    unreader.chunk = mock.MagicMock(side_effect=[b'foo', b'bar', b''])
+
+    assert unreader.readline() == b'foobar'
+
+
+def test_unreader_read_line_include_crlf():
+    unreader = Unreader()
+    unreader.chunk = mock.MagicMock(side_effect=[b'fir', b'st\r', b'\nsec', b'ond'])
+
+    assert unreader.readline() == b'first\r\n'
+
+
+def test_unreader_read_empty_string():
+    unreader = Unreader()
+    unreader.chunk = mock.MagicMock(side_effect=[b''])
+
+    assert unreader.readline() == b''
+
+
+def test_unreader_read_line_by_line():
+    unreader = Unreader()
+    unreader.chunk = mock.MagicMock(side_effect=[b'foo\r', b'\nbar\r\n', b'\r\nbaz', b''])
+
+    assert unreader.readline() == b'foo\r\n'
+    assert unreader.readline() == b'bar\r\n'
+    assert unreader.readline() == b'\r\n'
+    assert unreader.readline() == b'baz'
+
+
 def test_unreader_read_when_size_is_none():
     unreader = Unreader()
     unreader.chunk = mock.MagicMock(side_effect=[b'qwerty', b'123456', b''])
