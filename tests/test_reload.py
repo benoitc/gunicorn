@@ -1,4 +1,6 @@
+import pytest
 import unittest.mock as mock
+
 
 from gunicorn.app.base import Application
 from gunicorn.workers.base import Worker
@@ -66,3 +68,24 @@ def test_start_reloader_after_load_wsgi():
         mock.call.load_wsgi(),
         mock.call.reloader_start(),
     ])
+
+
+def test_reload_errors_with_import_error_when_inotify_not_installed():
+    reloader = mock.Mock()
+    # NOTE: Don't override the reloader_engines, or the test does nothing!
+    # reloader_engines['inotify'] = lambda *args, **kw: reloader
+
+    app = ReloadApp()
+    cfg = app.cfg
+    log = mock.Mock()
+    worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log)
+
+    cfg.set('reload_engine', 'inotify')
+
+    worker.load_wsgi = mock.Mock()
+    mock_parent = mock.Mock()
+    mock_parent.attach_mock(worker.load_wsgi, 'load_wsgi')
+    mock_parent.attach_mock(reloader.start, 'reloader_start')
+
+    with pytest.raises(ImportError):
+        worker.init_process()
