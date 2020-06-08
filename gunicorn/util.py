@@ -256,6 +256,9 @@ def set_non_blocking(fd):
 
 def close(sock):
     try:
+        # It's unsafe to close the socket immediately after writing data
+        # without first calling shutdown().
+        sock.shutdown(socket.SHUT_RDWR)
         sock.close()
     except socket.error:
         pass
