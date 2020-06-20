@@ -92,7 +92,13 @@ setup(
     author='Benoit Chesneau',
     author_email='benoitc@e-engura.com',
     license='MIT',
-    url='http://gunicorn.org',
+    url='https://gunicorn.org',
+    project_urls={
+        'Documentation': 'https://docs.gunicorn.org',
+        'Homepage': 'https://gunicorn.org',
+        'Issue tracker': 'https://github.com/benoitc/gunicorn/issues',
+        'Source code': 'https://github.com/benoitc/gunicorn',
+    },
 
     python_requires='>=3.5',
     install_requires=install_requires,
