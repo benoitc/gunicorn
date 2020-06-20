@@ -23,7 +23,7 @@ Feel free to join us in `#gunicorn`_ on Freenode_.
 Documentation
 -------------
 
-The documentation is hosted at http://docs.gunicorn.org.
+The documentation is hosted at https://docs.gunicorn.org.
 
 Installation
 ------------
