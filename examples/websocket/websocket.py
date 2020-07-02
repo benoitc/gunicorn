@@ -251,7 +251,7 @@ class WebSocket(object):
                 data = struct.unpack('<I', buf[f['hlen']:f['hlen']+4])[0]
                 of1 = f['hlen']+4
                 b = ''
-                for i in xrange(0, int(f['length']/4)):
+                for i in range(0, int(f['length']/4)):
                     mask = struct.unpack('<I', buf[of1+4*i:of1+4*(i+1)])[0]
                     b += struct.pack('I', data ^ mask)
 
@@ -293,10 +293,8 @@ class WebSocket(object):
 
         As per the dataframing section (5.3) for the websocket spec
         """
-        if isinstance(message, unicode):
+        if isinstance(message, str):
             message = message.encode('utf-8')
-        elif not isinstance(message, str):
-            message = str(message)
         packed = "\x00%s\xFF" % message
         return packed
 
