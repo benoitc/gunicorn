@@ -2,7 +2,7 @@
 Deploying Gunicorn
 ==================
 
-We strongly recommend to use Gunicorn behind a proxy server.
+We strongly recommend using Gunicorn behind a proxy server.
 
 Nginx Configuration
 ===================
