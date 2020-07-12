@@ -264,7 +264,7 @@ def close(sock):
 try:
     from os import closerange
 except ImportError:
-    def closerange(fd_low, fd_high):
+    def closerange(fd_low, fd_high):  # type: ignore[misc]
         # Iterate through and close all file descriptors.
         for fd in range(fd_low, fd_high):
             try:

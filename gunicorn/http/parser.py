@@ -3,13 +3,15 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from typing import Type
+
 from gunicorn.http.message import Request
 from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 
 class Parser(object):
 
-    mesg_class = None
+    mesg_class = None  # type: Type[Request]
 
     def __init__(self, cfg, source):
         self.cfg = cfg

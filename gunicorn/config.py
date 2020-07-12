@@ -20,14 +20,21 @@ import textwrap
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
+from argparse import ArgumentParser
+from gunicorn.glogging import Logger
+from gunicorn.instrument.statsd import Statsd
+from gunicorn.workers.sync import SyncWorker
+from ssl import _SSLMethod  # type: ignore[attr-defined]
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast, overload
+from unittest.mock import Mock
 
-KNOWN_SETTINGS = []
+KNOWN_SETTINGS = []  # type: List[Type[Setting]]
 PLATFORM = sys.platform
 
 
-def make_settings(ignore=None):
-    settings = {}
-    ignore = ignore or ()
+def make_settings(ignore=None) -> Dict[str, "Setting"]:
+    settings = {}  # type: Dict[Any, Any]
+    ignore = ignore or ()  # type: ignore
     for s in KNOWN_SETTINGS:
         setting = s()
         if setting.name in ignore:
@@ -36,7 +43,7 @@ def make_settings(ignore=None):
     return settings
 
 
-def auto_int(_, x):
+def auto_int(_: "Umask", x: str) -> int:
     # for compatible with octal numbers in python3
     if re.match(r'0(\d)', x, re.IGNORECASE):
         x = x.replace('0', '0o', 1)
@@ -45,48 +52,48 @@ def auto_int(_, x):
 
 class Config(object):
 
-    def __init__(self, usage=None, prog=None):
+    def __init__(self, usage: Optional[str]=None, prog: Optional[str]=None) -> None:
         self.settings = make_settings()
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
 
-    def __str__(self):
-        lines = []
+    def __str__(self) -> str:
+        lines = []  # type: List[str]
         kmax = max(len(k) for k in self.settings)
         for k in sorted(self.settings):
             v = self.settings[k].value
             if callable(v):
-                v = "<{}()>".format(v.__qualname__)
+                v = "<{}()>".format(v.__qualname__) # type: ignore[assignment]
             lines.append("{k:{kmax}} = {v}".format(k=k, v=v, kmax=kmax))
         return "\n".join(lines)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         return self.settings[name].get()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Optional[Any]) -> None:
         if name != "settings" and name in self.settings:
             raise AttributeError("Invalid access!")
         super().__setattr__(name, value)
 
-    def set(self, name, value):
+    def set(self, name: str, value: Any) -> None:
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
 
-    def get_cmd_args_from_env(self):
+    def get_cmd_args_from_env(self) -> List[str]:
         if 'GUNICORN_CMD_ARGS' in self.env_orig:
             return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])
         return []
 
-    def parser(self):
+    def parser(self) -> ArgumentParser:
         kwargs = {
             "usage": self.usage,
             "prog": self.prog
         }
-        parser = argparse.ArgumentParser(**kwargs)
+        parser = argparse.ArgumentParser(**kwargs)  # type: ignore
         parser.add_argument("-v", "--version",
                             action="version", default=argparse.SUPPRESS,
                             version="%(prog)s (version " + __version__ + ")\n",
@@ -110,7 +117,7 @@ class Config(object):
         return uri
 
     @property
-    def worker_class(self):
+    def worker_class(self) -> Type[SyncWorker]:
         uri = self.settings['worker_class'].get()
 
         # are we using a threaded worker?
@@ -124,20 +131,20 @@ class Config(object):
         return worker_class
 
     @property
-    def address(self):
+    def address(self) -> List[Tuple[str, int]]:
         s = self.settings['bind'].get()
         return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
 
     @property
-    def uid(self):
+    def uid(self) -> int:
         return self.settings['user'].get()
 
     @property
-    def gid(self):
+    def gid(self) -> int:
         return self.settings['group'].get()
 
     @property
-    def proc_name(self):
+    def proc_name(self) -> str:
         pn = self.settings['proc_name'].get()
         if pn is not None:
             return pn
@@ -145,7 +152,7 @@ class Config(object):
             return self.settings['default_proc_name'].get()
 
     @property
-    def logger_class(self):
+    def logger_class(self) -> Union[Type[Statsd], Type[Logger]]:
         uri = self.settings['logger_class'].get()
         if uri == "simple":
             # support the default
@@ -172,16 +179,16 @@ class Config(object):
 
     @property
     def ssl_options(self):
-        opts = {}
+        opts = {}  # type: Dict[Any, Any]
         for name, value in self.settings.items():
             if value.section == 'SSL':
                 opts[name] = value.get()
         return opts
 
     @property
-    def env(self):
+    def env(self) -> Dict[str, str]:
         raw_env = self.settings['raw_env'].get()
-        env = {}
+        env = {}  # type: Dict[Any, Any]
 
         if not raw_env:
             return env
@@ -198,7 +205,7 @@ class Config(object):
         return env
 
     @property
-    def sendfile(self):
+    def sendfile(self) -> bool:
         if self.settings['sendfile'].get() is not None:
             return False
 
@@ -209,7 +216,7 @@ class Config(object):
         return True
 
     @property
-    def reuse_port(self):
+    def reuse_port(self) -> bool:
         return self.settings['reuse_port'].get()
 
     @property
@@ -218,7 +225,7 @@ class Config(object):
         if raw_global_conf is None:
             return None
 
-        global_conf = {}
+        global_conf = {}  # type: Dict[Any, Any]
         for e in raw_global_conf:
             s = util.bytes_to_str(e)
             try:
@@ -233,9 +240,9 @@ class Config(object):
 
 
 class SettingMeta(type):
-    def __new__(cls, name, bases, attrs):
+    def __new__(cls: Type["SettingMeta"], name: str, bases: Tuple[Type["Setting"]], attrs: Dict[str, Any]) -> Any:
         super_new = super().__new__
-        parents = [b for b in bases if isinstance(b, SettingMeta)]
+        parents = [b for b in bases if isinstance(b, "SettingMeta")]
         if not parents:
             return super_new(cls, name, bases, attrs)
 
@@ -243,36 +250,36 @@ class SettingMeta(type):
         attrs["validator"] = staticmethod(attrs["validator"])
 
         new_class = super_new(cls, name, bases, attrs)
-        new_class.fmt_desc(attrs.get("desc", ""))
+        new_class.fmt_desc(attrs.get("desc", ""))  # type: ignore[attr-defined]
         KNOWN_SETTINGS.append(new_class)
         return new_class
 
-    def fmt_desc(cls, desc):
+    def fmt_desc(cls, desc: str) -> None:
         desc = textwrap.dedent(desc).strip()
         setattr(cls, "desc", desc)
         setattr(cls, "short", desc.splitlines()[0])
 
 
 class Setting(object):
-    name = None
-    value = None
-    section = None
-    cli = None
-    validator = None
-    type = None
-    meta = None
-    action = None
-    default = None
-    short = None
-    desc = None
-    nargs = None
-    const = None
+    name = None  # type: str
+    value = None  # type: Any
+    section = None  # type: str
+    cli = None  # type: List[str]
+    validator = None  # type: Callable
+    type = None  # type: Union[Callable, Type[int]]
+    meta = None  # type: str
+    action = None  # type: str
+    default = None  # type: Union[None, bool, int, List, str, staticmethod, Dict]
+    short = None  # type: str
+    desc = None  # type: str
+    nargs = None  # type: str
+    const = None  # type: bool
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self.default is not None:
             self.set(self.default)
 
-    def add_option(self, parser):
+    def add_option(self, parser: ArgumentParser) -> None:
         if not self.cli:
             return
         args = tuple(self.cli)
@@ -286,7 +293,7 @@ class Setting(object):
             "type": self.type or str,
             "default": None,
             "help": help_txt
-        }
+        }  # type: Dict[str, Any]
 
         if self.meta is not None:
             kwargs['metavar'] = self.meta
@@ -300,25 +307,25 @@ class Setting(object):
         if self.const is not None:
             kwargs["const"] = self.const
 
-        parser.add_argument(*args, **kwargs)
+        parser.add_argument(*args, **kwargs)  # type: ignore
 
-    def copy(self):
+    def copy(self) -> "Setting":
         return copy.copy(self)
 
-    def get(self):
+    def get(self) -> Any:
         return self.value
 
-    def set(self, val):
+    def set(self, val: Any) -> None:
         if not callable(self.validator):
             raise TypeError('Invalid validator: %s' % self.name)
         self.value = self.validator(val)
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Setting") -> bool:
         return (self.section == other.section and
-                self.order < other.order)
+                self.order < other.order)  # type: ignore
     __cmp__ = __lt__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s.%s object at %x with value %r>" % (
             self.__class__.__module__,
             self.__class__.__name__,
@@ -327,12 +334,18 @@ class Setting(object):
         )
 
 
-Setting = SettingMeta('Setting', (Setting,), {})
+Setting = SettingMeta('Setting', (Setting,), {})  # type: ignore
 
 
-def validate_bool(val):
+@overload
+def validate_bool(val: None) -> None: ...
+
+@overload
+def validate_bool(val: Union[str, bool]) -> bool: ...
+
+def validate_bool(val: Optional[Union[str, bool, int]]) -> Optional[bool]:
     if val is None:
-        return
+        return None
 
     if isinstance(val, bool):
         return val
@@ -346,13 +359,13 @@ def validate_bool(val):
         raise ValueError("Invalid boolean: %s" % val)
 
 
-def validate_dict(val):
+def validate_dict(val: Dict[str, str]) -> Dict[str, str]:
     if not isinstance(val, dict):
         raise TypeError("Value is not a dictionary: %s " % val)
     return val
 
 
-def validate_pos_int(val):
+def validate_pos_int(val: Any) -> int:
     if not isinstance(val, int):
         val = int(val, 0)
     else:
@@ -363,8 +376,8 @@ def validate_pos_int(val):
     return val
 
 
-def validate_ssl_version(val):
-    ssl_versions = {}
+def validate_ssl_version(val: Union[_SSLMethod, str]) -> Union[_SSLMethod, int]:
+    ssl_versions = {}  # type: Dict[Any, Any]
     for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
         ssl_versions[protocol[9:]] = getattr(ssl, protocol)
     if val in ssl_versions:
@@ -385,7 +398,13 @@ def validate_ssl_version(val):
                      % (val, ', '.join(ssl_versions)))
 
 
-def validate_string(val):
+@overload
+def validate_string(val: None) -> None: ...
+
+@overload
+def validate_string(val: str) -> str: ...
+
+def validate_string(val: Optional[str]) -> Optional[str]:
     if val is None:
         return None
     if not isinstance(val, str):
@@ -401,7 +420,7 @@ def validate_file_exists(val):
     return val
 
 
-def validate_list_string(val):
+def validate_list_string(val: Union[str, List[str]]) -> List[Optional[str]]:
     if not val:
         return []
 
@@ -412,11 +431,11 @@ def validate_list_string(val):
     return [validate_string(v) for v in val]
 
 
-def validate_list_of_existing_files(val):
+def validate_list_of_existing_files(val: List[Any]) -> List[Any]:
     return [validate_file_exists(v) for v in validate_list_string(val)]
 
 
-def validate_string_to_list(val):
+def validate_string_to_list(val: Union[None, str]) -> List[str]:
     val = validate_string(val)
 
     if not val:
@@ -427,13 +446,13 @@ def validate_string_to_list(val):
 
 def validate_class(val):
     if inspect.isfunction(val) or inspect.ismethod(val):
-        val = val()
+        val = val()  # type: ignore
     if inspect.isclass(val):
         return val
     return validate_string(val)
 
 
-def validate_callable(arity):
+def validate_callable(arity: int) -> Callable:
     def _validate_callable(val):
         if isinstance(val, str):
             try:
@@ -457,7 +476,7 @@ def validate_callable(arity):
     return _validate_callable
 
 
-def validate_user(val):
+def validate_user(val: int) -> int:
     if val is None:
         return os.geteuid()
     if isinstance(val, int):
@@ -471,7 +490,7 @@ def validate_user(val):
             raise ConfigError("No such user: '%s'" % val)
 
 
-def validate_group(val):
+def validate_group(val: int) -> int:
     if val is None:
         return os.getegid()
 
@@ -486,7 +505,7 @@ def validate_group(val):
             raise ConfigError("No such group: '%s'" % val)
 
 
-def validate_post_request(val):
+def validate_post_request(val: Callable) -> Callable:
     val = validate_callable(-1)(val)
 
     largs = util.get_arity(val)
@@ -500,7 +519,7 @@ def validate_post_request(val):
         raise TypeError("Value must have an arity of: 4")
 
 
-def validate_chdir(val):
+def validate_chdir(val: str) -> str:
     # valid if the value is a string
     val = validate_string(val)
 
@@ -514,7 +533,7 @@ def validate_chdir(val):
     return path
 
 
-def validate_hostport(val):
+def validate_hostport(val: Optional[str]) -> Optional[Tuple[str, int]]:
     val = validate_string(val)
     if val is None:
         return None
@@ -525,14 +544,14 @@ def validate_hostport(val):
         raise TypeError("Value must consist of: hostname:port")
 
 
-def validate_reload_engine(val):
+def validate_reload_engine(val: str) -> str:
     if val not in reloader_engines:
         raise ConfigError("Invalid reload_engine: %r" % val)
 
     return val
 
 
-def get_default_config_file():
+def get_default_config_file() -> Optional[str]:
     config_path = os.path.join(os.path.abspath(os.getcwd()),
                                'gunicorn.conf.py')
     if os.path.exists(config_path):
@@ -941,7 +960,7 @@ class ReloadExtraFiles(Setting):
     cli = ["--reload-extra-file"]
     meta = "FILES"
     validator = validate_list_of_existing_files
-    default = []
+    default = []  # type: List[Any]
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
@@ -1076,7 +1095,7 @@ class Env(Setting):
     cli = ["-e", "--env"]
     meta = "ENV"
     validator = validate_list_string
-    default = []
+    default = []  # type: List[Any]
 
     desc = """\
         Set environment variable (key=value).
@@ -1219,7 +1238,7 @@ class SecureSchemeHeader(Setting):
         "X-FORWARDED-PROTOCOL": "ssl",
         "X-FORWARDED-PROTO": "https",
         "X-FORWARDED-SSL": "on"
-    }
+    }  # type: Dict[str, str]
     desc = """\
 
         A dictionary containing headers and values that the front-end proxy
@@ -1418,7 +1437,7 @@ class LogConfigDict(Setting):
     section = "Logging"
     cli = ["--log-config-dict"]
     validator = validate_dict
-    default = {}
+    default = {}  # type: Dict[Any, Any]
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
@@ -1679,7 +1698,7 @@ class Prefork(Setting):
     validator = validate_callable(2)
     type = callable
 
-    def pre_fork(server, worker):
+    def pre_fork(server, worker) -> None:
         pass
     default = staticmethod(pre_fork)
     desc = """\
@@ -1696,7 +1715,7 @@ class Postfork(Setting):
     validator = validate_callable(2)
     type = callable
 
-    def post_fork(server, worker):
+    def post_fork(server, worker) -> None:
         pass
     default = staticmethod(post_fork)
     desc = """\
@@ -1769,7 +1788,7 @@ class PreExec(Setting):
     validator = validate_callable(1)
     type = callable
 
-    def pre_exec(server):
+    def pre_exec(server) -> None:
         pass
     default = staticmethod(pre_exec)
     desc = """\
@@ -1855,7 +1874,7 @@ class NumWorkersChanged(Setting):
     validator = validate_callable(3)
     type = callable
 
-    def nworkers_changed(server, new_value, old_value):
+    def nworkers_changed(server, new_value: int, old_value) -> None:
         pass
     default = staticmethod(nworkers_changed)
     desc = """\
@@ -2075,7 +2094,7 @@ class PasteGlobalConf(Setting):
     cli = ["--paste-global"]
     meta = "CONF"
     validator = validate_list_string
-    default = []
+    default = []  # type: List
 
     desc = """\
         Set a PasteDeploy global config variable in ``key=value`` form.

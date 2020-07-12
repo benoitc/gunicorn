@@ -10,6 +10,7 @@ import signal
 import sys
 import time
 import traceback
+from typing import Any, List, Dict
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -33,14 +34,14 @@ class Arbiter(object):
     # A flag indicating if an application failed to be loaded
     APP_LOAD_ERROR = 4
 
-    START_CTX = {}
+    START_CTX = {}  # type: Dict[Any, Any]
 
-    LISTENERS = []
-    WORKERS = {}
-    PIPE = []
+    LISTENERS = []  # type: List[Any]
+    WORKERS = {}  # type: Dict[Any, Any]
+    PIPE = []  # type: List[Any]
 
     # I love dynamic languages
-    SIG_QUEUE = []
+    SIG_QUEUE = []  # type: List[Any]
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(

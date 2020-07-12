@@ -7,7 +7,7 @@ import base64
 import binascii
 import time
 import logging
-logging.Logger.manager.emittedNoHandlerWarning = 1  # noqa
+logging.Logger.manager.emittedNoHandlerWarning = 1  # type: ignore[attr-defined] # noqa
 from logging.config import dictConfig
 from logging.config import fileConfig
 import os

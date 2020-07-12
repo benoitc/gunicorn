@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from functools import partial
 import time
+from typing import Type
 
 try:
     import gevent
@@ -31,8 +32,8 @@ VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
 class GeventWorker(AsyncWorker):
 
-    server_class = None
-    wsgi_handler = None
+    server_class = None  # type: Type[PyWSGIServer]
+    wsgi_handler = None  # type: Type[PyWSGIHandler]
 
     def patch(self):
         monkey.patch_all()
