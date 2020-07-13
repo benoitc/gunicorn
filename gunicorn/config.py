@@ -25,7 +25,6 @@ from gunicorn.glogging import Logger
 from gunicorn.instrument.statsd import Statsd
 from gunicorn.workers.base import Worker
 from gunicorn.workers.sync import SyncWorker
-from ssl import _SSLMethod  # type: ignore[attr-defined]
 from typing import (
     Any,
     Callable,
@@ -401,7 +400,7 @@ def validate_pos_int(val: Any) -> int:
     return val
 
 
-def validate_ssl_version(val: Union[_SSLMethod, str]) -> Union[_SSLMethod, int]:
+def validate_ssl_version(val: str) -> int:
     ssl_versions = {}  # type: Dict[Any, Any]
     for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
         ssl_versions[protocol[9:]] = getattr(ssl, protocol)
