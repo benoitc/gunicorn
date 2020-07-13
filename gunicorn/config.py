@@ -24,7 +24,6 @@ from argparse import ArgumentParser
 from gunicorn.glogging import Logger
 from gunicorn.instrument.statsd import Statsd
 from gunicorn.workers.base import Worker
-from gunicorn.workers.sync import SyncWorker
 from typing import (
     Any,
     Callable,
@@ -34,10 +33,8 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
     overload,
 )
-from unittest.mock import Mock
 
 KNOWN_SETTINGS = []  # type: List[Type[Setting]]
 PLATFORM = sys.platform
@@ -260,7 +257,7 @@ class SettingMeta(type):
         attrs: Dict[str, Any],
     ) -> Any:
         super_new = super().__new__
-        parents = [b for b in bases if isinstance(b, "SettingMeta")]  # type: ignore
+        parents = [b for b in bases if isinstance(b, SettingMeta)]
         if not parents:
             return super_new(cls, name, bases, attrs)
 
