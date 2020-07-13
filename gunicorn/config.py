@@ -23,6 +23,7 @@ from gunicorn.reloader import reloader_engines
 from argparse import ArgumentParser
 from gunicorn.glogging import Logger
 from gunicorn.instrument.statsd import Statsd
+from gunicorn.workers.base import Worker
 from gunicorn.workers.sync import SyncWorker
 from ssl import _SSLMethod  # type: ignore[attr-defined]
 from typing import (
@@ -128,7 +129,7 @@ class Config(object):
         return uri
 
     @property
-    def worker_class(self) -> Type[SyncWorker]:
+    def worker_class(self) -> Type[Worker]:
         uri = self.settings["worker_class"].get()
 
         # are we using a threaded worker?
@@ -260,7 +261,7 @@ class SettingMeta(type):
         attrs: Dict[str, Any],
     ) -> Any:
         super_new = super().__new__
-        parents = [b for b in bases if isinstance(b, "SettingMeta")]
+        parents = [b for b in bases if isinstance(b, "SettingMeta")]  # type: ignore
         if not parents:
             return super_new(cls, name, bases, attrs)
 
@@ -340,8 +341,8 @@ class Setting(object):
 
     def __lt__(self, other: "Setting") -> bool:
         return (
-            self.section == other.section and self.order < other.order
-        )  # type: ignore
+            self.section == other.section and self.order < other.order  # type: ignore
+        )
 
     __cmp__ = __lt__
 
