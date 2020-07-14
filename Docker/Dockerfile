@@ -1,40 +1,17 @@
-FROM ubuntu:focal
+FROM python:3.8.4-slim
 ENV PYTHONIOENCODING UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Pypy is installed from a package manager because it takes so long to build.
-RUN apt-get update && apt-get install -y build-essential \
-    libcurl4-openssl-dev \
-    libffi-dev \
-    tk-dev \
-    xz-utils \
-    lsb-release \
-    libmemcached-dev \
-    make \
-    liblzma-dev \
-    libreadline-dev \
-    libbz2-dev \
-    llvm \
-    libncurses5-dev \
-    libsqlite3-dev \
-    wget \
-    pypy \
-    python-openssl \
-    libncursesw5-dev \
-    zlib1g-dev \
-    pkg-config \
-    libssl-dev \
-    python3-pip \
-    sudo
+COPY ./config /config
 
-ENV IS_ASYNC=false
+ENV CONFIG_FILE_PATH=/config/config.py
+ENV WORK_DIR=/work
 
-RUN sudo apt-get install -y gunicorn
+RUN chmod 777 /config/install.sh /config/start.sh /config/config.sh &&\
+    pip3 install -r /config/async-requirements.txt &&\
+    pip3 install -r /config/sync-requirements.txt &&\
+    /config/install.sh
 
-COPY ./install.sh /install.sh
-
-RUN chmod 777 /install.sh
-
-ENTRYPOINT ["/install.sh"]
-
+WORKDIR /work
+ENTRYPOINT /config/start.sh
 
