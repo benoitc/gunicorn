@@ -1,10 +1,7 @@
-#!/bin/bash
+#! /bin/bash
 
-if [ IS_ASYNC == true ]; then
-  pip3 gunicorn install greenlet, eventlet>=0.25.2 , gunicorn[eventlet] greenlet, gevent>=1.4, gunicorn[gevent]
+if [ -n "$FRAMEWORK_VERSION" ] && [ -n "$FRAMEWORK" ]; then
+  pip3 install "$FRAMEWORK"=="$FRAMEWORK_VERSION"
+elif [ -n "$FRAMEWORK" ]; then
+    pip3 install "$FRAMEWORK"
 fi
-
-if [ IS_ASTNC == false ]; then
-  pip3 gunicorn install tornado gunicorn[tornado]
-fi
-
