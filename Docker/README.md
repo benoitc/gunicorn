@@ -23,9 +23,12 @@ $ docker build --tag gunicorn:0.1 .
 ### **Usage**
 
 Basic usage:  
+**You need to mount the application you use for the /work folder via docker's -v (volume) option.**  
+
 ```shell script
 $ docker run -it -v [WORK_DIR_PATH]:/work/  [OPTIONS] [DOCKER_IMAGE] 
 ```
+
 
 Sample
 ```shell script
