@@ -359,20 +359,14 @@ statsd_host
 * ``--statsd-host STATSD_ADDR``
 * ``None``
 
-``host:port`` of the statsd server to log to.
+The address of the StatsD server to log to.
+
+Address is a string of the form:
+
+* ``unix://PATH`` : for a unix domain socket.
+* ``HOST:PORT`` : for a network address
 
 .. versionadded:: 19.1
-
-.. _statsd-socket:
-
-statsd_socket
-~~~~~~~~~~~~~
-
-* ``--statsd-socket STATSD_SOCKET``
-* ``None``
-
-Unix domain socket of the statsd server to log to.
-Supersedes ``statsd_host`` if provided.
 
 .. _dogstatsd-tags:
 

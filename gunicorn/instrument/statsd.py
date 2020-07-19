@@ -23,22 +23,17 @@ class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
     """
     def __init__(self, cfg):
-        """host, port: statsD server
-        """
         Logger.__init__(self, cfg)
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
 
-        if cfg.statsd_socket:
+        if isinstance(cfg.statsd_host, str):
             address_family = socket.AF_UNIX
-            address = cfg.statsd_socket
-        elif cfg.statsd_host:
+        else:
             address_family = socket.AF_INET
-            host, port = cfg.statsd_host
-            address = (host, int(port))
 
         try:
             self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
-            self.sock.connect(address)
+            self.sock.connect(cfg.statsd_host)
         except Exception:
             self.sock = None
 

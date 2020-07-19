@@ -144,11 +144,7 @@ class Config(object):
         # if default logger is in use, and statsd is on, automagically switch
         # to the statsd logger
         if uri == LoggerClass.default:
-            statsd_address = 'statsd_socket' in self.settings and \
-                             self.settings['statsd_socket'].value or \
-                             'statsd_host' in self.settings and \
-                             self.settings['statsd_host'].value
-            if statsd_address is not None:
+            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
                 uri = "gunicorn.instrument.statsd.Statsd"
 
         logger_class = util.load_class(
@@ -499,15 +495,17 @@ def validate_chdir(val):
     return path
 
 
-def validate_hostport(val):
+def validate_address(val):
     val = validate_string(val)
     if val is None:
         return None
-    elements = val.split(":")
-    if len(elements) == 2:
-        return (elements[0], int(elements[1]))
-    else:
-        raise TypeError("Value must consist of: hostname:port")
+
+    try:
+        address = util.parse_address(val, default_port='8125')
+    except RuntimeError:
+        raise TypeError("Value must be one of ('host:port', 'unix://PATH')")
+
+    return address
 
 
 def validate_reload_engine(val):
@@ -1475,23 +1473,16 @@ class StatsdHost(Setting):
     cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = None
-    validator = validate_hostport
+    validator = validate_address
     desc = """\
-    ``host:port`` of the statsd server to log to.
+    The address of the StatsD server to log to.
+
+    Address is a string of the form:
+
+    * ``unix://PATH`` : for a unix domain socket.
+    * ``HOST:PORT`` : for a network address
 
     .. versionadded:: 19.1
-    """
-
-class StatsdSocket(Setting):
-    name = "statsd_socket"
-    section = "Logging"
-    cli = ["--statsd-socket"]
-    meta = "STATSD_SOCKET"
-    default = None
-    validator = validate_string
-    desc = """\
-    Unix domain socket of the statsd server to log to.
-    Supersedes ``statsd_host`` if provided.
     """
 
 # Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
