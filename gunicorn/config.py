@@ -495,10 +495,18 @@ def validate_chdir(val):
     return path
 
 
-def validate_address(val):
+def validate_statsd_address(val):
     val = validate_string(val)
     if val is None:
         return None
+
+    # As of major release 20, util.parse_address would recognize unix:PORT
+    # as a UDS address, breaking backwards compatibility. We defend against
+    # that regression here (this is also unit-tested).
+    # Feel free to remove in the next major release.
+    unix_hostname_regression = re.match(r'^unix:(\d+)$', val)
+    if unix_hostname_regression:
+        return ('unix', int(unix_hostname_regression.group(1)))
 
     try:
         address = util.parse_address(val, default_port='8125')
@@ -1473,7 +1481,7 @@ class StatsdHost(Setting):
     cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = None
-    validator = validate_address
+    validator = validate_statsd_address
     desc = """\
     The address of the StatsD server to log to.
 
