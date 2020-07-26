@@ -16,20 +16,84 @@
 
 from json import loads, dumps
 from flask import Flask
-from gevent import monkey
+from gevent import pool
 from kafka import KafkaConsumer, KafkaProducer
 
-app = Flask(__name__)
+APP = Flask(__name__)
 
-monkey.patch_all(socket=False, thread=False)
+WORKER_THREADS = 10
+POOL = pool.Pool(WORKER_THREADS)
 
-@app.route("/")
+@APP.route("/")
 def hello():
+    """
+    ########################################
+    ## Method to flask app
+    ########################################
+    """
     return "Hello World!"
 
 
-@app.route("/kafka/start-reading")
+def get_status(green_thread):
+    """
+    ########################################
+    ## Method to get the status of greenlet
+    ########################################
+    """
+    total = 0
+    running = 0
+    completed = 0
+    succeeded = 0
+    yet_to_run = 0
+    failed = 0
+    total += 1
+    if bool(green_thread):
+        running += 1
+    elif green_thread.ready():
+        completed += 1
+        if green_thread.successful():
+            succeeded += 1
+        else:
+            failed += 1
+    else:
+        yet_to_run += 1
+
+    return dict(total=total,
+                running=running,
+                completed=completed,
+                succeeded=succeeded,
+                yet_to_run=yet_to_run,
+                failed=failed)
+
+@APP.route("/kafka/start-reading")
+def process_records():
+    """
+    ########################################
+    ## Starter method to trigger the reader
+    ## & producer method in async mode using
+    ## greenlets
+    ########################################
+    """
+    # Creating green threads(Greenlets)
+    greenlet = POOL.apply_async(read_kafka)
+    response = get_status(greenlet)
+    print(response)
+    while True:
+        response = get_status(greenlet)
+        print(response)
+        if response['running'] == response['total']:
+            break
+        print("retrying...")
+    return_str = "Greenlet started Successfully !"
+    return return_str
+
 def read_kafka():
+    """
+    ########################################
+    ## Method to read data from topic and
+    ## produce on another topic
+    ########################################
+    """
     producer = get_producer()
     for message in get_consumer():
         message = message.value
@@ -39,6 +103,11 @@ def read_kafka():
 
 
 def get_consumer():
+    """
+    ########################################
+    ## Method to generate consumer object
+    ########################################
+    """
     return KafkaConsumer(
         'test_consumer',
         bootstrap_servers=['localhost:9092'],
@@ -48,6 +117,11 @@ def get_consumer():
         value_deserializer=lambda x: loads(x.decode('utf-8')))
 
 def get_producer():
+    """
+    ########################################
+    ## Method to generate Producer object
+    ########################################
+    """
     return KafkaProducer(bootstrap_servers=['localhost:9092'],
                          value_serializer=lambda x:
                          dumps(x).encode('utf-8'))
