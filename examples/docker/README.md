@@ -26,13 +26,32 @@ Basic usage:
 **You need to mount the application you use for the /work folder via docker's -v (volume) option.**  
 
 ```shell script
-$ docker run -it -v [WORK_DIR_PATH]:/work/  [OPTIONS] [DOCKER_IMAGE] 
+$ docker run -it -v [WORK_DIR_PATH]:/work/ \  
+              -e REQUIRENMENTS_FILE_PATH=/some/path [OPTIONS] [DOCKER_IMAGE] 
 ```
-
 
 Sample
 ```shell script
-$ docker run -it -v /Users/nanaones/flask:/work/  -e FRAMEWORK='flask' -e START_OPTION=main:app -e WORKER_CLASS=gevent -e BIND='0.0.0.0:80' 0b46bd4396d8
+ $ docker run -it -v ${PWD}:/work/  \
+              -e FRAMEWORK='flask' \
+              -e START_OPTION=main:app \
+              -e WORKER_CLASS=gevent \
+              -e BIND='0.0.0.0:80' \
+              0b46bd4396d8
+```
+---
+
+**If you have a `requirements.txt` file that records library dependencies for your python application, specify the path via environment variables like this:**
+
+Sample
+```shell script
+ $ docker run -it -v ${PWD}:/work/  \
+            -e REQUIRENMENTS_FILE_PATH=/work/requirements.txt \
+            -e FRAMEWORK='flask' \
+            -e START_OPTION=main:app \
+            -e WORKER_CLASS=gevent \
+            -e BIND='0.0.0.0:80' \
+            0b46bd4396d8
 ```
 
 
