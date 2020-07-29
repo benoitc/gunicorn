@@ -14,7 +14,7 @@ $ cd docker
 $ docker build --tag [IMAGE_NAME]:[VERSION]
 ```
 
-Sample
+example
 ```shell script
 $ docker build --tag gunicorn:0.1 .
 ```
@@ -24,46 +24,45 @@ $ docker build --tag gunicorn:0.1 .
 
 Basic usage:  
 **You need to mount the application you use for the /work folder via docker's -v (volume) option.**  
+**The `requirements.txt` file, which records the library dependencies of your Python application, specifies the path through the following environment variable: `$REQUIRENMENTS_FILE_PATH`**
 
 ```shell script
 $ docker run -it -v [WORK_DIR_PATH]:/work/ \  
-              -e REQUIRENMENTS_FILE_PATH=/some/path [OPTIONS] [DOCKER_IMAGE] 
+              -e REQUIRENMENTS_FILE_PATH=/some/path \
+              [OPTIONS] \
+              [DOCKER_IMAGE] 
 ```
 
-Sample
+example
 ```shell script
  $ docker run -it -v ${PWD}:/work/  \
-              -e FRAMEWORK='flask' \
+              -e REQUIRENMENTS_FILE_PATH=/work/requirements.txt \
               -e START_OPTION=main:app \
               -e WORKER_CLASS=gevent \
               -e BIND='0.0.0.0:80' \
               0b46bd4396d8
 ```
----
 
-**If you have a `requirements.txt` file that records library dependencies for your python application, specify the path via environment variables like this:**
+### **requirements.txt**  
+You need to record the framework you use in your `requirements.txt` file as a dependency.  
 
-Sample
+example:  
 ```shell script
- $ docker run -it -v ${PWD}:/work/  \
-            -e REQUIRENMENTS_FILE_PATH=/work/requirements.txt \
-            -e FRAMEWORK='flask' \
-            -e START_OPTION=main:app \
-            -e WORKER_CLASS=gevent \
-            -e BIND='0.0.0.0:80' \
-            0b46bd4396d8
+
+$ cat requirements.txt
+
+flask==1.1.2
+
 ```
-
-
+    
+    
 ---
 ### **Configuration**
 
 ### Environment variables required
-* FRAMEWORK
-    * `'flask'`  
-    * `'django'`  
 * START_OPTION  
     * It means `APP_MODULE`.
+
 
 
 All other environment variables are based on the following documentation.  
