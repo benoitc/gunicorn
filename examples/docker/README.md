@@ -36,8 +36,8 @@ $ docker run -it -v [WORK_DIR_PATH]:/work/ \
 example
 ```shell script
  $ docker run -it -v ${PWD}:/work/  \
-              -e REQUIRENMENTS_FILE_PATH=/work/requirements.txt \
-              -e START_OPTION=main:app \
+              -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \
+              -e START_OPTION=sample.main:app \
               -e WORKER_CLASS=gevent \
               -e BIND='0.0.0.0:80' \
               0b46bd4396d8
@@ -63,6 +63,8 @@ flask==1.1.2
 * START_OPTION  
     * It means `APP_MODULE`.
 
+* REQUIRENMENTS_FILE_PATH
+    * means `requirements.txt`
 
 
 All other environment variables are based on the following documentation.  
