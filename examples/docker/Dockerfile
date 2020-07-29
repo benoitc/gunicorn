@@ -6,8 +6,7 @@ WORKDIR /work
 
 COPY config /config
 RUN chmod 777 /config/install.sh /config/start.sh /config/config.sh &&\
-    pip3 install -r /config/async-requirements.txt &&\
-    pip3 install -r /config/sync-requirements.txt &&\
+    pip3 install -r /config/requirements.txt &&\
     /config/install.sh
 
 ENTRYPOINT /config/start.sh

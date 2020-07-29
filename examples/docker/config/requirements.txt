@@ -1,5 +1,7 @@
 greenlet>=0.4.16
 eventlet>=0.25.2
+tornado>=6.0.4
 gevent>=1.4
 gunicorn[eventlet]
 gunicorn[gevent]
+gunicorn[tornado]
