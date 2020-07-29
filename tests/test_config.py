@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from ipaddress import IPv4Network, IPv6Network
 import os
 import re
 import sys
@@ -147,11 +148,20 @@ def test_str_validation():
     pytest.raises(TypeError, c.set, "proc_name", 2)
 
 
-def test_str_to_list_validation():
+def test_str_to_network_list_validation():
     c = config.Config()
-    assert c.forwarded_allow_ips == ["127.0.0.1"]
+    assert c.forwarded_allow_ips == [IPv4Network("127.0.0.1/32")]
+    c.set("forwarded_allow_ips", "127.0.0.1,::1")
+    assert c.forwarded_allow_ips == [IPv4Network("127.0.0.1/32"),
+                                     IPv6Network("::1/128")]
     c.set("forwarded_allow_ips", "127.0.0.1,192.168.0.1")
-    assert c.forwarded_allow_ips == ["127.0.0.1", "192.168.0.1"]
+    assert c.forwarded_allow_ips == [IPv4Network("127.0.0.1/32"),
+                                     IPv4Network("192.168.0.1/32")]
+    c.set("forwarded_allow_ips", "127.0.0.0/8,192.168.0.1")
+    assert c.forwarded_allow_ips == [IPv4Network("127.0.0.0/8"),
+                                     IPv4Network("192.168.0.1/32")]
+    c.set("forwarded_allow_ips", "*")
+    assert c.forwarded_allow_ips == ["*"]
     c.set("forwarded_allow_ips", "")
     assert c.forwarded_allow_ips == []
     c.set("forwarded_allow_ips", None)

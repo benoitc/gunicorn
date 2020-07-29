@@ -9,6 +9,7 @@ import argparse
 import copy
 import grp
 import inspect
+import ipaddress
 import os
 import pwd
 import re
@@ -523,6 +524,11 @@ def validate_hostport(val):
         return (elements[0], int(elements[1]))
     else:
         raise TypeError("Value must consist of: hostname:port")
+
+
+def validate_string_to_network_list(val):
+    val = validate_string_to_list(val)
+    return [v if v == '*' else ipaddress.ip_network(v) for v in val]
 
 
 def validate_reload_engine(val):
@@ -1242,11 +1248,11 @@ class ForwardedAllowIPS(Setting):
     section = "Server Mechanics"
     cli = ["--forwarded-allow-ips"]
     meta = "STRING"
-    validator = validate_string_to_list
+    validator = validate_string_to_network_list
     default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
     desc = """\
-        Front-end's IPs from which allowed to handle set secure headers.
-        (comma separate).
+        Front-end's IP addresses or networks from which allowed to handle
+        set secure headers. (comma separate).
 
         Set to ``*`` to disable checking of Front-end IPs (useful for setups
         where you don't know in advance the IP address of Front-end, but
@@ -1915,10 +1921,11 @@ class ProxyAllowFrom(Setting):
     name = "proxy_allow_ips"
     section = "Server Mechanics"
     cli = ["--proxy-allow-from"]
-    validator = validate_string_to_list
+    validator = validate_string_to_network_list
     default = "127.0.0.1"
     desc = """\
-        Front-end's IPs from which allowed accept proxy requests (comma separate).
+        Front-end's IP addresses or networks from which allowed accept
+        proxy requests (comma separate).
 
         Set to ``*`` to disable checking of Front-end IPs (useful for setups
         where you don't know in advance the IP address of Front-end, but

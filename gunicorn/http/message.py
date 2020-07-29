@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import io
+import ipaddress
 import re
 import socket
 from errno import ENOTCONN
@@ -74,9 +75,11 @@ class Message(object):
         elif isinstance(self.unreader, SocketUnreader):
             remote_addr = self.unreader.sock.getpeername()
             if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
-                remote_host = remote_addr[0]
-                if remote_host in cfg.forwarded_allow_ips:
-                    secure_scheme_headers = cfg.secure_scheme_headers
+                remote_host = ipaddress.ip_address(remote_addr[0])
+                for network in cfg.forwarded_allow_ips:
+                    if network == '*' or remote_host in network:
+                        secure_scheme_headers = cfg.secure_scheme_headers
+                        break
             elif self.unreader.sock.family == socket.AF_UNIX:
                 secure_scheme_headers = cfg.secure_scheme_headers
 
@@ -283,14 +286,17 @@ class Request(Message):
         # check in allow list
         if isinstance(self.unreader, SocketUnreader):
             try:
-                remote_host = self.unreader.sock.getpeername()[0]
+                remote_addr = self.unreader.sock.getpeername()
             except socket.error as e:
                 if e.args[0] == ENOTCONN:
                     raise ForbiddenProxyRequest("UNKNOW")
                 raise
-            if ("*" not in self.cfg.proxy_allow_ips and
-                    remote_host not in self.cfg.proxy_allow_ips):
-                raise ForbiddenProxyRequest(remote_host)
+            remote_host = ipaddress.ip_address(remote_addr[0])
+            for network in self.cfg.proxy_allow_ips:
+                if network == '*' or remote_host in network:
+                    break
+            else:
+                raise ForbiddenProxyRequest(remote_addr[0])
 
     def parse_proxy_protocol(self, line):
         bits = line.split()
