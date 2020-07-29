@@ -46,12 +46,12 @@ example
 ### **requirements.txt**  
 You need to record the framework you use in your `requirements.txt` file as a dependency.  
 
-example:  
 ```shell script
 
-$ cat requirements.txt
-
+# in ./requirements.txt 
+...
 flask==1.1.2
+...
 
 ```
     
