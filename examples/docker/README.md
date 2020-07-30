@@ -27,19 +27,19 @@ Basic usage:
 **The `requirements.txt` file, which records the library dependencies of your Python application, specifies the path through the following environment variable: `$REQUIRENMENTS_FILE_PATH`**
 
 ```shell script
-$ docker run -it -v [WORK_DIR_PATH]:/work/ \  
-              -e REQUIRENMENTS_FILE_PATH=/some/path \
-              [OPTIONS] \
+$ docker run -it -v [WORK_DIR_PATH]:/work/ \ 
+              -e REQUIRENMENTS_FILE_PATH=/some/path \ 
+              [OPTIONS] \ 
               [DOCKER_IMAGE] 
 ```
 
 example
 ```shell script
- $ docker run -it -v ${PWD}:/work/  \
-              -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \
-              -e START_OPTION=sample.main:app \
-              -e WORKER_CLASS=gevent \
-              -e BIND='0.0.0.0:80' \
+ $ docker run -it -v ${PWD}:/work/  \ 
+              -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
+              -e START_OPTION=sample.main:app \ 
+              -e WORKER_CLASS=gevent \ 
+              -e BIND='0.0.0.0:80' \ 
               0b46bd4396d8
 ```
 
@@ -54,6 +54,19 @@ flask==1.1.2
 ...
 
 ```
+
+### **gunicorn.conf.py**  
+If you manage your configuration through the `gunicorn.conf.py` file, you can use the configuration by specifying the location of the `gunicorn.conf.py` file via the `$CONFIG_FILE_PATH` environment variable.
+All environment variables other than `$REQUIRENMENTS_FILE_PATH` and `$START_OPTION` are ignored.  
+
+```shell script
+ $ docker run -it -v ${PWD}:/work/  \ 
+              -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
+              -e CONFIG_FILE_PATH=/work/sample/gunicorn.conf.py \   
+              -e START_OPTION=sample.main:app \ 
+              0b46bd4396d8
+```
+
     
     
 ---
@@ -71,7 +84,6 @@ All other environment variables are based on the following documentation.
 [Configuration Document](https://github.com/benoitc/gunicorn/blob/master/examples/example_config.py)
 
 * Additional environment variables  
-`FRAMEWORK_VERSION`  
 `BIND`  
 `BACKLOG`  
 `WORKERS`  
