@@ -10,4 +10,3 @@ RUN chmod 777 /config/install.sh /config/start.sh /config/config.sh &&\
     /config/install.sh
 
 ENTRYPOINT /config/start.sh
-
