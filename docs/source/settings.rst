@@ -1046,9 +1046,9 @@ secure_scheme_headers
 * ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
-uses to indicate HTTPS requests. These tell Gunicorn to set
-``wsgi.url_scheme`` to ``https``, so your application can tell that the
-request is secure.
+uses to indicate HTTPS requests. When remote host matched
+``forwarded_allow_ips``, these tell Gunicorn to set ``wsgi.url_scheme``
+to ``https``, so your application can tell that the request is secure.
 
 The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
@@ -1066,12 +1066,13 @@ forwarded_allow_ips
 * ``--forwarded-allow-ips STRING``
 * ``127.0.0.1``
 
-Front-end's IPs from which allowed to handle set secure headers.
-(comma separate).
+Comma separated front-end's IPs from which allowed to handle set secure
+headers.
 
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
-you still trust the environment).
+you still trust the environment, such as serving behind a reverse
+proxies, load balancer or inside a dockerized environment).
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1"``.
