@@ -546,7 +546,7 @@ class ConfigFile(Setting):
     cli = ["-c", "--config"]
     meta = "CONFIG"
     validator = validate_string
-    default = None
+    default = "./gunicorn.conf.py"
     desc = """\
         The Gunicorn config file.
 
@@ -554,6 +554,9 @@ class ConfigFile(Setting):
 
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
+
+        By default, a file named ``gunicorn.conf.py`` will be read from the same
+        directory where gunicorn is being run.
 
         .. versionchanged:: 19.4
            Loading the config from a Python module requires the ``python:``
