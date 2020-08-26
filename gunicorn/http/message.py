@@ -131,6 +131,7 @@ class Message(object):
     def set_body_reader(self):
         chunked = False
         content_length = None
+
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
                 if content_length is not None:
@@ -139,8 +140,6 @@ class Message(object):
             elif name == "TRANSFER-ENCODING":
                 if value.lower() == "chunked":
                     chunked = True
-            elif name == "SEC-WEBSOCKET-KEY1":
-                content_length = 8
 
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
