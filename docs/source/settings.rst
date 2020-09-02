@@ -935,6 +935,10 @@ Pass variables to the execution environment. Ex.::
 
 and test for the foo variable environment in your application.
 
+In the config file, use ``raw_env``, Ex.::
+
+    raw_env=['FOO=1', 'BAR=2']
+
 .. _pidfile:
 
 pidfile
