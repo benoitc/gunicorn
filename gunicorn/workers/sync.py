@@ -174,7 +174,7 @@ class SyncWorker(base.Worker):
             if self.nr >= self.max_requests:
                 self.log.info("Autorestarting worker after current request.")
                 self.alive = False
-            respiter = self.wsgi(environ, resp.start_response)
+            respiter = self.wsgi(environ, resp.start_response, **self.cfg.handler_kwargs)
             try:
                 if isinstance(respiter, environ['wsgi.file_wrapper']):
                     resp.write_file(respiter)

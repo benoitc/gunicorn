@@ -50,6 +50,7 @@ class Config(object):
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
+        self.worker_kwargs = {}
 
     def __str__(self):
         lines = []
