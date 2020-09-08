@@ -10,13 +10,17 @@ import signal
 import sys
 import time
 import traceback
-from typing import Any, List, Dict
+from typing import TYPE_CHECKING, Any, List, Dict, Tuple
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
+
+if TYPE_CHECKING:
+    from gunicorn.workers.base import Worker
+    from gunicorn.sock import BaseSocket
 
 
 class Arbiter(object):
@@ -37,8 +41,8 @@ class Arbiter(object):
     START_CTX = {}  # type: Dict[Any, Any]
 
     LISTENERS = []  # type: List[Any]
-    WORKERS = {}  # type: Dict[Any, Any]
-    PIPE = []  # type: List[Any]
+    WORKERS = {}  # type: Dict[int, Worker]
+    PIPE = []  # type: List[Tuple[BaseSocket, BaseSocket]]
 
     # I love dynamic languages
     SIG_QUEUE = []  # type: List[Any]
