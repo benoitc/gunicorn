@@ -53,8 +53,8 @@ def make_settings(ignore=None) -> Dict[str, "Setting"]:
 
 def auto_int(_: "Umask", x: str) -> int:
     # for compatible with octal numbers in python3
-    if re.match(r"0(\d)", x, re.IGNORECASE):
-        x = x.replace("0", "0o", 1)
+    if re.match(r'0(\d)', x, re.IGNORECASE):
+        x = x.replace('0', '0o', 1)
     return int(x, 0)
 
 
@@ -91,21 +91,20 @@ class Config(object):
         self.settings[name].set(value)
 
     def get_cmd_args_from_env(self) -> List[str]:
-        if "GUNICORN_CMD_ARGS" in self.env_orig:
-            return shlex.split(self.env_orig["GUNICORN_CMD_ARGS"])
+        if 'GUNICORN_CMD_ARGS' in self.env_orig:
+            return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])
         return []
 
     def parser(self) -> ArgumentParser:
-        kwargs = {"usage": self.usage, "prog": self.prog}
+        kwargs = {
+            "usage": self.usage,
+            "prog": self.prog
+        }
         parser = argparse.ArgumentParser(**kwargs)  # type: ignore
-        parser.add_argument(
-            "-v",
-            "--version",
-            action="version",
-            default=argparse.SUPPRESS,
-            version="%(prog)s (version " + __version__ + ")\n",
-            help="show program's version number and exit",
-        )
+        parser.add_argument("-v", "--version",
+                            action="version", default=argparse.SUPPRESS,
+                            version="%(prog)s (version " + __version__ + ")\n",
+                            help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = sorted(self.settings, key=self.settings.__getitem__)
@@ -116,20 +115,20 @@ class Config(object):
 
     @property
     def worker_class_str(self):
-        uri = self.settings["worker_class"].get()
+        uri = self.settings['worker_class'].get()
 
         # are we using a threaded worker?
-        is_sync = uri.endswith("SyncWorker") or uri == "sync"
+        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             return "threads"
         return uri
 
     @property
     def worker_class(self) -> Type[Worker]:
-        uri = self.settings["worker_class"].get()
+        uri = self.settings['worker_class'].get()
 
         # are we using a threaded worker?
-        is_sync = uri.endswith("SyncWorker") or uri == "sync"
+        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
 
@@ -140,28 +139,28 @@ class Config(object):
 
     @property
     def address(self) -> List[Tuple[str, int]]:
-        s = self.settings["bind"].get()
+        s = self.settings['bind'].get()
         return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
 
     @property
     def uid(self) -> int:
-        return self.settings["user"].get()
+        return self.settings['user'].get()
 
     @property
     def gid(self) -> int:
-        return self.settings["group"].get()
+        return self.settings['group'].get()
 
     @property
     def proc_name(self) -> str:
-        pn = self.settings["proc_name"].get()
+        pn = self.settings['proc_name'].get()
         if pn is not None:
             return pn
         else:
-            return self.settings["default_proc_name"].get()
+            return self.settings['default_proc_name'].get()
 
     @property
     def logger_class(self) -> Union[Type[Statsd], Type[Logger]]:
-        uri = self.settings["logger_class"].get()
+        uri = self.settings['logger_class'].get()
         if uri == "simple":
             # support the default
             uri = LoggerClass.default
@@ -169,15 +168,13 @@ class Config(object):
         # if default logger is in use, and statsd is on, automagically switch
         # to the statsd logger
         if uri == LoggerClass.default:
-            if (
-                "statsd_host" in self.settings
-                and self.settings["statsd_host"].value is not None
-            ):
+            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
                 uri = "gunicorn.instrument.statsd.Statsd"
 
         logger_class = util.load_class(
-            uri, default="gunicorn.glogging.Logger", section="gunicorn.loggers"
-        )
+            uri,
+            default="gunicorn.glogging.Logger",
+            section="gunicorn.loggers")
 
         if hasattr(logger_class, "install"):
             logger_class.install()
@@ -191,7 +188,7 @@ class Config(object):
     def ssl_options(self):
         opts = {}  # type: Dict[Any, Any]
         for name, value in self.settings.items():
-            if value.section == "SSL":
+            if value.section == 'SSL':
                 opts[name] = value.get()
         return opts
 
@@ -239,11 +236,11 @@ class Config(object):
         for e in raw_global_conf:
             s = util.bytes_to_str(e)
             try:
-                k, v = re.split(r"(?<!\\)=", s, 1)
+                k, v = re.split(r'(?<!\\)=', s, 1)
             except ValueError:
                 raise RuntimeError("environment setting %r invalid" % s)
-            k = k.replace("\\=", "=")
-            v = v.replace("\\=", "=")
+            k = k.replace('\\=', '=')
+            v = v.replace('\\=', '=')
             global_conf[k] = v
 
         return global_conf
@@ -415,10 +412,8 @@ def validate_ssl_version(val: str) -> int:
         # drop this in favour of the more descriptive ValueError below
         pass
 
-    raise ValueError(
-        "Invalid ssl_version: %s. Valid options: %s" % (val, ", ".join(ssl_versions))
-    )
-
+    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
+                     % (val, ', '.join(ssl_versions)))
 
 @overload
 def validate_string(val: None) -> None:
@@ -606,7 +601,6 @@ class ConfigFile(Setting):
            prefix.
         """
 
-
 class WSGIApp(Setting):
     name = "wsgi_app"
     section = "Config File"
@@ -619,7 +613,6 @@ class WSGIApp(Setting):
         .. versionadded:: 20.1.0
         """
 
-
 class Bind(Setting):
     name = "bind"
     action = "append"
@@ -628,10 +621,10 @@ class Bind(Setting):
     meta = "ADDRESS"
     validator = validate_list_string
 
-    if "PORT" in os.environ:
-        default = ["0.0.0.0:{0}".format(os.environ.get("PORT"))]
+    if 'PORT' in os.environ:
+        default = ['0.0.0.0:{0}'.format(os.environ.get('PORT'))]
     else:
-        default = ["127.0.0.1:8000"]
+        default = ['127.0.0.1:8000']
 
     desc = """\
         The socket to bind.
@@ -936,13 +929,13 @@ class LimitRequestFieldSize(Setting):
 
 class Reload(Setting):
     name = "reload"
-    section = "Debugging"
-    cli = ["--reload"]
+    section = 'Debugging'
+    cli = ['--reload']
     validator = validate_bool
-    action = "store_true"
+    action = 'store_true'
     default = False
 
-    desc = """\
+    desc = '''\
         Restart workers when code changes.
 
         This setting is intended for development. It will cause workers to be
@@ -959,7 +952,7 @@ class Reload(Setting):
         .. note::
            In order to use the inotify reloader, you must have the ``inotify``
            package installed.
-        """
+        '''
 
 
 class ReloadEngine(Setting):
@@ -1230,7 +1223,7 @@ class Initgroups(Setting):
     section = "Server Mechanics"
     cli = ["--initgroups"]
     validator = validate_bool
-    action = "store_true"
+    action = 'store_true'
     default = False
 
     desc = """\
@@ -1324,7 +1317,7 @@ class DisableRedirectAccessToSyslog(Setting):
     section = "Logging"
     cli = ["--disable-redirect-access-to-syslog"]
     validator = validate_bool
-    action = "store_true"
+    action = 'store_true'
     default = False
     desc = """\
     Disable redirect access logs to syslog.
@@ -1383,7 +1376,7 @@ class ErrorLog(Setting):
     cli = ["--error-logfile", "--log-file"]
     meta = "FILE"
     validator = validate_string
-    default = "-"
+    default = '-'
     desc = """\
         The Error log file to write to.
 
@@ -1420,7 +1413,7 @@ class CaptureOutput(Setting):
     section = "Logging"
     cli = ["--capture-output"]
     validator = validate_bool
-    action = "store_true"
+    action = 'store_true'
     default = False
     desc = """\
         Redirect stdout/stderr to specified file in :ref:`errorlog`.
@@ -1488,7 +1481,7 @@ class SyslogTo(Setting):
 
     if PLATFORM == "darwin":
         default = "unix:///var/run/syslog"
-    elif PLATFORM in ("freebsd", "dragonfly",):
+    elif PLATFORM in ('freebsd', 'dragonfly', ):
         default = "unix:///var/run/log"
     elif PLATFORM == "openbsd":
         default = "unix:///dev/log"
@@ -1514,7 +1507,7 @@ class Syslog(Setting):
     section = "Logging"
     cli = ["--log-syslog"]
     validator = validate_bool
-    action = "store_true"
+    action = 'store_true'
     default = False
     desc = """\
     Send *Gunicorn* logs to syslog.
@@ -1583,7 +1576,6 @@ class StatsdHost(Setting):
     .. versionadded:: 19.1
     """
 
-
 # Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
 class DogstatsdTags(Setting):
     name = "dogstatsd_tags"
@@ -1597,7 +1589,6 @@ class DogstatsdTags(Setting):
 
     .. versionadded:: 20
     """
-
 
 class StatsdPrefix(Setting):
     name = "statsd_prefix"
@@ -1683,7 +1674,6 @@ class OnStarting(Setting):
 
     def on_starting(server):
         pass
-
     default = staticmethod(on_starting)
     desc = """\
         Called just before the master process is initialized.
@@ -1700,7 +1690,6 @@ class OnReload(Setting):
 
     def on_reload(server):
         pass
-
     default = staticmethod(on_reload)
     desc = """\
         Called to recycle workers during a reload via SIGHUP.
@@ -1717,7 +1706,6 @@ class WhenReady(Setting):
 
     def when_ready(server):
         pass
-
     default = staticmethod(when_ready)
     desc = """\
         Called just after the server is started.
@@ -1734,7 +1722,6 @@ class Prefork(Setting):
 
     def pre_fork(server, worker) -> None:
         pass
-
     default = staticmethod(pre_fork)
     desc = """\
         Called just before a worker is forked.
@@ -1752,7 +1739,6 @@ class Postfork(Setting):
 
     def post_fork(server, worker) -> None:
         pass
-
     default = staticmethod(post_fork)
     desc = """\
         Called just after a worker has been forked.
@@ -1826,7 +1812,6 @@ class PreExec(Setting):
 
     def pre_exec(server) -> None:
         pass
-
     default = staticmethod(pre_exec)
     desc = """\
         Called just before a new master process is forked.
@@ -1843,7 +1828,6 @@ class PreRequest(Setting):
 
     def pre_request(worker, req):
         worker.log.debug("%s %s" % (req.method, req.path))
-
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.
@@ -1861,7 +1845,6 @@ class PostRequest(Setting):
 
     def post_request(worker, req, environ, resp):
         pass
-
     default = staticmethod(post_request)
     desc = """\
         Called after a worker processes the request.
@@ -1879,7 +1862,6 @@ class ChildExit(Setting):
 
     def child_exit(server, worker):
         pass
-
     default = staticmethod(child_exit)
     desc = """\
         Called just after a worker has been exited, in the master process.
@@ -1899,7 +1881,6 @@ class WorkerExit(Setting):
 
     def worker_exit(server, worker):
         pass
-
     default = staticmethod(worker_exit)
     desc = """\
         Called just after a worker has been exited, in the worker process.
@@ -1917,7 +1898,6 @@ class NumWorkersChanged(Setting):
 
     def nworkers_changed(server, new_value: int, old_value) -> None:
         pass
-
     default = staticmethod(nworkers_changed)
     desc = """\
         Called just after *num_workers* has been changed.
