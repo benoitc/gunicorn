@@ -110,6 +110,8 @@ class TornadoWorker(Worker):
             if not isinstance(app, tornado.web.Application) or \
             isinstance(app, tornado.wsgi.WSGIApplication):
                 app = WSGIContainer(app)
+        elif not isinstance(app, WSGIContainer):
+            app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the
         # number of requests being handled by Tornado. This
