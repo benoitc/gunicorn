@@ -539,7 +539,7 @@ class Arbiter(object):
                         try:
                             sig_name = signal.Signals(status).name
                         except ValueError:
-                            sig_name = "code %s".format(status)
+                            sig_name = "code {}".format(status)
                         msg = "Worker (pid:{}) was sent {}!".format(
                             wpid, sig_name)
 
