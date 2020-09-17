@@ -295,8 +295,8 @@ class Arbiter(object):
     def handle_usr2(self):
         """\
         SIGUSR2 handling.
-        Creates a new master/worker set as a slave of the current
-        master without affecting old workers. Use this to do live
+        Creates a new arbiter/worker set as a fork of the current
+        arbiter without affecting old workers. Use this to do live
         deployment with the ability to backout a change.
         """
         self.reexec()
