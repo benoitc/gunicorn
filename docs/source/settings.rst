@@ -304,7 +304,7 @@ older file configuration format.
 
 Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
-For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS```.
+For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
 
 .. versionadded:: 19.8
 
