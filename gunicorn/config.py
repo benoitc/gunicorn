@@ -645,8 +645,9 @@ class Workers(Setting):
         You'll want to vary this a bit to find the best for your particular
         application's work load.
 
-        By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-        If it is not defined, the default is ``1``.
+        By default, the value of the ``WEB_CONCURRENCY`` environment variable,
+        which is set by some Platform-as-a-Service providers such as Heroku. If
+        it is not defined, the default is ``1``.
         """
 
 
