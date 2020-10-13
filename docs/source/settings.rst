@@ -29,6 +29,7 @@ Config File
 ~~~~~~~~~~
 
 **Command line:** ``-c CONFIG`` or ``--config CONFIG``
+
 **Default:** ``'./gunicorn.conf.py'``
 
 The Gunicorn config file.
@@ -65,6 +66,7 @@ Debugging
 ~~~~~~~~~~
 
 **Command line:** ``--reload``
+
 **Default:** ``False``
 
 Restart workers when code changes.
@@ -90,7 +92,8 @@ because it consumes less system resources.
 ~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--reload-engine STRING``
-**Default:** ``auto``
+
+**Default:** ``'auto'``
 
 The implementation that should be used to power :ref:`reload`.
 
@@ -108,6 +111,7 @@ Valid engines are:
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--reload-extra-file FILES``
+
 **Default:** ``[]``
 
 Extends :ref:`reload` option to also watch and reload on additional files
@@ -121,6 +125,7 @@ Extends :ref:`reload` option to also watch and reload on additional files
 ~~~~~~~~
 
 **Command line:** ``--spew``
+
 **Default:** ``False``
 
 Install a trace function that spews every line executed by the server.
@@ -133,10 +138,11 @@ This is the nuclear option.
 ~~~~~~~~~~~~~~~~
 
 **Command line:** ``--check-config``
+
 **Default:** ``False``
 
-Check the configuration and exit. The exit status is 0 if the configuration is
-correct, and 1 if the configuration is incorrect.
+Check the configuration and exit. The exit status is 0 if the
+configuration is correct, and 1 if the configuration is incorrect.
 
 .. _print-config:
 
@@ -144,6 +150,7 @@ correct, and 1 if the configuration is incorrect.
 ~~~~~~~~~~~~~~~~
 
 **Command line:** ``--print-config``
+
 **Default:** ``False``
 
 Print the configuration settings as fully resolved. Implies :ref:`check-config`.
@@ -157,6 +164,7 @@ Logging
 ~~~~~~~~~~~~~
 
 **Command line:** ``--access-logfile FILE``
+
 **Default:** ``None``
 
 The Access log file to write to.
@@ -169,6 +177,7 @@ The Access log file to write to.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--disable-redirect-access-to-syslog``
+
 **Default:** ``False``
 
 Disable redirect access logs to syslog.
@@ -181,6 +190,7 @@ Disable redirect access logs to syslog.
 ~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--access-logformat STRING``
+
 **Default:** ``'%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'``
 
 The access log format.
@@ -223,6 +233,7 @@ Use lowercase for header and environment variable names, and put
 ~~~~~~~~~~~~
 
 **Command line:** ``--error-logfile FILE`` or ``--log-file FILE``
+
 **Default:** ``'-'``
 
 The Error log file to write to.
@@ -238,6 +249,7 @@ Using ``'-'`` for FILE makes gunicorn log to stderr.
 ~~~~~~~~~~~~
 
 **Command line:** ``--log-level LEVEL``
+
 **Default:** ``'info'``
 
 The granularity of Error log outputs.
@@ -256,6 +268,7 @@ Valid level names are:
 ~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--capture-output``
+
 **Default:** ``False``
 
 Redirect stdout/stderr to specified file in :ref:`errorlog`.
@@ -264,10 +277,11 @@ Redirect stdout/stderr to specified file in :ref:`errorlog`.
 
 .. _logger-class:
 
-logger_class
-~~~~~~~~~~~~
+``logger_class``
+~~~~~~~~~~~~~~~~
 
 **Command line:** ``--logger-class STRING``
+
 **Default:** ``'gunicorn.glogging.Logger'``
 
 The logger you want to use to log events in Gunicorn.
@@ -275,8 +289,8 @@ The logger you want to use to log events in Gunicorn.
 The default class (``gunicorn.glogging.Logger``) handles most
 normal usages in logging. It provides error and access logging.
 
-You can provide your own logger by giving Gunicorn a
-Python path to a subclass of ``gunicorn.glogging.Logger``.
+You can provide your own logger by giving Gunicorn a Python path to a
+class that quacks like ``gunicorn.glogging.Logger``.
 
 .. _logconfig:
 
@@ -284,6 +298,7 @@ Python path to a subclass of ``gunicorn.glogging.Logger``.
 ~~~~~~~~~~~~~
 
 **Command line:** ``--log-config FILE``
+
 **Default:** ``None``
 
 The log config file to use.
@@ -296,6 +311,7 @@ file format.
 ~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--log-config-dict``
+
 **Default:** ``{}``
 
 The log config dictionary to use, using the standard Python
@@ -313,6 +329,7 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.dic
 ~~~~~~~~~~~~~~~
 
 **Command line:** ``--log-syslog-to SYSLOG_ADDR``
+
 **Default:** ``'unix:///var/run/syslog'``
 
 Address to send syslog messages.
@@ -331,6 +348,7 @@ Address is a string of the form:
 ~~~~~~~~~~
 
 **Command line:** ``--log-syslog``
+
 **Default:** ``False``
 
 Send *Gunicorn* logs to syslog.
@@ -345,6 +363,7 @@ Send *Gunicorn* logs to syslog.
 ~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--log-syslog-prefix SYSLOG_PREFIX``
+
 **Default:** ``None``
 
 Makes Gunicorn use the parameter as program-name in the syslog entries.
@@ -358,6 +377,7 @@ program name is the name of the process.
 ~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--log-syslog-facility SYSLOG_FACILITY``
+
 **Default:** ``'user'``
 
 Syslog facility name
@@ -367,7 +387,8 @@ Syslog facility name
 ``enable_stdio_inheritance``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Command line:** ``-R, --enable-stdio-inheritance``
+**Command line:** ``-R`` or ``--enable-stdio-inheritance``
+
 **Default:** ``False``
 
 Enable stdio inheritance.
@@ -383,6 +404,7 @@ environment variable ``PYTHONUNBUFFERED`` .
 ~~~~~~~~~~~~~~~
 
 **Command line:** ``--statsd-host STATSD_ADDR``
+
 **Default:** ``None``
 
 ``host:port`` of the statsd server to log to.
@@ -395,10 +417,11 @@ environment variable ``PYTHONUNBUFFERED`` .
 ~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--dogstatsd-tags DOGSTATSD_TAGS``
+
 **Default:** ``''``
 
-A comma-delimited list of datadog statsd (dogstatsd) tags to append to statsd
-metrics.
+A comma-delimited list of datadog statsd (dogstatsd) tags to append to
+statsd metrics.
 
 .. versionadded:: 20
 
@@ -408,6 +431,7 @@ metrics.
 ~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--statsd-prefix STATSD_PREFIX``
+
 **Default:** ``''``
 
 Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
@@ -423,7 +447,8 @@ Process Naming
 ``proc_name``
 ~~~~~~~~~~~~~
 
-**Command line:** ``-n STRING, --name STRING``
+**Command line:** ``-n STRING`` or ``--name STRING``
+
 **Default:** ``None``
 
 A base to use with setproctitle for process naming.
@@ -453,9 +478,10 @@ SSL
 ~~~~~~~~~~~
 
 **Command line:** ``--keyfile FILE``
+
 **Default:** ``None``
 
-Path to the SSL key file.
+SSL key file
 
 .. _certfile:
 
@@ -463,9 +489,10 @@ Path to the SSL key file.
 ~~~~~~~~~~~~
 
 **Command line:** ``--certfile FILE``
+
 **Default:** ``None``
 
-Path to the SSL certificate file.
+SSL certificate file
 
 .. _ssl-version:
 
@@ -473,7 +500,8 @@ Path to the SSL certificate file.
 ~~~~~~~~~~~~~~~
 
 **Command line:** ``--ssl-version``
-**Default:** ``_SSLMethod.PROTOCOL_TLS``
+
+**Default:** ``<_SSLMethod.PROTOCOL_TLS: 2>``
 
 SSL version to use.
 
@@ -505,19 +533,21 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 ~~~~~~~~~~~~~
 
 **Command line:** ``--cert-reqs``
-**Default:** ``VerifyMode.CERT_NONE``
 
-Whether client certificate is required (see stdlib ssl module's).
+**Default:** ``<VerifyMode.CERT_NONE: 0>``
+
+Whether client certificate is required (see stdlib ssl module's)
 
 .. _ca-certs:
 
 ``ca_certs``
 ~~~~~~~~~~~~
 
-* ``--ca-certs FILE``
-* ``None``
+**Command line:** ``--ca-certs FILE``
 
-Path to the CA certificates file.
+**Default:** ``None``
+
+CA certificates file
 
 .. _suppress-ragged-eofs:
 
@@ -525,6 +555,7 @@ Path to the CA certificates file.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--suppress-ragged-eofs``
+
 **Default:** ``True``
 
 Suppress ragged EOFs (see stdlib ssl module's)
@@ -535,6 +566,7 @@ Suppress ragged EOFs (see stdlib ssl module's)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--do-handshake-on-connect``
+
 **Default:** ``False``
 
 Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
@@ -545,6 +577,7 @@ Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
 ~~~~~~~~~~~
 
 **Command line:** ``--ciphers``
+
 **Default:** ``None``
 
 SSL Cipher suite to use, in the format of an OpenSSL cipher list.
@@ -571,6 +604,7 @@ Security
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--limit-request-line INT``
+
 **Default:** ``4094``
 
 The maximum size of HTTP request line in bytes.
@@ -592,6 +626,7 @@ This parameter can be used to prevent any DDOS attack.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--limit-request-fields INT``
+
 **Default:** ``100``
 
 Limit the number of HTTP headers fields in a request.
@@ -607,6 +642,7 @@ more safety. By default this value is 100 and can't be larger than
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--limit-request-field_size INT``
+
 **Default:** ``8190``
 
 Limit the allowed size of an HTTP request header field.
@@ -621,20 +657,17 @@ header field sizes.
 Server Hooks
 ------------
 
-Define these functions with these names in your configuration file and Gunicorn
-will call them at the appropriate times during the server lifecycle.
-
 .. _on-starting:
 
 ``on_starting``
 ~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def on_starting(server):
-        pass
+        def on_starting(server):
+            pass
 
 Called just before the master process is initialized.
 
@@ -645,12 +678,12 @@ The callable needs to accept a single instance variable for the Arbiter.
 ``on_reload``
 ~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def on_reload(server):
-        pass
+        def on_reload(server):
+            pass
 
 Called to recycle workers during a reload via SIGHUP.
 
@@ -661,12 +694,12 @@ The callable needs to accept a single instance variable for the Arbiter.
 ``when_ready``
 ~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def when_ready(server):
-        pass
+        def when_ready(server):
+            pass
 
 Called just after the server is started.
 
@@ -677,12 +710,12 @@ The callable needs to accept a single instance variable for the Arbiter.
 ``pre_fork``
 ~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def pre_fork(server, worker):
-        pass
+        def pre_fork(server, worker):
+            pass
 
 Called just before a worker is forked.
 
@@ -694,12 +727,12 @@ new Worker.
 ``post_fork``
 ~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def post_fork(server, worker):
-        pass
+        def post_fork(server, worker):
+            pass
 
 Called just after a worker has been forked.
 
@@ -711,12 +744,12 @@ new Worker.
 ``post_worker_init``
 ~~~~~~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def post_worker_init(worker):
-        pass
+        def post_worker_init(worker):
+            pass
 
 Called just after a worker has initialized the application.
 
@@ -728,12 +761,12 @@ Worker.
 ``worker_int``
 ~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def worker_int(worker):
-        pass
+        def worker_int(worker):
+            pass
 
 Called just after a worker exited on SIGINT or SIGQUIT.
 
@@ -745,12 +778,12 @@ Worker.
 ``worker_abort``
 ~~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def worker_abort(worker):
-        pass
+        def worker_abort(worker):
+            pass
 
 Called when a worker received the SIGABRT signal.
 
@@ -764,12 +797,12 @@ Worker.
 ``pre_exec``
 ~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def pre_exec(server):
-        pass
+        def pre_exec(server):
+            pass
 
 Called just before a new master process is forked.
 
@@ -780,12 +813,12 @@ The callable needs to accept a single instance variable for the Arbiter.
 ``pre_request``
 ~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        def pre_request(worker, req):
+            worker.log.debug("%s %s" % (req.method, req.path))
 
 Called just before a worker processes the request.
 
@@ -797,12 +830,12 @@ the Request.
 ``post_request``
 ~~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def post_request(worker, req, environ, resp):
-        pass
+        def post_request(worker, req, environ, resp):
+            pass
 
 Called after a worker processes the request.
 
@@ -814,12 +847,12 @@ the Request.
 ``child_exit``
 ~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def child_exit(server, worker):
-        pass
+        def child_exit(server, worker):
+            pass
 
 Called just after a worker has been exited, in the master process.
 
@@ -833,12 +866,12 @@ the just-exited Worker.
 ``worker_exit``
 ~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def worker_exit(server, worker):
-        pass
+        def worker_exit(server, worker):
+            pass
 
 Called just after a worker has been exited, in the worker process.
 
@@ -850,12 +883,12 @@ the just-exited Worker.
 ``nworkers_changed``
 ~~~~~~~~~~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def nworkers_changed(server, new_value, old_value):
-        pass
+        def nworkers_changed(server, new_value, old_value):
+            pass
 
 Called just after *num_workers* has been changed.
 
@@ -870,12 +903,12 @@ be ``None``.
 ``on_exit``
 ~~~~~~~~~~~
 
-Signature:
+**Default:** 
 
 .. code-block:: python
 
-    def on_exit(server):
-        pass
+        def on_exit(server):
+            pass
 
 Called just before exiting Gunicorn.
 
@@ -890,6 +923,7 @@ Server Mechanics
 ~~~~~~~~~~~~~~~
 
 **Command line:** ``--preload``
+
 **Default:** ``False``
 
 Load application code before the worker processes are forked.
@@ -905,6 +939,7 @@ restarting workers.
 ~~~~~~~~~~~~
 
 **Command line:** ``--no-sendfile``
+
 **Default:** ``None``
 
 Disables the use of ``sendfile()``.
@@ -925,6 +960,7 @@ to enable or disable its usage.
 ~~~~~~~~~~~~~~
 
 **Command line:** ``--reuse-port``
+
 **Default:** ``False``
 
 Set the ``SO_REUSEPORT`` flag on the listening socket.
@@ -937,9 +973,10 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 ~~~~~~~~~
 
 **Command line:** ``--chdir``
-**Default:** ``'/usr/src/app'``
 
-Change to the specified directory before loading apps.
+**Default:** ``'/Users/chainz/Documents/Projects/gunicorn/docs'``
+
+Change directory to specified directory before loading apps.
 
 .. _daemon:
 
@@ -947,6 +984,7 @@ Change to the specified directory before loading apps.
 ~~~~~~~~~~
 
 **Command line:** ``-D`` or ``--daemon``
+
 **Default:** ``False``
 
 Daemonize the Gunicorn process.
@@ -960,13 +998,14 @@ background.
 ~~~~~~~~~~~
 
 **Command line:** ``-e ENV`` or ``--env ENV``
+
 **Default:** ``[]``
 
 Set environment variables in the execution environment.
 
 Should be a list of strings in the ``key=value`` format.
 
-For example:
+For example on the command line:
 
 .. code-block:: console
 
@@ -984,6 +1023,7 @@ Or in the configuration file:
 ~~~~~~~~~~~
 
 **Command line:** ``-p FILE`` or ``--pid FILE``
+
 **Default:** ``None``
 
 A filename to use for the PID file.
@@ -996,6 +1036,7 @@ If not set, no PID file will be written.
 ~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--worker-tmp-dir DIR``
+
 **Default:** ``None``
 
 A directory to use for the worker heartbeat temporary file.
@@ -1016,6 +1057,7 @@ If not set, the default temporary directory will be used.
 ~~~~~~~~
 
 **Command line:** ``-u USER`` or ``--user USER``
+
 **Default:** ``501``
 
 Switch worker processes to run as this user.
@@ -1030,6 +1072,7 @@ change the worker process user.
 ~~~~~~~~~
 
 **Command line:** ``-g GROUP`` or ``--group GROUP``
+
 **Default:** ``20``
 
 Switch worker process to run as this group.
@@ -1044,6 +1087,7 @@ change the worker processes group.
 ~~~~~~~~~
 
 **Command line:** ``-m INT`` or ``--umask INT``
+
 **Default:** ``0``
 
 A bit mask for the file mode on files written by Gunicorn.
@@ -1061,6 +1105,7 @@ representations)
 ~~~~~~~~~~~~~~
 
 **Command line:** ``--initgroups``
+
 **Default:** ``False``
 
 If true, set the worker process's group access list with all of the
@@ -1110,6 +1155,7 @@ the headers defined here can not be passed directly from the client.
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--forwarded-allow-ips STRING``
+
 **Default:** ``'127.0.0.1'``
 
 Front-end's IPs from which allowed to handle set secure headers.
@@ -1128,6 +1174,7 @@ variable. If it is not defined, the default is ``"127.0.0.1"``.
 ~~~~~~~~~~~~~~
 
 **Command line:** ``--pythonpath STRING``
+
 **Default:** ``None``
 
 A comma-separated list of directories to add to the Python path.
@@ -1141,6 +1188,7 @@ e.g.
 ~~~~~~~~~
 
 **Command line:** ``--paste STRING`` or ``--paster STRING``
+
 **Default:** ``None``
 
 Load a PasteDeploy config file. The argument may contain a ``#``
@@ -1156,6 +1204,7 @@ command line arguments to control server configuration instead.
 ~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--proxy-protocol``
+
 **Default:** ``False``
 
 Enable detect PROXY protocol (PROXY mode).
@@ -1180,6 +1229,7 @@ Example for stunnel config::
 ~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--proxy-allow-from``
+
 **Default:** ``'127.0.0.1'``
 
 Front-end's IPs from which allowed accept proxy requests (comma separate).
@@ -1194,6 +1244,7 @@ you still trust the environment)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--paste-global CONF``
+
 **Default:** ``[]``
 
 Set a PasteDeploy global config variable in ``key=value`` form.
@@ -1212,6 +1263,7 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--strip-header-spaces``
+
 **Default:** ``False``
 
 Strip spaces present between the header name and the the ``:``.
@@ -1229,7 +1281,8 @@ Server Socket
 ``bind``
 ~~~~~~~~
 
-**Command line:** ``-b ADDRESS, --bind ADDRESS``
+**Command line:** ``-b ADDRESS`` or ``--bind ADDRESS``
+
 **Default:** ``['127.0.0.1:8000']``
 
 The socket to bind.
@@ -1257,6 +1310,7 @@ is ``['127.0.0.1:8000']``.
 ~~~~~~~~~~~
 
 **Command line:** ``--backlog INT``
+
 **Default:** ``2048``
 
 The maximum number of pending connections.
@@ -1276,7 +1330,8 @@ Worker Processes
 ``workers``
 ~~~~~~~~~~~
 
-**Command line:** ``-w INT, --workers INT``
+**Command line:** ``-w INT`` or ``--workers INT``
+
 **Default:** ``1``
 
 The number of worker processes for handling requests.
@@ -1294,6 +1349,7 @@ If it is not defined, the default is ``1``.
 ~~~~~~~~~~~~~~~~
 
 **Command line:** ``-k STRING`` or ``--worker-class STRING``
+
 **Default:** ``'sync'``
 
 The type of workers to use.
@@ -1326,6 +1382,7 @@ This alternative syntax will load the gevent class:
 ~~~~~~~~~~~
 
 **Command line:** ``--threads INT``
+
 **Default:** ``1``
 
 The number of worker threads for handling requests.
@@ -1351,6 +1408,7 @@ This setting only affects the Gthread worker type.
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--worker-connections INT``
+
 **Default:** ``1000``
 
 The maximum number of simultaneous clients.
@@ -1363,6 +1421,7 @@ This setting only affects the Eventlet and Gevent worker types.
 ~~~~~~~~~~~~~~~~
 
 **Command line:** ``--max-requests INT``
+
 **Default:** ``0``
 
 The maximum number of requests a worker will process before restarting.
@@ -1380,6 +1439,7 @@ restarts are disabled.
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--max-requests-jitter INT``
+
 **Default:** ``0``
 
 The maximum jitter to add to the *max_requests* setting.
@@ -1396,6 +1456,7 @@ restarts to avoid all workers restarting at the same time.
 ~~~~~~~~~~~
 
 **Command line:** ``-t INT`` or ``--timeout INT``
+
 **Default:** ``30``
 
 Workers silent for more than this many seconds are killed and restarted.
@@ -1415,6 +1476,7 @@ single request.
 ~~~~~~~~~~~~~~~~~~~~
 
 **Command line:** ``--graceful-timeout INT``
+
 **Default:** ``30``
 
 Timeout for graceful workers restart.
@@ -1429,6 +1491,7 @@ the receipt of the restart signal) are force killed.
 ~~~~~~~~~~~~~
 
 **Command line:** ``--keep-alive INT``
+
 **Default:** ``2``
 
 The number of seconds to wait for requests on a Keep-Alive connection.

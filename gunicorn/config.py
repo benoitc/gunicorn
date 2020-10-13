@@ -929,9 +929,9 @@ class ReloadEngine(Setting):
 
         Valid engines are:
 
-        * 'auto'
-        * 'poll'
-        * 'inotify' (requires inotify)
+        * ``'auto'``
+        * ``'poll'``
+        * ``'inotify'`` (requires inotify)
 
         .. versionadded:: 19.7
         """
@@ -975,7 +975,8 @@ class ConfigCheck(Setting):
     action = "store_true"
     default = False
     desc = """\
-        Check the configuration.
+        Check the configuration and exit. The exit status is 0 if the
+        configuration is correct, and 1 if the configuration is incorrect.
         """
 
 
@@ -1053,7 +1054,7 @@ class Chdir(Setting):
     validator = validate_chdir
     default = util.getcwd()
     desc = """\
-        Chdir to specified directory before apps loading.
+        Change directory to specified directory before loading apps.
         """
 
 
@@ -1082,13 +1083,21 @@ class Env(Setting):
     default = []
 
     desc = """\
-        Set environment variable (key=value).
+        Set environment variables in the execution environment.
 
-        Pass variables to the execution environment. Ex.::
+        Should be a list of strings in the ``key=value`` format.
+
+        For example on the command line:
+
+        .. code-block:: console
 
             $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
 
-        and test for the foo variable environment in your application.
+        Or in the configuration file:
+
+        .. code-block:: python
+
+            raw_env = ["FOO=1"]
         """
 
 
@@ -1362,11 +1371,11 @@ class Loglevel(Setting):
 
         Valid level names are:
 
-        * debug
-        * info
-        * warning
-        * error
-        * critical
+        * ``'debug'``
+        * ``'info'``
+        * ``'warning'``
+        * ``'error'``
+        * ``'critical'``
         """
 
 
@@ -1394,11 +1403,11 @@ class LoggerClass(Setting):
     desc = """\
         The logger you want to use to log events in Gunicorn.
 
-        The default class (``gunicorn.glogging.Logger``) handle most of
+        The default class (``gunicorn.glogging.Logger``) handles most
         normal usages in logging. It provides error and access logging.
 
-        You can provide your own logger by giving Gunicorn a
-        Python path to a subclass like ``gunicorn.glogging.Logger``.
+        You can provide your own logger by giving Gunicorn a Python path to a
+        class that quacks like ``gunicorn.glogging.Logger``.
         """
 
 
@@ -1547,7 +1556,8 @@ class DogstatsdTags(Setting):
     default = ""
     validator = validate_string
     desc = """\
-    A comma-delimited list of datadog statsd (dogstatsd) tags to append to statsd metrics.
+    A comma-delimited list of datadog statsd (dogstatsd) tags to append to
+    statsd metrics.
 
     .. versionadded:: 20
     """
@@ -2102,9 +2112,9 @@ class StripHeaderSpaces(Setting):
     default = False
     desc = """\
         Strip spaces present between the header name and the the ``:``.
-        
+
         This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
         See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
-        
+
         Use with care and only if necessary.
         """
