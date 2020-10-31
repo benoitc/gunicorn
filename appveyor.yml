@@ -9,11 +9,16 @@ environment:
       PYTHON: "C:\\Python36-x64"
     - TOXENV: py37
       PYTHON: "C:\\Python37-x64"
+    - TOXENV: py39
+      PYTHON: "C:\\Python39-x64"
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
 matrix:
   allow_failures:
     - TOXENV: py35
     - TOXENV: py36
     - TOXENV: py37
+    - TOXENV: py39
 init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 install:
   - pip install tox
