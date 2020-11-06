@@ -19,6 +19,8 @@ matrix:
       dist: xenial
     - python: 3.8
       env: TOXENV=py38
+    - python: 3.9
+      env: TOXENV=py39
     - python: 3.8
       env: TOXENV=docs-lint
 install: pip install -U tox coverage
