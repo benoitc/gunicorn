@@ -491,8 +491,11 @@ class Arbiter(object):
             return
         workers = list(self.WORKERS.items())
         for (pid, worker) in workers:
+            timeout = self.timeout
+            if worker.aborted:
+                timeout += self.cfg.graceful_timeout
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                if time.time() - worker.tmp.last_update() <= timeout:
                     continue
             except (OSError, ValueError):
                 continue
