@@ -10,8 +10,8 @@ The environment variables used are based on the configuration document below.
 Dockerfile Build   
 
 ```shell script
-$ cd docker
-$ docker build --tag [IMAGE_NAME]:[VERSION]
+$ cd ./examples/docker
+$ docker build --tag [IMAGE_NAME]:[VERSION] .
 ```
 
 example
@@ -37,12 +37,9 @@ example
 ```shell script
  $ docker run -it -v ${PWD}:/work/  \ 
               -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
-              -e START_OPTION=sample.main:app \ 
-              -e WORKER_CLASS=gevent \ 
-              -e BIND='0.0.0.0:80' \ 
-              0b46bd4396d8
+              -e START_OPTION="-b 0.0.0.0:80 sample.main:app" \
+              gunicorn:0.1
 ```
-
 ### **requirements.txt**  
 You need to record the framework you use in your `requirements.txt` file as a dependency.  
 
@@ -64,7 +61,7 @@ All environment variables other than `$REQUIRENMENTS_FILE_PATH` and `$START_OPTI
               -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
               -e CONFIG_FILE_PATH=/work/sample/gunicorn.conf.py \   
               -e START_OPTION=sample.main:app \ 
-              0b46bd4396d8
+              gunicorn:0.1
 ```
 
     
@@ -74,35 +71,16 @@ All environment variables other than `$REQUIRENMENTS_FILE_PATH` and `$START_OPTI
 
 ### Environment variables required
 * START_OPTION  
-    * It means `APP_MODULE`.
+    * This mean the full gunicorn cli command, including `APP_MODULE`.
+    * However, if you want to set the configuration, I recommend using `gunicorn.conf.py` with the `CONFIG FILE PATH` option.
 
 * REQUIRENMENTS_FILE_PATH
     * means `requirements.txt`
 
+* CONFIG_FILE_PATH
+    * means `gunicorn.conf.py` files path
 
 All other environment variables are based on the following documentation.  
 [Configuration Document](https://github.com/benoitc/gunicorn/blob/master/examples/example_config.py)
 
-* Additional environment variables  
-`BIND`  
-`BACKLOG`  
-`WORKERS`  
-`WORKER_CLASS`  
-`WORKER_CONNECTIONS`  
-`TIMEOUT`  
-`KEEPALIVE`  
-`SPEW`  
-`DAEMON`  
-`RAW_ENV`  
-`PID_FILE`  
-`UMASK`  
-`USER`  
-`GROUP`  
-`TMP_PULOAD_DIR`  
-`ERROR_LOG`  
-`LOG_LEVEL`  
-`ACCESS_LOG`  
-`ACCESS_LOG_FORMAT`  
-`PROC_NAME`  
-`THREAD_COUNT`  
 
