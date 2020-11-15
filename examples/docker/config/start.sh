@@ -1,9 +1,10 @@
 #!/bin/bash
 
-if [ -n "$CONFIG_FILE_PATH" ] && [ "$CONFIG_FILE_PATH" == "/config/config.py" ]; then
-  bash /config/config.sh
+pip3 install gunicorn &&\
+if [ -n "$REQUIRENMENTS_FILE_PATH" ]; then
+  pip install -r "$REQUIRENMENTS_FILE_PATH"
 fi &&\
-bash /config/install.sh &&\
-gunicorn -c `echo -e "$CONFIG_FILE_PATH"` `echo -e "$START_OPTION"`
-
-
+if [ -n "$CONFIG_FILE_PATH" ]; then
+  gunicorn -c `echo -e "$CONFIG_FILE_PATH"` `echo -e "$START_OPTION"`
+fi &&\
+gunicorn `echo -e "$START_OPTION"`
