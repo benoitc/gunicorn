@@ -37,9 +37,9 @@ pass them along as if you're directly giving them to Gunicorn:
 .. code-block:: bash
 
    # Custom parameters
-   $ python gunicorn.app.wsgiapp exampleapi:app --bind=0.0.0.0:8081 --workers=4
+   $ python -m gunicorn.app.wsgiapp exampleapi:app --bind=0.0.0.0:8081 --workers=4
    # Using a config file
-   $ python gunicorn.app.wsgiapp exampleapi:app -c config.py
+   $ python -m gunicorn.app.wsgiapp exampleapi:app -c config.py
     
 Note for those using PEX: use ``-c gunicorn`` as your entry at build
 time, and your compiled app should work with the entry point passed to it at
