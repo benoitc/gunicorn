@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 import ast
-import ctypes.util
 import email.utils
 import errno
 import fcntl
@@ -56,7 +55,7 @@ except ImportError:
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
-        section="gunicorn.workers"):
+               section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -70,7 +69,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
 
         try:
             return pkg_resources.load_entry_point(dist, section, name)
-        except:
+        except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
             raise RuntimeError(msg % (uri, exc))
@@ -86,9 +85,10 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point("gunicorn",
-                                section, uri)
-                except:
+                    return pkg_resources.load_entry_point(
+                        "gunicorn", section, uri
+                    )
+                except Exception:
                     exc = traceback.format_exc()
                     msg = "class uri %r invalid or not found: \n\n[%s]"
                     raise RuntimeError(msg % (uri, exc))
@@ -259,6 +259,7 @@ def close(sock):
         sock.close()
     except socket.error:
         pass
+
 
 try:
     from os import closerange
@@ -439,7 +440,7 @@ def getcwd():
             cwd = os.environ['PWD']
         else:
             cwd = os.getcwd()
-    except:
+    except Exception:
         cwd = os.getcwd()
     return cwd
 
@@ -636,34 +637,3 @@ def bytes_to_str(b):
 
 def unquote_to_wsgi_str(string):
     return urllib.parse.unquote_to_bytes(string).decode('latin-1')
-
-
-def _findWalk_ldpath(name):
-    def _is_elf(filepath):
-        try:
-            with open(filepath, 'rb') as fh:
-                return fh.read(4) == b'\x7fELF'
-        except:
-            return False
-    from glob import glob
-    if os.path.isabs(name):
-        return name
-
-    # search LD_LIBRARY_PATH list
-    paths = ['/lib', '/usr/local/lib', '/usr/lib']
-    if 'LD_LIBRARY_PATH' in os.environ:
-        paths = os.environ['LD_LIBRARY_PATH'].split(':') + paths
-
-    for d in paths:
-        f = os.path.join(d, name)
-        if _is_elf(f):
-            return os.path.basename(f)
-        prefix = os.path.join(d, 'lib'+name)
-        for suffix in ['so', 'so.*', '*.so.*', 'a']:
-            for f in glob('{0}.{1}'.format(prefix, suffix)):
-                if _is_elf(f) or suffix == 'a':
-                    return os.path.basename(f)
-
-
-def find_library(name):
-    return ctypes.util.find_library(name) or _findWalk_ldpath(name)

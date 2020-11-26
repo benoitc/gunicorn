@@ -42,6 +42,17 @@ application specific configuration.
    Loading the config from a Python module requires the ``python:``
    prefix.
 
+.. _wsgi-app:
+
+wsgi_app
+~~~~~~~~
+
+* ``None``
+
+A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+
+.. versionadded:: 20.1.0
+
 Debugging
 ---------
 
@@ -123,6 +134,16 @@ check_config
 
 Check the configuration.
 
+.. _print-config:
+
+print_config
+~~~~~~~~~~~~
+
+* ``--print-config``
+* ``False``
+
+Print the configuration settings as fully resolved. Implies :ref:`check-config`.
+
 Logging
 -------
 
@@ -178,6 +199,7 @@ b            response length or ``'-'`` (CLF format)
 f            referer
 a            user agent
 T            request time in seconds
+M            request time in milliseconds
 D            request time in microseconds
 L            request time in decimal seconds
 p            process ID
@@ -1138,6 +1160,21 @@ The variables are passed to the the PasteDeploy entrypoint. Example::
 
 .. versionadded:: 19.7
 
+.. _strip-header-spaces:
+
+strip_header_spaces
+~~~~~~~~~~~~~~~~~~~
+
+* ``--strip-header-spaces``
+* ``False``
+
+Strip spaces present between the header name and the the ``:``.
+
+This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
+
+Use with care and only if necessary.
+
 Server Socket
 -------------
 
@@ -1163,6 +1200,10 @@ Multiple addresses can be bound. ex.::
 
 will bind the `test:app` application on localhost both on ipv6
 and ipv4 interfaces.
+
+If the ``PORT`` environment variable is defined, the default
+is ``['0.0.0.0:$PORT']``. If it is not defined, the default
+is ``['127.0.0.1:8000']``.
 
 .. _backlog:
 
@@ -1313,10 +1354,14 @@ timeout
 
 Workers silent for more than this many seconds are killed and restarted.
 
-Generally set to thirty seconds. Only set this noticeably higher if
-you're sure of the repercussions for sync workers. For the non sync
-workers it just means that the worker process is still communicating and
-is not tied to the length of time required to handle a single request.
+Value is a positive number or 0. Setting it to 0 has the effect of
+infinite timeouts by disabling timeouts for all workers entirely.
+
+Generally, the default of thirty seconds should suffice. Only set this
+noticeably higher if you're sure of the repercussions for sync workers.
+For the non sync workers it just means that the worker process is still
+communicating and is not tied to the length of time required to handle a
+single request.
 
 .. _graceful-timeout:
 

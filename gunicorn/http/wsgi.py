@@ -11,7 +11,7 @@ import sys
 
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn import SERVER_SOFTWARE
+from gunicorn import SERVER_SOFTWARE, SERVER
 import gunicorn.util as util
 
 # Send files in at most 1GB blocks as some operating systems can have problems
@@ -195,7 +195,7 @@ class Response(object):
     def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
-        self.version = SERVER_SOFTWARE
+        self.version = SERVER
         self.status = None
         self.chunked = False
         self.must_close = False
@@ -303,7 +303,7 @@ class Response(object):
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
@@ -360,12 +360,6 @@ class Response(object):
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
                 filesize = os.fstat(fileno).st_size
-
-                # The file may be special and sendfile will fail.
-                # It may also be zero-length, but that is okay.
-                if filesize == 0:
-                    return False
-
                 nbytes = filesize - offset
             else:
                 nbytes = self.response_length
@@ -378,12 +372,7 @@ class Response(object):
             chunk_size = "%X\r\n" % nbytes
             self.sock.sendall(chunk_size.encode('utf-8'))
 
-        sockno = self.sock.fileno()
-        sent = 0
-
-        while sent != nbytes:
-            count = min(nbytes - sent, BLKSIZE)
-            sent += os.sendfile(sockno, fileno, offset + sent, count)
+        self.sock.sendfile(respiter.filelike, count=nbytes)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")

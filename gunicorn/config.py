@@ -51,6 +51,16 @@ class Config(object):
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
 
+    def __str__(self):
+        lines = []
+        kmax = max(len(k) for k in self.settings)
+        for k in sorted(self.settings):
+            v = self.settings[k].value
+            if callable(v):
+                v = "<{}()>".format(v.__qualname__)
+            lines.append("{k:{kmax}} = {v}".format(k=k, v=v, kmax=kmax))
+        return "\n".join(lines)
+
     def __getattr__(self, name):
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
@@ -78,9 +88,9 @@ class Config(object):
         }
         parser = argparse.ArgumentParser(**kwargs)
         parser.add_argument("-v", "--version",
-                action="version", default=argparse.SUPPRESS,
-                version="%(prog)s (version " + __version__ + ")\n",
-                help="show program's version number and exit")
+                            action="version", default=argparse.SUPPRESS,
+                            version="%(prog)s (version " + __version__ + ")\n",
+                            help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = sorted(self.settings, key=self.settings.__getitem__)
@@ -93,7 +103,7 @@ class Config(object):
     def worker_class_str(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             return "threads"
@@ -103,7 +113,7 @@ class Config(object):
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
@@ -524,7 +534,7 @@ def validate_reload_engine(val):
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
-            'gunicorn.conf.py')
+                               'gunicorn.conf.py')
     if os.path.exists(config_path):
         return config_path
     return None
@@ -548,6 +558,18 @@ class ConfigFile(Setting):
         .. versionchanged:: 19.4
            Loading the config from a Python module requires the ``python:``
            prefix.
+        """
+
+class WSGIApp(Setting):
+    name = "wsgi_app"
+    section = "Config File"
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+
+        .. versionadded:: 20.1.0
         """
 
 class Bind(Setting):
@@ -578,6 +600,10 @@ class Bind(Setting):
 
         will bind the `test:app` application on localhost both on ipv6
         and ipv4 interfaces.
+
+        If the ``PORT`` environment variable is defined, the default
+        is ``['0.0.0.0:$PORT']``. If it is not defined, the default
+        is ``['127.0.0.1:8000']``.
         """
 
 
@@ -653,6 +679,7 @@ class WorkerClass(Setting):
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
         """
+
 
 class WorkerThreads(Setting):
     name = "threads"
@@ -747,10 +774,14 @@ class Timeout(Setting):
     desc = """\
         Workers silent for more than this many seconds are killed and restarted.
 
-        Generally set to thirty seconds. Only set this noticeably higher if
-        you're sure of the repercussions for sync workers. For the non sync
-        workers it just means that the worker process is still communicating and
-        is not tied to the length of time required to handle a single request.
+        Value is a positive number or 0. Setting it to 0 has the effect of
+        infinite timeouts by disabling timeouts for all workers entirely.
+
+        Generally, the default of thirty seconds should suffice. Only set this
+        noticeably higher if you're sure of the repercussions for sync workers.
+        For the non sync workers it just means that the worker process is still
+        communicating and is not tied to the length of time required to handle a
+        single request.
         """
 
 
@@ -945,6 +976,18 @@ class ConfigCheck(Setting):
         """
 
 
+class PrintConfig(Setting):
+    name = "print_config"
+    section = "Debugging"
+    cli = ["--print-config"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Print the configuration settings as fully resolved. Implies :ref:`check-config`.
+        """
+
+
 class PreloadApp(Setting):
     name = "preload_app"
     section = "Server Mechanics"
@@ -1025,6 +1068,7 @@ class Daemon(Setting):
         background.
         """
 
+
 class Env(Setting):
     name = "raw_env"
     action = "append"
@@ -1057,6 +1101,7 @@ class Pidfile(Setting):
 
         If not set, no PID file will be written.
         """
+
 
 class WorkerTmpDir(Setting):
     name = "worker_tmp_dir"
@@ -1110,6 +1155,7 @@ class Group(Setting):
         retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
         change the worker processes group.
         """
+
 
 class Umask(Setting):
     name = "umask"
@@ -1224,6 +1270,7 @@ class AccessLog(Setting):
         ``'-'`` means log to stdout.
         """
 
+
 class DisableRedirectAccessToSyslog(Setting):
     name = "disable_redirect_access_to_syslog"
     section = "Logging"
@@ -1266,6 +1313,7 @@ class AccessLogFormat(Setting):
         f            referer
         a            user agent
         T            request time in seconds
+        M            request time in milliseconds
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
@@ -1676,6 +1724,7 @@ class PostWorkerInit(Setting):
         Worker.
         """
 
+
 class WorkerInt(Setting):
     name = "worker_int"
     section = "Server Hooks"
@@ -1916,6 +1965,7 @@ class CertFile(Setting):
     SSL certificate file
     """
 
+
 class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
@@ -1962,6 +2012,7 @@ class SSLVersion(Setting):
        constants.
     """
 
+
 class CertReqs(Setting):
     name = "cert_reqs"
     section = "SSL"
@@ -1971,6 +2022,7 @@ class CertReqs(Setting):
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
     """
+
 
 class CACerts(Setting):
     name = "ca_certs"
@@ -1983,6 +2035,7 @@ class CACerts(Setting):
     CA certificates file
     """
 
+
 class SuppressRaggedEOFs(Setting):
     name = "suppress_ragged_eofs"
     section = "SSL"
@@ -1993,6 +2046,7 @@ class SuppressRaggedEOFs(Setting):
     desc = """\
     Suppress ragged EOFs (see stdlib ssl module's)
     """
+
 
 class DoHandshakeOnConnect(Setting):
     name = "do_handshake_on_connect"

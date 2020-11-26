@@ -28,8 +28,9 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
+        "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
+    )]
 
     PIPE = []
 
@@ -116,8 +117,6 @@ class Worker(object):
 
         self.init_signals()
 
-        self.load_wsgi()
-
         # start the reloader
         if self.cfg.reload:
             def changed(fname):
@@ -131,6 +130,9 @@ class Worker(object):
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
                                          callback=changed)
+
+        self.load_wsgi()
+        if self.reloader:
             self.reloader.start()
 
         self.cfg.post_worker_init(self)
@@ -203,12 +205,14 @@ class Worker(object):
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
-        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-                InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-                LimitRequestLine, LimitRequestHeaders,
-                InvalidProxyLine, ForbiddenProxyRequest,
-                InvalidSchemeHeaders,
-                SSLError)):
+        if isinstance(exc, (
+            InvalidRequestLine, InvalidRequestMethod,
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+            LimitRequestLine, LimitRequestHeaders,
+            InvalidProxyLine, ForbiddenProxyRequest,
+            InvalidSchemeHeaders,
+            SSLError,
+        )):
 
             status_int = 400
             reason = "Bad Request"
@@ -261,7 +265,7 @@ class Worker(object):
 
         try:
             util.write_error(client, status_int, reason, mesg)
-        except:
+        except Exception:
             self.log.debug("Failed to send error message.")
 
     def handle_winch(self, sig, fname):

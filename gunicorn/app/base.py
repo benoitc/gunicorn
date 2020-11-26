@@ -142,7 +142,7 @@ class Application(BaseApplication):
                 continue
             try:
                 self.cfg.set(k.lower(), v)
-            except:
+            except Exception:
                 print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
                 sys.stderr.flush()
                 raise
@@ -200,10 +200,13 @@ class Application(BaseApplication):
         self.chdir()
 
     def run(self):
-        if self.cfg.check_config:
+        if self.cfg.print_config:
+            print(self.cfg)
+
+        if self.cfg.print_config or self.cfg.check_config:
             try:
                 self.load()
-            except:
+            except Exception:
                 msg = "\nError while loading the application:\n"
                 print(msg, file=sys.stderr)
                 traceback.print_exc()

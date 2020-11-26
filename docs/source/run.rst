@@ -21,11 +21,14 @@ gunicorn
 
 Basic usage::
 
-    $ gunicorn [OPTIONS] APP_MODULE
+    $ gunicorn [OPTIONS] [WSGI_APP]
 
-Where ``APP_MODULE`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
+Where ``WSGI_APP`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
 module name can be a full dotted path. The variable name refers to a WSGI
 callable that should be found in the specified module.
+
+.. versionchanged:: 20.1.0
+    ``WSGI_APP`` is optional if it is defined in a :ref:`config` file.
 
 Example with the test app:
 
@@ -42,7 +45,7 @@ Example with the test app:
         start_response(status, response_headers)
         return iter([data])
 
-You can now run the app with the following command::
+You can now run the app with the following command:
 
 .. code-block:: text
 

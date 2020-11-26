@@ -12,6 +12,8 @@ from gunicorn import util
 
 class WSGIApplication(Application):
     def init(self, parser, opts, args):
+        self.app_uri = None
+
         if opts.paste:
             from .pasterapp import has_logging_config
 
@@ -29,11 +31,18 @@ class WSGIApplication(Application):
 
             return
 
-        if not args:
-            parser.error("No application module specified.")
+        if len(args) > 0:
+            self.cfg.set("default_proc_name", args[0])
+            self.app_uri = args[0]
 
-        self.cfg.set("default_proc_name", args[0])
-        self.app_uri = args[0]
+    def load_config(self):
+        super().load_config()
+
+        if self.app_uri is None:
+            if self.cfg.wsgi_app is not None:
+                self.app_uri = self.cfg.wsgi_app
+            else:
+                raise ConfigError("No application module specified.")
 
     def load_wsgiapp(self):
         return util.import_app(self.app_uri)

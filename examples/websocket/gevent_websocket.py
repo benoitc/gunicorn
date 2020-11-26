@@ -250,7 +250,7 @@ class WebSocket(object):
                 data = struct.unpack('<I', buf[f['hlen']:f['hlen']+4])[0]
                 of1 = f['hlen']+4
                 b = ''
-                for i in xrange(0, int(f['length']/4)):
+                for i in range(0, int(f['length']/4)):
                     mask = struct.unpack('<I', buf[of1+4*i:of1+4*(i+1)])[0]
                     b += struct.pack('I', data ^ mask)
 
@@ -292,10 +292,8 @@ class WebSocket(object):
 
         As per the dataframing section (5.3) for the websocket spec
         """
-        if isinstance(message, unicode):
+        if isinstance(message, str):
             message = message.encode('utf-8')
-        elif not isinstance(message, str):
-            message = str(message)
         packed = "\x00%s\xFF" % message
         return packed
 
@@ -353,7 +351,7 @@ class WebSocket(object):
     def send(self, message):
         """Send a message to the browser.
 
-        *message* should be convertable to a string; unicode objects should be
+        *message* should be convertible to a string; unicode objects should be
         encodable as utf-8.  Raises socket.error with errno of 32
         (broken pipe) if the socket has already been closed by the client."""
         if self.version in ['7', '8', '13']:

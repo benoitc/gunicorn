@@ -124,7 +124,7 @@ class request(object):
     def szread(self, func, sizes):
         sz = sizes()
         data = func(sz)
-        if sz >= 0 and len(data) > sz:
+        if 0 <= sz < len(data):
             raise AssertionError("Read more than %d bytes: %s" % (sz, data))
         return data
 

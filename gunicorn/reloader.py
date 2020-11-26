@@ -53,6 +53,7 @@ class Reloader(threading.Thread):
                         self._callback(filename)
             time.sleep(self._interval)
 
+
 has_inotify = False
 if sys.platform.startswith('linux'):
     try:
@@ -92,7 +93,7 @@ if has_inotify:
 
         def get_dirs(self):
             fnames = [
-                os.path.dirname(COMPILED_EXT_RE.sub('py', module.__file__))
+                os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
                 for module in tuple(sys.modules.values())
                 if getattr(module, '__file__', None)
             ]
@@ -103,7 +104,8 @@ if has_inotify:
             self._dirs = self.get_dirs()
 
             for dirname in self._dirs:
-                self._watcher.add_watch(dirname, mask=self.event_mask)
+                if os.path.isdir(dirname):
+                    self._watcher.add_watch(dirname, mask=self.event_mask)
 
             for event in self._watcher.event_gen():
                 if event is None:

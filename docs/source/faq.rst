@@ -205,3 +205,30 @@ Check the result::
     tmpfs              65536     0     65536   0% /mem
 
 Now you can set ``--worker-tmp-dir /mem``.
+
+Why are Workers Silently Killed?
+--------------------------------------------------------------
+
+A sometimes subtle problem to debug is when a worker process is killed and there
+is little logging information about what happened.
+
+If you use a reverse proxy like NGINX you might see 502 returned to a client.
+
+In the gunicorn logs you might simply see ``[35] [INFO] Booting worker with pid: 35``
+
+It's completely normal for workers to be killed and startup, for example due to
+max-requests setting. Ordinarily gunicorn will capture any signals and log something.
+
+This particular failure case is usually due to a SIGKILL being received, as it's
+not possible to catch this signal silence is usually a common side effect! A common
+cause of SIGKILL is when OOM killer terminates a process due to low memory condition.
+
+This is increasingly common in container deployments where memory limits are enforced
+by cgroups, you'll usually see evidence of this from dmesg::
+
+    dmesg | grep gunicorn
+    Memory cgroup out of memory: Kill process 24534 (gunicorn) score 1506 or sacrifice child
+    Killed process 24534 (gunicorn) total-vm:1016648kB, anon-rss:550160kB, file-rss:25824kB, shmem-rss:0kB
+
+In these instances adjusting the memory limit is usually your best bet, it's also possible
+to configure OOM not to send SIGKILL by default.

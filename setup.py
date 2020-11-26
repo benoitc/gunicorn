@@ -13,7 +13,7 @@ from gunicorn import __version__
 
 
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Other Environment',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
@@ -76,8 +76,8 @@ install_requires = [
 ]
 
 extras_require = {
-    'gevent':  ['gevent>=0.13'],
-    'eventlet': ['eventlet>=0.9.7'],
+    'gevent':  ['gevent>=1.4.0'],
+    'eventlet': ['eventlet>=0.24.1'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
     'setproctitle': ['setproctitle'],
@@ -92,9 +92,15 @@ setup(
     author='Benoit Chesneau',
     author_email='benoitc@e-engura.com',
     license='MIT',
-    url='http://gunicorn.org',
+    url='https://gunicorn.org',
+    project_urls={
+        'Documentation': 'https://docs.gunicorn.org',
+        'Homepage': 'https://gunicorn.org',
+        'Issue tracker': 'https://github.com/benoitc/gunicorn/issues',
+        'Source code': 'https://github.com/benoitc/gunicorn',
+    },
 
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     install_requires=install_requires,
     classifiers=CLASSIFIERS,
     zip_safe=False,

@@ -92,15 +92,15 @@ class AsyncWorker(base.Worker):
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
-                    listener_name, self.cfg)
+                                        listener_name, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
-                resp.force_close()
-                self.alive = False
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
 
-            if not self.cfg.keepalive:
+            if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
 
             respiter = self.wsgi(environ, resp.start_response)
