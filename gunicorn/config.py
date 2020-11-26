@@ -1819,6 +1819,23 @@ class NumWorkersChanged(Setting):
         be ``None``.
         """
 
+
+class OnHalt(Setting):
+    name = "on_halt"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+
+    def on_halt(server):
+        pass
+
+    default = staticmethod(on_halt)
+    desc = """\
+        Called just before halting server in Gunicorn.
+
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+
 class OnExit(Setting):
     name = "on_exit"
     section = "Server Hooks"
