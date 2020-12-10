@@ -1312,7 +1312,7 @@ worker_connections
 
 The maximum number of simultaneous clients.
 
-This setting only affects the Eventlet and Gevent worker types.
+This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
 
 .. _max-requests:
 
