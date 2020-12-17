@@ -29,7 +29,7 @@ class request(object):
     def __call__(self, func):
         def run():
             src = data_source(self.fname)
-            func(src, RequestParser(src, None))
+            func(src, RequestParser(src, None, None))
         run.func_name = func.func_name
         return run
 

@@ -245,7 +245,7 @@ class request(object):
 
     def check(self, cfg, sender, sizer, matcher):
         cases = self.expect[:]
-        p = RequestParser(cfg, sender())
+        p = RequestParser(cfg, sender(), None)
         for req in p:
             self.same(req, sizer, matcher, cases.pop(0))
         assert not cases
@@ -282,5 +282,5 @@ class badrequest(object):
             read += chunk
 
     def check(self, cfg):
-        p = RequestParser(cfg, self.send())
+        p = RequestParser(cfg, self.send(), None)
         next(p)

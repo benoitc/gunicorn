@@ -53,7 +53,7 @@ class TConn(object):
                                             **self.cfg.ssl_options)
 
             # initialize the parser
-            self.parser = http.RequestParser(self.cfg, self.sock)
+            self.parser = http.RequestParser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
         # set the timeout
