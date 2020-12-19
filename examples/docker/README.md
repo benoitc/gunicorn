@@ -36,6 +36,7 @@ $ docker run -it -v [WORK_DIR_PATH]:/work/ \
 example
 ```shell script
  $ docker run -it -v ${PWD}:/work/  \ 
+              -p 80:80 \  
               -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
               -e START_OPTION="-b 0.0.0.0:80 sample.main:app" \
               gunicorn:0.1
@@ -58,6 +59,7 @@ All environment variables other than `$REQUIRENMENTS_FILE_PATH` and `$START_OPTI
 
 ```shell script
  $ docker run -it -v ${PWD}:/work/  \ 
+              -p 80:80 \  
               -e REQUIRENMENTS_FILE_PATH=/work/sample/requirements.txt \ 
               -e CONFIG_FILE_PATH=/work/sample/gunicorn.conf.py \   
               -e START_OPTION=sample.main:app \ 
