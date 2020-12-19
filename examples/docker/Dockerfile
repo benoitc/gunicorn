@@ -1,6 +1,5 @@
 # You can also use your favorite Python Docker image.
 FROM python:3.8.4-slim
-ENV PYTHONIOENCODING UTF-8
 ENV WORK_DIR=/work
 WORKDIR /work
 
