@@ -74,7 +74,7 @@ connection job. On keepalive connections are put back in the loop
 waiting for an event. If no event happen after the keep alive timeout,
 the connection is closed.
 
-You can port also your application to use aiohttp_'s `web.Application`` API and use the
+You can port also your application to use aiohttp_'s ``web.Application`` API and use the
 ``aiohttp.worker.GunicornWebWorker`` worker.
 
 Choosing a Worker Type
