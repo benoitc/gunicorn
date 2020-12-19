@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+==========
+
+- remove the `--log-dict-config` CLI flag because it never had a working format
+  (the `logconfig_dict` setting in configuration files continues to work)
+
 20.0.4 / 2019/11/26
 ===================
 
