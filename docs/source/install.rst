@@ -102,7 +102,7 @@ stable ("buster")
 The version of Gunicorn in the Debian_ "stable" distribution is 19.9.0
 (December 2020). You can install it using::
 
-    $ sudo apt-get install gunicorn
+    $ sudo apt-get install gunicorn3
 
 You can also use the most recent version 20.0.4 (December 2020) by using
 `Debian Backports`_. First, copy the following line to your
@@ -121,10 +121,14 @@ You can then install the latest version using::
 oldstable ("stretch")
 ---------------------
 
+While Debian releases newer than Stretch will give you gunicorn with Python 3
+support no matter if you install the gunicorn or gunicorn3 package for Stretch
+you specifically have to install gunicorn3 to get Python 3 support.
+
 The version of Gunicorn in the Debian_ "oldstable" distribution is 19.6.0
 (December 2020). You can install it using::
 
-    $ sudo apt-get install gunicorn
+    $ sudo apt-get install gunicorn3
 
 You can also use the most recent version 19.7.1 (December 2020) by using
 `Debian Backports`_. First, copy the following line to your
@@ -138,7 +142,7 @@ Then, update your local package lists::
 
 You can then install the latest version using::
 
-    $ sudo apt-get -t stretch-backports install gunicorn
+    $ sudo apt-get -t stretch-backports install gunicorn3
 
 Testing ("bullseye") / Unstable ("sid")
 ---------------------------------------
