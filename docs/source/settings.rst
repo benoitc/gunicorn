@@ -1069,8 +1069,8 @@ forwarded_allow_ips
 * ``--forwarded-allow-ips STRING``
 * ``127.0.0.1``
 
-Front-end's IPs from which allowed to handle set secure headers.
-(comma separate).
+Front-end's IP addresses or networks from which allowed to handle
+set secure headers. (comma separate).
 
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
@@ -1139,7 +1139,8 @@ proxy_allow_ips
 * ``--proxy-allow-from``
 * ``127.0.0.1``
 
-Front-end's IPs from which allowed accept proxy requests (comma separate).
+Front-end's IP addresses or networks from which allowed accept
+proxy requests (comma separate).
 
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
