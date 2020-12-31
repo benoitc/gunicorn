@@ -6,9 +6,7 @@
 import io
 import re
 import socket
-from errno import ENOTCONN
 
-from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
@@ -29,9 +27,10 @@ VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
 class Message(object):
-    def __init__(self, cfg, unreader):
+    def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader
+        self.peer_addr = peer_addr
         self.version = None
         self.headers = []
         self.trailers = []
@@ -69,16 +68,10 @@ class Message(object):
         # handle scheme headers
         scheme_header = False
         secure_scheme_headers = {}
-        if '*' in cfg.forwarded_allow_ips:
+        if ('*' in cfg.forwarded_allow_ips or
+            not isinstance(self.peer_addr, tuple)
+            or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
-        elif isinstance(self.unreader, SocketUnreader):
-            remote_addr = self.unreader.sock.getpeername()
-            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
-                remote_host = remote_addr[0]
-                if remote_host in cfg.forwarded_allow_ips:
-                    secure_scheme_headers = cfg.secure_scheme_headers
-            elif self.unreader.sock.family == socket.AF_UNIX:
-                secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -169,7 +162,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, cfg, unreader, req_number=1):
+    def __init__(self, cfg, unreader, peer_addr, req_number=1):
         self.method = None
         self.uri = None
         self.path = None
@@ -184,7 +177,7 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-        super().__init__(cfg, unreader)
+        super().__init__(cfg, unreader, peer_addr)
 
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
@@ -280,16 +273,10 @@ class Request(Message):
 
     def proxy_protocol_access_check(self):
         # check in allow list
-        if isinstance(self.unreader, SocketUnreader):
-            try:
-                remote_host = self.unreader.sock.getpeername()[0]
-            except socket.error as e:
-                if e.args[0] == ENOTCONN:
-                    raise ForbiddenProxyRequest("UNKNOW")
-                raise
-            if ("*" not in self.cfg.proxy_allow_ips and
-                    remote_host not in self.cfg.proxy_allow_ips):
-                raise ForbiddenProxyRequest(remote_host)
+        if ("*" not in self.cfg.proxy_allow_ips and
+            isinstance(self.peer_addr, tuple) and
+            self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+            raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):
         bits = line.split()
