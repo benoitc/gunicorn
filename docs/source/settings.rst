@@ -1137,9 +1137,28 @@ temporary directory.
 **Default:** ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
-uses to indicate HTTPS requests. These tell Gunicorn to set
+uses to indicate HTTPS requests. If the source IP is permitted by
+``forwarded-allow-ips`` (below), *and* at least one request header matches
+a key-value pair listed in this dictionary, then Gunicorn will set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
+
+If the other headers listed in this dictionary are not present in the request, they will be ignored,
+but if the other headers are present and do not match the provided values, then
+the request will fail to parse. Various configuration/request scenarios are documented below to further elaborate
+
++-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
+| ``forwarded-allow-ips``     | remote address | secure_scheme_headers                                                                                | Secure Request Headers   | Result                            | Explanation                                                                   |
++=============================+================+======================================================================================================+==========================+===================================+===============================================================================+
+| ``["127.0.0.1"]`` (default) | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Proto: https | ``wsgi.url_scheme = "http"``      | IP address was not allowed by ``forwarded-allow-ips``                         |
++-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
+| ``"*"``                     | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | <none>                   | ``wsgi.url_scheme = "http"``      | IP address allowed, but no secure headers provided                            |
++-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
+| ``"*"``                     | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Proto: https | ``wsgi.url_scheme = "https"``     | IP address allowed, one request header matched                                |
++-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
+| ``["134.213.44.18"]``       | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Ssl: on      | ``InvalidSchemeHeaders()`` raised | IP address allowed, but the two secure headers disagreed on if HTTPS was used |
+|                             |                |                                                                                                      | X-Forwarded-Proto: http  |                                   |                                                                               |
++-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
 
 The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
