@@ -1137,16 +1137,9 @@ temporary directory.
 **Default:** ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
-uses to indicate HTTPS requests. If the source IP is permitted by
-``forwarded-allow-ips`` (below), *and* at least one request header matches
-a key-value pair listed in this dictionary, then Gunicorn will set
+uses to indicate HTTPS requests. These tell Gunicorn to set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
-
-If the other headers listed in this dictionary are not present in the request, they will be ignored,
-but if the other headers are present and do not match the provided values, then
-the request will fail to parse.
-
 
 The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
@@ -1174,23 +1167,6 @@ you still trust the environment).
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1"``.
-
-.. note::
-    The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
-    ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate:
-    +-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
-    | ``forwarded-allow-ips``     | Remote Address | ``secure_scheme_headers``                                                                            | Secure Request Headers   | Result                            | Explanation                                                                   |
-    +=============================+================+======================================================================================================+==========================+===================================+===============================================================================+
-    | ``["127.0.0.1"]`` (default) | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Proto: https | ``wsgi.url_scheme = "http"``      | IP address was not allowed by ``forwarded-allow-ips``                         |
-    +-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
-    | ``"*"``                     | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | <none>                   | ``wsgi.url_scheme = "http"``      | IP address allowed, but no secure headers provided                            |
-    +-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
-    | ``"*"``                     | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Proto: https | ``wsgi.url_scheme = "https"``     | IP address allowed, one request header matched                                |
-    +-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
-    | ``["134.213.44.18"]``       | 134.213.44.18  | ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`` (default) | X-Forwarded-Ssl: on      | ``InvalidSchemeHeaders()`` raised | IP address allowed, but the two secure headers disagreed on if HTTPS was used |
-    |                             |                |                                                                                                      | X-Forwarded-Proto: http  |                                   |                                                                               |
-    +-----------------------------+----------------+------------------------------------------------------------------------------------------------------+--------------------------+-----------------------------------+-------------------------------------------------------------------------------+
-
 
 .. _pythonpath:
 
@@ -1261,7 +1237,6 @@ Front-end's IPs from which allowed accept proxy requests (comma separate).
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
 you still trust the environment)
-
 
 .. _raw-paste-global-conf:
 
