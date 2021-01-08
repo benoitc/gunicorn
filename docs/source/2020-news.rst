@@ -1,9 +1,13 @@
-=========
-Changelog
-=========
+================
+Changelog - 2020
+================
 
-21.0 - Unreleased
-=================
+.. note::
+
+   Please see :doc:`news` for the latest changes
+
+Unreleased
+==========
 
 - document WEB_CONCURRENCY is set by, at least, Heroku
 - capture peername from accept: Avoid calls to getpeername by capturing the peer name returned by
@@ -38,27 +42,13 @@ accept
 - minimum version is Python 3.5
 - remove version from the Server header 
 
+** Documentation **
+
+
+
 ** Others **
 
 - miscellaneous changes in the code base to be a better citizen with Python 3
 - remove dead code
 - fix documentation generation
 
-
-History
-=======
-
-.. toctree::
-   :titlesonly:
-
-   2020-news
-   2019-news
-   2018-news
-   2017-news
-   2016-news
-   2015-news
-   2014-news
-   2013-news
-   2012-news
-   2011-news
-   2010-news
