@@ -54,14 +54,14 @@ CONFIG_DEFAULTS = dict(
             "gunicorn.error": {
                 "level": "INFO",
                 "handlers": ["error_console"],
-                "propagate": True,
+                "propagate": False,
                 "qualname": "gunicorn.error"
             },
 
             "gunicorn.access": {
                 "level": "INFO",
                 "handlers": ["console"],
-                "propagate": True,
+                "propagate": False,
                 "qualname": "gunicorn.access"
             }
         },
