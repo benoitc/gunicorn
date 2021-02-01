@@ -109,7 +109,6 @@ class ThreadWorker(base.Worker):
         fs.add_done_callback(self.finish_request)
 
     def enqueue_req(self, conn):
-        conn.init()
         # submit the connection to a worker
         fs = self.tpool.submit(self.handle, conn)
         self._wrap_future(fs, conn)
@@ -263,6 +262,7 @@ class ThreadWorker(base.Worker):
         keepalive = False
         req = None
         try:
+            conn.init()
             req = next(conn.parser)
             if not req:
                 return (False, conn)
