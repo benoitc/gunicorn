@@ -563,7 +563,7 @@ class Arbiter(object):
             self.spawn_workers()
 
         workers = self.WORKERS.items()
-        
+
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, worker) = workers.pop(0)
@@ -585,7 +585,7 @@ class Arbiter(object):
                                    self.app, self.timeout / 2.0,
                                    self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
-        
+
         if self.use_cuda:
             iter_cnt = 0
             while iter_cnt < len(self.gpu_ids) and self.gpu_count[self.gpu_id] >= self.gpu_limit:
