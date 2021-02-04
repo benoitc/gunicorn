@@ -1,0 +1,128 @@
+Changelog - 2012
+================
+
+0.17.0 / 2012-12-25
+-------------------
+
+- allows gunicorn to bind to multiple address
+- add SSL support
+- add syslog support
+- add nworkers_changed hook
+- add response arg for post_request hook
+- parse command line with argparse (replace deprecated optparse)
+- fix PWD detection in arbiter
+- miscellaneous PEP8 fixes
+
+0.16.1 / 2012-11-19
+-------------------
+
+- Fix packaging
+
+0.16.0 / 2012-11-19
+-------------------
+
+- **Added support for Python 3.2 & 3.3**
+- Expose --pythonpath command to all gunicorn commands
+- Honor $PORT environment variable, useful for deployment on heroku
+- Removed support for Python 2.5
+- Make sure we reopen the logs on the console
+- Fix django settings module detection from path
+- Reverted timeout for client socket. Fix issue on blocking issues.
+- Fixed gevent worker
+
+0.15.0 / 2012-10-18
+-------------------
+
+- new documentation site on http://docs.gunicorn.org
+- new website on http://gunicorn.org
+- add `haproxy PROXY protocol <http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt>`_ support
+- add  ForwardedAllowIPS option: allows to filter Front-end's IPs
+  allowed to handle X-Forwarded-* headers.
+- add callable hooks for paster config
+- add x-forwarded-proto as secure scheme default (Heroku is using this)
+- allows gunicorn to load a pre-compiled application
+- support file reopening & reexec for all loggers
+- initialize the logging config file with defaults.
+- set timeout for client socket (slow client DoS).
+- NoMoreData, ChunkMissingTerminator, InvalidChunkSize are now
+  IOError exceptions
+- fix graceful shutdown in gevent
+- fix limit request line check
+
+0.14.6 / 2012-07-26
+-------------------
+
+
+- fix gevent & subproces
+- fix request line length check
+- fix keepalive = 0
+- fix tornado worker
+
+0.14.5 / 2012-06-24
+--------------------
+
+- fix logging during daemonisation
+
+0.14.4 / 2012-06-24
+-------------------
+
+- new --graceful-timeout option
+- fix multiple issues with request limit
+- more fixes in django settings resolutions
+- fix gevent.core import
+- fix keepalive=0 in eventlet worker
+- fix handle_error display with the unix worker
+- fix tornado.wsgi.WSGIApplication calling error
+
+- **breaking change**: take the control on graceful reload back.
+  graceful can't be overrided anymore using the on_reload function.
+
+0.14.3 / 2012-05-15
+-------------------
+
+- improvement: performance of http.body.Body.readline()
+- improvement: log HTTP errors in access log like Apache
+- improvement: display traceback when the worker fails to boot
+- improvement: makes gunicorn work with gevent 1.0
+- examples: websocket example now supports hybi13
+- fix: reopen log files after initialization
+- fix: websockets support
+- fix: django1.4 support
+- fix: only load the paster application 1 time
+
+0.14.2 / 2012-03-16
+-------------------
+
+- add validate_class validator: allows to use a class or a method to
+  initialize the app during in-code configuration
+- add support for max_requests in tornado worker
+- add support for disabling x_forwarded_for_header in tornado worker
+- gevent_wsgi is now an alias of gevent_pywsgi
+- Fix gevent_pywsgi worker
+
+0.14.1 / 2012-03-02
+-------------------
+
+- fixing source archive, reducing its size
+
+0.14.0 / 2012-02-27
+-------------------
+
+- check if Request line is too large: You can now pass the parameter
+  ``--limit-request-line`` or set the ``limit_request_line`` in your
+  configuration file to set the max size of the request line in bytes.
+- limit the number of headers fields and their size. Add
+  ``--limit-request-field`` and ``limit-request-field-size`` settings
+- add ``p`` variable to the log access format to log pidfile
+- add ``{HeaderName}o`` variable to the logo access format to log the
+  response header HeaderName
+- request header is now logged with the variable ``{HeaderName}i`` in the
+  access log file
+- improve error logging
+- support logging.configFile
+- support django 1.4 in both gunicorn_django & run_gunicorn command
+- improve reload in django run_gunicorn command (should just work now)
+- allows people to set the ``X-Forwarded-For`` header key and disable it by
+  setting an empty string.
+- fix support of Tornado
+- many other fixes.

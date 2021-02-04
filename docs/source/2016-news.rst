@@ -1,0 +1,91 @@
+================
+Changelog - 2016
+================
+
+.. note::
+
+   Please see :doc:`news` for the latest changes
+
+19.6.0 / 2016/05/21
+===================
+
+Core & Logging
+++++++++++++++
+
+- improvement of the binary upgrade behaviour using USR2: remove file locking (:issue:`1270`)
+- add the ``--capture-output`` setting to capture stdout/stderr tot the log
+  file (:issue:`1271`)
+- Allow disabling ``sendfile()`` via the ``SENDFILE`` environment variable
+  (:issue:`1252`)
+- fix reload under pycharm (:issue:`1129`)
+
+Workers
++++++++
+
+- fix: make sure to remove the signal from the worker pipe (:issue:`1269`)
+- fix: **gthread** worker, handle removed socket in the select loop
+  (:issue:`1258`)
+
+19.5.0 / 2016/05/10
+===================
+
+Core
+++++
+
+- fix: Ensure response to HEAD request won't have message body
+- fix: lock domain socket and remove on last arbiter exit (:issue:`1220`)
+- improvement: use EnvironmentError instead of socket.error (:issue:`939`)
+- add: new ``FORWARDED_ALLOW_IPS`` environment variable (:issue:`1205`)
+- fix: infinite recursion when destroying sockets (:issue:`1219`)
+- fix: close sockets on shutdown (:issue:`922`)
+- fix: clean up sys.exc_info calls to drop circular refs (:issue:`1228`)
+- fix: do post_worker_init after load_wsgi (:issue:`1248`)
+
+Workers
++++++++
+
+- fix access logging in gaiohttp worker (:issue:`1193`)
+- eventlet: handle QUIT in a new coroutine (:issue:`1217`)
+- gevent: remove obsolete exception clauses in run (:issue:`1218`)
+- tornado: fix extra "Server" response header (:issue:`1246`)
+- fix: unblock the wait loop under python 3.5 in sync worker (:issue:`1256`)
+
+Logging
++++++++
+
+- fix: log message for listener reloading (:issue:`1181`)
+- Let logging module handle traceback printing (:issue:`1201`)
+- improvement: Allow configuring logger_class with statsd_host (:issue:`1188`)
+- fix: traceback formatting (:issue:`1235`)
+- fix: print error logs on stderr and access logs on stdout (:issue:`1184`)
+
+
+Documentation
++++++++++++++
+
+- Simplify installation instructions in gunicorn.org (:issue:`1072`)
+- Fix URL and default worker type in example_config (:issue:`1209`)
+- update django doc url to 1.8 lts (:issue:`1213`)
+- fix: miscellaneous wording corrections (:issue:`1216`)
+- Add PSF License Agreement of selectors.py to NOTICE (:issue: `1226`)
+- document LOGGING overriding (:issue:`1051`)
+- put a note that error logs are only errors from Gunicorn (:issue:`1124`)
+- add a note about the requirements of the threads workers under python 2.x (:issue:`1200`)
+- add access_log_format to config example (:issue:`1251`)
+
+Tests
++++++
+
+- Use more pytest.raises() in test_http.py
+
+
+19.4.5 / 2016/01/05
+===================
+
+- fix: NameError fileno in gunicorn.http.wsgi (:issue:`1178`)
+
+19.4.4 / 2016/01/04
+===================
+
+- fix: check if a fileobject can be used with sendfile(2) (:issue:`1174`)
+- doc: be more descriptive in errorlog option (:issue:`1173`)

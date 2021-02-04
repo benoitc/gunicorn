@@ -1,0 +1,34 @@
+language: python
+matrix:
+  include:
+    - python: 3.8
+      env: TOXENV=lint
+    - python: 3.8
+      env: TOXENV=docs-lint
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+    - python: 3.7
+      env: TOXENV=py37
+    - python: 3.8
+      env: TOXENV=py38
+    - python: 3.9
+      env: TOXENV=py39
+    - python: pypy3
+      env:
+        - TOXENV=pypy3
+        # Embedded c-ares takes a long time to build and
+        # as-of 2020-01-04 there are no PyPy3 manylinux
+        # wheels for gevent on PyPI.
+        - GEVENTSETUP_EMBED_CARES=no
+      dist: xenial
+install: pip install -U tox coverage
+# TODO: https://github.com/tox-dev/tox/issues/149
+script: tox --recreate
+after_success:
+    - if [ -f .coverage ]; then coverage report ; fi
+cache:
+  directories:
+    - .tox
+    - $HOME/.cache/pip

@@ -1,0 +1,73 @@
+Changelog - 2011
+================
+
+0.13.4 / 2011-09-23
+-------------------
+
+- fix util.closerange function used to prevent leaking fds on python 2.5
+  (typo)
+
+0.13.3 / 2011-09-19
+-------------------
+- refactor gevent worker
+- prevent leaking fds on reexec
+- fix inverted request_time computation
+
+0.13.2 / 2011-09-17
+-------------------
+
+- Add support for Tornado 2.0 in tornado worker
+- Improve access logs: allows customisation of the log format & add
+  request time
+- Logger module is now pluggable
+- Improve graceful shutdown in Python versions >= 2.6
+- Fix post_request root arity for compatibility
+- Fix sendfile support
+- Fix Django reloading
+
+0.13.1 / 2011-08-22
+-------------------
+
+- Fix unix socket. log argument was missing.
+
+0.13.0 / 2011-08-22
+-------------------
+
+- Improve logging: allows file-reopening and add access log file
+  compatible with the `apache combined log format <http://httpd.apache.org/docs/2.0/logs.html#combined>`_
+- Add the possibility to set custom SSL headers. X-Forwarded-Protocol
+  and X-Forwarded-SSL are still the default
+- New `on_reload` hook to customize how gunicorn spawn new workers on
+  SIGHUP
+- Handle projects with relative path in django_gunicorn command
+- Preserve path parameters in PATH_INFO
+- post_request hook now accepts the environ as argument.
+- When stopping the arbiter, close the listener asap.
+- Fix Django command `run_gunicorn` in settings reloading
+- Fix Tornado_ worker exiting
+- Fix the use of sendfile in wsgi.file_wrapper
+
+
+0.12.2 / 2011-05-18
+-------------------
+
+- Add wsgi.file_wrapper optimised for FreeBSD, Linux & MacOSX (use
+  sendfile if available)
+- Fix django run_gunicorn command. Make sure we reload the application
+  code.
+- Fix django localisation
+- Compatible with gevent 0.14dev
+
+0.12.1 / 2011-03-23
+-------------------
+
+- Add "on_starting" hook. This hook can be used to set anything before
+  the arbiter really start
+- Support bdist_rpm in setup
+- Improve content-length handling (pep 3333)
+- Improve Django support
+- Fix daemonizing (#142)
+- Fix ipv6 handling
+
+
+.. _Tornado: http://www.tornadoweb.org/

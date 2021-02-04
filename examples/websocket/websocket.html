@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- idea and code swiped from
+http://assorted.svn.sourceforge.net/viewvc/assorted/real-time-plotter/trunk/src/rtp.html?view=markup -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"></script>
+<script src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
+<script>
+window.onload = function() {
+    var data = {};
+    var s = new WebSocket("ws://%(HTTP_HOST)s/data");
+    s.onopen = function() {
+        //alert('open');
+        s.send('hi');
+    };
+    s.onmessage = function(e) {
+      //alert('got ' + e.data);
+      var lines = e.data.split('\n');
+      for (var i = 0; i < lines.length - 1; i++) {
+        var parts = lines[i].split(' ');
+        var d = parts[0], x = parseFloat(parts[1]), y = parseFloat(parts[2]);
+        if (!(d in data)) data[d] = [];
+        data[d].push([x,y]);
+      }
+      var plots = [];
+      for (var d in data) plots.push( { data: data[d].slice(data[d].length - 200) } );
+      $.plot( $("#holder"), plots,
+              {
+                series: {
+                  lines: { show: true, fill: true },
+                },
+                yaxis: { min: 0 },
+              } );
+
+      s.send('');
+    };
+};
+</script>
+</head>
+<body>
+<h3>Plot</h3>
+<div id="holder" style="width:600px;height:300px"></div>
+</body>
+</html>

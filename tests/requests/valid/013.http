@@ -1,0 +1,9 @@
+POST /chunked_w_extensions HTTP/1.1\r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+5; some; parameters=stuff\r\n
+hello\r\n
+6; blahblah; blah\r\n
+ world\r\n
+0\r\n
+\r\n

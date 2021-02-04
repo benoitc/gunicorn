@@ -1,0 +1,2 @@
+GET /get_no_headers_no_body/world HTTP/1.1\r\n
+\r\n

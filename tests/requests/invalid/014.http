@@ -1,0 +1,4 @@
+PUT /stuff/here?foo=bar HTTP/1.0\r\n
+CONTENT-LENGTH: -1\r\n
+\r\n
+{"test": "-1}

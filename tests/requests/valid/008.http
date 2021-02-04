@@ -1,0 +1,4 @@
+GET /unusual_content_length HTTP/1.0\r\n
+conTENT-Length: 5\r\n
+\r\n
+HELLO

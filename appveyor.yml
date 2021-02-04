@@ -1,0 +1,35 @@
+version: '{branch}.{build}'
+environment:
+  matrix:
+    - TOXENV: lint
+      PYTHON: "C:\\Python37-x64"
+    - TOXENV: py35
+      PYTHON: "C:\\Python35-x64"
+    - TOXENV: py36
+      PYTHON: "C:\\Python36-x64"
+    - TOXENV: py37
+      PYTHON: "C:\\Python37-x64"
+    - TOXENV: py38
+      PYTHON: "C:\\Python38-x64"
+    - TOXENV: py39
+      PYTHON: "C:\\Python39-x64"
+matrix:
+  allow_failures:
+    - TOXENV: py35
+    - TOXENV: py36
+    - TOXENV: py37
+    - TOXENV: py38
+    - TOXENV: py39
+init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+install:
+  - pip install tox
+build: off
+test_script: tox
+cache:
+  # Not including the .tox directory since it takes longer to download/extract
+  # the cache archive than for tox to clean install from the pip cache.
+  - '%LOCALAPPDATA%\pip\Cache -> tox.ini'
+notifications:
+  - provider: Email
+    on_build_success: false
+    on_build_status_changed: false

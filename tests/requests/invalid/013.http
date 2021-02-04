@@ -1,0 +1,4 @@
+GET /test HTTP/1.1\r\n
+Accept:\r\n
+ */*\r\n
+\r\n

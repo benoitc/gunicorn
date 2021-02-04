@@ -1,0 +1,6 @@
+PUT /stuff/here?foo=bar HTTP/1.0\r\n
+Server: http://127.0.0.1:5984\r\n
+Content-Type: application/json\r\n
+Content-Length: 14\r\n
+\r\n
+{"nom": "nom"}

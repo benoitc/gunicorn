@@ -1,0 +1,90 @@
+Changelog - 2013
+================
+
+18.0 / 2013-08-26
+-----------------
+
+- new: add ``-e/--env`` command line argument to pass an environment variables to
+  gunicorn
+- new: add ``--chdir`` command line argument to specified directory
+  before apps loading.  - new: add wsgi.file_wrapper support in async workers
+- new: add ``--paste`` command line argument to set the paster config file
+- deprecated: the command ``gunicorn_django`` is now deprecated. You should now
+  run your application with the WSGI interface installed with your project (see
+  https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/gunicorn/) for
+  more infos.
+- deprecated:  the command ``gunicorn_paste`` is deprecated. You now should use
+  the new ``--paste`` argument to set the configuration file of your paster
+  application.
+- fix: Removes unmatched leading quote from the beginning of the default access
+  log format string
+- fix: null timeout
+- fix: gevent worker
+- fix: don't reload the paster app when using pserve
+- fix: after closing for error do not keep alive the connection
+- fix: responses 1xx, 204 and 304 should not force the connection to be closed
+
+17.5 / 2013-07-03
+------------------
+
+- new: add signals documentation
+- new: add post_worker_init hook for workers
+- new: try to use gunicorn.conf.py in current folder as the default
+  config file.
+- fix graceful timeout with the Eventlet worker
+- fix: don't raise an error when closing the socket if already closed
+- fix: fix --settings parameter for django application and try to find
+  the django settings when using the ``gunicorn`` command.
+- fix: give the initial global_conf to paster application
+- fix: fix 'Expect: 100-continue' support on Python 3
+
+New versionning:
+++++++++++++++++
+
+With this release, the versionning of Gunicorn is changing. Gunicorn is
+stable since a long time and there is no point to release a "1.0" now.
+It should have been done since a long time. 0.17 really meant it was the
+17th stable version. From the beginning we have only 2 kind of
+releases:
+
+major release: releases with major changes or huge features added
+services releases: fixes and minor features added So from now we will
+apply the following versionning ``<major>.<service>``. For example ``17.5`` is a
+service release.
+
+0.17.4 / 2013-04-24
+-------------------
+
+- fix unix socket address parsing
+
+0.17.3 / 2013-04-23
+-------------------
+
+- add systemd sockets support
+- add ``python -m gunicorn.app.wsgiapp`` support
+- improve logger class inheritance
+- exit when the config file isn't found
+- add the -R option to enable stdio inheritance in daemon mode
+- don't close file descriptors > 3 in daemon mode
+- improve STDOUT/STDERR logging
+- fix pythonpath option
+- fix pidfile creation on Python 3
+- fix gevent worker exit
+- fix ipv6 detection when the platform isn't supporting it
+
+0.17.2 / 2013-01-07
+-------------------
+
+- optimize readline
+- make imports errors more visible when loading an app or a logging
+  class
+- fix tornado worker: don't pass ssl options if there are none
+- fix PEP3333: accept only bytetrings in the response body
+- fix support on CYGWIN platforms
+
+0.17.1 / 2013-01-05
+-------------------
+
+- add syslog facility name setting
+- fix ``--version`` command line argument
+- fix wsgi url_scheme for https
