@@ -11,6 +11,7 @@ import sys
 import time
 import traceback
 
+from itertools import cycle
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
@@ -116,6 +117,15 @@ class Arbiter(object):
 
         if self.cfg.preload_app:
             self.app.wsgi()
+
+        self.use_cuda = False
+        if os.environ.get("USE_GPUS"):
+            self.use_cuda = True
+            self.gpu_ids = os.environ["USE_GPUS"].split(',')
+            self.gpu_cycle = cycle(self.gpu_ids)
+            self.gpu_limit = (self.num_workers + len(self.gpu_ids) - 1) // len(self.gpu_ids)
+            self.gpu_count = {key: 0 for key in self.gpu_ids}
+            self.gpu_id = self.gpu_ids[0]
 
     def start(self):
         """\
@@ -497,6 +507,8 @@ class Arbiter(object):
             except (OSError, ValueError):
                 continue
 
+            if self.use_cuda:
+                self.gpu_count[worker.gpu_id] -= 1
             if not worker.aborted:
                 self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
                 worker.aborted = True
@@ -551,9 +563,12 @@ class Arbiter(object):
             self.spawn_workers()
 
         workers = self.WORKERS.items()
+
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
-            (pid, _) = workers.pop(0)
+            (pid, worker) = workers.pop(0)
+            if self.use_cuda:
+                self.gpu_count[worker.gpu_id] -= 1
             self.kill_worker(pid, signal.SIGTERM)
 
         active_worker_count = len(workers)
@@ -570,6 +585,15 @@ class Arbiter(object):
                                    self.app, self.timeout / 2.0,
                                    self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
+
+        if self.use_cuda:
+            iter_cnt = 0
+            while iter_cnt < len(self.gpu_ids) and self.gpu_count[self.gpu_id] >= self.gpu_limit:
+                self.gpu_id = next(self.gpu_cycle)
+            os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_id
+            self.gpu_count[self.gpu_id] += 1
+            worker.gpu_id = self.gpu_id
+
         pid = os.fork()
         if pid != 0:
             worker.pid = pid
@@ -629,6 +653,8 @@ class Arbiter(object):
         """
         worker_pids = list(self.WORKERS.keys())
         for pid in worker_pids:
+            if self.use_cuda:
+                self.gpu_count[self.WORKERS[pid].gpu_id] -= 1
             self.kill_worker(pid, sig)
 
     def kill_worker(self, pid, sig):
