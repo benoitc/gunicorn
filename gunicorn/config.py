@@ -954,6 +954,22 @@ class ReloadExtraFiles(Setting):
         """
 
 
+class ReloadIgnoredFiles(Setting):
+    name = "reload_ignored_files"
+    action = "append"
+    section = "Debugging"
+    cli = ["--reload-ignored-file"]
+    meta = "FILES"
+    validator = validate_list_of_existing_files
+    default = []
+    desc = """\
+        Extends :ref:`reload` option to ignore reload on watched files
+        (e.g., logs, generated files etc.).
+
+        .. versionadded:: 20.0
+        """
+
+
 class Spew(Setting):
     name = "spew"
     section = "Debugging"

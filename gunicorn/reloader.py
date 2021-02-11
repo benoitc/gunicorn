@@ -15,15 +15,19 @@ COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
 class Reloader(threading.Thread):
-    def __init__(self, extra_files=None, interval=1, callback=None):
+    def __init__(self, extra_files=None, ignored_files=None, interval=1, callback=None):
         super().__init__()
         self.setDaemon(True)
         self._extra_files = set(extra_files or ())
+        self._ignored_files = set(ignored_files or ())
         self._interval = interval
         self._callback = callback
 
     def add_extra_file(self, filename):
         self._extra_files.add(filename)
+
+    def add_ignored_file(self, filename):
+        self._ignored_files.add(filename)
 
     def get_files(self):
         fnames = [
@@ -33,6 +37,9 @@ class Reloader(threading.Thread):
         ]
 
         fnames.extend(self._extra_files)
+
+        for fname in self._ignored_files:
+            fnames.remove(fname)
 
         return fnames
 
@@ -91,6 +98,14 @@ if has_inotify:
             self._watcher.add_watch(dirname, mask=self.event_mask)
             self._dirs.add(dirname)
 
+        def add_ignored_file(self, filename):
+            dirname = os.path.dirname(filename)
+
+            if dirname not in self._dirs:
+                return
+
+            self._watcher.remove_watch(filename)
+
         def get_dirs(self):
             fnames = [
                 os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
@@ -106,6 +121,10 @@ if has_inotify:
             for dirname in self._dirs:
                 if os.path.isdir(dirname):
                     self._watcher.add_watch(dirname, mask=self.event_mask)
+
+            for fname in self._ignored_files:
+                if os.path.isfile(fname):
+                    self._watcher.remove_watch(fname)
 
             for event in self._watcher.event_gen():
                 if event is None:
