@@ -49,6 +49,7 @@ History
 .. toctree::
    :titlesonly:
 
+   2021-news
    2020-news
    2019-news
    2018-news
