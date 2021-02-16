@@ -339,6 +339,7 @@ class Arbiter(object):
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        self.cfg.on_halt(self)
         self.stop()
         self.log.info("Shutting down: %s", self.master_name)
         if reason is not None:
