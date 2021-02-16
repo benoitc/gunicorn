@@ -11,7 +11,7 @@ Changelog - 2021
 
 - document WEB_CONCURRENCY is set by, at least, Heroku
 - capture peername from accept: Avoid calls to getpeername by capturing the peer name returned by
-accept
+  accept
 - log a warning when a worker was terminated due to a signal
 - fix tornado usage with latest versions of Django 
 - add support for python -m gunicorn
