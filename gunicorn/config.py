@@ -106,7 +106,7 @@ class Config(object):
         # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
-            return "threads"
+            return "gthread"
         return uri
 
     @property
