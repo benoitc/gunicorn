@@ -11,6 +11,7 @@ from gunicorn import util
 
 PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
+HAS_UPDATED_FLAG = 2
 
 
 class WorkerTmp(object):
@@ -21,6 +22,9 @@ class WorkerTmp(object):
         if fdir and not os.path.isdir(fdir):
             raise RuntimeError("%s doesn't exist. Can't create workertmp." % fdir)
         fd, name = tempfile.mkstemp(prefix="wgunicorn-", dir=fdir)
+        # Reset the file permissions so that we can reliably check whether
+        # notify has been called in has_updated
+        os.fchmod(fd, 0)
         os.umask(old_umask)
 
         # change the owner and group of the file if the worker will run as
@@ -43,10 +47,13 @@ class WorkerTmp(object):
 
     def notify(self):
         self.spinner = (self.spinner + 1) % 2
-        os.fchmod(self._tmp.fileno(), self.spinner)
+        os.fchmod(self._tmp.fileno(), HAS_UPDATED_FLAG | self.spinner)
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_ctime
+
+    def has_updated(self):
+        return bool(os.fstat(self._tmp.fileno()).st_mode & HAS_UPDATED_FLAG)
 
     def fileno(self):
         return self._tmp.fileno()
