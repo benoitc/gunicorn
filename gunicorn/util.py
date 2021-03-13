@@ -22,8 +22,6 @@ import time
 import traceback
 import warnings
 
-import pkg_resources
-
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
@@ -56,6 +54,8 @@ except ImportError:
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                section="gunicorn.workers"):
+    import pkg_resources
+
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
