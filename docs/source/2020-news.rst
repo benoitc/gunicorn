@@ -5,6 +5,7 @@ Changelog - 2020
 .. note::
 
    Please see :doc:`news` for the latest changes
+<<<<<<< HEAD
 
 Unreleased
 ==========
@@ -49,3 +50,5 @@ Unreleased
 - remove dead code
 - fix documentation generation
 
+=======
+>>>>>>> cf55d2cec277f220ebd605989ce78ad1bb553c46
