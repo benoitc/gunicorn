@@ -216,7 +216,7 @@ If you use a reverse proxy like NGINX you might see 502 returned to a client.
 
 In the gunicorn logs you might simply see ``[35] [INFO] Booting worker with pid: 35``
 
-It's completely normal for workers to be killed and startup, for example due to
+It's completely normal for workers to be stop and start, for example due to
 max-requests setting. Ordinarily gunicorn will capture any signals and log something.
 
 This particular failure case is usually due to a SIGKILL being received, as it's

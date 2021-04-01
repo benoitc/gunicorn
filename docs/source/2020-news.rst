@@ -5,10 +5,6 @@ Changelog - 2020
 .. note::
 
    Please see :doc:`news` for the latest changes
-
-Unreleased
-==========
-
 - document WEB_CONCURRENCY is set by, at least, Heroku
 - capture peername from accept: Avoid calls to getpeername by capturing the peer name returned by accept
 - log a warning when a worker was terminated due to a signal
@@ -48,4 +44,3 @@ Unreleased
 - miscellaneous changes in the code base to be a better citizen with Python 3
 - remove dead code
 - fix documentation generation
-
