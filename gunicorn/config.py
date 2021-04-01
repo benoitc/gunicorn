@@ -106,7 +106,7 @@ class Config(object):
         # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
-            return "threads"
+            return "gthread"
         return uri
 
     @property
@@ -1236,9 +1236,15 @@ class SecureSchemeHeader(Setting):
     desc = """\
 
         A dictionary containing headers and values that the front-end proxy
-        uses to indicate HTTPS requests. These tell Gunicorn to set
+        uses to indicate HTTPS requests. If the source IP is permitted by
+        ``forwarded-allow-ips`` (below), *and* at least one request header matches
+        a key-value pair listed in this dictionary, then Gunicorn will set
         ``wsgi.url_scheme`` to ``https``, so your application can tell that the
         request is secure.
+
+        If the other headers listed in this dictionary are not present in the request, they will be ignored,
+        but if the other headers are present and do not match the provided values, then
+        the request will fail to parse. See the note below for more detailed examples of this behaviour.
 
         The dictionary should map upper-case header names to exact string
         values. The value comparisons are case-sensitive, unlike the header
@@ -1267,6 +1273,70 @@ class ForwardedAllowIPS(Setting):
 
         By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
         variable. If it is not defined, the default is ``"127.0.0.1"``.
+        
+        .. note::
+        
+            The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
+            ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we 
+            have a request from the remote address 134.213.44.18, and the default value of ``secure_scheme_headers``:
+            
+            .. code::
+            
+                secure_scheme_headers = {
+                    'X-FORWARDED-PROTOCOL': 'ssl',
+                    'X-FORWARDED-PROTO': 'https',
+                    'X-FORWARDED-SSL': 'on'
+                }
+            
+        
+            .. list-table:: 
+                :header-rows: 1
+                :align: center
+                :widths: auto
+                
+                * - ``forwarded-allow-ips``
+                  - Secure Request Headers
+                  - Result
+                  - Explanation
+                * - .. code:: 
+                    
+                        ["127.0.0.1"]
+                  - .. code::
+                  
+                        X-Forwarded-Proto: https
+                  - .. code:: 
+                    
+                        wsgi.url_scheme = "http"
+                  - IP address was not allowed
+                * - .. code:: 
+                    
+                        "*"
+                  - <none>
+                  - .. code:: 
+                    
+                        wsgi.url_scheme = "http"
+                  - IP address allowed, but no secure headers provided
+                * - .. code:: 
+                    
+                        "*"
+                  - .. code::
+                  
+                        X-Forwarded-Proto: https
+                  - .. code:: 
+                    
+                        wsgi.url_scheme = "https"
+                  - IP address allowed, one request header matched
+                * - .. code:: 
+                    
+                        ["134.213.44.18"]
+                  - .. code::
+                  
+                        X-Forwarded-Ssl: on
+                        X-Forwarded-Proto: http
+                  - ``InvalidSchemeHeaders()`` raised
+                  - IP address allowed, but the two secure headers disagreed on if HTTPS was used
+                
+
         """
 
 
