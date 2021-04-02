@@ -110,8 +110,9 @@ class ThreadWorker(base.Worker):
 
     def enqueue_req(self, conn):
         conn.init()
+        enqueue_time = time.monotonic()
         # submit the connection to a worker
-        fs = self.tpool.submit(self.handle, conn)
+        fs = self.tpool.submit(self.handle, conn, enqueue_time)
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
@@ -259,10 +260,13 @@ class ThreadWorker(base.Worker):
             self.nr_conns -= 1
             fs.conn.close()
 
-    def handle(self, conn):
+    def handle(self, conn, enqueue_time):
         keepalive = False
         req = None
         try:
+            start_time = time.monotonic()
+            queued_time_ms = round((start_time - enqueue_time) * 1000)
+            self.log.histogram("gunicorn.request_queued_time_ms", queued_time_ms)
             req = next(conn.parser)
             if not req:
                 return (False, conn)
