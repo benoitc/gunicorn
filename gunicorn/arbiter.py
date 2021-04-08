@@ -92,7 +92,7 @@ class Arbiter:
             self.log = self.cfg.logger_class(app.cfg)
 
         # reopen files
-        if 'GUNICORN_FD' in os.environ:
+        if 'GUNICORN_PID' in os.environ:
             self.log.reopen_files()
 
         self.worker_class = self.cfg.worker_class
