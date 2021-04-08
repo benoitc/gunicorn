@@ -485,7 +485,7 @@ class Arbiter(object):
 
     def murder_workers(self):
         """\
-        Kill unused/idle workers
+        Kill workers timed out
         """
         if not self.timeout:
             return
