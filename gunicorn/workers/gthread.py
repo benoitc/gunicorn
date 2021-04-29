@@ -46,6 +46,8 @@ class TConn(object):
 
     def init(self):
         self.sock.setblocking(True)
+
+    def wrap(self):
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
@@ -260,6 +262,7 @@ class ThreadWorker(base.Worker):
             fs.conn.close()
 
     def handle(self, conn):
+        conn.wrap()
         keepalive = False
         req = None
         try:
