@@ -17,10 +17,15 @@ else:
 
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
-from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
+import eventlet.wsgi
 import greenlet
 
 from gunicorn.workers.base_async import AsyncWorker
+
+# ALREADY_HANDLED is removed in 0.30.3+ now it's `WSGI_LOCAL.already_handled: bool`
+# https://github.com/eventlet/eventlet/pull/544
+EVENTLET_WSGI_LOCAL = getattr(eventlet.wsgi, "WSGI_LOCAL", None)
+EVENTLET_ALREADY_HANDLED = getattr(eventlet.wsgi, "ALREADY_HANDLED", None)
 
 
 def _eventlet_socket_sendfile(self, file, offset=0, count=None):
@@ -125,6 +130,10 @@ class EventletWorker(AsyncWorker):
         patch_sendfile()
 
     def is_already_handled(self, respiter):
+        # eventlet >= 0.30.3
+        if getattr(EVENTLET_WSGI_LOCAL, "already_handled", None):
+            raise StopIteration()
+        # eventlet < 0.30.3
         if respiter == EVENTLET_ALREADY_HANDLED:
             raise StopIteration()
         return super().is_already_handled(respiter)
