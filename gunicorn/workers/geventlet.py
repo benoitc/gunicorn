@@ -17,7 +17,13 @@ else:
 
 from eventlet import hubs, greenthread
 from eventlet.greenio import GreenSocket
-from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
+
+try:
+    from eventlet.wsgi import ALREADY_HANDLED as EVENTLET_ALREADY_HANDLED
+except ImportError:
+    # Since eventlet 0.30.3
+    from eventlet.wsgi import WSGI_LOCAL as EVENTLET_ALREADY_HANDLED
+
 import greenlet
 
 from gunicorn.workers.base_async import AsyncWorker
