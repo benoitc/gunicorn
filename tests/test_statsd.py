@@ -103,6 +103,7 @@ def test_instrument():
     assert logger.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
     assert logger.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
     assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
+    assert logger.sock.msgs[3] == b"gunicorn.request.status.200.duration:7000.0|ms"
 
 
 def test_prefix():
