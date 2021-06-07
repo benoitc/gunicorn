@@ -841,8 +841,8 @@ the Request.
 
 Called after a worker processes the request.
 
-The callable needs to accept two instance variables for the Worker and
-the Request.
+The callable needs to accept four instance variables for the Worker,
+the Request, the environment and the Response.
 
 .. _child-exit:
 
