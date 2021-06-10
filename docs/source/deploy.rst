@@ -40,7 +40,7 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
 
 If you want to ignore aborted requests like health check of Load Balancer, some
 of which close the connection without waiting for a response, you need to turn
-on ignoring client abort.
+on `ignoring client abort`_.
 
 To ignore aborted requests, you only need to add
 ``proxy_ignore_client_abort on;`` to your ``location`` block::
@@ -373,3 +373,4 @@ utility::
 .. _Virtualenv: https://pypi.python.org/pypi/virtualenv
 .. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/
 .. _Gaffer: https://gaffer.readthedocs.io/
+.. _`ignoring client abort`: http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_client_abort
