@@ -11,7 +11,6 @@
 # closed.
 # pylint: disable=no-else-break
 
-import concurrent.futures as futures
 import errno
 import os
 import selectors
@@ -19,6 +18,7 @@ import socket
 import ssl
 import sys
 import time
+from concurrent import futures
 from collections import deque
 from datetime import datetime
 from functools import partial
@@ -49,7 +49,8 @@ class TConn(object):
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                self.sock = ssl.wrap_socket(self.sock, server_side=True,
+                context = ssl.create_default_context()
+                self.sock = context.wrap_socket(self.sock, server_side=True,
                                             **self.cfg.ssl_options)
 
             # initialize the parser
@@ -93,7 +94,7 @@ class ThreadWorker(base.Worker):
 
     def get_thread_pool(self):
         """Override this method to customize how the thread pool is created"""
-        return futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
+        return futures.ThreadPoolExecutor(max_workers=self.cfg.threads) # pylint: disable=R1732
 
     def handle_quit(self, sig, frame):
         self.alive = False

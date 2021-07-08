@@ -9,6 +9,7 @@ import socket
 import ssl
 import sys
 
+# pylint: disable=R0402
 import gunicorn.http as http
 import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util

@@ -1,4 +1,4 @@
-import unittest.mock as mock
+from unittest import mock
 
 from gunicorn.app.base import Application
 from gunicorn.workers.base import Worker

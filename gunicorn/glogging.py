@@ -204,9 +204,9 @@ class Logger(object):
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
 
-            self.logfile = open(cfg.errorlog, 'a+')
-            os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-            os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+            with open(cfg.errorlog, 'a+') as self.logfile:
+                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
         self._set_handler(self.error_log, cfg.errorlog,
                           logging.Formatter(self.error_fmt, self.datefmt))
@@ -362,9 +362,9 @@ class Logger(object):
             with self.lock:
                 if self.logfile is not None:
                     self.logfile.close()
-                self.logfile = open(self.cfg.errorlog, 'a+')
-                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+                with open(self.cfg.errorlog, 'a+') as self.logfile:
+                    os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+                    os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
         for log in loggers():
             for handler in log.handlers:
