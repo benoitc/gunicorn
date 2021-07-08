@@ -3,7 +3,7 @@
 import io
 import t
 import pytest
-import unittest.mock as mock
+from unittest import mock
 
 from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
