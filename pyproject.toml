@@ -3,6 +3,7 @@ requires = ["setuptools>=61.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
+# see https://packaging.python.org/en/latest/specifications/pyproject-toml/
 name = "gunicorn"
 authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
 license = {text = "MIT"}
@@ -46,6 +47,7 @@ Homepage = "https://gunicorn.org"
 Documentation = "https://docs.gunicorn.org"
 "Issue tracker" = "https://github.com/benoitc/gunicorn/issues"
 "Source code" = "https://github.com/benoitc/gunicorn"
+Changelog = "https://docs.gunicorn.org/en/stable/news.html"
 
 [project.optional-dependencies]
 gevent = ["gevent>=1.4.0"]
