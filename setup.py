@@ -99,6 +99,7 @@ setup(
         'Homepage': 'https://gunicorn.org',
         'Issue tracker': 'https://github.com/benoitc/gunicorn/issues',
         'Source code': 'https://github.com/benoitc/gunicorn',
+        'Changelog': 'https://docs.gunicorn.org/en/stable/news.html',
     },
 
     python_requires='>=3.5',
