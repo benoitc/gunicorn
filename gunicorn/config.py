@@ -7,10 +7,8 @@
 
 import argparse
 import copy
-import grp
 import inspect
 import os
-import pwd
 import re
 import shlex
 import ssl
@@ -20,6 +18,10 @@ import textwrap
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
+
+if not util.is_win:
+    import grp
+    import pwd
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -458,6 +460,8 @@ def validate_callable(arity):
 
 
 def validate_user(val):
+    if util.is_win:
+        raise ConfigError("Users not supported on Windows.")
     if val is None:
         return os.geteuid()
     if isinstance(val, int):
@@ -472,6 +476,8 @@ def validate_user(val):
 
 
 def validate_group(val):
+    if util.is_win:
+        raise ConfigError("Groups not supported on Windows.")
     if val is None:
         return os.getegid()
 
@@ -1144,7 +1150,7 @@ class User(Setting):
     cli = ["-u", "--user"]
     meta = "USER"
     validator = validate_user
-    default = os.geteuid()
+    default = None if util.is_win else os.geteuid()
     desc = """\
         Switch worker processes to run as this user.
 
@@ -1160,7 +1166,7 @@ class Group(Setting):
     cli = ["-g", "--group"]
     meta = "GROUP"
     validator = validate_group
-    default = os.getegid()
+    default = None if util.is_win else os.getegid()
     desc = """\
         Switch worker process to run as this group.
 
