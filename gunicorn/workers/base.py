@@ -106,9 +106,9 @@ class Worker(object):
             util.set_non_blocking(p)
             util.close_on_exec(p)
 
-        # Prevent fd inheritance
+        # Prevent fd inheritance. TODO: this is pointless. All newly-created sockets are non-inheritable per the `Python docs <https://docs.python.org/3/library/socket.html#socket.socket>`_. Likewise, per the `docs <https://docs.python.org/3/library/os.html#inheritance-of-file-descriptors>`_, "file descriptors created by Python are non-inheritable by default."
         for s in self.sockets:
-            util.close_on_exec(s)
+            util.close_on_exec(s.fileno())
         util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
