@@ -1065,19 +1065,20 @@ class Chdir(Setting):
         """
 
 
-class Daemon(Setting):
-    name = "daemon"
-    section = "Server Mechanics"
-    cli = ["-D", "--daemon"]
-    validator = validate_bool
-    action = "store_true"
-    default = False
-    desc = """\
-        Daemonize the Gunicorn process.
+if not util.is_win:
+    class Daemon(Setting):
+        name = "daemon"
+        section = "Server Mechanics"
+        cli = ["-D", "--daemon"]
+        validator = validate_bool
+        action = "store_true"
+        default = False
+        desc = """\
+            Daemonize the Gunicorn process.
 
-        Detaches the server from the controlling terminal and enters the
-        background.
-        """
+            Detaches the server from the controlling terminal and enters the
+            background.
+            """
 
 
 class Env(Setting):
@@ -1279,69 +1280,69 @@ class ForwardedAllowIPS(Setting):
 
         By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
         variable. If it is not defined, the default is ``"127.0.0.1"``.
-        
+
         .. note::
-        
+
             The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
-            ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we 
+            ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we
             have a request from the remote address 134.213.44.18, and the default value of ``secure_scheme_headers``:
-            
+
             .. code::
-            
+
                 secure_scheme_headers = {
                     'X-FORWARDED-PROTOCOL': 'ssl',
                     'X-FORWARDED-PROTO': 'https',
                     'X-FORWARDED-SSL': 'on'
                 }
-            
-        
-            .. list-table:: 
+
+
+            .. list-table::
                 :header-rows: 1
                 :align: center
                 :widths: auto
-                
+
                 * - ``forwarded-allow-ips``
                   - Secure Request Headers
                   - Result
                   - Explanation
-                * - .. code:: 
-                    
+                * - .. code::
+
                         ["127.0.0.1"]
                   - .. code::
-                  
+
                         X-Forwarded-Proto: https
-                  - .. code:: 
-                    
+                  - .. code::
+
                         wsgi.url_scheme = "http"
                   - IP address was not allowed
-                * - .. code:: 
-                    
+                * - .. code::
+
                         "*"
                   - <none>
-                  - .. code:: 
-                    
+                  - .. code::
+
                         wsgi.url_scheme = "http"
                   - IP address allowed, but no secure headers provided
-                * - .. code:: 
-                    
+                * - .. code::
+
                         "*"
                   - .. code::
-                  
+
                         X-Forwarded-Proto: https
-                  - .. code:: 
-                    
+                  - .. code::
+
                         wsgi.url_scheme = "https"
                   - IP address allowed, one request header matched
-                * - .. code:: 
-                    
+                * - .. code::
+
                         ["134.213.44.18"]
                   - .. code::
-                  
+
                         X-Forwarded-Ssl: on
                         X-Forwarded-Proto: http
                   - ``InvalidSchemeHeaders()`` raised
                   - IP address allowed, but the two secure headers disagreed on if HTTPS was used
-                
+
 
         """
 
@@ -1592,21 +1593,22 @@ class SyslogFacility(Setting):
     """
 
 
-class EnableStdioInheritance(Setting):
-    name = "enable_stdio_inheritance"
-    section = "Logging"
-    cli = ["-R", "--enable-stdio-inheritance"]
-    validator = validate_bool
-    default = False
-    action = "store_true"
-    desc = """\
-    Enable stdio inheritance.
+if not util.is_win:
+    class EnableStdioInheritance(Setting):
+        name = "enable_stdio_inheritance"
+        section = "Logging"
+        cli = ["-R", "--enable-stdio-inheritance"]
+        validator = validate_bool
+        default = False
+        action = "store_true"
+        desc = """\
+        Enable stdio inheritance.
 
-    Enable inheritance for stdio file descriptors in daemon mode.
+        Enable inheritance for stdio file descriptors in daemon mode.
 
-    Note: To disable the Python stdout buffering, you can to set the user
-    environment variable ``PYTHONUNBUFFERED`` .
-    """
+        Note: To disable the Python stdout buffering, you can to set the user
+        environment variable ``PYTHONUNBUFFERED`` .
+        """
 
 
 # statsD monitoring
