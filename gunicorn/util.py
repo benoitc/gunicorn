@@ -251,36 +251,35 @@ def close_on_exec(fd):
     os.set_inheritable(fd, False)
 
 
-# Return a tuple ``(read_pipe, write_pipe)`` capable of performing non-blocking communication between processes.
-def get_ipc_pipes():
-    pipes = os.pipe()
-    for pipe in pipes:
-        close_on_exec(pipe)
-        # Make this pipe non-blocking.
-        flags = fcntl.fcntl(pipe, fcntl.F_GETFL) | os.O_NONBLOCK
-        fcntl.fcntl(pipe, fcntl.F_SETFL, flags)
-    return pipes
+class InterProcessCommunicator:
+    def __init__(self):
+        self.pipes = os.pipe()
+        for pipe in self.pipes:
+            close_on_exec(pipe)
+            # Make this pipe non-blocking.
+            flags = fcntl.fcntl(pipe, fcntl.F_GETFL) | os.O_NONBLOCK
+            fcntl.fcntl(pipe, fcntl.F_SETFL, flags)
 
 
-def ipc_pipe_write(pipes, data, allow_again=False):
-    try:
-        os.write(pipes[1], data)
-    except IOError as e:
-        if allow_again and e.errno not in [errno.EAGAIN, errno.EINTR]:
-            raise
+    def write(self, data, allow_again=False):
+        try:
+            os.write(self.pipes[1], data)
+        except IOError as e:
+            if allow_again and e.errno not in [errno.EAGAIN, errno.EINTR]:
+                raise
 
 
-def ipc_pipe_read(pipes, bytes):
-    return os.read(pipes[0], bytes)
+    def read(self, bytes):
+        return os.read(self.pipes[0], bytes)
 
 
-# Waits only make sense on a read.
-def ipc_pipe_wait_fd(pipes):
-    return pipes[0]
+    # Waits only make sense on a read.
+    def wait_fd(self):
+        return self.pipes[0]
 
 
-def ipc_pipe_wait(fd_list, timeout):
-    return select.select(fd_list, [], [], timeout)
+    def wait(self, fd_list, timeout):
+        return select.select(fd_list, [], [], timeout)
 
 
 def close(sock):

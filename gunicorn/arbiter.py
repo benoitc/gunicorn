@@ -179,7 +179,7 @@ class Arbiter(object):
             os.close(p)
 
         # initialize the pipe
-        self.PIPE = util.get_ipc_pipes()
+        self.PIPE = util.InterProcessCommunicator()
 
         self.log.close_on_exec()
 
@@ -331,7 +331,7 @@ class Arbiter(object):
         """\
         Wake up the arbiter by writing to the PIPE
         """
-        util.ipc_pipe_write(self.PIPE, b'.', allow_again=True)
+        self.PIPE.write(b'.', allow_again=True)
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
@@ -350,10 +350,10 @@ class Arbiter(object):
         A readable PIPE means a signal occurred.
         """
         try:
-            ready = util.ipc_pipe_wait([util.ipc_pipe_wait_fd(self.PIPE)], 1.0)
+            ready = self.PIPE.wait([self.PIPE.wait_fd()], 1.0)
             if not ready[0]:
                 return
-            while util.ipc_pipe_read(self.PIPE, 1):
+            while self.PIPE.read(1):
                 pass
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.

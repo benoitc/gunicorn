@@ -33,10 +33,10 @@ class SyncWorker(base.Worker):
     def wait(self, timeout):
         try:
             self.notify()
-            ret = util.ipc_pipe_wait(self.wait_fds, timeout)
+            ret = self.PIPE.wait(self.wait_fds, timeout)
             if ret[0]:
-                if self.PIPE[0] in ret[0]:
-                    util.ipc_pipe_read(self.PIPE, 1)
+                if self.PIPE.wait_fd() in ret[0]:
+                    self.PIPE.read(1)
                 return ret[0]
 
         except select.error as e:
@@ -96,7 +96,7 @@ class SyncWorker(base.Worker):
 
             if ready is not None:
                 for listener in ready:
-                    if listener == self.PIPE[0]:
+                    if listener == self.PIPE.wait_fd():
                         continue
 
                     try:

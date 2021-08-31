@@ -101,14 +101,14 @@ class Worker(object):
         util.seed()
 
         # For waking ourselves up
-        self.PIPE = util.get_ipc_pipes()
+        self.PIPE = util.InterProcessCommunicator()
 
         # Prevent fd inheritance. TODO: this is pointless. All newly-created sockets are non-inheritable per the `Python docs <https://docs.python.org/3/library/socket.html#socket.socket>`_. Likewise, per the `docs <https://docs.python.org/3/library/os.html#inheritance-of-file-descriptors>`_, "file descriptors created by Python are non-inheritable by default."
         for s in self.sockets:
             util.close_on_exec(s.fileno())
         util.close_on_exec(self.tmp.fileno())
 
-        self.wait_fds = self.sockets + [util.ipc_pipe_wait_fd(self.PIPE)]
+        self.wait_fds = self.sockets + [self.PIPE.wait_fd()]
 
         self.log.close_on_exec()
 
@@ -119,7 +119,7 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
-                util.ipc_pipe_write(self.PIPE, b"1")
+                self.PIPE.write(b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
