@@ -916,6 +916,26 @@ Called just before exiting Gunicorn.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
+.. _ssl-context:
+
+``ssl_context``
+~~~~~~~~~~~~~~~
+
+**Default:**
+
+.. code-block:: python
+
+        def ssl_context(config):
+            return None
+
+Called when SSLContext is needed.
+
+Allows fully customized SSL context to be used in place of the default
+context.
+
+The callable needs to accept a single instance variable for the Config.
+The callable needs to return SSLContext object.
+
 Server Mechanics
 ----------------
 
@@ -1506,4 +1526,3 @@ set this to a higher value.
 .. note::
    ``sync`` worker does not support persistent connections and will
    ignore this option.
-

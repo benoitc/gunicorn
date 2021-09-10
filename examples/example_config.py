@@ -214,3 +214,33 @@ def worker_int(worker):
 
 def worker_abort(worker):
     worker.log.info("worker received SIGABRT signal")
+
+def ssl_context(conf):
+    import ssl
+
+    def set_defaults(context):
+        context.verify_mode = conf.cert_reqs
+        context.minimum_version = ssl.TLSVersion.TLSv1_3
+        if conf.ciphers:
+            context.set_ciphers(conf.ciphers)
+        if conf.ca_certs:
+            context.load_verify_locations(cafile=conf.ca_certs)
+
+    # Return different server certificate depending which hostname the client
+    # uses. Requires Python 3.7 or later.
+    def sni_callback(socket, server_hostname, context):
+        if server_hostname == "foo.127.0.0.1.nip.io":
+            new_context = ssl.SSLContext()
+            new_context.load_cert_chain(certfile="foo.pem", keyfile="foo-key.pem")
+            set_defaults(new_context)
+            socket.context = new_context
+
+    context = ssl.SSLContext(conf.ssl_version)
+    context.sni_callback = sni_callback
+    set_defaults(context)
+
+    # Load fallback certificate that will be returned when there is no match
+    # or client did not set TLS SNI (server_hostname == None)
+    context.load_cert_chain(certfile=conf.certfile, keyfile=conf.keyfile)
+
+    return context

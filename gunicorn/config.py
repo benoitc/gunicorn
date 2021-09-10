@@ -1967,6 +1967,25 @@ class OnExit(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+class NewSSLContext(Setting):
+    name = "ssl_context"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = callable
+
+    def ssl_context(config):
+        return None
+
+    default = staticmethod(ssl_context)
+    desc = """\
+        Called when SSLContext is needed.
+
+        Allows fully customized SSL context to be used in place of the default
+        context.
+
+        The callable needs to accept a single instance variable for the Config.
+        The callable needs to return SSLContext object.
+        """
 
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
