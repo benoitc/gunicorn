@@ -46,6 +46,8 @@ class TConn(object):
 
     def init(self):
         self.sock.setblocking(True)
+        if self.cfg.socket_timeout > 0:
+            self.sock.settimeout(self.cfg.socket_timeout)
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
@@ -283,7 +285,8 @@ class ThreadWorker(base.Worker):
             else:
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, conn.sock, conn.client, e)
-
+        except socket.timeout as e:
+            self.log.debug("Socket timeout.")
         except EnvironmentError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")

@@ -1324,6 +1324,25 @@ load.
 
 Must be a positive integer. Generally set in the 64-2048 range.
 
+.. _socket-timeout:
+
+``socket_timeout``
+~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--socket-timeout INT``
+
+**Default:** ``0``
+
+Timeout for reading from the socket associated with the client.
+
+Value is a positive number of seconds or 0. Setting it to 0 has the
+effect of infinite timeouts by disabling socket timeouts entirely.
+Worker level timeout still applies.
+
+.. note::
+   Only ``sync`` and ``gthread`` workers implement this option, others
+   will ignore it.
+
 Worker Processes
 ----------------
 
@@ -1506,4 +1525,3 @@ set this to a higher value.
 .. note::
    ``sync`` worker does not support persistent connections and will
    ignore this option.
-

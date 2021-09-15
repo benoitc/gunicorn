@@ -27,6 +27,8 @@ class SyncWorker(base.Worker):
     def accept(self, listener):
         client, addr = listener.accept()
         client.setblocking(1)
+        if self.cfg.socket_timeout:
+            client.settimeout(self.cfg.socket_timeout)
         util.close_on_exec(client)
         self.handle(listener, client, addr)
 
@@ -145,6 +147,8 @@ class SyncWorker(base.Worker):
             else:
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
+        except socket.timeout as e:
+            self.log.debug("Socket timeout.")
         except EnvironmentError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")

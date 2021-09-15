@@ -629,6 +629,25 @@ class Backlog(Setting):
         Must be a positive integer. Generally set in the 64-2048 range.
         """
 
+class SocketTimeout(Setting):
+    name = "socket_timeout"
+    section = "Server Socket"
+    cli = ["--socket-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        Timeout for reading from the socket associated with the client.
+
+        Value is a positive number of seconds or 0. Setting it to 0 has the
+        effect of infinite timeouts by disabling socket timeouts entirely.
+        Worker level timeout still applies.
+
+        .. note::
+           Only ``sync`` and ``gthread`` workers implement this option, others
+           will ignore it.
+        """
 
 class Workers(Setting):
     name = "workers"
