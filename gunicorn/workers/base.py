@@ -12,6 +12,7 @@ import traceback
 from datetime import datetime
 from random import randint
 from ssl import SSLError
+from multiprocessing import Value
 
 from gunicorn import util
 from gunicorn.http.errors import (
@@ -60,7 +61,7 @@ class Worker(object):
             self.max_requests = sys.maxsize
 
         self.alive = True
-        self.busy = False
+        self.busy = Value('i', 0)
         self.log = log
         self.tmp = WorkerTmp(cfg)
 
