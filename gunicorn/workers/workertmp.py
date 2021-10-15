@@ -6,6 +6,7 @@
 import os
 import platform
 import tempfile
+import time
 
 from gunicorn import util
 
@@ -35,6 +36,7 @@ class WorkerTmp(object):
             # In Python 3.8, open() emits RuntimeWarning if buffering=1 for binary mode.
             # Because we never write to this file, pass 0 to switch buffering off.
             self._tmp = os.fdopen(fd, 'w+b', 0)
+            self._create_time = time.monotonic()
         except Exception:
             os.close(fd)
             raise
@@ -47,6 +49,9 @@ class WorkerTmp(object):
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_ctime
+
+    def create_time(self):
+        return self._create_time
 
     def fileno(self):
         return self._tmp.fileno()

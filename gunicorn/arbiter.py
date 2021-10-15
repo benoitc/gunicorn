@@ -492,7 +492,7 @@ class Arbiter(object):
         workers = list(self.WORKERS.items())
         for (pid, worker) in workers:
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                if time.monotonic() - worker.tmp.create_time() <= self.timeout:
                     continue
             except (OSError, ValueError):
                 continue
