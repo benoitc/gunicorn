@@ -508,6 +508,7 @@ class Arbiter(object):
         """\
         Reap workers to avoid zombie processes
         """
+        # Method is called by SIGCHLD signal handler; we cannot log anything
         try:
             while True:
                 wpid, status = os.waitpid(-1, os.WNOHANG)
@@ -526,12 +527,6 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-                    if os.WIFSIGNALED(status):
-                        self.log.warning(
-                            "Worker with pid %s was terminated due to signal %s",
-                            wpid,
-                            os.WTERMSIG(status)
-                        )
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
