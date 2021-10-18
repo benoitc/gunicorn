@@ -33,10 +33,9 @@ class WorkerTmp(object):
         try:
             if not IS_CYGWIN:
                 util.unlink(name)
-            # In Python 3.8, open() emits RuntimeWarning if buffering=1 for binary mode.
-            # Because we never write to this file, pass 0 to switch buffering off.
-            self._tmp = os.fdopen(fd, 'w+b', 0)
-            self._create_time = time.monotonic()
+
+            self._tmp = os.fdopen(fd, 'w+')
+            self._tmp.write(str(int(time.monotonic())))
         except Exception:
             os.close(fd)
             raise
@@ -44,14 +43,16 @@ class WorkerTmp(object):
         self.spinner = 0
 
     def notify(self):
-        self.spinner = (self.spinner + 1) % 2
-        os.fchmod(self._tmp.fileno(), self.spinner)
+        self._tmp.seek(0, 0)
+        self._tmp.write(str(int(time.monotonic())))
 
     def last_update(self):
-        return os.fstat(self._tmp.fileno()).st_ctime
+        self._tmp.seek(0, 0)
+        time_content = self._tmp.read()
+        if time_content:
+            return int(time_content)
 
-    def create_time(self):
-        return self._create_time
+        return os.fstat(self._tmp.fileno()).st_ctime
 
     def fileno(self):
         return self._tmp.fileno()
