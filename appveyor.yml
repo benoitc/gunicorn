@@ -22,16 +22,24 @@ environment:
 build: off
 
 install:
-- echo $PYTHON || true
-- echo "$PYTHON" || true
-- dir C:\Py* || true
-- dir C:\\Py* || true
-- dir C:/Py* || true
-- python --version || true
-- python3 --version || true
-- pip3 --version || true
-- python3 -m pip --version || true
-- $PYTHON -m pip install tox
+- dir C:\Py*
+- py --version || true
+- py -3 --version || true
+- C:\Python38-x64 --version || true
+- C:\Python38-x64 -m pip --version || true
+- echo "%PYTHON%"
+- "%PYTHON% --version || true"
+- "%PYTHON% -m pip install tox"
+#- echo $PYTHON || true
+#- echo "$PYTHON" || true
+#- dir C:\Py* || true
+#- dir C:\\Py* || true
+#- dir C:/Py* || true
+#- python --version || true  # Py2
+#- python3 --version || true
+#- pip3 --version || true
+#- python3 -m pip --version || true
+#- $PYTHON -m pip install tox
 
 test_script:
 - tox
