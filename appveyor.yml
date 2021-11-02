@@ -22,7 +22,7 @@ environment:
 build: off
 
 install:
-- pip install tox
+- $PYTHON -m pip install tox
 
 test_script:
 - tox
