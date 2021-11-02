@@ -3,13 +3,21 @@
 environment:
   matrix:
   - TOXENV: lint
+    PYTHON: "C:\\Python310-x64"
   - TOXENV: docs-lint
+    PYTHON: "C:\\Python310-x64"
   - TOXENV: pycodestyle
+    PYTHON: "C:\\Python310-x64"
   - TOXENV: py36
+    PYTHON: "C:/Python36-x64"
   - TOXENV: py37
+    PYTHON: C:\Python37-x64
   - TOXENV: py38
+    PYTHON: C:\\Python38-x64
   - TOXENV: py39
+    PYTHON: "C:\Python39-x64"
   - TOXENV: py310
+    PYTHON: "C:\\Python310-x64"
 
 build: off
 
