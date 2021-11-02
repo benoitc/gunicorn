@@ -22,6 +22,11 @@ environment:
 build: off
 
 install:
+- echo $PYTHON || true
+- echo "$PYTHON" || true
+- echo C:\Py* || true
+- echo C:\\Py* || true
+- echo C:/Py* || true
 - python --version || true
 - python3 --version || true
 - pip3 --version || true
