@@ -9,19 +9,23 @@ environment:
   - TOXENV: pycodestyle
     PYTHON: C:\Python310-x64
   - TOXENV: py36
-    PYTHON: C:\Python36-x64
+    PYTHON: C:/Python36-x64
   - TOXENV: py37
     PYTHON: C:\Python37-x64
   - TOXENV: py38
-    PYTHON: C:\Python38-x64
+    PYTHON: C:\\Python38-x64
   - TOXENV: py39
-    PYTHON: C:\Python39-x64
+    PYTHON: "C:\Python39-x64"
   - TOXENV: py310
-    PYTHON: C:\Python310-x64
+    PYTHON: "C:\\Python310-x64"
 
 build: off
 
 install:
+- python --version || true
+- python3 --version || true
+- pip3 --version || true
+- python3 -m pip --version || true
 - $PYTHON -m pip install tox
 
 test_script:
