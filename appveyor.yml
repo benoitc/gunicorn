@@ -23,14 +23,15 @@ build: off
 
 install:
 # - dir C:\Py*  # Python 2.{6,7}, 3{3,4,5,6,7,8} but NOT 3.9 and 3.10
-# - py --version  # Python 3.8.0
-- py -3.6--version || true
-- py -37 --version || true
+- py -0  # See all installed Pythons
+- py -vv  # Python 3.8.0 -- py -3.8-64 or -3.8-32
+- py -3.6 --version || true
+- py -3.7 --version || true
 - py -3.8 --version || true
-- py -3.9 --version || true
-- py -3-10 --version || true
-- py -m pip install --upgrade pip
-- py -m pip install tox
+#- py -3.9 --version || true
+#- py -3-10 --version || true
+- py -3.8-64 -m pip install --upgrade pip
+- py -3.8-64 -m pip install tox
 
 test_script:
-- py -m tox
+- py -3.8-64 -m tox
