@@ -5,7 +5,6 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
@@ -27,6 +26,11 @@ import pkg_resources
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
+
+try:
+    import fcntl
+except ImportError:  # Python's fcntl module is Unix-only.
+    fcntl = None
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 

@@ -7,7 +7,6 @@
 
 import argparse
 import copy
-import grp
 import inspect
 import os
 import pwd
@@ -20,6 +19,11 @@ import textwrap
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
+
+try:
+    import grp
+except ImportError:  # Python's grp module is Unix-only.
+    grp = None
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -482,6 +486,8 @@ def validate_group(val):
     else:
         try:
             return grp.getgrnam(val).gr_gid
+        except AttributeError:
+            raise NotImplementedError("Python's grp module is Unix-only.")
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
 

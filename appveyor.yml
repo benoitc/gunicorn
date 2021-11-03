@@ -2,29 +2,30 @@ version: '{branch}.{build}'
 environment:
   matrix:
     - TOXENV: lint
-      PYTHON: "C:\\Python37-x64"
-    - TOXENV: py35
-      PYTHON: "C:\\Python35-x64"
-    - TOXENV: py36
-      PYTHON: "C:\\Python36-x64"
-    - TOXENV: py37
-      PYTHON: "C:\\Python37-x64"
-    - TOXENV: py38
       PYTHON: "C:\\Python38-x64"
-    - TOXENV: py39
-      PYTHON: "C:\\Python39-x64"
+    - TOXENV: py35
+    - TOXENV: py36
+    - TOXENV: py37
+    - TOXENV: py38
+    # - TOXENV: py39   # Not yet present in Appveyor Windows image
+    # - TOXENV: py310  # Not yet present in Appveyor Windows image
 matrix:
   allow_failures:
     - TOXENV: py35
     - TOXENV: py36
     - TOXENV: py37
     - TOXENV: py38
-    - TOXENV: py39
-init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    # - TOXENV: py39
+    # - TOXENV: py310
+init:
+  - SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 install:
-  - pip install tox
-build: off
-test_script: tox
+  - py -0  # List all available versions of Python
+  - py -m pip install --upgrade pip
+  - py -m pip install tox
+build: false
+test_script:
+  - py -m tox
 cache:
   # Not including the .tox directory since it takes longer to download/extract
   # the cache archive than for tox to clean install from the pip cache.
