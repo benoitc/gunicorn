@@ -9,7 +9,6 @@ import argparse
 import copy
 import inspect
 import os
-import pwd
 import re
 import shlex
 import ssl
@@ -24,6 +23,11 @@ try:
     import grp
 except ImportError:  # Python's grp module is Unix-only.
     grp = None
+
+try:
+    import pwd
+except ImportError:  # Python's pwd module is Unix-only.
+    pwd = None
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -471,6 +475,8 @@ def validate_user(val):
     else:
         try:
             return pwd.getpwnam(val).pw_uid
+        except AttributeError:
+            raise NotImplementedError("Python's pwd module is Unix-only.")
         except KeyError:
             raise ConfigError("No such user: '%s'" % val)
 
