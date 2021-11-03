@@ -3,8 +3,11 @@
 # https://www.appveyor.com/docs/getting-started-with-appveyor-for-linux
 # https://www.appveyor.com/docs/lang/python
 
-image: Ubuntu
 version: '{branch}.{build}'
+image:
+  # - macOS
+  - Ubuntu
+  # - Visual Studio 2019
 environment:
   matrix:
     - TOXENV: lint
