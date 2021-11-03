@@ -100,10 +100,7 @@ class TCP6Socket(TCPSocket):
 
 class UnixSocket(BaseSocket):
 
-    try:
-        FAMILY = socket.AF_UNIX
-    except AttributeError:  # socket.AF_UNIX is Unix-only.
-        FAMILY = socket.AF_INET
+    FAMILY = socket.AF_UNIX
 
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:

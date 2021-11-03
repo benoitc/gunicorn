@@ -131,7 +131,7 @@ def get_arity(f):
 
 def get_username(uid):
     """ get the username for a user id"""
-    return pwd.getpwuid(uid).pw_name  # Python's pwd module is Unix-only.
+    return pwd.getpwuid(uid).pw_name
 
 
 def set_owner_process(uid, gid, initgroups=False):

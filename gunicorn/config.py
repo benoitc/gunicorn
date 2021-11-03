@@ -1156,10 +1156,7 @@ class User(Setting):
     cli = ["-u", "--user"]
     meta = "USER"
     validator = validate_user
-    try:
-        default = os.geteuid()
-    except AttributeError:  # Python os.geteuid() is Unix-only.
-        default = 999
+    default = os.geteuid()
     desc = """\
         Switch worker processes to run as this user.
 
