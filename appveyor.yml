@@ -3,6 +3,10 @@ environment:
   matrix:
     - TOXENV: lint
       PYTHON: "C:\\Python38-x64"
+    - TOXENV: docs-lint
+      PYTHON: "C:\\Python38-x64"
+    - TOXENV: pycodestyle
+      PYTHON: "C:\\Python38-x64"
     - TOXENV: py35
     - TOXENV: py36
     - TOXENV: py37
