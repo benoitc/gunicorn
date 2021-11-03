@@ -14,10 +14,11 @@ environment:
     # - TOXENV: py39   # Not yet present in Appveyor Windows image
     # - TOXENV: py310  # Not yet present in Appveyor Windows image
   allow_failures:
-    - TOXENV: py35
-    - TOXENV: py36
-    - TOXENV: py37
-    - TOXENV: py38
+    environment:
+      - TOXENV: py35
+      - TOXENV: py36
+      - TOXENV: py37
+      - TOXENV: py38
     # - TOXENV: py39
     # - TOXENV: py310
 init:
