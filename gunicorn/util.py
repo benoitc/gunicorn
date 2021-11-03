@@ -11,7 +11,6 @@ import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -31,6 +30,11 @@ try:
     import fcntl
 except ImportError:  # Python's fcntl module is Unix-only.
     fcntl = None
+
+try:
+    import pwd
+except ImportError:  # Python's pwd module is Unix-only.
+    pwd = None
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
@@ -127,7 +131,7 @@ def get_arity(f):
 
 def get_username(uid):
     """ get the username for a user id"""
-    return pwd.getpwuid(uid).pw_name
+    return pwd.getpwuid(uid).pw_name  # Python's pwd module is Unix-only.
 
 
 def set_owner_process(uid, gid, initgroups=False):
