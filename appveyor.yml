@@ -14,16 +14,22 @@ environment:
     PYTHON: C:\\Python37-x64
   - TOXENV: py38
     PYTHON: C:\\Python38-x64
-  - TOXENV: py39
-    PYTHON: "C:\\Python39-x64"
-  - TOXENV: py310
-    PYTHON: "C:\\Python310-x64"
+  #- TOXENV: py39
+  #  PYTHON: "C:\\Python39-x64"
+  #- TOXENV: py310
+  #  PYTHON: "C:\\Python310-x64"
 
 build: off
 
 install:
 - dir C:\Py*  # Python 2.{6,7}, 3{3,4,5,6,7,8} but NOT 3.9 and 3.10
 - py --version  # Python 3.8.0
+- py36 --version || true
+- py37 --version || true
+- py38 --version || true
+- py39 --version || true
+- py310 --version || true
+- pip3 install --upgrade pip || true
 - py -m pip install --upgrade pip
 - py -m pip install tox
 
