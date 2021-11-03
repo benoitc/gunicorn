@@ -4,6 +4,7 @@
 # https://www.appveyor.com/docs/lang/python
 
 image: Ubuntu
+stack: python 3.9
 version: '{branch}.{build}'
 environment:
   matrix:
@@ -16,11 +17,11 @@ environment:
     - TOXENV: py39
     # - TOXENV: py310  # Not yet present on Appveyor Ubuntu image
 install:
-  - python3 -m pip install --upgrade pip
-  - python3 -m pip install tox
+  - pip install --upgrade pip
+  - pip install tox
 build: false
 test_script:
-  - python3 -m tox
+  - tox
 notifications:
   - provider: Email
     on_build_success: false
