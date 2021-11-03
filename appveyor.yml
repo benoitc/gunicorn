@@ -1,3 +1,8 @@
+# appveyor.yml
+---
+# https://www.appveyor.com/docs/getting-started-with-appveyor-for-linux
+# https://www.appveyor.com/docs/lang/python
+
 image: Ubuntu
 version: '{branch}.{build}'
 environment:
@@ -9,13 +14,13 @@ environment:
     - TOXENV: py37
     - TOXENV: py38
     - TOXENV: py39
-    - TOXENV: py310  # Not yet present on Appveyor Ubuntu image
+    # - TOXENV: py310  # Not yet present on Appveyor Ubuntu image
 install:
-  - pip install --upgrade pip
-  - pip install tox
+  - python3 -m pip install --upgrade pip
+  - python3 -m pip install tox
 build: false
 test_script:
-  - tox
+  - python3 -m tox
 notifications:
   - provider: Email
     on_build_success: false
