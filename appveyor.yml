@@ -8,20 +8,22 @@ version: '{branch}.{build}'
 environment:
   matrix:
     - TOXENV: lint
-      stack: python 3.9
+      PYTHON: 3.9
     - TOXENV: docs-lint
-      stack: python 3.9
+      PYTHON: 3.9
     - TOXENV: pycodestyle
-      stack: python 3.9
+      PYTHON: 3.9
     - TOXENV: py36
-      stack: python 3.6
+      PYTHON: 3.6
     - TOXENV: py37
-      stack: python 3.7
+      PYTHON: 3.7
     - TOXENV: py38
-      stack: python 3.8
+      PYTHON: 3.8
     - TOXENV: py39
-      stack: python 3.9
+      PYTHON: 3.9
     # - TOXENV: py310  # Not yet present on Appveyor Ubuntu image
+    #   PYTHON: 3.9
+stack: python $PYTHON
 install:
   - pip install --upgrade pip
   - pip install tox
