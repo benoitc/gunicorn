@@ -13,7 +13,6 @@ environment:
     - TOXENV: py38
     # - TOXENV: py39   # Not yet present in Appveyor Windows image
     # - TOXENV: py310  # Not yet present in Appveyor Windows image
-matrix:
   allow_failures:
     - TOXENV: py35
     - TOXENV: py36
