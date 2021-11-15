@@ -110,6 +110,9 @@ class ThreadWorker(base.Worker):
 
     def enqueue_req(self, conn):
         conn.init()
+        threadpool_queue_size = self.tpool._work_queue.qsize()
+        thread_states = [(thread.name, thread.is_alive()) for thread in list(self.tpool._threads)]
+        self.log.info(f"Enqueuing request. threadpool_queue_size:{threadpool_queue_size}, thread_states:{thread_states}")
         # submit the connection to a worker
         fs = self.tpool.submit(self.handle, conn)
         self._wrap_future(fs, conn)
@@ -260,16 +263,19 @@ class ThreadWorker(base.Worker):
             fs.conn.close()
 
     def handle(self, conn):
+        self.log.info("handle")
         keepalive = False
         req = None
         try:
             req = next(conn.parser)
             if not req:
+                self.log.info(f"returning from handle - no req: {(False ,conn)}")
                 return (False, conn)
 
             # handle the request
             keepalive = self.handle_request(req, conn)
             if keepalive:
+                self.log.info(f"returning from handle: {(keepalive ,conn)}")
                 return (keepalive, conn)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
@@ -297,12 +303,15 @@ class ThreadWorker(base.Worker):
         except Exception as e:
             self.handle_error(req, conn.sock, conn.client, e)
 
+        self.log.info(f"returning from handle: {(False,conn)}")
         return (False, conn)
 
     def handle_request(self, req, conn):
+        self.log.info("handle_request")
         environ = {}
         resp = None
         try:
+            self.log.info("pre_request")
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, conn.sock, conn.client,
@@ -313,15 +322,20 @@ class ThreadWorker(base.Worker):
                 if self.alive:
                     self.log.info("Autorestarting worker after current request.")
                     self.alive = False
+                self.log.info("force_close - nr > max_requests")
                 resp.force_close()
 
             if not self.alive or not self.cfg.keepalive:
+                self.log.info("force_close - not alive")
                 resp.force_close()
             elif len(self._keep) >= self.max_keepalived:
+                self.log.info("force_close - keepalived")
                 resp.force_close()
 
+            self.log.info("calling wsgi")
             respiter = self.wsgi(environ, resp.start_response)
             try:
+                self.log.info("handle_request writing response")
                 if isinstance(respiter, environ['wsgi.file_wrapper']):
                     resp.write_file(respiter)
                 else:
@@ -330,6 +344,7 @@ class ThreadWorker(base.Worker):
 
                 resp.close()
                 request_time = datetime.now() - request_start
+                self.log.info("handle_request logging access")
                 self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
