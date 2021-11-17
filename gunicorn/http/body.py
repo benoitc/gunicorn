@@ -5,6 +5,7 @@
 
 import io
 import sys
+import threading
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
                                   InvalidChunkSize)
@@ -56,8 +57,14 @@ class ChunkedReader(object):
 
     def parse_chunked(self, unreader):
         (size, rest) = self.parse_chunk_size(unreader)
+        while_count_size_gt_zero = 0
         while size > 0:
+            print(f"{threading.currentThread().getName()}: size > 0. parse_chunked count={while_count_size_gt_zero}", flush=True)
+            while_count_size_gt_zero += 1
+            while_count_size_gt_len_rest = 0
             while size > len(rest):
+                print(f"{threading.currentThread().getName()}: size > len(rest). parse_chunked count={while_count_size_gt_len_rest}", flush=True)
+                while_count_size_gt_len_rest += 1
                 size -= len(rest)
                 yield rest
                 rest = unreader.read()
@@ -66,19 +73,24 @@ class ChunkedReader(object):
             yield rest[:size]
             # Remove \r\n after chunk
             rest = rest[size:]
+            while_count = 0
             while len(rest) < 2:
+                print(f"{threading.currentThread().getName()}: len(rest) < 2. parse_chunked count={while_count}", flush=True)
+                while_count+=1
                 rest += unreader.read()
             if rest[:2] != b'\r\n':
                 raise ChunkMissingTerminator(rest[:2])
             (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
     def parse_chunk_size(self, unreader, data=None):
+        print(f"{threading.currentThread().getName()}: parse_chunk_size start", flush=True)
         buf = io.BytesIO()
         if data is not None:
             buf.write(data)
 
         idx = buf.getvalue().find(b"\r\n")
         while idx < 0:
+            print(f"{threading.currentThread().getName()}: parse_chunk_size terminal index: {idx}", flush=True)
             self.get_data(unreader, buf)
             idx = buf.getvalue().find(b"\r\n")
 
@@ -91,6 +103,7 @@ class ChunkedReader(object):
         except ValueError:
             raise InvalidChunkSize(chunk_size)
 
+        print(f"{threading.currentThread().getName()}: parse_chunk_size end", flush=True)
         if chunk_size == 0:
             try:
                 self.parse_trailers(unreader, rest_chunk)
