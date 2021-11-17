@@ -1415,7 +1415,7 @@ This setting only affects the Gthread worker type.
 
 The maximum number of simultaneous clients.
 
-This setting only affects the Eventlet and Gevent worker types.
+This setting only affects the Eventlet, Gevent, and Thread worker types.
 
 .. _max-requests:
 
