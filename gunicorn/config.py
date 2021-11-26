@@ -7,10 +7,8 @@
 
 import argparse
 import copy
-import grp
 import inspect
 import os
-import pwd
 import re
 import shlex
 import ssl
@@ -20,6 +18,13 @@ import textwrap
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
+
+try:
+    import grp
+    import pwd
+except ImportError:  # Python's grp and pwd modules are Unix-only.
+    grp = None
+    pwd = None
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -467,6 +472,8 @@ def validate_user(val):
     else:
         try:
             return pwd.getpwnam(val).pw_uid
+        except AttributeError:
+            raise NotImplementedError("Python's pwd module is Unix-only.")
         except KeyError:
             raise ConfigError("No such user: '%s'" % val)
 
@@ -482,6 +489,8 @@ def validate_group(val):
     else:
         try:
             return grp.getgrnam(val).gr_gid
+        except AttributeError:
+            raise NotImplementedError("Python's grp module is Unix-only.")
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
 
