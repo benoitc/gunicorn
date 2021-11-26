@@ -19,14 +19,14 @@ from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
 
-try:
+try:  # Unix-only
     import grp
     import pwd
+    getegid = os.getegid
     geteuid = os.geteuid
-except ImportError:  # Python's grp and pwd modules and os.geteuid are Unix-only.
-    grp = None
-    pwd = None
-    geteuid = os.getlogin
+except ImportError:  # Windows
+    grp = pwd = None
+    getegid = geteuid = os.getlogin
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -482,7 +482,7 @@ def validate_user(val):
 
 def validate_group(val):
     if val is None:
-        return os.getegid()
+        return getegid()
 
     if isinstance(val, int):
         return val
@@ -1171,7 +1171,7 @@ class Group(Setting):
     cli = ["-g", "--group"]
     meta = "GROUP"
     validator = validate_group
-    default = os.getegid()
+    default = getegid()
     desc = """\
         Switch worker process to run as this group.
 
