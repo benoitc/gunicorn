@@ -28,9 +28,10 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
+    SIGNALS = [getattr(signal, "SIG%s" % x, None) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )]
+    SIGNALS = [sig for sig in SIGNALS if sig]  # Windows does not have SIGHUP.
 
     PIPE = []
 
