@@ -41,8 +41,9 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
+    SIGNALS = [getattr(signal, "SIG%s" % x, None)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+    SIGNALS = [sig for sig in SIGNALS if sig]  # Windows does not have SIGHUP.
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"

@@ -26,7 +26,7 @@ try:
 except ImportError:  # Python's grp and pwd modules and os.geteuid are Unix-only.
     grp = None
     pwd = None
-    geteuid = os.getuid
+    geteuid = os.getlogin
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
