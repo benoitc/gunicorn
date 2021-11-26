@@ -18,8 +18,8 @@ environment:
     - PY_VER: "3.10"
       TOXENV: py310
 build: false
-install:     py $PY_VER -m pip install tox
-test_script: py $PY_VER -m tox
+install:     py -$PY_VER -m pip install tox
+test_script: py -$PY_VER -m tox
 cache:
   # Not including the .tox directory since it takes longer to download/extract
   # the cache archive than for tox to clean install from the pip cache.
