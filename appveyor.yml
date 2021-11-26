@@ -5,21 +5,21 @@ image:
 version: '{branch}.{build}'
 environment:
   matrix:
-    - PY_VER: "3.5"
+    - PYVER: "-3.5"
       TOXENV: py35
-    - PY_VER: "3.6"
+    - PYVER: "-3.6"
       TOXENV: py36
-    - PY_VER: "3.7"
+    - PYVER: "-3.7"
       TOXENV: py37
-    - PY_VER: "3.8"
+    - PYVER: "-3.8"
       TOXENV: py38
-    - PY_VER: "3.9"
+    - PYVER: "-3.9"
       TOXENV: py39
-    - PY_VER: "3.10"
+    - PYVER: "-3.10"
       TOXENV: py310
 build: false
-install:     py -$PY_VER -m pip install tox
-test_script: py -$PY_VER -m tox
+install:     echo "$PYVER %PYVER%" && py %PYVER% -m pip install tox
+test_script: py %PYVER% -m tox
 cache:
   # Not including the .tox directory since it takes longer to download/extract
   # the cache archive than for tox to clean install from the pip cache.
