@@ -5,14 +5,12 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -27,6 +25,13 @@ import pkg_resources
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
+
+try:
+    import fcntl
+    import pwd
+except ImportError:  # Python's fcntl and pwd modules are Unix-only.
+    fcntl = None
+    pwd = None
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
