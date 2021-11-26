@@ -22,9 +22,11 @@ from gunicorn.reloader import reloader_engines
 try:
     import grp
     import pwd
-except ImportError:  # Python's grp and pwd modules are Unix-only.
+    geteuid = os.geteuid
+except ImportError:  # Python's grp and pwd modules and os.geteuid are Unix-only.
     grp = None
     pwd = None
+    geteuid = os.getuid
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -464,7 +466,7 @@ def validate_callable(arity):
 
 def validate_user(val):
     if val is None:
-        return os.geteuid()
+        return geteuid()
     if isinstance(val, int):
         return val
     elif val.isdigit():
@@ -1153,7 +1155,7 @@ class User(Setting):
     cli = ["-u", "--user"]
     meta = "USER"
     validator = validate_user
-    default = os.geteuid()
+    default = geteuid()
     desc = """\
         Switch worker processes to run as this user.
 

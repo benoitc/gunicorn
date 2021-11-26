@@ -18,8 +18,10 @@ environment:
     - PYVER: "-3.10"
       TOXENV: py310
 build: false
-install:     echo "$PYVER %PYVER%" && py %PYVER% -m pip install tox
-test_script: py %PYVER% -m tox
+install:
+  - py %PYVER% -m pip install tox
+test_script:
+  - py %PYVER% -m tox
 cache:
   # Not including the .tox directory since it takes longer to download/extract
   # the cache archive than for tox to clean install from the pip cache.

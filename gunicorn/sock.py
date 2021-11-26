@@ -99,8 +99,10 @@ class TCP6Socket(TCPSocket):
 
 
 class UnixSocket(BaseSocket):
-
-    FAMILY = socket.AF_UNIX
+    try:
+        FAMILY = socket.AF_UNIX
+    except AttributeError:  # Windows
+        FAMILY = socket.AF_INET
 
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
