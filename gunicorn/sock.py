@@ -176,8 +176,8 @@ def create_sockets(conf, log, fds=None):
         return listeners
 
     # no sockets is bound, first initialization of gunicorn in this env.
-    some_sock_succeeded = False
     for addr in laddr:
+        some_sock_succeeded = False
         try:
             if isinstance(addr, tuple):
                 addrinfos = socket.getaddrinfo(addr[0], addr[1], type=socket.SOCK_STREAM)
@@ -185,21 +185,22 @@ def create_sockets(conf, log, fds=None):
                 addrinfos = [(socket.AF_UNIX, None, None, None, addr)]
         except (ValueError, OSError) as e:
             log.error("Failed getaddrinfo for %s: %s", str(addr), str(e))
-            continue
+            addrinfos = []
+
         for sock_family, _, _, _, sock_addr in addrinfos:
             if sock_family == socket.AF_INET:
-                sock_class = TCPSocket
+                sock_type = TCPSocket
             elif sock_family == socket.AF_INET6:
-                sock_class = TCP6Socket
+                sock_type = TCP6Socket
             elif sock_family == socket.AF_UNIX:
-                sock_class = UnixSocket
+                sock_type = UnixSocket
             else:
                 log.warning("Ignoring unknown socket family: %s", str(sock_family))
                 continue
             sock = None
             for i in range(5):
                 try:
-                    sock = sock_class(sock_addr, conf, log)
+                    sock = sock_type(sock_addr, conf, log)
                 except OSError as e:
                     if e.args[0] == errno.EADDRINUSE:
                         log.error("Connection in use: %s", str(sock_addr))
@@ -217,9 +218,9 @@ def create_sockets(conf, log, fds=None):
                 listeners.append(sock)
                 some_sock_succeeded = True
 
-    if not some_sock_succeeded:
-        log.error("Can't connect to %s", str(addr))
-        sys.exit(1)
+        if not some_sock_succeeded:
+            log.error("Can't connect to %s", str(addr))
+            sys.exit(1)
 
     return listeners
 
