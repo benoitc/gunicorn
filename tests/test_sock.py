@@ -30,8 +30,17 @@ def test_create_sockets_unix_strings(stat):
 
 
 @mock.patch('os.stat')
-def test_create_abstract_sockets_unix_strings(stat):
+def test_create_abstract_sockets_unix_bytes(stat):
     conf = mock.Mock(address=[b'\0/var/run/test.sock'])
+    log = mock.Mock()
+    with mock.patch.object(sock.AbstractUnixSocket, '__init__', lambda *args: None):
+        listeners = sock.create_sockets(conf, log)
+        assert len(listeners) == 1
+        assert isinstance(listeners[0], sock.AbstractUnixSocket)
+
+@mock.patch('os.stat')
+def test_create_abstract_sockets_unix_strings(stat):
+    conf = mock.Mock(address=['\0/var/run/test.sock'])
     log = mock.Mock()
     with mock.patch.object(sock.AbstractUnixSocket, '__init__', lambda *args: None):
         listeners = sock.create_sockets(conf, log)
