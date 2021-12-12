@@ -70,6 +70,10 @@ class BaseSocket(object):
 
         self.sock = None
 
+    @classmethod
+    def address_str(cls, address):
+        return str(address)
+
 
 class TCPSocket(BaseSocket):
 
@@ -98,9 +102,18 @@ class TCP6Socket(TCPSocket):
         return "http://[%s]:%d" % (host, port)
 
 
-class UnixSocket(BaseSocket):
+class BaseUnixSocket(BaseSocket):
 
     FAMILY = socket.AF_UNIX
+
+    def __init__(self, addr, conf, log, fd=None):
+        super().__init__(addr, conf, log, fd=fd)
+
+    def __str__(self):
+        return "unix:%s" % self.cfg_addr
+
+
+class UnixSocket(BaseUnixSocket):
 
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
@@ -116,14 +129,24 @@ class UnixSocket(BaseSocket):
                     raise ValueError("%r is not a socket" % addr)
         super().__init__(addr, conf, log, fd=fd)
 
-    def __str__(self):
-        return "unix:%s" % self.cfg_addr
-
     def bind(self, sock):
         old_umask = os.umask(self.conf.umask)
         sock.bind(self.cfg_addr)
         util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
+
+
+class AbstractUnixSocket(BaseUnixSocket):
+
+    def __str__(self):
+        return "unix:%s" % self.address_str(self.cfg_addr)
+
+    def bind(self, sock):
+        sock.bind(self.cfg_addr)
+
+    @classmethod
+    def address_str(cls, address):
+        return str(address).replace('\0', '@', 1)
 
 
 def _sock_type(addr):
@@ -133,7 +156,12 @@ def _sock_type(addr):
         else:
             sock_type = TCPSocket
     elif isinstance(addr, (str, bytes)):
-        sock_type = UnixSocket
+        if isinstance(addr, str):
+            addr = addr.encode()
+        if addr[0] == 0:
+            sock_type = AbstractUnixSocket
+        else:
+            sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)
     return sock_type
@@ -184,19 +212,19 @@ def create_sockets(conf, log, fds=None):
                 sock = sock_type(addr, conf, log)
             except socket.error as e:
                 if e.args[0] == errno.EADDRINUSE:
-                    log.error("Connection in use: %s", str(addr))
+                    log.error("Connection in use: %s", sock_type.address_str(addr))
                 if e.args[0] == errno.EADDRNOTAVAIL:
-                    log.error("Invalid address: %s", str(addr))
+                    log.error("Invalid address: %s", sock_type.address_str(addr))
                 if i < 5:
                     msg = "connection to {addr} failed: {error}"
-                    log.debug(msg.format(addr=str(addr), error=str(e)))
+                    log.debug(msg.format(addr=sock_type.address_str(addr), error=str(e)))
                     log.error("Retrying in 1 second.")
                     time.sleep(1)
             else:
                 break
 
         if sock is None:
-            log.error("Can't connect to %s", str(addr))
+            log.error("Can't connect to %s", sock_type.address_str(addr))
             sys.exit(1)
 
         listeners.append(sock)
