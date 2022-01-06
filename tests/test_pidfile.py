@@ -4,7 +4,7 @@
 # See the NOTICE for more information.
 
 import errno
-import unittest.mock as mock
+from unittest import mock
 
 import gunicorn.pidfile
 

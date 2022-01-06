@@ -550,12 +550,12 @@ def seed():
         random.seed('%s.%s' % (time.time(), os.getpid()))
 
 
-def check_is_writeable(path):
+def check_is_writable(path):
     try:
-        f = open(path, 'a')
+        with open(path, 'a', encoding="utf-8") as f:
+            f.close()
     except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
-    f.close()
 
 
 def to_bytestring(value, encoding="utf8"):

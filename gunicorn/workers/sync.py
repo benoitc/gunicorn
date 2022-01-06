@@ -12,11 +12,11 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
-import gunicorn.sock as sock
-import gunicorn.util as util
-import gunicorn.workers.base as base
+from gunicorn import http
+from gunicorn.http import wsgi
+from gunicorn import sock
+from gunicorn import util
+from gunicorn.workers import base
 
 
 class StopWaiting(Exception):
