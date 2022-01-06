@@ -11,7 +11,7 @@
 # closed.
 # pylint: disable=no-else-break
 
-import concurrent.futures as futures
+from concurrent import futures
 import errno
 import os
 import selectors
@@ -49,8 +49,8 @@ class TConn(object):
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                self.sock = ssl.wrap_socket(self.sock, server_side=True,
-                                            **self.cfg.ssl_options)
+                self.sock = ssl.SSLContext.wrap_socket(self.sock, server_side=True,
+                                                       **self.cfg.ssl_options)
 
             # initialize the parser
             self.parser = http.RequestParser(self.cfg, self.sock, self.client)

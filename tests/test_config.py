@@ -268,7 +268,7 @@ def test_cli_overrides_config_module():
 def create_config_file(request):
     default_config = os.path.join(os.path.abspath(os.getcwd()),
                                                       'gunicorn.conf.py')
-    with open(default_config, 'w+') as default:
+    with open(default_config, 'w+', encoding="utf-8") as default:
         default.write("bind='0.0.0.0:9090'")
 
     def fin():
