@@ -266,7 +266,14 @@ class ThreadWorker(base.Worker):
         try:
             start_time = time.monotonic()
             queued_time_ms = round((start_time - enqueue_time) * 1000)
-            self.log.histogram("gunicorn.request_queued_time_ms", queued_time_ms)
+            self.log.debug(
+                "request was queued for %s ms", queued_time_ms,
+                extra={
+                    "mtype": "histogram",
+                    "metric": "gunicorn.request_queued_time_ms",
+                    "value": queued_time_ms,
+                }
+            )
             req = next(conn.parser)
             if not req:
                 return (False, conn)
