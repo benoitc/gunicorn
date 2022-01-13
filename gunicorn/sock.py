@@ -11,7 +11,7 @@ import sys
 import time
 
 from gunicorn import util
-
+PLATFORM = sys.platform
 
 class BaseSocket(object):
 
