@@ -18,7 +18,7 @@ MTYPE_VAR = "mtype"
 GAUGE_TYPE = "gauge"
 COUNTER_TYPE = "counter"
 HISTOGRAM_TYPE = "histogram"
-
+TIMER_TYPE = "timer"
 
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
@@ -78,6 +78,8 @@ class Statsd(Logger):
                         self.increment(metric, value)
                     elif typ == HISTOGRAM_TYPE:
                         self.histogram(metric, value)
+                    elif typ == TIMER_TYPE:
+                        self.timer(metric, value)
                     else:
                         pass
 
@@ -97,7 +99,7 @@ class Statsd(Logger):
         status = resp.status
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])
-        self.histogram("gunicorn.request.duration", duration_in_ms)
+        self.timer("gunicorn.request.duration", duration_in_ms)
         self.increment("gunicorn.requests", 1)
         self.increment("gunicorn.request.status.%d" % status, 1)
 
@@ -111,6 +113,9 @@ class Statsd(Logger):
 
     def decrement(self, name, value, sampling_rate=1.0):
         self._sock_send("{0}{1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+
+    def timer(self, name, value):
+        self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
 
     def histogram(self, name, value):
         self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
