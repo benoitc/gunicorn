@@ -180,7 +180,11 @@ def create(req, sock, client, server, cfg):
     # set the path and script name
     path_info = req.path
     if script_name:
-        path_info = path_info.split(script_name, 1)[1]
+        try:
+            path_info = path_info.split(script_name, 1)[1]
+        except IndexError:
+            pass     # If script_name not part of path_info leave path_info alone
+        
     environ['PATH_INFO'] = util.unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
