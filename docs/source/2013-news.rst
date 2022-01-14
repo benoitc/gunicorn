@@ -38,10 +38,10 @@ Changelog - 2013
 - fix: give the initial global_conf to paster application
 - fix: fix 'Expect: 100-continue' support on Python 3
 
-New versionning:
+New versioning:
 ++++++++++++++++
 
-With this release, the versionning of Gunicorn is changing. Gunicorn is
+With this release, the versioning of Gunicorn is changing. Gunicorn is
 stable since a long time and there is no point to release a "1.0" now.
 It should have been done since a long time. 0.17 really meant it was the
 17th stable version. From the beginning we have only 2 kind of
@@ -49,7 +49,7 @@ releases:
 
 major release: releases with major changes or huge features added
 services releases: fixes and minor features added So from now we will
-apply the following versionning ``<major>.<service>``. For example ``17.5`` is a
+apply the following versioning ``<major>.<service>``. For example ``17.5`` is a
 service release.
 
 0.17.4 / 2013-04-24

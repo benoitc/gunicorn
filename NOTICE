@@ -86,4 +86,4 @@ OTHER DEALINGS IN THE SOFTWARE.
 util/unlink.py
 --------------
 
-backport frop python3 Lib/test/support.py
+backport from python3 Lib/test/support.py
