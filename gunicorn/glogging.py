@@ -275,7 +275,7 @@ class Logger(object):
         self.error_log.log(lvl, msg, *args, **kwargs)
 
     def atoms(self, resp, req, environ, request_time):
-        """ Gets atoms for log formating.
+        """ Gets atoms for log formatting.
         """
         status = resp.status
         if isinstance(status, str):
