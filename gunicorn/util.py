@@ -489,9 +489,12 @@ def daemonize(enable_stdio_inheritance=False):
 
             if fd_null != 0:
                 os.dup2(fd_null, 0)
+                os.close(fd_null)
+            elif fd_null == 0:
+                os.set_inheritable(fd_null)
 
-            os.dup2(fd_null, 1)
-            os.dup2(fd_null, 2)
+            os.dup2(0, 1)
+            os.dup2(0, 2)
 
         else:
             fd_null = os.open(REDIRECT_TO, os.O_RDWR)
@@ -538,6 +541,7 @@ def daemonize(enable_stdio_inheritance=False):
 
             redirect(sys.stdout, 1)
             redirect(sys.stderr, 2)
+            os.close(fd_null)
 
 
 def seed():
