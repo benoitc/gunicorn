@@ -472,19 +472,6 @@ def daemonize(enable_stdio_inheritance=False):
 
         os.umask(0o22)
 
-        # Always redirect stdin to /dev/null as we would
-        # never expect to need to read interactive input.
-
-        os.close(0)
-
-        fd_null = os.open(REDIRECT_TO, os.O_RDWR)
-        # PEP 446, make fd for /dev/null inheritable
-        os.set_inheritable(fd_null, True)
-
-        # expect fd_null to be always 0 here, but in-case not ...
-        if fd_null != 0:
-            os.dup2(fd_null, 0)
-
         # In both the following any file descriptors above stdin
         # stdout and stderr are left untouched. The inheritance
         # option simply allows one to have output go to a file
@@ -492,17 +479,37 @@ def daemonize(enable_stdio_inheritance=False):
         # to use --error-log option.
 
         if not enable_stdio_inheritance:
-            # Remap remaining fds stdout and stderr on to
+            # Remap all of stdin, stdout and stderr on to
             # /dev/null. The expectation is that users have
             # specified the --error-log option.
 
-            # 1/stdout, 2/stderr - 0/stdin already done above
-            closerange(1, 3)
+            closerange(0, 3)
+
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+            # PEP 446, make fd for /dev/null inheritable
+            os.set_inheritable(fd_null, True)
+
+            # expect fd_null to be always 0 here, but in-case not ...
+            if fd_null != 0:
+                os.dup2(fd_null, 0)
 
             os.dup2(fd_null, 1)
             os.dup2(fd_null, 2)
 
         else:
+            # Always redirect stdin to /dev/null as we would
+            # never expect to need to read interactive input.
+
+            os.close(0)
+
+            fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+            # PEP 446, make fd for /dev/null inheritable
+            os.set_inheritable(fd_null, True)
+
+            # expect fd_null to be always 0 here, but in-case not ...
+            if fd_null != 0:
+                os.dup2(fd_null, 0)
+
             # If stdout and stderr are still connected to
             # their original file descriptors we check to see
             # if they are associated with terminal devices.
