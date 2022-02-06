@@ -486,7 +486,10 @@ def daemonize(enable_stdio_inheritance=False):
             closerange(0, 3)
 
             fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+            # PEP 446, make fd for /dev/null inheritable
+            os.set_inheritable(fd_null, True)
 
+            # expect fd_null to be always 0 here, but in-case not ...
             if fd_null != 0:
                 os.dup2(fd_null, 0)
 
