@@ -212,8 +212,7 @@ def close_sockets(listeners, unlink=True):
             os.unlink(sock_name)
 
 def ssl_context(conf):
-    context = conf.ssl_context(conf)
-    if context is None:
+    def default_ssl_context_factory():
         context = ssl.SSLContext(conf.ssl_version)
         context.load_cert_chain(certfile=conf.certfile, keyfile=conf.keyfile)
         context.verify_mode = conf.cert_reqs
@@ -221,8 +220,9 @@ def ssl_context(conf):
             context.set_ciphers(conf.ciphers)
         if conf.ca_certs:
             context.load_verify_locations(cafile=conf.ca_certs)
+        return context
 
-    return context
+    return conf.ssl_context(conf, default_ssl_context_factory)
 
 def ssl_wrap_socket(sock, conf):
     return ssl_context(conf).wrap_socket(sock, server_side=True,

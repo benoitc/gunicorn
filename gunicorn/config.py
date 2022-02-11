@@ -1970,11 +1970,11 @@ class OnExit(Setting):
 class NewSSLContext(Setting):
     name = "ssl_context"
     section = "Server Hooks"
-    validator = validate_callable(1)
+    validator = validate_callable(2)
     type = callable
 
-    def ssl_context(config):
-        return None
+    def ssl_context(config, default_ssl_context_factory):
+        return default_ssl_context_factory()
 
     default = staticmethod(ssl_context)
     desc = """\
@@ -1983,7 +1983,10 @@ class NewSSLContext(Setting):
         Allows fully customized SSL context to be used in place of the default
         context.
 
-        The callable needs to accept a single instance variable for the Config.
+        The callable needs to accept an instance variable for the Config and
+        a factory function that returns default SSLContext which is initialized
+        with certificates, private key, cert_reqs, and ciphers according to
+        config and can be further customized by the callable.
         The callable needs to return SSLContext object.
         """
 
