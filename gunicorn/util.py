@@ -52,10 +52,14 @@ except ImportError:
         pass
 
 
-def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
-               section="gunicorn.workers"):
+def _load_entry_point(dist, section, name):
     import pkg_resources
 
+    return pkg_resources.load_entry_point(dist, section, name)
+
+
+def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
+               section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -68,7 +72,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             name = default
 
         try:
-            return pkg_resources.load_entry_point(dist, section, name)
+            return _load_entry_point(dist, section, name)
         except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
@@ -85,7 +89,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point(
+                    return _load_entry_point(
                         "gunicorn", section, uri
                     )
                 except Exception:
