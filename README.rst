@@ -9,9 +9,13 @@ Gunicorn
     :alt: Supported Python versions
     :target: https://pypi.python.org/pypi/gunicorn
 
-.. image:: https://travis-ci.org/benoitc/gunicorn.svg?branch=master
+.. image:: https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg
     :alt: Build Status
-    :target: https://travis-ci.org/benoitc/gunicorn
+    :target: https://github.com/benoitc/gunicorn/actions/workflows/tox.yml
+
+.. image:: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml/badge.svg
+    :alt: Lint Status
+    :target: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml
 
 Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
 worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
