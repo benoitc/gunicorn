@@ -1264,11 +1264,11 @@ class ForwardedAllowIPS(Setting):
     validator = validate_string_to_list
     default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
     desc = """\
-        Front-end's IPs from which allowed to handle set secure headers.
-        (comma separate).
+        Front-end IPs from which to accept ``secure_scheme_headers`` (comma
+        separated).
 
-        Set to ``*`` to disable checking of Front-end IPs (useful for setups
-        where you don't know in advance the IP address of Front-end, but
+        Set to ``*`` to disable checking of front-end IPs (useful for setups
+        where you don't know in advance the IP address of front-end, but
         you still trust the environment).
 
         By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
@@ -2001,10 +2001,10 @@ class ProxyAllowFrom(Setting):
     validator = validate_string_to_list
     default = "127.0.0.1"
     desc = """\
-        Front-end's IPs from which allowed accept proxy requests (comma separate).
+        Front-end IPs from which to accept proxy requests (comma separated).
 
-        Set to ``*`` to disable checking of Front-end IPs (useful for setups
-        where you don't know in advance the IP address of Front-end, but
+        Set to ``*`` to disable checking of front-end IPs (useful for setups
+        where you don't know in advance the IP address of front-end, but
         you still trust the environment)
         """
 
