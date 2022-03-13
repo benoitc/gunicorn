@@ -145,7 +145,7 @@ def set_owner_process(uid, gid, initgroups=False):
         elif gid != os.getgid():
             os.setgid(gid)
 
-    if uid:
+    if uid and uid != os.getuid():
         os.setuid(uid)
 
 
