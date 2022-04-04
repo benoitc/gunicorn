@@ -371,8 +371,8 @@ class Response(object):
         if self.is_chunked():
             chunk_size = "%X\r\n" % nbytes
             self.sock.sendall(chunk_size.encode('utf-8'))
-
-        self.sock.sendfile(respiter.filelike, count=nbytes)
+        if nbytes > 0:
+            self.sock.sendfile(respiter.filelike, count=nbytes)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")
