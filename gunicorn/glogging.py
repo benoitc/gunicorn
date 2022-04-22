@@ -90,7 +90,7 @@ CONFIG_DEFAULTS = dict(
 def loggers():
     """ get list of all loggers """
     root = logging.root
-    existing = root.manager.loggerDict.keys()
+    existing = list(root.manager.loggerDict.keys())
     return [logging.getLogger(name) for name in existing]
 
 
