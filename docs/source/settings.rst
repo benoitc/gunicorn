@@ -836,7 +836,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 .. code-block:: python
 
         def pre_request(worker, req):
-            worker.log.debug("%s %s" % (req.method, req.path))
+            worker.log.debug("%s %s", req.method, req.path)
 
 Called just before a worker processes the request.
 

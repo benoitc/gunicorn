@@ -1906,7 +1906,7 @@ class PreRequest(Setting):
     type = callable
 
     def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        worker.log.debug("%s %s", req.method, req.path)
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.

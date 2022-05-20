@@ -110,7 +110,7 @@ class GeventWorker(AsyncWorker):
                 gevent.sleep(1.0)
 
             # Force kill all active the handlers
-            self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
+            self.log.warning("Worker graceful timeout (pid:%s)", self.pid)
             for server in servers:
                 server.stop(timeout=1)
         except Exception:
