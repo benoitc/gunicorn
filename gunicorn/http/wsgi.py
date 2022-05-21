@@ -10,7 +10,7 @@ import re
 import sys
 
 from gunicorn.http.message import TOKEN_RE
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
+from gunicorn.http.errors import ConfigurationProblem, InvalidHeader, InvalidHeaderName
 from gunicorn import SERVER_SOFTWARE, SERVER
 from gunicorn import util
 
@@ -182,7 +182,11 @@ def create(req, sock, client, server, cfg):
     # set the path and script name
     path_info = req.path
     if script_name:
-        path_info = path_info.split(script_name, 1)[1]
+        if not path_info.startswith(script_name):
+            raise ConfigurationProblem(
+                "Request path %r does not start with SCRIPT_NAME %r" %
+                (path_info, script_name))
+        path_info = path_info[len(script_name):]
     environ['PATH_INFO'] = util.unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
