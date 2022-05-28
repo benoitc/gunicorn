@@ -239,7 +239,8 @@ class Arbiter(object):
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
-        self.reap_workers()
+        if self.WORKERS:
+            self.reap_workers()
         self.wakeup()
 
     def handle_hup(self):
