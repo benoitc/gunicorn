@@ -174,10 +174,11 @@ class EOFReader(object):
         return ret
 
 
-class Body(object):
+class Body(object, read_chunk_size=1024):
     def __init__(self, reader):
         self.reader = reader
         self.buf = io.BytesIO()
+        self.read_chunk_size = read_chunk_size
 
     def __iter__(self):
         return self
@@ -212,7 +213,7 @@ class Body(object):
             return ret
 
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self.reader.read(self.read_chunk_size)
             if not data:
                 break
             self.buf.write(data)
