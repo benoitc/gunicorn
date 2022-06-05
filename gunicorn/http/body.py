@@ -174,8 +174,8 @@ class EOFReader(object):
         return ret
 
 
-class Body(object, read_chunk_size=1024):
-    def __init__(self, reader):
+class Body(object):
+    def __init__(self, reader, read_chunk_size=1024):
         self.reader = reader
         self.buf = io.BytesIO()
         self.read_chunk_size = read_chunk_size
