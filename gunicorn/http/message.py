@@ -36,6 +36,7 @@ class Message(object):
         self.trailers = []
         self.body = None
         self.scheme = "https" if cfg.is_ssl else "http"
+        self.read_chunk_size = cfg.read_chunk_size
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
@@ -135,7 +136,7 @@ class Message(object):
                     chunked = True
 
         if chunked:
-            self.body = Body(ChunkedReader(self, self.unreader))
+            self.body = Body(ChunkedReader(self, self.unreader), read_chunk_size=self.read_chunk_size)
         elif content_length is not None:
             try:
                 content_length = int(content_length)
@@ -145,9 +146,9 @@ class Message(object):
             if content_length < 0:
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
 
-            self.body = Body(LengthReader(self.unreader, content_length))
+            self.body = Body(LengthReader(self.unreader, content_length), read_chunk_size=self.read_chunk_size)
         else:
-            self.body = Body(EOFReader(self.unreader))
+            self.body = Body(EOFReader(self.unreader), read_chunk_size=self.read_chunk_size)
 
     def should_close(self):
         for (h, v) in self.headers:
@@ -168,6 +169,7 @@ class Request(Message):
         self.path = None
         self.query = None
         self.fragment = None
+        self.read_chunk_size = cfg.read_chunk_size
 
         # get max request line size
         self.limit_request_line = cfg.limit_request_line
@@ -353,4 +355,4 @@ class Request(Message):
     def set_body_reader(self):
         super().set_body_reader()
         if isinstance(self.body.reader, EOFReader):
-            self.body = Body(LengthReader(self.unreader, 0))
+            self.body = Body(LengthReader(self.unreader, 0), read_chunk_size=self.read_chunk_size)
