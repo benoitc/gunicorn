@@ -2188,3 +2188,19 @@ class StripHeaderSpaces(Setting):
 
         Use with care and only if necessary.
         """
+
+
+class ReadChunkSize(Setting):
+    name = "read_chunk_size"
+    section = "Server Mechanics"
+    cli = ["--read-chunk-size"]
+    validator = validate_pos_int
+    type = int
+    meta = "INT"
+    default = 1024
+    desc = """\
+        Sets the size, in bytes, within the main read loop. Higher values can improve performance
+        for large file uploads but may impact concurrent performance.
+        
+        Must be a positive integer, the default and suggested minimum is 1024.
+        """
