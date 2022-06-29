@@ -581,7 +581,7 @@ class Arbiter(object):
             self.log.info("Booting worker with pid: %s", worker.pid)
             self.cfg.post_fork(self, worker)
             worker.init_process()
-            sys.exit(0)
+            os._exit(0)
         except SystemExit:
             raise
         except AppImportError as e:
@@ -589,12 +589,12 @@ class Arbiter(object):
                            exc_info=True)
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
-            sys.exit(self.APP_LOAD_ERROR)
+            os._exit(self.APP_LOAD_ERROR)
         except Exception:
             self.log.exception("Exception in worker process")
             if not worker.booted:
-                sys.exit(self.WORKER_BOOT_ERROR)
-            sys.exit(-1)
+                os._exit(self.WORKER_BOOT_ERROR)
+            os._exit(-1)
         finally:
             self.log.info("Worker exiting (pid: %s)", worker.pid)
             try:
