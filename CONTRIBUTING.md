@@ -49,7 +49,7 @@ help prioritize the most common problems and requests.
 Don't comment on closed issues or PRs, instead open a new issue and link it to
 the old one.
 
-Fork the repo and make changes on your fork in a feature branch:
+Fork the repo, and make changes on your fork, in a separate branch:
 
 - If it's a bugfix branch, name it XXX-something where XXX is the number
   of the issue
@@ -57,42 +57,46 @@ Fork the repo and make changes on your fork in a feature branch:
   intentions, and name it XXX-something where XXX is the number of the
 issue.
 
+### How To Build :
+> **Note** : We highly recommend making a new VENV and activate this before starting contributing
+
+if you want to develop this repo you should build and install this package.
+how to build and install manually? it's easy just execute the below command :
+> `python setup.py install`
+
+### Tests :
 Submit unit tests for your changes. Python has a great test framework built
 in; use it! Take a look at existing tests for inspiration. Run the full
 test suite on your branch before submitting a pull request.
+how to run tests ? just run the below command in the root directory of the repo :
+> `python -m pytest`
 
-Make sure you include relevant updates or additions to documentation
-when creating or modifying features.
+OR
 
-If you are adding a new configuration option or updating an existing one,
-please do it in `gunicorn/config.py`, then run `make -C docs html` to update
+> `pytest`
+
+
+### Checklist :
+- Make sure you include relevant updates or additions to documentation , when creating or modifying features.
+
+- If you are adding a new configuration option or updating an existing one, please do it in `gunicorn/config.py`, then run `make -C docs html` to update
 `docs/source/settings.rst`.
 
-Write clean code.
+- Write clean code.
 
-Pull requests descriptions should be as clear as possible and include a
-reference to all the issues that they address.
+- Pull requests descriptions should be as clear as possible and include      	a reference to all the issues that they address.
 
-Code review comments may be added to your pull request. Discuss, then
-make the suggested modifications and push additional commits to your
-feature branch. Be sure to post a comment after pushing. The new commits
-will show up in the pull request automatically, but the reviewers will
+- Code review comments may be added to your pull request. Discuss, then make the suggested modifications and push additional commits to your feature branch. Be sure to post a comment after pushing. The new commits will show up in the pull request automatically, but the reviewers will
 not be notified unless you comment.
 
-Before the pull request is merged, make sure that you squash your
-commits into logical units of work using `git rebase -i` and `git push
--f`. After every commit the test suite should be passing. Include
-documentation changes in the same commit so that a revert would remove
-all traces of the feature or fix.
+- Before the pull request is merged, make sure that you squash your    commits into logical units of work using `git rebase -i` and `git push -f`. After every commit the test suite should be passing. 
 
-Commits that fix or close an issue should include a reference like
-`Closes #XXX` or `Fixes #XXX`, which will automatically close the issue
-when merged.
+- Include documentation changes in the same commit so that a revert would remove all traces of the feature or fix.
 
-Add your name to the THANKS file, but make sure the list is sorted and
-your name and email address match your git configuration. The THANKS
-file is regenerated occasionally from the git commit history, so a
-mismatch may result in your changes being overwritten.
+- Commits that fix or close an issue should include a reference like
+`Closes #XXX` or `Fixes #XXX`, which will automatically close the issue when merged.
+
+- Add your name to the THANKS file, but make sure the list is sorted and your name and email address match your git configuration. The THANKSfile is regenerated occasionally from the git commit history, so a mismatch may result in your changes being overwritten.
 
 
 ## Decision process
