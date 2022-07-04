@@ -22,7 +22,7 @@ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
 compatible with various web frameworks, simply implemented, light on server
 resource usage, and fairly speedy.
 
-Feel free to join us in `#gunicorn`_ on Freenode_.
+Feel free to join us in `#gunicorn`_ on `Libera.chat`_.
 
 Documentation
 -------------
@@ -69,6 +69,6 @@ Gunicorn is released under the MIT License. See the LICENSE_ file for more
 details.
 
 .. _Unicorn: https://bogomips.org/unicorn/
-.. _`#gunicorn`: https://webchat.freenode.net/?channels=gunicorn
-.. _Freenode: https://freenode.net/
+.. _`#gunicorn`: https://web.libera.chat/?channels=#gunicorn
+.. _`Libera.chat`: https://libera.chat/
 .. _LICENSE: https://github.com/benoitc/gunicorn/blob/master/LICENSE
