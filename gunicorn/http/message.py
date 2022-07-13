@@ -31,6 +31,7 @@ class Message(object):
         self.cfg = cfg
         self.unreader = unreader
         self.peer_addr = peer_addr
+        self.remote_addr = peer_addr
         self.version = None
         self.headers = []
         self.trailers = []
