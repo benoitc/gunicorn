@@ -30,7 +30,7 @@ from .. import util
 from ..http import wsgi
 
 
-class TConn(object):
+class TConn:
 
     def __init__(self, cfg, sock, client, server):
         self.cfg = cfg

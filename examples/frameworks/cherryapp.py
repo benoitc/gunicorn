@@ -1,7 +1,7 @@
 import cherrypy
 
 
-class Root(object):
+class Root:
     @cherrypy.expose
     def index(self):
         return 'Hello World!'

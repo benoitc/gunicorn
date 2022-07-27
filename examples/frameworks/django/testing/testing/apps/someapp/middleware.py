@@ -8,7 +8,7 @@ def child_process(queue):
         requests.get('http://requestb.in/15s95oz1')
 
 
-class GunicornSubProcessTestMiddleware(object):
+class GunicornSubProcessTestMiddleware:
     def __init__(self):
         super().__init__()
         self.queue = Queue()

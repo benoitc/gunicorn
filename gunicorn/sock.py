@@ -13,7 +13,7 @@ import time
 from gunicorn import util
 
 
-class BaseSocket(object):
+class BaseSocket:
 
     def __init__(self, address, conf, log, fd=None):
         self.log = log

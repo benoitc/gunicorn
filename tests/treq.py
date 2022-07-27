@@ -39,7 +39,7 @@ def load_py(fname):
     return vars(mod)
 
 
-class request(object):
+class request:
     def __init__(self, fname, expect):
         self.fname = fname
         self.name = os.path.basename(fname)
@@ -262,7 +262,7 @@ class request(object):
         assert req.trailers == exp.get("trailers", [])
 
 
-class badrequest(object):
+class badrequest:
     def __init__(self, fname):
         self.fname = fname
         self.name = os.path.basename(fname)
