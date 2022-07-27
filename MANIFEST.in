@@ -3,6 +3,7 @@ include LICENSE
 include NOTICE
 include README.rst
 include THANKS
+include gunicorn/py.typed
 include requirements_dev.txt
 include requirements_test.txt
 recursive-include tests *
