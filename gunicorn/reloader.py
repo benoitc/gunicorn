@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 # pylint: disable=no-else-continue
 
+import contextlib
 import os
 import os.path
 import re
@@ -56,12 +57,10 @@ class Reloader(threading.Thread):
 
 has_inotify = False
 if sys.platform.startswith('linux'):
-    try:
+    with contextlib.suppress(ImportError):
         from inotify.adapters import Inotify
         import inotify.constants
         has_inotify = True
-    except ImportError:
-        pass
 
 
 if has_inotify:
