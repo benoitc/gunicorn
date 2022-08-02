@@ -15,11 +15,16 @@ from ssl import SSLError
 
 from gunicorn import util
 from gunicorn.http.errors import (
+<<<<<<< HEAD
     ForbiddenProxyRequest, InvalidHeader,
     InvalidHeaderName, InvalidHTTPVersion,
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
     LimitRequestHeaders, LimitRequestLine,
+=======
+    InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
+    InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders
+>>>>>>> origin/19.x
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
@@ -57,7 +62,11 @@ class Worker(object):
             jitter = randint(0, cfg.max_requests_jitter)
             self.max_requests = cfg.max_requests + jitter
         else:
+<<<<<<< HEAD
             self.max_requests = sys.maxsize
+=======
+            self.max_requests = MAXSIZE
+>>>>>>> origin/19.x
 
         self.alive = True
         self.log = log

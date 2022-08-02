@@ -2,6 +2,7 @@
 Changelog
 =========
 
+<<<<<<< HEAD
 20.1.0 - 2021-02-12
 ===================
 
@@ -41,6 +42,23 @@ Changelog
 - miscellaneous changes in the code base to be a better citizen with Python 3
 - remove dead code
 - fix documentation generation
+=======
+19.10.0 / 2019/11/23
+====================
+
+- unblock select loop during reload of a sync worker
+- security fix: http desync attack
+- handle `wsgi.input_terminated`
+- added support for str and bytes in unix  socket addresses
+- fixed `max_requests` setting
+- headers values are now encoded as LATN1, not ASCII
+- fixed `InotifyReloadeder`:  handle `module.__file__` is None
+- fixed compatibility with tornado 6
+- fixed root logging
+- Prevent removalof unix sockets from `reuse_port`
+- Clear tornado ioloop before os.fork
+- Miscellaneous fixes and improvement for linting using Pylints
+>>>>>>> origin/19.x
 
 
 History
@@ -49,9 +67,12 @@ History
 .. toctree::
    :titlesonly:
 
+<<<<<<< HEAD
    2021-news
    2020-news
    2019-news
+=======
+>>>>>>> origin/19.x
    2018-news
    2017-news
    2016-news

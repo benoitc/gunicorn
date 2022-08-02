@@ -669,7 +669,11 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
+<<<<<<< HEAD
         * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
+=======
+        * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via 
+>>>>>>> origin/19.x
           ``pip install gunicorn[eventlet]``)
         * ``gevent``   - Requires gevent >= 1.4 (or install it via
           ``pip install gunicorn[gevent]``)
@@ -2182,9 +2186,16 @@ class StripHeaderSpaces(Setting):
     default = False
     desc = """\
         Strip spaces present between the header name and the the ``:``.
+<<<<<<< HEAD
 
         This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
         See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
 
+=======
+        
+        This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+        See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
+        
+>>>>>>> origin/19.x
         Use with care and only if necessary.
         """

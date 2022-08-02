@@ -15,7 +15,12 @@ from gunicorn.http.errors import (
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
+<<<<<<< HEAD
 from gunicorn.util import bytes_to_str, split_request_uri
+=======
+from gunicorn.six import BytesIO
+from gunicorn.util import split_request_uri
+>>>>>>> origin/19.x
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -72,6 +77,17 @@ class Message(object):
             not isinstance(self.peer_addr, tuple)
             or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
+<<<<<<< HEAD
+=======
+        elif isinstance(self.unreader, SocketUnreader):
+            remote_addr = self.unreader.sock.getpeername()
+            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
+                remote_host = remote_addr[0]
+                if remote_host in cfg.forwarded_allow_ips:
+                    secure_scheme_headers = cfg.secure_scheme_headers
+            elif self.unreader.sock.family == socket.AF_UNIX:
+                secure_scheme_headers = cfg.secure_scheme_headers
+>>>>>>> origin/19.x
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -133,6 +149,11 @@ class Message(object):
             elif name == "TRANSFER-ENCODING":
                 if value.lower() == "chunked":
                     chunked = True
+<<<<<<< HEAD
+=======
+            elif name == "SEC-WEBSOCKET-KEY1":
+                content_length = 8
+>>>>>>> origin/19.x
 
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))

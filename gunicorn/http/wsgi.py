@@ -131,6 +131,7 @@ def create(req, sock, client, server, cfg):
             continue
         elif hdr_name == "CONTENT-LENGTH":
             environ['CONTENT_LENGTH'] = hdr_value
+            environ['wsgi.input_terminated'] = False
             continue
 
         key = 'HTTP_' + hdr_name.replace('-', '_')

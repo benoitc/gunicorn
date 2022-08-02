@@ -2,6 +2,7 @@ version: '{branch}.{build}'
 environment:
   matrix:
     - TOXENV: lint
+<<<<<<< HEAD
       PYTHON: "C:\\Python38-x64"
     - TOXENV: docs-lint
       PYTHON: "C:\\Python38-x64"
@@ -19,15 +20,30 @@ environment:
     #  PYTHON: "C:\\Python38-x64"
     #- TOXENV: py39
     #  PYTHON: "C:\\Python39-x64"
+=======
+      PYTHON: "C:\\Python37-x64"
+    - TOXENV: py27
+      PYTHON: "C:\\Python27-x64"
+    - TOXENV: py35
+      PYTHON: "C:\\Python35-x64"
+    - TOXENV: py36
+      PYTHON: "C:\\Python36-x64"
+    - TOXENV: py37
+      PYTHON: "C:\\Python37-x64"
+>>>>>>> origin/19.x
 matrix:
   allow_failures:
     - TOXENV: py35
     - TOXENV: py36
     - TOXENV: py37
+<<<<<<< HEAD
     - TOXENV: py38
     - TOXENV: py39
 init:
   - SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+=======
+init: SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+>>>>>>> origin/19.x
 install:
   - pip install tox
 build: false
