@@ -230,8 +230,8 @@ class Arbiter(object):
         except SystemExit:
             raise
         except Exception:
-            self.log.info("Unhandled exception in main loop",
-                          exc_info=True)
+            self.log.error("Unhandled exception in main loop",
+                           exc_info=True)
             self.stop(False)
             if self.pidfile is not None:
                 self.pidfile.unlink()
