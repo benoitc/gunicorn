@@ -819,8 +819,13 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
-        def pre_request(worker, req):
-            worker.log.debug("%s %s" % (req.method, req.path))
+    from gunicorn.http import Request
+    from gunicorn.workers.base import Worker
+
+
+    def pre_request(worker: Worker, req: Request):
+        worker.log.debug("%s %s" % (req.method, req.path))
+
 
 Called just before a worker processes the request.
 
@@ -836,8 +841,13 @@ the Request.
 
 .. code-block:: python
 
-        def post_request(worker, req, environ, resp):
-            pass
+    from gunicorn.http import Request
+    from gunicorn.http.wsgi import Response
+    from gunicorn.workers.base import Worker
+
+
+    def post_request(worker: Worker, req: Request, environ: dict, resp: Response):
+        worker.log.debug("%s %s: %d" % (req.method, req.path))
 
 Called after a worker processes the request.
 
