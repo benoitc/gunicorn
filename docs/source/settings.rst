@@ -847,7 +847,7 @@ the Request.
 
 
     def post_request(worker: Worker, req: Request, environ: dict, resp: Response):
-        worker.log.debug("%s %s: %d" % (req.method, req.path))
+        worker.log.debug("%s %s: %d" % (req.method, req.path, resp.status_code))
 
 Called after a worker processes the request.
 
