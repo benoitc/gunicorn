@@ -976,9 +976,11 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 
 **Command line:** ``--chdir``
 
-**Default:** ``'/Users/chainz/Documents/Projects/gunicorn/docs'``
+**Default:** ``'.'``
 
-Change directory to specified directory before loading apps.
+Change directory to specified directory before loading apps. 
+
+Default is the current directory.
 
 .. _daemon:
 

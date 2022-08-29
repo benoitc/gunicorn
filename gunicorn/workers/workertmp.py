@@ -28,7 +28,7 @@ class WorkerTmp(object):
         if cfg.uid != os.geteuid() or cfg.gid != os.getegid():
             util.chown(name, cfg.uid, cfg.gid)
 
-        # unlink the file so we don't leak tempory files
+        # unlink the file so we don't leak temporary files
         try:
             if not IS_CYGWIN:
                 util.unlink(name)

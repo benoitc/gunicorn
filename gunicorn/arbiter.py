@@ -230,8 +230,8 @@ class Arbiter(object):
         except SystemExit:
             raise
         except Exception:
-            self.log.info("Unhandled exception in main loop",
-                          exc_info=True)
+            self.log.error("Unhandled exception in main loop",
+                           exc_info=True)
             self.stop(False)
             if self.pidfile is not None:
                 self.pidfile.unlink()
@@ -526,12 +526,6 @@ class Arbiter(object):
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-                    if os.WIFSIGNALED(status):
-                        self.log.warning(
-                            "Worker with pid %s was terminated due to signal %s",
-                            wpid,
-                            os.WTERMSIG(status)
-                        )
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
