@@ -556,6 +556,13 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
+        inflight_requests = sum([w[1].get_inflight_requests() for w in workers])
+        if inflight_requests >= 0:
+            self.log.debug("{0} inflight requests".format(inflight_requests),
+                           extra={"metric": "gunicorn.inflight_requests",
+                                  "value": str(inflight_requests),
+                                  "mtype": "gauge"})
+
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
             self._last_logged_active_worker_count = active_worker_count
@@ -563,9 +570,16 @@ class Arbiter(object):
                            extra={"metric": "gunicorn.workers",
                                   "value": active_worker_count,
                                   "mtype": "gauge"})
+            total_request_handlers = sum([w[1].get_total_handlers() for w in workers])
+            if total_request_handlers >= 0:
+                self.log.debug("{0} total request handlers".format(total_request_handlers),
+                               extra={"metric": "gunicorn.total_request_handlers",
+                                      "value": total_request_handlers,
+                                      "mtype": "gauge"})
 
-        backlog = sum([sock.get_backlog() for sock in self.LISTENERS if sock.get_backlog() is not None])
-        if backlog:
+        backlogs = [x for x in [s.get_backlog() for s in self.LISTENERS] if x is not None]
+        if backlogs:
+            backlog = sum(backlogs)
             self.log.debug("socket backlog: {0}".format(backlog),
                            extra={"metric": "gunicorn.backlog",
                                   "value": backlog,

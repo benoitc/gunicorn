@@ -24,6 +24,10 @@ class StopWaiting(Exception):
 
 class SyncWorker(base.Worker):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inflight_requests = 0
+
     def accept(self, listener):
         client, addr = listener.accept()
         client.setblocking(1)
@@ -165,6 +169,7 @@ class SyncWorker(base.Worker):
         resp = None
         try:
             self.cfg.pre_request(self, req)
+            self.inflight_requests += 1
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
                                         listener.getsockname(), self.cfg)
@@ -206,6 +211,15 @@ class SyncWorker(base.Worker):
             raise
         finally:
             try:
+                self.inflight_requests -= 1
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
+
+    def get_inflight_requests(self):
+        return self.inflight_requests
+
+    def get_total_handlers(self):
+        return 1
+
+
