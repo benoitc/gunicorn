@@ -38,12 +38,6 @@ applications are programmed.
 closed after response has been sent (even if you manually add ``Keep-Alive``
 or ``Connection: keep-alive`` header in your application).
 
-The worker `gthread` is a threaded worker. It accepts connections in the
-main loop, accepted connections are added to the thread pool as a
-connection job. On keepalive connections are put back in the loop
-waiting for an event. If no event happen after the keep alive timeout,
-the connection is closed.
-
 Async Workers
 -------------
 
@@ -58,6 +52,15 @@ installed and `setup <http://www.gevent.org/api/gevent.monkey.html#plugins>`_.
 
 Other applications might not be compatible at all as they, e.g., rely on
 the original unpatched behavior.
+
+Gthread Workers
+---------------
+
+The worker `gthread` is a threaded worker. It accepts connections in the
+main loop. Accepted connections are added to the thread pool as a
+connection job. On keepalive connections are put back in the loop
+waiting for an event. If no event happens after the keepalive timeout,
+the connection is closed.
 
 Tornado Workers
 ---------------
