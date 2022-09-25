@@ -1,5 +1,7 @@
 name: lint
 on: [push, pull_request]
+permissions:
+  contents: read # to fetch code (actions/checkout)
 jobs:
   tox-lint:
     runs-on: ubuntu-latest
