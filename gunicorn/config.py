@@ -23,6 +23,7 @@ from gunicorn.reloader import reloader_engines
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
+STATSD_TAG_INVALID_CHARS_RE = re.compile(r"[^\w\d_\-:/\.]", re.UNICODE)
 
 
 def make_settings(ignore=None):
@@ -530,6 +531,20 @@ def validate_reload_engine(val):
         raise ConfigError("Invalid reload_engine: %r" % val)
 
     return val
+
+
+def validate_list_statsd_tags(val):
+    if not val:
+        return []
+
+    if isinstance(val, six.string_types):
+        val = [val]
+
+    return [validate_string_statsd_tag(v) for v in val]
+
+
+def validate_string_statsd_tag(val):
+    return STATSD_TAG_INVALID_CHARS_RE.sub("_", val)
 
 
 def get_default_config_file():
@@ -1575,6 +1590,19 @@ class StatsdPrefix(Setting):
 
     .. versionadded:: 19.2
     """
+
+class StatsdTags(Setting):
+    name = "statsd_tags"
+    action = "append"
+    section = "Logging"
+    cli = ["--statsd-tags"]
+    meta = "STATSD_TAGS"
+    default = []
+    validator = validate_list_statsd_tags
+    desc = """\
+        Statsd tags to send to statsd server. It will be appended to the end of the statsd
+        message for consumers / servers that support tags like datadog and cloudwatch.
+        """
 
 
 class Procname(Setting):
