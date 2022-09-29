@@ -12,7 +12,7 @@ import sys
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 from gunicorn import SERVER_SOFTWARE, SERVER
-import gunicorn.util as util
+from gunicorn import util
 
 # Send files in at most 1GB blocks as some operating systems can have problems
 # with sending files in blocks over 2GB.
