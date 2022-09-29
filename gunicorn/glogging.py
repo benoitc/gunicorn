@@ -48,7 +48,6 @@ SYSLOG_FACILITIES = {
 CONFIG_DEFAULTS = dict(
     version=1,
     disable_existing_loggers=False,
-
     root={"level": "INFO", "handlers": ["console"]},
     loggers={
         "gunicorn.error": {
