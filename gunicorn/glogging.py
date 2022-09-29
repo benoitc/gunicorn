@@ -436,8 +436,7 @@ class Logger(object):
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        h = logging.handlers.SysLogHandler(address=addr,
-                facility=facility, socktype=socktype)
+        h = logging.handlers.SysLogHandler(address=addr, facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
