@@ -563,6 +563,7 @@ class ConfigFile(Setting):
            prefix.
         """
 
+
 class WSGIApp(Setting):
     name = "wsgi_app"
     section = "Config File"
@@ -574,6 +575,7 @@ class WSGIApp(Setting):
 
         .. versionadded:: 20.1.0
         """
+
 
 class Bind(Setting):
     name = "bind"
@@ -1617,6 +1619,7 @@ class StatsdHost(Setting):
     .. versionadded:: 19.1
     """
 
+
 # Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
 class DogstatsdTags(Setting):
     name = "dogstatsd_tags"
@@ -1631,6 +1634,7 @@ class DogstatsdTags(Setting):
 
     .. versionadded:: 20
     """
+
 
 class StatsdPrefix(Setting):
     name = "statsd_prefix"
