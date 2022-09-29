@@ -69,7 +69,7 @@ def sd_notify(state, logger, unset_environment=False):
             addr = '\0' + addr[1:]
         sock.connect(addr)
         sock.sendall(state.encode('utf-8'))
-    except:
+    except Exception:
         logger.debug("Exception while invoking sd_notify()", exc_info=True)
     finally:
         if unset_environment:
