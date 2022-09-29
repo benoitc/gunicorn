@@ -58,7 +58,6 @@ def sd_notify(state, logger, unset_environment=False):
     child processes.
     """
 
-
     addr = os.environ.get('NOTIFY_SOCKET')
     if addr is None:
         # not run in a service, just a noop

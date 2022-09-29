@@ -66,7 +66,6 @@ def _eventlet_socket_sendfile(self, file, offset=0, count=None):
             file.seek(offset + total_sent)
 
 
-
 def _eventlet_serve(sock, handle, concurrency):
     """
     Serve requests forever.
