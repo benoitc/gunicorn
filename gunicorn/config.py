@@ -1278,9 +1278,13 @@ class ForwardedAllowIPS(Setting):
 
         .. note::
 
-            The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
-            ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we
-            have a request from the remote address 134.213.44.18, and the default value of ``secure_scheme_headers``:
+            The interplay between the request headers, the value of
+            ``forwarded_allow_ips``, and the value of ``secure_scheme_headers``
+            is complex. Various scenarios are documented below to further
+            elaborate.
+
+            In each case, we have a request from the remote address
+            134.213.44.18, and the default value of ``secure_scheme_headers``:
 
             .. code::
 
