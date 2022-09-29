@@ -31,7 +31,7 @@ class BaseSocket(object):
         self.sock = self.set_options(sock, bound=bound)
 
     def __str__(self):
-        return "<socket %d>" % self.sock.fileno()
+        return f"<socket {self.sock.fileno():d}>"
 
     def __getattr__(self, name):
         return getattr(self.sock, name)
@@ -66,7 +66,7 @@ class BaseSocket(object):
         try:
             self.sock.close()
         except socket.error as e:
-            self.log.info("Error while closing socket %s", str(e))
+            self.log.info(f"Error while closing socket {e}")
 
         self.sock = None
 
@@ -82,7 +82,7 @@ class TCPSocket(BaseSocket):
             scheme = "http"
 
         addr = self.sock.getsockname()
-        return "%s://%s:%d" % (scheme, addr[0], addr[1])
+        return f"{scheme}://{addr[0]}:{addr[1]:d}"
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -95,7 +95,7 @@ class TCP6Socket(TCPSocket):
 
     def __str__(self):
         (host, port, _, _) = self.sock.getsockname()
-        return "http://[%s]:%d" % (host, port)
+        return f"http://[{host}]:{port:d}"
 
 
 class UnixSocket(BaseSocket):
@@ -113,11 +113,11 @@ class UnixSocket(BaseSocket):
                 if stat.S_ISSOCK(st.st_mode):
                     os.remove(addr)
                 else:
-                    raise ValueError("%r is not a socket" % addr)
+                    raise ValueError(f"{addr!r} is not a socket")
         super().__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
-        return "unix:%s" % self.cfg_addr
+        return f"unix:{self.cfg_addr}"
 
     def bind(self, sock):
         old_umask = os.umask(self.conf.umask)
@@ -135,7 +135,7 @@ def _sock_type(addr):
     elif isinstance(addr, (str, bytes)):
         sock_type = UnixSocket
     else:
-        raise TypeError("Unable to create socket from: %r" % addr)
+        raise TypeError(f"Unable to create socket from: {addr!r}")
     return sock_type
 
 
@@ -159,10 +159,10 @@ def create_sockets(conf, log, fds=None):
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
     if conf.certfile and not os.path.exists(conf.certfile):
-        raise ValueError('certfile "%s" does not exist' % conf.certfile)
+        raise ValueError(f'certfile "{conf.certfile}" does not exist')
 
     if conf.keyfile and not os.path.exists(conf.keyfile):
-        raise ValueError('keyfile "%s" does not exist' % conf.keyfile)
+        raise ValueError(f'keyfile "{conf.keyfile}" does not exist')
 
     # sockets are already bound
     if fdaddr:
@@ -184,19 +184,18 @@ def create_sockets(conf, log, fds=None):
                 sock = sock_type(addr, conf, log)
             except socket.error as e:
                 if e.args[0] == errno.EADDRINUSE:
-                    log.error("Connection in use: %s", str(addr))
+                    log.error(f"Connection in use: {addr}")
                 if e.args[0] == errno.EADDRNOTAVAIL:
-                    log.error("Invalid address: %s", str(addr))
+                    log.error(f"Invalid address: {addr}")
                 if i < 5:
-                    msg = "connection to {addr} failed: {error}"
-                    log.debug(msg.format(addr=str(addr), error=str(e)))
+                    log.debug(f"connection to {addr} failed: {e}")
                     log.error("Retrying in 1 second.")
                     time.sleep(1)
             else:
                 break
 
         if sock is None:
-            log.error("Can't connect to %s", str(addr))
+            log.error(f"Can't connect to {addr}")
             sys.exit(1)
 
         listeners.append(sock)

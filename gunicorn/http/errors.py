@@ -19,7 +19,7 @@ class NoMoreData(IOError):
         self.buf = buf
 
     def __str__(self):
-        return "No more data after: %r" % self.buf
+        return f"No more data after: {self.buf!r}"
 
 
 class InvalidRequestLine(ParseException):
@@ -28,7 +28,7 @@ class InvalidRequestLine(ParseException):
         self.code = 400
 
     def __str__(self):
-        return "Invalid HTTP request line: %r" % self.req
+        return f"Invalid HTTP request line: {self.req!r}"
 
 
 class InvalidRequestMethod(ParseException):
@@ -36,7 +36,7 @@ class InvalidRequestMethod(ParseException):
         self.method = method
 
     def __str__(self):
-        return "Invalid HTTP method: %r" % self.method
+        return f"Invalid HTTP method: {self.method!r}"
 
 
 class InvalidHTTPVersion(ParseException):
@@ -44,7 +44,7 @@ class InvalidHTTPVersion(ParseException):
         self.version = version
 
     def __str__(self):
-        return "Invalid HTTP Version: %r" % self.version
+        return f"Invalid HTTP Version: {self.version!r}"
 
 
 class InvalidHeader(ParseException):
@@ -53,7 +53,7 @@ class InvalidHeader(ParseException):
         self.req = req
 
     def __str__(self):
-        return "Invalid HTTP Header: %r" % self.hdr
+        return f"Invalid HTTP Header: {self.hdr!r}"
 
 
 class InvalidHeaderName(ParseException):
@@ -61,7 +61,7 @@ class InvalidHeaderName(ParseException):
         self.hdr = hdr
 
     def __str__(self):
-        return "Invalid HTTP header name: %r" % self.hdr
+        return f"Invalid HTTP header name: {self.hdr!r}"
 
 
 class InvalidChunkSize(IOError):
@@ -69,7 +69,7 @@ class InvalidChunkSize(IOError):
         self.data = data
 
     def __str__(self):
-        return "Invalid chunk size: %r" % self.data
+        return f"Invalid chunk size: {self.data!r}"
 
 
 class ChunkMissingTerminator(IOError):
@@ -77,7 +77,7 @@ class ChunkMissingTerminator(IOError):
         self.term = term
 
     def __str__(self):
-        return "Invalid chunk terminator is not '\\r\\n': %r" % self.term
+        return f"Invalid chunk terminator is not '\\r\\n': {self.term!r}"
 
 
 class LimitRequestLine(ParseException):
@@ -86,7 +86,7 @@ class LimitRequestLine(ParseException):
         self.max_size = max_size
 
     def __str__(self):
-        return "Request Line is too large (%s > %s)" % (self.size, self.max_size)
+        return f"Request Line is too large ({self.size} > {self.max_size})"
 
 
 class LimitRequestHeaders(ParseException):
@@ -103,7 +103,7 @@ class InvalidProxyLine(ParseException):
         self.code = 400
 
     def __str__(self):
-        return "Invalid PROXY line: %r" % self.line
+        return f"Invalid PROXY line: {self.line!r}"
 
 
 class ForbiddenProxyRequest(ParseException):
@@ -112,7 +112,7 @@ class ForbiddenProxyRequest(ParseException):
         self.code = 403
 
     def __str__(self):
-        return "Proxy request from %r not allowed" % self.host
+        return f"Proxy request from {self.host!r} not allowed"
 
 
 class InvalidSchemeHeaders(ParseException):

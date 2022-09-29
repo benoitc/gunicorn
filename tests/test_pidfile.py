@@ -10,7 +10,7 @@ import gunicorn.pidfile
 
 
 def builtin(name):
-    return 'builtins.{}'.format(name)
+    return f'builtins.{name}'
 
 
 @mock.patch(builtin('open'), new_callable=mock.mock_open)

@@ -21,7 +21,7 @@ class WSGIApplication(Application):
             config_file = config_uri.split('#')[0]
 
             if not os.path.exists(config_file):
-                raise ConfigError("%r not found" % config_file)
+                raise ConfigError(f"{config_file!r} not found")
 
             self.cfg.set("default_proc_name", config_file)
             self.app_uri = config_uri

@@ -235,7 +235,7 @@ def test_load_config():
 
 
 def test_load_config_explicit_file():
-    with AltArgs(["prog_name", "-c", "file:%s" % cfg_file()]):
+    with AltArgs(["prog_name", "-c", f"file:{cfg_file()}"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["unix:/tmp/bar/baz"]
     assert app.cfg.workers == 3
@@ -243,7 +243,7 @@ def test_load_config_explicit_file():
 
 
 def test_load_config_module():
-    with AltArgs(["prog_name", "-c", "python:%s" % cfg_module()]):
+    with AltArgs(["prog_name", "-c", f"python:{cfg_module()}"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["unix:/tmp/bar/baz"]
     assert app.cfg.workers == 3
@@ -258,7 +258,7 @@ def test_cli_overrides_config():
 
 
 def test_cli_overrides_config_module():
-    with AltArgs(["prog_name", "-c", "python:%s" % cfg_module(), "-b", "blarney"]):
+    with AltArgs(["prog_name", "-c", f"python:{cfg_module()}", "-b", "blarney"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["blarney"]
     assert app.cfg.proc_name == "fooey"
@@ -501,7 +501,7 @@ def test_str():
     }
     for i, line in enumerate(o.splitlines()):
         m = re.match(r'^(\w+)\s+= ', line)
-        assert m, "Line {} didn't match expected format: {!r}".format(i, line)
+        assert m, f"Line {i} didn't match expected format: {line!r}"
 
         key = m.group(1)
         try:
@@ -509,12 +509,10 @@ def test_str():
         except KeyError:
             continue
 
-        line_re = r'^{}\s+= {}$'.format(key, re.escape(s))
-        assert re.match(line_re, line), '{!r} != {!r}'.format(line_re, line)
+        line_re = fr'^{key}\s+= {re.escape(s)}$'
+        assert re.match(line_re, line), f'{line_re!r} != {line!r}'
 
         if not OUTPUT_MATCH:
             break
     else:
-        assert False, 'missing expected setting lines? {}'.format(
-            OUTPUT_MATCH.keys()
-        )
+        assert False, f'missing expected setting lines? {OUTPUT_MATCH.keys()}'

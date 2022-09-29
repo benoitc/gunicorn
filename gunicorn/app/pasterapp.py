@@ -14,7 +14,7 @@ from gunicorn.config import get_default_config_file
 
 def get_wsgi_app(config_uri, name=None, defaults=None):
     if ':' not in config_uri:
-        config_uri = "config:%s" % config_uri
+        config_uri = f"config:{config_uri}"
 
     return loadapp(
         config_uri,
@@ -47,7 +47,7 @@ def serve(app, global_conf, **local_conf):
     host = local_conf.pop('host', '')
     port = local_conf.pop('port', '')
     if host and port:
-        local_conf['bind'] = '%s:%s' % (host, port)
+        local_conf['bind'] = f'{host}:{port}'
     elif host:
         local_conf['bind'] = host.split(',')
 

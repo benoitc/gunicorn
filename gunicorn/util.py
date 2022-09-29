@@ -48,7 +48,7 @@ try:
     from setproctitle import setproctitle
 
     def _setproctitle(title):
-        setproctitle("gunicorn: %s" % title)
+        setproctitle(f"gunicorn: {title}")
 except ImportError:
     def _setproctitle(title):
         pass
@@ -71,8 +71,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             return pkg_resources.load_entry_point(dist, section, name)
         except Exception:
             exc = traceback.format_exc()
-            msg = "class uri %r invalid or not found: \n\n[%s]"
-            raise RuntimeError(msg % (uri, exc))
+            msg = f"class uri {uri!r} invalid or not found: \n\n[{exc}]"
+            raise RuntimeError(msg)
     else:
         components = uri.split('.')
         if len(components) == 1:
@@ -90,8 +90,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     )
                 except Exception:
                     exc = traceback.format_exc()
-                    msg = "class uri %r invalid or not found: \n\n[%s]"
-                    raise RuntimeError(msg % (uri, exc))
+                    msg = f"class uri {uri!r} invalid or not found: \n\n[{exc}]"
+                    raise RuntimeError(msg)
 
         klass = components.pop(-1)
 
@@ -99,8 +99,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             mod = importlib.import_module('.'.join(components))
         except:
             exc = traceback.format_exc()
-            msg = "class uri %r invalid or not found: \n\n[%s]"
-            raise RuntimeError(msg % (uri, exc))
+            msg = f"class uri {uri!r} invalid or not found: \n\n[{exc}]"
+            raise RuntimeError(msg)
         return getattr(mod, klass)
 
 
@@ -221,7 +221,7 @@ def parse_address(netloc, default_port='8000'):
         try:
             return int(fd)
         except ValueError:
-            raise RuntimeError("%r is not a valid file descriptor." % fd) from None
+            raise RuntimeError(f"{fd!r} is not a valid file descriptor.") from None
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
@@ -238,7 +238,7 @@ def parse_address(netloc, default_port='8000'):
     try:
         port = int(port)
     except ValueError:
-        raise RuntimeError("%r is not a valid port number." % port)
+        raise RuntimeError(f"{port!r} is not a valid port number.")
 
     return host.lower(), port
 
@@ -276,7 +276,7 @@ except ImportError:
 def write_chunk(sock, data):
     if isinstance(data, str):
         data = data.encode('utf-8')
-    chunk_size = "%X\r\n" % len(data)
+    chunk_size = f"{len(data):X}\r\n"
     chunk = b"".join([chunk_size.encode('utf-8'), data, b"\r\n"])
     sock.sendall(chunk)
 
@@ -300,25 +300,25 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
-    html_error = textwrap.dedent("""\
+    html_error = textwrap.dedent(f"""\
     <html>
       <head>
-        <title>%(reason)s</title>
+        <title>{reason}</title>
       </head>
       <body>
-        <h1><p>%(reason)s</p></h1>
-        %(mesg)s
+        <h1><p>{reason}</p></h1>
+        {html.escape(mesg)}
       </body>
     </html>
-    """) % {"reason": reason, "mesg": html.escape(mesg)}
+    """)
 
-    http = textwrap.dedent("""\
-    HTTP/1.1 %s %s\r
+    http = textwrap.dedent(f"""\
+    HTTP/1.1 {status_int} {reason}\r
     Connection: close\r
     Content-Type: text/html\r
-    Content-Length: %d\r
+    Content-Length: {len(html_error):d}\r
     \r
-    %s""") % (str(status_int), reason, len(html_error), html_error)
+    {html_error}""")
     write_nonblock(sock, http.encode('latin1'))
 
 
@@ -359,8 +359,9 @@ def import_app(module):
         mod = importlib.import_module(module)
     except ImportError:
         if module.endswith(".py") and os.path.exists(module):
-            msg = "Failed to find application, did you mean '%s:%s'?"
-            raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
+            prefix = module.rsplit(".", 1)[0]
+            msg = f"Failed to find application, did you mean '{prefix}:{obj}'?"
+            raise ImportError(msg)
         raise
 
     # Parse obj as a single expression to determine if it's a valid
@@ -369,7 +370,7 @@ def import_app(module):
         expression = ast.parse(obj, mode="eval").body
     except SyntaxError:
         raise AppImportError(
-            "Failed to parse %r as an attribute name or function call." % obj
+            f"Failed to parse {obj!r} as an attribute name or function call."
         )
 
     if isinstance(expression, ast.Name):
@@ -378,7 +379,7 @@ def import_app(module):
     elif isinstance(expression, ast.Call):
         # Ensure the function name is an attribute name only.
         if not isinstance(expression.func, ast.Name):
-            raise AppImportError("Function reference must be a simple name: %r" % obj)
+            raise AppImportError(f"Function reference must be a simple name: {obj!r}")
 
         name = expression.func.id
 
@@ -390,11 +391,11 @@ def import_app(module):
             # literal_eval gives cryptic error messages, show a generic
             # message with the full expression instead.
             raise AppImportError(
-                "Failed to parse arguments as literal values: %r" % obj
+                f"Failed to parse arguments as literal values: {obj!r}"
             )
     else:
         raise AppImportError(
-            "Failed to parse %r as an attribute name or function call." % obj
+            f"Failed to parse {obj!r} as an attribute name or function call."
         )
 
     is_debug = logging.root.level == logging.DEBUG
@@ -403,7 +404,7 @@ def import_app(module):
     except AttributeError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find attribute %r in %r." % (name, module))
+        raise AppImportError("Failed to find attribute {name!r} in {module!r}.")
 
     # If the expression was a function call, call the retrieved object
     # to get the real application.
@@ -424,7 +425,7 @@ def import_app(module):
             raise
 
     if app is None:
-        raise AppImportError("Failed to find application object: %r" % obj)
+        raise AppImportError("Failed to find application object: {obj!r}")
 
     if not callable(app):
         raise AppImportError("Application object must be callable.")
@@ -547,14 +548,14 @@ def seed():
     try:
         random.seed(os.urandom(64))
     except NotImplementedError:
-        random.seed('%s.%s' % (time.time(), os.getpid()))
+        random.seed(f'{time.time()}.{os.getpid()}')
 
 
 def check_is_writeable(path):
     try:
         f = open(path, 'a')
     except IOError as e:
-        raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
+        raise RuntimeError(f"Error: '{path}' isn't writable [{e!r}]")
     f.close()
 
 
@@ -563,7 +564,7 @@ def to_bytestring(value, encoding="utf8"):
     if isinstance(value, bytes):
         return value
     if not isinstance(value, str):
-        raise TypeError('%r is not a string' % value)
+        raise TypeError(f'{value!r} is not a string')
 
     return value.encode(encoding)
 
@@ -587,8 +588,8 @@ def warn(msg):
     lines = msg.splitlines()
     for i, line in enumerate(lines):
         if i == 0:
-            line = "WARNING: %s" % line
-        print("!!! %s" % line, file=sys.stderr)
+            line = f"WARNING: {line}"
+        print(f"!!! {line}", file=sys.stderr)
 
     print("!!!\n", file=sys.stderr)
     sys.stderr.flush()

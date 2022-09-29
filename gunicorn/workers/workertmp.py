@@ -19,7 +19,7 @@ class WorkerTmp(object):
         old_umask = os.umask(cfg.umask)
         fdir = cfg.worker_tmp_dir
         if fdir and not os.path.isdir(fdir):
-            raise RuntimeError("%s doesn't exist. Can't create workertmp." % fdir)
+            raise RuntimeError(f"{fdir} doesn't exist. Can't create workertmp.")
         fd, name = tempfile.mkstemp(prefix="wgunicorn-", dir=fdir)
         os.umask(old_umask)
 

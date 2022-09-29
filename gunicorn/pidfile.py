@@ -11,7 +11,7 @@ import tempfile
 class Pidfile(object):
     """\
     Manage a PID file. If a specific name is provided
-    it and '"%s.oldpid" % name' will be used. Otherwise
+    it and 'f"{name}.oldpid"' will be used. Otherwise
     we create a temp file using os.mkstemp.
     """
 
@@ -24,17 +24,17 @@ class Pidfile(object):
         if oldpid:
             if oldpid == os.getpid():
                 return
-            msg = "Already running on PID %s (or pid file '%s' is stale)"
-            raise RuntimeError(msg % (oldpid, self.fname))
+            msg = f"Already running on PID {oldpid} (or pid file '{self.fname}' is stale)"
+            raise RuntimeError(msg)
 
         self.pid = pid
 
         # Write pidfile
         fdir = os.path.dirname(self.fname)
         if fdir and not os.path.isdir(fdir):
-            raise RuntimeError("%s doesn't exist. Can't create pidfile." % fdir)
+            raise RuntimeError(f"{fdir} doesn't exist. Can't create pidfile.")
         fd, fname = tempfile.mkstemp(dir=fdir)
-        os.write(fd, ("%s\n" % self.pid).encode('utf-8'))
+        os.write(fd, f"{self.pid}\n".encode('utf-8'))
         if self.fname:
             os.rename(fname, self.fname)
         else:

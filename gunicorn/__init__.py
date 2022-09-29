@@ -6,4 +6,4 @@
 version_info = (20, 1, 0)
 __version__ = ".".join([str(v) for v in version_info])
 SERVER = "gunicorn"
-SERVER_SOFTWARE = "%s/%s" % (SERVER, __version__)
+SERVER_SOFTWARE = f"{SERVER}/{__version__}"

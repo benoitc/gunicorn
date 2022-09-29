@@ -26,7 +26,7 @@ import gunicorn
 from gunicorn.http.wsgi import base_environ
 from gunicorn.workers.base_async import AsyncWorker
 
-VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
+VERSION = f"gevent/{gevent.__version__} gunicorn/{gunicorn.__version__}"
 
 
 class GeventWorker(AsyncWorker):
@@ -110,7 +110,7 @@ class GeventWorker(AsyncWorker):
                 gevent.sleep(1.0)
 
             # Force kill all active the handlers
-            self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
+            self.log.warning(f"Worker graceful timeout (pid:{self.pid})")
             for server in servers:
                 server.stop(timeout=1)
         except Exception:

@@ -41,7 +41,7 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
+    SIGNALS = [getattr(signal, f"SIG{x}")
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
@@ -104,7 +104,7 @@ class Arbiter(object):
 
         self.log.debug('Current configuration:\n{0}'.format(
             '\n'.join(
-                '  {0}: {1}'.format(config, value.value)
+                f'  {config}: {value.value}'
                 for config, value
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
@@ -196,7 +196,7 @@ class Arbiter(object):
     def run(self):
         "Main master loop."
         self.start()
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle(f"master [{self.proc_name}]")
 
         try:
             self.manage_workers()
@@ -212,15 +212,15 @@ class Arbiter(object):
                     continue
 
                 if sig not in self.SIG_NAMES:
-                    self.log.info("Ignoring unknown signal: %s", sig)
+                    self.log.info(f"Ignoring unknown signal: {sig}")
                     continue
 
                 signame = self.SIG_NAMES.get(sig)
-                handler = getattr(self, "handle_%s" % signame, None)
+                handler = getattr(self, f"handle_{signame}", None)
                 if not handler:
-                    self.log.error("Unhandled signal: %s", signame)
+                    self.log.error(f"Unhandled signal: {signame}")
                     continue
-                self.log.info("Handling signal: %s", signame)
+                self.log.info(f"Handling signal: {signame}")
                 handler()
                 self.wakeup()
         except (StopIteration, KeyboardInterrupt):
@@ -249,7 +249,7 @@ class Arbiter(object):
         - Start the new worker processes with a new configuration
         - Gracefully shutdown the old worker processes
         """
-        self.log.info("Hang up: %s", self.master_name)
+        self.log.info(f"Hang up: {self.master_name}")
         self.reload()
 
     def handle_term(self):
@@ -325,7 +325,7 @@ class Arbiter(object):
             if self.pidfile is not None:
                 self.pidfile.rename(self.cfg.pidfile)
             # reset proctitle
-            util._setproctitle("master [%s]" % self.proc_name)
+            util._setproctitle(f"master [{self.proc_name}]")
 
     def wakeup(self):
         """\
@@ -340,9 +340,9 @@ class Arbiter(object):
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
-        self.log.info("Shutting down: %s", self.master_name)
+        self.log.info(f"Shutting down: {self.master_name}")
         if reason is not None:
-            self.log.info("Reason: %s", reason)
+            self.log.info(f"Reason: {reason}")
         if self.pidfile is not None:
             self.pidfile.unlink()
         self.cfg.on_exit(self)
@@ -459,7 +459,7 @@ class Arbiter(object):
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
             listeners_str = ",".join([str(l) for l in self.LISTENERS])
-            self.log.info("Listening at: %s", listeners_str)
+            self.log.info(f"Listening at: {listeners_str}")
 
         # do some actions on reload
         self.cfg.on_reload(self)
@@ -474,7 +474,7 @@ class Arbiter(object):
             self.pidfile.create(self.pid)
 
         # set new proc_name
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle(f"master [{self.proc_name}]")
 
         # spawn new workers
         for _ in range(self.cfg.workers):
@@ -498,7 +498,7 @@ class Arbiter(object):
                 continue
 
             if not worker.aborted:
-                self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
+                self.log.critical(f"WORKER TIMEOUT (pid:{pid})")
                 worker.aborted = True
                 self.kill_worker(pid, signal.SIGABRT)
             else:
@@ -553,7 +553,7 @@ class Arbiter(object):
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
             self._last_logged_active_worker_count = active_worker_count
-            self.log.debug("{0} workers".format(active_worker_count),
+            self.log.debug(f"{active_worker_count} workers",
                            extra={"metric": "gunicorn.workers",
                                   "value": active_worker_count,
                                   "mtype": "gauge"})
@@ -577,8 +577,8 @@ class Arbiter(object):
         # Process Child
         worker.pid = os.getpid()
         try:
-            util._setproctitle("worker [%s]" % self.proc_name)
-            self.log.info("Booting worker with pid: %s", worker.pid)
+            util._setproctitle(f"worker [{self.proc_name}]")
+            self.log.info(f"Booting worker with pid: {worker.pid}")
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
@@ -587,7 +587,7 @@ class Arbiter(object):
         except AppImportError as e:
             self.log.debug("Exception while loading the application",
                            exc_info=True)
-            print("%s" % e, file=sys.stderr)
+            print(str(e), file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
         except Exception:
@@ -596,13 +596,13 @@ class Arbiter(object):
                 sys.exit(self.WORKER_BOOT_ERROR)
             sys.exit(-1)
         finally:
-            self.log.info("Worker exiting (pid: %s)", worker.pid)
+            self.log.info(f"Worker exiting (pid: {worker.pid})")
             try:
                 worker.tmp.close()
                 self.cfg.worker_exit(self, worker)
             except Exception:
-                self.log.warning("Exception during worker exit:\n%s",
-                                 traceback.format_exc())
+                msg = f"Exception during worker exit:\n{traceback.format_exc()}"
+                self.log.warning(msg)
 
     def spawn_workers(self):
         """\

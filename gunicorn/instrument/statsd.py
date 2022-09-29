@@ -99,21 +99,21 @@ class Statsd(Logger):
             status = int(status.split(None, 1)[0])
         self.histogram("gunicorn.request.duration", duration_in_ms)
         self.increment("gunicorn.requests", 1)
-        self.increment("gunicorn.request.status.%d" % status, 1)
+        self.increment(f"gunicorn.request.status.{status}", 1)
 
     # statsD methods
     # you can use those directly if you want
     def gauge(self, name, value):
-        self._sock_send("{0}{1}:{2}|g".format(self.prefix, name, value))
+        self._sock_send(f"{self.prefix}{name}:{value}|g")
 
     def increment(self, name, value, sampling_rate=1.0):
-        self._sock_send("{0}{1}:{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+        self._sock_send(f"{self.prefix}{name}:{value}|c|@{sampling_rate}")
 
     def decrement(self, name, value, sampling_rate=1.0):
-        self._sock_send("{0}{1}:-{2}|c|@{3}".format(self.prefix, name, value, sampling_rate))
+        self._sock_send(f"{self.prefix}{name}:-{value}|c|@{sampling_rate}")
 
     def histogram(self, name, value):
-        self._sock_send("{0}{1}:{2}|ms".format(self.prefix, name, value))
+        self._sock_send(f"{self.prefix}{name}:{value}|ms")
 
     def _sock_send(self, msg):
         try:

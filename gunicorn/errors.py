@@ -18,7 +18,7 @@ class HaltServer(BaseException):
         self.exit_status = exit_status
 
     def __str__(self):
-        return "<HaltServer %r %d>" % (self.reason, self.exit_status)
+        return f"<HaltServer {self.reason!r} {self.exit_status:d}>"
 
 
 class ConfigError(Exception):

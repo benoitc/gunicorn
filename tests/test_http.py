@@ -89,8 +89,8 @@ def test_http_header_encoding():
 
     # build our own header_str to compare against
     tosend = response.default_headers()
-    tosend.extend(["%s: %s\r\n" % (k, v) for k, v in response.headers])
-    header_str = "%s\r\n" % "".join(tosend)
+    tosend.extend([f"{k}: {v}\r\n" for k, v in response.headers])
+    header_str = f'{"".join(tosend)}\r\n'
 
     with pytest.raises(UnicodeEncodeError):
         mocked_socket.sendall(util.to_bytestring(header_str, "ascii"))

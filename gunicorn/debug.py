@@ -38,21 +38,23 @@ class Spew(object):
                     src = inspect.getsourcelines(frame)
                     line = src[lineno]
                 except IOError:
-                    line = 'Unknown code named [%s].  VM instruction #%d' % (
-                        frame.f_code.co_name, frame.f_lasti)
+                    line = (
+                        f'Unknown code named [{frame.f_code.co_name}].  ',
+                        f'VM instruction #{frame.f_lasti:d}'
+                    )
             if self.trace_names is None or name in self.trace_names:
-                print('%s:%s: %s' % (name, lineno, line.rstrip()))
+                print(f'{name}:{lineno}: {line.rstrip()}')
                 if not self.show_values:
                     return self
                 details = []
                 tokens = _token_spliter.split(line)
                 for tok in tokens:
                     if tok in frame.f_globals:
-                        details.append('%s=%r' % (tok, frame.f_globals[tok]))
+                        details.append(f'{tok}={frame.f_globals[tok]!r}')
                     if tok in frame.f_locals:
-                        details.append('%s=%r' % (tok, frame.f_locals[tok]))
+                        details.append(f'{tok}={frame.f_locals[tok]!r}')
                 if details:
-                    print("\t%s" % ' '.join(details))
+                    print(f"\t{' '.join(details)}")
         return self
 
 

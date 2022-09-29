@@ -38,7 +38,7 @@ class TornadoWorker(Worker):
         def clear(self):
             old_clear(self)
             if "Gunicorn" not in self._headers["Server"]:
-                self._headers["Server"] += " (Gunicorn/%s)" % gversion
+                self._headers["Server"] += f" (Gunicorn/{gversion})"
         web.RequestHandler.clear = clear
         sys.modules["tornado.web"] = web
 

@@ -28,7 +28,7 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
+    SIGNALS = [getattr(signal, f"SIG{x}") for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )]
 
@@ -64,7 +64,7 @@ class Worker(object):
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
-        return "<Worker %s>" % self.pid
+        return f"<Worker {self.pid}>"
 
     def notify(self):
         """\
@@ -120,7 +120,7 @@ class Worker(object):
         # start the reloader
         if self.cfg.reload:
             def changed(fname):
-                self.log.info("Worker reloading: %s modified", fname)
+                self.log.info(f"Worker reloading: {fname} modified")
                 self.alive = False
                 os.write(self.PIPE[1], b"1")
                 self.cfg.worker_int(self)
@@ -218,39 +218,39 @@ class Worker(object):
             reason = "Bad Request"
 
             if isinstance(exc, InvalidRequestLine):
-                mesg = "Invalid Request Line '%s'" % str(exc)
+                mesg = f"Invalid Request Line '{exc}'"
             elif isinstance(exc, InvalidRequestMethod):
-                mesg = "Invalid Method '%s'" % str(exc)
+                mesg = f"Invalid Method '{exc}'"
             elif isinstance(exc, InvalidHTTPVersion):
-                mesg = "Invalid HTTP Version '%s'" % str(exc)
+                mesg = f"Invalid HTTP Version '{exc}'"
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
-                mesg = "%s" % str(exc)
+                mesg = str(exc)
                 if not req and hasattr(exc, "req"):
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
-                mesg = "%s" % str(exc)
+                mesg = str(exc)
             elif isinstance(exc, LimitRequestHeaders):
                 reason = "Request Header Fields Too Large"
-                mesg = "Error parsing headers: '%s'" % str(exc)
+                mesg = f"Error parsing headers: '{exc}'"
                 status_int = 431
             elif isinstance(exc, InvalidProxyLine):
-                mesg = "'%s'" % str(exc)
+                mesg = f"'{exc}'"
             elif isinstance(exc, ForbiddenProxyRequest):
                 reason = "Forbidden"
                 mesg = "Request forbidden"
                 status_int = 403
             elif isinstance(exc, InvalidSchemeHeaders):
-                mesg = "%s" % str(exc)
+                mesg = str(exc)
             elif isinstance(exc, SSLError):
                 reason = "Forbidden"
-                mesg = "'%s'" % str(exc)
+                mesg = f"'{exc}'"
                 status_int = 403
 
             msg = "Invalid request from ip={ip}: {error}"
             self.log.debug(msg.format(ip=addr[0], error=str(exc)))
         else:
             if hasattr(req, "uri"):
-                self.log.exception("Error handling request %s", req.uri)
+                self.log.exception(f"Error handling request {req.uri}")
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
@@ -261,7 +261,7 @@ class Worker(object):
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])
             resp = Response(req, client, self.cfg)
-            resp.status = "%s %s" % (status_int, reason)
+            resp.status = f"{status_int} {reason}"
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
 

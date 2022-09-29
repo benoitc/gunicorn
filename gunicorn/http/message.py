@@ -292,7 +292,7 @@ class Request(Message):
 
         # Validation
         if proto not in ["TCP4", "TCP6"]:
-            raise InvalidProxyLine("protocol '%s' not supported" % proto)
+            raise InvalidProxyLine(f"protocol '{proto}' not supported")
         if proto == "TCP4":
             try:
                 socket.inet_pton(socket.AF_INET, s_addr)
@@ -310,10 +310,10 @@ class Request(Message):
             s_port = int(bits[4])
             d_port = int(bits[5])
         except ValueError:
-            raise InvalidProxyLine("invalid port %s" % line)
+            raise InvalidProxyLine(f"invalid port {line}")
 
         if not ((0 <= s_port <= 65535) and (0 <= d_port <= 65535)):
-            raise InvalidProxyLine("invalid port %s" % line)
+            raise InvalidProxyLine(f"invalid port {line}")
 
         # Set data
         self.proxy_protocol_info = {
