@@ -182,7 +182,7 @@ class EventletWorker(AsyncWorker):
                 for a in acceptors:
                     a.wait()
         except eventlet.Timeout as te:
-            if te != t:
+            if te != t:  # pylint: disable=used-before-assignment
                 raise
             for a in acceptors:
                 a.kill()
