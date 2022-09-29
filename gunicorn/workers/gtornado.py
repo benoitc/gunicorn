@@ -107,10 +107,7 @@ class TornadoWorker(Worker):
         app = self.wsgi
 
         if tornado.version_info[0] < 6:
-            if not (
-                isinstance(app, tornado.web.Application)
-                or isinstance(app, tornado.wsgi.WSGIApplication)
-            ):
+            if not isinstance(app, (tornado.web.Application, tornado.wsgi.WSGIApplication)):
                 app = WSGIContainer(app)
         elif not isinstance(app, WSGIContainer):
             app = WSGIContainer(app)
