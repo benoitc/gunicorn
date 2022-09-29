@@ -15,6 +15,7 @@ disable=
     bad-mcs-classmethod-argument,
     bare-except,
     broad-except,
+    consider-using-with,
     duplicate-bases,
     duplicate-code,
     eval-used,
