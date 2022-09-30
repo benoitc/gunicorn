@@ -298,7 +298,7 @@ class Logger(object):
             'T': request_time.seconds,
             'D': (request_time.seconds * 1000000) + request_time.microseconds,
             'M': (request_time.seconds * 1000) + int(request_time.microseconds/1000),
-            'L': f"{request_time.seconds}.{request_time.microseconds:06d}",
+            'L': f"{request_time.seconds:d}.{request_time.microseconds:06d}",
             'p': f"<{os.getpid()}>"
         }
 
