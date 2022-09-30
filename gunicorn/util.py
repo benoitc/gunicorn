@@ -316,7 +316,7 @@ def write_error(sock, status_int, reason, mesg):
     HTTP/1.1 {status_int} {reason}\r
     Connection: close\r
     Content-Type: text/html\r
-    Content-Length: {len(html_error):d}\r
+    Content-Length: {len(html_error)}\r
     \r
     {html_error}""")
     write_nonblock(sock, http.encode('latin1'))
