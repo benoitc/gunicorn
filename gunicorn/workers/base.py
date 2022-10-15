@@ -230,7 +230,9 @@ class Worker(object):
             elif isinstance(exc, LimitRequestLine):
                 mesg = "%s" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
+                reason = "Request Header Fields Too Large"
                 mesg = "Error parsing headers: '%s'" % str(exc)
+                status_int = 431
             elif isinstance(exc, InvalidProxyLine):
                 mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
