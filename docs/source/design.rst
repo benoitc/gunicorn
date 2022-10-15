@@ -154,4 +154,4 @@ code in the master process).
 .. _aiohttp: https://docs.aiohttp.org/en/stable/deployment.html#nginx-gunicorn
 .. _`example`: https://github.com/benoitc/gunicorn/blob/master/examples/frameworks/flaskapp_aiohttp_wsgi.py
 .. _Psycopg: http://initd.org/psycopg/
-.. _psycogreen: https://bitbucket.org/dvarrazzo/psycogreen
+.. _psycogreen: https://github.com/psycopg/psycogreen/
