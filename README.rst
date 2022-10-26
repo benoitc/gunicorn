@@ -62,12 +62,6 @@ Contributing
 See `our complete contributor's guide <CONTRIBUTING.md>`_ for more details.
 
 
-License
--------
-
-Gunicorn is released under the MIT License. See the LICENSE_ file for more
-details.
-
 .. _Unicorn: https://bogomips.org/unicorn/
 .. _`#gunicorn`: https://web.libera.chat/?channels=#gunicorn
 .. _`Libera.chat`: https://libera.chat/
