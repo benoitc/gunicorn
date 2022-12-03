@@ -92,7 +92,7 @@ setup(
     description='WSGI HTTP Server for UNIX',
     long_description=long_description,
     author='Benoit Chesneau',
-    author_email='benoitc@e-engura.com',
+    author_email='benoitc@gunicorn.org',
     license='MIT',
     url='https://gunicorn.org',
     project_urls={
