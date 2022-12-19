@@ -163,11 +163,13 @@ class SyncWorker(base.Worker):
     def handle_request(self, listener, req, client, addr):
         environ = {}
         resp = None
+        want_log = False
         try:
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
                                         listener.getsockname(), self.cfg)
+            want_log = True
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.
@@ -184,8 +186,6 @@ class SyncWorker(base.Worker):
                     for item in respiter:
                         resp.write(item)
                 resp.close()
-                request_time = datetime.now() - request_start
-                self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
@@ -203,8 +203,18 @@ class SyncWorker(base.Worker):
                 except EnvironmentError:
                     pass
                 raise StopIteration()
-            raise
+            else:
+                # Don't log it here. The exception will be caught in handle()
+                # and a HTTP 500 response will be logged in handle_error().
+                want_log = False
+                raise
         finally:
+            if want_log:
+                try:
+                    request_time = datetime.now() - request_start
+                    self.log.access(resp, req, environ, request_time)
+                except Exception:
+                    self.log.exception("Error logging to access log")
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
