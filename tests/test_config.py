@@ -499,9 +499,13 @@ def test_str():
         'capture_output': 'False',
         'child_exit': '<ChildExit.child_exit()>',
     }
+    equals_positions = set()
     for i, line in enumerate(o.splitlines()):
         m = re.match(r'^(\w+)\s+= ', line)
         assert m, f"Line {i} didn't match expected format: {line!r}"
+
+        # Equals signs should be vertically aligned in the configuration printout
+        equals_positions.add(line.index(" = "))
 
         key = m.group(1)
         try:
@@ -516,3 +520,4 @@ def test_str():
             break
     else:
         assert False, f'missing expected setting lines? {OUTPUT_MATCH.keys()}'
+    assert len(equals_positions) == 1
