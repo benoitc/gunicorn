@@ -269,6 +269,9 @@ class Request(Message):
             self.proxy_protocol_access_check()
             line = self.read_line(unreader, buffer, self.limit_request_line)
             self.parse_proxy_protocol_v1(bytes_to_str(data + line))
+        else:
+            # Restore the buffer, this is a normal request
+            buffer[:] = data + buffer
         return
 
     def proxy_protocol_access_check(self):
