@@ -7,6 +7,7 @@ import inspect
 import importlib.machinery
 import os
 import random
+import re
 import types
 
 from gunicorn.config import Config
@@ -52,6 +53,8 @@ class request(object):
             self.data = handle.read()
         self.data = self.data.replace(b"\n", b"").replace(b"\\r\\n", b"\r\n")
         self.data = self.data.replace(b"\\0", b"\000")
+        # Convert \x escape sequences back to their bytes
+        self.data = re.sub(rb"\\x(.{2})", lambda m: bytes.fromhex(m.group(1).decode()), self.data)
 
     # Functions for sending data to the parser.
     # These functions mock out reading from a

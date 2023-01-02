@@ -2,8 +2,10 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+import ipaddress
 import re
 import socket
+import struct
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import (
@@ -11,8 +13,8 @@ from gunicorn.http.errors import (
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
 )
-from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.http.errors import InvalidSchemeHeaders
+from gunicorn.http.errors import InvalidProxyHeader, InvalidProxyLine
+from gunicorn.http.errors import ForbiddenProxyRequest, InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
 
 MAX_REQUEST_LINE = 8190
@@ -22,12 +24,6 @@ DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 HEADER_RE = re.compile(r"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
-
-
-def restore_buf(buf, rbuf):
-    buf.seek(0)
-    buf.write(rbuf)
-    buf.truncate()
 
 
 class Message(object):
@@ -238,7 +234,8 @@ class Request(Message):
                 raise LimitRequestLine(len(buffer), limit)
             self.get_data(unreader, buffer)
 
-        result, buffer[:] = buffer[:idx], buffer[idx + 2:]
+        result = buffer[:idx]   # request line
+        buffer[:] = buffer[idx + 2:]  # residue in the buffer, skip \r\n
         return result
 
     def read_bytes(self, unreader, buffer, size):
@@ -269,10 +266,17 @@ class Request(Message):
             self.proxy_protocol_access_check()
             line = self.read_line(unreader, buffer, self.limit_request_line)
             self.parse_proxy_protocol_v1(bytes_to_str(data + line))
-        else:
-            # Restore the buffer, this is a normal request
-            buffer[:] = data + buffer
-        return
+            return
+
+        elif data == b"\x0D\x0A\x0D\x0A\x00":  # Potentially proxy protocol v2
+            data += self.read_bytes(unreader, buffer, 7)
+            if data == b"\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A":
+                self.proxy_protocol_access_check()
+                self.parse_proxy_protocol_v2(unreader, buffer)
+                return
+
+        # Restore the buffer, this is a normal request
+        buffer[:] = data + buffer
 
     def proxy_protocol_access_check(self):
         # check in allow list
@@ -318,6 +322,47 @@ class Request(Message):
             raise InvalidProxyLine("invalid port %s" % line)
 
         # Set data
+        self.proxy_protocol_info = {
+            "proxy_protocol": proto,
+            "client_addr": s_addr,
+            "client_port": s_port,
+            "proxy_addr": d_addr,
+            "proxy_port": d_port
+        }
+
+    def parse_proxy_protocol_v2(self, unreader, buffer):
+        data = self.read_bytes(unreader, buffer, 4)
+        ver_cmd, fam, length = struct.unpack("!BBH", data)
+        if ver_cmd & 0xF0 != 0x20:
+            raise InvalidProxyHeader("invalid version %r" % data)
+        if ver_cmd & 0xF not in {0x00, 0x01}:
+            raise InvalidProxyHeader("unsupported command %r" % data)
+
+        body = self.read_bytes(unreader, buffer, length)
+        if ver_cmd & 0xF == 0x00:
+            return  # LOCAL command, do not change source addr
+
+        if fam == 0x11:  # TCPv4
+            proto = "TCP4"
+            format = "!IIHH"
+            ip_class = ipaddress.IPv4Address
+        elif fam == 0x21:  # TCPv6
+            proto = "TCP6"
+            format = "!16s16sHH"
+            ip_class = ipaddress.IPv6Address
+        else:
+            raise InvalidProxyHeader("unsupported protocol %r" % body)
+
+        try:
+            s_addr, d_addr, s_port, d_port = struct.unpack(format, body)
+        except struct.error as e:
+            raise InvalidProxyHeader("cannot unpack %r: %s" % (body, e))
+        s_addr = str(ip_class(s_addr))
+        d_addr = str(ip_class(d_addr))
+
+        if not ((0 <= s_port <= 65535) and (0 <= d_port <= 65535)):
+            raise InvalidProxyHeader("invalid port %r" % body)
+
         self.proxy_protocol_info = {
             "proxy_protocol": proto,
             "client_addr": s_addr,
