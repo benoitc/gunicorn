@@ -2,8 +2,6 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-
-import io
 import re
 import socket
 
@@ -186,87 +184,74 @@ class Request(Message):
         self.proxy_protocol_info = None
         super().__init__(cfg, unreader, peer_addr)
 
-    def get_data(self, unreader, buf, stop=False):
+    def get_data(self, unreader, buffer, stop=False):
         data = unreader.read()
         if not data:
             if stop:
                 raise StopIteration()
-            raise NoMoreData(buf.getvalue())
-        buf.write(data)
+            raise NoMoreData(bytes(buffer))
+        buffer.extend(data)
 
     def parse(self, unreader):
-        buf = io.BytesIO()
-        self.get_data(unreader, buf, stop=True)
+        buffer = bytearray()
+        self.get_data(unreader, buffer, stop=True)
 
         # proxy protocol
-        self.proxy_protocol(unreader, buf)
+        self.proxy_protocol(unreader, buffer)
 
         # get request line
-        line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
-
+        line = self.read_line(unreader, buffer, self.limit_request_line)
         self.parse_request_line(line)
-        buf = io.BytesIO()
-        buf.write(rbuf)
 
         # Headers
-        data = buf.getvalue()
-        idx = data.find(b"\r\n\r\n")
-
-        done = data[:2] == b"\r\n"
         while True:
-            idx = data.find(b"\r\n\r\n")
-            done = data[:2] == b"\r\n"
+            idx = buffer.find(b"\r\n\r\n")
+            done = buffer[:2] == b"\r\n"
 
             if idx < 0 and not done:
-                self.get_data(unreader, buf)
-                data = buf.getvalue()
-                if len(data) > self.max_buffer_headers:
+                self.get_data(unreader, buffer)
+                if len(buffer) > self.max_buffer_headers:
                     raise LimitRequestHeaders("max buffer headers")
             else:
                 break
 
         if done:
-            self.unreader.unread(data[2:])
+            self.unreader.unread(buffer[2:])
             return b""
 
-        self.headers = self.parse_headers(data[:idx])
+        self.headers = self.parse_headers(buffer[:idx])
 
-        ret = data[idx + 4:]
-        buf = None
+        # Body
+        ret = buffer[idx + 4:]
+        buffer = None
         return ret
 
-    def read_line(self, unreader, buf, limit=0):
-        data = buf.getvalue()
-
+    def read_line(self, unreader, buffer, limit=0):
         while True:
-            idx = data.find(b"\r\n")
+            idx = buffer.find(b"\r\n")
             if idx >= 0:
                 # check if the request line is too large
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
-            if len(data) - 2 > limit > 0:
-                raise LimitRequestLine(len(data), limit)
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
+            if len(buffer) - 2 > limit > 0:
+                raise LimitRequestLine(len(buffer), limit)
+            self.get_data(unreader, buffer)
 
-        return (data[:idx],  # request line,
-                data[idx + 2:])  # residue in the buffer, skip \r\n
+        result, buffer[:] = buffer[:idx], buffer[idx + 2:]
+        return result
 
-    def read_bytes(self, unreader, buf, size):
-        data = buf.getvalue()
-
+    def read_bytes(self, unreader, buffer, size):
         while True:
-            bytes_read = len(data)
+            bytes_read = len(buffer)
             if bytes_read >= size:
                 break
-            self.get_data(unreader, buf)
-            data = buf.getvalue()
+            self.get_data(unreader, buffer)
 
-        return (data[:size],  # requested data
-                data[size:])  # residue in the buffer
+        result, buffer[:] = buffer[:size], buffer[size:]
+        return result
 
-    def proxy_protocol(self, unreader, buf):
+    def proxy_protocol(self, unreader, buffer):
         """\
         Detect, check and parse proxy protocol.
 
@@ -279,14 +264,11 @@ class Request(Message):
         if self.req_number != 1:
             return
 
-        data, rbuf = self.read_bytes(unreader, buf, 5)
+        data = self.read_bytes(unreader, buffer, 5)
         if data == b"PROXY":
             self.proxy_protocol_access_check()
-            restore_buf(buf, rbuf)
-            line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
+            line = self.read_line(unreader, buffer, self.limit_request_line)
             self.parse_proxy_protocol_v1(bytes_to_str(data + line))
-            # Return the residual up to the caller
-            restore_buf(buf, rbuf)
         return
 
     def proxy_protocol_access_check(self):
