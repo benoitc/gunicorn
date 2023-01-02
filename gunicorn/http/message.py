@@ -26,6 +26,12 @@ METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
+def restore_buf(buf, rbuf):
+    buf.seek(0)
+    buf.write(rbuf)
+    buf.truncate()
+
+
 class Message(object):
     def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
@@ -192,15 +198,11 @@ class Request(Message):
         buf = io.BytesIO()
         self.get_data(unreader, buf, stop=True)
 
+        # proxy protocol
+        self.proxy_protocol(unreader, buf)
+
         # get request line
         line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
-
-        # proxy protocol
-        if self.proxy_protocol(bytes_to_str(line)):
-            # get next request line
-            buf = io.BytesIO()
-            buf.write(rbuf)
-            line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
 
         self.parse_request_line(line)
         buf = io.BytesIO()
@@ -251,7 +253,20 @@ class Request(Message):
         return (data[:idx],  # request line,
                 data[idx + 2:])  # residue in the buffer, skip \r\n
 
-    def proxy_protocol(self, line):
+    def read_bytes(self, unreader, buf, size):
+        data = buf.getvalue()
+
+        while True:
+            bytes_read = len(data)
+            if bytes_read >= size:
+                break
+            self.get_data(unreader, buf)
+            data = buf.getvalue()
+
+        return (data[:size],  # requested data
+                data[size:])  # residue in the buffer
+
+    def proxy_protocol(self, unreader, buf):
         """\
         Detect, check and parse proxy protocol.
 
@@ -259,18 +274,20 @@ class Request(Message):
         :return: True for proxy protocol line else False
         """
         if not self.cfg.proxy_protocol:
-            return False
+            return
 
         if self.req_number != 1:
-            return False
+            return
 
-        if not line.startswith("PROXY"):
-            return False
-
-        self.proxy_protocol_access_check()
-        self.parse_proxy_protocol(line)
-
-        return True
+        data, rbuf = self.read_bytes(unreader, buf, 5)
+        if data == b"PROXY":
+            self.proxy_protocol_access_check()
+            restore_buf(buf, rbuf)
+            line, rbuf = self.read_line(unreader, buf, self.limit_request_line)
+            self.parse_proxy_protocol_v1(bytes_to_str(data + line))
+            # Return the residual up to the caller
+            restore_buf(buf, rbuf)
+        return
 
     def proxy_protocol_access_check(self):
         # check in allow list
@@ -279,7 +296,7 @@ class Request(Message):
                 self.peer_addr[0] not in self.cfg.proxy_allow_ips):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
-    def parse_proxy_protocol(self, line):
+    def parse_proxy_protocol_v1(self, line):
         bits = line.split()
 
         if len(bits) != 6:
