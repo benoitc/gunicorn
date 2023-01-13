@@ -48,7 +48,7 @@ def test_arbiter_stop_child_does_not_unlink_listeners(close_sockets):
 @mock.patch('gunicorn.sock.close_sockets')
 def test_arbiter_stop_parent_does_not_unlink_listeners(close_sockets):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    arbiter.master_pid = os.getppid()
+    arbiter.main_pid = os.getppid()
     arbiter.stop()
     close_sockets.assert_called_with([], False)
 
@@ -115,7 +115,7 @@ def test_arbiter_reexec_limit_parent(fork):
 @mock.patch('os.fork')
 def test_arbiter_reexec_limit_child(fork):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    arbiter.master_pid = ~os.getpid()
+    arbiter.main_pid = ~os.getpid()
     arbiter.reexec()
     assert fork.called is False, "should not fork when arbiter is a child"
 
