@@ -311,18 +311,18 @@ class Logger(object):
         if hasattr(req_headers, "items"):
             req_headers = req_headers.items()
 
-        atoms.update({f"{{{k.lower()}}}i": v for k, v in req_headers})
+        atoms.update({"{%s}i" % k.lower(): v for k, v in req_headers})  # pylint: disable=consider-using-f-string
 
         resp_headers = resp.headers
         if hasattr(resp_headers, "items"):
             resp_headers = resp_headers.items()
 
         # add response headers
-        atoms.update({f"{{{k.lower()}}}o": v for k, v in resp_headers})
+        atoms.update({"{%s}o" % k.lower(): v for k, v in resp_headers})  # pylint: disable=consider-using-f-string
 
         # add environ variables
         environ_variables = environ.items()
-        atoms.update({f"{{{k.lower()}}}e": v for k, v in environ_variables})
+        atoms.update({"{%s}e" % k.lower(): v for k, v in environ_variables})  # pylint: disable=consider-using-f-string
 
         return atoms
 
