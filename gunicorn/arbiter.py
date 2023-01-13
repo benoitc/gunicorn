@@ -194,7 +194,7 @@ class Arbiter(object):
             self.wakeup()
 
     def run(self):
-        "Main master loop."
+        "Main loop."
         self.start()
         util._setproctitle("master [%s]" % self.proc_name)
 
