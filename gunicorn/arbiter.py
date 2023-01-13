@@ -61,8 +61,8 @@ class Arbiter(object):
         self.systemd = False
         self.worker_age = 0
         self.reexec_pid = 0
-        self.master_pid = 0
-        self.master_name = "Master"
+        self.main_pid = 0
+        self.main_name = "Main"
 
         cwd = util.getcwd()
 
@@ -124,14 +124,14 @@ class Arbiter(object):
         self.log.info("Starting gunicorn %s", __version__)
 
         if 'GUNICORN_PID' in os.environ:
-            self.master_pid = int(os.environ.get('GUNICORN_PID'))
+            self.main_pid = int(os.environ.get('GUNICORN_PID'))
             self.proc_name = self.proc_name + ".2"
-            self.master_name = "Master.2"
+            self.main_name = "Main.2"
 
         self.pid = os.getpid()
         if self.cfg.pidfile is not None:
             pidname = self.cfg.pidfile
-            if self.master_pid != 0:
+            if self.main_pid != 0:
                 pidname += ".2"
             self.pidfile = Pidfile(pidname)
             self.pidfile.create(self.pid)
@@ -147,7 +147,7 @@ class Arbiter(object):
                 fds = range(systemd.SD_LISTEN_FDS_START,
                             systemd.SD_LISTEN_FDS_START + listen_fds)
 
-            elif self.master_pid:
+            elif self.main_pid:
                 fds = []
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
@@ -168,8 +168,8 @@ class Arbiter(object):
 
     def init_signals(self):
         """\
-        Initialize master signal handling. Most of the signals
-        are queued. Child signals only wake up the master.
+        Initialize main process signal handling. Most of the signals
+        are queued. Child signals only wake up the main process.
         """
         # close old PIPE
         for p in self.PIPE:
@@ -196,13 +196,13 @@ class Arbiter(object):
     def run(self):
         "Main loop."
         self.start()
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle("main [%s]" % self.proc_name)
 
         try:
             self.manage_workers()
 
             while True:
-                self.maybe_promote_master()
+                self.maybe_promote_main()
 
                 sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
                 if sig is None:
@@ -249,7 +249,7 @@ class Arbiter(object):
         - Start the new worker processes with a new configuration
         - Gracefully shutdown the old worker processes
         """
-        self.log.info("Hang up: %s", self.master_name)
+        self.log.info("Hang up: %s", self.main_name)
         self.reload()
 
     def handle_term(self):
@@ -310,22 +310,22 @@ class Arbiter(object):
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
 
-    def maybe_promote_master(self):
-        if self.master_pid == 0:
+    def maybe_promote_main(self):
+        if self.main_pid == 0:
             return
 
-        if self.master_pid != os.getppid():
-            self.log.info("Master has been promoted.")
-            # reset master infos
-            self.master_name = "Master"
-            self.master_pid = 0
+        if self.main_pid != os.getppid():
+            self.log.info("Main process has been promoted.")
+            # reset main process infos
+            self.main_name = "Main"
+            self.main_pid = 0
             self.proc_name = self.cfg.proc_name
             del os.environ['GUNICORN_PID']
             # rename the pidfile
             if self.pidfile is not None:
                 self.pidfile.rename(self.cfg.pidfile)
             # reset proctitle
-            util._setproctitle("master [%s]" % self.proc_name)
+            util._setproctitle("main [%s]" % self.proc_name)
 
     def wakeup(self):
         """\
@@ -340,7 +340,7 @@ class Arbiter(object):
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
-        self.log.info("Shutting down: %s", self.master_name)
+        self.log.info("Shutting down: %s", self.main_name)
         if reason is not None:
             self.log.info("Reason: %s", reason)
         if self.pidfile is not None:
@@ -375,7 +375,7 @@ class Arbiter(object):
         killed gracefully  (ie. trying to wait for the current connection)
         """
         unlink = (
-            self.reexec_pid == self.master_pid == 0
+            self.reexec_pid == self.main_pid == 0
             and not self.systemd
             and not self.cfg.reuse_port
         )
@@ -396,17 +396,17 @@ class Arbiter(object):
 
     def reexec(self):
         """\
-        Relaunch the master and workers.
+        Relaunch the main process and workers.
         """
         if self.reexec_pid != 0:
             self.log.warning("USR2 signal ignored. Child exists.")
             return
 
-        if self.master_pid != 0:
+        if self.main_pid != 0:
             self.log.warning("USR2 signal ignored. Parent exists.")
             return
 
-        master_pid = os.getpid()
+        main_pid = os.getpid()
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
             return
@@ -414,7 +414,7 @@ class Arbiter(object):
         self.cfg.pre_exec(self)
 
         environ = self.cfg.env_orig.copy()
-        environ['GUNICORN_PID'] = str(master_pid)
+        environ['GUNICORN_PID'] = str(main_pid)
 
         if self.systemd:
             environ['LISTEN_PID'] = str(os.getpid())
@@ -474,7 +474,7 @@ class Arbiter(object):
             self.pidfile.create(self.pid)
 
         # set new proc_name
-        util._setproctitle("master [%s]" % self.proc_name)
+        util._setproctitle("main [%s]" % self.proc_name)
 
         # spawn new workers
         for _ in range(self.cfg.workers):
@@ -609,7 +609,7 @@ class Arbiter(object):
         Spawn new workers as needed.
 
         This is where a worker process leaves the main loop
-        of the master process.
+        of the main process.
         """
 
         for _ in range(self.num_workers - len(self.WORKERS)):

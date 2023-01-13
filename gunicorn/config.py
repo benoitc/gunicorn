@@ -1718,7 +1718,7 @@ class OnStarting(Setting):
         pass
     default = staticmethod(on_starting)
     desc = """\
-        Called just before the master process is initialized.
+        Called just before the main process is initialized.
 
         The callable needs to accept a single instance variable for the Arbiter.
         """
@@ -1856,7 +1856,7 @@ class PreExec(Setting):
         pass
     default = staticmethod(pre_exec)
     desc = """\
-        Called just before a new master process is forked.
+        Called just before a new main process is forked.
 
         The callable needs to accept a single instance variable for the Arbiter.
         """
@@ -1906,7 +1906,7 @@ class ChildExit(Setting):
         pass
     default = staticmethod(child_exit)
     desc = """\
-        Called just after a worker has been exited, in the master process.
+        Called just after a worker has been exited, in the main process.
 
         The callable needs to accept two instance variables for the Arbiter and
         the just-exited Worker.

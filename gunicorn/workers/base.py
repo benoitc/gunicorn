@@ -70,7 +70,7 @@ class Worker(object):
         """\
         Your worker subclass must arrange to have this method called
         once every ``self.timeout`` seconds. If you fail in accomplishing
-        this task, the master process will murder your workers.
+        this task, the main process will stop your workers.
         """
         self.tmp.notify()
 
