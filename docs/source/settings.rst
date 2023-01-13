@@ -671,7 +671,7 @@ Server Hooks
         def on_starting(server):
             pass
 
-Called just before the master process is initialized.
+Called just before the main process is initialized.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
@@ -806,7 +806,7 @@ Worker.
         def pre_exec(server):
             pass
 
-Called just before a new master process is forked.
+Called just before a new main process is forked.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
@@ -856,7 +856,7 @@ the Request.
         def child_exit(server, worker):
             pass
 
-Called just after a worker has been exited, in the master process.
+Called just after a worker has been exited, in the main process.
 
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.

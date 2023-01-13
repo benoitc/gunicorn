@@ -11,18 +11,18 @@ Server Model
 ============
 
 Gunicorn is based on the pre-fork worker model. This means that there is a
-central master process that manages a set of worker processes. The master
-never knows anything about individual clients. All requests and responses are
-handled completely by worker processes.
+central main process that manages a set of worker processes. The main never
+knows anything about individual clients. All requests and responses are handled
+completely by worker processes.
 
 Master
 ------
 
-The master process is a simple loop that listens for various process signals
-and reacts accordingly. It manages the list of running workers by listening
-for signals like TTIN, TTOU, and CHLD. TTIN and TTOU tell the master to
+The main process is a simple loop that listens for various process signals and
+reacts accordingly. It manages the list of running workers by listening for
+signals like TTIN, TTOU, and CHLD. TTIN and TTOU tell the main process to
 increase or decrease the number of running workers. CHLD indicates that a child
-process has terminated, in this case the master process automatically restarts
+process has terminated, in this case the main process automatically restarts
 the failed worker.
 
 Sync Workers
@@ -133,7 +133,7 @@ How Many Threads?
 Since Gunicorn 19, a threads option can be used to process requests in multiple
 threads. Using threads assumes use of the gthread worker. One benefit from threads
 is that requests can take longer than the worker timeout while notifying the
-master process that it is not frozen and should not be killed. Depending on the
+main process that it is not frozen and should not be killed. Depending on the
 system, using multiple threads, multiple worker processes, or some mixture, may
 yield the best results. For example, CPython may not perform as well as Jython
 when using threads, as threading is implemented differently by each. Using
@@ -141,7 +141,7 @@ threads instead of processes is a good way to reduce the memory footprint of
 Gunicorn, while still allowing for application upgrades using the reload
 signal, as the application code will be shared among workers but loaded only in
 the worker processes (unlike when using the preload setting, which loads the
-code in the master process).
+code in the main process).
 
 .. note::
    Under Python 2.x, you need to install the 'futures' package to use this

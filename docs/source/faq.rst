@@ -22,7 +22,7 @@ How do I reload my application in Gunicorn?
 
 You can gracefully reload by sending HUP signal to gunicorn::
 
-    $ kill -HUP masterpid
+    $ kill -HUP mainpid
 
 How might I test a proxy configuration?
 ---------------------------------------
@@ -39,9 +39,9 @@ How can I name processes?
 
 If you install the Python package setproctitle_ Gunicorn will set the process
 names to something a bit more meaningful. This will affect the output you see
-in tools like ``ps`` and ``top``. This helps for distinguishing the master
-process as well as between masters when running more than one app on a single
-machine. See the proc_name_ setting for more information.
+in tools like ``ps`` and ``top``. This helps for distinguishing the main
+process as well as between main processes when running more than one app on a
+single machine. See the proc_name_ setting for more information.
 
 Why is there no HTTP Keep-Alive?
 --------------------------------
@@ -77,16 +77,16 @@ Here is our recommendation for tuning the `number of workers`_.
 How can I change the number of workers dynamically?
 ---------------------------------------------------
 
-TTIN and TTOU signals can be sent to the master to increase or decrease
+TTIN and TTOU signals can be sent to the main process to increase or decrease
 the number of workers.
 
 To increase the worker count by one::
 
-    $ kill -TTIN $masterpid
+    $ kill -TTIN $mainpid
 
 To decrease the worker count by one::
 
-    $ kill -TTOU $masterpid
+    $ kill -TTOU $mainpid
 
 Does Gunicorn suffer from the thundering herd problem?
 ------------------------------------------------------
