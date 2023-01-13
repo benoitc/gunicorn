@@ -78,7 +78,7 @@ class Worker(object):
         """\
         This is the mainloop of a worker process. You should override
         this method in a subclass to provide the intended behaviour
-        for your particular evil schemes.
+        for your particular use cases.
         """
         raise NotImplementedError()
 
