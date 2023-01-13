@@ -49,7 +49,7 @@ backlog = 2048
 #
 #       A positive integer generally set to around 1000.
 #
-#   timeout - If a worker does not notify the master process in this
+#   timeout - If a worker does not notify the main process in this
 #       number of seconds it is killed and a new worker is spawned
 #       to replace it.
 #
@@ -177,8 +177,8 @@ proc_name = None
 #
 #       A callable that accepts the same arguments as after_fork
 #
-#   pre_exec - Called just prior to forking off a secondary
-#       master process during things like config reloading.
+#   pre_exec - Called just prior to forking off a secondary main
+#       process during things like config reloading.
 #
 #       A callable that takes a server instance as the sole argument.
 #
