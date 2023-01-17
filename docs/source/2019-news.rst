@@ -90,7 +90,7 @@ Changelog - 2019
 - Simplify Paste Deployment documentation
 - Fix root logging: root and logger are same level.
 - Fixed typo in ssl_version documentation
-- Documented  systemd deployement unit examples
+- Documented  systemd deployment unit examples
 - Added systemd sd_notify support
 - Fixed typo in gthread.py
 - Added `tornado <https://www.tornadoweb.org/>`_ 5 and  6 support

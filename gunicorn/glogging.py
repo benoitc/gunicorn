@@ -90,7 +90,7 @@ CONFIG_DEFAULTS = dict(
 def loggers():
     """ get list of all loggers """
     root = logging.root
-    existing = root.manager.loggerDict.keys()
+    existing = list(root.manager.loggerDict.keys())
     return [logging.getLogger(name) for name in existing]
 
 
@@ -275,7 +275,7 @@ class Logger(object):
         self.error_log.log(lvl, msg, *args, **kwargs)
 
     def atoms(self, resp, req, environ, request_time):
-        """ Gets atoms for log formating.
+        """ Gets atoms for log formatting.
         """
         status = resp.status
         if isinstance(status, str):

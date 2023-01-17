@@ -26,6 +26,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Python :: Implementation :: CPython',
     'Programming Language :: Python :: Implementation :: PyPy',
@@ -91,7 +92,7 @@ setup(
     description='WSGI HTTP Server for UNIX',
     long_description=long_description,
     author='Benoit Chesneau',
-    author_email='benoitc@e-engura.com',
+    author_email='benoitc@gunicorn.org',
     license='MIT',
     url='https://gunicorn.org',
     project_urls={

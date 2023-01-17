@@ -216,7 +216,7 @@ A tool that is starting to be common on linux systems is Systemd_. It is a
 system services manager that allows for strict process management, resources
 and permissions control.
 
-Below are configurations files and instructions for using systemd to create
+Below are configuration files and instructions for using systemd to create
 a unix socket for incoming Gunicorn requests.  Systemd will listen on this
 socket and start gunicorn automatically in response to traffic.  Later in
 this section are instructions for configuring Nginx to forward web traffic
