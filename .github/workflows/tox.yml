@@ -11,8 +11,8 @@ jobs:
         python: ['3.10']  # ['3.6', '3.7', '3.8', '3.9', '3.10', 'pypy-3.7']
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
       - run: pip install --upgrade pip
