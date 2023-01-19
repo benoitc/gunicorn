@@ -117,7 +117,7 @@ if has_inotify:
 
 else:
 
-    class InotifyReloader(object):
+    class InotifyReloader(object):  # type: ignore[no-redef]
         def __init__(self, callback=None):
             raise ImportError('You must have the inotify module installed to '
                               'use the inotify reloader')

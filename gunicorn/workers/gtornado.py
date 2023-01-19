@@ -25,7 +25,7 @@ from gunicorn import __version__ as gversion
 # them on our side, and use stop() on them when stopping the worker.
 # See https://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes
 # for more details.
-TORNADO5 = tornado.version_info >= (5, 0, 0)
+TORNADO5 = tornado.version_info >= (5, 0, 0)  # type: ignore[attr-defined]
 
 
 class TornadoWorker(Worker):

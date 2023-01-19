@@ -10,12 +10,17 @@ import signal
 import sys
 import time
 import traceback
+from typing import TYPE_CHECKING, Any, List, Dict, Tuple
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
+
+if TYPE_CHECKING:
+    from gunicorn.workers.base import Worker
+    from gunicorn.sock import BaseSocket
 
 
 class Arbiter(object):
@@ -33,14 +38,14 @@ class Arbiter(object):
     # A flag indicating if an application failed to be loaded
     APP_LOAD_ERROR = 4
 
-    START_CTX = {}
+    START_CTX = {}  # type: Dict[Any, Any]
 
-    LISTENERS = []
-    WORKERS = {}
-    PIPE = []
+    LISTENERS = []  # type: List[Any]
+    WORKERS = {}  # type: Dict[int, Worker]
+    PIPE = []  # type: List[Tuple[BaseSocket, BaseSocket]]
 
     # I love dynamic languages
-    SIG_QUEUE = []
+    SIG_QUEUE = []  # type: List[Any]
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(

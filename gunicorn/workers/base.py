@@ -12,6 +12,7 @@ import traceback
 from datetime import datetime
 from random import randint
 from ssl import SSLError
+from typing import List, NewType, Tuple
 
 from gunicorn import util
 from gunicorn.http.errors import (
@@ -26,13 +27,16 @@ from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
 
 
+Pipe = NewType("Pipe", Tuple[int, int])
+
+
 class Worker(object):
 
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )]
 
-    PIPE = []
+    PIPE = []  # type: List[Pipe]
 
     def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
         """\
