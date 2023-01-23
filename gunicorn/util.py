@@ -5,16 +5,15 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
+import select
 import socket
 import sys
 import textwrap
@@ -27,6 +26,11 @@ import pkg_resources
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
+
+is_win = sys.platform.startswith("win")
+if not is_win:
+    import fcntl
+    import pwd
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
@@ -244,14 +248,38 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    os.set_inheritable(fd, False)
 
 
-def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+class InterProcessCommunicator:
+    def __init__(self):
+        self.pipes = os.pipe()
+        for pipe in self.pipes:
+            close_on_exec(pipe)
+            # Make this pipe non-blocking.
+            flags = fcntl.fcntl(pipe, fcntl.F_GETFL) | os.O_NONBLOCK
+            fcntl.fcntl(pipe, fcntl.F_SETFL, flags)
+
+
+    def write(self, data, allow_again=False):
+        try:
+            os.write(self.pipes[1], data)
+        except IOError as e:
+            if allow_again and e.errno not in [errno.EAGAIN, errno.EINTR]:
+                raise
+
+
+    def read(self, bytes):
+        return os.read(self.pipes[0], bytes)
+
+
+    # Waits only make sense on a read.
+    def wait_fd(self):
+        return self.pipes[0]
+
+
+    def wait(self, fd_list, timeout):
+        return select.select(fd_list, [], [], timeout)
 
 
 def close(sock):

@@ -100,7 +100,7 @@ class TCP6Socket(TCPSocket):
 
 class UnixSocket(BaseSocket):
 
-    FAMILY = socket.AF_UNIX
+    FAMILY = None if util.is_win else socket.AF_UNIX
 
     def __init__(self, addr, conf, log, fd=None):
         if fd is None:
@@ -132,7 +132,7 @@ def _sock_type(addr):
             sock_type = TCP6Socket
         else:
             sock_type = TCPSocket
-    elif isinstance(addr, (str, bytes)):
+    elif isinstance(addr, (str, bytes)) and not util.is_win:
         sock_type = UnixSocket
     else:
         raise TypeError("Unable to create socket from: %r" % addr)

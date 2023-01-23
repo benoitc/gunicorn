@@ -101,17 +101,14 @@ class Worker(object):
         util.seed()
 
         # For waking ourselves up
-        self.PIPE = os.pipe()
-        for p in self.PIPE:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        self.PIPE = util.InterProcessCommunicator()
 
-        # Prevent fd inheritance
+        # Prevent fd inheritance. TODO: this is pointless. All newly-created sockets are non-inheritable per the `Python docs <https://docs.python.org/3/library/socket.html#socket.socket>`_. Likewise, per the `docs <https://docs.python.org/3/library/os.html#inheritance-of-file-descriptors>`_, "file descriptors created by Python are non-inheritable by default."
         for s in self.sockets:
-            util.close_on_exec(s)
+            util.close_on_exec(s.fileno())
         util.close_on_exec(self.tmp.fileno())
 
-        self.wait_fds = self.sockets + [self.PIPE[0]]
+        self.wait_fds = self.sockets + [self.PIPE.wait_fd()]
 
         self.log.close_on_exec()
 
@@ -122,7 +119,7 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
-                os.write(self.PIPE[1], b"1")
+                self.PIPE.write(b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
@@ -181,8 +178,9 @@ class Worker(object):
         signal.siginterrupt(signal.SIGTERM, False)
         signal.siginterrupt(signal.SIGUSR1, False)
 
-        if hasattr(signal, 'set_wakeup_fd'):
-            signal.set_wakeup_fd(self.PIPE[1])
+        # TODO: add this to the signal hanlders, if possible. There's no obvious equivalent to this.
+        ##if hasattr(signal, 'set_wakeup_fd'):
+            ##signal.set_wakeup_fd(self.PIPE[1])
 
     def handle_usr1(self, sig, frame):
         self.log.reopen_files()

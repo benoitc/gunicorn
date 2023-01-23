@@ -41,8 +41,11 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+    SIGNALS = []
+    for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split():
+        signal = getattr(signal, "SIG%s" % x, None)
+        if signal:
+            SIGNALS.append(signal)
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -176,10 +179,7 @@ class Arbiter(object):
             os.close(p)
 
         # initialize the pipe
-        self.PIPE = pair = os.pipe()
-        for p in pair:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        self.PIPE = util.InterProcessCommunicator()
 
         self.log.close_on_exec()
 
@@ -331,11 +331,7 @@ class Arbiter(object):
         """\
         Wake up the arbiter by writing to the PIPE
         """
-        try:
-            os.write(self.PIPE[1], b'.')
-        except IOError as e:
-            if e.errno not in [errno.EAGAIN, errno.EINTR]:
-                raise
+        self.PIPE.write(b'.', allow_again=True)
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
@@ -354,10 +350,10 @@ class Arbiter(object):
         A readable PIPE means a signal occurred.
         """
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
+            ready = self.PIPE.wait([self.PIPE.wait_fd()], 1.0)
             if not ready[0]:
                 return
-            while os.read(self.PIPE[0], 1):
+            while self.PIPE.read(1):
                 pass
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
