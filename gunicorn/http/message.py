@@ -41,7 +41,7 @@ class Message(object):
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
         if (self.limit_request_fields <= 0
-            or self.limit_request_fields > MAX_HEADERS):
+                or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
         self.limit_request_field_size = cfg.limit_request_field_size
         if self.limit_request_field_size < 0:
@@ -71,7 +71,7 @@ class Message(object):
         secure_scheme_headers = {}
         if ('*' in cfg.forwarded_allow_ips or
             not isinstance(self.peer_addr, tuple)
-            or self.peer_addr[0] in cfg.forwarded_allow_ips):
+                or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
@@ -173,7 +173,7 @@ class Request(Message):
         # get max request line size
         self.limit_request_line = cfg.limit_request_line
         if (self.limit_request_line < 0
-            or self.limit_request_line >= MAX_REQUEST_LINE):
+                or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
 
         self.req_number = req_number
@@ -276,7 +276,7 @@ class Request(Message):
         # check in allow list
         if ("*" not in self.cfg.proxy_allow_ips and
             isinstance(self.peer_addr, tuple) and
-            self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+                self.peer_addr[0] not in self.cfg.proxy_allow_ips):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):

@@ -44,46 +44,45 @@ SYSLOG_FACILITIES = {
     "local7": 23
 }
 
-
 CONFIG_DEFAULTS = dict(
-        version=1,
-        disable_existing_loggers=False,
+    version=1,
+    disable_existing_loggers=False,
 
-        root={"level": "INFO", "handlers": ["console"]},
-        loggers={
-            "gunicorn.error": {
-                "level": "INFO",
-                "handlers": ["error_console"],
-                "propagate": True,
-                "qualname": "gunicorn.error"
-            },
+    root={"level": "INFO", "handlers": ["console"]},
+    loggers={
+        "gunicorn.error": {
+            "level": "INFO",
+            "handlers": ["error_console"],
+            "propagate": True,
+            "qualname": "gunicorn.error"
+        },
 
-            "gunicorn.access": {
-                "level": "INFO",
-                "handlers": ["console"],
-                "propagate": True,
-                "qualname": "gunicorn.access"
-            }
-        },
-        handlers={
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stdout"
-            },
-            "error_console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stderr"
-            },
-        },
-        formatters={
-            "generic": {
-                "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
-                "class": "logging.Formatter"
-            }
+        "gunicorn.access": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": True,
+            "qualname": "gunicorn.access"
         }
+    },
+    handlers={
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": "ext://sys.stdout"
+        },
+        "error_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": "ext://sys.stderr"
+        },
+    },
+    formatters={
+        "generic": {
+            "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+            "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
+            "class": "logging.Formatter"
+        }
+    }
 )
 
 
@@ -299,7 +298,7 @@ class Logger(object):
             'a': environ.get('HTTP_USER_AGENT', '-'),
             'T': request_time.seconds,
             'D': (request_time.seconds * 1000000) + request_time.microseconds,
-            'M': (request_time.seconds * 1000) + int(request_time.microseconds/1000),
+            'M': (request_time.seconds * 1000) + int(request_time.microseconds / 1000),
             'L': "%d.%06d" % (request_time.seconds, request_time.microseconds),
             'p': "<%s>" % os.getpid()
         }
@@ -437,7 +436,7 @@ class Logger(object):
 
         # finally setup the syslog handler
         h = logging.handlers.SysLogHandler(address=addr,
-                facility=facility, socktype=socktype)
+                                           facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
