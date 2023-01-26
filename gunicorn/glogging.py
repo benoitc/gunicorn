@@ -50,10 +50,18 @@ CONFIG_DEFAULTS = dict(
         disable_existing_loggers=False,
 
         root={"level": "INFO", "handlers": ["console"]},
+        filters={
+            "require_message_is_info": {
+                "()": "gunicorn.glogging.InfoMessageFilter",
+            },
+            "require_message_is_error": {
+                "()": "gunicorn.glogging.ErrorMessageFilter",
+            },
+        },
         loggers={
             "gunicorn.error": {
                 "level": "INFO",
-                "handlers": ["error_console"],
+                "handlers": ["console", "error_console"],
                 "propagate": True,
                 "qualname": "gunicorn.error"
             },
@@ -69,12 +77,14 @@ CONFIG_DEFAULTS = dict(
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "ext://sys.stdout"
+                "stream": "ext://sys.stdout",
+                "filters": ["require_message_is_info"],
             },
             "error_console": {
                 "class": "logging.StreamHandler",
                 "formatter": "generic",
-                "stream": "ext://sys.stderr"
+                "stream": "ext://sys.stderr",
+                "filters": ["require_message_is_error"],
             },
         },
         formatters={
@@ -462,3 +472,13 @@ class Logger(object):
                 if len(auth) == 2:
                     user = auth[0]
         return user
+
+
+class InfoMessageFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno <= logging.INFO
+
+
+class ErrorMessageFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno > logging.INFO
