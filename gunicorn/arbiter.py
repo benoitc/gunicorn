@@ -154,7 +154,7 @@ class Arbiter(object):
 
             self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
-        listeners_str = ",".join([str(l) for l in self.LISTENERS])
+        listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
@@ -421,7 +421,7 @@ class Arbiter(object):
             environ['LISTEN_FDS'] = str(len(self.LISTENERS))
         else:
             environ['GUNICORN_FD'] = ','.join(
-                str(l.fileno()) for l in self.LISTENERS)
+                str(lnr.fileno()) for lnr in self.LISTENERS)
 
         os.chdir(self.START_CTX['cwd'])
 
@@ -454,11 +454,11 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            for l in self.LISTENERS:
-                l.close()
+            for lnr in self.LISTENERS:
+                lnr.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
-            listeners_str = ",".join([str(l) for l in self.LISTENERS])
+            listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
             self.log.info("Listening at: %s", listeners_str)
 
         # do some actions on reload
