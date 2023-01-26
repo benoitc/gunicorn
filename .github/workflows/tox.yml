@@ -4,18 +4,21 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 jobs:
   tox:
+    name: ${{ matrix.os }} / ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:  # All OSes pass except Windows because tests need Unix-only fcntl, grp, pwd, etc.
-        os: [ubuntu-latest]  # [macos-latest, ubuntu-latest, windows-latest]
-        python: ['3.10']  # ['3.6', '3.7', '3.8', '3.9', '3.10', 'pypy-3.7']
-    runs-on: ${{ matrix.os }}
+      matrix:
+        os: [ubuntu-latest, macos-latest] # All OSes pass except Windows because tests need Unix-only fcntl, grp, pwd, etc.
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "pypy-3.7", "pypy-3.8" ]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Using Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python }}
-      - run: pip install --upgrade pip
-      - run: pip install tox
-      - run: pip install -e .
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
       - run: tox -e py
