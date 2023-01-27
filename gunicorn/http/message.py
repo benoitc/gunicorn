@@ -344,17 +344,17 @@ class Request(Message):
 
         if fam == 0x11:  # TCPv4
             proto = "TCP4"
-            format = "!IIHH"
+            fmt = "!IIHH"
             ip_class = ipaddress.IPv4Address
         elif fam == 0x21:  # TCPv6
             proto = "TCP6"
-            format = "!16s16sHH"
+            fmt = "!16s16sHH"
             ip_class = ipaddress.IPv6Address
         else:
             raise InvalidProxyHeader("unsupported protocol %r" % body)
 
         try:
-            s_addr, d_addr, s_port, d_port = struct.unpack(format, body)
+            s_addr, d_addr, s_port, d_port = struct.unpack(fmt, body)
         except struct.error as e:
             raise InvalidProxyHeader("cannot unpack %r: %s" % (body, e))
         s_addr = str(ip_class(s_addr))
