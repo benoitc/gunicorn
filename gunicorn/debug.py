@@ -28,7 +28,7 @@ class Spew(object):
             if '__file__' in frame.f_globals:
                 filename = frame.f_globals['__file__']
                 if (filename.endswith('.pyc') or
-                    filename.endswith('.pyo')):
+                        filename.endswith('.pyo')):
                     filename = filename[:-1]
                 name = frame.f_globals['__name__']
                 line = linecache.getline(filename, lineno)

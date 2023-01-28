@@ -11,7 +11,7 @@
 # closed.
 # pylint: disable=no-else-break
 
-import concurrent.futures as futures
+from concurrent import futures
 import errno
 import os
 import selectors

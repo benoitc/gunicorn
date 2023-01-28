@@ -97,7 +97,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
 
         try:
             mod = importlib.import_module('.'.join(components))
-        except:
+        except Exception:
             exc = traceback.format_exc()
             msg = f"class uri {uri!r} invalid or not found: \n\n[{exc}]"
             raise RuntimeError(msg)
