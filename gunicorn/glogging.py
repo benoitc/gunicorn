@@ -44,10 +44,10 @@ SYSLOG_FACILITIES = {
     "local7": 23
 }
 
-
 CONFIG_DEFAULTS = dict(
     version=1,
     disable_existing_loggers=False,
+
     root={"level": "INFO", "handlers": ["console"]},
     loggers={
         "gunicorn.error": {
@@ -435,7 +435,8 @@ class Logger(object):
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
 
         # finally setup the syslog handler
-        h = logging.handlers.SysLogHandler(address=addr, facility=facility, socktype=socktype)
+        h = logging.handlers.SysLogHandler(address=addr,
+                                           facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
