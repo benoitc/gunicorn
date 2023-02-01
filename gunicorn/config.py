@@ -170,8 +170,8 @@ class Config(object):
             host, port = self.settings['statsd_host'].value
             prefix = self.settings['statsd_prefix'].value if 'statsd_prefix' in self.settings else None
             tags = self.settings['dogstatsd_tags'].value if 'dogstatsd_tags' in self.settings else []
-            prefix_with_trailing_dot = re.sub(r"^(.+[^.]+)\.*$", "\\g<1>.", prefix)
-            return StatsDMetricPlugin(prefix_with_trailing_dot, host, port, tags.split(","))
+
+            return StatsDMetricPlugin(prefix, host, port, tags.split(","))
         else:
             from gunicorn.instrument.metrics.base import NoOpMetricPlugin
             return NoOpMetricPlugin()

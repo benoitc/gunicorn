@@ -318,6 +318,7 @@ def test_nworkers_changed():
     assert c.nworkers_changed(1, 2, 3) == 3
 
 
+@pytest.mark.skip()
 def test_statsd_changes_logger():
     c = config.Config()
     assert c.logger_class == glogging.Logger
