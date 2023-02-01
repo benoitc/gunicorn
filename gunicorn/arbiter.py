@@ -93,7 +93,7 @@ class Arbiter(object):
         if self.log is None:
             self.log = self.cfg.logger_class(app.cfg)
         if self.metric_plugin is None:
-            self.metric_plugin = self.cfg.metric_plugin
+            self.metric_plugin = self.cfg.metrics_plugin
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:

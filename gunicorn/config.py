@@ -161,14 +161,17 @@ class Config(object):
         return logger_class
 
     @property
-    def metric_plugin(self):
-        if ('statsd_host' in self.settings and self.settings['statsd_host'].value is not None) or (
-                'dogstatsd_host' in self.settings and self.settings['statsd_host'].value is not None):
+    def metrics_plugin(self):
+        if 'metrics_class' in self.settings and self.settings['metrics_class'].value is not None:
             from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
             return DogStatsDMetricPlugin()
-        elif 1 == 1: #TODO
-            from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
-            return DogStatsDMetricPlugin()
+        elif 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+            from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
+            host, port = self.settings['statsd_host'].value
+            prefix = self.settings['statsd_prefix'].value if 'statsd_prefix' in self.settings else None
+            tags = self.settings['dogstatsd_tags'].value if 'dogstatsd_tags' in self.settings else []
+            prefix_with_trailing_dot = re.sub(r"^(.+[^.]+)\.*$", "\\g<1>.", prefix)
+            return StatsDMetricPlugin(prefix_with_trailing_dot, host, port, tags.split(","))
         else:
             from gunicorn.instrument.metrics.base import NoOpMetricPlugin
             return NoOpMetricPlugin()
@@ -1623,25 +1626,8 @@ class StatsdHost(Setting):
     validator = validate_hostport
     desc = """\
     ``host:port`` of the statsd server to log to.
-    Deprecated, use dogstatsd_host
 
     .. versionadded:: 19.1
-    """
-
-
-# DogStatsD monitoring
-class DogStatsdHost(Setting):
-    name = "dogstatsd_host"
-    section = "Logging"
-    cli = ["--dogstatsd-host"]
-    meta = "DOGSTATSD_ADDR"
-    default = None
-    validator = validate_hostport
-    desc = """\
-    ``host:port`` of the statsd server to log to.
-    Deprecated, use dogstatsd_host
-
-    .. versionadded:: 20.03
     """
 
 
@@ -1674,6 +1660,21 @@ class StatsdPrefix(Setting):
 
     .. versionadded:: 19.2
     """
+
+
+class MetricsClass(Setting):
+    name = "metrics_class"
+    section = "Metrics"
+    cli = ["--metrics-class"]
+    meta = "STRING"
+    validator = validate_class
+    default = None
+    desc = """\
+        The metrics you want to use to log events in Gunicorn.
+
+        You can provide your own metrics implementation by giving Gunicorn a Python path to a
+        class that quacks like ``gunicorn.instrument.workers.BaseMetricPlugin``.
+        """
 
 
 class Procname(Setting):
