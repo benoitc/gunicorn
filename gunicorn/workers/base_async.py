@@ -117,6 +117,7 @@ class AsyncWorker(base.Worker):
                 resp.close()
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
+                self.metric_plugin.handle_request_metrics()
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()

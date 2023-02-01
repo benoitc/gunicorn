@@ -34,7 +34,7 @@ class Worker(object):
 
     PIPE = []
 
-    def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
+    def __init__(self, age, ppid, sockets, app, timeout, cfg, log, metric_plugin):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -61,6 +61,7 @@ class Worker(object):
 
         self.alive = True
         self.log = log
+        self.metric_plugin = metric_plugin
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):

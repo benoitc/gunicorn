@@ -151,12 +151,6 @@ class Config(object):
             # support the default
             uri = LoggerClass.default
 
-        # if default logger is in use, and statsd is on, automagically switch
-        # to the statsd logger
-        if uri == LoggerClass.default:
-            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-                uri = "gunicorn.instrument.statsd.Statsd"
-
         logger_class = util.load_class(
             uri,
             default="gunicorn.glogging.Logger",
@@ -165,6 +159,19 @@ class Config(object):
         if hasattr(logger_class, "install"):
             logger_class.install()
         return logger_class
+
+    @property
+    def metric_plugin(self):
+        if ('statsd_host' in self.settings and self.settings['statsd_host'].value is not None) or (
+                'dogstatsd_host' in self.settings and self.settings['statsd_host'].value is not None):
+            from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
+            return DogStatsDMetricPlugin()
+        elif 1 == 1: #TODO
+            from gunicorn.instrument.metrics.prometheus import PrometheusMetricPlugin
+            return PrometheusMetricPlugin()
+        else:
+            from gunicorn.instrument.metrics.base import NoOpMetricPlugin
+            return NoOpMetricPlugin()
 
     @property
     def is_ssl(self):
@@ -1616,8 +1623,25 @@ class StatsdHost(Setting):
     validator = validate_hostport
     desc = """\
     ``host:port`` of the statsd server to log to.
+    Deprecated, use dogstatsd_host
 
     .. versionadded:: 19.1
+    """
+
+
+# DogStatsD monitoring
+class DogStatsdHost(Setting):
+    name = "dogstatsd_host"
+    section = "Logging"
+    cli = ["--dogstatsd-host"]
+    meta = "DOGSTATSD_ADDR"
+    default = None
+    validator = validate_hostport
+    desc = """\
+    ``host:port`` of the statsd server to log to.
+    Deprecated, use dogstatsd_host
+
+    .. versionadded:: 20.03
     """
 
 

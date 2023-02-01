@@ -4,6 +4,7 @@
 *.so
 .coverage
 .pytest_cache
+.idea
 .tox
 __pycache__
 build

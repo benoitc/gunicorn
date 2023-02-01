@@ -186,6 +186,7 @@ class SyncWorker(base.Worker):
                 resp.close()
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
+                self.metric_plugin.handle_request_metrics(resp.status, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
