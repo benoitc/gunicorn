@@ -9,8 +9,8 @@ import os
 import re
 import sys
 
-from gunicorn.ghttp.message import HEADER_RE
-from gunicorn.ghttp.errors import InvalidHeader, InvalidHeaderName
+from gunicorn.http.message import HEADER_RE
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 from gunicorn import SERVER_SOFTWARE, SERVER
 import gunicorn.util as util
 

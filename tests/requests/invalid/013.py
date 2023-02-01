@@ -1,5 +1,5 @@
 from gunicorn.config import Config
-from gunicorn.ghttp.errors import LimitRequestHeaders
+from gunicorn.http.errors import LimitRequestHeaders
 
 request = LimitRequestHeaders
 cfg = Config()

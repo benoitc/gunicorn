@@ -25,9 +25,9 @@ from functools import partial
 from threading import RLock
 
 from . import base
-from .. import ghttp
+from .. import http
 from .. import util
-from ..ghttp import wsgi
+from ..http import wsgi
 
 
 class TConn(object):
@@ -53,7 +53,7 @@ class TConn(object):
                                             **self.cfg.ssl_options)
 
             # initialize the parser
-            self.parser = ghttp.RequestParser(self.cfg, self.sock, self.client)
+            self.parser = http.RequestParser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
         # set the timeout
@@ -271,7 +271,7 @@ class ThreadWorker(base.Worker):
             keepalive = self.handle_request(req, conn)
             if keepalive:
                 return (keepalive, conn)
-        except ghttp.errors.NoMoreData as e:
+        except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
 
         except StopIteration as e:

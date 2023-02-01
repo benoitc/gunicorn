@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from gunicorn.ghttp.message import Message, Request
-from gunicorn.ghttp.parser import RequestParser
+from gunicorn.http.message import Message, Request
+from gunicorn.http.parser import RequestParser
 
 __all__ = ['Message', 'Request', 'RequestParser']

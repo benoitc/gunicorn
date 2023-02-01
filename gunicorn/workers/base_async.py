@@ -9,8 +9,8 @@ import socket
 import ssl
 import sys
 
-import gunicorn.ghttp as http
-import gunicorn.ghttp.wsgi as wsgi
+import gunicorn.http as http
+import gunicorn.http.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
 

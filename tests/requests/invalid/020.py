@@ -1,5 +1,5 @@
 from gunicorn.config import Config
-from gunicorn.ghttp.errors import InvalidHeaderName
+from gunicorn.http.errors import InvalidHeaderName
 
 cfg = Config()
 request = InvalidHeaderName

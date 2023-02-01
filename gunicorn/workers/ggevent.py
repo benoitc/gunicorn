@@ -23,7 +23,7 @@ from gevent.server import StreamServer
 from gevent import hub, monkey, socket, pywsgi
 
 import gunicorn
-from gunicorn.ghttp.wsgi import base_environ
+from gunicorn.http.wsgi import base_environ
 from gunicorn.workers.base_async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
