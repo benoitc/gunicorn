@@ -83,6 +83,7 @@ extras_require = {
     'tornado': ['tornado>=0.2'],
     'gthread': [],
     'setproctitle': ['setproctitle'],
+    'datadog': ['datadogpy']
 }
 
 setup(
