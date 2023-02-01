@@ -20,7 +20,7 @@ HISTOGRAM_TYPE = "histogram"
 
 
 class Statsd:
-    """statsD-based instrumentation, that passes as a logger
+    """statsD-based instrumentation
     """
 
     def __init__(self, prefix, host, port, tags):
@@ -50,7 +50,6 @@ class Statsd:
         self.increment("gunicorn.request.status.%d" % status, 1)
 
     # statsD methods
-    # you can use those directly if you want
     def gauge(self, name, value):
         self._sock_send("{0}{1}:{2}|g".format(self.prefix, name, value))
 
@@ -75,5 +74,4 @@ class Statsd:
             if self.sock:
                 self.sock.send(msg)
         except Exception:
-            # logging.getLogger(__name__).warning(self, "Error sending message to statsd", exc_info=True) # TODO
-            pass
+            logging.getLogger(__name__).warning("Error sending message to statsd", exc_info=True)
