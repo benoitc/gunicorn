@@ -2,7 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-
+import logging
 import os
 import sys
 from datetime import datetime
@@ -171,6 +171,8 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         else:
             req_headers = []
         self.server.log.access(resp, req_headers, self.environ, response_time)
+        logging.error("%s", resp)
+        self.metric_plugin.post_request_logging(resp.status, response_time)
 
     def get_environ(self):
         env = super().get_environ()

@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 
 class BaseMetricPlugin(ABC):
     @abstractmethod
-    def background_arbiter_task(self):
+    def post_worker_init(self, worker):
         pass
 
     @abstractmethod
-    def handle_request_metrics(self, status: int, duration_ms: int) -> None:
+    def post_request_logging(self, status: int, duration_ms: int) -> None:
         pass
 
     @abstractmethod
@@ -16,10 +16,10 @@ class BaseMetricPlugin(ABC):
 
 
 class NoOpMetricPlugin(BaseMetricPlugin):
-    def background_arbiter_task(self):
+    def post_worker_init(self, worker):
         pass
 
-    def handle_request_metrics(self, status: int, duration_ms: int) -> None:
+    def post_request_logging(self, status: int, duration_ms: int) -> None:
         pass
 
     def handle_worker_status_metrics(self):

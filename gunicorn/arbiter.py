@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 import errno
+import logging
 import os
 import random
 import select
@@ -563,7 +564,6 @@ class Arbiter(object):
         if pid != 0:
             worker.pid = pid
             self.WORKERS[pid] = worker
-            self.metric_plugin.background_arbiter_task()
             return pid
 
         # Do not inherit the temporary files of other workers

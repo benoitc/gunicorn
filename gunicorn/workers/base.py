@@ -135,7 +135,7 @@ class Worker(object):
         self.load_wsgi()
         if self.reloader:
             self.reloader.start()
-
+        self.metric_plugin.post_worker_init(self)
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
@@ -265,6 +265,7 @@ class Worker(object):
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
+            self.metric_plugin.post_request_logging(resp.status, request_time)
 
         try:
             util.write_error(client, status_int, reason, mesg)

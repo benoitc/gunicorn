@@ -131,10 +131,10 @@ class SyncWorker(base.Worker):
                 client = ssl.wrap_socket(client, server_side=True,
                                          **self.cfg.ssl_options)
 
-            parser = ghttp.RequestParser(self.cfg, client, addr)
+            parser = http.RequestParser(self.cfg, client, addr)
             req = next(parser)
             self.handle_request(listener, req, client, addr)
-        except ghttp.errors.NoMoreData as e:
+        except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
@@ -186,7 +186,7 @@ class SyncWorker(base.Worker):
                 resp.close()
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-                self.metric_plugin.handle_request_metrics(resp.status, request_time)
+                self.metric_plugin.post_request_logging(resp.status, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()

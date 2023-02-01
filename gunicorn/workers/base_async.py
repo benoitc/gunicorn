@@ -33,7 +33,7 @@ class AsyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
-            parser = ghttp.RequestParser(self.cfg, client, addr)
+            parser = http.RequestParser(self.cfg, client, addr)
             try:
                 listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
@@ -53,7 +53,7 @@ class AsyncWorker(base.Worker):
                         else:
                             req.proxy_protocol_info = proxy_protocol_info
                         self.handle_request(listener_name, req, client, addr)
-            except ghttp.errors.NoMoreData as e:
+            except http.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)
@@ -117,7 +117,7 @@ class AsyncWorker(base.Worker):
                 resp.close()
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-                self.metric_plugin.handle_request_metrics()
+                self.metric_plugin.post_request_logging(resp.status, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()

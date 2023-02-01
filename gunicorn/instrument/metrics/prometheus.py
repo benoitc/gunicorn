@@ -1,4 +1,6 @@
+import glob
 import logging
+import os.path
 
 from gunicorn.instrument.metrics.base import BaseMetricPlugin
 
@@ -8,18 +10,31 @@ import prometheus_client.multiprocess
 
 
 class PrometheusMetricPlugin(BaseMetricPlugin):
+    requests = None
+
     def __init__(self, *args, **kwargs):
-        logging.error("ASS")
+        [os.unlink(x) for x in glob.glob(os.path.join("/tmp", "*_*.db"))]
         self._registry = prometheus_client.CollectorRegistry()
         self._collector = prometheus_client.multiprocess.MultiProcessCollector(registry=self._registry)
-        gauge = prometheus_client.Gauge(registry=self._registry)
-        gauge.set(123)
 
-    def background_arbiter_task(self):
+    def setup_metrics(self):
+        self.requests = prometheus_client.Histogram("request_duration_seconds", "help", registry=self._registry)
+        # pass
+
+    def arbiter_startup_event(self):
         prometheus_client.start_wsgi_server(9090, registry=self._registry)
 
-    def handle_request_metrics(self, status: int, duration_ms: int) -> None:
-        logging.error("works")
+    def post_worker_init(self, worker):
+        self.setup_metrics()
+
+    def worker_exit_event(self, worker):
+        logging.error("exiting")
+        prometheus_client.multiprocess.mark_process_dead(worker.pid)
+        logging.error("exited")
+
+    def post_request_logging(self, status: int, duration_ms: int) -> None:
+        self.requests.observe(duration_ms.total_seconds(), f"status:{status}")
+        logging.error(duration_ms.total_seconds())
 
     def handle_worker_status_metrics(self):
         pass
