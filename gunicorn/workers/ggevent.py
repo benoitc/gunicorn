@@ -170,7 +170,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         else:
             req_headers = []
         self.server.log.access(resp, req_headers, self.environ, response_time)
-        # self.metric_plugin.post_request_logging(resp.status, response_time)
+        self.metric_plugin.post_request_logging(resp.status, response_time)
 
     def get_environ(self):
         env = super().get_environ()
