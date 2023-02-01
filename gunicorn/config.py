@@ -167,7 +167,6 @@ class Config(object):
             from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
             return DogStatsDMetricPlugin()
         elif 1 == 1: #TODO
-            from gunicorn.instrument.metrics.prometheus import PrometheusMetricPlugin
             from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
             return DogStatsDMetricPlugin()
         else:

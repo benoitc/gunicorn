@@ -135,7 +135,7 @@ class Worker(object):
         self.load_wsgi()
         if self.reloader:
             self.reloader.start()
-        self.metric_plugin.post_worker_init(self)
+        # self.metric_plugin.post_worker_init(self)
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
