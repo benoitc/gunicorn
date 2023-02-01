@@ -1,2 +1,2 @@
-from gunicorn.http.errors import InvalidRequestMethod
+from gunicorn.ghttp.errors import InvalidRequestMethod
 request = InvalidRequestMethod

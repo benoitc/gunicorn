@@ -1,5 +1,5 @@
 from gunicorn.config import Config
-from gunicorn.http.errors import InvalidHeader
+from gunicorn.ghttp.errors import InvalidHeader
 
 cfg = Config()
 request = InvalidHeader

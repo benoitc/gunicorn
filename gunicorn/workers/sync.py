@@ -12,8 +12,8 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
+import gunicorn.ghttp as http
+import gunicorn.ghttp.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
 
@@ -131,10 +131,10 @@ class SyncWorker(base.Worker):
                 client = ssl.wrap_socket(client, server_side=True,
                                          **self.cfg.ssl_options)
 
-            parser = http.RequestParser(self.cfg, client, addr)
+            parser = ghttp.RequestParser(self.cfg, client, addr)
             req = next(parser)
             self.handle_request(listener, req, client, addr)
-        except http.errors.NoMoreData as e:
+        except ghttp.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)

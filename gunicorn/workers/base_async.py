@@ -9,8 +9,8 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
+import gunicorn.ghttp as http
+import gunicorn.ghttp.wsgi as wsgi
 import gunicorn.util as util
 import gunicorn.workers.base as base
 
@@ -33,7 +33,7 @@ class AsyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
-            parser = http.RequestParser(self.cfg, client, addr)
+            parser = ghttp.RequestParser(self.cfg, client, addr)
             try:
                 listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
@@ -53,7 +53,7 @@ class AsyncWorker(base.Worker):
                         else:
                             req.proxy_protocol_info = proxy_protocol_info
                         self.handle_request(listener_name, req, client, addr)
-            except http.errors.NoMoreData as e:
+            except ghttp.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)
             except StopIteration as e:
                 self.log.debug("Closing connection. %s", e)

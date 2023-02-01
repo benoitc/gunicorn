@@ -1,2 +1,2 @@
-from gunicorn.http.errors import NoMoreData
+from gunicorn.ghttp.errors import NoMoreData
 request = NoMoreData

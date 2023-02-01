@@ -14,14 +14,14 @@ from random import randint
 from ssl import SSLError
 
 from gunicorn import util
-from gunicorn.http.errors import (
+from gunicorn.ghttp.errors import (
     ForbiddenProxyRequest, InvalidHeader,
     InvalidHeaderName, InvalidHTTPVersion,
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
     LimitRequestHeaders, LimitRequestLine,
 )
-from gunicorn.http.wsgi import Response, default_environ
+from gunicorn.ghttp.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
 

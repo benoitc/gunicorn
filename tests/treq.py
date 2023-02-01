@@ -10,7 +10,7 @@ import random
 import types
 
 from gunicorn.config import Config
-from gunicorn.http.parser import RequestParser
+from gunicorn.ghttp.parser import RequestParser
 from gunicorn.util import split_request_uri
 
 dirname = os.path.dirname(__file__)

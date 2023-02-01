@@ -7,14 +7,14 @@ import io
 import re
 import socket
 
-from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
-from gunicorn.http.errors import (
+from gunicorn.ghttp.body import ChunkedReader, LengthReader, EOFReader, Body
+from gunicorn.ghttp.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
 )
-from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
-from gunicorn.http.errors import InvalidSchemeHeaders
+from gunicorn.ghttp.errors import InvalidProxyLine, ForbiddenProxyRequest
+from gunicorn.ghttp.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
 
 MAX_REQUEST_LINE = 8190
