@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 import errno
-import logging
 import os
 import random
 import select
