@@ -22,7 +22,7 @@ def data_source(fname):
         return buf
 
 
-class request(object):
+class request:
     def __init__(self, name):
         self.fname = os.path.join(dirname, "requests", name)
 
@@ -34,7 +34,7 @@ class request(object):
         return run
 
 
-class FakeSocket(object):
+class FakeSocket:
 
     def __init__(self, data):
         self.tmp = tempfile.TemporaryFile()
