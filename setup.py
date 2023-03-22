@@ -75,6 +75,7 @@ install_requires = [
     # is the first version to support Python 3.4 which we require as a
     # floor.
     'setuptools>=3.0',
+    'packaging',
 ]
 
 extras_require = {

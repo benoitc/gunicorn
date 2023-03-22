@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise RuntimeError("gevent worker requires gevent 1.4 or higher")
 else:
-    from pkg_resources import parse_version
+    from packaging.version import parse as parse_version
     if parse_version(gevent.__version__) < parse_version('1.4'):
         raise RuntimeError("gevent worker requires gevent 1.4 or higher")
 
