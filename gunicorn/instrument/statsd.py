@@ -26,7 +26,7 @@ class Statsd(Logger):
     def __init__(self, cfg):
         """host, port: statsD server
         """
-        Logger.__init__(self, cfg)
+        super().__init__(cfg)
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
         try:
             host, port = cfg.statsd_host
@@ -39,19 +39,15 @@ class Statsd(Logger):
 
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
-        Logger.critical(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.critical", 1)
 
     def error(self, msg, *args, **kwargs):
-        Logger.error(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.error", 1)
 
     def warning(self, msg, *args, **kwargs):
-        Logger.warning(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.warning", 1)
 
     def exception(self, msg, *args, **kwargs):
-        Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
     # Special treatment for info, the most common log level
@@ -81,18 +77,14 @@ class Statsd(Logger):
                     else:
                         pass
 
-            # Log to parent logger only if there is something to say
-            if msg:
-                Logger.log(self, lvl, msg, *args, **kwargs)
         except Exception:
-            Logger.warning(self, "Failed to log to statsd", exc_info=True)
+            super().warning("Failed to log to statsd", exc_info=True)
 
     # access logging
     def access(self, resp, req, environ, request_time):
         """Measure request duration
         request_time is a datetime.timedelta
         """
-        Logger.access(self, resp, req, environ, request_time)
         duration_in_ms = request_time.seconds * 1000 + float(request_time.microseconds) / 10 ** 3
         status = resp.status
         if isinstance(status, str):
@@ -127,4 +119,4 @@ class Statsd(Logger):
             if self.sock:
                 self.sock.send(msg)
         except Exception:
-            Logger.warning(self, "Error sending message to statsd", exc_info=True)
+            super().warning("Error sending message to statsd", exc_info=True)

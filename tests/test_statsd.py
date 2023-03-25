@@ -8,6 +8,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 from gunicorn.config import Config
+from gunicorn.glogging import Logger, LoggersChain
 from gunicorn.instrument.statsd import Statsd
 
 
@@ -70,39 +71,43 @@ def test_dogstatsd_tags():
     assert logger.sock.msgs[0] == b"barb.westerly:2|g|#" + tags.encode('ascii')
 
 
-def test_instrument():
-    logger = Statsd(Config())
+def test_instrument_and_chain():
+    default_logger = Logger(Config())
+    statsd_logger = Statsd(Config())
+
     # Capture logged messages
     sio = io.StringIO()
-    logger.error_log.addHandler(logging.StreamHandler(sio))
-    logger.sock = MockSocket(False)
+    default_logger.error_log.addHandler(logging.StreamHandler(sio))
+    statsd_logger.sock = MockSocket(False)
+
+    logger = LoggersChain([default_logger, statsd_logger])
 
     # Regular message
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    assert logger.sock.msgs[0] == b"gunicorn.test:666|g"
+    assert statsd_logger.sock.msgs[0] == b"gunicorn.test:666|g"
     assert sio.getvalue() == "Blah\n"
-    logger.sock.reset()
+    statsd_logger.sock.reset()
 
     # Only metrics, no logging
     logger.info("", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
-    assert logger.sock.msgs[0] == b"gunicorn.test:666|g"
-    assert sio.getvalue() == "Blah\n"  # log is unchanged
-    logger.sock.reset()
+    assert statsd_logger.sock.msgs[0] == b"gunicorn.test:666|g"
+    assert sio.getvalue() == "Blah\n\n"  # empty line added to log
+    statsd_logger.sock.reset()
 
     # Debug logging also supports metrics
     logger.debug("", extra={"mtype": "gauge", "metric": "gunicorn.debug", "value": 667})
-    assert logger.sock.msgs[0] == b"gunicorn.debug:667|g"
-    assert sio.getvalue() == "Blah\n"  # log is unchanged
-    logger.sock.reset()
+    assert statsd_logger.sock.msgs[0] == b"gunicorn.debug:667|g"
+    assert sio.getvalue() == "Blah\n\n"  # log is unchanged bacause loglevel is info
+    statsd_logger.sock.reset()
 
     logger.critical("Boom")
-    assert logger.sock.msgs[0] == b"gunicorn.log.critical:1|c|@1.0"
-    logger.sock.reset()
+    assert statsd_logger.sock.msgs[0] == b"gunicorn.log.critical:1|c|@1.0"
+    statsd_logger.sock.reset()
 
     logger.access(SimpleNamespace(status="200 OK"), None, {}, timedelta(seconds=7))
-    assert logger.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
-    assert logger.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
-    assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
+    assert statsd_logger.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
+    assert statsd_logger.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
+    assert statsd_logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
 
 
 def test_prefix():

@@ -19,6 +19,7 @@ import textwrap
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
+from gunicorn.glogging import chain_loggers
 from gunicorn.reloader import reloader_engines
 
 KNOWN_SETTINGS = []
@@ -150,21 +151,24 @@ class Config(object):
         if uri == "simple":
             # support the default
             uri = LoggerClass.default
+        
+        uris = [uri]
 
-        # if default logger is in use, and statsd is on, automagically switch
-        # to the statsd logger
-        if uri == LoggerClass.default:
-            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-                uri = "gunicorn.instrument.statsd.Statsd"
+        # if statsd is on add statsd logger to uris
+        if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+            uris.append("gunicorn.instrument.statsd.Statsd")
 
-        logger_class = util.load_class(
-            uri,
-            default="gunicorn.glogging.Logger",
-            section="gunicorn.loggers")
+        logger_classes = []
+        for uri in uris:
+            logger_class = util.load_class(
+                uri,
+                default="gunicorn.glogging.Logger",
+                section="gunicorn.loggers")
 
-        if hasattr(logger_class, "install"):
-            logger_class.install()
-        return logger_class
+            if hasattr(logger_class, "install"):
+                logger_class.install()
+            logger_classes.append(logger_class)
+        return chain_loggers(logger_classes)
 
     @property
     def is_ssl(self):

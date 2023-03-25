@@ -12,6 +12,7 @@ import time
 import traceback
 
 from gunicorn.errors import HaltServer, AppImportError
+from gunicorn.glogging import BaseLogger
 from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
 
@@ -554,9 +555,8 @@ class Arbiter(object):
         if self._last_logged_active_worker_count != active_worker_count:
             self._last_logged_active_worker_count = active_worker_count
             self.log.debug("{0} workers".format(active_worker_count),
-                           extra={"metric": "gunicorn.workers",
-                                  "value": active_worker_count,
-                                  "mtype": "gauge"})
+                           extra={**BaseLogger.WORKERS_COUNT_EXTRA,
+                                  "value": active_worker_count})
 
     def spawn_worker(self):
         self.worker_age += 1

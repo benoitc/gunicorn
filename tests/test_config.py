@@ -78,7 +78,7 @@ def test_property_access():
     assert c.worker_class == SyncWorker
 
     # logger class was loaded
-    assert c.logger_class == glogging.Logger
+    assert glogging.Logger in c.logger_class.classes
 
     # Workers defaults to 1
     assert c.workers == 1
@@ -320,9 +320,10 @@ def test_nworkers_changed():
 
 def test_statsd_changes_logger():
     c = config.Config()
-    assert c.logger_class == glogging.Logger
+    assert glogging.Logger in c.logger_class.classes
     c.set('statsd_host', 'localhost:12345')
-    assert c.logger_class == statsd.Statsd
+    assert glogging.Logger in c.logger_class.classes
+    assert statsd.Statsd in c.logger_class.classes
 
 
 class MyLogger(glogging.Logger):
@@ -330,13 +331,14 @@ class MyLogger(glogging.Logger):
     pass
 
 
-def test_always_use_configured_logger():
+def test_use_both_configured_logger():
     c = config.Config()
     c.set('logger_class', __name__ + '.MyLogger')
-    assert c.logger_class == MyLogger
+    assert MyLogger in c.logger_class.classes
     c.set('statsd_host', 'localhost:12345')
-    # still uses custom logger over statsd
-    assert c.logger_class == MyLogger
+    # now uses both custom logger and statsd
+    assert MyLogger in c.logger_class.classes
+    assert statsd.Statsd in c.logger_class.classes
 
 
 def test_load_enviroment_variables_config(monkeypatch):

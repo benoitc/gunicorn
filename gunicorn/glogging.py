@@ -162,7 +162,38 @@ def parse_syslog_address(addr):
     return (socktype, (host, port))
 
 
-class Logger(object):
+class BaseLogger(object):
+    WORKERS_COUNT_EXTRA = {
+        "metric": "gunicorn.workers",
+        "mtype": "gauge"
+    }
+
+    def critical(self, msg, *args, **kwargs):
+        pass
+
+    def error(self, msg, *args, **kwargs):
+        pass
+
+    def warning(self, msg, *args, **kwargs):
+        pass
+
+    def info(self, msg, *args, **kwargs):
+        pass
+
+    def debug(self, msg, *args, **kwargs):
+        pass
+
+    def exception(self, msg, *args, **kwargs):
+        pass
+
+    def log(self, lvl, msg, *args, **kwargs):
+        pass
+
+    def access(self, resp, req, environ, request_time):
+        pass
+
+
+class Logger(BaseLogger):
 
     LOG_LEVELS = {
         "critical": logging.CRITICAL,
@@ -461,3 +492,54 @@ class Logger(object):
                 if len(auth) == 2:
                     user = auth[0]
         return user
+
+
+class LoggersChain(BaseLogger):
+    def __init__(self, loggers):
+        self.loggers = loggers
+    
+    def setup(self, cfg):
+        for logger in self.loggers:
+            logger.setup(logger)
+
+    def critical(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.critical(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.error(msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.warning(msg, *args, **kwargs)
+
+    def info(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.info(msg, *args, **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.debug(msg, *args, **kwargs)
+
+    def exception(self, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.exception(msg, *args, **kwargs)
+
+    def log(self, lvl, msg, *args, **kwargs):
+        for logger in self.loggers:
+            logger.log(lvl, msg, *args, **kwargs)
+
+    def access(self, resp, req, environ, request_time):
+        for logger in self.loggers:
+            logger.access(resp, req, environ, request_time)
+
+
+def chain_loggers(logger_classes):
+    def wrapper(cfg):
+        loggers = []
+        for logger_class in logger_classes:
+            loggers.append(logger_class(cfg))
+        return LoggersChain(loggers)
+    wrapper.classes = logger_classes
+    return wrapper
