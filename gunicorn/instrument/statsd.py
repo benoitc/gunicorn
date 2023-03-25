@@ -9,15 +9,15 @@ import logging
 import socket
 from re import sub
 
-from gunicorn.glogging import Logger
+from gunicorn.glogging import BaseLogger, Logger
 
-# Instrumentation constants
-METRIC_VAR = "metric"
-VALUE_VAR = "value"
-MTYPE_VAR = "mtype"
-GAUGE_TYPE = "gauge"
-COUNTER_TYPE = "counter"
-HISTOGRAM_TYPE = "histogram"
+# For backward compatibility
+METRIC_VAR = BaseLogger.METRIC_VAR
+VALUE_VAR = BaseLogger.VALUE_VAR
+MTYPE_VAR = BaseLogger.MTYPE_VAR
+GAUGE_TYPE = BaseLogger.GAUGE_TYPE
+COUNTER_TYPE = BaseLogger.COUNTER_TYPE
+HISTOGRAM_TYPE = BaseLogger.HISTOGRAM_TYPE
 
 
 class Statsd(Logger):

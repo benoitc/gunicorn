@@ -163,9 +163,17 @@ def parse_syslog_address(addr):
 
 
 class BaseLogger(object):
+    # Instrumentation constants
+    METRIC_VAR = "metric"
+    VALUE_VAR = "value"
+    MTYPE_VAR = "mtype"
+    GAUGE_TYPE = "gauge"
+    COUNTER_TYPE = "counter"
+    HISTOGRAM_TYPE = "histogram"
+
     WORKERS_COUNT_EXTRA = {
         "metric": "gunicorn.workers",
-        "mtype": "gauge"
+        "mtype": GAUGE_TYPE
     }
 
     def critical(self, msg, *args, **kwargs):
@@ -497,7 +505,7 @@ class Logger(BaseLogger):
 class LoggersChain(BaseLogger):
     def __init__(self, loggers):
         self.loggers = loggers
-    
+
     def setup(self, cfg):
         for logger in self.loggers:
             logger.setup(logger)

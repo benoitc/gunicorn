@@ -151,12 +151,17 @@ class Config(object):
         if uri == "simple":
             # support the default
             uri = LoggerClass.default
-        
+
         uris = [uri]
 
         # if statsd is on add statsd logger to uris
         if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
             uris.append("gunicorn.instrument.statsd.Statsd")
+        if (
+            'prometheus_bind' in self.settings and
+            self.settings['prometheus_bind'].value is not None
+        ):
+            uris.append("gunicorn.instrument.prometheus.Prometheus")
 
         logger_classes = []
         for uri in uris:
@@ -365,6 +370,21 @@ def validate_pos_int(val):
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
     return val
+
+
+def validate_pos_float(val):
+    if not isinstance(val, float):
+        val = float(val)
+    if val < 0:
+        raise ValueError("Value must be positive: %s" % val)
+    return val
+
+
+def validate_string_to_list_pos_float(val):
+    val = validate_string(val)
+    if not val:
+        return []
+    return [validate_pos_float(v.strip()) for v in val.split(",") if v]
 
 
 def validate_ssl_version(val):
@@ -1130,7 +1150,7 @@ class WorkerTmpDir(Setting):
     validator = validate_string
     default = None
     desc = """\
-        A directory to use for the worker heartbeat temporary file.
+        A directory to use for the worker heartbeat temporary file and prometheus shared data.
 
         If not set, the default temporary directory will be used.
 
@@ -1653,6 +1673,51 @@ class StatsdPrefix(Setting):
     if not provided).
 
     .. versionadded:: 19.2
+    """
+
+
+class PrometheusBind(Setting):
+    name = "prometheus_bind"
+    section = "Logging"
+    cli = ["--prometheus-bind"]
+    meta = "PROMETHEUS_BIND"
+    default = None
+    validator = validate_string
+    desc = """\
+    The socket to bind prometheus metrics server.
+
+    A string of the form: ``HOST:PORT``, ``unix:PATH``. An IP is a valid ``HOST``.
+
+    .. versionadded:: 20.2
+    """
+
+
+class PrometheusPrefix(Setting):
+    name = "prometheus_prefix"
+    section = "Logging"
+    cli = ["--prometheus-prefix"]
+    meta = "PROMETHEUS_PREFIX"
+    default = "gunicorn_"
+    validator = validate_string
+    desc = """\
+    Prefix to use when emitting prometheus metrics (a trailing ``_`` is added,
+    if not provided).
+
+    .. versionadded:: 20.2
+    """
+
+
+class PrometheusTimeBuckets(Setting):
+    name = "prometheus_time_buckets"
+    section = "Logging"
+    cli = ["--prometheus-buckets"]
+    meta = "PROMETHEUS_BUCKETS"
+    default = "0.1,0.2,0.5,1,2,5,10"
+    validator = validate_string_to_list_pos_float
+    desc = """\
+    Time buckets for response time metric in seconds
+
+    .. versionadded:: 20.2
     """
 
 

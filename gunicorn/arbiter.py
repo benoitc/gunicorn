@@ -11,6 +11,8 @@ import sys
 import time
 import traceback
 
+from prometheus_client import multiprocess
+
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.glogging import BaseLogger
 from gunicorn.pidfile import Pidfile
@@ -533,6 +535,10 @@ class Arbiter(object):
                         continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
+
+                    if self.cfg.prometheus_bind is not None:
+                        multiprocess.mark_process_dead(wpid)
+
         except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
