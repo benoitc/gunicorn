@@ -22,7 +22,10 @@ import time
 import traceback
 import warnings
 
-import pkg_resources
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -54,6 +57,15 @@ except ImportError:
         pass
 
 
+def load_entry_point(distribution, group, name):
+    dist_obj = importlib_metadata.distribution(distribution)
+    eps = [ep for ep in dist_obj.entry_points
+           if ep.group == group and ep.name == name]
+    if not eps:
+        raise ImportError("Entry point %r not found" % ((group, name),))
+    return eps[0].load()
+
+
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                section="gunicorn.workers"):
     if inspect.isclass(uri):
@@ -68,7 +80,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             name = default
 
         try:
-            return pkg_resources.load_entry_point(dist, section, name)
+            return load_entry_point(dist, section, name)
         except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
@@ -85,7 +97,7 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point(
+                    return load_entry_point(
                         "gunicorn", section, uri
                     )
                 except Exception:
