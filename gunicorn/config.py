@@ -548,7 +548,7 @@ class ConfigFile(Setting):
     validator = validate_string
     default = "./gunicorn.conf.py"
     desc = """\
-        The Gunicorn config file.
+        :ref:`The Gunicorn config file<configuration_file>`.
 
         A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
