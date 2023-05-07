@@ -532,6 +532,27 @@ class Arbiter(object):
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
 
+                    if exitcode > 0:
+                        # If the exit code of the worker is greater than 0,
+                        # let the user know.
+                        self.log.error("Worker (pid:%s) exited with code %s.",
+                                       wpid, exitcode)
+                    elif status > 0:
+                        # If the exit code of the worker is 0 and the status
+                        # is greater than 0, then it was most likely killed
+                        # via a signal.
+                        try:
+                            sig_name = signal.Signals(status).name
+                        except ValueError:
+                            sig_name = "code {}".format(status)
+                        msg = "Worker (pid:{}) was sent {}!".format(
+                            wpid, sig_name)
+
+                        # Additional hint for SIGKILL
+                        if status == signal.SIGKILL:
+                            msg += " Perhaps out of memory?"
+                        self.log.error(msg)
+
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
