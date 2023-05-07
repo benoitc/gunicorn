@@ -34,7 +34,7 @@ class Worker(object):
 
     PIPE = []
 
-    def __init__(self, age, ppid, sockets, app, timeout, cfg, log):
+    def __init__(self, age, ppid, sockets, app, timeout, cfg, log, metric_plugin):
         """\
         This is called pre-fork so it shouldn't do anything to the
         current process. If there's a need to make process wide
@@ -61,6 +61,7 @@ class Worker(object):
 
         self.alive = True
         self.log = log
+        self.metric_plugin = metric_plugin
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
@@ -134,7 +135,7 @@ class Worker(object):
         self.load_wsgi()
         if self.reloader:
             self.reloader.start()
-
+        self.metric_plugin.post_worker_init(self)
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
@@ -264,6 +265,7 @@ class Worker(object):
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
+            self.metric_plugin.post_request_logging(resp, request_time)
 
         try:
             util.write_error(client, status_int, reason, mesg)

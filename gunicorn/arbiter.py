@@ -54,6 +54,7 @@ class Arbiter(object):
         self._num_workers = None
         self._last_logged_active_worker_count = None
         self.log = None
+        self.metric_plugin = None
 
         self.setup(app)
 
@@ -91,6 +92,8 @@ class Arbiter(object):
 
         if self.log is None:
             self.log = self.cfg.logger_class(app.cfg)
+        if self.metric_plugin is None:
+            self.metric_plugin = self.cfg.metrics_plugin
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:
@@ -576,19 +579,11 @@ class Arbiter(object):
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
-        active_worker_count = len(workers)
-        if self._last_logged_active_worker_count != active_worker_count:
-            self._last_logged_active_worker_count = active_worker_count
-            self.log.debug("{0} workers".format(active_worker_count),
-                           extra={"metric": "gunicorn.workers",
-                                  "value": active_worker_count,
-                                  "mtype": "gauge"})
-
     def spawn_worker(self):
         self.worker_age += 1
         worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
                                    self.app, self.timeout / 2.0,
-                                   self.cfg, self.log)
+                                   self.cfg, self.log, self.metric_plugin)
         self.cfg.pre_fork(self, worker)
         pid = os.fork()
         if pid != 0:

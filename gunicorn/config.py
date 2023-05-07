@@ -151,12 +151,6 @@ class Config(object):
             # support the default
             uri = LoggerClass.default
 
-        # if default logger is in use, and statsd is on, automagically switch
-        # to the statsd logger
-        if uri == LoggerClass.default:
-            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-                uri = "gunicorn.instrument.statsd.Statsd"
-
         logger_class = util.load_class(
             uri,
             default="gunicorn.glogging.Logger",
@@ -165,6 +159,22 @@ class Config(object):
         if hasattr(logger_class, "install"):
             logger_class.install()
         return logger_class
+
+    @property
+    def metrics_plugin(self):
+        if 'metrics_class' in self.settings and self.settings['metrics_class'].value is not None:
+            from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
+            return DogStatsDMetricPlugin()
+        elif 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+            from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
+            host, port = self.settings['statsd_host'].value
+            prefix = self.settings['statsd_prefix'].value if 'statsd_prefix' in self.settings else None
+            tags = self.settings['dogstatsd_tags'].value if 'dogstatsd_tags' in self.settings else []
+
+            return StatsDMetricPlugin(prefix, host, port, tags.split(","))
+        else:
+            from gunicorn.instrument.metrics.base import NoOpMetricPlugin
+            return NoOpMetricPlugin()
 
     @property
     def is_ssl(self):
@@ -1667,6 +1677,21 @@ class StatsdPrefix(Setting):
 
     .. versionadded:: 19.2
     """
+
+
+class MetricsClass(Setting):
+    name = "metrics_class"
+    section = "Metrics"
+    cli = ["--metrics-class"]
+    meta = "STRING"
+    validator = validate_class
+    default = None
+    desc = """\
+        The metrics you want to use to log events in Gunicorn.
+
+        You can provide your own metrics implementation by giving Gunicorn a Python path to a
+        class that quacks like ``gunicorn.instrument.workers.BaseMetricPlugin``.
+        """
 
 
 class Procname(Setting):
