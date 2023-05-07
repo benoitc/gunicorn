@@ -4,7 +4,7 @@ Installation
 
 .. highlight:: bash
 
-:Requirements: **Python 3.x >= 3.4**
+:Requirements: **Python 3.x >= 3.5**
 
 To install the latest released version of Gunicorn::
 
@@ -40,7 +40,7 @@ want to consider one of the alternate worker types.
     $ pip install gunicorn[gevent]    # Or, using extra
 
 .. note::
-    Both require ``greenlet``, which should get installed automatically,
+    Both require ``greenlet``, which should get installed automatically.
     If its installation fails, you probably need to install
     the Python headers. These headers are available in most package
     managers. On Ubuntu the package name for ``apt-get`` is
@@ -52,10 +52,32 @@ want to consider one of the alternate worker types.
     installed, this is the most likely reason.
 
 
+Extra Packages
+==============
+Some Gunicorn options require additional packages. You can use the ``[extra]``
+syntax to install these at the same time as Gunicorn.
+
+Most extra packages are needed for alternate worker types. See the
+`design docs`_ for more information on when you'll want to consider an
+alternate worker type.
+
+* ``gunicorn[eventlet]`` - Eventlet-based greenlets workers
+* ``gunicorn[gevent]`` - Gevent-based greenlets workers
+* ``gunicorn[gthread]`` - Threaded workers
+* ``gunicorn[tornado]`` - Tornado-based workers, not recommended
+
+If you are running more than one instance of Gunicorn, the :ref:`proc-name`
+setting will help distinguish between them in tools like ``ps`` and ``top``.
+
+* ``gunicorn[setproctitle]`` - Enables setting the process name
+
+Multiple extras can be combined, like
+``pip install gunicorn[gevent,setproctitle]``.
+
 Debian GNU/Linux
 ================
 
-If you are using Debian GNU/Linux and it is recommended that you use
+If you are using Debian GNU/Linux it is recommended that you use
 system packages to install Gunicorn except maybe when you want to use
 different versions of Gunicorn with virtualenv. This has a number of
 advantages:
@@ -74,16 +96,43 @@ advantages:
   rolled back in case of incompatibility. The package can also be purged
   entirely from the system in seconds.
 
-stable ("stretch")
+stable ("buster")
 ------------------
 
-The version of Gunicorn in the Debian_ "stable" distribution is 19.6.0 (June
-2017). You can install it using::
+The version of Gunicorn in the Debian_ "stable" distribution is 19.9.0
+(December 2020). You can install it using::
 
-    $ sudo apt-get install gunicorn
+    $ sudo apt-get install gunicorn3
 
-You can also use the most recent version by using `Debian Backports`_.
-First, copy the following line to your ``/etc/apt/sources.list``::
+You can also use the most recent version 20.0.4 (December 2020) by using
+`Debian Backports`_. First, copy the following line to your
+``/etc/apt/sources.list``::
+
+    deb http://ftp.debian.org/debian buster-backports main
+
+Then, update your local package lists::
+
+    $ sudo apt-get update
+
+You can then install the latest version using::
+
+    $ sudo apt-get -t buster-backports install gunicorn
+
+oldstable ("stretch")
+---------------------
+
+While Debian releases newer than Stretch will give you gunicorn with Python 3
+support no matter if you install the gunicorn or gunicorn3 package for Stretch
+you specifically have to install gunicorn3 to get Python 3 support.
+
+The version of Gunicorn in the Debian_ "oldstable" distribution is 19.6.0
+(December 2020). You can install it using::
+
+    $ sudo apt-get install gunicorn3
+
+You can also use the most recent version 19.7.1 (December 2020) by using
+`Debian Backports`_. First, copy the following line to your
+``/etc/apt/sources.list``::
 
     deb http://ftp.debian.org/debian stretch-backports main
 
@@ -93,34 +142,13 @@ Then, update your local package lists::
 
 You can then install the latest version using::
 
-    $ sudo apt-get -t stretch-backports install gunicorn
+    $ sudo apt-get -t stretch-backports install gunicorn3
 
-oldstable ("jessie")
---------------------
+Testing ("bullseye") / Unstable ("sid")
+---------------------------------------
 
-The version of Gunicorn in the Debian_ "oldstable" distribution is 19.0 (June
-2014). you can install it using::
-
-    $ sudo apt-get install gunicorn
-
-You can also use the most recent version by using `Debian Backports`_.
-First, copy the following line to your ``/etc/apt/sources.list``::
-
-    deb http://ftp.debian.org/debian jessie-backports main
-
-Then, update your local package lists::
-
-    $ sudo apt-get update
-
-You can then install the latest version using::
-
-    $ sudo apt-get -t jessie-backports install gunicorn
-
-Testing ("buster") / Unstable ("sid")
--------------------------------------
-
-"buster" and "sid" contain the latest released version of Gunicorn. You can
-install it in the usual way::
+"bullseye" and "sid" contain the latest released version of Gunicorn 20.0.4
+(December 2020). You can install it in the usual way::
 
     $ sudo apt-get install gunicorn
 
@@ -128,8 +156,8 @@ install it in the usual way::
 Ubuntu
 ======
 
-Ubuntu_ 12.04 (trusty) or later contains Gunicorn package by default so that
-you can install it in the usual way::
+Ubuntu_ 20.04 LTS (Focal Fossa) or later contains the Gunicorn package by
+default 20.0.4 (December 2020) so that you can install it in the usual way::
 
     $ sudo apt-get update
     $ sudo apt-get install gunicorn

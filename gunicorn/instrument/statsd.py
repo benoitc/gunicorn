@@ -19,6 +19,7 @@ GAUGE_TYPE = "gauge"
 COUNTER_TYPE = "counter"
 HISTOGRAM_TYPE = "histogram"
 
+
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
     """
@@ -33,6 +34,8 @@ class Statsd(Logger):
             self.sock.connect((host, int(port)))
         except Exception:
             self.sock = None
+
+        self.dogstatsd_tags = cfg.dogstatsd_tags
 
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
@@ -51,7 +54,7 @@ class Statsd(Logger):
         Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
-    # Special treatement for info, the most common log level
+    # Special treatment for info, the most common log level
     def info(self, msg, *args, **kwargs):
         self.log(logging.INFO, msg, *args, **kwargs)
 
@@ -116,6 +119,11 @@ class Statsd(Logger):
         try:
             if isinstance(msg, str):
                 msg = msg.encode("ascii")
+
+            # http://docs.datadoghq.com/guides/dogstatsd/#datagram-format
+            if self.dogstatsd_tags:
+                msg = msg + b"|#" + self.dogstatsd_tags.encode('ascii')
+
             if self.sock:
                 self.sock.send(msg)
         except Exception:

@@ -1,9 +1,10 @@
 import datetime
+from types import SimpleNamespace
+
+import pytest
 
 from gunicorn.config import Config
 from gunicorn.glogging import Logger
-
-from support import SimpleNamespace
 
 
 def test_atoms_defaults():
@@ -48,7 +49,13 @@ def test_atoms_zero_bytes():
     assert atoms['B'] == 0
 
 
-def test_get_username_from_basic_auth_header():
+@pytest.mark.parametrize('auth', [
+    # auth type is case in-sensitive
+    'Basic YnJrMHY6',
+    'basic YnJrMHY6',
+    'BASIC YnJrMHY6',
+])
+def test_get_username_from_basic_auth_header(auth):
     request = SimpleNamespace(headers=())
     response = SimpleNamespace(
         status='200', response_length=1024, sent=1024,
@@ -58,7 +65,7 @@ def test_get_username_from_basic_auth_header():
         'REQUEST_METHOD': 'GET', 'RAW_URI': '/my/path?foo=bar',
         'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
         'SERVER_PROTOCOL': 'HTTP/1.1',
-        'HTTP_AUTHORIZATION': 'Basic YnJrMHY6',
+        'HTTP_AUTHORIZATION': auth,
     }
     logger = Logger(Config())
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))

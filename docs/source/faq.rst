@@ -106,9 +106,9 @@ threads. However `a work has been started
 Why I don't see any logs in the console?
 ----------------------------------------
 
-In version R19, Gunicorn doesn't log by default in the console.
+In version 19.0, Gunicorn doesn't log by default in the console.
 To watch the logs in the console you need to use the option ``--log-file=-``.
-In version R20, Gunicorn logs to the console by default again.
+In version 19.2, Gunicorn logs to the console by default again.
 
 Kernel Parameters
 =================
@@ -129,9 +129,13 @@ One of the first settings that usually needs to be bumped is the maximum number
 of open file descriptors for a given process. For the confused out there,
 remember that Unices treat sockets as files.
 
-::
+.. warning:: ``sudo ulimit`` may not work
 
-    $ sudo ulimit -n 2048
+Considering non-privileged users are not able to relax the limit, you should
+firstly switch to root user, increase the limit, then run gunicorn. Using ``sudo
+ulimit`` would not take effect.
+
+Try systemd's service unit file, or an initscript which runs as root.
 
 How can I increase the maximum socket backlog?
 ----------------------------------------------
@@ -205,3 +209,30 @@ Check the result::
     tmpfs              65536     0     65536   0% /mem
 
 Now you can set ``--worker-tmp-dir /mem``.
+
+Why are Workers Silently Killed?
+--------------------------------------------------------------
+
+A sometimes subtle problem to debug is when a worker process is killed and there
+is little logging information about what happened.
+
+If you use a reverse proxy like NGINX you might see 502 returned to a client.
+
+In the gunicorn logs you might simply see ``[35] [INFO] Booting worker with pid: 35``
+
+It's completely normal for workers to be stop and start, for example due to
+max-requests setting. Ordinarily gunicorn will capture any signals and log something.
+
+This particular failure case is usually due to a SIGKILL being received, as it's
+not possible to catch this signal silence is usually a common side effect! A common
+cause of SIGKILL is when OOM killer terminates a process due to low memory condition.
+
+This is increasingly common in container deployments where memory limits are enforced
+by cgroups, you'll usually see evidence of this from dmesg::
+
+    dmesg | grep gunicorn
+    Memory cgroup out of memory: Kill process 24534 (gunicorn) score 1506 or sacrifice child
+    Killed process 24534 (gunicorn) total-vm:1016648kB, anon-rss:550160kB, file-rss:25824kB, shmem-rss:0kB
+
+In these instances adjusting the memory limit is usually your best bet, it's also possible
+to configure OOM not to send SIGKILL by default.

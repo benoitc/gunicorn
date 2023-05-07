@@ -13,4 +13,4 @@ def app(environ, start_response):
     log.info("Hello Info!")
     log.warn("Hello Warn!")
     log.error("Hello Error!")
-    return ["Hello World!\n"]
+    return [b"Hello World!\n"]

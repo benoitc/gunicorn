@@ -4,11 +4,7 @@
 # See the NOTICE for more information.
 
 import os
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import unittest.mock as mock
 
 import gunicorn.app.base
 import gunicorn.arbiter
@@ -173,7 +169,7 @@ class PreloadedAppWithEnvSettings(DummyApplication):
         'preloaded' application.
         """
         verify_env_vars()
-        return super(PreloadedAppWithEnvSettings, self).wsgi()
+        return super().wsgi()
 
 
 def verify_env_vars():

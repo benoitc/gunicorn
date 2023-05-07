@@ -4,12 +4,14 @@
 # See the NOTICE for more information.
 
 # design:
-# a threaded worker accepts connections in the main loop, accepted
-# connections are are added to the thread pool as a connection job. On
-# keepalive connections are put back in the loop waiting for an event.
-# If no event happen after the keep alive timeout, the connectoin is
+# A threaded worker accepts connections in the main loop, accepted
+# connections are added to the thread pool as a connection job.
+# Keepalive connections are put back in the loop waiting for an event.
+# If no event happen after the keep alive timeout, the connection is
 # closed.
+# pylint: disable=no-else-break
 
+import concurrent.futures as futures
 import errno
 import os
 import selectors
@@ -27,13 +29,6 @@ from .. import http
 from .. import util
 from ..http import wsgi
 
-try:
-    import concurrent.futures as futures
-except ImportError:
-    raise RuntimeError("""
-    You need to install the 'futures' package to use this worker with this
-    Python version.
-    """)
 
 class TConn(object):
 
@@ -55,10 +50,10 @@ class TConn(object):
             # wrap the socket if needed
             if self.cfg.is_ssl:
                 self.sock = ssl.wrap_socket(self.sock, server_side=True,
-                        **self.cfg.ssl_options)
+                                            **self.cfg.ssl_options)
 
             # initialize the parser
-            self.parser = http.RequestParser(self.cfg, self.sock)
+            self.parser = http.RequestParser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
         # set the timeout
@@ -71,7 +66,7 @@ class TConn(object):
 class ThreadWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        super(ThreadWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
@@ -88,13 +83,17 @@ class ThreadWorker(base.Worker):
 
         if max_keepalived <= 0 and cfg.keepalive:
             log.warning("No keepalived connections can be handled. " +
-                    "Check the number of worker connections and threads.")
+                        "Check the number of worker connections and threads.")
 
     def init_process(self):
-        self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
+        self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
         self._lock = RLock()
-        super(ThreadWorker, self).init_process()
+        super().init_process()
+
+    def get_thread_pool(self):
+        """Override this method to customize how the thread pool is created"""
+        return futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
 
     def handle_quit(self, sig, frame):
         self.alive = False
@@ -124,8 +123,8 @@ class ThreadWorker(base.Worker):
             # enqueue the job
             self.enqueue_req(conn)
         except EnvironmentError as e:
-            if e.errno not in (errno.EAGAIN,
-                    errno.ECONNABORTED, errno.EWOULDBLOCK):
+            if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
+                               errno.EWOULDBLOCK):
                 raise
 
     def reuse_connection(self, conn, client):
@@ -205,11 +204,11 @@ class ThreadWorker(base.Worker):
 
                 # check (but do not wait) for finished requests
                 result = futures.wait(self.futures, timeout=0,
-                        return_when=futures.FIRST_COMPLETED)
+                                      return_when=futures.FIRST_COMPLETED)
             else:
                 # wait for a request to finish
                 result = futures.wait(self.futures, timeout=1.0,
-                        return_when=futures.FIRST_COMPLETED)
+                                      return_when=futures.FIRST_COMPLETED)
 
             # clean up finished requests
             for fut in result.done:
@@ -218,7 +217,7 @@ class ThreadWorker(base.Worker):
             if not self.is_parent_alive():
                 break
 
-            # hanle keepalive timeouts
+            # handle keepalive timeouts
             self.murder_keepalived()
 
         self.tpool.shutdown(False)
@@ -239,7 +238,7 @@ class ThreadWorker(base.Worker):
             (keepalive, conn) = fs.result()
             # if the connection should be kept alived add it
             # to the eventloop and record it
-            if keepalive:
+            if keepalive and self.alive:
                 # flag the socket as non blocked
                 conn.sock.setblocking(False)
 
@@ -250,11 +249,11 @@ class ThreadWorker(base.Worker):
 
                     # add the socket to the event loop
                     self.poller.register(conn.sock, selectors.EVENT_READ,
-                            partial(self.reuse_connection, conn))
+                                         partial(self.reuse_connection, conn))
             else:
                 self.nr_conns -= 1
                 conn.close()
-        except:
+        except Exception:
             # an exception happened, make sure to close the
             # socket.
             self.nr_conns -= 1
@@ -286,11 +285,13 @@ class ThreadWorker(base.Worker):
                 self.handle_error(req, conn.sock, conn.client, e)
 
         except EnvironmentError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
+                elif e.errno == errno.ENOTCONN:
+                    self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring connection epipe")
         except Exception as e:
@@ -305,15 +306,16 @@ class ThreadWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, conn.sock, conn.client,
-                    conn.server, self.cfg)
+                                        conn.server, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
                 resp.force_close()
-                self.alive = False
 
-            if not self.cfg.keepalive:
+            if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
             elif len(self._keep) >= self.max_keepalived:
                 resp.force_close()

@@ -57,7 +57,7 @@ class Pidfile(object):
 
             if pid1 == self.pid:
                 os.unlink(self.fname)
-        except:
+        except Exception:
             pass
 
     def validate(self):

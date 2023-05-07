@@ -11,7 +11,7 @@ import sys
 
 from gunicorn.http.message import HEADER_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn import SERVER_SOFTWARE
+from gunicorn import SERVER_SOFTWARE, SERVER
 import gunicorn.util as util
 
 # Send files in at most 1GB blocks as some operating systems can have problems
@@ -73,6 +73,7 @@ def base_environ(cfg):
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "wsgi.file_wrapper": FileWrapper,
+        "wsgi.input_terminated": True,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
     }
 
@@ -194,7 +195,7 @@ class Response(object):
     def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
-        self.version = SERVER_SOFTWARE
+        self.version = SERVER
         self.status = None
         self.chunked = False
         self.must_close = False
@@ -251,10 +252,13 @@ class Response(object):
             if HEADER_RE.search(name):
                 raise InvalidHeaderName('%r' % name)
 
+            if not isinstance(value, str):
+                raise TypeError('%r is not a string' % value)
+
             if HEADER_VALUE_RE.search(value):
                 raise InvalidHeader('%r' % value)
 
-            value = str(value).strip()
+            value = value.strip()
             lname = name.lower().strip()
             if lname == "content-length":
                 self.response_length = int(value)
@@ -299,7 +303,7 @@ class Response(object):
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
@@ -315,7 +319,7 @@ class Response(object):
         tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
-        util.write(self.sock, util.to_bytestring(header_str, "ascii"))
+        util.write(self.sock, util.to_bytestring(header_str, "latin-1"))
         self.headers_sent = True
 
     def write(self, arg):
@@ -356,12 +360,6 @@ class Response(object):
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
                 filesize = os.fstat(fileno).st_size
-
-                # The file may be special and sendfile will fail.
-                # It may also be zero-length, but that is okay.
-                if filesize == 0:
-                    return False
-
                 nbytes = filesize - offset
             else:
                 nbytes = self.response_length
@@ -373,13 +371,8 @@ class Response(object):
         if self.is_chunked():
             chunk_size = "%X\r\n" % nbytes
             self.sock.sendall(chunk_size.encode('utf-8'))
-
-        sockno = self.sock.fileno()
-        sent = 0
-
-        while sent != nbytes:
-            count = min(nbytes - sent, BLKSIZE)
-            sent += os.sendfile(sockno, fileno, offset + sent, count)
+        if nbytes > 0:
+            self.sock.sendfile(respiter.filelike, offset=offset, count=nbytes)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")

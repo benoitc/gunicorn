@@ -3,17 +3,13 @@
 import io
 import t
 import pytest
+import unittest.mock as mock
 
 from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
 
 
 def assert_readline(payload, size, expected):
@@ -81,8 +77,13 @@ def test_http_header_encoding():
     mocked_request = mock.MagicMock()
     response = Response(mocked_request, mocked_socket, None)
 
-    # set umlaut header
+    # set umlaut header value - latin-1 is OK
     response.headers.append(('foo', 'häder'))
+    response.send_headers()
+
+    # set a-breve header value - unicode, non-latin-1 fails
+    response = Response(mocked_request, mocked_socket, None)
+    response.headers.append(('apple', 'măr'))
     with pytest.raises(UnicodeEncodeError):
         response.send_headers()
 

@@ -6,13 +6,13 @@
 import io
 import re
 import socket
-from errno import ENOTCONN
 
-from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
-from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
+from gunicorn.http.errors import (
+    InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
-    LimitRequestLine, LimitRequestHeaders)
+    LimitRequestLine, LimitRequestHeaders,
+)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
@@ -27,9 +27,11 @@ VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
 class Message(object):
-    def __init__(self, cfg, unreader):
+    def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader
+        self.peer_addr = peer_addr
+        self.remote_addr = peer_addr
         self.version = None
         self.headers = []
         self.trailers = []
@@ -39,7 +41,7 @@ class Message(object):
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
         if (self.limit_request_fields <= 0
-            or self.limit_request_fields > MAX_HEADERS):
+                or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
         self.limit_request_field_size = cfg.limit_request_field_size
         if self.limit_request_field_size < 0:
@@ -67,16 +69,10 @@ class Message(object):
         # handle scheme headers
         scheme_header = False
         secure_scheme_headers = {}
-        if '*' in cfg.forwarded_allow_ips:
+        if ('*' in cfg.forwarded_allow_ips or
+            not isinstance(self.peer_addr, tuple)
+                or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
-        elif isinstance(self.unreader, SocketUnreader):
-            remote_addr = self.unreader.sock.getpeername()
-            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
-                remote_host = remote_addr[0]
-                if remote_host in cfg.forwarded_allow_ips:
-                    secure_scheme_headers = cfg.secure_scheme_headers
-            elif self.unreader.sock.family == socket.AF_UNIX:
-                secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -90,7 +86,10 @@ class Message(object):
             if curr.find(":") < 0:
                 raise InvalidHeader(curr.strip())
             name, value = curr.split(":", 1)
-            name = name.rstrip(" \t").upper()
+            if self.cfg.strip_header_spaces:
+                name = name.rstrip(" \t").upper()
+            else:
+                name = name.upper()
             if HEADER_RE.search(name):
                 raise InvalidHeaderName(name)
 
@@ -102,7 +101,7 @@ class Message(object):
                 header_length += len(curr)
                 if header_length > self.limit_request_field_size > 0:
                     raise LimitRequestHeaders("limit request headers "
-                            + "fields size")
+                                              "fields size")
                 value.append(curr)
             value = ''.join(value).rstrip()
 
@@ -126,13 +125,15 @@ class Message(object):
     def set_body_reader(self):
         chunked = False
         content_length = None
+
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
+                if content_length is not None:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == "chunked"
-            elif name == "SEC-WEBSOCKET-KEY1":
-                content_length = 8
+                if value.lower() == "chunked":
+                    chunked = True
 
         if chunked:
             self.body = Body(ChunkedReader(self, self.unreader))
@@ -162,7 +163,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, cfg, unreader, req_number=1):
+    def __init__(self, cfg, unreader, peer_addr, req_number=1):
         self.method = None
         self.uri = None
         self.path = None
@@ -172,12 +173,12 @@ class Request(Message):
         # get max request line size
         self.limit_request_line = cfg.limit_request_line
         if (self.limit_request_line < 0
-            or self.limit_request_line >= MAX_REQUEST_LINE):
+                or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-        super(Request, self).__init__(cfg, unreader)
+        super().__init__(cfg, unreader, peer_addr)
 
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
@@ -242,7 +243,7 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
-            elif len(data) - 2 > limit > 0:
+            if len(data) - 2 > limit > 0:
                 raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
@@ -273,16 +274,10 @@ class Request(Message):
 
     def proxy_protocol_access_check(self):
         # check in allow list
-        if isinstance(self.unreader, SocketUnreader):
-            try:
-                remote_host = self.unreader.sock.getpeername()[0]
-            except socket.error as e:
-                if e.args[0] == ENOTCONN:
-                    raise ForbiddenProxyRequest("UNKNOW")
-                raise
-            if ("*" not in self.cfg.proxy_allow_ips and
-                    remote_host not in self.cfg.proxy_allow_ips):
-                raise ForbiddenProxyRequest(remote_host)
+        if ("*" not in self.cfg.proxy_allow_ips and
+            isinstance(self.peer_addr, tuple) and
+                self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+            raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):
         bits = line.split()
@@ -357,6 +352,6 @@ class Request(Message):
         self.version = (int(match.group(1)), int(match.group(2)))
 
     def set_body_reader(self):
-        super(Request, self).set_body_reader()
+        super().set_body_reader()
         if isinstance(self.body.reader, EOFReader):
             self.body = Body(LengthReader(self.unreader, 0))

@@ -72,4 +72,4 @@ def test_ciphers():
     assert Ciphers.name == 'ciphers'
     assert Ciphers.section == 'SSL'
     assert Ciphers.cli == ['--ciphers']
-    assert Ciphers.default == 'TLSv1'
+    assert Ciphers.default is None

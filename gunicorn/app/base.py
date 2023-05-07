@@ -2,15 +2,17 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+import importlib.util
+import importlib.machinery
 import os
 import sys
 import traceback
 
-from gunicorn._compat import execfile_
 from gunicorn import util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
+
 
 class BaseApplication(object):
     """
@@ -93,25 +95,30 @@ class Application(BaseApplication):
         if not os.path.exists(filename):
             raise RuntimeError("%r doesn't exist" % filename)
 
-        cfg = {
-            "__builtins__": __builtins__,
-            "__name__": "__config__",
-            "__file__": filename,
-            "__doc__": None,
-            "__package__": None
-        }
+        ext = os.path.splitext(filename)[1]
+
         try:
-            execfile_(filename, cfg, cfg)
+            module_name = '__config__'
+            if ext in [".py", ".pyc"]:
+                spec = importlib.util.spec_from_file_location(module_name, filename)
+            else:
+                msg = "configuration file should have a valid Python extension.\n"
+                util.warn(msg)
+                loader_ = importlib.machinery.SourceFileLoader(module_name, filename)
+                spec = importlib.util.spec_from_file_location(module_name, filename, loader=loader_)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = mod
+            spec.loader.exec_module(mod)
         except Exception:
             print("Failed to read config file: %s" % filename, file=sys.stderr)
             traceback.print_exc()
             sys.stderr.flush()
             sys.exit(1)
 
-        return cfg
+        return vars(mod)
 
     def get_config_from_module_name(self, module_name):
-        return vars(util.import_module(module_name))
+        return vars(importlib.import_module(module_name))
 
     def load_config_from_module_name_or_filename(self, location):
         """
@@ -135,7 +142,7 @@ class Application(BaseApplication):
                 continue
             try:
                 self.cfg.set(k.lower(), v)
-            except:
+            except Exception:
                 print("Invalid value for %s: %s\n" % (k, v), file=sys.stderr)
                 sys.stderr.flush()
                 raise
@@ -193,10 +200,13 @@ class Application(BaseApplication):
         self.chdir()
 
     def run(self):
-        if self.cfg.check_config:
+        if self.cfg.print_config:
+            print(self.cfg)
+
+        if self.cfg.print_config or self.cfg.check_config:
             try:
                 self.load()
-            except:
+            except Exception:
                 msg = "\nError while loading the application:\n"
                 print(msg, file=sys.stderr)
                 traceback.print_exc()
@@ -208,6 +218,11 @@ class Application(BaseApplication):
             debug.spew()
 
         if self.cfg.daemon:
+            if os.environ.get('NOTIFY_SOCKET'):
+                msg = "Warning: you shouldn't specify `daemon = True`" \
+                      " when launching by systemd with `Type = notify`"
+                print(msg, file=sys.stderr, flush=True)
+
             util.daemonize(self.cfg.enable_stdio_inheritance)
 
         # set python paths
@@ -218,4 +233,4 @@ class Application(BaseApplication):
                 if pythonpath not in sys.path:
                     sys.path.insert(0, pythonpath)
 
-        super(Application, self).run()
+        super().run()

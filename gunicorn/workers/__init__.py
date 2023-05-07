@@ -7,7 +7,6 @@
 SUPPORTED_WORKERS = {
     "sync": "gunicorn.workers.sync.SyncWorker",
     "eventlet": "gunicorn.workers.geventlet.EventletWorker",
-    "gaiohttp": "gunicorn.workers.gaiohttp.AiohttpWorker",
     "gevent": "gunicorn.workers.ggevent.GeventWorker",
     "gevent_wsgi": "gunicorn.workers.ggevent.GeventPyWSGIWorker",
     "gevent_pywsgi": "gunicorn.workers.ggevent.GeventPyWSGIWorker",

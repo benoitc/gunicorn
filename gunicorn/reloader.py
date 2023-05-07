@@ -2,6 +2,7 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
+# pylint: disable=no-else-continue
 
 import os
 import os.path
@@ -15,16 +16,14 @@ COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 class Reloader(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
-        super(Reloader, self).__init__()
-        self.setDaemon(True)
+        super().__init__()
+        self.daemon = True
         self._extra_files = set(extra_files or ())
-        self._extra_files_lock = threading.RLock()
         self._interval = interval
         self._callback = callback
 
     def add_extra_file(self, filename):
-        with self._extra_files_lock:
-            self._extra_files.add(filename)
+        self._extra_files.add(filename)
 
     def get_files(self):
         fnames = [
@@ -33,8 +32,7 @@ class Reloader(threading.Thread):
             if getattr(module, '__file__', None)
         ]
 
-        with self._extra_files_lock:
-            fnames.extend(self._extra_files)
+        fnames.extend(self._extra_files)
 
         return fnames
 
@@ -55,6 +53,7 @@ class Reloader(threading.Thread):
                         self._callback(filename)
             time.sleep(self._interval)
 
+
 has_inotify = False
 if sys.platform.startswith('linux'):
     try:
@@ -74,8 +73,8 @@ if has_inotify:
                       | inotify.constants.IN_MOVED_TO)
 
         def __init__(self, extra_files=None, callback=None):
-            super(InotifyReloader, self).__init__()
-            self.setDaemon(True)
+            super().__init__()
+            self.daemon = True
             self._callback = callback
             self._dirs = set()
             self._watcher = Inotify()
@@ -94,7 +93,7 @@ if has_inotify:
 
         def get_dirs(self):
             fnames = [
-                os.path.dirname(COMPILED_EXT_RE.sub('py', module.__file__))
+                os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
                 for module in tuple(sys.modules.values())
                 if getattr(module, '__file__', None)
             ]
@@ -105,7 +104,8 @@ if has_inotify:
             self._dirs = self.get_dirs()
 
             for dirname in self._dirs:
-                self._watcher.add_watch(dirname, mask=self.event_mask)
+                if os.path.isdir(dirname):
+                    self._watcher.add_watch(dirname, mask=self.event_mask)
 
             for event in self._watcher.event_gen():
                 if event is None:

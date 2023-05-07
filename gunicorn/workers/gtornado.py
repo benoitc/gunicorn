@@ -19,9 +19,13 @@ from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
 
 
-# `io_loop` arguments to many Tornado functions have been removed in Tornado 5.0
-# <http://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes>
-IOLOOP_PARAMETER_REMOVED = tornado.version_info >= (5, 0, 0)
+# Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many
+# Tornado functions have been removed in Tornado 5.0. Also, they no
+# longer store PeriodCallbacks in ioloop._callbacks. Instead we store
+# them on our side, and use stop() on them when stopping the worker.
+# See https://www.tornadoweb.org/en/stable/releases/v5.0.0.html#backwards-compatibility-notes
+# for more details.
+TORNADO5 = tornado.version_info >= (5, 0, 0)
 
 
 class TornadoWorker(Worker):
@@ -40,7 +44,7 @@ class TornadoWorker(Worker):
 
     def handle_exit(self, sig, frame):
         if self.alive:
-            super(TornadoWorker, self).handle_exit(sig, frame)
+            super().handle_exit(sig, frame)
 
     def handle_request(self):
         self.nr += 1
@@ -66,8 +70,13 @@ class TornadoWorker(Worker):
                         pass
                 self.server_alive = False
             else:
-                if not self.ioloop._callbacks:
+                if TORNADO5:
+                    for callback in self.callbacks:
+                        callback.stop()
                     self.ioloop.stop()
+                else:
+                    if not self.ioloop._callbacks:
+                        self.ioloop.stop()
 
     def init_process(self):
         # IOLoop cannot survive a fork or be shared across processes
@@ -75,15 +84,19 @@ class TornadoWorker(Worker):
         # should create its own IOLoop. We should clear current IOLoop
         # if exists before os.fork.
         IOLoop.clear_current()
-        super(TornadoWorker, self).init_process()
+        super().init_process()
 
     def run(self):
         self.ioloop = IOLoop.instance()
         self.alive = True
         self.server_alive = False
-        if IOLOOP_PARAMETER_REMOVED:
-            PeriodicCallback(self.watchdog, 1000).start()
-            PeriodicCallback(self.heartbeat, 1000).start()
+
+        if TORNADO5:
+            self.callbacks = []
+            self.callbacks.append(PeriodicCallback(self.watchdog, 1000))
+            self.callbacks.append(PeriodicCallback(self.heartbeat, 1000))
+            for callback in self.callbacks:
+                callback.start()
         else:
             PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
             PeriodicCallback(self.heartbeat, 1000, io_loop=self.ioloop).start()
@@ -92,8 +105,12 @@ class TornadoWorker(Worker):
         # instance of tornado.web.Application or is an
         # instance of tornado.wsgi.WSGIApplication
         app = self.wsgi
-        if not isinstance(app, tornado.web.Application) or \
-           isinstance(app, tornado.wsgi.WSGIApplication):
+
+        if tornado.version_info[0] < 6:
+            if not isinstance(app, tornado.web.Application) or \
+                    isinstance(app, tornado.wsgi.WSGIApplication):
+                app = WSGIContainer(app)
+        elif not isinstance(app, WSGIContainer):
             app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the
@@ -127,13 +144,13 @@ class TornadoWorker(Worker):
             # options
             del _ssl_opt["do_handshake_on_connect"]
             del _ssl_opt["suppress_ragged_eofs"]
-            if IOLOOP_PARAMETER_REMOVED:
+            if TORNADO5:
                 server = server_class(app, ssl_options=_ssl_opt)
             else:
                 server = server_class(app, io_loop=self.ioloop,
                                       ssl_options=_ssl_opt)
         else:
-            if IOLOOP_PARAMETER_REMOVED:
+            if TORNADO5:
                 server = server_class(app)
             else:
                 server = server_class(app, io_loop=self.ioloop)

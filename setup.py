@@ -13,7 +13,7 @@ from gunicorn import __version__
 
 
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Other Environment',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
@@ -21,11 +21,16 @@ CLASSIFIERS = [
     'Operating System :: POSIX',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
     'Topic :: Internet',
     'Topic :: Utilities',
     'Topic :: Software Development :: Libraries :: Python Modules',
@@ -65,11 +70,20 @@ class PyTestCommand(TestCommand):
         sys.exit(errno)
 
 
-extra_require = {
-    'gevent':  ['gevent>=0.13'],
-    'eventlet': ['eventlet>=0.9.7'],
+install_requires = [
+    # We depend on functioning pkg_resources.working_set.add_entry() and
+    # pkg_resources.load_entry_point(). These both work as of 3.0 which
+    # is the first version to support Python 3.4 which we require as a
+    # floor.
+    'setuptools>=3.0',
+]
+
+extras_require = {
+    'gevent':  ['gevent>=1.4.0'],
+    'eventlet': ['eventlet>=0.24.1'],
     'tornado': ['tornado>=0.2'],
     'gthread': [],
+    'setproctitle': ['setproctitle'],
 }
 
 setup(
@@ -79,11 +93,18 @@ setup(
     description='WSGI HTTP Server for UNIX',
     long_description=long_description,
     author='Benoit Chesneau',
-    author_email='benoitc@e-engura.com',
+    author_email='benoitc@gunicorn.org',
     license='MIT',
-    url='http://gunicorn.org',
+    url='https://gunicorn.org',
+    project_urls={
+        'Documentation': 'https://docs.gunicorn.org',
+        'Homepage': 'https://gunicorn.org',
+        'Issue tracker': 'https://github.com/benoitc/gunicorn/issues',
+        'Source code': 'https://github.com/benoitc/gunicorn',
+    },
 
-    python_requires='>=3.4',
+    python_requires='>=3.5',
+    install_requires=install_requires,
     classifiers=CLASSIFIERS,
     zip_safe=False,
     packages=find_packages(exclude=['examples', 'tests']),
@@ -95,10 +116,9 @@ setup(
     entry_points="""
     [console_scripts]
     gunicorn=gunicorn.app.wsgiapp:run
-    gunicorn_paster=gunicorn.app.pasterapp:run
 
     [paste.server_runner]
-    main=gunicorn.app.pasterapp:paste_server
+    main=gunicorn.app.pasterapp:serve
     """,
-    extras_require=extra_require,
+    extras_require=extras_require,
 )

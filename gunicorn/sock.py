@@ -39,7 +39,7 @@ class BaseSocket(object):
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if (self.conf.reuse_port
-            and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
+                and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except socket.error as err:
@@ -86,7 +86,7 @@ class TCPSocket(BaseSocket):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        return super(TCPSocket, self).set_options(sock, bound=bound)
+        return super().set_options(sock, bound=bound)
 
 
 class TCP6Socket(TCPSocket):
@@ -114,7 +114,7 @@ class UnixSocket(BaseSocket):
                     os.remove(addr)
                 else:
                     raise ValueError("%r is not a socket" % addr)
-        super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
+        super().__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
@@ -150,7 +150,11 @@ def create_sockets(conf, log, fds=None):
     listeners = []
 
     # get it only once
-    laddr = conf.address
+    addr = conf.address
+    fdaddr = [bind for bind in addr if isinstance(bind, int)]
+    if fds:
+        fdaddr += list(fds)
+    laddr = [bind for bind in addr if not isinstance(bind, int)]
 
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
@@ -161,8 +165,8 @@ def create_sockets(conf, log, fds=None):
         raise ValueError('keyfile "%s" does not exist' % conf.keyfile)
 
     # sockets are already bound
-    if fds is not None:
-        for fd in fds:
+    if fdaddr:
+        for fd in fdaddr:
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)

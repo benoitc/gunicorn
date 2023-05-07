@@ -28,8 +28,9 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker(object):
 
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-            for x in "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()]
+    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
+        "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
+    )]
 
     PIPE = []
 
@@ -51,8 +52,13 @@ class Worker(object):
         self.reloader = None
 
         self.nr = 0
-        jitter = randint(0, cfg.max_requests_jitter)
-        self.max_requests = cfg.max_requests + jitter or sys.maxsize
+
+        if cfg.max_requests > 0:
+            jitter = randint(0, cfg.max_requests_jitter)
+            self.max_requests = cfg.max_requests + jitter
+        else:
+            self.max_requests = sys.maxsize
+
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
@@ -80,8 +86,7 @@ class Worker(object):
         """\
         If you override this method in a subclass, the last statement
         in the function should be to call this method with
-        super(MyWorkerClass, self).init_process() so that the ``run()``
-        loop is initiated.
+        super().init_process() so that the ``run()`` loop is initiated.
         """
 
         # set environment' variables
@@ -117,6 +122,7 @@ class Worker(object):
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
+                os.write(self.PIPE[1], b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
@@ -124,9 +130,11 @@ class Worker(object):
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
                                          callback=changed)
-            self.reloader.start()
 
         self.load_wsgi()
+        if self.reloader:
+            self.reloader.start()
+
         self.cfg.post_worker_init(self)
 
         # Enter main run loop
@@ -197,12 +205,14 @@ class Worker(object):
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
-        if isinstance(exc, (InvalidRequestLine, InvalidRequestMethod,
-                InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-                LimitRequestLine, LimitRequestHeaders,
-                InvalidProxyLine, ForbiddenProxyRequest,
-                InvalidSchemeHeaders,
-                SSLError)):
+        if isinstance(exc, (
+            InvalidRequestLine, InvalidRequestMethod,
+            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+            LimitRequestLine, LimitRequestHeaders,
+            InvalidProxyLine, ForbiddenProxyRequest,
+            InvalidSchemeHeaders,
+            SSLError,
+        )):
 
             status_int = 400
             reason = "Bad Request"
@@ -220,7 +230,9 @@ class Worker(object):
             elif isinstance(exc, LimitRequestLine):
                 mesg = "%s" % str(exc)
             elif isinstance(exc, LimitRequestHeaders):
+                reason = "Request Header Fields Too Large"
                 mesg = "Error parsing headers: '%s'" % str(exc)
+                status_int = 431
             elif isinstance(exc, InvalidProxyLine):
                 mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
@@ -235,7 +247,7 @@ class Worker(object):
                 status_int = 403
 
             msg = "Invalid request from ip={ip}: {error}"
-            self.log.debug(msg.format(ip=addr[0], error=str(exc)))
+            self.log.warning(msg.format(ip=addr[0], error=str(exc)))
         else:
             if hasattr(req, "uri"):
                 self.log.exception("Error handling request %s", req.uri)
@@ -255,7 +267,7 @@ class Worker(object):
 
         try:
             util.write_error(client, status_int, reason, mesg)
-        except:
+        except Exception:
             self.log.debug("Failed to send error message.")
 
     def handle_winch(self, sig, fname):

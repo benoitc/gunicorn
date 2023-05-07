@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-version_info = (19, 9, 0)
+version_info = (20, 1, 0)
 __version__ = ".".join([str(v) for v in version_info])
-SERVER_SOFTWARE = "gunicorn/%s" % __version__
+SERVER = "gunicorn"
+SERVER_SOFTWARE = "%s/%s" % (SERVER, __version__)

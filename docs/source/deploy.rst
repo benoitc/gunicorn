@@ -2,7 +2,7 @@
 Deploying Gunicorn
 ==================
 
-We strongly recommend to use Gunicorn behind a proxy server.
+We strongly recommend using Gunicorn behind a proxy server.
 
 Nginx Configuration
 ===================
@@ -67,13 +67,13 @@ Gunicorn 19 introduced a breaking change concerning how ``REMOTE_ADDR`` is
 handled. Previous to Gunicorn 19 this was set to the value of
 ``X-Forwarded-For`` if received from a trusted proxy. However, this was not in
 compliance with :rfc:`3875` which is why the ``REMOTE_ADDR`` is now the IP
-address of **the proxy** and **not the actual user**. You should instead
-configure Nginx to send the user's IP address through the ``X-Forwarded-For``
-header like this::
+address of **the proxy** and **not the actual user**.
 
-    ...
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    ...
+To have access logs indicate **the actual user** IP when proxied, set
+:ref:`access-log-format` with a format which includes ``X-Forwarded-For``. For
+example, this format uses ``X-Forwarded-For`` in place of ``REMOTE_ADDR``::
+
+    %({x-forwarded-for}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 It is also worth noting that the ``REMOTE_ADDR`` will be completely empty if
 you bind Gunicorn to a UNIX socket and not a TCP ``host:port`` tuple.
@@ -212,12 +212,15 @@ Using Gunicorn with upstart is simple. In this example we will run the app
 Systemd
 -------
 
-A tool that is starting to be common on linux systems is Systemd_. Below are
-configurations files and instructions for using systemd to create a unix socket
-for incoming Gunicorn requests.  Systemd will listen on this socket and start
-gunicorn automatically in response to traffic.  Later in this section are 
-instructions for configuring Nginx to forward web traffic to the newly created
-unix socket:
+A tool that is starting to be common on linux systems is Systemd_. It is a
+system services manager that allows for strict process management, resources
+and permissions control.
+
+Below are configuration files and instructions for using systemd to create
+a unix socket for incoming Gunicorn requests.  Systemd will listen on this
+socket and start gunicorn automatically in response to traffic.  Later in
+this section are instructions for configuring Nginx to forward web traffic
+to the newly created unix socket:
 
 **/etc/systemd/system/gunicorn.service**::
 
@@ -227,15 +230,19 @@ unix socket:
     After=network.target
 
     [Service]
-    PIDFile=/run/gunicorn/pid
+    Type=notify
+    # the specific user that our service will run as
     User=someuser
     Group=someuser
+    # another option for an even more restricted service is
+    # DynamicUser=yes
+    # see http://0pointer.net/blog/dynamic-users-with-systemd.html
     RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
-    ExecStart=/usr/bin/gunicorn --pid /run/gunicorn/pid   \
-              --bind unix:/run/gunicorn.sock applicationname.wsgi
+    ExecStart=/usr/bin/gunicorn applicationname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
-    ExecStop=/bin/kill -s TERM $MAINPID
+    KillMode=mixed
+    TimeoutStopSec=5
     PrivateTmp=true
 
     [Install]
@@ -248,33 +255,47 @@ unix socket:
 
     [Socket]
     ListenStream=/run/gunicorn.sock
-    User=someuser
-    Group=someuser
-    
+    # Our service won't need permissions for the socket, since it
+    # inherits the file descriptor by socket activation
+    # only the nginx daemon will need access to the socket
+    SocketUser=www-data
+    # Optionally restrict the socket permissions even more.
+    # SocketMode=600
+
     [Install]
     WantedBy=sockets.target
 
-**/etc/tmpfiles.d/gunicorn.conf**::
 
-    d /run/gunicorn 0755 someuser somegroup -
+Next enable and start the socket (it will autostart at boot too)::
 
-Next enable the socket so it autostarts at boot::
-
-    systemctl enable gunicorn.socket
-
-Either reboot, or start the services manually::
-
-    systemctl start gunicorn.socket
+    systemctl enable --now gunicorn.socket
 
 
-After running ``curl --unix-socket /run/gunicorn.sock http``, Gunicorn
-should start and you should see some HTML from your server in the terminal.
+Now let's see if the nginx daemon will be able to connect to the socket.
+Running ``sudo -u www-data curl --unix-socket /run/gunicorn.sock http``,
+our Gunicorn service will be automatically started and you should see some
+HTML from your server in the terminal.
+
+.. note::
+
+    systemd employs cgroups to track the processes of a service, so it doesn't
+    need pid files. In the rare case that you need to find out the service main
+    pid, you can use ``systemctl show --value -p MainPID gunicorn.service``, but
+    if you only want to send a signal an even better option is
+    ``systemctl kill -s HUP gunicorn.service``.
+
+.. note::
+
+    ``www-data`` is the default nginx user in debian, other distributions use
+    different users (for example: ``http`` or ``nginx``). Check your distro to
+    know what to put for the socket user, and for the sudo command.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
 socket. Edit your ``nginx.conf`` to include the following:
 
 **/etc/nginx/nginx.conf**::
 
+    user www-data;
     ...
     http {
         server {
@@ -292,15 +313,15 @@ socket. Edit your ``nginx.conf`` to include the following:
     The listen and server_name used here are configured for a local machine.
     In a production server you will most likely listen on port 80,
     and use your URL as the server_name.
-    
+
 Now make sure you enable the nginx service so it automatically starts at boot::
 
     systemctl enable nginx.service
-    
+
 Either reboot, or start Nginx with the following command::
 
     systemctl start nginx
-    
+
 Now you should be able to test Nginx with Gunicorn by visiting
 http://127.0.0.1:8000/ in any web browser. Systemd is now set up.
 
