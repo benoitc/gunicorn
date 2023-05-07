@@ -460,7 +460,7 @@ def is_hoppish(header):
 def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
-    http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
+    http://www.faqs.org/faqs/unix-faq/programmer/faq/ section 1.7
     """
     if 'GUNICORN_FD' not in os.environ:
         if os.fork():
