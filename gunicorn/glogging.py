@@ -5,6 +5,7 @@
 
 import base64
 import binascii
+import json
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1  # noqa
@@ -239,6 +240,21 @@ class Logger(object):
                     TypeError
             ) as exc:
                 raise RuntimeError(str(exc))
+        elif cfg.logconfig_json:
+            config = CONFIG_DEFAULTS.copy()
+            if os.path.exists(cfg.logconfig_json):
+                try:
+                    config_json = json.load(open(cfg.logconfig_json))
+                    config.update(config_json)
+                    dictConfig(config)
+                except (
+                    json.JSONDecodeError,
+                    AttributeError,
+                    ImportError,
+                    ValueError,
+                    TypeError
+                ) as exc:
+                    raise RuntimeError(str(exc))
         elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
@@ -333,7 +349,7 @@ class Logger(object):
         """
 
         if not (self.cfg.accesslog or self.cfg.logconfig or
-           self.cfg.logconfig_dict or
+           self.cfg.logconfig_dict or self.cfg.logconfig_json or
            (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
             return
 

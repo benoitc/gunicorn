@@ -1507,12 +1507,29 @@ class LogConfigDict(Setting):
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` option, which uses the
-    older file configuration format.
+    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+    which uses the older file configuration format and JSON
+    respectively.
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
     .. versionadded:: 19.8
+    """
+
+
+class LogConfigJson(Setting):
+    name = "logconfig_json"
+    section = "Logging"
+    cli = ["--log-config-json"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    The log config to read config from a JSON file
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig
+
+    .. versionadded:: 20.0
     """
 
 

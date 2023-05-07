@@ -305,6 +305,16 @@ The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
 
+.. _logconfig-json:
+
+logiconfig_json
+~~~~~~~~~
+
+* ``--log-config-json FILE``
+* ``None``
+
+The log config file written in JSON.
+
 .. _logconfig-dict:
 
 ``logconfig_dict``
@@ -316,8 +326,9 @@ file format.
 
 The log config dictionary to use, using the standard Python
 logging module's dictionary configuration format. This option
-takes precedence over the :ref:`logconfig` option, which uses the
-older file configuration format.
+takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options, which uses the
+older file configuration format and JSON respectively.
+
 
 Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
