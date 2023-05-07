@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import os
+import signal
 import unittest.mock as mock
 
 import gunicorn.app.base
@@ -146,6 +147,52 @@ def test_arbiter_reap_workers(mock_os_waitpid):
     arbiter.reap_workers()
     mock_worker.tmp.close.assert_called_with()
     arbiter.cfg.child_exit.assert_called_with(arbiter, mock_worker)
+
+
+@mock.patch('os.kill')
+@mock.patch('time.time')
+def test_arbiter_murder_workers(mock_time, mock_kill):
+    mock_time.side_effect = [1000.0]
+
+    mock_worker = mock.Mock()
+    mock_last_update = mock.Mock()
+    mock_last_update.side_effect = [998.0]
+    mock_worker.tmp.last_update = mock_last_update
+    mock_worker.aborted = False
+    mock_worker.created = 1.0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.log = mock.Mock()
+    arbiter.timeout = 1
+    arbiter.timeout_start_after = 0
+    arbiter.WORKERS = {42: mock_worker}
+
+    arbiter.murder_workers()
+
+    mock_worker.tmp.last_update.assert_called_with()
+    mock_kill.assert_called_with(42, signal.SIGABRT)
+
+
+@mock.patch('os.kill')
+@mock.patch('time.time')
+def test_arbiter_respects_timeout_start_after(mock_time, mock_kill):
+    mock_time.side_effect = [1000.0]
+
+    mock_worker = mock.Mock()
+    mock_last_update = mock.Mock()
+    mock_worker.tmp.last_update = mock_last_update
+    mock_last_update.side_effect = [991.0]
+    mock_worker.created = 991.0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.timeout = 1
+    arbiter.timeout_start_after = 10
+    arbiter.WORKERS = {42: mock_worker}
+
+    arbiter.murder_workers()
+
+    mock_worker.tmp.last_update.assert_not_called()
+    mock_kill.assert_not_called()
 
 
 class PreloadedAppWithEnvSettings(DummyApplication):
