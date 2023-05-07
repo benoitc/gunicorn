@@ -514,15 +514,25 @@ def validate_chdir(val):
     return path
 
 
-def validate_hostport(val):
+def validate_statsd_address(val):
     val = validate_string(val)
     if val is None:
         return None
-    elements = val.split(":")
-    if len(elements) == 2:
-        return (elements[0], int(elements[1]))
-    else:
-        raise TypeError("Value must consist of: hostname:port")
+
+    # As of major release 20, util.parse_address would recognize unix:PORT
+    # as a UDS address, breaking backwards compatibility. We defend against
+    # that regression here (this is also unit-tested).
+    # Feel free to remove in the next major release.
+    unix_hostname_regression = re.match(r'^unix:(\d+)$', val)
+    if unix_hostname_regression:
+        return ('unix', int(unix_hostname_regression.group(1)))
+
+    try:
+        address = util.parse_address(val, default_port='8125')
+    except RuntimeError:
+        raise TypeError("Value must be one of ('host:port', 'unix://PATH')")
+
+    return address
 
 
 def validate_reload_engine(val):
@@ -1630,9 +1640,14 @@ class StatsdHost(Setting):
     cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = None
-    validator = validate_hostport
+    validator = validate_statsd_address
     desc = """\
-    ``host:port`` of the statsd server to log to.
+    The address of the StatsD server to log to.
+
+    Address is a string of the form:
+
+    * ``unix://PATH`` : for a unix domain socket.
+    * ``HOST:PORT`` : for a network address
 
     .. versionadded:: 19.1
     """

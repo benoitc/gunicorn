@@ -420,7 +420,12 @@ environment variable ``PYTHONUNBUFFERED`` .
 
 **Default:** ``None``
 
-``host:port`` of the statsd server to log to.
+The address of the StatsD server to log to.
+
+Address is a string of the form:
+
+* ``unix://PATH`` : for a unix domain socket.
+* ``HOST:PORT`` : for a network address
 
 .. versionadded:: 19.1
 

@@ -318,6 +318,30 @@ def test_nworkers_changed():
     assert c.nworkers_changed(1, 2, 3) == 3
 
 
+def test_statsd_host():
+    c = config.Config()
+    assert c.statsd_host is None
+    c.set("statsd_host", "localhost")
+    assert c.statsd_host == ("localhost", 8125)
+    c.set("statsd_host", "statsd:7777")
+    assert c.statsd_host == ("statsd", 7777)
+    c.set("statsd_host", "unix:///path/to.sock")
+    assert c.statsd_host == "/path/to.sock"
+    pytest.raises(TypeError, c.set, "statsd_host", 666)
+    pytest.raises(TypeError, c.set, "statsd_host", "host:string")
+
+
+def test_statsd_host_with_unix_as_hostname():
+    # This is a regression test for major release 20. After this release
+    # we should consider modifying the behavior of util.parse_address to
+    # simplify gunicorn's code
+    c = config.Config()
+    c.set("statsd_host", "unix:7777")
+    assert c.statsd_host == ("unix", 7777)
+    c.set("statsd_host", "unix://some.socket")
+    assert c.statsd_host == "some.socket"
+
+
 def test_statsd_changes_logger():
     c = config.Config()
     assert c.logger_class == glogging.Logger

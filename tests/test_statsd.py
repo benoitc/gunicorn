@@ -59,6 +59,18 @@ def test_statsd_fail():
     logger.exception("No impact on logging")
 
 
+def test_statsd_host_initialization():
+    c = Config()
+    c.set('statsd_host', 'unix:test.sock')
+    logger = Statsd(c)
+    logger.info("Can be initialized and used with a UDS socket")
+
+    # Can be initialized and used with a UDP address
+    c.set('statsd_host', 'host:8080')
+    logger = Statsd(c)
+    logger.info("Can be initialized and used with a UDP socket")
+
+
 def test_dogstatsd_tags():
     c = Config()
     tags = 'yucatan,libertine:rhubarb'
