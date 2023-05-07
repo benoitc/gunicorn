@@ -218,6 +218,11 @@ class Application(BaseApplication):
             debug.spew()
 
         if self.cfg.daemon:
+            if os.environ.get('NOTIFY_SOCKET'):
+                msg = "Warning: you shouldn't specify `daemon = True`" \
+                      " when launching by systemd with `Type = notify`"
+                print(msg, file=sys.stderr, flush=True)
+
             util.daemonize(self.cfg.enable_stdio_inheritance)
 
         # set python paths
