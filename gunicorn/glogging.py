@@ -469,7 +469,7 @@ class Logger(object):
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
                     # b64decode returns a byte string
-                    auth.split(b":", 1)[0].decode(UTF-8", "replace")
+                    auth.split(b":", 1)[0].decode("UTF-8", "replace")
                 except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
                     return user
