@@ -313,12 +313,14 @@ class ThreadWorker(base.Worker):
     def handle_request(self, req, conn):
         environ = {}
         resp = None
+        want_log = False
         try:
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, conn.sock, conn.client,
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
+            want_log = True
             self.nr += 1
             if self.nr >= self.max_requests:
                 if self.alive:
@@ -340,8 +342,6 @@ class ThreadWorker(base.Worker):
                         resp.write(item)
 
                 resp.close()
-                request_time = datetime.now() - request_start
-                self.log.access(resp, req, environ, request_time)
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
@@ -363,8 +363,18 @@ class ThreadWorker(base.Worker):
                 except EnvironmentError:
                     pass
                 raise StopIteration()
-            raise
+            else:
+                # Don't log it here. The exception will be caught in handle()
+                # and a HTTP 500 response will be logged in handle_error().
+                want_log = False
+                raise
         finally:
+            if want_log:
+                try:
+                    request_time = datetime.now() - request_start
+                    self.log.access(resp, req, environ, request_time)
+                except Exception:
+                    self.log.exception("Error logging to access log")
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
