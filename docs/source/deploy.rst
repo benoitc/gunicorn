@@ -38,6 +38,22 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
   }
   ...
 
+If you want to ignore aborted requests like health check of Load Balancer, some
+of which close the connection without waiting for a response, you need to turn
+on `ignoring client abort`_.
+
+To ignore aborted requests, you only need to add
+``proxy_ignore_client_abort on;`` to your ``location`` block::
+
+    ...
+    proxy_ignore_client_abort on;
+    ...
+
+.. note::
+    The default value of ``proxy_ignore_client_abort`` is ``off``. Error code
+    499 may appear in Nginx log and ``Ignoring EPIPE`` may appear in Gunicorn
+    log if loglevel is set to ``debug``.
+
 It is recommended to pass protocol information to Gunicorn. Many web
 frameworks use this information to generate URLs. Without this
 information, the application may mistakenly generate 'http' URLs in
@@ -357,3 +373,4 @@ utility::
 .. _Virtualenv: https://pypi.python.org/pypi/virtualenv
 .. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/
 .. _Gaffer: https://gaffer.readthedocs.io/
+.. _`ignoring client abort`: http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_client_abort
