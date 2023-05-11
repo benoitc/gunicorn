@@ -554,6 +554,16 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 
 Whether client certificate is required (see stdlib ssl module's)
 
+**Options:** 
+
+`--cert-reqs=0` --- no client veirifcation
+
+`--cert-reqs=1` --- ssl.CERT_OPTIONAL
+
+`--cert-reqs=2` --- ssl.CERT_REQUIRED
+
+
+
 .. _ca-certs:
 
 ``ca_certs``

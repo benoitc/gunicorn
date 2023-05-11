@@ -2149,6 +2149,13 @@ class CertReqs(Setting):
     default = ssl.CERT_NONE
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
+    ==============  ===========================
+    `--cert-reqs=0` --- no client veirifcation
+
+    `--cert-reqs=1` --- ssl.CERT_OPTIONAL
+
+    `--cert-reqs=2` --- ssl.CERT_REQUIRED
+    ==============  ===========================
     """
 
 
