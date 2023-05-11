@@ -48,7 +48,9 @@ def format_settings(app):
 
 
 def fmt_setting(s):
-    if callable(s.default):
+    if hasattr(s, "default_doc"):
+        val = s.default_doc
+    elif callable(s.default):
         val = inspect.getsource(s.default)
         val = "\n".join("    %s" % line for line in val.splitlines())
         val = "\n\n.. code-block:: python\n\n" + val
