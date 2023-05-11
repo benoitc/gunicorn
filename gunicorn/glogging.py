@@ -204,7 +204,7 @@ class Logger(object):
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
 
-            self.logfile = open(cfg.errorlog, 'a+', encoding="utf-8")
+            self.logfile = open(cfg.errorlog, 'a+')
             os.dup2(self.logfile.fileno(), sys.stdout.fileno())
             os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
@@ -377,7 +377,7 @@ class Logger(object):
             with self.lock:
                 if self.logfile is not None:
                     self.logfile.close()
-                self.logfile = open(self.cfg.errorlog, 'a+', encoding="utf-8")
+                self.logfile = open(self.cfg.errorlog, 'a+')
                 os.dup2(self.logfile.fileno(), sys.stdout.fileno())
                 os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 

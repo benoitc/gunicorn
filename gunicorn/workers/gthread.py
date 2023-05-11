@@ -124,7 +124,7 @@ class ThreadWorker(base.Worker):
             conn = TConn(self.cfg, sock, client, server)
             # set timeout to ensure it will not be in the loop too long
             conn.set_timeout()
-            
+
             self.nr_conns += 1
             # wait until socket is readable
             with self._lock:
