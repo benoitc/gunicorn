@@ -21,6 +21,7 @@ import eventlet.wsgi
 import greenlet
 
 from gunicorn.workers.base_async import AsyncWorker
+from gunicorn.sock import ssl_wrap_socket
 
 # ALREADY_HANDLED is removed in 0.30.3+ now it's `WSGI_LOCAL.already_handled: bool`
 # https://github.com/eventlet/eventlet/pull/544
@@ -152,9 +153,7 @@ class EventletWorker(AsyncWorker):
 
     def handle(self, listener, client, addr):
         if self.cfg.is_ssl:
-            client = eventlet.wrap_ssl(client, server_side=True,
-                                       **self.cfg.ssl_options)
-
+            client = ssl_wrap_socket(client, self.cfg)
         super().handle(listener, client, addr)
 
     def run(self):

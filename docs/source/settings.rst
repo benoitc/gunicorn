@@ -320,8 +320,6 @@ The log config file written in JSON.
 ``logconfig_dict``
 ~~~~~~~~~~~~~~~~~~
 
-**Command line:** ``--log-config-dict``
-
 **Default:** ``{}``
 
 The log config dictionary to use, using the standard Python
@@ -343,7 +341,7 @@ For more context you can look at the default configuration dictionary for loggin
 
 **Command line:** ``--log-syslog-to SYSLOG_ADDR``
 
-**Default:** ``'unix:///var/run/syslog'``
+**Default:** ``'udp://localhost:514'``
 
 Address to send syslog messages.
 
@@ -932,6 +930,29 @@ Called just before exiting Gunicorn.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
+.. _ssl-context:
+
+``ssl_context``
+~~~~~~~~~~~~~~~
+
+**Default:** 
+
+.. code-block:: python
+
+        def ssl_context(config, default_ssl_context_factory):
+            return default_ssl_context_factory()
+
+Called when SSLContext is needed.
+
+Allows fully customized SSL context to be used in place of the default
+context.
+
+The callable needs to accept an instance variable for the Config and
+a factory function that returns default SSLContext which is initialized
+with certificates, private key, cert_reqs, and ciphers according to
+config and can be further customized by the callable.
+The callable needs to return SSLContext object.
+
 Server Mechanics
 ----------------
 
@@ -994,9 +1015,7 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 
 **Default:** ``'.'``
 
-Change directory to specified directory before loading apps. 
-
-Default is the current directory.
+Change directory to specified directory before loading apps.
 
 .. _daemon:
 
@@ -1157,9 +1176,15 @@ temporary directory.
 **Default:** ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
-uses to indicate HTTPS requests. These tell Gunicorn to set
+uses to indicate HTTPS requests. If the source IP is permitted by
+``forwarded-allow-ips`` (below), *and* at least one request header matches
+a key-value pair listed in this dictionary, then Gunicorn will set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
+
+If the other headers listed in this dictionary are not present in the request, they will be ignored,
+but if the other headers are present and do not match the provided values, then
+the request will fail to parse. See the note below for more detailed examples of this behaviour.
 
 The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
@@ -1187,6 +1212,68 @@ you still trust the environment).
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1"``.
+
+.. note::
+
+    The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
+    ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we 
+    have a request from the remote address 134.213.44.18, and the default value of ``secure_scheme_headers``:
+
+    .. code::
+
+        secure_scheme_headers = {
+            'X-FORWARDED-PROTOCOL': 'ssl',
+            'X-FORWARDED-PROTO': 'https',
+            'X-FORWARDED-SSL': 'on'
+        }
+
+
+    .. list-table:: 
+        :header-rows: 1
+        :align: center
+        :widths: auto
+
+        * - ``forwarded-allow-ips``
+          - Secure Request Headers
+          - Result
+          - Explanation
+        * - .. code:: 
+
+                ["127.0.0.1"]
+          - .. code::
+
+                X-Forwarded-Proto: https
+          - .. code:: 
+
+                wsgi.url_scheme = "http"
+          - IP address was not allowed
+        * - .. code:: 
+
+                "*"
+          - <none>
+          - .. code:: 
+
+                wsgi.url_scheme = "http"
+          - IP address allowed, but no secure headers provided
+        * - .. code:: 
+
+                "*"
+          - .. code::
+
+                X-Forwarded-Proto: https
+          - .. code:: 
+
+                wsgi.url_scheme = "https"
+          - IP address allowed, one request header matched
+        * - .. code:: 
+
+                ["134.213.44.18"]
+          - .. code::
+
+                X-Forwarded-Ssl: on
+                X-Forwarded-Proto: http
+          - ``InvalidSchemeHeaders()`` raised
+          - IP address allowed, but the two secure headers disagreed on if HTTPS was used
 
 .. _pythonpath:
 
@@ -1360,8 +1447,9 @@ A positive integer generally in the ``2-4 x $(NUM_CORES)`` range.
 You'll want to vary this a bit to find the best for your particular
 application's work load.
 
-By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-If it is not defined, the default is ``1``.
+By default, the value of the ``WEB_CONCURRENCY`` environment variable,
+which is set by some Platform-as-a-Service providers such as Heroku. If
+it is not defined, the default is ``1``.
 
 .. _worker-class:
 

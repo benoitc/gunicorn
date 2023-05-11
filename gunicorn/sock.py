@@ -6,6 +6,7 @@
 import errno
 import os
 import socket
+import ssl
 import stat
 import sys
 import time
@@ -203,10 +204,27 @@ def create_sockets(conf, log, fds=None):
 
     return listeners
 
-
 def close_sockets(listeners, unlink=True):
     for sock in listeners:
         sock_name = sock.getsockname()
         sock.close()
         if unlink and _sock_type(sock_name) is UnixSocket:
             os.unlink(sock_name)
+
+def ssl_context(conf):
+    def default_ssl_context_factory():
+        context = ssl.SSLContext(conf.ssl_version)
+        context.load_cert_chain(certfile=conf.certfile, keyfile=conf.keyfile)
+        context.verify_mode = conf.cert_reqs
+        if conf.ciphers:
+            context.set_ciphers(conf.ciphers)
+        if conf.ca_certs:
+            context.load_verify_locations(cafile=conf.ca_certs)
+        return context
+
+    return conf.ssl_context(conf, default_ssl_context_factory)
+
+def ssl_wrap_socket(sock, conf):
+    return ssl_context(conf).wrap_socket(sock, server_side=True,
+        suppress_ragged_eofs=conf.suppress_ragged_eofs,
+        do_handshake_on_connect=conf.do_handshake_on_connect)

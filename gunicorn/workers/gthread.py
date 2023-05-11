@@ -27,6 +27,7 @@ from threading import RLock
 from . import base
 from .. import http
 from .. import util
+from .. import sock
 from ..http import wsgi
 
 
@@ -52,8 +53,7 @@ class TConn(object):
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                self.sock = ssl.wrap_socket(self.sock, server_side=True,
-                                            **self.cfg.ssl_options)
+                self.sock = sock.ssl_wrap_socket(self.sock, self.cfg)
 
             # initialize the parser
             self.parser = http.RequestParser(self.cfg, self.sock, self.client)

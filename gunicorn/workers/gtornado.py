@@ -17,6 +17,7 @@ from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer
 from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
+from gunicorn.sock import ssl_context
 
 
 # Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many
@@ -140,16 +141,11 @@ class TornadoWorker(Worker):
             server_class = _HTTPServer
 
         if self.cfg.is_ssl:
-            _ssl_opt = copy.deepcopy(self.cfg.ssl_options)
-            # tornado refuses initialization if ssl_options contains following
-            # options
-            del _ssl_opt["do_handshake_on_connect"]
-            del _ssl_opt["suppress_ragged_eofs"]
             if TORNADO5:
-                server = server_class(app, ssl_options=_ssl_opt)
+                server = server_class(app, ssl_options=ssl_context(self.cfg))
             else:
                 server = server_class(app, io_loop=self.ioloop,
-                                      ssl_options=_ssl_opt)
+                                      ssl_options=ssl_context(self.cfg))
         else:
             if TORNADO5:
                 server = server_class(app)

@@ -24,6 +24,7 @@ from gevent import hub, monkey, socket, pywsgi
 
 import gunicorn
 from gunicorn.http.wsgi import base_environ
+from gunicorn.sock import ssl_context
 from gunicorn.workers.base_async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
@@ -58,7 +59,7 @@ class GeventWorker(AsyncWorker):
         ssl_args = {}
 
         if self.cfg.is_ssl:
-            ssl_args = dict(server_side=True, **self.cfg.ssl_options)
+            ssl_args = dict(ssl_context=ssl_context(self.cfg))
 
         for s in self.sockets:
             s.setblocking(1)

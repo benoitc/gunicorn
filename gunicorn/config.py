@@ -1523,6 +1523,8 @@ class LogConfigDict(Setting):
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
+    For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
+
     .. versionadded:: 19.8
     """
 
@@ -2004,6 +2006,28 @@ class OnExit(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+class NewSSLContext(Setting):
+    name = "ssl_context"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = callable
+
+    def ssl_context(config, default_ssl_context_factory):
+        return default_ssl_context_factory()
+
+    default = staticmethod(ssl_context)
+    desc = """\
+        Called when SSLContext is needed.
+
+        Allows fully customized SSL context to be used in place of the default
+        context.
+
+        The callable needs to accept an instance variable for the Config and
+        a factory function that returns default SSLContext which is initialized
+        with certificates, private key, cert_reqs, and ciphers according to
+        config and can be further customized by the callable.
+        The callable needs to return SSLContext object.
+        """
 
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
