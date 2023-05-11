@@ -109,17 +109,15 @@ class AsyncWorker(base.Worker):
             if self.is_already_handled(respiter):
                 return False
             try:
-                try:
-                    if isinstance(respiter, environ['wsgi.file_wrapper']):
-                        resp.write_file(respiter)
-                    else:
-                        for item in respiter:
-                            resp.write(item)
-                    resp.close()
-                finally:
-                    request_time = datetime.now() - request_start
-                    self.log.access(resp, req, environ, request_time)
+                if isinstance(respiter, environ['wsgi.file_wrapper']):
+                    resp.write_file(respiter)
+                else:
+                    for item in respiter:
+                        resp.write(item)
+                resp.close()
             finally:
+                request_time = datetime.now() - request_start
+                self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()
             if resp.should_close():
