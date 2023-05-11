@@ -111,7 +111,7 @@ class TornadoWorker(Worker):
                     isinstance(app, tornado.wsgi.WSGIApplication):
                 app = WSGIContainer(app)
         elif not isinstance(app, WSGIContainer) and \
-        not isinstance(app, tornado.web.Application):
+                not isinstance(app, tornado.web.Application):
             app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the
