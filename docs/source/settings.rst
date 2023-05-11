@@ -32,7 +32,7 @@ Config File
 
 **Default:** ``'./gunicorn.conf.py'``
 
-The Gunicorn config file.
+:ref:`The Gunicorn config file<configuration_file>`.
 
 A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
@@ -305,16 +305,6 @@ The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
 
-.. _logconfig-json:
-
-logiconfig_json
-~~~~~~~~~
-
-* ``--log-config-json FILE``
-* ``None``
-
-The log config file written in JSON.
-
 .. _logconfig-dict:
 
 ``logconfig_dict``
@@ -324,15 +314,30 @@ The log config file written in JSON.
 
 The log config dictionary to use, using the standard Python
 logging module's dictionary configuration format. This option
-takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options, which uses the
-older file configuration format and JSON respectively.
-
+takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+which uses the older file configuration format and JSON
+respectively.
 
 Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
 For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
 
 .. versionadded:: 19.8
+
+.. _logconfig-json:
+
+``logconfig_json``
+~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--log-config-json FILE``
+
+**Default:** ``None``
+
+The log config to read config from a JSON file
+
+Format: https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig
+
+.. versionadded:: 20.0
 
 .. _syslog-addr:
 
@@ -519,7 +524,10 @@ SSL certificate file
 
 **Default:** ``<_SSLMethod.PROTOCOL_TLS: 2>``
 
-SSL version to use.
+SSL version to use (see stdlib ssl module's).
+
+.. deprecated:: 20.2
+   The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
 ============= ============
 --ssl-version Description
@@ -542,6 +550,9 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 .. versionchanged:: 20.0
    This setting now accepts string names based on ``ssl.PROTOCOL_``
    constants.
+.. versionchanged:: 20.0.1
+   The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+   ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
 
 .. _cert-reqs:
 
@@ -554,15 +565,13 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 
 Whether client certificate is required (see stdlib ssl module's)
 
-**Options:** 
-
-`--cert-reqs=0` --- no client veirifcation
-
-`--cert-reqs=1` --- ssl.CERT_OPTIONAL
-
-`--cert-reqs=2` --- ssl.CERT_REQUIRED
-
-
+===========  ===========================
+--cert-reqs      Description
+===========  ===========================
+`0`          no client veirifcation
+`1`          ssl.CERT_OPTIONAL
+`2`          ssl.CERT_REQUIRED
+===========  ===========================
 
 .. _ca-certs:
 
@@ -954,14 +963,25 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 Called when SSLContext is needed.
 
-Allows fully customized SSL context to be used in place of the default
-context.
+Allows customizing SSL context.
 
 The callable needs to accept an instance variable for the Config and
 a factory function that returns default SSLContext which is initialized
 with certificates, private key, cert_reqs, and ciphers according to
 config and can be further customized by the callable.
 The callable needs to return SSLContext object.
+
+Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+.. code-block:: python
+
+    def ssl_context(conf, default_ssl_context_factory):
+        import ssl
+        context = default_ssl_context_factory()
+        context.minimum_version = ssl.TLSVersion.TLSv1_3
+        return context
+
+.. versionadded:: 20.2
 
 Server Mechanics
 ----------------
@@ -1107,7 +1127,7 @@ If not set, the default temporary directory will be used.
 
 **Command line:** ``-u USER`` or ``--user USER``
 
-**Default:** ``501``
+**Default:** ``os.geteuid()``
 
 Switch worker processes to run as this user.
 
@@ -1122,7 +1142,7 @@ change the worker process user.
 
 **Command line:** ``-g GROUP`` or ``--group GROUP``
 
-**Default:** ``20``
+**Default:** ``os.getegid()``
 
 Switch worker process to run as this group.
 
@@ -1226,8 +1246,9 @@ variable. If it is not defined, the default is ``"127.0.0.1"``.
 .. note::
 
     The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
-    ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate. In each case, we 
-    have a request from the remote address 134.213.44.18, and the default value of ``secure_scheme_headers``:
+    ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate.
+    In each case, we have a request from the remote address 134.213.44.18, and the default value of
+    ``secure_scheme_headers``:
 
     .. code::
 
@@ -1238,7 +1259,7 @@ variable. If it is not defined, the default is ``"127.0.0.1"``.
         }
 
 
-    .. list-table:: 
+    .. list-table::
         :header-rows: 1
         :align: center
         :widths: auto
@@ -1247,35 +1268,35 @@ variable. If it is not defined, the default is ``"127.0.0.1"``.
           - Secure Request Headers
           - Result
           - Explanation
-        * - .. code:: 
+        * - .. code::
 
                 ["127.0.0.1"]
           - .. code::
 
                 X-Forwarded-Proto: https
-          - .. code:: 
+          - .. code::
 
                 wsgi.url_scheme = "http"
           - IP address was not allowed
-        * - .. code:: 
+        * - .. code::
 
                 "*"
           - <none>
-          - .. code:: 
+          - .. code::
 
                 wsgi.url_scheme = "http"
           - IP address allowed, but no secure headers provided
-        * - .. code:: 
+        * - .. code::
 
                 "*"
           - .. code::
 
                 X-Forwarded-Proto: https
-          - .. code:: 
+          - .. code::
 
                 wsgi.url_scheme = "https"
           - IP address allowed, one request header matched
-        * - .. code:: 
+        * - .. code::
 
                 ["134.213.44.18"]
           - .. code::

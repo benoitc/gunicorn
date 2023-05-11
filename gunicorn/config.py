@@ -364,25 +364,9 @@ def validate_pos_int(val):
 
 
 def validate_ssl_version(val):
-    ssl_versions = {}
-    for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
-        ssl_versions[protocol[9:]] = getattr(ssl, protocol)
-    if val in ssl_versions:
-        # string matching PROTOCOL_...
-        return ssl_versions[val]
-
-    try:
-        intval = validate_pos_int(val)
-        if intval in ssl_versions.values():
-            # positive int matching a protocol int constant
-            return intval
-    except (ValueError, TypeError):
-        # negative integer or not an integer
-        # drop this in favour of the more descriptive ValueError below
-        pass
-
-    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
-                     % (val, ', '.join(ssl_versions)))
+    if val != SSLVersion.default:
+        sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
+    return val
 
 
 def validate_string(val):
@@ -736,7 +720,7 @@ class WorkerConnections(Setting):
     desc = """\
         The maximum number of simultaneous clients.
 
-        This setting only affects the Eventlet and Gevent worker types.
+        This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
         """
 
 
@@ -1066,6 +1050,7 @@ class Chdir(Setting):
     cli = ["--chdir"]
     validator = validate_chdir
     default = util.getcwd()
+    default_doc = "``'.'``"
     desc = """\
         Change directory to specified directory before loading apps.
         """
@@ -1157,6 +1142,7 @@ class User(Setting):
     meta = "USER"
     validator = validate_user
     default = os.geteuid()
+    default_doc = "``os.geteuid()``"
     desc = """\
         Switch worker processes to run as this user.
 
@@ -1173,6 +1159,7 @@ class Group(Setting):
     meta = "GROUP"
     validator = validate_group
     default = os.getegid()
+    default_doc = "``os.getegid()``"
     desc = """\
         Switch worker process to run as this group.
 
@@ -2019,14 +2006,25 @@ class NewSSLContext(Setting):
     desc = """\
         Called when SSLContext is needed.
 
-        Allows fully customized SSL context to be used in place of the default
-        context.
+        Allows customizing SSL context.
 
         The callable needs to accept an instance variable for the Config and
         a factory function that returns default SSLContext which is initialized
         with certificates, private key, cert_reqs, and ciphers according to
         config and can be further customized by the callable.
         The callable needs to return SSLContext object.
+
+        Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+        .. code-block:: python
+
+            def ssl_context(conf, default_ssl_context_factory):
+                import ssl
+                context = default_ssl_context_factory()
+                context.minimum_version = ssl.TLSVersion.TLSv1_3
+                return context
+
+        .. versionadded:: 20.2
         """
 
 class ProxyProtocol(Setting):
@@ -2105,17 +2103,12 @@ class SSLVersion(Setting):
     else:
         default = ssl.PROTOCOL_SSLv23
 
-    desc = """\
-    SSL version to use (see stdlib ssl module's)
-
-    .. versionchanged:: 20.0.1
-       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
-       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
-
-    """
     default = ssl.PROTOCOL_SSLv23
     desc = """\
-    SSL version to use.
+    SSL version to use (see stdlib ssl module's).
+
+    .. deprecated:: 20.2
+       The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
     ============= ============
     --ssl-version Description
@@ -2138,6 +2131,9 @@ class SSLVersion(Setting):
     .. versionchanged:: 20.0
        This setting now accepts string names based on ``ssl.PROTOCOL_``
        constants.
+    .. versionchanged:: 20.0.1
+       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
     """
 
 
@@ -2149,13 +2145,14 @@ class CertReqs(Setting):
     default = ssl.CERT_NONE
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
-    ==============  ===========================
-    `--cert-reqs=0` --- no client veirifcation
 
-    `--cert-reqs=1` --- ssl.CERT_OPTIONAL
-
-    `--cert-reqs=2` --- ssl.CERT_REQUIRED
-    ==============  ===========================
+    ===========  ===========================
+    --cert-reqs      Description
+    ===========  ===========================
+    `0`          no client veirifcation
+    `1`          ssl.CERT_OPTIONAL
+    `2`          ssl.CERT_REQUIRED
+    ===========  ===========================
     """
 
 

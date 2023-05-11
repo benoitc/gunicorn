@@ -32,14 +32,6 @@ def test_certfile():
     assert CertFile.default is None
 
 
-def test_ssl_version():
-    assert issubclass(SSLVersion, Setting)
-    assert SSLVersion.name == 'ssl_version'
-    assert SSLVersion.section == 'SSL'
-    assert SSLVersion.cli == ['--ssl-version']
-    assert SSLVersion.default == ssl.PROTOCOL_SSLv23
-
-
 def test_cacerts():
     assert issubclass(CACerts, Setting)
     assert CACerts.name == 'ca_certs'
