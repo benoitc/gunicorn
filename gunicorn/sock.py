@@ -226,7 +226,7 @@ def ssl_context(conf):
 
 
 def ssl_wrap_socket(sock, conf):
-    return ssl_context(conf).wrap_socket(sock, 
+    return ssl_context(conf).wrap_socket(sock,
                                          server_side=True,
                                          suppress_ragged_eofs=conf.suppress_ragged_eofs,
                                          do_handshake_on_connect=conf.do_handshake_on_connect)
