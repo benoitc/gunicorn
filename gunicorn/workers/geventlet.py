@@ -11,7 +11,7 @@ try:
 except ImportError:
     raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
 else:
-    from pkg_resources import parse_version
+    from packaging.version import parse as parse_version
     if parse_version(eventlet.__version__) < parse_version('0.24.1'):
         raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
 
