@@ -183,9 +183,9 @@ class SyncWorker(base.Worker):
                     for item in respiter:
                         resp.write(item)
                 resp.close()
+            finally:
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-            finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
         except EnvironmentError:
