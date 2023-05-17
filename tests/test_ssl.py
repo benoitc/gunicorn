@@ -8,7 +8,7 @@
 import pytest
 
 from gunicorn.config import (
-    KeyFile, CertFile, SSLVersion, CACerts, SuppressRaggedEOFs,
+    KeyFile, CertFile, CACerts, SuppressRaggedEOFs,
     DoHandshakeOnConnect, Setting, Ciphers,
 )
 

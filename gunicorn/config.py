@@ -1510,7 +1510,8 @@ class LogConfigDict(Setting):
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
-    For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
+    For more context you can look at the default configuration dictionary for logging,
+    which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
 
     .. versionadded:: 19.8
     """
@@ -1993,6 +1994,7 @@ class OnExit(Setting):
         The callable needs to accept a single instance variable for the Arbiter.
         """
 
+
 class NewSSLContext(Setting):
     name = "ssl_context"
     section = "Server Hooks"
@@ -2026,6 +2028,7 @@ class NewSSLContext(Setting):
 
         .. versionadded:: 20.2
         """
+
 
 class ProxyProtocol(Setting):
     name = "proxy_protocol"

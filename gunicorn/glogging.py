@@ -45,12 +45,11 @@ SYSLOG_FACILITIES = {
     "local7": 23
 }
 
-CONFIG_DEFAULTS = dict(
-    version=1,
-    disable_existing_loggers=False,
-
-    root={"level": "INFO", "handlers": ["console"]},
-    loggers={
+CONFIG_DEFAULTS = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
         "gunicorn.error": {
             "level": "INFO",
             "handlers": ["error_console"],
@@ -65,7 +64,7 @@ CONFIG_DEFAULTS = dict(
             "qualname": "gunicorn.access"
         }
     },
-    handlers={
+    "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "generic",
@@ -77,14 +76,14 @@ CONFIG_DEFAULTS = dict(
             "stream": "ext://sys.stderr"
         },
     },
-    formatters={
+    "formatters": {
         "generic": {
             "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
             "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
             "class": "logging.Formatter"
         }
     }
-)
+}
 
 
 def loggers():
@@ -418,7 +417,7 @@ class Logger(object):
             if output == "-":
                 h = logging.StreamHandler(stream)
             else:
-                util.check_is_writeable(output)
+                util.check_is_writable(output)
                 h = logging.FileHandler(output)
                 # make sure the user can reopen the file
                 try:

@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import copy
 import os
 import sys
 
@@ -112,7 +111,7 @@ class TornadoWorker(Worker):
                     isinstance(app, tornado.wsgi.WSGIApplication):
                 app = WSGIContainer(app)
         elif not isinstance(app, WSGIContainer) and \
-        not isinstance(app, tornado.web.Application):
+                not isinstance(app, tornado.web.Application):
             app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the
