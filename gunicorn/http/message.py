@@ -249,11 +249,9 @@ class Request(Message):
         return result
 
     def proxy_protocol(self, unreader, buffer):
-        """\
-        Detect, check and parse proxy protocol.
+        """Detect, check and parse proxy protocol.
 
         :raises: ForbiddenProxyRequest, InvalidProxyLine.
-        :return: True for proxy protocol line else False
         """
         if not self.cfg.proxy_protocol:
             return
