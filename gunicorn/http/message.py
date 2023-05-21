@@ -6,6 +6,7 @@ import ipaddress
 import re
 import socket
 import struct
+from enum import IntEnum
 
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
 from gunicorn.http.errors import (
@@ -24,6 +25,21 @@ DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 HEADER_RE = re.compile(r"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\"]")
 METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
+
+
+class PPCommand(IntEnum):
+    LOCAL = 0x00
+    PROXY = 0x01
+
+
+class PPProtocol(IntEnum):
+    UNSPEC = 0x00
+    TCPv4 = 0x11
+    UDPv4 = 0x12
+    TCPv6 = 0x21
+    UDPv6 = 0x22
+    STREAM_UNIX = 0x31
+    DGRAM_UNIX = 0x32
 
 
 class Message(object):
@@ -333,18 +349,18 @@ class Request(Message):
         ver_cmd, fam, length = struct.unpack("!BBH", data)
         if ver_cmd & 0xF0 != 0x20:
             raise InvalidProxyHeader("invalid version %r" % data)
-        if ver_cmd & 0xF not in {0x00, 0x01}:
+        if ver_cmd & 0xF not in {PPCommand.LOCAL, PPCommand.PROXY}:
             raise InvalidProxyHeader("unsupported command %r" % data)
 
         body = self.read_bytes(unreader, buffer, length)
-        if ver_cmd & 0xF == 0x00:
+        if ver_cmd & 0xF == PPCommand.LOCAL:
             return  # LOCAL command, do not change source addr
 
-        if fam == 0x11:  # TCPv4
+        if fam == PPProtocol.TCPv4:
             proto = "TCP4"
             fmt = "!IIHH"
             ip_class = ipaddress.IPv4Address
-        elif fam == 0x21:  # TCPv6
+        elif fam == PPProtocol.TCPv6:
             proto = "TCP6"
             fmt = "!16s16sHH"
             ip_class = ipaddress.IPv6Address
