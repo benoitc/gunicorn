@@ -173,6 +173,7 @@ class EventletWorker(AsyncWorker):
             eventlet.sleep(1.0)
 
         self.notify()
+        t = None
         try:
             with eventlet.Timeout(self.cfg.graceful_timeout) as t:
                 for a in acceptors:

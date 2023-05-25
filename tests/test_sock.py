@@ -3,7 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import unittest.mock as mock
+from unittest import mock
 
 from gunicorn import sock
 

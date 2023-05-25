@@ -12,7 +12,6 @@ ignore=
 
 disable=
     attribute-defined-outside-init,
-    bad-continuation,
     bad-mcs-classmethod-argument,
     bare-except,
     broad-except,
@@ -25,12 +24,10 @@ disable=
     import-self,
     inconsistent-return-statements,
     invalid-name,
-    misplaced-comparison-constant,
     missing-docstring,
     no-else-return,
     no-member,
     no-self-argument,
-    no-self-use,
     no-staticmethod-decorator,
     not-callable,
     protected-access,
@@ -53,3 +50,6 @@ disable=
     useless-import-alias,
     comparison-with-callable,
     try-except-raise,
+    consider-using-with,
+    consider-using-f-string,
+    unspecified-encoding
