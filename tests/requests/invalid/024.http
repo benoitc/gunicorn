@@ -1,0 +1,3 @@
+GET /first HTTP/1.0\r\n
+Content-Length: +1\r\n
+\r\n
