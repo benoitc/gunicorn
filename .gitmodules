@@ -1,0 +1,3 @@
+[submodule "examples/ourapp"]
+	path = examples/ourapp
+	url = https://github.com/ayushsquad/gunicorn-flask-example
