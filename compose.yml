@@ -1,0 +1,27 @@
+version: "3.7"
+#https://github.com/compose-spec/compose-spec/blob/master/spec.md#using-extensions-as-fragments
+x-logging: &default-logging
+  options:
+    awslogs-region: ap-south-1
+    awslogs-create-group: 'true'
+    awslogs-group: grafana-logs
+    tag: '{{ with split .ImageName ":" }}{{join . "_"}}{{end}}-{{.ID}}'
+  driver: awslogs
+services:
+  grafana:
+    build:
+      dockerfile: Dockerfile
+    logging: *default-logging
+    ports:
+      - 3001:3000
+    volumes:
+      - /home/ubuntu/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - grafana-data:/var/lib/grafana
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=precinct-brazil
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=michelin-snowflake-datasource
+
+volumes:
+  grafana-data:

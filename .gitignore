@@ -1,4 +1,5 @@
 *.egg
+*.eggs
 *.egg-info
 *.pyc
 *.so
@@ -15,3 +16,6 @@ examples/frameworks/pylonstest/pylonstest.egg-info/
 MANIFEST
 nohup.out
 setuptools-*
+
+.idea/
+.vscode
