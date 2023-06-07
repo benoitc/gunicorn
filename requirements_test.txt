@@ -4,4 +4,3 @@ eventlet
 coverage
 pytest
 pytest-cov
-psutil
