@@ -34,11 +34,11 @@ class SyncWorker(base.Worker):
     def wait(self, timeout):
         try:
             self.notify()
-            ret = select.select(self.wait_fds, [], [], timeout)
-            if ret[0]:
-                if self.PIPE[0] in ret[0]:
+            events = self.poller.poll(timeout)
+            if len(events) > 0:
+                if any(self.PIPE[0] == fd for fd, _ in events):
                     os.read(self.PIPE[0], 1)
-                return ret[0]
+                return events
 
         except select.error as e:
             if e.args[0] == errno.EINTR:

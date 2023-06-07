@@ -6,9 +6,11 @@
 import io
 import os
 import signal
+import selectors
 import sys
 import time
 import traceback
+import select
 from datetime import datetime
 from random import randint
 from ssl import SSLError
@@ -62,6 +64,7 @@ class Worker(object):
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
+        self.poller = select.poll()
 
     def __str__(self):
         return "<Worker %s>" % self.pid
@@ -112,6 +115,9 @@ class Worker(object):
         util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
+
+        for fd in self.wait_fds:
+            self.poller.register(fd, selectors.EVENT_READ)
 
         self.log.close_on_exec()
 
