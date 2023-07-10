@@ -139,7 +139,10 @@ class Message(object):
             self.body = Body(ChunkedReader(self, self.unreader))
         elif content_length is not None:
             try:
-                content_length = int(content_length)
+                if str(content_length).isnumeric():
+                    content_length = int(content_length)
+                else:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
             except ValueError:
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
 
