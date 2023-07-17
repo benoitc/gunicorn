@@ -24,7 +24,7 @@ import warnings
 
 try:
     import importlib.metadata as importlib_metadata
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     import importlib_metadata
 
 from gunicorn.errors import AppImportError
