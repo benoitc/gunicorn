@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest] # All OSes pass except Windows because tests need Unix-only fcntl, grp, pwd, etc.
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "pypy-3.7", "pypy-3.8" ]
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "pypy-3.8" ]
     steps:
       - uses: actions/checkout@v3
       - name: Using Python ${{ matrix.python-version }}
