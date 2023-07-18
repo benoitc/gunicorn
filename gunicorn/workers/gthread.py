@@ -180,6 +180,9 @@ class ThreadWorker(base.Worker):
                     except KeyError:
                         # already removed by the system, continue
                         pass
+                    except ValueError:
+                        # already removed by the system continue
+                        pass
 
                 # close the socket
                 conn.close()
