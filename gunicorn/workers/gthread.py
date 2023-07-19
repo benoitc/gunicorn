@@ -174,6 +174,12 @@ class ThreadWorker(base.Worker):
                     except EnvironmentError as e:
                         if e.errno != errno.EBADF:
                             raise
+                    except ValueError as e:
+                        # fd is already -1
+                        if conn.sock.fileno() < 0:
+                            pass
+                        else:
+                            raise e                           
                     except KeyError:
                         # already removed by the system, continue
                         pass
@@ -278,13 +284,13 @@ class ThreadWorker(base.Worker):
             if not req:
                 return (False, conn)
 
-            # handle the request
-            keepalive = self.handle_request(req, conn)
+            # handle the request if socket file descriptor is not -1
+            if conn.sock.fileno() >= 0:
+                keepalive = self.handle_request(req, conn)
             if keepalive:
                 return (keepalive, conn)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
-
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except ssl.SSLError as e:
@@ -349,9 +355,12 @@ class ThreadWorker(base.Worker):
             if resp.should_close():
                 self.log.debug("Closing connection.")
                 return False
-        except EnvironmentError:
-            # pass to next try-except level
-            util.reraise(*sys.exc_info())
+        except EnvironmentError as e:
+            if conn.sock.fileno() < 0:
+                pass
+            else:
+                # pass to next try-except level
+                util.reraise(*sys.exc_info())
         except Exception:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
