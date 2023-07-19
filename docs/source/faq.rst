@@ -43,13 +43,15 @@ in tools like ``ps`` and ``top``. This helps for distinguishing the master
 process as well as between masters when running more than one app on a single
 machine. See the proc_name_ setting for more information.
 
-Why is there no HTTP Keep-Alive?
---------------------------------
+Why is there no HTTP Keep-Alive header?
+---------------------------------------
 
-The default Sync workers are designed to run behind Nginx which only uses
-HTTP/1.0 with its upstream servers. If you want to deploy Gunicorn to
-handle unbuffered requests (ie, serving requests directly from the internet)
-you should use one of the async workers.
+You need to enable Keep-Alive support in both gunicorn and your load balancer.
+To enable Keep-Alive support in gunicorn you must use an async worker class,
+which is any of the worker classes that aren't the default sync class. To
+enable Keep-Alive with nginx you must enable its HTTP 1.1 support. Add
+``proxy_http_version 1.1;`` to your nginx configuration to enable HTTP 1.1
+proxy requests.
 
 .. _Hey: https://github.com/rakyll/hey
 .. _setproctitle: https://pypi.python.org/pypi/setproctitle
