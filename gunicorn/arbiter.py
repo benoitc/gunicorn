@@ -100,6 +100,7 @@ class Arbiter(object):
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.timeout = self.cfg.timeout
+        self.boot_timeout = self.cfg.boot_timeout
         self.proc_name = self.cfg.proc_name
 
         self.log.debug('Current configuration:\n{0}'.format(
@@ -490,12 +491,21 @@ class Arbiter(object):
         """\
         Kill unused/idle workers
         """
-        if not self.timeout:
+        if not self.timeout and not self.boot_timeout:
             return
         workers = list(self.WORKERS.items())
         for (pid, worker) in workers:
             try:
-                if time.time() - worker.tmp.last_update() <= self.timeout:
+                timeout = None
+                if worker.tmp.has_updated():
+                    timeout = self.timeout
+                else:
+                    timeout = self.boot_timeout or self.timeout
+
+                time_since_update = time.time() - worker.tmp.last_update()
+                timed_out = timeout and time_since_update > timeout
+
+                if not timed_out:
                     continue
             except (OSError, ValueError):
                 continue

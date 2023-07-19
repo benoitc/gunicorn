@@ -39,6 +39,7 @@ class WorkerTmp(object):
             os.close(fd)
             raise
 
+        self.initial_ctime = os.fstat(self._tmp.fileno()).st_ctime
         self.spinner = 0
 
     def notify(self):
@@ -47,6 +48,9 @@ class WorkerTmp(object):
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_ctime
+
+    def has_updated(self):
+        return os.fstat(self._tmp.fileno()).st_ctime > self.initial_ctime
 
     def fileno(self):
         return self._tmp.fileno()
