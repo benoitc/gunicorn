@@ -122,13 +122,10 @@ class ThreadWorker(base.Worker):
             sock, client = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, sock, client, server)
-            # set timeout to ensure it will not be in the loop too long
-            conn.set_timeout()
 
             self.nr_conns += 1
             # wait until socket is readable
             with self._lock:
-                self._keep.append(conn)
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_client_socket_readable, conn))
         except EnvironmentError as e:
