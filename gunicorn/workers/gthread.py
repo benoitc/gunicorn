@@ -118,6 +118,9 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
+        if not self.alive:
+            return
+
         try:
             sock, client = listener.accept()
             # initialize the connection object
