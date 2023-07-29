@@ -118,8 +118,13 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
-        if not self.alive:
+        if self.nr > self.max_requests:
+            if self.alive:
+                self.log.info("Autorestarting worker after current request.")
+                self.alive = False
             return
+
+        self.nr += 1
 
         try:
             sock, client = listener.accept()
@@ -325,12 +330,6 @@ class ThreadWorker(base.Worker):
             resp, environ = wsgi.create(req, conn.sock, conn.client,
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
-            self.nr += 1
-            if self.nr >= self.max_requests:
-                if self.alive:
-                    self.log.info("Autorestarting worker after current request.")
-                    self.alive = False
-                resp.force_close()
 
             if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
