@@ -332,12 +332,9 @@ class ThreadWorker(base.Worker):
             self.nr += 1
 
             # do not restart until we've handled every accepted request
-            if self.nr_accepted == self.nr:
-                if self.nr >= self.max_requests:
-                    if self.alive:
-                        self.log.info("Autorestarting worker after current request.")
-                        self.alive = False
-                    resp.force_close()
+            if self.alive and self.nr_accepted == self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                self.alive = False
 
             if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
