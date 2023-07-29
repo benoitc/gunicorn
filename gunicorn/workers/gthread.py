@@ -79,6 +79,7 @@ class ThreadWorker(base.Worker):
         self.futures = deque()
         self._keep = deque()
         self.nr_conns = 0
+        self.nr_accepted = 0
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -118,7 +119,8 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
-        if not self.alive:
+        # check whether we can accept more connections
+        if self.nr_accepted >= self.max_requests:
             return
 
         try:
@@ -128,12 +130,8 @@ class ThreadWorker(base.Worker):
             # set timeout to ensure it will not be in the loop too long
             conn.set_timeout()
 
-            self.nr += 1
+            self.nr_accepted += 1
             self.nr_conns += 1
-
-            if self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
-                self.alive = False
 
             # wait until socket is readable
             with self._lock:
@@ -331,6 +329,15 @@ class ThreadWorker(base.Worker):
             resp, environ = wsgi.create(req, conn.sock, conn.client,
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
+            self.nr += 1
+
+            # do not restart until we've handled every accepted request
+            if self.nr_accepted == self.nr:
+                if self.nr >= self.max_requests:
+                    if self.alive:
+                        self.log.info("Autorestarting worker after current request.")
+                        self.alive = False
+                    resp.force_close()
 
             if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
