@@ -118,13 +118,8 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
-        if self.nr > self.max_requests:
-            if self.alive:
-                self.log.info("Autorestarting worker after current request.")
-                self.alive = False
+        if not self.alive:
             return
-
-        self.nr += 1
 
         try:
             sock, client = listener.accept()
@@ -133,7 +128,13 @@ class ThreadWorker(base.Worker):
             # set timeout to ensure it will not be in the loop too long
             conn.set_timeout()
 
+            self.nr += 1
             self.nr_conns += 1
+
+            if self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                self.alive = False
+
             # wait until socket is readable
             with self._lock:
                 self._keep.append(conn)
