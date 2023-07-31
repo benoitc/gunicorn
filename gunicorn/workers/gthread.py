@@ -74,12 +74,12 @@ class ThreadWorker(base.Worker):
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
         self.tpool = None
-        self.poller = None
+        self.poller = None # accept() when listener is readable
+        self.reader = None # recv() when connection is readable
         self._lock = None
         self.futures = deque()
         self._keep = deque()
         self.nr_conns = 0
-        self.nr_accepted = 0
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -92,6 +92,7 @@ class ThreadWorker(base.Worker):
     def init_process(self):
         self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
+        self.reader = selectors.DefaultSelector()
         self._lock = RLock()
         super().init_process()
 
@@ -119,24 +120,15 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
-        # check whether we can accept more connections
-        if self.nr_accepted >= self.max_requests:
-            return
-
         try:
             sock, client = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, sock, client, server)
-            # set timeout to ensure it will not be in the loop too long
-            conn.set_timeout()
 
-            self.nr_accepted += 1
             self.nr_conns += 1
-
             # wait until socket is readable
             with self._lock:
-                self._keep.append(conn)
-                self.poller.register(conn.sock, selectors.EVENT_READ,
+                self.reader.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_client_socket_readable, conn))
         except EnvironmentError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
@@ -145,8 +137,8 @@ class ThreadWorker(base.Worker):
 
     def on_client_socket_readable(self, conn, client):
         with self._lock:
-            # unregister the client from the poller
-            self.poller.unregister(client)
+            # unregister the client from the reader
+            self.reader.unregister(client)
 
             if conn.initialized:
                 # remove the connection from keepalive
@@ -177,10 +169,10 @@ class ThreadWorker(base.Worker):
                 break
             else:
                 self.nr_conns -= 1
-                # remove the socket from the poller
+                # remove the socket from the reader
                 with self._lock:
                     try:
-                        self.poller.unregister(conn.sock)
+                        self.reader.unregister(conn.sock)
                     except EnvironmentError as e:
                         if e.errno != errno.EBADF:
                             raise
@@ -202,7 +194,7 @@ class ThreadWorker(base.Worker):
         return True
 
     def run(self):
-        # init listeners, add them to the event loop
+        # init listeners, add them to the poller event loop
         for sock in self.sockets:
             sock.setblocking(False)
             # a race condition during graceful shutdown may make the listener
@@ -215,7 +207,7 @@ class ThreadWorker(base.Worker):
             # notify the arbiter we are alive
             self.notify()
 
-            # can we accept more connections?
+            # accept new connections until we reach the limit
             if self.nr_conns < self.worker_connections:
                 # wait for an event
                 events = self.poller.select(1.0)
@@ -223,13 +215,15 @@ class ThreadWorker(base.Worker):
                     callback = key.data
                     callback(key.fileobj)
 
-                # check (but do not wait) for finished requests
-                result = futures.wait(self.futures, timeout=0,
-                                      return_when=futures.FIRST_COMPLETED)
-            else:
-                # wait for a request to finish
-                result = futures.wait(self.futures, timeout=1.0,
-                                      return_when=futures.FIRST_COMPLETED)
+            # handle connections that are currently readable
+            events = self.reader.select(0)
+            for key, _ in events:
+                callback = key.data
+                callback(key.fileobj)
+
+            # check (but do not wait) for finished requests
+            result = futures.wait(self.futures, timeout=0,
+                                  return_when=futures.FIRST_COMPLETED)
 
             # clean up finished requests
             for fut in result.done:
@@ -243,6 +237,7 @@ class ThreadWorker(base.Worker):
 
         self.tpool.shutdown(False)
         self.poller.close()
+        self.reader.close()
 
         for s in self.sockets:
             s.close()
@@ -268,8 +263,8 @@ class ThreadWorker(base.Worker):
                 with self._lock:
                     self._keep.append(conn)
 
-                    # add the socket to the event loop
-                    self.poller.register(conn.sock, selectors.EVENT_READ,
+                    # add the socket to the reader event loop
+                    self.reader.register(conn.sock, selectors.EVENT_READ,
                                          partial(self.on_client_socket_readable, conn))
             else:
                 self.nr_conns -= 1
@@ -330,11 +325,11 @@ class ThreadWorker(base.Worker):
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-
-            # do not restart until we've handled every accepted request
-            if self.alive and self.nr_accepted == self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
-                self.alive = False
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
+                resp.force_close()
 
             if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
