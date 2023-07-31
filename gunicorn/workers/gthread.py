@@ -74,8 +74,8 @@ class ThreadWorker(base.Worker):
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
         self.tpool = None
-        self.poller = None # accept() when listener is readable
-        self.reader = None # recv() when connection is readable
+        self.poller = None  # accept() when listener is readable
+        self.reader = None  # recv() when connection is readable
         self._lock = None
         self.futures = deque()
         self._keep = deque()
