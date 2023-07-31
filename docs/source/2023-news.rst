@@ -2,10 +2,14 @@
 Changelog - 2023
 ================
 
-21.1.0 - 2023-07-18
+21.2.0 - 2023-07-19
 ===================
 
-- fix thread worker: fix socket removal from the queue
+- fix thread worker: revert change considering connection as idle . 
+
+*** NOTE ***
+
+This is fixing the bad file description error.
 
 21.0.1 - 2023-07-17
 ===================

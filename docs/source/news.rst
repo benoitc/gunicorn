@@ -2,6 +2,15 @@
 Changelog
 =========
 
+21.2.0 - 2023-07-19
+===================
+
+- fix thread worker: revert change considering connection as idle . 
+
+*** NOTE ***
+
+This is fixing the bad file description error.
+
 21.1.0 - 2023-07-18
 ===================
 
