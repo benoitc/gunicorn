@@ -13,7 +13,7 @@ try:
 except ImportError:
     raise RuntimeError("gevent worker requires gevent 1.4 or higher")
 else:
-    from pkg_resources import parse_version
+    from packaging.version import parse as parse_version
     if parse_version(gevent.__version__) < parse_version('1.4'):
         raise RuntimeError("gevent worker requires gevent 1.4 or higher")
 
@@ -23,6 +23,7 @@ from gevent import hub, monkey, socket, pywsgi
 
 import gunicorn
 from gunicorn.http.wsgi import base_environ
+from gunicorn.sock import ssl_context
 from gunicorn.workers.base_async import AsyncWorker
 
 VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
@@ -57,7 +58,7 @@ class GeventWorker(AsyncWorker):
         ssl_args = {}
 
         if self.cfg.is_ssl:
-            ssl_args = dict(server_side=True, **self.cfg.ssl_options)
+            ssl_args = {"ssl_context": ssl_context(self.cfg)}
 
         for s in self.sockets:
             s.setblocking(1)
@@ -109,7 +110,7 @@ class GeventWorker(AsyncWorker):
                 gevent.sleep(1.0)
 
             # Force kill all active the handlers
-            self.log.warning("Worker graceful timeout (pid:%s)" % self.pid)
+            self.log.warning("Worker graceful timeout (pid:%s)", self.pid)
             for server in servers:
                 server.stop(timeout=1)
         except Exception:

@@ -65,6 +65,7 @@ usual::
 There is also a ``--version`` flag available to the command line scripts that
 isn't mentioned in the list of :ref:`settings <settings>`.
 
+.. _configuration_file:
 
 Configuration File
 ==================

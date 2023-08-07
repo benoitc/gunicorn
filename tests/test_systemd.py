@@ -5,7 +5,7 @@
 
 from contextlib import contextmanager
 import os
-import unittest.mock as mock
+from unittest import mock
 
 import pytest
 

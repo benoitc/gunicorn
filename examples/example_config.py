@@ -214,3 +214,27 @@ def worker_int(worker):
 
 def worker_abort(worker):
     worker.log.info("worker received SIGABRT signal")
+
+def ssl_context(conf, default_ssl_context_factory):
+    import ssl
+
+    # The default SSLContext returned by the factory function is initialized
+    # with the TLS parameters from config, including TLS certificates and other
+    # parameters.
+    context = default_ssl_context_factory()
+
+    # The SSLContext can be further customized, for example by enforcing
+    # minimum TLS version.
+    context.minimum_version = ssl.TLSVersion.TLSv1_3
+
+    # Server can also return different server certificate depending which
+    # hostname the client uses. Requires Python 3.7 or later.
+    def sni_callback(socket, server_hostname, context):
+        if server_hostname == "foo.127.0.0.1.nip.io":
+            new_context = default_ssl_context_factory()
+            new_context.load_cert_chain(certfile="foo.pem", keyfile="foo-key.pem")
+            socket.context = new_context
+
+    context.sni_callback = sni_callback
+
+    return context

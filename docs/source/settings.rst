@@ -32,7 +32,7 @@ Config File
 
 **Default:** ``'./gunicorn.conf.py'``
 
-The Gunicorn config file.
+:ref:`The Gunicorn config file<configuration_file>`.
 
 A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
@@ -310,20 +310,35 @@ file format.
 ``logconfig_dict``
 ~~~~~~~~~~~~~~~~~~
 
-**Command line:** ``--log-config-dict``
-
 **Default:** ``{}``
 
 The log config dictionary to use, using the standard Python
 logging module's dictionary configuration format. This option
-takes precedence over the :ref:`logconfig` option, which uses the
-older file configuration format.
+takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+which uses the older file configuration format and JSON
+respectively.
 
 Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
-For more context you can look at the default configuration dictionary for logging, which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
+For more context you can look at the default configuration dictionary for logging,
+which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
 
 .. versionadded:: 19.8
+
+.. _logconfig-json:
+
+``logconfig_json``
+~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--log-config-json FILE``
+
+**Default:** ``None``
+
+The log config to read config from a JSON file
+
+Format: https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig
+
+.. versionadded:: 20.0
 
 .. _syslog-addr:
 
@@ -409,7 +424,12 @@ environment variable ``PYTHONUNBUFFERED`` .
 
 **Default:** ``None``
 
-``host:port`` of the statsd server to log to.
+The address of the StatsD server to log to.
+
+Address is a string of the form:
+
+* ``unix://PATH`` : for a unix domain socket.
+* ``HOST:PORT`` : for a network address
 
 .. versionadded:: 19.1
 
@@ -505,7 +525,10 @@ SSL certificate file
 
 **Default:** ``<_SSLMethod.PROTOCOL_TLS: 2>``
 
-SSL version to use.
+SSL version to use (see stdlib ssl module's).
+
+.. deprecated:: 20.2
+   The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
 ============= ============
 --ssl-version Description
@@ -528,6 +551,9 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 .. versionchanged:: 20.0
    This setting now accepts string names based on ``ssl.PROTOCOL_``
    constants.
+.. versionchanged:: 20.0.1
+   The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+   ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
 
 .. _cert-reqs:
 
@@ -539,6 +565,14 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 **Default:** ``<VerifyMode.CERT_NONE: 0>``
 
 Whether client certificate is required (see stdlib ssl module's)
+
+===========  ===========================
+--cert-reqs      Description
+===========  ===========================
+`0`          no client veirifcation
+`1`          ssl.CERT_OPTIONAL
+`2`          ssl.CERT_REQUIRED
+===========  ===========================
 
 .. _ca-certs:
 
@@ -820,7 +854,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 .. code-block:: python
 
         def pre_request(worker, req):
-            worker.log.debug("%s %s" % (req.method, req.path))
+            worker.log.debug("%s %s", req.method, req.path)
 
 Called just before a worker processes the request.
 
@@ -916,6 +950,40 @@ Called just before exiting Gunicorn.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
+.. _ssl-context:
+
+``ssl_context``
+~~~~~~~~~~~~~~~
+
+**Default:** 
+
+.. code-block:: python
+
+        def ssl_context(config, default_ssl_context_factory):
+            return default_ssl_context_factory()
+
+Called when SSLContext is needed.
+
+Allows customizing SSL context.
+
+The callable needs to accept an instance variable for the Config and
+a factory function that returns default SSLContext which is initialized
+with certificates, private key, cert_reqs, and ciphers according to
+config and can be further customized by the callable.
+The callable needs to return SSLContext object.
+
+Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+.. code-block:: python
+
+    def ssl_context(conf, default_ssl_context_factory):
+        import ssl
+        context = default_ssl_context_factory()
+        context.minimum_version = ssl.TLSVersion.TLSv1_3
+        return context
+
+.. versionadded:: 20.2
+
 Server Mechanics
 ----------------
 
@@ -978,9 +1046,7 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 
 **Default:** ``'.'``
 
-Change directory to specified directory before loading apps. 
-
-Default is the current directory.
+Change directory to specified directory before loading apps.
 
 .. _daemon:
 
@@ -1062,7 +1128,7 @@ If not set, the default temporary directory will be used.
 
 **Command line:** ``-u USER`` or ``--user USER``
 
-**Default:** ``501``
+**Default:** ``os.geteuid()``
 
 Switch worker processes to run as this user.
 
@@ -1077,7 +1143,7 @@ change the worker process user.
 
 **Command line:** ``-g GROUP`` or ``--group GROUP``
 
-**Default:** ``20``
+**Default:** ``os.getegid()``
 
 Switch worker process to run as this group.
 
@@ -1141,9 +1207,15 @@ temporary directory.
 **Default:** ``{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}``
 
 A dictionary containing headers and values that the front-end proxy
-uses to indicate HTTPS requests. These tell Gunicorn to set
+uses to indicate HTTPS requests. If the source IP is permitted by
+``forwarded-allow-ips`` (below), *and* at least one request header matches
+a key-value pair listed in this dictionary, then Gunicorn will set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
+
+If the other headers listed in this dictionary are not present in the request, they will be ignored,
+but if the other headers are present and do not match the provided values, then
+the request will fail to parse. See the note below for more detailed examples of this behaviour.
 
 The dictionary should map upper-case header names to exact string
 values. The value comparisons are case-sensitive, unlike the header
@@ -1171,6 +1243,69 @@ you still trust the environment).
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1"``.
+
+.. note::
+
+    The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
+    ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate.
+    In each case, we have a request from the remote address 134.213.44.18, and the default value of
+    ``secure_scheme_headers``:
+
+    .. code::
+
+        secure_scheme_headers = {
+            'X-FORWARDED-PROTOCOL': 'ssl',
+            'X-FORWARDED-PROTO': 'https',
+            'X-FORWARDED-SSL': 'on'
+        }
+
+
+    .. list-table::
+        :header-rows: 1
+        :align: center
+        :widths: auto
+
+        * - ``forwarded-allow-ips``
+          - Secure Request Headers
+          - Result
+          - Explanation
+        * - .. code::
+
+                ["127.0.0.1"]
+          - .. code::
+
+                X-Forwarded-Proto: https
+          - .. code::
+
+                wsgi.url_scheme = "http"
+          - IP address was not allowed
+        * - .. code::
+
+                "*"
+          - <none>
+          - .. code::
+
+                wsgi.url_scheme = "http"
+          - IP address allowed, but no secure headers provided
+        * - .. code::
+
+                "*"
+          - .. code::
+
+                X-Forwarded-Proto: https
+          - .. code::
+
+                wsgi.url_scheme = "https"
+          - IP address allowed, one request header matched
+        * - .. code::
+
+                ["134.213.44.18"]
+          - .. code::
+
+                X-Forwarded-Ssl: on
+                X-Forwarded-Proto: http
+          - ``InvalidSchemeHeaders()`` raised
+          - IP address allowed, but the two secure headers disagreed on if HTTPS was used
 
 .. _pythonpath:
 
@@ -1344,8 +1479,9 @@ A positive integer generally in the ``2-4 x $(NUM_CORES)`` range.
 You'll want to vary this a bit to find the best for your particular
 application's work load.
 
-By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-If it is not defined, the default is ``1``.
+By default, the value of the ``WEB_CONCURRENCY`` environment variable,
+which is set by some Platform-as-a-Service providers such as Heroku. If
+it is not defined, the default is ``1``.
 
 .. _worker-class:
 
@@ -1417,7 +1553,7 @@ This setting only affects the Gthread worker type.
 
 The maximum number of simultaneous clients.
 
-This setting only affects the Eventlet and Gevent worker types.
+This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
 
 .. _max-requests:
 

@@ -248,7 +248,7 @@ class Worker(object):
                 status_int = 403
 
             msg = "Invalid request from ip={ip}: {error}"
-            self.log.debug(msg.format(ip=addr[0], error=str(exc)))
+            self.log.warning(msg.format(ip=addr[0], error=str(exc)))
         else:
             if hasattr(req, "uri"):
                 self.log.exception("Error handling request %s", req.uri)

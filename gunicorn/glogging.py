@@ -5,6 +5,7 @@
 
 import base64
 import binascii
+import json
 import time
 import logging
 logging.Logger.manager.emittedNoHandlerWarning = 1  # noqa
@@ -44,12 +45,11 @@ SYSLOG_FACILITIES = {
     "local7": 23
 }
 
-CONFIG_DEFAULTS = dict(
-    version=1,
-    disable_existing_loggers=False,
-
-    root={"level": "INFO", "handlers": ["console"]},
-    loggers={
+CONFIG_DEFAULTS = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
         "gunicorn.error": {
             "level": "INFO",
             "handlers": ["error_console"],
@@ -64,7 +64,7 @@ CONFIG_DEFAULTS = dict(
             "qualname": "gunicorn.access"
         }
     },
-    handlers={
+    "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "generic",
@@ -76,14 +76,14 @@ CONFIG_DEFAULTS = dict(
             "stream": "ext://sys.stderr"
         },
     },
-    formatters={
+    "formatters": {
         "generic": {
             "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
             "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
             "class": "logging.Formatter"
         }
     }
-)
+}
 
 
 def loggers():
@@ -239,6 +239,21 @@ class Logger(object):
                     TypeError
             ) as exc:
                 raise RuntimeError(str(exc))
+        elif cfg.logconfig_json:
+            config = CONFIG_DEFAULTS.copy()
+            if os.path.exists(cfg.logconfig_json):
+                try:
+                    config_json = json.load(open(cfg.logconfig_json))
+                    config.update(config_json)
+                    dictConfig(config)
+                except (
+                    json.JSONDecodeError,
+                    AttributeError,
+                    ImportError,
+                    ValueError,
+                    TypeError
+                ) as exc:
+                    raise RuntimeError(str(exc))
         elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
@@ -333,7 +348,7 @@ class Logger(object):
         """
 
         if not (self.cfg.accesslog or self.cfg.logconfig or
-           self.cfg.logconfig_dict or
+           self.cfg.logconfig_dict or self.cfg.logconfig_json or
            (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
             return
 
@@ -402,7 +417,7 @@ class Logger(object):
             if output == "-":
                 h = logging.StreamHandler(stream)
             else:
-                util.check_is_writeable(output)
+                util.check_is_writable(output)
                 h = logging.FileHandler(output)
                 # make sure the user can reopen the file
                 try:
@@ -453,11 +468,7 @@ class Logger(object):
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
                     # b64decode returns a byte string
-                    auth = auth.decode('utf-8')
-                    auth = auth.split(":", 1)
+                    user = auth.split(b":", 1)[0].decode("UTF-8")
                 except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
-                    return user
-                if len(auth) == 2:
-                    user = auth[0]
         return user

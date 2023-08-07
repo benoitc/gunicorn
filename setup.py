@@ -27,6 +27,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Python :: Implementation :: CPython',
     'Programming Language :: Python :: Implementation :: PyPy',
@@ -70,11 +71,8 @@ class PyTestCommand(TestCommand):
 
 
 install_requires = [
-    # We depend on functioning pkg_resources.working_set.add_entry() and
-    # pkg_resources.load_entry_point(). These both work as of 3.0 which
-    # is the first version to support Python 3.4 which we require as a
-    # floor.
-    'setuptools>=3.0',
+    'importlib_metadata; python_version<"3.8"',
+    'packaging',
 ]
 
 extras_require = {

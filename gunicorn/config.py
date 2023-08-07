@@ -374,25 +374,9 @@ def validate_pos_int(val):
 
 
 def validate_ssl_version(val):
-    ssl_versions = {}
-    for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
-        ssl_versions[protocol[9:]] = getattr(ssl, protocol)
-    if val in ssl_versions:
-        # string matching PROTOCOL_...
-        return ssl_versions[val]
-
-    try:
-        intval = validate_pos_int(val)
-        if intval in ssl_versions.values():
-            # positive int matching a protocol int constant
-            return intval
-    except (ValueError, TypeError):
-        # negative integer or not an integer
-        # drop this in favour of the more descriptive ValueError below
-        pass
-
-    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
-                     % (val, ', '.join(ssl_versions)))
+    if val != SSLVersion.default:
+        sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
+    return val
 
 
 def validate_string(val):
@@ -524,15 +508,25 @@ def validate_chdir(val):
     return path
 
 
-def validate_hostport(val):
+def validate_statsd_address(val):
     val = validate_string(val)
     if val is None:
         return None
-    elements = val.split(":")
-    if len(elements) == 2:
-        return (elements[0], int(elements[1]))
-    else:
-        raise TypeError("Value must consist of: hostname:port")
+
+    # As of major release 20, util.parse_address would recognize unix:PORT
+    # as a UDS address, breaking backwards compatibility. We defend against
+    # that regression here (this is also unit-tested).
+    # Feel free to remove in the next major release.
+    unix_hostname_regression = re.match(r'^unix:(\d+)$', val)
+    if unix_hostname_regression:
+        return ('unix', int(unix_hostname_regression.group(1)))
+
+    try:
+        address = util.parse_address(val, default_port='8125')
+    except RuntimeError:
+        raise TypeError("Value must be one of ('host:port', 'unix://PATH')")
+
+    return address
 
 
 def validate_reload_engine(val):
@@ -558,7 +552,7 @@ class ConfigFile(Setting):
     validator = validate_string
     default = "./gunicorn.conf.py"
     desc = """\
-        The Gunicorn config file.
+        :ref:`The Gunicorn config file<configuration_file>`.
 
         A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
@@ -736,7 +730,7 @@ class WorkerConnections(Setting):
     desc = """\
         The maximum number of simultaneous clients.
 
-        This setting only affects the Eventlet and Gevent worker types.
+        This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
         """
 
 
@@ -1066,6 +1060,7 @@ class Chdir(Setting):
     cli = ["--chdir"]
     validator = validate_chdir
     default = util.getcwd()
+    default_doc = "``'.'``"
     desc = """\
         Change directory to specified directory before loading apps.
         """
@@ -1157,6 +1152,7 @@ class User(Setting):
     meta = "USER"
     validator = validate_user
     default = os.geteuid()
+    default_doc = "``os.geteuid()``"
     desc = """\
         Switch worker processes to run as this user.
 
@@ -1173,6 +1169,7 @@ class Group(Setting):
     meta = "GROUP"
     validator = validate_group
     default = os.getegid()
+    default_doc = "``os.getegid()``"
     desc = """\
         Switch worker process to run as this group.
 
@@ -1517,12 +1514,32 @@ class LogConfigDict(Setting):
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` option, which uses the
-    older file configuration format.
+    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+    which uses the older file configuration format and JSON
+    respectively.
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
+    For more context you can look at the default configuration dictionary for logging,
+    which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
+
     .. versionadded:: 19.8
+    """
+
+
+class LogConfigJson(Setting):
+    name = "logconfig_json"
+    section = "Logging"
+    cli = ["--log-config-json"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    The log config to read config from a JSON file
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig
+
+    .. versionadded:: 20.0
     """
 
 
@@ -1623,9 +1640,14 @@ class StatsdHost(Setting):
     cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = None
-    validator = validate_hostport
+    validator = validate_statsd_address
     desc = """\
-    ``host:port`` of the statsd server to log to.
+    The address of the StatsD server to log to.
+
+    Address is a string of the form:
+
+    * ``unix://PATH`` : for a unix domain socket.
+    * ``HOST:PORT`` : for a network address
 
     .. versionadded:: 19.1
     """
@@ -1899,7 +1921,7 @@ class PreRequest(Setting):
     type = callable
 
     def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        worker.log.debug("%s %s", req.method, req.path)
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.
@@ -1998,6 +2020,41 @@ class OnExit(Setting):
         """
 
 
+class NewSSLContext(Setting):
+    name = "ssl_context"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = callable
+
+    def ssl_context(config, default_ssl_context_factory):
+        return default_ssl_context_factory()
+
+    default = staticmethod(ssl_context)
+    desc = """\
+        Called when SSLContext is needed.
+
+        Allows customizing SSL context.
+
+        The callable needs to accept an instance variable for the Config and
+        a factory function that returns default SSLContext which is initialized
+        with certificates, private key, cert_reqs, and ciphers according to
+        config and can be further customized by the callable.
+        The callable needs to return SSLContext object.
+
+        Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+        .. code-block:: python
+
+            def ssl_context(conf, default_ssl_context_factory):
+                import ssl
+                context = default_ssl_context_factory()
+                context.minimum_version = ssl.TLSVersion.TLSv1_3
+                return context
+
+        .. versionadded:: 20.2
+        """
+
+
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
     section = "Server Mechanics"
@@ -2074,17 +2131,12 @@ class SSLVersion(Setting):
     else:
         default = ssl.PROTOCOL_SSLv23
 
-    desc = """\
-    SSL version to use (see stdlib ssl module's)
-
-    .. versionchanged:: 20.0.1
-       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
-       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
-
-    """
     default = ssl.PROTOCOL_SSLv23
     desc = """\
-    SSL version to use.
+    SSL version to use (see stdlib ssl module's).
+
+    .. deprecated:: 20.2
+       The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
     ============= ============
     --ssl-version Description
@@ -2107,6 +2159,9 @@ class SSLVersion(Setting):
     .. versionchanged:: 20.0
        This setting now accepts string names based on ``ssl.PROTOCOL_``
        constants.
+    .. versionchanged:: 20.0.1
+       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
     """
 
 
@@ -2118,6 +2173,14 @@ class CertReqs(Setting):
     default = ssl.CERT_NONE
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
+
+    ===========  ===========================
+    --cert-reqs      Description
+    ===========  ===========================
+    `0`          no client veirifcation
+    `1`          ssl.CERT_OPTIONAL
+    `2`          ssl.CERT_REQUIRED
+    ===========  ===========================
     """
 
 

@@ -12,10 +12,11 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
-import gunicorn.util as util
-import gunicorn.workers.base as base
+from gunicorn import http
+from gunicorn.http import wsgi
+from gunicorn import sock
+from gunicorn import util
+from gunicorn.workers import base
 
 
 class StopWaiting(Exception):
@@ -128,9 +129,7 @@ class SyncWorker(base.Worker):
         req = None
         try:
             if self.cfg.is_ssl:
-                client = ssl.wrap_socket(client, server_side=True,
-                                         **self.cfg.ssl_options)
-
+                client = sock.ssl_wrap_socket(client, self.cfg)
             parser = http.RequestParser(self.cfg, client, addr)
             req = next(parser)
             self.handle_request(listener, req, client, addr)
