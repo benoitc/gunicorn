@@ -40,7 +40,7 @@ class DogStatsDMetricPlugin(BaseMetricPlugin):
 
         self._statsd = DogStatsd(host=self._host, port=self._port)
 
-    def post_request_logging(self, resp, duration) -> None:
+    def post_request_logging(self, resp, req, environ, duration) -> None:
         status = resp.status
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])

@@ -16,5 +16,5 @@ class StatsDMetricPlugin(BaseMetricPlugin):
         from gunicorn.instrument.statsd import Statsd
         self._statsd = Statsd(self._cfg)
 
-    def post_request_logging(self, resp, duration) -> None:
+    def post_request_logging(self, resp, req, environ, duration) -> None:
         self._statsd.access(resp, duration)

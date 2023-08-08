@@ -9,7 +9,7 @@ class BaseMetricPlugin:
         and you can initialize your metric client here
         """
 
-    def post_request_logging(self, resp, duration) -> None:
+    def post_request_logging(self, resp, req, environ, duration) -> None:
         """
         This is called at the time the worker logs the request
         Use this to record the request timings with your metric client

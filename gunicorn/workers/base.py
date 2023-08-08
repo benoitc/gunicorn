@@ -265,7 +265,7 @@ class Worker(object):
             resp.status = "%s %s" % (status_int, reason)
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
-            self.metric_plugin.post_request_logging(resp, request_time)
+            self.metric_plugin.post_request_logging(resp, req, environ, request_time)
 
         try:
             util.write_error(client, status_int, reason, mesg)
