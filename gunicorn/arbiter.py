@@ -94,7 +94,6 @@ class Arbiter(object):
             self.log = self.cfg.logger_class(app.cfg)
         if self.metric_plugin is None:
             self.metric_plugin = self.cfg.metrics_plugin
-            self.log.info("Using metrics plugin: %s" % self.metric_plugin)
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:
@@ -162,6 +161,7 @@ class Arbiter(object):
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
+        self.log.info("Using metrics plugin: %s", self.metric_plugin)
         systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
 
         # check worker class requirements
