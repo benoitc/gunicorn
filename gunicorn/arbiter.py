@@ -94,6 +94,7 @@ class Arbiter(object):
             self.log = self.cfg.logger_class(app.cfg)
         if self.metric_plugin is None:
             self.metric_plugin = self.cfg.metrics_plugin
+            self.log.info("Using metrics plugin: %s" % self.metric_plugin)
 
         # reopen files
         if 'GUNICORN_FD' in os.environ:
