@@ -9,15 +9,12 @@ class StatsDMetricPlugin(BaseMetricPlugin):
     """
     _statsd = None
 
-    def __init__(self, prefix, host, port, tags):
-        self._prefix = prefix
-        self._host = host
-        self._port = port
-        self._tags = tags
+    def __init__(self, cfg):
+        self._cfg = cfg
 
     def post_worker_init(self, worker):
         from gunicorn.instrument.statsd import Statsd
-        self._statsd = Statsd(prefix=self._prefix, host=self._host, port=self._port, tags=self._tags)
+        self._statsd = Statsd(self._cfg)
 
     def post_request_logging(self, resp, duration) -> None:
         self._statsd.access(resp, duration)

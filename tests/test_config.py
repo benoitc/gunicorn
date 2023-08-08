@@ -2,7 +2,6 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-import logging
 import os
 import re
 import sys
@@ -17,7 +16,6 @@ from gunicorn.instrument.metrics.base import NoOpMetricPlugin
 from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
-from gunicorn.instrument import statsd
 
 dirname = os.path.dirname(__file__)
 def cfg_module():

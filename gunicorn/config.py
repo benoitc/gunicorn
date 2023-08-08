@@ -163,15 +163,12 @@ class Config(object):
     @property
     def metrics_plugin(self):
         if 'metrics_class' in self.settings and self.settings['metrics_class'].value is not None:
+            # TODO: allow self defined metrics plugin
             from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
             return DogStatsDMetricPlugin()
         elif 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
             from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
-            host, port = self.settings['statsd_host'].value
-            prefix = self.settings['statsd_prefix'].value if 'statsd_prefix' in self.settings else None
-            tags = self.settings['dogstatsd_tags'].value if 'dogstatsd_tags' in self.settings else []
-
-            return StatsDMetricPlugin(prefix, host, port, tags.split(","))
+            return StatsDMetricPlugin(self.settings)
         else:
             from gunicorn.instrument.metrics.base import NoOpMetricPlugin
             return NoOpMetricPlugin()
@@ -375,7 +372,10 @@ def validate_pos_int(val):
 
 def validate_ssl_version(val):
     if val != SSLVersion.default:
-        sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
+        sys.stderr.write(
+            "Warning: option `ssl_version` is deprecated and it is ignored. "
+            "Use ssl_context instead.\n"
+        )
     return val
 
 

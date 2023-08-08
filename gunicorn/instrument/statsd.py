@@ -8,8 +8,6 @@ import re
 import socket
 import logging
 
-from gunicorn.glogging import Logger
-
 # Instrumentation constants
 METRIC_VAR = "metric"
 VALUE_VAR = "value"
@@ -23,18 +21,23 @@ class Statsd:
     """statsD-based instrumentation
     """
 
-    def __init__(self, prefix, host, port, tags):
+    def __init__(self, cfg):
         """host, port: statsD server
         """
-        self.prefix = prefix_with_trailing_dot = re.sub(r"^(.+[^.]+)\.*$", "\\g<1>.",
-                                                        prefix) if prefix is not None else ""
+        self.prefix = re.sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
+
+        if isinstance(cfg.statsd_host, str):
+            address_family = socket.AF_UNIX
+        else:
+            address_family = socket.AF_INET
+
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.connect((host, int(port)))
+            self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
+            self.sock.connect(cfg.statsd_host)
         except Exception:
             self.sock = None
 
-        self.dogstatsd_tags = ",".join(tags)
+        self.dogstatsd_tags = cfg.dogstatsd_tags
 
     # access metric handling
     def access(self, resp, request_time):

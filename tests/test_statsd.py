@@ -1,5 +1,3 @@
-import io
-import logging
 import os
 import shutil
 import socket
@@ -49,7 +47,7 @@ class MockSocket(object):
 
 def test_statsd_fail():
     "UDP socket fails"
-    logger = Statsd(None, "localhost", 8125, [])
+    logger = Statsd(Config())
     logger.sock = MockSocket(True)
     logger.increment("No impact on logging", 1)
     logger.decrement("No impact on logging", 1)
@@ -61,24 +59,26 @@ def test_statsd_host_initialization():
     c = Config()
     c.set('statsd_host', 'unix:test.sock')
     logger = Statsd(c)
-    logger.info("Can be initialized and used with a UDS socket")
+    logger.increment("Can be initialized and used with a UDS socket", 1)
 
     # Can be initialized and used with a UDP address
     c.set('statsd_host', 'host:8080')
     logger = Statsd(c)
-    logger.info("Can be initialized and used with a UDP socket")
+    logger.increment("Can be initialized and used with a UDP socket", 1)
 
 
 def test_dogstatsd_tags():
-    tags = ["yucatan", "libertine:rhubarb"]
-    logger = Statsd(None, "localhost", 8125, tags)
+    c = Config()
+    tags = 'yucatan,libertine:rhubarb'
+    c.set('dogstatsd_tags', tags)
+    logger = Statsd(c)
     logger.sock = MockSocket(False)
     logger.gauge("barb.westerly", 2)
-    assert logger.sock.msgs[0] == b"barb.westerly:2|g|#" + ",".join(tags).encode('ascii')
+    assert logger.sock.msgs[0] == b"barb.westerly:2|g|#" + tags.encode('ascii')
 
 
 def test_instrument():
-    logger = Statsd(None, "localhost", 8125, [])
+    logger = Statsd(Config())
     # Capture logged messages
     logger.sock = MockSocket(False)
 
@@ -96,7 +96,7 @@ def test_instrument():
 def test_prefix():
     c = Config()
     c.set("statsd_prefix", "test.")
-    logger = Statsd("test.", "localhost", 8125, [])
+    logger = Statsd(c)
     logger.sock = MockSocket(False)
 
     logger.gauge("gunicorn.test", 666)
@@ -106,7 +106,7 @@ def test_prefix():
 def test_prefix_no_dot():
     c = Config()
     c.set("statsd_prefix", "test")
-    logger = Statsd("test", "localhost", 8125, [])
+    logger = Statsd(c)
     logger.sock = MockSocket(False)
 
     logger.gauge("gunicorn.test", 666)
@@ -116,7 +116,7 @@ def test_prefix_no_dot():
 def test_prefix_multiple_dots():
     c = Config()
     c.set("statsd_prefix", "test...")
-    logger = Statsd("test...", "localhost", 8125, [])
+    logger = Statsd(c)
     logger.sock = MockSocket(False)
 
     logger.gauge("gunicorn.test", 666)
@@ -126,7 +126,7 @@ def test_prefix_multiple_dots():
 def test_prefix_nested():
     c = Config()
     c.set("statsd_prefix", "test.asdf.")
-    logger = Statsd("test.asdf.", "localhost", 8125, [])
+    logger = Statsd(c)
     logger.sock = MockSocket(False)
 
     logger.gauge("gunicorn.test", 666)
