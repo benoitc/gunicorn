@@ -8,6 +8,7 @@
 import argparse
 import copy
 import grp
+import importlib
 import inspect
 import os
 import pwd
@@ -16,6 +17,7 @@ import shlex
 import ssl
 import sys
 import textwrap
+import traceback
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
@@ -163,9 +165,20 @@ class Config(object):
     @property
     def metrics_plugin(self):
         if 'metrics_class' in self.settings and self.settings['metrics_class'].value is not None:
-            # TODO: allow self defined metrics plugin
-            from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
-            return DogStatsDMetricPlugin()
+            uri = self.settings['metrics_class'].get()
+            if inspect.isclass(uri):
+                metrics_class = uri
+            else:
+                components = uri.split('.')
+                klass = components.pop(-1)
+                try:
+                    mod = importlib.import_module('.'.join(components))
+                except Exception:
+                    exc = traceback.format_exc()
+                    msg = "class uri %r invalid or not found: \n\n[%s]"
+                    raise RuntimeError(msg % (uri, exc))
+                metrics_class = getattr(mod, klass)
+            return metrics_class()
         elif 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
             from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
             return StatsDMetricPlugin(self.settings)

@@ -14,10 +14,12 @@ class DogStatsDMetricPlugin(BaseMetricPlugin):
     _port = os.environ.get("GUNICORN_DOGSTATSD_PORT", 8125)
 
     def __init__(self, prefix=None, host=_host, port=_port, tags=None):
+
         if tags is None:
             tags = []
         self._host = host
         self._port = port
+        self._tags = tags
 
         self._REQUEST_DURATION_METRIC_NAME = (
             "gunicorn.request.duration"
@@ -43,8 +45,9 @@ class DogStatsDMetricPlugin(BaseMetricPlugin):
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])
         self._statsd.histogram(
-            "gunicorn.request.duration",
+            self._REQUEST_DURATION_METRIC_NAME,
             duration.total_seconds(),
-            tags=[f"code:{status}"],
+            tags=self._tags + [f"code:{status}"],
         )
-        self._statsd.increment("gunicorn.request", 1, tags=[f"code:{status}"])
+        self._statsd.increment(self._REQUEST_METRIC_NAME, 1, tags=self._tags + [f"code:{status}"])
+        self._statsd.increment(self._REQUEST_STATUS_METRIC_NAME % status, 1)

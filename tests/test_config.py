@@ -13,6 +13,7 @@ from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
 from gunicorn.instrument.metrics.base import NoOpMetricPlugin
+from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
 from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
@@ -347,6 +348,8 @@ def test_legacy_statsd_config():
     assert isinstance(c.metrics_plugin, NoOpMetricPlugin)
     c.set('statsd_host', 'localhost:12345')
     assert isinstance(c.metrics_plugin, StatsDMetricPlugin)
+    c.set('metrics_class', 'gunicorn.instrument.metrics.dogstatsd.DogStatsDMetricPlugin')
+    assert isinstance(c.metrics_plugin, DogStatsDMetricPlugin)
 
 
 class MyLogger(glogging.Logger):
