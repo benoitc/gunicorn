@@ -210,23 +210,16 @@ class ThreadWorker(base.Worker):
             # notify the arbiter we are alive
             self.notify()
 
-            reader_timeout = 0
-
             # accept new connections until we reach the limit
             if self.nr_conns < self.worker_connections:
-                # wait for an event
-                events = self.poller.select(1.0)
-
-                # give the connection a moment to become readable
-                if events:
-                    reader_timeout = 1.0
+                events = self.poller.select(0)
 
                 for key, _ in events:
                     callback = key.data
                     callback(key.fileobj)
 
             # handle connections that are currently readable
-            events = self.reader.select(reader_timeout)
+            events = self.reader.select(0)
             for key, _ in events:
                 callback = key.data
                 callback(key.fileobj)
