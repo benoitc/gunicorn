@@ -524,7 +524,8 @@ class Arbiter(object):
                     # infinite start/stop cycles.
                     exitcode = status >> 8
                     if exitcode != 0:
-                        self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
+                        self.log.error("Worker (pid:%s) exited with code %s",
+                                       wpid, exitcode)
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
@@ -532,12 +533,7 @@ class Arbiter(object):
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    if exitcode > 0:
-                        # If the exit code of the worker is greater than 0,
-                        # let the user know.
-                        self.log.error("Worker (pid:%s) exited with code %s.",
-                                       wpid, exitcode)
-                    elif status > 0:
+                    if exitcode == 0 and status > 0:
                         # If the exit code of the worker is 0 and the status
                         # is greater than 0, then it was most likely killed
                         # via a signal.
@@ -545,13 +541,12 @@ class Arbiter(object):
                             sig_name = signal.Signals(status).name
                         except ValueError:
                             sig_name = "code {}".format(status)
-                        msg = "Worker (pid:{}) was sent {}!".format(
-                            wpid, sig_name)
+                        msg = "Worker (pid:%s) was sent %s!"
 
                         # Additional hint for SIGKILL
                         if status == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
-                        self.log.error(msg)
+                        self.log.error(msg, wpid, sig_name)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
