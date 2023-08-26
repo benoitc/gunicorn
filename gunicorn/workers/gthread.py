@@ -33,6 +33,7 @@ from ..http import wsgi
 CALLBACK_ACCEPT = object()
 CALLBACK_RECV = object()
 
+
 class TConn(object):
 
     def __init__(self, cfg, sock, client, server):
@@ -256,7 +257,6 @@ class ThreadWorker(base.Worker):
             # don't immediately loop, wait for up to 2 seconds
             accept_callbacks, recv_callbacks = self.get_callbacks(2)
 
-
         self.tpool.shutdown(False)
         self.poller.close()
 
@@ -264,7 +264,6 @@ class ThreadWorker(base.Worker):
             s.close()
 
         futures.wait(self.futures, timeout=self.cfg.graceful_timeout)
-
 
     def finish_request(self, fs):
         if fs.cancelled():
