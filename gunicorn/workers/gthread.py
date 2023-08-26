@@ -30,6 +30,8 @@ from .. import util
 from .. import sock
 from ..http import wsgi
 
+CALLBACK_ACCEPT = object()
+CALLBACK_RECV = object()
 
 class TConn(object):
 
@@ -74,8 +76,7 @@ class ThreadWorker(base.Worker):
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
         self.tpool = None
-        self.poller = None  # accept() when listener is readable
-        self.reader = None  # recv() when connection is readable
+        self.poller = None
         self._lock = None
         self.futures = deque()
         self._keep = deque()
@@ -92,7 +93,6 @@ class ThreadWorker(base.Worker):
     def init_process(self):
         self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
-        self.reader = selectors.DefaultSelector()
         self._lock = RLock()
         super().init_process()
 
@@ -120,7 +120,7 @@ class ThreadWorker(base.Worker):
         self._wrap_future(fs, conn)
 
     def accept(self, server, listener):
-        if not self.alive:
+        if not (self.alive and self.nr_conns < self.worker_connections):
             return
 
         try:
@@ -131,8 +131,8 @@ class ThreadWorker(base.Worker):
             self.nr_conns += 1
             # wait until socket is readable
             with self._lock:
-                self.reader.register(conn.sock, selectors.EVENT_READ,
-                                     partial(self.on_client_socket_readable, conn))
+                self.poller.register(conn.sock, selectors.EVENT_READ,
+                                     [CALLBACK_RECV, partial(self.on_client_socket_readable, conn)])
         except EnvironmentError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                errno.EWOULDBLOCK):
@@ -140,8 +140,8 @@ class ThreadWorker(base.Worker):
 
     def on_client_socket_readable(self, conn, client):
         with self._lock:
-            # unregister the client from the reader
-            self.reader.unregister(client)
+            # unregister the client from the poller
+            self.poller.unregister(client)
 
             if conn.initialized:
                 # remove the connection from keepalive
@@ -172,10 +172,10 @@ class ThreadWorker(base.Worker):
                 break
             else:
                 self.nr_conns -= 1
-                # remove the socket from the reader
+                # remove the socket from the poller
                 with self._lock:
                     try:
-                        self.reader.unregister(conn.sock)
+                        self.poller.unregister(conn.sock)
                     except EnvironmentError as e:
                         if e.errno != errno.EBADF:
                             raise
@@ -196,33 +196,48 @@ class ThreadWorker(base.Worker):
             return False
         return True
 
+    def get_callbacks(self, timeout):
+        events = self.poller.select(timeout)
+
+        # we need to separate the callbacks by type because they are handled differently
+        accept_callbacks, recv_callbacks = [], []
+
+        for key, _ in events:
+            callback_type, callback = key.data
+            result = partial(callback, key.fileobj)
+
+            if callback_type == CALLBACK_ACCEPT:
+                # we can safely restart when we have accept() callbacks available
+                accept_callbacks.append(result)
+            elif callback_type == CALLBACK_RECV:
+                # but if we restart when we have recv() callbacks then the connection will be reset
+                recv_callbacks.append(result)
+            else:
+                raise ValueError("Unknown callback type: %s" % callback_type)
+
+        return accept_callbacks, recv_callbacks
+
     def run(self):
-        # init listeners, add them to the poller event loop
+        # init listeners, add them to the event loop
         for sock in self.sockets:
             sock.setblocking(False)
             # a race condition during graceful shutdown may make the listener
             # name unavailable in the request handler so capture it once here
             server = sock.getsockname()
             acceptor = partial(self.accept, server)
-            self.poller.register(sock, selectors.EVENT_READ, acceptor)
+            self.poller.register(sock, selectors.EVENT_READ, [CALLBACK_ACCEPT, acceptor])
 
-        while self.alive:
+        # start with nothing to do -- these will be populated at the end of the loop
+        accept_callbacks, recv_callbacks = [], []
+
+        # loop while the process is alive or there are recv() callbacks available
+        while self.alive or recv_callbacks:
             # notify the arbiter we are alive
             self.notify()
 
-            # accept new connections until we reach the limit
-            if self.nr_conns < self.worker_connections:
-                events = self.poller.select(0)
-
-                for key, _ in events:
-                    callback = key.data
-                    callback(key.fileobj)
-
-            # handle connections that are currently readable
-            events = self.reader.select(0)
-            for key, _ in events:
-                callback = key.data
-                callback(key.fileobj)
+            # execute every accept() or recv() callback
+            for callback in accept_callbacks + recv_callbacks:
+                callback()
 
             # check (but do not wait) for finished requests
             result = futures.wait(self.futures, timeout=0,
@@ -238,14 +253,18 @@ class ThreadWorker(base.Worker):
             # handle keepalive timeouts
             self.murder_keepalived()
 
+            # don't immediately loop, wait for up to 2 seconds
+            accept_callbacks, recv_callbacks = self.get_callbacks(2)
+
+
         self.tpool.shutdown(False)
         self.poller.close()
-        self.reader.close()
 
         for s in self.sockets:
             s.close()
 
         futures.wait(self.futures, timeout=self.cfg.graceful_timeout)
+
 
     def finish_request(self, fs):
         if fs.cancelled():
@@ -266,9 +285,9 @@ class ThreadWorker(base.Worker):
                 with self._lock:
                     self._keep.append(conn)
 
-                    # add the socket to the reader event loop
-                    self.reader.register(conn.sock, selectors.EVENT_READ,
-                                         partial(self.on_client_socket_readable, conn))
+                    # add the socket to the event loop
+                    self.poller.register(conn.sock, selectors.EVENT_READ,
+                                         [CALLBACK_RECV, partial(self.on_client_socket_readable, conn)])
             else:
                 self.nr_conns -= 1
                 conn.close()
