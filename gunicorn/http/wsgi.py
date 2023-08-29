@@ -18,7 +18,7 @@ from gunicorn import util
 # with sending files in blocks over 2GB.
 BLKSIZE = 0x3FFFFFFF
 
-HEADER_VALUE_RE = re.compile(r'[\x00-\x1F\x7F]')
+HEADER_VALUE_RE = re.compile(r'[^ \t\x21-\x7e\x80-\xff]')
 
 log = logging.getLogger(__name__)
 
