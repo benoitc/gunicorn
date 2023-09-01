@@ -86,10 +86,9 @@ class ChunkedReader(object):
         line, rest_chunk = data[:idx], data[idx + 2:]
 
         chunk_size = line.split(b";", 1)[0].strip()
-        try:
-            chunk_size = int(chunk_size, 16)
-        except ValueError:
+        if any(c not in b"0123456789abcdefABCDEF" for c in chunk_size):
             raise InvalidChunkSize(chunk_size)
+        chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
             try:
