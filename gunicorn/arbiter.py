@@ -239,7 +239,7 @@ class Arbiter(object):
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
-        self.reap_workers()
+        self.reap_workers(signal_safe=False)
         self.wakeup()
 
     def handle_hup(self):
@@ -507,7 +507,7 @@ class Arbiter(object):
             else:
                 self.kill_worker(pid, signal.SIGKILL)
 
-    def reap_workers(self):
+    def reap_workers(self, signal_safe=True):
         """\
         Reap workers to avoid zombie processes
         """
@@ -532,12 +532,12 @@ class Arbiter(object):
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    if exitcode > 0:
+                    if signal_safe and exitcode > 0:
                         # If the exit code of the worker is greater than 0,
                         # let the user know.
                         self.log.error("Worker (pid:%s) exited with code %s.",
                                        wpid, exitcode)
-                    elif status > 0:
+                    elif signal_safe and status > 0:
                         # If the exit code of the worker is 0 and the status
                         # is greater than 0, then it was most likely killed
                         # via a signal.
