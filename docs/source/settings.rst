@@ -20,20 +20,6 @@ for reference on setting at the command line.
 
     .. versionadded:: 19.7
 
-
-
-
-.. _buf-read-size:
-
-``buf_read_size``
-~~~~~~~~~~~~~~~~~
-
-**Command line:** ``--buf-read-size``
-
-**Default:** ``1024``
-
-Buffer read size from request data
-
 Config File
 -----------
 
@@ -1390,6 +1376,17 @@ Front-end's IPs from which allowed accept proxy requests (comma separate).
 Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
 you still trust the environment)
+
+.. _buf-read-size:
+
+``buf_read_size``
+~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--buf-read-size``
+
+**Default:** ``1024``
+
+Buffer read size from request data
 
 .. _raw-paste-global-conf:
 
