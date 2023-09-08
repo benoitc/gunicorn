@@ -2166,6 +2166,7 @@ class CertReqs(Setting):
     ===========  ===========================
     """
 
+
 class BufReadSize(Setting):
     name = "buf_read_size"
     section = "Server Mechanics"
@@ -2175,6 +2176,7 @@ class BufReadSize(Setting):
     desc = """\
     Buffer read size from request data
     """
+
 
 class CACerts(Setting):
     name = "ca_certs"
