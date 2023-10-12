@@ -357,16 +357,14 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
-        self.log.info("Arbiter.py: Arbiter sleep funct ion called")
         try:
             ready = select.select([self.PIPE[0]], [], [], 1.0)
             if not ready[0]:
-                self.log.info("Arbiter.py: Arbiter not ready to sleep, skipping")
                 return
             self.log.info("Arbiter begin to sleep")
             while os.read(self.PIPE[0], 1):
-                self.log.info("Arbiter.py: Arbiter stopped sleeping")
                 pass
+            self.log.info("Arbiter.py: Arbiter stopped sleeping")
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
             self.log.info(f"Arbiter.py: Error during arbiter sleep: {e}")
