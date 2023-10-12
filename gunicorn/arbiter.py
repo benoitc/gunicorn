@@ -607,6 +607,7 @@ class Arbiter(object):
 
         # Process Child
         worker.pid = os.getpid()
+        self.log.info(f"Arbiter.py: Spawn new worker with pid {worker.pid} and timeout = {self.timeout} / 2 = {self.timeout / 2.0}")
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
@@ -643,6 +644,8 @@ class Arbiter(object):
         of the master process.
         """
 
+        if self.num_workers - len(self.WORKERS) > 0:
+            self.log.info(f"Arbiter.py: Actual workers: {len(self.WORKERS)} < target workers: {self.num_workers}")
         for _ in range(self.num_workers - len(self.WORKERS)):
             self.spawn_worker()
             time.sleep(0.1 * random.random())
