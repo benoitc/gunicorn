@@ -10,7 +10,11 @@ from logging import getLogger
 
 from gunicorn import util
 
-logger = getLogger("gunicorn.access")
+import logging
+
+log = logging.getLogger(__name__)
+
+log.addHandler(logging.StreamHandler())
 
 PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
@@ -19,7 +23,7 @@ IS_CYGWIN = PLATFORM.startswith('CYGWIN')
 class WorkerTmp(object):
 
     def __init__(self, cfg):
-        logger.info("Init worker")
+        log.info("Init worker")
         old_umask = os.umask(cfg.umask)
         fdir = cfg.worker_tmp_dir
         if fdir and not os.path.isdir(fdir):
@@ -47,7 +51,7 @@ class WorkerTmp(object):
 
     def notify(self):
         self.spinner = (self.spinner + 1) % 2
-        logger.info(f"Updating workerTmpFile to {self.spinner}")
+        log.info(f"Updating workerTmpFile to {self.spinner}")
         os.fchmod(self._tmp.fileno(), self.spinner)
 
     def last_update(self):
