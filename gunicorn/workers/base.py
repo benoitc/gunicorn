@@ -61,7 +61,7 @@ class Worker(object):
 
         self.alive = True
         self.log = log
-        self.tmp = WorkerTmp(cfg, log)
+        self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
