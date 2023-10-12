@@ -6,13 +6,15 @@
 import os
 import platform
 import tempfile
-from logging import getLogger
+from gunicorn.config import Config
+from gunicorn.glogging import Logger
 
 from gunicorn import util
 
 import logging
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
+log = Logger(Config())
 
 log.addHandler(logging.StreamHandler())
 
