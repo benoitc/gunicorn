@@ -10,7 +10,7 @@ from logging import getLogger
 
 from gunicorn import util
 
-logger = getLogger(os.path.basename(__file__))
+logger = getLogger("gunicorn.access")
 
 PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
