@@ -6,7 +6,6 @@
 import os
 import platform
 import tempfile
-from gunicorn.config import Config
 from gunicorn.glogging import Logger
 
 from gunicorn import util
