@@ -14,9 +14,10 @@ from gunicorn import util
 import logging
 
 # log = logging.getLogger(__name__)
-log = Logger(Config())
+# log.addHandler(logging.StreamHandler())
 
-log.addHandler(logging.StreamHandler())
+# log = Logger(Config())
+
 
 PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
@@ -25,6 +26,7 @@ IS_CYGWIN = PLATFORM.startswith('CYGWIN')
 class WorkerTmp(object):
 
     def __init__(self, cfg):
+        log = Logger(cfg)
         log.info("Init worker")
         old_umask = os.umask(cfg.umask)
         fdir = cfg.worker_tmp_dir
