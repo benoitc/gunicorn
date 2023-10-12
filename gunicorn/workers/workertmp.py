@@ -28,6 +28,7 @@ class WorkerTmp(object):
     def __init__(self, cfg):
         log = Logger(cfg)
         log.info("Init worker")
+        self.log = log
         old_umask = os.umask(cfg.umask)
         fdir = cfg.worker_tmp_dir
         if fdir and not os.path.isdir(fdir):
@@ -55,7 +56,7 @@ class WorkerTmp(object):
 
     def notify(self):
         self.spinner = (self.spinner + 1) % 2
-        log.info(f"Updating workerTmpFile to {self.spinner}")
+        self.log.info(f"Updating workerTmpFile to {self.spinner}")
         os.fchmod(self._tmp.fileno(), self.spinner)
 
     def last_update(self):
