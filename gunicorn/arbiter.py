@@ -100,9 +100,10 @@ class Arbiter(object):
         self.address = self.cfg.address
         self.num_workers = self.cfg.workers
         self.timeout = self.cfg.timeout
+        self.log.info(f"Arbiter.py: self.timeout: {self.timeout}")
         self.proc_name = self.cfg.proc_name
 
-        self.log.debug('Current configuration:\n{0}'.format(
+        self.log.info('Current configuration:\n{0}'.format(
             '\n'.join(
                 '  {0}: {1}'.format(config, value.value)
                 for config, value
@@ -356,14 +357,19 @@ class Arbiter(object):
         Sleep until PIPE is readable or we timeout.
         A readable PIPE means a signal occurred.
         """
+        self.log.info("Arbiter.py: Arbiter sleep funct ion called")
         try:
             ready = select.select([self.PIPE[0]], [], [], 1.0)
             if not ready[0]:
+                self.log.info("Arbiter.py: Arbiter not ready to sleep, skipping")
                 return
+            self.log.info("Arbiter begin to sleep")
             while os.read(self.PIPE[0], 1):
+                self.log.info("Arbiter.py: Arbiter stopped sleeping")
                 pass
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
+            self.log.info(f"Arbiter.py: Error during arbiter sleep: {e}")
             error_number = getattr(e, 'errno', e.args[0])
             if error_number not in [errno.EAGAIN, errno.EINTR]:
                 raise
@@ -501,7 +507,7 @@ class Arbiter(object):
                 continue
 
             if not worker.aborted:
-                self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
+                self.log.critical(f"WORKER TIMEOUT (pid:{pid}), last update: {worker.tmp.last_update()} ({time.time() - worker.tmp.last_update()} > {self.timeout})")
                 worker.aborted = True
                 self.kill_worker(pid, signal.SIGABRT)
             else:
@@ -574,6 +580,7 @@ class Arbiter(object):
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
+            self.log.info(f"number of workers > {self.num_workers}, killing pid {pid} with sigterm")
             self.kill_worker(pid, signal.SIGTERM)
 
         active_worker_count = len(workers)
