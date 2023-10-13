@@ -103,18 +103,20 @@ class Config(object):
     def worker_class_str(self):
         uri = self.settings['worker_class'].get()
 
-        # are we using a threaded worker?
-        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
-        if is_sync and self.threads > 1:
-            return "gthread"
-        return uri
+        if isinstance(uri, str):
+            # are we using a threaded worker?
+            is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+            if is_sync and self.threads > 1:
+                return "gthread"
+            return uri
+        return uri.__name__
 
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 
         # are we using a threaded worker?
-        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+        is_sync = isinstance(uri, str) and (uri.endswith('SyncWorker') or uri == 'sync')
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
 
