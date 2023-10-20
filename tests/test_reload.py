@@ -37,7 +37,8 @@ def test_reload_on_syntax_error():
     app = SyntaxErrorApp()
     cfg = app.cfg
     log = mock.Mock()
-    worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log)
+    metric_plugin = mock.Mock()
+    worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log, metric_plugin=metric_plugin)
 
     worker.init_process()
     reloader.start.assert_called_with()
@@ -54,7 +55,8 @@ def test_start_reloader_after_load_wsgi():
     app = ReloadApp()
     cfg = app.cfg
     log = mock.Mock()
-    worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log)
+    metric_plugin = mock.Mock()
+    worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log, metric_plugin=metric_plugin)
 
     worker.load_wsgi = mock.Mock()
     mock_parent = mock.Mock()

@@ -8,6 +8,7 @@
 import argparse
 import copy
 import grp
+import importlib
 import inspect
 import os
 import pwd
@@ -16,6 +17,7 @@ import shlex
 import ssl
 import sys
 import textwrap
+import traceback
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
@@ -151,12 +153,6 @@ class Config(object):
             # support the default
             uri = LoggerClass.default
 
-        # if default logger is in use, and statsd is on, automagically switch
-        # to the statsd logger
-        if uri == LoggerClass.default:
-            if 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
-                uri = "gunicorn.instrument.statsd.Statsd"
-
         logger_class = util.load_class(
             uri,
             default="gunicorn.glogging.Logger",
@@ -165,6 +161,30 @@ class Config(object):
         if hasattr(logger_class, "install"):
             logger_class.install()
         return logger_class
+
+    @property
+    def metrics_plugin(self):
+        if 'metrics_class' in self.settings and self.settings['metrics_class'].value is not None:
+            uri = self.settings['metrics_class'].get()
+            if inspect.isclass(uri):
+                metrics_class = uri
+            else:
+                components = uri.split('.')
+                klass = components.pop(-1)
+                try:
+                    mod = importlib.import_module('.'.join(components))
+                except Exception:
+                    exc = traceback.format_exc()
+                    msg = "class uri %r invalid or not found: \n\n[%s]"
+                    raise RuntimeError(msg % (uri, exc))
+                metrics_class = getattr(mod, klass)
+            return metrics_class()
+        elif 'statsd_host' in self.settings and self.settings['statsd_host'].value is not None:
+            from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
+            return StatsDMetricPlugin(self.settings)
+        else:
+            from gunicorn.instrument.metrics.base import NoOpMetricPlugin
+            return NoOpMetricPlugin()
 
     @property
     def is_ssl(self):
@@ -365,7 +385,10 @@ def validate_pos_int(val):
 
 def validate_ssl_version(val):
     if val != SSLVersion.default:
-        sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
+        sys.stderr.write(
+            "Warning: option `ssl_version` is deprecated and it is ignored. "
+            "Use ssl_context instead.\n"
+        )
     return val
 
 
@@ -1672,6 +1695,21 @@ class StatsdPrefix(Setting):
 
     .. versionadded:: 19.2
     """
+
+
+class MetricsClass(Setting):
+    name = "metrics_class"
+    section = "Metrics"
+    cli = ["--metrics-class"]
+    meta = "STRING"
+    validator = validate_class
+    default = None
+    desc = """\
+        The metrics you want to use to log events in Gunicorn.
+
+        You can provide your own metrics implementation by giving Gunicorn a Python path to a
+        class that quacks like ``gunicorn.instrument.workers.BaseMetricPlugin``.
+        """
 
 
 class Procname(Setting):

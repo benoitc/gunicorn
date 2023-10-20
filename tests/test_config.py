@@ -2,7 +2,6 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-
 import os
 import re
 import sys
@@ -13,9 +12,11 @@ from gunicorn import config
 from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
+from gunicorn.instrument.metrics.base import NoOpMetricPlugin
+from gunicorn.instrument.metrics.dogstatsd import DogStatsDMetricPlugin
+from gunicorn.instrument.metrics.statsd import StatsDMetricPlugin
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
-from gunicorn.instrument import statsd
 
 dirname = os.path.dirname(__file__)
 def cfg_module():
@@ -342,11 +343,13 @@ def test_statsd_host_with_unix_as_hostname():
     assert c.statsd_host == "some.socket"
 
 
-def test_statsd_changes_logger():
+def test_legacy_statsd_config():
     c = config.Config()
-    assert c.logger_class == glogging.Logger
+    assert isinstance(c.metrics_plugin, NoOpMetricPlugin)
     c.set('statsd_host', 'localhost:12345')
-    assert c.logger_class == statsd.Statsd
+    assert isinstance(c.metrics_plugin, StatsDMetricPlugin)
+    c.set('metrics_class', 'gunicorn.instrument.metrics.dogstatsd.DogStatsDMetricPlugin')
+    assert isinstance(c.metrics_plugin, DogStatsDMetricPlugin)
 
 
 class MyLogger(glogging.Logger):
