@@ -89,7 +89,7 @@ def test_http_header_encoding():
 
     # build our own header_str to compare against
     tosend = response.default_headers()
-    tosend.extend(["%s: %s\r\n" % (k, v) for k, v in response.headers])
+    tosend.extend("%s: %s\r\n" % field for field in response.headers)
     header_str = "%s\r\n" % "".join(tosend)
 
     with pytest.raises(UnicodeEncodeError):
