@@ -86,7 +86,7 @@ def default_environ(req, sock, cfg):
         "REQUEST_METHOD": req.method,
         "QUERY_STRING": req.query,
         "RAW_URI": req.uri,
-        "SERVER_PROTOCOL": "HTTP/%s" % ".".join([str(v) for v in req.version])
+        "SERVER_PROTOCOL": "HTTP/%s" % ".".join(str(v) for v in req.version)
     })
     return env
 
@@ -316,7 +316,7 @@ class Response(object):
         if self.headers_sent:
             return
         tosend = self.default_headers()
-        tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
+        tosend.extend("%s: %s\r\n" % field for field in self.headers)
 
         header_str = "%s\r\n" % "".join(tosend)
         util.write(self.sock, util.to_bytestring(header_str, "latin-1"))

@@ -31,7 +31,7 @@ def generate(site_path, special_priorities, directory_index='index.html'):
                 url_element.text = loc_element.tail = lastmod_element.tail = '\n  '
     # We sort the url nodes instead of the filenames because
     # filenames might be altered by the directory_index option
-    urlset[:] = sorted([url for url in urlset], key=lambda url: url[0].text)
+    urlset[:] = sorted((url for url in urlset), key=lambda url: url[0].text)
     urlset.tail = urlset[-1].tail = '\n'
     with open(os.path.join(site_path, 'sitemap.xml'), 'wb') as sitemap_file:
         ElementTree.ElementTree(urlset).write(sitemap_file, encoding='UTF-8', xml_declaration=True)
