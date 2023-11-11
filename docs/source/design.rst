@@ -143,10 +143,6 @@ signal, as the application code will be shared among workers but loaded only in
 the worker processes (unlike when using the preload setting, which loads the
 code in the master process).
 
-.. note::
-   Under Python 2.x, you need to install the 'futures' package to use this
-   feature.
-
 .. _Greenlets: https://github.com/python-greenlet/greenlet
 .. _Eventlet: http://eventlet.net/
 .. _Gevent: http://www.gevent.org/
