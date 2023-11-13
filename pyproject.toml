@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gunicorn"
+authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
+license = {text = "MIT"}
+description = "WSGI HTTP Server for UNIX"
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Other Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Internet",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+requires-python = ">=3.5"
+dependencies = [
+    'importlib_metadata; python_version<"3.8"',
+    "packaging",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://gunicorn.org"
+Documentation = "https://docs.gunicorn.org"
+"Issue tracker" = "https://github.com/benoitc/gunicorn/issues"
+"Source code" = "https://github.com/benoitc/gunicorn"
+
+[project.optional-dependencies]
+gevent = ["gevent>=1.4.0"]
+eventlet = ["eventlet>=0.24.1"]
+tornado = ["tornado>=0.2"]
+gthread = []
+setproctitle = ["setproctitle"]
+testing = [
+    "gevent",
+    "eventlet",
+    "cryptography",
+    "coverage",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.pytest.ini_options]
+norecursedirs = ["examples", "lib", "local", "src"]
+testpaths = ["tests/"]
+addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+license-files = ["['LICENSE']"]
+
+[tool.setuptools.packages]
+find = {namespaces = false}
+
+[tool.setuptools.dynamic]
+version = {attr = "gunicorn.__version__"}
