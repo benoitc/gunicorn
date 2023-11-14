@@ -540,7 +540,10 @@ class Arbiter(object):
                                        wpid, exitcode)
                     elif status == signal.SIGTERM:
                         self.log.info("Worker (pid:%s) gracefully killed", wpid)
-                    else:
+                    elif status > 0:
+                        # If the exit code of the worker is 0 and the status
+                        # is greater than 0, then it was most likely killed
+                        # via a signal.
                         try:
                             sig_name = signal.Signals(status).name
                         except ValueError:
