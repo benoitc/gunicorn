@@ -255,7 +255,7 @@ to the newly created unix socket:
     # see http://0pointer.net/blog/dynamic-users-with-systemd.html
     RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
-    ExecStart=/usr/bin/gunicorn applicationname.wsgi --bind unix:/run/gunicorn.sock
+    ExecStart=/usr/bin/gunicorn --bind unix:/run/gunicorn.sock applicationname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
     KillMode=mixed
     TimeoutStopSec=5
