@@ -97,7 +97,7 @@ class TCPSocket(BaseSocket):
     def get_backlog(self):
         if self.sock and PLATFORM == "linux":
             # tcp_info struct from include/uapi/linux/tcp.h
-            fmt = 'B'*8+'I'*24
+            fmt = 'B' * 8 + 'I' * 24
             try:
                 tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
                                                        socket.TCP_INFO, 104)
