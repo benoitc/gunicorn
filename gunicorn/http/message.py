@@ -83,7 +83,7 @@ class Message(object):
             # Parse initial header name : value pair.
             curr = lines.pop(0)
             header_length = len(curr)
-            if curr.find(":") < 0:
+            if curr.find(":") <= 0:
                 raise InvalidHeader(curr.strip())
             name, value = curr.split(":", 1)
             if self.cfg.strip_header_spaces:
