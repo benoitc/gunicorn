@@ -9,7 +9,7 @@ import os
 import re
 import sys
 
-from gunicorn.http.message import HEADER_RE
+from gunicorn.http.message import TOKEN_RE
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 from gunicorn import SERVER_SOFTWARE, SERVER
 from gunicorn import util
@@ -18,7 +18,9 @@ from gunicorn import util
 # with sending files in blocks over 2GB.
 BLKSIZE = 0x3FFFFFFF
 
-HEADER_VALUE_RE = re.compile(r'[^ \t\x21-\x7e\x80-\xff]')
+# RFC9110 5.5: field-vchar = VCHAR / obs-text
+# RFC4234 B.1: VCHAR = 0x21-x07E = printable ASCII
+HEADER_VALUE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
 
 log = logging.getLogger(__name__)
 
@@ -249,31 +251,32 @@ class Response(object):
             if not isinstance(name, str):
                 raise TypeError('%r is not a string' % name)
 
-            if HEADER_RE.search(name):
+            if not TOKEN_RE.fullmatch(name):
                 raise InvalidHeaderName('%r' % name)
 
             if not isinstance(value, str):
                 raise TypeError('%r is not a string' % value)
 
-            if HEADER_VALUE_RE.search(value):
+            if not HEADER_VALUE_RE.fullmatch(value):
                 raise InvalidHeader('%r' % value)
 
-            value = value.strip()
-            lname = name.lower().strip()
+            # RFC9110 5.5
+            value = value.strip(" \t")
+            lname = name.lower()
             if lname == "content-length":
                 self.response_length = int(value)
             elif util.is_hoppish(name):
                 if lname == "connection":
                     # handle websocket
-                    if value.lower().strip() == "upgrade":
+                    if value.lower() == "upgrade":
                         self.upgrade = True
                 elif lname == "upgrade":
-                    if value.lower().strip() == "websocket":
-                        self.headers.append((name.strip(), value))
+                    if value.lower() == "websocket":
+                        self.headers.append((name, value))
 
                 # ignore hopbyhop headers
                 continue
-            self.headers.append((name.strip(), value))
+            self.headers.append((name, value))
 
     def is_chunked(self):
         # Only use chunked responses when the client is
