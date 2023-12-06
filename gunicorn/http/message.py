@@ -21,8 +21,7 @@ MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
-HEADER_RE = re.compile(r"[^!#$%&'*+\-.\^_`|~0-9a-zA-Z]")
-METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
+TOKEN_RE = re.compile(r"[!#$%&'*+\-.\^_`|~0-9a-zA-Z]+")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
@@ -63,8 +62,8 @@ class Message(object):
         cfg = self.cfg
         headers = []
 
-        # Split lines on \r\n keeping the \r\n on each line
-        lines = [bytes_to_str(line) + "\r\n" for line in data.split(b"\r\n")]
+        # Split lines on \r\n
+        lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
 
         # handle scheme headers
         scheme_header = False
@@ -80,30 +79,27 @@ class Message(object):
             if len(headers) >= self.limit_request_fields:
                 raise LimitRequestHeaders("limit request headers fields")
 
-            # Parse initial header name : value pair.
+            # Parse initial header name: value pair.
             curr = lines.pop(0)
-            header_length = len(curr)
+            header_length = len(curr) + len("\r\n")
             if curr.find(":") <= 0:
-                raise InvalidHeader(curr.strip())
+                raise InvalidHeader(curr)
             name, value = curr.split(":", 1)
             if self.cfg.strip_header_spaces:
                 name = name.rstrip(" \t").upper()
             else:
                 name = name.upper()
-            if HEADER_RE.search(name):
+            if not TOKEN_RE.fullmatch(name):
                 raise InvalidHeaderName(name)
 
-            name, value = name.strip(), [value.lstrip()]
+            value = [value.lstrip(" \t")]
 
             # Consume value continuation lines
             while lines and lines[0].startswith((" ", "\t")):
                 curr = lines.pop(0)
-                header_length += len(curr)
-                if header_length > self.limit_request_field_size > 0:
-                    raise LimitRequestHeaders("limit request headers "
-                                              "fields size")
-                value.append(curr)
-            value = ''.join(value).rstrip()
+                header_length += len(curr) + len("\r\n")
+                value.append(curr.strip("\t "))
+            value = " ".join(value)
 
             if header_length > self.limit_request_field_size > 0:
                 raise LimitRequestHeaders("limit request headers fields size")
@@ -156,7 +152,7 @@ class Message(object):
     def should_close(self):
         for (h, v) in self.headers:
             if h == "CONNECTION":
-                v = v.lower().strip()
+                v = v.lower().strip(" \t")
                 if v == "close":
                     return True
                 elif v == "keep-alive":
@@ -283,7 +279,7 @@ class Request(Message):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):
-        bits = line.split()
+        bits = line.split(" ")
 
         if len(bits) != 6:
             raise InvalidProxyLine(line)
@@ -328,12 +324,12 @@ class Request(Message):
         }
 
     def parse_request_line(self, line_bytes):
-        bits = [bytes_to_str(bit) for bit in line_bytes.split(None, 2)]
+        bits = [bytes_to_str(bit) for bit in line_bytes.split(b" ", 2)]
         if len(bits) != 3:
             raise InvalidRequestLine(bytes_to_str(line_bytes))
 
         # Method
-        if not METH_RE.match(bits[0]):
+        if not TOKEN_RE.fullmatch(bits[0]):
             raise InvalidRequestMethod(bits[0])
         self.method = bits[0].upper()
 
@@ -349,7 +345,7 @@ class Request(Message):
         self.fragment = parts.fragment or ""
 
         # Version
-        match = VERSION_RE.match(bits[2])
+        match = VERSION_RE.fullmatch(bits[2])
         if match is None:
             raise InvalidHTTPVersion(bits[2])
         self.version = (int(match.group(1)), int(match.group(2)))
