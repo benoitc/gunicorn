@@ -2282,6 +2282,26 @@ class PermitUnconventionalHTTPMethod(Setting):
         """
 
 
+class PermitUnconventionalHTTPVersion(Setting):
+    name = "permit_unconventional_http_version"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-version"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP version not matching conventions of 2023
+
+        This disables the refusal of likely malformed request lines.
+        It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
+
+        This option is provided to diagnose backwards-incompatible changes.
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
 class CasefoldHTTPMethod(Setting):
     name = "casefold_http_method"
     section = "Server Mechanics"
