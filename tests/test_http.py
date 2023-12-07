@@ -10,6 +10,17 @@ from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
+from gunicorn.http.message import TOKEN_RE
+
+
+def test_method_pattern():
+    assert TOKEN_RE.fullmatch("GET")
+    assert TOKEN_RE.fullmatch("MKCALENDAR")
+    assert not TOKEN_RE.fullmatch("GET:")
+    assert not TOKEN_RE.fullmatch("GET;")
+    RFC9110_5_6_2_TOKEN_DELIM = r'"(),/:;<=>?@[\]{}'
+    for bad_char in RFC9110_5_6_2_TOKEN_DELIM:
+        assert not TOKEN_RE.match(bad_char)
 
 
 def assert_readline(payload, size, expected):
