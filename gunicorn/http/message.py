@@ -66,7 +66,7 @@ class Message(object):
     def parse(self, unreader):
         raise NotImplementedError()
 
-    def parse_headers(self, data):
+    def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
         headers = []
 
@@ -76,9 +76,13 @@ class Message(object):
         # handle scheme headers
         scheme_header = False
         secure_scheme_headers = {}
-        if ('*' in cfg.forwarded_allow_ips or
-            not isinstance(self.peer_addr, tuple)
-                or self.peer_addr[0] in cfg.forwarded_allow_ips):
+        if from_trailer:
+            # nonsense. either a request is https from the beginning
+            #  .. or we are just behind a proxy who does not remove conflicting trailers
+            pass
+        elif ('*' in cfg.forwarded_allow_ips or
+              not isinstance(self.peer_addr, tuple)
+              or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
@@ -294,7 +298,7 @@ class Request(Message):
             self.unreader.unread(data[2:])
             return b""
 
-        self.headers = self.parse_headers(data[:idx])
+        self.headers = self.parse_headers(data[:idx], from_trailer=False)
 
         ret = data[idx + 4:]
         buf = None

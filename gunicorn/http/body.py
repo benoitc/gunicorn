@@ -51,7 +51,7 @@ class ChunkedReader(object):
         if done:
             unreader.unread(buf.getvalue()[2:])
             return b""
-        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx])
+        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx], from_trailer=True)
         unreader.unread(buf.getvalue()[idx + 4:])
 
     def parse_chunked(self, unreader):
