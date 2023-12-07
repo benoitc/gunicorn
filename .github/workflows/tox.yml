@@ -28,4 +28,5 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox
       - run: tox -e run-module
+      - run: tox -e run-entrypoint
       - run: tox -e py

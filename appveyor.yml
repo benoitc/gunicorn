@@ -7,6 +7,11 @@ environment:
       PYTHON: "C:\\Python38-x64"
     - TOXENV: pycodestyle
       PYTHON: "C:\\Python38-x64"
+    # Windows cannot even import the module when they unconditionally import, see below.
+    #- TOXENV: run-module
+    #  PYTHON: "C:\\Python38-x64"
+    #- TOXENV: run-entrypoint
+    #  PYTHON: "C:\\Python38-x64"
     # Windows is not ready for testing!!!
     # Python's fcntl, grp, pwd, os.geteuid(), and socket.AF_UNIX are all Unix-only.
     #- TOXENV: py35

@@ -62,6 +62,14 @@ testing = [
     "pytest-cov",
 ]
 
+[project.scripts]
+# duplicates "python -m gunicorn" handling in __main__.py
+gunicorn = "gunicorn.app.wsgiapp:run"
+
+# note the quotes around "paste.server_runner" to escape the dot
+[project.entry-points."paste.server_runner"]
+main = "gunicorn.app.pasterapp:serve"
+
 [tool.pytest.ini_options]
 # # can override these: python -m pytest --override-ini="addopts="
 norecursedirs = ["examples", "lib", "local", "src"]
