@@ -21,7 +21,10 @@ MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
-TOKEN_RE = re.compile(r"[!#$%&'*+\-.\^_`|~0-9a-zA-Z]+")
+# verbosely on purpose, avoid backslash ambiguity
+RFC9110_5_6_2_TOKEN_SPECIALS = r"!#$%&'*+-.^_`|~"
+TOKEN_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(RFC9110_5_6_2_TOKEN_SPECIALS)))
+METHOD_BADCHAR_RE = re.compile("[a-z#]")
 VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
 
 
@@ -331,10 +334,23 @@ class Request(Message):
         if len(bits) != 3:
             raise InvalidRequestLine(bytes_to_str(line_bytes))
 
-        # Method
-        if not TOKEN_RE.fullmatch(bits[0]):
-            raise InvalidRequestMethod(bits[0])
-        self.method = bits[0].upper()
+        # Method: RFC9110 Section 9
+        self.method = bits[0]
+
+        # nonstandard restriction, suitable for all IANA registered methods
+        # partially enforced in previous gunicorn versions
+        if not self.cfg.permit_unconventional_http_method:
+            if METHOD_BADCHAR_RE.search(self.method):
+                raise InvalidRequestMethod(self.method)
+            if not 3 <= len(bits[0]) <= 20:
+                raise InvalidRequestMethod(self.method)
+        # standard restriction: RFC9110 token
+        if not TOKEN_RE.fullmatch(self.method):
+            raise InvalidRequestMethod(self.method)
+        # nonstandard and dangerous
+        # methods are merely uppercase by convention, no case-insensitive treatment is intended
+        if self.cfg.casefold_http_method:
+            self.method = self.method.upper()
 
         # URI
         self.uri = bits[1]
