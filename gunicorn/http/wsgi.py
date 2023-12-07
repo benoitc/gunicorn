@@ -135,6 +135,8 @@ def create(req, sock, client, server, cfg):
             environ['CONTENT_LENGTH'] = hdr_value
             continue
 
+        # do not change lightly, this is a common source of security problems
+        # RFC9110 Section 17.10 discourages ambiguous or incomplete mappings
         key = 'HTTP_' + hdr_name.replace('-', '_')
         if key in environ:
             hdr_value = "%s,%s" % (environ[key], hdr_value)

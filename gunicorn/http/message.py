@@ -120,6 +120,23 @@ class Message(object):
                     scheme_header = True
                     self.scheme = scheme
 
+            # ambiguous mapping allows fooling downstream, e.g. merging non-identical headers:
+            # X-Forwarded-For: 2001:db8::ha:cc:ed
+            # X_Forwarded_For: 127.0.0.1,::1
+            # HTTP_X_FORWARDED_FOR = 2001:db8::ha:cc:ed,127.0.0.1,::1
+            # Only modify after fixing *ALL* header transformations; network to wsgi env
+            if "_" in name:
+                if self.cfg.header_map == "dangerous":
+                    # as if we did not know we cannot safely map this
+                    pass
+                elif self.cfg.header_map == "drop":
+                    # almost as if it never had been there
+                    # but still counts against resource limits
+                    continue
+                else:
+                    # fail-safe fallthrough: refuse
+                    raise InvalidHeaderName(name)
+
             headers.append((name, value))
 
         return headers
