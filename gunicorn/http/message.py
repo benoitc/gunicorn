@@ -26,7 +26,8 @@ DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 RFC9110_5_6_2_TOKEN_SPECIALS = r"!#$%&'*+-.^_`|~"
 TOKEN_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(RFC9110_5_6_2_TOKEN_SPECIALS)))
 METHOD_BADCHAR_RE = re.compile("[a-z#]")
-VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
+# usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
+VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 
 
 class Message(object):
@@ -438,6 +439,10 @@ class Request(Message):
         if match is None:
             raise InvalidHTTPVersion(bits[2])
         self.version = (int(match.group(1)), int(match.group(2)))
+        if not (1, 0) <= self.version < (2, 0):
+            # if ever relaxing this, carefully review Content-Encoding processing
+            if not self.cfg.permit_unconventional_http_version:
+                raise InvalidHTTPVersion(self.version)
 
     def set_body_reader(self):
         super().set_body_reader()
