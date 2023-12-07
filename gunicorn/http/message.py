@@ -98,11 +98,15 @@ class Message(object):
                 raise InvalidHeader(curr)
             name, value = curr.split(":", 1)
             if self.cfg.strip_header_spaces:
-                name = name.rstrip(" \t").upper()
-            else:
-                name = name.upper()
+                name = name.rstrip(" \t")
             if not TOKEN_RE.fullmatch(name):
                 raise InvalidHeaderName(name)
+
+            # this is still a dangerous place to do this
+            #  but it is more correct than doing it before the pattern match:
+            # after we entered Unicode wonderland, 8bits could case-shift into ASCII:
+            # b"\xDF".decode("latin-1").upper().encode("ascii") == b"SS"
+            name = name.upper()
 
             value = [value.lstrip(" \t")]
 
