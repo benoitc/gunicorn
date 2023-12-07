@@ -2344,3 +2344,21 @@ class HeaderMap(Setting):
 
         .. versionadded:: 22.0.0
         """
+
+
+class TolerateDangerousFraming(Setting):
+    name = "tolerate_dangerous_framing"
+    section = "Server Mechanics"
+    cli = ["--tolerate-dangerous-framing"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Process requests with both Transfer-Encoding and Content-Length
+
+        This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """

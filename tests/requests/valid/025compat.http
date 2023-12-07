@@ -16,9 +16,3 @@ hello\r\n
 6; blahblah; blah\r\n
  world\r\n
 0\r\n
-\r\n
-PUT /ignored_after_dangerous_framing HTTP/1.1\r\n
-Content-Length: 3\r\n
-\r\n
-foo\r\n
-\r\n
