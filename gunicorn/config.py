@@ -2254,5 +2254,49 @@ class StripHeaderSpaces(Setting):
         This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
         See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
 
-        Use with care and only if necessary.
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 20.0.1
         """
+
+
+class PermitUnconventionalHTTPMethod(Setting):
+    name = "permit_unconventional_http_method"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP methods not matching conventions, such as IANA registration guidelines
+
+        This permits request methods of length less than 3 or more than 20,
+        methods with lowercase characters or methods containing the # character.
+        HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+        This option is provided to diagnose backwards-incompatible changes.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class CasefoldHTTPMethod(Setting):
+    name = "casefold_http_method"
+    section = "Server Mechanics"
+    cli = ["--casefold-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+         Transform received HTTP methods to uppercase
+
+         HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+         This option is provided because previous versions of gunicorn defaulted to this behaviour.
+
+         Use with care and only if necessary. May be removed in a future version.
+
+         .. versionadded:: 22.0.0
+         """
