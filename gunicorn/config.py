@@ -2300,3 +2300,47 @@ class CasefoldHTTPMethod(Setting):
 
          .. versionadded:: 22.0.0
          """
+
+
+def validate_header_map_behaviour(val):
+    # FIXME: refactor all of this subclassing stdlib argparse
+
+    if val is None:
+        return
+
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    if val.lower().strip() == "drop":
+        return "drop"
+    elif val.lower().strip() == "refuse":
+        return "refuse"
+    elif val.lower().strip() == "dangerous":
+        return "dangerous"
+    else:
+        raise ValueError("Invalid header map behaviour: %s" % val)
+
+
+class HeaderMap(Setting):
+    name = "header_map"
+    section = "Server Mechanics"
+    cli = ["--header-map"]
+    validator = validate_header_map_behaviour
+    default = "drop"
+    desc = """\
+        Configure how header field names are mapped into environ
+
+        Headers containing underscores are permitted by RFC9110,
+        but gunicorn joining headers of different names into
+        the same environment variable will dangerously confuse applications as to which is which.
+
+        The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
+        The value ``refuse`` will return an error if a request contains *any* such header.
+        The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+        header field names into the same environ name.
+
+        Use with care and only if necessary and after considering if your problem could
+        instead be solved by specifically renaming or rewriting only the intended headers
+        on a proxy in front of Gunicorn.
+
+        .. versionadded:: 22.0.0
+        """
