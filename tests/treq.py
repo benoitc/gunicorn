@@ -248,8 +248,10 @@ class request(object):
     def check(self, cfg, sender, sizer, matcher):
         cases = self.expect[:]
         p = RequestParser(cfg, sender(), None)
-        for req in p:
+        parsed_request_idx = -1
+        for parsed_request_idx, req in enumerate(p):
             self.same(req, sizer, matcher, cases.pop(0))
+        assert len(self.expect) == parsed_request_idx + 1
         assert not cases
 
     def same(self, req, sizer, matcher, exp):

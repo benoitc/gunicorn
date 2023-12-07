@@ -12,6 +12,7 @@ from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
+    UnsupportedTransferCoding,
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
@@ -39,6 +40,7 @@ class Message(object):
         self.trailers = []
         self.body = None
         self.scheme = "https" if cfg.is_ssl else "http"
+        self.must_close = False
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
@@ -57,6 +59,9 @@ class Message(object):
         unused = self.parse(self.unreader)
         self.unreader.unread(unused)
         self.set_body_reader()
+
+    def force_close(self):
+        self.must_close = True
 
     def parse(self, unreader):
         raise NotImplementedError()
@@ -152,9 +157,47 @@ class Message(object):
                 content_length = value
             elif name == "TRANSFER-ENCODING":
                 if value.lower() == "chunked":
+                    # DANGER: transer codings stack, and stacked chunking is never intended
+                    if chunked:
+                        raise InvalidHeader("TRANSFER-ENCODING", req=self)
                     chunked = True
+                elif value.lower() == "identity":
+                    # does not do much, could still plausibly desync from what the proxy does
+                    # safe option: nuke it, its never needed
+                    if chunked:
+                        raise InvalidHeader("TRANSFER-ENCODING", req=self)
+                elif value.lower() == "":
+                    # lacking security review on this case
+                    # offer the option to restore previous behaviour, but refuse by default, for now
+                    self.force_close()
+                    if not self.cfg.tolerate_dangerous_framing:
+                        raise UnsupportedTransferCoding(value)
+                # DANGER: do not change lightly; ref: request smuggling
+                # T-E is a list and we *could* support correctly parsing its elements
+                #  .. but that is only safe after getting all the edge cases right
+                #  .. for which no real-world need exists, so best to NOT open that can of worms
+                else:
+                    self.force_close()
+                    # even if parser is extended, retain this branch:
+                    #  the "chunked not last" case remains to be rejected!
+                    raise UnsupportedTransferCoding(value)
 
         if chunked:
+            # two potentially dangerous cases:
+            #  a) CL + TE (TE overrides CL.. only safe if the recipient sees it that way too)
+            #  b) chunked HTTP/1.0 (always faulty)
+            if self.version < (1, 1):
+                # framing wonky, see RFC 9112 Section 6.1
+                self.force_close()
+                if not self.cfg.tolerate_dangerous_framing:
+                    raise InvalidHeader("TRANSFER-ENCODING", req=self)
+            if content_length is not None:
+                # we cannot be certain the message framing we understood matches proxy intent
+                #  -> whatever happens next, remaining input must not be trusted
+                self.force_close()
+                # either processing or rejecting is permitted in RFC 9112 Section 6.1
+                if not self.cfg.tolerate_dangerous_framing:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
             self.body = Body(ChunkedReader(self, self.unreader))
         elif content_length is not None:
             try:
@@ -173,6 +216,8 @@ class Message(object):
             self.body = Body(EOFReader(self.unreader))
 
     def should_close(self):
+        if self.must_close:
+            return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
                 v = v.lower().strip(" \t")

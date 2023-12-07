@@ -73,6 +73,15 @@ class InvalidHeaderName(ParseException):
         return "Invalid HTTP header name: %r" % self.hdr
 
 
+class UnsupportedTransferCoding(ParseException):
+    def __init__(self, hdr):
+        self.hdr = hdr
+        self.code = 501
+
+    def __str__(self):
+        return "Unsupported transfer coding: %r" % self.hdr
+
+
 class InvalidChunkSize(IOError):
     def __init__(self, data):
         self.data = data
