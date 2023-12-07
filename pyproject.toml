@@ -57,13 +57,13 @@ setproctitle = ["setproctitle"]
 testing = [
     "gevent",
     "eventlet",
-    "cryptography",
     "coverage",
     "pytest",
     "pytest-cov",
 ]
 
 [tool.pytest.ini_options]
+# # can override these: python -m pytest --override-ini="addopts="
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
 addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
