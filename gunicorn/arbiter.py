@@ -6,7 +6,7 @@ import errno
 import os
 import random
 import select
-import signal
+import signal as _signal
 import sys
 import time
 import traceback
@@ -41,10 +41,10 @@ class Arbiter(object):
 
     # I love dynamic languages
     SIG_QUEUE = []
-    SIGNALS = [getattr(signal, "SIG%s" % x)
+    SIGNALS = [getattr(_signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
-        (getattr(signal, name), name[3:].lower()) for name in dir(signal)
+        (getattr(_signal, name), name[3:].lower()) for name in dir(_signal)
         if name[:3] == "SIG" and name[3] != "_"
     )
 
@@ -185,8 +185,8 @@ class Arbiter(object):
 
         # initialize all signals
         for s in self.SIGNALS:
-            signal.signal(s, self.signal)
-        signal.signal(signal.SIGCHLD, self.handle_chld)
+            _signal.signal(s, self.signal)
+        _signal.signal(_signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -290,7 +290,7 @@ class Arbiter(object):
         Kill all workers by sending them a SIGUSR1
         """
         self.log.reopen_files()
-        self.kill_workers(signal.SIGUSR1)
+        self.kill_workers(_signal.SIGUSR1)
 
     def handle_usr2(self):
         """\
@@ -306,7 +306,7 @@ class Arbiter(object):
         if self.cfg.daemon:
             self.log.info("graceful stop of workers")
             self.num_workers = 0
-            self.kill_workers(signal.SIGTERM)
+            self.kill_workers(_signal.SIGTERM)
         else:
             self.log.debug("SIGWINCH ignored. Not daemonized")
 
@@ -385,9 +385,9 @@ class Arbiter(object):
         sock.close_sockets(self.LISTENERS, unlink)
 
         self.LISTENERS = []
-        sig = signal.SIGTERM
+        sig = _signal.SIGTERM
         if not graceful:
-            sig = signal.SIGQUIT
+            sig = _signal.SIGQUIT
         limit = time.time() + self.cfg.graceful_timeout
         # instruct the workers to exit
         self.kill_workers(sig)
@@ -395,7 +395,7 @@ class Arbiter(object):
         while self.WORKERS and time.time() < limit:
             time.sleep(0.1)
 
-        self.kill_workers(signal.SIGKILL)
+        self.kill_workers(_signal.SIGKILL)
 
     def reexec(self):
         """\
@@ -503,9 +503,9 @@ class Arbiter(object):
             if not worker.aborted:
                 self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
                 worker.aborted = True
-                self.kill_worker(pid, signal.SIGABRT)
+                self.kill_worker(pid, _signal.SIGABRT)
             else:
-                self.kill_worker(pid, signal.SIGKILL)
+                self.kill_worker(pid, _signal.SIGKILL)
 
     def reap_workers(self):
         """\
@@ -542,14 +542,14 @@ class Arbiter(object):
                         # is greater than 0, then it was most likely killed
                         # via a signal.
                         try:
-                            sig_name = signal.Signals(status).name
+                            sig_name = _signal.Signals(status).name
                         except ValueError:
                             sig_name = "code {}".format(status)
                         msg = "Worker (pid:{}) was sent {}!".format(
                             wpid, sig_name)
 
                         # Additional hint for SIGKILL
-                        if status == signal.SIGKILL:
+                        if status == _signal.SIGKILL:
                             msg += " Perhaps out of memory?"
                         self.log.error(msg)
 
@@ -574,7 +574,7 @@ class Arbiter(object):
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
             (pid, _) = workers.pop(0)
-            self.kill_worker(pid, signal.SIGTERM)
+            self.kill_worker(pid, _signal.SIGTERM)
 
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
