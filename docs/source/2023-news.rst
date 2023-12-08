@@ -2,6 +2,15 @@
 Changelog - 2023
 ================
 
+22.0.0 - TBDTBDTBD
+==================
+
+- support python 3.12
+
+** Breaking changes **
+
+- minimum version is Python 3.7
+
 21.2.0 - 2023-07-19
 ===================
 
