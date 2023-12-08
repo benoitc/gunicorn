@@ -54,17 +54,18 @@ class Reloader(threading.Thread):
             time.sleep(self._interval)
 
 
+class OSNoInotifyError(ImportError):
+    pass
+
+
 has_inotify = False
-if sys.platform.startswith('linux'):
-    try:
-        from inotify.adapters import Inotify
-        import inotify.constants
-        has_inotify = True
-    except ImportError:
-        pass
+try:
+    if not sys.platform.startswith('linux'):
+        raise OSNoInotifyError("The inotify mechanism is only supported on Linux")
 
-
-if has_inotify:
+    from inotify.adapters import Inotify
+    import inotify.constants
+    has_inotify = True
 
     class InotifyReloader(threading.Thread):
         event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE
@@ -115,7 +116,7 @@ if has_inotify:
 
                 self._callback(filename)
 
-else:
+except ImportError:
 
     class InotifyReloader(object):
         def __init__(self, extra_files=None, callback=None):
