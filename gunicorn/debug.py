@@ -36,7 +36,7 @@ class Spew:
                 try:
                     src = inspect.getsourcelines(frame)
                     line = src[lineno]
-                except IOError:
+                except OSError:
                     line = 'Unknown code named [%s].  VM instruction #%d' % (
                         frame.f_code.co_name, frame.f_lasti)
             if self.trace_names is None or name in self.trace_names:

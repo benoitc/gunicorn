@@ -42,7 +42,7 @@ class BaseSocket:
                 and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            except socket.error as err:
+            except OSError as err:
                 if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL):
                     raise
         if not bound:
@@ -65,7 +65,7 @@ class BaseSocket:
 
         try:
             self.sock.close()
-        except socket.error as e:
+        except OSError as e:
             self.log.info("Error while closing socket %s", str(e))
 
         self.sock = None
@@ -182,7 +182,7 @@ def create_sockets(conf, log, fds=None):
         for i in range(5):
             try:
                 sock = sock_type(addr, conf, log)
-            except socket.error as e:
+            except OSError as e:
                 if e.args[0] == errno.EADDRINUSE:
                     log.error("Connection in use: %s", str(addr))
                 if e.args[0] == errno.EADDRNOTAVAIL:
