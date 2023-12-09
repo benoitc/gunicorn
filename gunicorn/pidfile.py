@@ -51,7 +51,7 @@ class Pidfile:
     def unlink(self):
         """ delete pidfile"""
         try:
-            with open(self.fname, "r") as f:
+            with open(self.fname) as f:
                 pid1 = int(f.read() or 0)
 
             if pid1 == self.pid:
@@ -64,7 +64,7 @@ class Pidfile:
         if not self.fname:
             return
         try:
-            with open(self.fname, "r") as f:
+            with open(self.fname) as f:
                 try:
                     wpid = int(f.read())
                 except ValueError:
