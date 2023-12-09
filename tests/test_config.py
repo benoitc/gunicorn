@@ -467,6 +467,16 @@ def test_bind_fd():
     assert app.cfg.bind == ["fd://42"]
 
 
+def test_buf_read_size():
+    with AltArgs(["prog_name"]):
+        app = NoConfigApp()
+    assert app.cfg.buf_read_size == 1024
+
+    with AltArgs(["prog_name", "--buf-read-size", "1048576"]):
+        app = NoConfigApp()
+    assert app.cfg.buf_read_size == 1048576
+
+
 def test_repr():
     c = config.Config()
     c.set("workers", 5)

@@ -209,6 +209,14 @@ class Config(object):
         return True
 
     @property
+    def buf_read_size(self):
+        buf_read_size = self.settings['buf_read_size'].get()
+        if buf_read_size is None:
+            return 1024
+
+        return int(buf_read_size)
+
+    @property
     def reuse_port(self):
         return self.settings['reuse_port'].get()
 
@@ -2156,6 +2164,17 @@ class CertReqs(Setting):
     `1`          ssl.CERT_OPTIONAL
     `2`          ssl.CERT_REQUIRED
     ===========  ===========================
+    """
+
+
+class BufReadSize(Setting):
+    name = "buf_read_size"
+    section = "Server Mechanics"
+    cli = ["--buf-read-size"]
+    validator = validate_pos_int
+    default = 1024
+    desc = """\
+    Buffer read size from request data
     """
 
 

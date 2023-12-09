@@ -175,7 +175,8 @@ class EOFReader(object):
 
 
 class Body(object):
-    def __init__(self, reader):
+    def __init__(self, cfg, reader):
+        self.cfg = cfg
         self.reader = reader
         self.buf = io.BytesIO()
 
@@ -212,7 +213,7 @@ class Body(object):
             return ret
 
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self.reader.read(self.cfg.buf_read_size)
             if not data:
                 break
             self.buf.write(data)

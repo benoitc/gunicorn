@@ -5,7 +5,7 @@ import t
 import pytest
 from unittest import mock
 
-from gunicorn import util
+from gunicorn import config, util
 from gunicorn.http.body import Body, LengthReader, EOFReader
 from gunicorn.http.wsgi import Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
@@ -13,7 +13,7 @@ from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 
 
 def assert_readline(payload, size, expected):
-    body = Body(io.BytesIO(payload))
+    body = Body(config.Config(), io.BytesIO(payload))
     assert body.readline(size) == expected
 
 
@@ -28,21 +28,21 @@ def test_readline_zero_size():
 
 
 def test_readline_new_line_before_size():
-    body = Body(io.BytesIO(b"abc\ndef"))
+    body = Body(config.Config(), io.BytesIO(b"abc\ndef"))
     assert body.readline(4) == b"abc\n"
     assert body.readline() == b"def"
 
 
 def test_readline_new_line_after_size():
-    body = Body(io.BytesIO(b"abc\ndef"))
+    body = Body(config.Config(), io.BytesIO(b"abc\ndef"))
     assert body.readline(2) == b"ab"
     assert body.readline() == b"c\n"
 
 
 def test_readline_no_new_line():
-    body = Body(io.BytesIO(b"abcdef"))
+    body = Body(config.Config(), io.BytesIO(b"abcdef"))
     assert body.readline() == b"abcdef"
-    body = Body(io.BytesIO(b"abcdef"))
+    body = Body(config.Config(), io.BytesIO(b"abcdef"))
     assert body.readline(2) == b"ab"
     assert body.readline(2) == b"cd"
     assert body.readline(2) == b"ef"
@@ -50,7 +50,7 @@ def test_readline_no_new_line():
 
 def test_readline_buffer_loaded():
     reader = io.BytesIO(b"abc\ndef")
-    body = Body(reader)
+    body = Body(config.Config(), reader)
     body.read(1) # load internal buffer
     reader.write(b"g\nhi")
     reader.seek(7)
@@ -60,7 +60,7 @@ def test_readline_buffer_loaded():
 
 
 def test_readline_buffer_loaded_with_size():
-    body = Body(io.BytesIO(b"abc\ndef"))
+    body = Body(config.Config(), io.BytesIO(b"abc\ndef"))
     body.read(1)  # load internal buffer
     assert body.readline(2) == b"bc"
     assert body.readline(2) == b"\n"

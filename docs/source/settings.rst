@@ -1377,6 +1377,17 @@ Set to ``*`` to disable checking of Front-end IPs (useful for setups
 where you don't know in advance the IP address of Front-end, but
 you still trust the environment)
 
+.. _buf-read-size:
+
+``buf_read_size``
+~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--buf-read-size``
+
+**Default:** ``1024``
+
+Buffer read size from request data
+
 .. _raw-paste-global-conf:
 
 ``raw_paste_global_conf``
