@@ -31,7 +31,7 @@ def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
 
-class AltArgs(object):
+class AltArgs:
     def __init__(self, args=None):
         self.args = args or []
         self.orig = sys.argv
@@ -97,7 +97,7 @@ def test_property_access():
     # Not a config property
     pytest.raises(AttributeError, getattr, c, "foo")
     # Force to be not an error
-    class Baz(object):
+    class Baz:
         def get(self):
             return 3.14
     c.settings["foo"] = Baz()

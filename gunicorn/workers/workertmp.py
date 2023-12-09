@@ -13,7 +13,7 @@ PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
 
 
-class WorkerTmp(object):
+class WorkerTmp:
 
     def __init__(self, cfg):
         old_umask = os.umask(cfg.umask)

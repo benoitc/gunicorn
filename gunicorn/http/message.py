@@ -29,7 +29,7 @@ METHOD_BADCHAR_RE = re.compile("[a-z#]")
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 
 
-class Message(object):
+class Message:
     def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader

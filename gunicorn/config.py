@@ -42,7 +42,7 @@ def auto_int(_, x):
     return int(x, 0)
 
 
-class Config(object):
+class Config:
 
     def __init__(self, usage=None, prog=None):
         self.settings = make_settings()
@@ -252,7 +252,7 @@ class SettingMeta(type):
         setattr(cls, "short", desc.splitlines()[0])
 
 
-class Setting(object):
+class Setting:
     name = None
     value = None
     section = None

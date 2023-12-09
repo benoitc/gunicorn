@@ -9,7 +9,7 @@ import os
 # a given type of data source.
 
 
-class Unreader(object):
+class Unreader:
     def __init__(self):
         self.buf = io.BytesIO()
 

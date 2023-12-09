@@ -25,7 +25,7 @@ from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
 
 
-class Worker(object):
+class Worker:
 
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
