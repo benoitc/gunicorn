@@ -24,7 +24,7 @@ from test import app as app1
 from test import app as app2
 
 
-class Application(object):
+class Application:
     def __init__(self):
         self.map = Mapper()
         self.map.connect('app1', '/app1url', app=app1)

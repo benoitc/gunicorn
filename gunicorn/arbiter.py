@@ -17,7 +17,7 @@ from gunicorn import sock, systemd, util
 from gunicorn import __version__, SERVER_SOFTWARE
 
 
-class Arbiter(object):
+class Arbiter:
     """
     Arbiter maintain the workers processes alive. It launches or
     kills them if needed. It also manages application reloading

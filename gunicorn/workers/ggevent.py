@@ -146,7 +146,7 @@ class GeventWorker(AsyncWorker):
         super().init_process()
 
 
-class GeventResponse(object):
+class GeventResponse:
 
     status = None
     headers = None

@@ -6,7 +6,7 @@
 import sys
 import time
 
-class TestIter(object):
+class TestIter:
 
     def __iter__(self):
         lines = [b'line 1\n', b'line 2\n']

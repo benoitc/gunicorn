@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 WS_KEY = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-class WebSocketWSGI(object):
+class WebSocketWSGI:
     def __init__(self, handler):
         self.handler = handler
 
@@ -117,7 +117,7 @@ class WebSocketWSGI(object):
         # doesn't barf on the fact that we didn't call start_response
         return ALREADY_HANDLED
 
-class WebSocket(object):
+class WebSocket:
     """A websocket object that handles the details of
     serialization/deserialization to the socket.
 

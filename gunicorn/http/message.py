@@ -30,7 +30,7 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
 
 
-class Message(object):
+class Message:
     def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader

@@ -161,7 +161,7 @@ def parse_syslog_address(addr):
     return (socktype, (host, port))
 
 
-class Logger(object):
+class Logger:
 
     LOG_LEVELS = {
         "critical": logging.CRITICAL,

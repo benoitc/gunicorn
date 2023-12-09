@@ -6,7 +6,7 @@ from gunicorn.http.message import Request
 from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 
-class Parser(object):
+class Parser:
 
     mesg_class = None
 
