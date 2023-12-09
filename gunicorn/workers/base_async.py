@@ -59,7 +59,7 @@ class AsyncWorker(base.Worker):
             except ssl.SSLError:
                 # pass to next try-except level
                 util.reraise(*sys.exc_info())
-            except EnvironmentError:
+            except OSError:
                 # pass to next try-except level
                 util.reraise(*sys.exc_info())
             except Exception as e:
@@ -71,7 +71,7 @@ class AsyncWorker(base.Worker):
             else:
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
@@ -123,7 +123,7 @@ class AsyncWorker(base.Worker):
                 raise StopIteration()
         except StopIteration:
             raise
-        except EnvironmentError:
+        except OSError:
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)
             util.reraise(*sys.exc_info())
@@ -135,7 +135,7 @@ class AsyncWorker(base.Worker):
                 try:
                     sock.shutdown(socket.SHUT_RDWR)
                     sock.close()
-                except EnvironmentError:
+                except OSError:
                     pass
                 raise StopIteration()
             raise

@@ -127,7 +127,7 @@ class ThreadWorker(base.Worker):
             with self._lock:
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_client_socket_readable, conn))
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                errno.EWOULDBLOCK):
                 raise
@@ -170,7 +170,7 @@ class ThreadWorker(base.Worker):
                 with self._lock:
                     try:
                         self.poller.unregister(conn.sock)
-                    except EnvironmentError as e:
+                    except OSError as e:
                         if e.errno != errno.EBADF:
                             raise
                     except KeyError:
@@ -294,7 +294,7 @@ class ThreadWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, conn.sock, conn.client, e)
 
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
@@ -348,7 +348,7 @@ class ThreadWorker(base.Worker):
             if resp.should_close():
                 self.log.debug("Closing connection.")
                 return False
-        except EnvironmentError:
+        except OSError:
             # pass to next try-except level
             util.reraise(*sys.exc_info())
         except Exception:
@@ -359,7 +359,7 @@ class ThreadWorker(base.Worker):
                 try:
                     conn.sock.shutdown(socket.SHUT_RDWR)
                     conn.sock.close()
-                except EnvironmentError:
+                except OSError:
                     pass
                 raise StopIteration()
             raise

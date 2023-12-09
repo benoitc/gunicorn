@@ -372,13 +372,13 @@ class Request(Message):
             try:
                 socket.inet_pton(socket.AF_INET, s_addr)
                 socket.inet_pton(socket.AF_INET, d_addr)
-            except socket.error:
+            except OSError:
                 raise InvalidProxyLine(line)
         elif proto == "TCP6":
             try:
                 socket.inet_pton(socket.AF_INET6, s_addr)
                 socket.inet_pton(socket.AF_INET6, d_addr)
-            except socket.error:
+            except OSError:
                 raise InvalidProxyLine(line)
 
         try:

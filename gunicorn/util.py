@@ -216,7 +216,7 @@ def unlink(filename):
 def is_ipv6(addr):
     try:
         socket.inet_pton(socket.AF_INET6, addr)
-    except socket.error:  # not a valid address
+    except OSError:  # not a valid address
         return False
     except ValueError:  # ipv6 not supported on this platform
         return False
@@ -268,7 +268,7 @@ def set_non_blocking(fd):
 def close(sock):
     try:
         sock.close()
-    except socket.error:
+    except OSError:
         pass
 
 
@@ -565,7 +565,7 @@ def check_is_writable(path):
     try:
         with open(path, 'a') as f:
             f.close()
-    except IOError as e:
+    except OSError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
 
 
@@ -586,7 +586,7 @@ def has_fileno(obj):
     # check BytesIO case and maybe others
     try:
         obj.fileno()
-    except (AttributeError, IOError, io.UnsupportedOperation):
+    except (AttributeError, OSError, io.UnsupportedOperation):
         return False
 
     return True

@@ -79,7 +79,7 @@ class Pidfile:
                     if e.args[0] == errno.ESRCH:
                         return
                     raise
-        except IOError as e:
+        except OSError as e:
             if e.args[0] == errno.ENOENT:
                 return
             raise
