@@ -209,6 +209,10 @@ class Config(object):
         return True
 
     @property
+    def so_keepalive(self):
+        return self.settings['so_keepalive'].get()
+
+    @property
     def reuse_port(self):
         return self.settings['reuse_port'].get()
 
@@ -1026,6 +1030,21 @@ class Sendfile(Setting):
            disabling.
         .. versionchanged:: 19.6
            added support for the ``SENDFILE`` environment variable
+        """
+
+
+class KeepAlive(Setting):
+    name = "so_keepalive"
+    section = "Server Mechanics"
+    cli = ["--so-keep-alive"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+
+    desc = """\
+        Set the ``SO_KEEPALIVE`` flag on the listening socket.
+
+        .. versionadded:: 21.3
         """
 
 

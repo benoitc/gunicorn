@@ -39,6 +39,8 @@ class BaseSocket(object):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if self.conf.so_keepalive and hasattr(socket, 'SO_KEEPALIVE'):
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if (self.conf.reuse_port
                 and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
