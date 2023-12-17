@@ -85,7 +85,10 @@ class ChunkedReader(object):
         data = buf.getvalue()
         line, rest_chunk = data[:idx], data[idx + 2:]
 
-        chunk_size = line.split(b";", 1)[0].strip()
+        # RFC9112 7.1.1: BWS before chunk-ext - but ONLY then
+        chunk_size, *chunk_ext = line.split(b";", 1)
+        if chunk_ext:
+            chunk_size = chunk_size.rstrip(b" \t")
         if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)
         chunk_size = int(chunk_size, 16)

@@ -3,7 +3,7 @@ Transfer-Encoding: chunked\r\n
 \r\n
 5; some; parameters=stuff\r\n
 hello\r\n
-6; blahblah; blah\r\n
+6 \t;\tblahblah; blah\r\n
  world\r\n
 0\r\n
 \r\n
