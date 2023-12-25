@@ -2254,5 +2254,131 @@ class StripHeaderSpaces(Setting):
         This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
         See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
 
-        Use with care and only if necessary.
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 20.0.1
+        """
+
+
+class PermitUnconventionalHTTPMethod(Setting):
+    name = "permit_unconventional_http_method"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP methods not matching conventions, such as IANA registration guidelines
+
+        This permits request methods of length less than 3 or more than 20,
+        methods with lowercase characters or methods containing the # character.
+        HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+        This option is provided to diagnose backwards-incompatible changes.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class PermitUnconventionalHTTPVersion(Setting):
+    name = "permit_unconventional_http_version"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-version"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP version not matching conventions of 2023
+
+        This disables the refusal of likely malformed request lines.
+        It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
+
+        This option is provided to diagnose backwards-incompatible changes.
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class CasefoldHTTPMethod(Setting):
+    name = "casefold_http_method"
+    section = "Server Mechanics"
+    cli = ["--casefold-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+         Transform received HTTP methods to uppercase
+
+         HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+         This option is provided because previous versions of gunicorn defaulted to this behaviour.
+
+         Use with care and only if necessary. May be removed in a future version.
+
+         .. versionadded:: 22.0.0
+         """
+
+
+def validate_header_map_behaviour(val):
+    # FIXME: refactor all of this subclassing stdlib argparse
+
+    if val is None:
+        return
+
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    if val.lower().strip() == "drop":
+        return "drop"
+    elif val.lower().strip() == "refuse":
+        return "refuse"
+    elif val.lower().strip() == "dangerous":
+        return "dangerous"
+    else:
+        raise ValueError("Invalid header map behaviour: %s" % val)
+
+
+class HeaderMap(Setting):
+    name = "header_map"
+    section = "Server Mechanics"
+    cli = ["--header-map"]
+    validator = validate_header_map_behaviour
+    default = "drop"
+    desc = """\
+        Configure how header field names are mapped into environ
+
+        Headers containing underscores are permitted by RFC9110,
+        but gunicorn joining headers of different names into
+        the same environment variable will dangerously confuse applications as to which is which.
+
+        The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
+        The value ``refuse`` will return an error if a request contains *any* such header.
+        The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+        header field names into the same environ name.
+
+        Use with care and only if necessary and after considering if your problem could
+        instead be solved by specifically renaming or rewriting only the intended headers
+        on a proxy in front of Gunicorn.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class TolerateDangerousFraming(Setting):
+    name = "tolerate_dangerous_framing"
+    section = "Server Mechanics"
+    cli = ["--tolerate-dangerous-framing"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Process requests with both Transfer-Encoding and Content-Length
+
+        This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
         """

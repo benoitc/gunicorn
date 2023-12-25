@@ -1,0 +1,2 @@
+GET /foo HTTP/0.99\r\n
+\r\n
