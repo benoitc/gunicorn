@@ -3,7 +3,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import copy
 import os
 import sys
 
@@ -17,6 +16,7 @@ from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.wsgi import WSGIContainer
 from gunicorn.workers.base import Worker
 from gunicorn import __version__ as gversion
+from gunicorn.sock import ssl_context
 
 
 # Tornado 5.0 updated its IOLoop, and the `io_loop` arguments to many
@@ -44,7 +44,7 @@ class TornadoWorker(Worker):
 
     def handle_exit(self, sig, frame):
         if self.alive:
-            super(TornadoWorker, self).handle_exit(sig, frame)
+            super().handle_exit(sig, frame)
 
     def handle_request(self):
         self.nr += 1
@@ -84,7 +84,7 @@ class TornadoWorker(Worker):
         # should create its own IOLoop. We should clear current IOLoop
         # if exists before os.fork.
         IOLoop.clear_current()
-        super(TornadoWorker, self).init_process()
+        super().init_process()
 
     def run(self):
         self.ioloop = IOLoop.instance()
@@ -105,8 +105,13 @@ class TornadoWorker(Worker):
         # instance of tornado.web.Application or is an
         # instance of tornado.wsgi.WSGIApplication
         app = self.wsgi
-        if not isinstance(app, tornado.web.Application) or \
-           isinstance(app, tornado.wsgi.WSGIApplication):
+
+        if tornado.version_info[0] < 6:
+            if not isinstance(app, tornado.web.Application) or \
+                    isinstance(app, tornado.wsgi.WSGIApplication):
+                app = WSGIContainer(app)
+        elif not isinstance(app, WSGIContainer) and \
+                not isinstance(app, tornado.web.Application):
             app = WSGIContainer(app)
 
         # Monkey-patching HTTPConnection.finish to count the
@@ -135,16 +140,11 @@ class TornadoWorker(Worker):
             server_class = _HTTPServer
 
         if self.cfg.is_ssl:
-            _ssl_opt = copy.deepcopy(self.cfg.ssl_options)
-            # tornado refuses initialization if ssl_options contains following
-            # options
-            del _ssl_opt["do_handshake_on_connect"]
-            del _ssl_opt["suppress_ragged_eofs"]
             if TORNADO5:
-                server = server_class(app, ssl_options=_ssl_opt)
+                server = server_class(app, ssl_options=ssl_context(self.cfg))
             else:
                 server = server_class(app, io_loop=self.ioloop,
-                                      ssl_options=_ssl_opt)
+                                      ssl_options=ssl_context(self.cfg))
         else:
             if TORNADO5:
                 server = server_class(app)

@@ -9,10 +9,10 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
-import gunicorn.util as util
-import gunicorn.workers.base as base
+from gunicorn import http
+from gunicorn.http import wsgi
+from gunicorn import util
+from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
 
@@ -20,7 +20,7 @@ ALREADY_HANDLED = object()
 class AsyncWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        super(AsyncWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
 
     def timeout_ctx(self):
@@ -33,7 +33,7 @@ class AsyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
-            parser = http.RequestParser(self.cfg, client)
+            parser = http.RequestParser(self.cfg, client, addr)
             try:
                 listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
@@ -73,14 +73,16 @@ class AsyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except EnvironmentError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
+                elif e.errno == errno.ENOTCONN:
+                    self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except Exception as e:
+        except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
@@ -92,15 +94,15 @@ class AsyncWorker(base.Worker):
         try:
             self.cfg.pre_request(self, req)
             resp, environ = wsgi.create(req, sock, addr,
-                    listener_name, self.cfg)
+                                        listener_name, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
-                resp.force_close()
-                self.alive = False
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
 
-            if not self.cfg.keepalive:
+            if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
 
             respiter = self.wsgi(environ, resp.start_response)
@@ -113,9 +115,9 @@ class AsyncWorker(base.Worker):
                     for item in respiter:
                         resp.write(item)
                 resp.close()
+            finally:
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-            finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
             if resp.should_close():

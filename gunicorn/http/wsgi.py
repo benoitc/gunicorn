@@ -9,16 +9,18 @@ import os
 import re
 import sys
 
-from gunicorn.http.message import HEADER_RE
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
-from gunicorn import SERVER_SOFTWARE
-import gunicorn.util as util
+from gunicorn.http.message import TOKEN_RE
+from gunicorn.http.errors import ConfigurationProblem, InvalidHeader, InvalidHeaderName
+from gunicorn import SERVER_SOFTWARE, SERVER
+from gunicorn import util
 
 # Send files in at most 1GB blocks as some operating systems can have problems
 # with sending files in blocks over 2GB.
 BLKSIZE = 0x3FFFFFFF
 
-HEADER_VALUE_RE = re.compile(r'[\x00-\x1F\x7F]')
+# RFC9110 5.5: field-vchar = VCHAR / obs-text
+# RFC4234 B.1: VCHAR = 0x21-x07E = printable ASCII
+HEADER_VALUE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +75,7 @@ def base_environ(cfg):
         "wsgi.multiprocess": (cfg.workers > 1),
         "wsgi.run_once": False,
         "wsgi.file_wrapper": FileWrapper,
+        "wsgi.input_terminated": True,
         "SERVER_SOFTWARE": SERVER_SOFTWARE,
     }
 
@@ -132,6 +135,8 @@ def create(req, sock, client, server, cfg):
             environ['CONTENT_LENGTH'] = hdr_value
             continue
 
+        # do not change lightly, this is a common source of security problems
+        # RFC9110 Section 17.10 discourages ambiguous or incomplete mappings
         key = 'HTTP_' + hdr_name.replace('-', '_')
         if key in environ:
             hdr_value = "%s,%s" % (environ[key], hdr_value)
@@ -179,7 +184,11 @@ def create(req, sock, client, server, cfg):
     # set the path and script name
     path_info = req.path
     if script_name:
-        path_info = path_info.split(script_name, 1)[1]
+        if not path_info.startswith(script_name):
+            raise ConfigurationProblem(
+                "Request path %r does not start with SCRIPT_NAME %r" %
+                (path_info, script_name))
+        path_info = path_info[len(script_name):]
     environ['PATH_INFO'] = util.unquote_to_wsgi_str(path_info)
     environ['SCRIPT_NAME'] = script_name
 
@@ -194,7 +203,7 @@ class Response(object):
     def __init__(self, req, sock, cfg):
         self.req = req
         self.sock = sock
-        self.version = SERVER_SOFTWARE
+        self.version = SERVER
         self.status = None
         self.chunked = False
         self.must_close = False
@@ -248,28 +257,32 @@ class Response(object):
             if not isinstance(name, str):
                 raise TypeError('%r is not a string' % name)
 
-            if HEADER_RE.search(name):
+            if not TOKEN_RE.fullmatch(name):
                 raise InvalidHeaderName('%r' % name)
 
-            if HEADER_VALUE_RE.search(value):
+            if not isinstance(value, str):
+                raise TypeError('%r is not a string' % value)
+
+            if not HEADER_VALUE_RE.fullmatch(value):
                 raise InvalidHeader('%r' % value)
 
-            value = str(value).strip()
-            lname = name.lower().strip()
+            # RFC9110 5.5
+            value = value.strip(" \t")
+            lname = name.lower()
             if lname == "content-length":
                 self.response_length = int(value)
             elif util.is_hoppish(name):
                 if lname == "connection":
                     # handle websocket
-                    if value.lower().strip() == "upgrade":
+                    if value.lower() == "upgrade":
                         self.upgrade = True
                 elif lname == "upgrade":
-                    if value.lower().strip() == "websocket":
-                        self.headers.append((name.strip(), value))
+                    if value.lower() == "websocket":
+                        self.headers.append((name, value))
 
                 # ignore hopbyhop headers
                 continue
-            self.headers.append((name.strip(), value))
+            self.headers.append((name, value))
 
     def is_chunked(self):
         # Only use chunked responses when the client is
@@ -299,7 +312,7 @@ class Response(object):
 
         headers = [
             "HTTP/%s.%s %s\r\n" % (self.req.version[0],
-                self.req.version[1], self.status),
+                                   self.req.version[1], self.status),
             "Server: %s\r\n" % self.version,
             "Date: %s\r\n" % util.http_date(),
             "Connection: %s\r\n" % connection
@@ -315,7 +328,7 @@ class Response(object):
         tosend.extend(["%s: %s\r\n" % (k, v) for k, v in self.headers])
 
         header_str = "%s\r\n" % "".join(tosend)
-        util.write(self.sock, util.to_bytestring(header_str, "ascii"))
+        util.write(self.sock, util.to_bytestring(header_str, "latin-1"))
         self.headers_sent = True
 
     def write(self, arg):
@@ -356,12 +369,6 @@ class Response(object):
             offset = os.lseek(fileno, 0, os.SEEK_CUR)
             if self.response_length is None:
                 filesize = os.fstat(fileno).st_size
-
-                # The file may be special and sendfile will fail.
-                # It may also be zero-length, but that is okay.
-                if filesize == 0:
-                    return False
-
                 nbytes = filesize - offset
             else:
                 nbytes = self.response_length
@@ -373,13 +380,8 @@ class Response(object):
         if self.is_chunked():
             chunk_size = "%X\r\n" % nbytes
             self.sock.sendall(chunk_size.encode('utf-8'))
-
-        sockno = self.sock.fileno()
-        sent = 0
-
-        while sent != nbytes:
-            count = min(nbytes - sent, BLKSIZE)
-            sent += os.sendfile(sockno, fileno, offset + sent, count)
+        if nbytes > 0:
+            self.sock.sendfile(respiter.filelike, offset=offset, count=nbytes)
 
         if self.is_chunked():
             self.sock.sendall(b"\r\n")

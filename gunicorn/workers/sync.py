@@ -12,13 +12,16 @@ import socket
 import ssl
 import sys
 
-import gunicorn.http as http
-import gunicorn.http.wsgi as wsgi
-import gunicorn.util as util
-import gunicorn.workers.base as base
+from gunicorn import http
+from gunicorn.http import wsgi
+from gunicorn import sock
+from gunicorn import util
+from gunicorn.workers import base
+
 
 class StopWaiting(Exception):
-    """ exception raised to stop waiting for a connnection """
+    """ exception raised to stop waiting for a connection """
+
 
 class SyncWorker(base.Worker):
 
@@ -72,7 +75,7 @@ class SyncWorker(base.Worker):
 
             except EnvironmentError as e:
                 if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
-                        errno.EWOULDBLOCK):
+                                   errno.EWOULDBLOCK):
                     raise
 
             if not self.is_parent_alive():
@@ -101,7 +104,7 @@ class SyncWorker(base.Worker):
                         self.accept(listener)
                     except EnvironmentError as e:
                         if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
-                                errno.EWOULDBLOCK):
+                                           errno.EWOULDBLOCK):
                             raise
 
             if not self.is_parent_alive():
@@ -126,10 +129,8 @@ class SyncWorker(base.Worker):
         req = None
         try:
             if self.cfg.is_ssl:
-                client = ssl.wrap_socket(client, server_side=True,
-                    **self.cfg.ssl_options)
-
-            parser = http.RequestParser(self.cfg, client)
+                client = sock.ssl_wrap_socket(client, self.cfg)
+            parser = http.RequestParser(self.cfg, client, addr)
             req = next(parser)
             self.handle_request(listener, req, client, addr)
         except http.errors.NoMoreData as e:
@@ -144,14 +145,16 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except EnvironmentError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
+                elif e.errno == errno.ENOTCONN:
+                    self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except Exception as e:
+        except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
@@ -163,7 +166,7 @@ class SyncWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
-                    listener.getsockname(), self.cfg)
+                                        listener.getsockname(), self.cfg)
             # Force the connection closed until someone shows
             # a buffering proxy that supports Keep-Alive to
             # the backend.
@@ -180,9 +183,9 @@ class SyncWorker(base.Worker):
                     for item in respiter:
                         resp.write(item)
                 resp.close()
+            finally:
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-            finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
         except EnvironmentError:

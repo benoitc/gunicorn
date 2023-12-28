@@ -7,19 +7,32 @@ from wsgiref.validate import validator
 HOST = "127.0.0.1"
 
 
-@validator
-def app(environ, start_response):
-    """Simplest possible application object"""
+def create_app(name="World", count=1):
+    message = (('Hello, %s!\n' % name) * count).encode("utf8")
+    length = str(len(message))
 
-    data = b'Hello, World!\n'
-    status = '200 OK'
+    @validator
+    def app(environ, start_response):
+        """Simplest possible application object"""
 
-    response_headers = [
-        ('Content-type', 'text/plain'),
-        ('Content-Length', str(len(data))),
-    ]
-    start_response(status, response_headers)
-    return iter([data])
+        status = '200 OK'
+
+        response_headers = [
+            ('Content-type', 'text/plain'),
+            ('Content-Length', length),
+        ]
+        start_response(status, response_headers)
+        return iter([message])
+
+    return app
+
+
+app = application = create_app()
+none_app = None
+
+
+def error_factory():
+    raise TypeError("inner")
 
 
 def requires_mac_ver(*min_version):
@@ -48,18 +61,3 @@ def requires_mac_ver(*min_version):
         wrapper.min_version = min_version
         return wrapper
     return decorator
-
-try:
-    from types import SimpleNamespace  # pylint: disable=unused-import
-except ImportError:
-    class SimpleNamespace(object):
-        def __init__(self, **kwargs):
-            vars(self).update(kwargs)
-
-        def __repr__(self):
-            keys = sorted(vars(self))
-            items = ("{}={!r}".format(k, vars(self)[k]) for k in keys)
-            return "{}({})".format(type(self).__name__, ", ".join(items))
-
-        def __eq__(self, other):
-            return vars(self) == vars(other)

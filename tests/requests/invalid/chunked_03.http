@@ -1,0 +1,8 @@
+POST /double_chunked HTTP/1.1\r\n
+Transfer-Encoding: identity, chunked, identity, chunked\r\n
+\r\n
+5\r\n
+hello\r\n
+6\r\n
+ world\r\n
+\r\n

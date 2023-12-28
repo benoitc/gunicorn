@@ -3,10 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+from unittest import mock
 
 from gunicorn import sock
 

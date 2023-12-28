@@ -2,11 +2,12 @@
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
-
+import ast
 import email.utils
 import errno
 import fcntl
 import html
+import importlib
 import inspect
 import io
 import logging
@@ -21,7 +22,10 @@ import time
 import traceback
 import warnings
 
-import pkg_resources
+try:
+    import importlib.metadata as importlib_metadata
+except (ModuleNotFoundError, ImportError):
+    import importlib_metadata
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
@@ -53,45 +57,17 @@ except ImportError:
         pass
 
 
-try:
-    from importlib import import_module
-except ImportError:
-    def _resolve_name(name, package, level):
-        """Return the absolute name of the module to be imported."""
-        if not hasattr(package, 'rindex'):
-            raise ValueError("'package' not set to a string")
-        dot = len(package)
-        for _ in range(level, 1, -1):
-            try:
-                dot = package.rindex('.', 0, dot)
-            except ValueError:
-                msg = "attempted relative import beyond top-level package"
-                raise ValueError(msg)
-        return "%s.%s" % (package[:dot], name)
-
-    def import_module(name, package=None):
-        """Import a module.
-
-The 'package' argument is required when performing a relative import. It
-specifies the package to use as the anchor point from which to resolve the
-relative import to an absolute import.
-
-"""
-        if name.startswith('.'):
-            if not package:
-                raise TypeError("relative imports require the 'package' argument")
-            level = 0
-            for character in name:
-                if character != '.':
-                    break
-                level += 1
-            name = _resolve_name(name[level:], package, level)
-        __import__(name)
-        return sys.modules[name]
+def load_entry_point(distribution, group, name):
+    dist_obj = importlib_metadata.distribution(distribution)
+    eps = [ep for ep in dist_obj.entry_points
+           if ep.group == group and ep.name == name]
+    if not eps:
+        raise ImportError("Entry point %r not found" % ((group, name),))
+    return eps[0].load()
 
 
 def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
-        section="gunicorn.workers"):
+               section="gunicorn.workers"):
     if inspect.isclass(uri):
         return uri
     if uri.startswith("egg:"):
@@ -104,8 +80,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
             name = default
 
         try:
-            return pkg_resources.load_entry_point(dist, section, name)
-        except:
+            return load_entry_point(dist, section, name)
+        except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
             raise RuntimeError(msg % (uri, exc))
@@ -121,9 +97,10 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
                     break
 
                 try:
-                    return pkg_resources.load_entry_point("gunicorn",
-                                section, uri)
-                except:
+                    return load_entry_point(
+                        "gunicorn", section, uri
+                    )
+                except Exception:
                     exc = traceback.format_exc()
                     msg = "class uri %r invalid or not found: \n\n[%s]"
                     raise RuntimeError(msg % (uri, exc))
@@ -131,8 +108,8 @@ def load_class(uri, default="gunicorn.workers.sync.SyncWorker",
         klass = components.pop(-1)
 
         try:
-            mod = import_module('.'.join(components))
-        except:
+            mod = importlib.import_module('.'.join(components))
+        except Exception:
             exc = traceback.format_exc()
             msg = "class uri %r invalid or not found: \n\n[%s]"
             raise RuntimeError(msg % (uri, exc))
@@ -180,7 +157,7 @@ def set_owner_process(uid, gid, initgroups=False):
         elif gid != os.getgid():
             os.setgid(gid)
 
-    if uid:
+    if uid and uid != os.getuid():
         os.setuid(uid)
 
 
@@ -190,7 +167,7 @@ def chown(path, uid, gid):
 
 if sys.platform.startswith("win"):
     def _waitfor(func, pathname, waitall=False):
-        # Peform the operation
+        # Perform the operation
         func(pathname)
         # Now setup the wait loop
         if waitall:
@@ -247,7 +224,7 @@ def is_ipv6(addr):
     return True
 
 
-def parse_address(netloc, default_port=8000):
+def parse_address(netloc, default_port='8000'):
     if re.match(r'unix:(//)?', netloc):
         return re.split(r'unix:(//)?', netloc)[-1]
 
@@ -260,27 +237,22 @@ def parse_address(netloc, default_port=8000):
 
     if netloc.startswith("tcp://"):
         netloc = netloc.split("tcp://")[1]
+    host, port = netloc, default_port
 
-    # get host
     if '[' in netloc and ']' in netloc:
-        host = netloc.split(']')[0][1:].lower()
+        host = netloc.split(']')[0][1:]
+        port = (netloc.split(']:') + [default_port])[1]
     elif ':' in netloc:
-        host = netloc.split(':')[0].lower()
+        host, port = (netloc.split(':') + [default_port])[:2]
     elif netloc == "":
-        host = "0.0.0.0"
-    else:
-        host = netloc.lower()
+        host, port = "0.0.0.0", default_port
 
-    #get port
-    netloc = netloc.split(']')[-1]
-    if ":" in netloc:
-        port = netloc.split(':', 1)[1]
-        if not port.isdigit():
-            raise RuntimeError("%r is not a valid port number." % port)
+    try:
         port = int(port)
-    else:
-        port = default_port
-    return (host, port)
+    except ValueError:
+        raise RuntimeError("%r is not a valid port number." % port)
+
+    return host.lower(), port
 
 
 def close_on_exec(fd):
@@ -299,6 +271,7 @@ def close(sock):
         sock.close()
     except socket.error:
         pass
+
 
 try:
     from os import closerange
@@ -361,31 +334,106 @@ def write_error(sock, status_int, reason, mesg):
     write_nonblock(sock, http.encode('latin1'))
 
 
+def _called_with_wrong_args(f):
+    """Check whether calling a function raised a ``TypeError`` because
+    the call failed or because something in the function raised the
+    error.
+
+    :param f: The function that was called.
+    :return: ``True`` if the call failed.
+    """
+    tb = sys.exc_info()[2]
+
+    try:
+        while tb is not None:
+            if tb.tb_frame.f_code is f.__code__:
+                # In the function, it was called successfully.
+                return False
+
+            tb = tb.tb_next
+
+        # Didn't reach the function.
+        return True
+    finally:
+        # Delete tb to break a circular reference in Python 2.
+        # https://docs.python.org/2/library/sys.html#sys.exc_info
+        del tb
+
+
 def import_app(module):
     parts = module.split(":", 1)
     if len(parts) == 1:
-        module, obj = module, "application"
+        obj = "application"
     else:
         module, obj = parts[0], parts[1]
 
     try:
-        __import__(module)
+        mod = importlib.import_module(module)
     except ImportError:
         if module.endswith(".py") and os.path.exists(module):
             msg = "Failed to find application, did you mean '%s:%s'?"
             raise ImportError(msg % (module.rsplit(".", 1)[0], obj))
-        else:
-            raise
+        raise
 
-    mod = sys.modules[module]
+    # Parse obj as a single expression to determine if it's a valid
+    # attribute name or function call.
+    try:
+        expression = ast.parse(obj, mode="eval").body
+    except SyntaxError:
+        raise AppImportError(
+            "Failed to parse %r as an attribute name or function call." % obj
+        )
+
+    if isinstance(expression, ast.Name):
+        name = expression.id
+        args = kwargs = None
+    elif isinstance(expression, ast.Call):
+        # Ensure the function name is an attribute name only.
+        if not isinstance(expression.func, ast.Name):
+            raise AppImportError("Function reference must be a simple name: %r" % obj)
+
+        name = expression.func.id
+
+        # Parse the positional and keyword arguments as literals.
+        try:
+            args = [ast.literal_eval(arg) for arg in expression.args]
+            kwargs = {kw.arg: ast.literal_eval(kw.value) for kw in expression.keywords}
+        except ValueError:
+            # literal_eval gives cryptic error messages, show a generic
+            # message with the full expression instead.
+            raise AppImportError(
+                "Failed to parse arguments as literal values: %r" % obj
+            )
+    else:
+        raise AppImportError(
+            "Failed to parse %r as an attribute name or function call." % obj
+        )
 
     is_debug = logging.root.level == logging.DEBUG
     try:
-        app = eval(obj, vars(mod))
-    except NameError:
+        app = getattr(mod, name)
+    except AttributeError:
         if is_debug:
             traceback.print_exception(*sys.exc_info())
-        raise AppImportError("Failed to find application object %r in %r" % (obj, module))
+        raise AppImportError("Failed to find attribute %r in %r." % (name, module))
+
+    # If the expression was a function call, call the retrieved object
+    # to get the real application.
+    if args is not None:
+        try:
+            app = app(*args, **kwargs)
+        except TypeError as e:
+            # If the TypeError was due to bad arguments to the factory
+            # function, show Python's nice error message without a
+            # traceback.
+            if _called_with_wrong_args(app):
+                raise AppImportError(
+                    "".join(traceback.format_exception_only(TypeError, e)).strip()
+                )
+
+            # Otherwise it was raised from within the function, show the
+            # full traceback.
+            raise
 
     if app is None:
         raise AppImportError("Failed to find application object: %r" % obj)
@@ -404,7 +452,7 @@ def getcwd():
             cwd = os.environ['PWD']
         else:
             cwd = os.getcwd()
-    except:
+    except Exception:
         cwd = os.getcwd()
     return cwd
 
@@ -424,7 +472,7 @@ def is_hoppish(header):
 def daemonize(enable_stdio_inheritance=False):
     """\
     Standard daemonization of a process.
-    http://www.svbug.com/documentation/comp.unix.programmer-FAQ/faq_2.html#SEC16
+    http://www.faqs.org/faqs/unix-faq/programmer/faq/ section 1.7
     """
     if 'GUNICORN_FD' not in os.environ:
         if os.fork():
@@ -450,7 +498,10 @@ def daemonize(enable_stdio_inheritance=False):
             closerange(0, 3)
 
             fd_null = os.open(REDIRECT_TO, os.O_RDWR)
+            # PEP 446, make fd for /dev/null inheritable
+            os.set_inheritable(fd_null, True)
 
+            # expect fd_null to be always 0 here, but in-case not ...
             if fd_null != 0:
                 os.dup2(fd_null, 0)
 
@@ -511,12 +562,12 @@ def seed():
         random.seed('%s.%s' % (time.time(), os.getpid()))
 
 
-def check_is_writeable(path):
+def check_is_writable(path):
     try:
-        f = open(path, 'a')
+        with open(path, 'a') as f:
+            f.close()
     except IOError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
-    f.close()
 
 
 def to_bytestring(value, encoding="utf8"):
@@ -527,6 +578,7 @@ def to_bytestring(value, encoding="utf8"):
         raise TypeError('%r is not a string' % value)
 
     return value.encode(encoding)
+
 
 def has_fileno(obj):
     if not hasattr(obj, "fileno"):

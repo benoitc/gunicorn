@@ -9,26 +9,30 @@ Gunicorn
     :alt: Supported Python versions
     :target: https://pypi.python.org/pypi/gunicorn
 
-.. image:: https://travis-ci.org/benoitc/gunicorn.svg?branch=master
+.. image:: https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg
     :alt: Build Status
-    :target: https://travis-ci.org/benoitc/gunicorn
+    :target: https://github.com/benoitc/gunicorn/actions/workflows/tox.yml
+
+.. image:: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml/badge.svg
+    :alt: Lint Status
+    :target: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml
 
 Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
 worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
 compatible with various web frameworks, simply implemented, light on server
 resource usage, and fairly speedy.
 
-Feel free to join us in `#gunicorn`_ on Freenode_.
+Feel free to join us in `#gunicorn`_ on `Libera.chat`_.
 
 Documentation
 -------------
 
-The documentation is hosted at http://docs.gunicorn.org.
+The documentation is hosted at https://docs.gunicorn.org.
 
 Installation
 ------------
 
-Gunicorn requires **Python **Python 3.x >= 3.4**.
+Gunicorn requires **Python 3.x >= 3.5**.
 
 Install from PyPI::
 
@@ -52,6 +56,12 @@ Example with test app::
     $ gunicorn --workers=2 test:app
 
 
+Contributing
+------------
+
+See `our complete contributor's guide <CONTRIBUTING.md>`_ for more details.
+
+
 License
 -------
 
@@ -59,6 +69,6 @@ Gunicorn is released under the MIT License. See the LICENSE_ file for more
 details.
 
 .. _Unicorn: https://bogomips.org/unicorn/
-.. _`#gunicorn`: https://webchat.freenode.net/?channels=gunicorn
-.. _Freenode: https://freenode.net/
+.. _`#gunicorn`: https://web.libera.chat/?channels=#gunicorn
+.. _`Libera.chat`: https://libera.chat/
 .. _LICENSE: https://github.com/benoitc/gunicorn/blob/master/LICENSE

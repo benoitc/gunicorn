@@ -6,12 +6,12 @@
 import errno
 import os
 import socket
+import ssl
 import stat
 import sys
 import time
 
 from gunicorn import util
-from gunicorn.socketfromfd import fromfd
 
 
 class BaseSocket(object):
@@ -40,7 +40,7 @@ class BaseSocket(object):
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if (self.conf.reuse_port
-            and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
+                and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except socket.error as err:
@@ -87,7 +87,7 @@ class TCPSocket(BaseSocket):
 
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        return super(TCPSocket, self).set_options(sock, bound=bound)
+        return super().set_options(sock, bound=bound)
 
 
 class TCP6Socket(TCPSocket):
@@ -115,7 +115,7 @@ class UnixSocket(BaseSocket):
                     os.remove(addr)
                 else:
                     raise ValueError("%r is not a socket" % addr)
-        super(UnixSocket, self).__init__(addr, conf, log, fd=fd)
+        super().__init__(addr, conf, log, fd=fd)
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
@@ -168,7 +168,7 @@ def create_sockets(conf, log, fds=None):
     # sockets are already bound
     if fdaddr:
         for fd in fdaddr:
-            sock = fromfd(fd)
+            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)
             listener = sock_type(sock_name, conf, log, fd=fd)
@@ -211,3 +211,22 @@ def close_sockets(listeners, unlink=True):
         sock.close()
         if unlink and _sock_type(sock_name) is UnixSocket:
             os.unlink(sock_name)
+
+
+def ssl_context(conf):
+    def default_ssl_context_factory():
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=conf.ca_certs)
+        context.load_cert_chain(certfile=conf.certfile, keyfile=conf.keyfile)
+        context.verify_mode = conf.cert_reqs
+        if conf.ciphers:
+            context.set_ciphers(conf.ciphers)
+        return context
+
+    return conf.ssl_context(conf, default_ssl_context_factory)
+
+
+def ssl_wrap_socket(sock, conf):
+    return ssl_context(conf).wrap_socket(sock,
+                                         server_side=True,
+                                         suppress_ragged_eofs=conf.suppress_ragged_eofs,
+                                         do_handshake_on_connect=conf.do_handshake_on_connect)

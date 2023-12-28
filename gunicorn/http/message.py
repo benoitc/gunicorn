@@ -6,13 +6,14 @@
 import io
 import re
 import socket
-from errno import ENOTCONN
 
-from gunicorn.http.unreader import SocketUnreader
 from gunicorn.http.body import ChunkedReader, LengthReader, EOFReader, Body
-from gunicorn.http.errors import (InvalidHeader, InvalidHeaderName, NoMoreData,
+from gunicorn.http.errors import (
+    InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
-    LimitRequestLine, LimitRequestHeaders)
+    LimitRequestLine, LimitRequestHeaders,
+    UnsupportedTransferCoding,
+)
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
@@ -21,25 +22,31 @@ MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
 DEFAULT_MAX_HEADERFIELD_SIZE = 8190
 
-HEADER_RE = re.compile(r"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\"]")
-METH_RE = re.compile(r"[A-Z0-9$-_.]{3,20}")
-VERSION_RE = re.compile(r"HTTP/(\d+)\.(\d+)")
+# verbosely on purpose, avoid backslash ambiguity
+RFC9110_5_6_2_TOKEN_SPECIALS = r"!#$%&'*+-.^_`|~"
+TOKEN_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(RFC9110_5_6_2_TOKEN_SPECIALS)))
+METHOD_BADCHAR_RE = re.compile("[a-z#]")
+# usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
+VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 
 
 class Message(object):
-    def __init__(self, cfg, unreader):
+    def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader
+        self.peer_addr = peer_addr
+        self.remote_addr = peer_addr
         self.version = None
         self.headers = []
         self.trailers = []
         self.body = None
         self.scheme = "https" if cfg.is_ssl else "http"
+        self.must_close = False
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
         if (self.limit_request_fields <= 0
-            or self.limit_request_fields > MAX_HEADERS):
+                or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
         self.limit_request_field_size = cfg.limit_request_field_size
         if self.limit_request_field_size < 0:
@@ -54,29 +61,30 @@ class Message(object):
         self.unreader.unread(unused)
         self.set_body_reader()
 
+    def force_close(self):
+        self.must_close = True
+
     def parse(self, unreader):
         raise NotImplementedError()
 
-    def parse_headers(self, data):
+    def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
         headers = []
 
-        # Split lines on \r\n keeping the \r\n on each line
-        lines = [bytes_to_str(line) + "\r\n" for line in data.split(b"\r\n")]
+        # Split lines on \r\n
+        lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
 
         # handle scheme headers
         scheme_header = False
         secure_scheme_headers = {}
-        if '*' in cfg.forwarded_allow_ips:
+        if from_trailer:
+            # nonsense. either a request is https from the beginning
+            #  .. or we are just behind a proxy who does not remove conflicting trailers
+            pass
+        elif ('*' in cfg.forwarded_allow_ips or
+              not isinstance(self.peer_addr, tuple)
+              or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
-        elif isinstance(self.unreader, SocketUnreader):
-            remote_addr = self.unreader.sock.getpeername()
-            if self.unreader.sock.family in (socket.AF_INET, socket.AF_INET6):
-                remote_host = remote_addr[0]
-                if remote_host in cfg.forwarded_allow_ips:
-                    secure_scheme_headers = cfg.secure_scheme_headers
-            elif self.unreader.sock.family == socket.AF_UNIX:
-                secure_scheme_headers = cfg.secure_scheme_headers
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -84,27 +92,34 @@ class Message(object):
             if len(headers) >= self.limit_request_fields:
                 raise LimitRequestHeaders("limit request headers fields")
 
-            # Parse initial header name : value pair.
+            # Parse initial header name: value pair.
             curr = lines.pop(0)
-            header_length = len(curr)
-            if curr.find(":") < 0:
-                raise InvalidHeader(curr.strip())
+            header_length = len(curr) + len("\r\n")
+            if curr.find(":") <= 0:
+                raise InvalidHeader(curr)
             name, value = curr.split(":", 1)
-            name = name.rstrip(" \t").upper()
-            if HEADER_RE.search(name):
+            if self.cfg.strip_header_spaces:
+                name = name.rstrip(" \t")
+            if not TOKEN_RE.fullmatch(name):
                 raise InvalidHeaderName(name)
 
-            name, value = name.strip(), [value.lstrip()]
+            # this is still a dangerous place to do this
+            #  but it is more correct than doing it before the pattern match:
+            # after we entered Unicode wonderland, 8bits could case-shift into ASCII:
+            # b"\xDF".decode("latin-1").upper().encode("ascii") == b"SS"
+            name = name.upper()
+
+            value = [value.lstrip(" \t")]
 
             # Consume value continuation lines
             while lines and lines[0].startswith((" ", "\t")):
                 curr = lines.pop(0)
-                header_length += len(curr)
+                header_length += len(curr) + len("\r\n")
                 if header_length > self.limit_request_field_size > 0:
                     raise LimitRequestHeaders("limit request headers "
-                            + "fields size")
-                value.append(curr)
-            value = ''.join(value).rstrip()
+                                              "fields size")
+                value.append(curr.strip("\t "))
+            value = " ".join(value)
 
             if header_length > self.limit_request_field_size > 0:
                 raise LimitRequestHeaders("limit request headers fields size")
@@ -119,6 +134,23 @@ class Message(object):
                     scheme_header = True
                     self.scheme = scheme
 
+            # ambiguous mapping allows fooling downstream, e.g. merging non-identical headers:
+            # X-Forwarded-For: 2001:db8::ha:cc:ed
+            # X_Forwarded_For: 127.0.0.1,::1
+            # HTTP_X_FORWARDED_FOR = 2001:db8::ha:cc:ed,127.0.0.1,::1
+            # Only modify after fixing *ALL* header transformations; network to wsgi env
+            if "_" in name:
+                if self.cfg.header_map == "dangerous":
+                    # as if we did not know we cannot safely map this
+                    pass
+                elif self.cfg.header_map == "drop":
+                    # almost as if it never had been there
+                    # but still counts against resource limits
+                    continue
+                else:
+                    # fail-safe fallthrough: refuse
+                    raise InvalidHeaderName(name)
+
             headers.append((name, value))
 
         return headers
@@ -126,19 +158,62 @@ class Message(object):
     def set_body_reader(self):
         chunked = False
         content_length = None
+
         for (name, value) in self.headers:
             if name == "CONTENT-LENGTH":
+                if content_length is not None:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
-                chunked = value.lower() == "chunked"
-            elif name == "SEC-WEBSOCKET-KEY1":
-                content_length = 8
+                if value.lower() == "chunked":
+                    # DANGER: transer codings stack, and stacked chunking is never intended
+                    if chunked:
+                        raise InvalidHeader("TRANSFER-ENCODING", req=self)
+                    chunked = True
+                elif value.lower() == "identity":
+                    # does not do much, could still plausibly desync from what the proxy does
+                    # safe option: nuke it, its never needed
+                    if chunked:
+                        raise InvalidHeader("TRANSFER-ENCODING", req=self)
+                elif value.lower() == "":
+                    # lacking security review on this case
+                    # offer the option to restore previous behaviour, but refuse by default, for now
+                    self.force_close()
+                    if not self.cfg.tolerate_dangerous_framing:
+                        raise UnsupportedTransferCoding(value)
+                # DANGER: do not change lightly; ref: request smuggling
+                # T-E is a list and we *could* support correctly parsing its elements
+                #  .. but that is only safe after getting all the edge cases right
+                #  .. for which no real-world need exists, so best to NOT open that can of worms
+                else:
+                    self.force_close()
+                    # even if parser is extended, retain this branch:
+                    #  the "chunked not last" case remains to be rejected!
+                    raise UnsupportedTransferCoding(value)
 
         if chunked:
+            # two potentially dangerous cases:
+            #  a) CL + TE (TE overrides CL.. only safe if the recipient sees it that way too)
+            #  b) chunked HTTP/1.0 (always faulty)
+            if self.version < (1, 1):
+                # framing wonky, see RFC 9112 Section 6.1
+                self.force_close()
+                if not self.cfg.tolerate_dangerous_framing:
+                    raise InvalidHeader("TRANSFER-ENCODING", req=self)
+            if content_length is not None:
+                # we cannot be certain the message framing we understood matches proxy intent
+                #  -> whatever happens next, remaining input must not be trusted
+                self.force_close()
+                # either processing or rejecting is permitted in RFC 9112 Section 6.1
+                if not self.cfg.tolerate_dangerous_framing:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
             self.body = Body(ChunkedReader(self, self.unreader))
         elif content_length is not None:
             try:
-                content_length = int(content_length)
+                if str(content_length).isnumeric():
+                    content_length = int(content_length)
+                else:
+                    raise InvalidHeader("CONTENT-LENGTH", req=self)
             except ValueError:
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
 
@@ -150,9 +225,11 @@ class Message(object):
             self.body = Body(EOFReader(self.unreader))
 
     def should_close(self):
+        if self.must_close:
+            return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
-                v = v.lower().strip()
+                v = v.lower().strip(" \t")
                 if v == "close":
                     return True
                 elif v == "keep-alive":
@@ -162,7 +239,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, cfg, unreader, req_number=1):
+    def __init__(self, cfg, unreader, peer_addr, req_number=1):
         self.method = None
         self.uri = None
         self.path = None
@@ -172,12 +249,12 @@ class Request(Message):
         # get max request line size
         self.limit_request_line = cfg.limit_request_line
         if (self.limit_request_line < 0
-            or self.limit_request_line >= MAX_REQUEST_LINE):
+                or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-        super(Request, self).__init__(cfg, unreader)
+        super().__init__(cfg, unreader, peer_addr)
 
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
@@ -226,7 +303,7 @@ class Request(Message):
             self.unreader.unread(data[2:])
             return b""
 
-        self.headers = self.parse_headers(data[:idx])
+        self.headers = self.parse_headers(data[:idx], from_trailer=False)
 
         ret = data[idx + 4:]
         buf = None
@@ -242,7 +319,7 @@ class Request(Message):
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
-            elif len(data) - 2 > limit > 0:
+            if len(data) - 2 > limit > 0:
                 raise LimitRequestLine(len(data), limit)
             self.get_data(unreader, buf)
             data = buf.getvalue()
@@ -273,19 +350,13 @@ class Request(Message):
 
     def proxy_protocol_access_check(self):
         # check in allow list
-        if isinstance(self.unreader, SocketUnreader):
-            try:
-                remote_host = self.unreader.sock.getpeername()[0]
-            except socket.error as e:
-                if e.args[0] == ENOTCONN:
-                    raise ForbiddenProxyRequest("UNKNOW")
-                raise
-            if ("*" not in self.cfg.proxy_allow_ips and
-                    remote_host not in self.cfg.proxy_allow_ips):
-                raise ForbiddenProxyRequest(remote_host)
+        if ("*" not in self.cfg.proxy_allow_ips and
+            isinstance(self.peer_addr, tuple) and
+                self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+            raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):
-        bits = line.split()
+        bits = line.split(" ")
 
         if len(bits) != 6:
             raise InvalidProxyLine(line)
@@ -330,14 +401,27 @@ class Request(Message):
         }
 
     def parse_request_line(self, line_bytes):
-        bits = [bytes_to_str(bit) for bit in line_bytes.split(None, 2)]
+        bits = [bytes_to_str(bit) for bit in line_bytes.split(b" ", 2)]
         if len(bits) != 3:
             raise InvalidRequestLine(bytes_to_str(line_bytes))
 
-        # Method
-        if not METH_RE.match(bits[0]):
-            raise InvalidRequestMethod(bits[0])
-        self.method = bits[0].upper()
+        # Method: RFC9110 Section 9
+        self.method = bits[0]
+
+        # nonstandard restriction, suitable for all IANA registered methods
+        # partially enforced in previous gunicorn versions
+        if not self.cfg.permit_unconventional_http_method:
+            if METHOD_BADCHAR_RE.search(self.method):
+                raise InvalidRequestMethod(self.method)
+            if not 3 <= len(bits[0]) <= 20:
+                raise InvalidRequestMethod(self.method)
+        # standard restriction: RFC9110 token
+        if not TOKEN_RE.fullmatch(self.method):
+            raise InvalidRequestMethod(self.method)
+        # nonstandard and dangerous
+        # methods are merely uppercase by convention, no case-insensitive treatment is intended
+        if self.cfg.casefold_http_method:
+            self.method = self.method.upper()
 
         # URI
         self.uri = bits[1]
@@ -351,12 +435,16 @@ class Request(Message):
         self.fragment = parts.fragment or ""
 
         # Version
-        match = VERSION_RE.match(bits[2])
+        match = VERSION_RE.fullmatch(bits[2])
         if match is None:
             raise InvalidHTTPVersion(bits[2])
         self.version = (int(match.group(1)), int(match.group(2)))
+        if not (1, 0) <= self.version < (2, 0):
+            # if ever relaxing this, carefully review Content-Encoding processing
+            if not self.cfg.permit_unconventional_http_version:
+                raise InvalidHTTPVersion(self.version)
 
     def set_body_reader(self):
-        super(Request, self).set_body_reader()
+        super().set_body_reader()
         if isinstance(self.body.reader, EOFReader):
             self.body = Body(LengthReader(self.unreader, 0))

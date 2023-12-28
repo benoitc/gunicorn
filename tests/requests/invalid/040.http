@@ -1,0 +1,6 @@
+GET /keep/same/as?invalid/040 HTTP/1.0\r\n
+Transfer_Encoding: tricked\r\n
+Content-Length: 7\r\n
+Content_Length: -1E23\r\n
+\r\n
+tricked\r\n

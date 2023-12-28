@@ -8,7 +8,7 @@ max_mem = 100000
 class MemoryWatch(threading.Thread):
 
     def __init__(self, server, max_mem):
-        super(MemoryWatch, self).__init__()
+        super().__init__()
         self.daemon = True
         self.server = server
         self.max_mem = max_mem

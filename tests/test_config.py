@@ -4,12 +4,14 @@
 # See the NOTICE for more information.
 
 import os
+import re
 import sys
 
 import pytest
 
 from gunicorn import config
 from gunicorn.app.base import Application
+from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
@@ -24,6 +26,8 @@ def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
 def alt_cfg_file():
     return os.path.join(dirname, "config", "test_cfg_alt.py")
+def cfg_file_with_wsgi_app():
+    return os.path.join(dirname, "config", "test_cfg_with_wsgi_app.py")
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
@@ -42,10 +46,18 @@ class AltArgs(object):
 
 class NoConfigApp(Application):
     def __init__(self):
-        super(NoConfigApp, self).__init__("no_usage", prog="gunicorn_test")
+        super().__init__("no_usage", prog="gunicorn_test")
 
     def init(self, parser, opts, args):
         pass
+
+    def load(self):
+        pass
+
+
+class WSGIApp(WSGIApplication):
+    def __init__(self):
+        super().__init__("no_usage", prog="gunicorn_test")
 
     def load(self):
         pass
@@ -306,6 +318,30 @@ def test_nworkers_changed():
     assert c.nworkers_changed(1, 2, 3) == 3
 
 
+def test_statsd_host():
+    c = config.Config()
+    assert c.statsd_host is None
+    c.set("statsd_host", "localhost")
+    assert c.statsd_host == ("localhost", 8125)
+    c.set("statsd_host", "statsd:7777")
+    assert c.statsd_host == ("statsd", 7777)
+    c.set("statsd_host", "unix:///path/to.sock")
+    assert c.statsd_host == "/path/to.sock"
+    pytest.raises(TypeError, c.set, "statsd_host", 666)
+    pytest.raises(TypeError, c.set, "statsd_host", "host:string")
+
+
+def test_statsd_host_with_unix_as_hostname():
+    # This is a regression test for major release 20. After this release
+    # we should consider modifying the behavior of util.parse_address to
+    # simplify gunicorn's code
+    c = config.Config()
+    c.set("statsd_host", "unix:7777")
+    assert c.statsd_host == ("unix", 7777)
+    c.set("statsd_host", "unix://some.socket")
+    assert c.statsd_host == "some.socket"
+
+
 def test_statsd_changes_logger():
     c = config.Config()
     assert c.logger_class == glogging.Logger
@@ -352,11 +388,40 @@ def test_invalid_enviroment_variables_config(monkeypatch, capsys):
         _, err = capsys.readouterr()
         assert  "error: unrecognized arguments: --foo" in err
 
+
 def test_cli_overrides_enviroment_variables_module(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--workers=4")
     with AltArgs(["prog_name", "-c", cfg_file(), "--workers", "3"]):
         app = NoConfigApp()
     assert app.cfg.workers == 3
+
+
+@pytest.mark.parametrize("options, expected", [
+    (["app:app"], 'app:app'),
+    (["-c", cfg_file(), "app:app"], 'app:app'),
+    (["-c", cfg_file_with_wsgi_app(), "app:app"], 'app:app'),
+    (["-c", cfg_file_with_wsgi_app()], 'app1:app1'),
+])
+def test_wsgi_app_config(options, expected):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        app = WSGIApp()
+    assert app.app_uri == expected
+
+
+@pytest.mark.parametrize("options", [
+    ([]),
+    (["-c", cfg_file()]),
+])
+def test_non_wsgi_app(options, capsys):
+    cmdline = ["prog_name"]
+    cmdline.extend(options)
+    with AltArgs(cmdline):
+        with pytest.raises(SystemExit):
+            WSGIApp()
+        _, err = capsys.readouterr()
+        assert  "Error: No application module specified." in err
 
 
 @pytest.mark.parametrize("options, expected", [
@@ -388,41 +453,6 @@ def test_umask_config(options, expected):
     assert app.cfg.umask == expected
 
 
-@pytest.mark.parametrize("options, expected", [
-    (["--ssl-version", "SSLv23"], 2),
-    (["--ssl-version", "TLSv1"], 3),
-    (["--ssl-version", "2"], 2),
-    (["--ssl-version", "3"], 3),
-])
-def test_ssl_version_named_constants_python3(options, expected):
-    _test_ssl_version(options, expected)
-
-
-@pytest.mark.skipif(sys.version_info < (3, 6),
-    reason="requires python3.6+")
-@pytest.mark.parametrize("options, expected", [
-    (["--ssl-version", "TLS"], 2),
-    (["--ssl-version", "TLSv1_1"], 4),
-    (["--ssl-version", "TLSv1_2"], 5),
-    (["--ssl-version", "TLS_SERVER"], 17),
-])
-def test_ssl_version_named_constants_python36(options, expected):
-    _test_ssl_version(options, expected)
-
-
-@pytest.mark.parametrize("ssl_version", [
-    "FOO",
-    "-99",
-    "99991234"
-])
-def test_ssl_version_bad(ssl_version):
-    c = config.Config()
-    with pytest.raises(ValueError) as exc:
-        c.set("ssl_version", ssl_version)
-    assert 'Valid options' in str(exc.value)
-    assert "TLSv" in str(exc.value)
-
-
 def _test_ssl_version(options, expected):
     cmdline = ["prog_name"]
     cmdline.extend(options)
@@ -435,3 +465,45 @@ def test_bind_fd():
     with AltArgs(["prog_name", "-b", "fd://42"]):
         app = NoConfigApp()
     assert app.cfg.bind == ["fd://42"]
+
+
+def test_repr():
+    c = config.Config()
+    c.set("workers", 5)
+
+    assert "with value 5" in repr(c.settings['workers'])
+
+
+def test_str():
+    c = config.Config()
+    o = str(c)
+
+    # match the first few lines, some different types, but don't go OTT
+    # to avoid needless test fails with changes
+    OUTPUT_MATCH = {
+        'access_log_format': '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"',
+        'accesslog': 'None',
+        'backlog': '2048',
+        'bind': "['127.0.0.1:8000']",
+        'capture_output': 'False',
+        'child_exit': '<ChildExit.child_exit()>',
+    }
+    for i, line in enumerate(o.splitlines()):
+        m = re.match(r'^(\w+)\s+= ', line)
+        assert m, "Line {} didn't match expected format: {!r}".format(i, line)
+
+        key = m.group(1)
+        try:
+            s = OUTPUT_MATCH.pop(key)
+        except KeyError:
+            continue
+
+        line_re = r'^{}\s+= {}$'.format(key, re.escape(s))
+        assert re.match(line_re, line), '{!r} != {!r}'.format(line_re, line)
+
+        if not OUTPUT_MATCH:
+            break
+    else:
+        assert False, 'missing expected setting lines? {}'.format(
+            OUTPUT_MATCH.keys()
+        )

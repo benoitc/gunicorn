@@ -5,10 +5,10 @@ import shutil
 import socket
 import tempfile
 from datetime import timedelta
+from types import SimpleNamespace
 
 from gunicorn.config import Config
 from gunicorn.instrument.statsd import Statsd
-from support import SimpleNamespace
 
 
 class StatsdTestException(Exception):
@@ -57,6 +57,29 @@ def test_statsd_fail():
     logger.error("No impact on logging")
     logger.warning("No impact on logging")
     logger.exception("No impact on logging")
+
+
+def test_statsd_host_initialization():
+    c = Config()
+    c.set('statsd_host', 'unix:test.sock')
+    logger = Statsd(c)
+    logger.info("Can be initialized and used with a UDS socket")
+
+    # Can be initialized and used with a UDP address
+    c.set('statsd_host', 'host:8080')
+    logger = Statsd(c)
+    logger.info("Can be initialized and used with a UDP socket")
+
+
+def test_dogstatsd_tags():
+    c = Config()
+    tags = 'yucatan,libertine:rhubarb'
+    c.set('dogstatsd_tags', tags)
+    logger = Statsd(c)
+    logger.sock = MockSocket(False)
+    logger.info("Twill", extra={"mtype": "gauge", "metric": "barb.westerly",
+                                "value": 2})
+    assert logger.sock.msgs[0] == b"barb.westerly:2|g|#" + tags.encode('ascii')
 
 
 def test_instrument():

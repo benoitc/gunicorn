@@ -19,20 +19,26 @@ GAUGE_TYPE = "gauge"
 COUNTER_TYPE = "counter"
 HISTOGRAM_TYPE = "histogram"
 
+
 class Statsd(Logger):
     """statsD-based instrumentation, that passes as a logger
     """
     def __init__(self, cfg):
-        """host, port: statsD server
-        """
         Logger.__init__(self, cfg)
         self.prefix = sub(r"^(.+[^.]+)\.*$", "\\g<1>.", cfg.statsd_prefix)
+
+        if isinstance(cfg.statsd_host, str):
+            address_family = socket.AF_UNIX
+        else:
+            address_family = socket.AF_INET
+
         try:
-            host, port = cfg.statsd_host
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.connect((host, int(port)))
+            self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
+            self.sock.connect(cfg.statsd_host)
         except Exception:
             self.sock = None
+
+        self.dogstatsd_tags = cfg.dogstatsd_tags
 
     # Log errors and warnings
     def critical(self, msg, *args, **kwargs):
@@ -51,7 +57,7 @@ class Statsd(Logger):
         Logger.exception(self, msg, *args, **kwargs)
         self.increment("gunicorn.log.exception", 1)
 
-    # Special treatement for info, the most common log level
+    # Special treatment for info, the most common log level
     def info(self, msg, *args, **kwargs):
         self.log(logging.INFO, msg, *args, **kwargs)
 
@@ -116,6 +122,11 @@ class Statsd(Logger):
         try:
             if isinstance(msg, str):
                 msg = msg.encode("ascii")
+
+            # http://docs.datadoghq.com/guides/dogstatsd/#datagram-format
+            if self.dogstatsd_tags:
+                msg = msg + b"|#" + self.dogstatsd_tags.encode('ascii')
+
             if self.sock:
                 self.sock.send(msg)
         except Exception:

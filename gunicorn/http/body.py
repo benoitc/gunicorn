@@ -7,7 +7,7 @@ import io
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
-        InvalidChunkSize)
+                                  InvalidChunkSize)
 
 
 class ChunkedReader(object):
@@ -18,7 +18,7 @@ class ChunkedReader(object):
 
     def read(self, size):
         if not isinstance(size, int):
-            raise TypeError("size must be an integral type")
+            raise TypeError("size must be an integer type")
         if size < 0:
             raise ValueError("Size must be positive.")
         if size == 0:
@@ -51,7 +51,7 @@ class ChunkedReader(object):
         if done:
             unreader.unread(buf.getvalue()[2:])
             return b""
-        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx])
+        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx], from_trailer=True)
         unreader.unread(buf.getvalue()[idx + 4:])
 
     def parse_chunked(self, unreader):
@@ -85,11 +85,13 @@ class ChunkedReader(object):
         data = buf.getvalue()
         line, rest_chunk = data[:idx], data[idx + 2:]
 
-        chunk_size = line.split(b";", 1)[0].strip()
-        try:
-            chunk_size = int(chunk_size, 16)
-        except ValueError:
+        # RFC9112 7.1.1: BWS before chunk-ext - but ONLY then
+        chunk_size, *chunk_ext = line.split(b";", 1)
+        if chunk_ext:
+            chunk_size = chunk_size.rstrip(b" \t")
+        if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)
+        chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
             try:
@@ -187,6 +189,7 @@ class Body(object):
         if not ret:
             raise StopIteration()
         return ret
+
     next = __next__
 
     def getsize(self, size):

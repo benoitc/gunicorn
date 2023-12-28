@@ -51,6 +51,16 @@ class Config(object):
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
 
+    def __str__(self):
+        lines = []
+        kmax = max(len(k) for k in self.settings)
+        for k in sorted(self.settings):
+            v = self.settings[k].value
+            if callable(v):
+                v = "<{}()>".format(v.__qualname__)
+            lines.append("{k:{kmax}} = {v}".format(k=k, v=v, kmax=kmax))
+        return "\n".join(lines)
+
     def __getattr__(self, name):
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
@@ -59,7 +69,7 @@ class Config(object):
     def __setattr__(self, name, value):
         if name != "settings" and name in self.settings:
             raise AttributeError("Invalid access!")
-        super(Config, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
     def set(self, name, value):
         if name not in self.settings:
@@ -78,9 +88,9 @@ class Config(object):
         }
         parser = argparse.ArgumentParser(**kwargs)
         parser.add_argument("-v", "--version",
-                action="version", default=argparse.SUPPRESS,
-                version="%(prog)s (version " + __version__ + ")\n",
-                help="show program's version number and exit")
+                            action="version", default=argparse.SUPPRESS,
+                            version="%(prog)s (version " + __version__ + ")\n",
+                            help="show program's version number and exit")
         parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
 
         keys = sorted(self.settings, key=self.settings.__getitem__)
@@ -93,17 +103,17 @@ class Config(object):
     def worker_class_str(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
-            return "threads"
+            return "gthread"
         return uri
 
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 
-        ## are we using a threaded worker?
+        # are we using a threaded worker?
         is_sync = uri.endswith('SyncWorker') or uri == 'sync'
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
@@ -224,7 +234,7 @@ class Config(object):
 
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
-        super_new = super(SettingMeta, cls).__new__
+        super_new = super().__new__
         parents = [b for b in bases if isinstance(b, SettingMeta)]
         if not parents:
             return super_new(cls, name, bases, attrs)
@@ -308,6 +318,15 @@ class Setting(object):
                 self.order < other.order)
     __cmp__ = __lt__
 
+    def __repr__(self):
+        return "<%s.%s object at %x with value %r>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            id(self),
+            self.value,
+        )
+
+
 Setting = SettingMeta('Setting', (Setting,), {})
 
 
@@ -345,25 +364,9 @@ def validate_pos_int(val):
 
 
 def validate_ssl_version(val):
-    ssl_versions = {}
-    for protocol in [p for p in dir(ssl) if p.startswith("PROTOCOL_")]:
-        ssl_versions[protocol[9:]] = getattr(ssl, protocol)
-    if val in ssl_versions:
-        # string matching PROTOCOL_...
-        return ssl_versions[val]
-
-    try:
-        intval = validate_pos_int(val)
-        if intval in ssl_versions.values():
-            # positive int matching a protocol int constant
-            return intval
-    except (ValueError, TypeError):
-        # negative integer or not an integer
-        # drop this in favour of the more descriptive ValueError below
-        pass
-
-    raise ValueError("Invalid ssl_version: %s. Valid options: %s"
-                     % (val, ', '.join(ssl_versions)))
+    if val != SSLVersion.default:
+        sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
+    return val
 
 
 def validate_string(val):
@@ -429,7 +432,7 @@ def validate_callable(arity):
                 raise TypeError(str(e))
             except AttributeError:
                 raise TypeError("Can not load '%s' from '%s'"
-                    "" % (obj_name, mod_name))
+                                "" % (obj_name, mod_name))
         if not callable(val):
             raise TypeError("Value is not callable: %s" % val)
         if arity != -1 and arity != util.get_arity(val):
@@ -495,15 +498,25 @@ def validate_chdir(val):
     return path
 
 
-def validate_hostport(val):
+def validate_statsd_address(val):
     val = validate_string(val)
     if val is None:
         return None
-    elements = val.split(":")
-    if len(elements) == 2:
-        return (elements[0], int(elements[1]))
-    else:
-        raise TypeError("Value must consist of: hostname:port")
+
+    # As of major release 20, util.parse_address would recognize unix:PORT
+    # as a UDS address, breaking backwards compatibility. We defend against
+    # that regression here (this is also unit-tested).
+    # Feel free to remove in the next major release.
+    unix_hostname_regression = re.match(r'^unix:(\d+)$', val)
+    if unix_hostname_regression:
+        return ('unix', int(unix_hostname_regression.group(1)))
+
+    try:
+        address = util.parse_address(val, default_port='8125')
+    except RuntimeError:
+        raise TypeError("Value must be one of ('host:port', 'unix://PATH')")
+
+    return address
 
 
 def validate_reload_engine(val):
@@ -515,7 +528,7 @@ def validate_reload_engine(val):
 
 def get_default_config_file():
     config_path = os.path.join(os.path.abspath(os.getcwd()),
-            'gunicorn.conf.py')
+                               'gunicorn.conf.py')
     if os.path.exists(config_path):
         return config_path
     return None
@@ -527,19 +540,36 @@ class ConfigFile(Setting):
     cli = ["-c", "--config"]
     meta = "CONFIG"
     validator = validate_string
-    default = None
+    default = "./gunicorn.conf.py"
     desc = """\
-        The Gunicorn config file.
+        :ref:`The Gunicorn config file<configuration_file>`.
 
         A string of the form ``PATH``, ``file:PATH``, or ``python:MODULE_NAME``.
 
         Only has an effect when specified on the command line or as part of an
         application specific configuration.
 
+        By default, a file named ``gunicorn.conf.py`` will be read from the same
+        directory where gunicorn is being run.
+
         .. versionchanged:: 19.4
            Loading the config from a Python module requires the ``python:``
            prefix.
         """
+
+
+class WSGIApp(Setting):
+    name = "wsgi_app"
+    section = "Config File"
+    meta = "STRING"
+    validator = validate_string
+    default = None
+    desc = """\
+        A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
+
+        .. versionadded:: 20.1.0
+        """
+
 
 class Bind(Setting):
     name = "bind"
@@ -569,6 +599,10 @@ class Bind(Setting):
 
         will bind the `test:app` application on localhost both on ipv6
         and ipv4 interfaces.
+
+        If the ``PORT`` environment variable is defined, the default
+        is ``['0.0.0.0:$PORT']``. If it is not defined, the default
+        is ``['127.0.0.1:8000']``.
         """
 
 
@@ -607,8 +641,9 @@ class Workers(Setting):
         You'll want to vary this a bit to find the best for your particular
         application's work load.
 
-        By default, the value of the ``WEB_CONCURRENCY`` environment variable.
-        If it is not defined, the default is ``1``.
+        By default, the value of the ``WEB_CONCURRENCY`` environment variable,
+        which is set by some Platform-as-a-Service providers such as Heroku. If
+        it is not defined, the default is ``1``.
         """
 
 
@@ -625,31 +660,26 @@ class WorkerClass(Setting):
         The default class (``sync``) should handle most "normal" types of
         workloads. You'll want to read :doc:`design` for information on when
         you might want to choose one of the other worker classes. Required
-        libraries may be installed using setuptools' ``extra_require`` feature.
+        libraries may be installed using setuptools' ``extras_require`` feature.
 
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.9.7 (or install it via 
+        * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 0.13 (or install it via 
+        * ``gevent``   - Requires gevent >= 1.4 (or install it via
           ``pip install gunicorn[gevent]``)
-        * ``tornado``  - Requires tornado >= 0.2 (or install it via 
+        * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)
         * ``gthread``  - Python 2 requires the futures package to be installed
           (or install it via ``pip install gunicorn[gthread]``)
-        * ``gaiohttp`` - Deprecated.
 
         Optionally, you can provide your own worker by giving Gunicorn a
         Python path to a subclass of ``gunicorn.workers.base.Worker``.
         This alternative syntax will load the gevent class:
         ``gunicorn.workers.ggevent.GeventWorker``.
-
-        .. deprecated:: 19.8
-           The ``gaiohttp`` worker is deprecated. Please use
-           ``aiohttp.worker.GunicornWebWorker`` instead. See
-           :ref:`asyncio-workers` for more information on how to use it.
         """
+
 
 class WorkerThreads(Setting):
     name = "threads"
@@ -671,7 +701,7 @@ class WorkerThreads(Setting):
         If it is not defined, the default is ``1``.
 
         This setting only affects the Gthread worker type.
-        
+
         .. note::
            If you try to use the ``sync`` worker type and set the ``threads``
            setting to more than 1, the ``gthread`` worker type will be used
@@ -690,7 +720,7 @@ class WorkerConnections(Setting):
     desc = """\
         The maximum number of simultaneous clients.
 
-        This setting only affects the Eventlet and Gevent worker types.
+        This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
         """
 
 
@@ -744,10 +774,14 @@ class Timeout(Setting):
     desc = """\
         Workers silent for more than this many seconds are killed and restarted.
 
-        Generally set to thirty seconds. Only set this noticeably higher if
-        you're sure of the repercussions for sync workers. For the non sync
-        workers it just means that the worker process is still communicating and
-        is not tied to the length of time required to handle a single request.
+        Value is a positive number or 0. Setting it to 0 has the effect of
+        infinite timeouts by disabling timeouts for all workers entirely.
+
+        Generally, the default of thirty seconds should suffice. Only set this
+        noticeably higher if you're sure of the repercussions for sync workers.
+        For the non sync workers it just means that the worker process is still
+        communicating and is not tied to the length of time required to handle a
+        single request.
         """
 
 
@@ -892,9 +926,9 @@ class ReloadEngine(Setting):
 
         Valid engines are:
 
-        * 'auto'
-        * 'poll'
-        * 'inotify' (requires inotify)
+        * ``'auto'``
+        * ``'poll'``
+        * ``'inotify'`` (requires inotify)
 
         .. versionadded:: 19.7
         """
@@ -938,7 +972,20 @@ class ConfigCheck(Setting):
     action = "store_true"
     default = False
     desc = """\
-        Check the configuration.
+        Check the configuration and exit. The exit status is 0 if the
+        configuration is correct, and 1 if the configuration is incorrect.
+        """
+
+
+class PrintConfig(Setting):
+    name = "print_config"
+    section = "Debugging"
+    cli = ["--print-config"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Print the configuration settings as fully resolved. Implies :ref:`check-config`.
         """
 
 
@@ -1003,8 +1050,9 @@ class Chdir(Setting):
     cli = ["--chdir"]
     validator = validate_chdir
     default = util.getcwd()
+    default_doc = "``'.'``"
     desc = """\
-        Chdir to specified directory before apps loading.
+        Change directory to specified directory before loading apps.
         """
 
 
@@ -1022,6 +1070,7 @@ class Daemon(Setting):
         background.
         """
 
+
 class Env(Setting):
     name = "raw_env"
     action = "append"
@@ -1032,13 +1081,21 @@ class Env(Setting):
     default = []
 
     desc = """\
-        Set environment variable (key=value).
+        Set environment variables in the execution environment.
 
-        Pass variables to the execution environment. Ex.::
+        Should be a list of strings in the ``key=value`` format.
+
+        For example on the command line:
+
+        .. code-block:: console
 
             $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app
 
-        and test for the foo variable environment in your application.
+        Or in the configuration file:
+
+        .. code-block:: python
+
+            raw_env = ["FOO=1"]
         """
 
 
@@ -1054,6 +1111,7 @@ class Pidfile(Setting):
 
         If not set, no PID file will be written.
         """
+
 
 class WorkerTmpDir(Setting):
     name = "worker_tmp_dir"
@@ -1084,6 +1142,7 @@ class User(Setting):
     meta = "USER"
     validator = validate_user
     default = os.geteuid()
+    default_doc = "``os.geteuid()``"
     desc = """\
         Switch worker processes to run as this user.
 
@@ -1100,6 +1159,7 @@ class Group(Setting):
     meta = "GROUP"
     validator = validate_group
     default = os.getegid()
+    default_doc = "``os.getegid()``"
     desc = """\
         Switch worker process to run as this group.
 
@@ -1107,6 +1167,7 @@ class Group(Setting):
         retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
         change the worker processes group.
         """
+
 
 class Umask(Setting):
     name = "umask"
@@ -1174,9 +1235,15 @@ class SecureSchemeHeader(Setting):
     desc = """\
 
         A dictionary containing headers and values that the front-end proxy
-        uses to indicate HTTPS requests. These tell Gunicorn to set
+        uses to indicate HTTPS requests. If the source IP is permitted by
+        ``forwarded-allow-ips`` (below), *and* at least one request header matches
+        a key-value pair listed in this dictionary, then Gunicorn will set
         ``wsgi.url_scheme`` to ``https``, so your application can tell that the
         request is secure.
+
+        If the other headers listed in this dictionary are not present in the request, they will be ignored,
+        but if the other headers are present and do not match the provided values, then
+        the request will fail to parse. See the note below for more detailed examples of this behaviour.
 
         The dictionary should map upper-case header names to exact string
         values. The value comparisons are case-sensitive, unlike the header
@@ -1205,6 +1272,71 @@ class ForwardedAllowIPS(Setting):
 
         By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
         variable. If it is not defined, the default is ``"127.0.0.1"``.
+
+        .. note::
+
+            The interplay between the request headers, the value of ``forwarded_allow_ips``, and the value of
+            ``secure_scheme_headers`` is complex. Various scenarios are documented below to further elaborate.
+            In each case, we have a request from the remote address 134.213.44.18, and the default value of
+            ``secure_scheme_headers``:
+
+            .. code::
+
+                secure_scheme_headers = {
+                    'X-FORWARDED-PROTOCOL': 'ssl',
+                    'X-FORWARDED-PROTO': 'https',
+                    'X-FORWARDED-SSL': 'on'
+                }
+
+
+            .. list-table::
+                :header-rows: 1
+                :align: center
+                :widths: auto
+
+                * - ``forwarded-allow-ips``
+                  - Secure Request Headers
+                  - Result
+                  - Explanation
+                * - .. code::
+
+                        ["127.0.0.1"]
+                  - .. code::
+
+                        X-Forwarded-Proto: https
+                  - .. code::
+
+                        wsgi.url_scheme = "http"
+                  - IP address was not allowed
+                * - .. code::
+
+                        "*"
+                  - <none>
+                  - .. code::
+
+                        wsgi.url_scheme = "http"
+                  - IP address allowed, but no secure headers provided
+                * - .. code::
+
+                        "*"
+                  - .. code::
+
+                        X-Forwarded-Proto: https
+                  - .. code::
+
+                        wsgi.url_scheme = "https"
+                  - IP address allowed, one request header matched
+                * - .. code::
+
+                        ["134.213.44.18"]
+                  - .. code::
+
+                        X-Forwarded-Ssl: on
+                        X-Forwarded-Proto: http
+                  - ``InvalidSchemeHeaders()`` raised
+                  - IP address allowed, but the two secure headers disagreed on if HTTPS was used
+
+
         """
 
 
@@ -1220,6 +1352,7 @@ class AccessLog(Setting):
 
         ``'-'`` means log to stdout.
         """
+
 
 class DisableRedirectAccessToSyslog(Setting):
     name = "disable_redirect_access_to_syslog"
@@ -1263,6 +1396,7 @@ class AccessLogFormat(Setting):
         f            referer
         a            user agent
         T            request time in seconds
+        M            request time in milliseconds
         D            request time in microseconds
         L            request time in decimal seconds
         p            process ID
@@ -1308,11 +1442,11 @@ class Loglevel(Setting):
 
         Valid level names are:
 
-        * debug
-        * info
-        * warning
-        * error
-        * critical
+        * ``'debug'``
+        * ``'info'``
+        * ``'warning'``
+        * ``'error'``
+        * ``'critical'``
         """
 
 
@@ -1340,11 +1474,11 @@ class LoggerClass(Setting):
     desc = """\
         The logger you want to use to log events in Gunicorn.
 
-        The default class (``gunicorn.glogging.Logger``) handle most of
+        The default class (``gunicorn.glogging.Logger``) handles most
         normal usages in logging. It provides error and access logging.
 
-        You can provide your own logger by giving Gunicorn a
-        Python path to a subclass like ``gunicorn.glogging.Logger``.
+        You can provide your own logger by giving Gunicorn a Python path to a
+        class that quacks like ``gunicorn.glogging.Logger``.
         """
 
 
@@ -1365,18 +1499,37 @@ class LogConfig(Setting):
 class LogConfigDict(Setting):
     name = "logconfig_dict"
     section = "Logging"
-    cli = ["--log-config-dict"]
     validator = validate_dict
     default = {}
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` option, which uses the
-    older file configuration format.
+    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+    which uses the older file configuration format and JSON
+    respectively.
 
     Format: https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig
 
+    For more context you can look at the default configuration dictionary for logging,
+    which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
+
     .. versionadded:: 19.8
+    """
+
+
+class LogConfigJson(Setting):
+    name = "logconfig_json"
+    section = "Logging"
+    cli = ["--log-config-json"]
+    meta = "FILE"
+    validator = validate_string
+    default = None
+    desc = """\
+    The log config to read config from a JSON file
+
+    Format: https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig
+
+    .. versionadded:: 20.0
     """
 
 
@@ -1477,12 +1630,34 @@ class StatsdHost(Setting):
     cli = ["--statsd-host"]
     meta = "STATSD_ADDR"
     default = None
-    validator = validate_hostport
+    validator = validate_statsd_address
     desc = """\
-    ``host:port`` of the statsd server to log to.
+    The address of the StatsD server to log to.
+
+    Address is a string of the form:
+
+    * ``unix://PATH`` : for a unix domain socket.
+    * ``HOST:PORT`` : for a network address
 
     .. versionadded:: 19.1
     """
+
+
+# Datadog Statsd (dogstatsd) tags. https://docs.datadoghq.com/developers/dogstatsd/
+class DogstatsdTags(Setting):
+    name = "dogstatsd_tags"
+    section = "Logging"
+    cli = ["--dogstatsd-tags"]
+    meta = "DOGSTATSD_TAGS"
+    default = ""
+    validator = validate_string
+    desc = """\
+    A comma-delimited list of datadog statsd (dogstatsd) tags to append to
+    statsd metrics.
+
+    .. versionadded:: 20
+    """
+
 
 class StatsdPrefix(Setting):
     name = "statsd_prefix"
@@ -1659,6 +1834,7 @@ class PostWorkerInit(Setting):
         Worker.
         """
 
+
 class WorkerInt(Setting):
     name = "worker_int"
     section = "Server Hooks"
@@ -1720,7 +1896,7 @@ class PreRequest(Setting):
     type = callable
 
     def pre_request(worker, req):
-        worker.log.debug("%s %s" % (req.method, req.path))
+        worker.log.debug("%s %s", req.method, req.path)
     default = staticmethod(pre_request)
     desc = """\
         Called just before a worker processes the request.
@@ -1802,6 +1978,7 @@ class NumWorkersChanged(Setting):
         be ``None``.
         """
 
+
 class OnExit(Setting):
     name = "on_exit"
     section = "Server Hooks"
@@ -1815,6 +1992,41 @@ class OnExit(Setting):
         Called just before exiting Gunicorn.
 
         The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+
+class NewSSLContext(Setting):
+    name = "ssl_context"
+    section = "Server Hooks"
+    validator = validate_callable(2)
+    type = callable
+
+    def ssl_context(config, default_ssl_context_factory):
+        return default_ssl_context_factory()
+
+    default = staticmethod(ssl_context)
+    desc = """\
+        Called when SSLContext is needed.
+
+        Allows customizing SSL context.
+
+        The callable needs to accept an instance variable for the Config and
+        a factory function that returns default SSLContext which is initialized
+        with certificates, private key, cert_reqs, and ciphers according to
+        config and can be further customized by the callable.
+        The callable needs to return SSLContext object.
+
+        Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+        .. code-block:: python
+
+            def ssl_context(conf, default_ssl_context_factory):
+                import ssl
+                context = default_ssl_context_factory()
+                context.minimum_version = ssl.TLSVersion.TLSv1_3
+                return context
+
+        .. versionadded:: 20.2
         """
 
 
@@ -1882,14 +2094,24 @@ class CertFile(Setting):
     SSL certificate file
     """
 
+
 class SSLVersion(Setting):
     name = "ssl_version"
     section = "SSL"
     cli = ["--ssl-version"]
     validator = validate_ssl_version
+
+    if hasattr(ssl, "PROTOCOL_TLS"):
+        default = ssl.PROTOCOL_TLS
+    else:
+        default = ssl.PROTOCOL_SSLv23
+
     default = ssl.PROTOCOL_SSLv23
     desc = """\
-    SSL version to use.
+    SSL version to use (see stdlib ssl module's).
+
+    .. deprecated:: 20.2
+       The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
     ============= ============
     --ssl-version Description
@@ -1912,7 +2134,11 @@ class SSLVersion(Setting):
     .. versionchanged:: 20.0
        This setting now accepts string names based on ``ssl.PROTOCOL_``
        constants.
+    .. versionchanged:: 20.0.1
+       The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
+       ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
     """
+
 
 class CertReqs(Setting):
     name = "cert_reqs"
@@ -1922,7 +2148,16 @@ class CertReqs(Setting):
     default = ssl.CERT_NONE
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
+
+    ===========  ===========================
+    --cert-reqs      Description
+    ===========  ===========================
+    `0`          no client veirifcation
+    `1`          ssl.CERT_OPTIONAL
+    `2`          ssl.CERT_REQUIRED
+    ===========  ===========================
     """
+
 
 class CACerts(Setting):
     name = "ca_certs"
@@ -1935,6 +2170,7 @@ class CACerts(Setting):
     CA certificates file
     """
 
+
 class SuppressRaggedEOFs(Setting):
     name = "suppress_ragged_eofs"
     section = "SSL"
@@ -1945,6 +2181,7 @@ class SuppressRaggedEOFs(Setting):
     desc = """\
     Suppress ragged EOFs (see stdlib ssl module's)
     """
+
 
 class DoHandshakeOnConnect(Setting):
     name = "do_handshake_on_connect"
@@ -1963,9 +2200,22 @@ class Ciphers(Setting):
     section = "SSL"
     cli = ["--ciphers"]
     validator = validate_string
-    default = 'TLSv1'
+    default = None
     desc = """\
-    Ciphers to use (see stdlib ssl module's)
+    SSL Cipher suite to use, in the format of an OpenSSL cipher list.
+
+    By default we use the default cipher list from Python's ``ssl`` module,
+    which contains ciphers considered strong at the time of each Python
+    release.
+
+    As a recommended alternative, the Open Web App Security Project (OWASP)
+    offers `a vetted set of strong cipher strings rated A+ to C-
+    <https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet>`_.
+    OWASP provides details on user-agent compatibility at each security level.
+
+    See the `OpenSSL Cipher List Format Documentation
+    <https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
+    for details on the format of an OpenSSL cipher list.
     """
 
 
@@ -1988,4 +2238,147 @@ class PasteGlobalConf(Setting):
             $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
         .. versionadded:: 19.7
+        """
+
+
+class StripHeaderSpaces(Setting):
+    name = "strip_header_spaces"
+    section = "Server Mechanics"
+    cli = ["--strip-header-spaces"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Strip spaces present between the header name and the the ``:``.
+
+        This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+        See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 20.0.1
+        """
+
+
+class PermitUnconventionalHTTPMethod(Setting):
+    name = "permit_unconventional_http_method"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP methods not matching conventions, such as IANA registration guidelines
+
+        This permits request methods of length less than 3 or more than 20,
+        methods with lowercase characters or methods containing the # character.
+        HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+        This option is provided to diagnose backwards-incompatible changes.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class PermitUnconventionalHTTPVersion(Setting):
+    name = "permit_unconventional_http_version"
+    section = "Server Mechanics"
+    cli = ["--permit-unconventional-http-version"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit HTTP version not matching conventions of 2023
+
+        This disables the refusal of likely malformed request lines.
+        It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
+
+        This option is provided to diagnose backwards-incompatible changes.
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class CasefoldHTTPMethod(Setting):
+    name = "casefold_http_method"
+    section = "Server Mechanics"
+    cli = ["--casefold-http-method"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+         Transform received HTTP methods to uppercase
+
+         HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+         This option is provided because previous versions of gunicorn defaulted to this behaviour.
+
+         Use with care and only if necessary. May be removed in a future version.
+
+         .. versionadded:: 22.0.0
+         """
+
+
+def validate_header_map_behaviour(val):
+    # FIXME: refactor all of this subclassing stdlib argparse
+
+    if val is None:
+        return
+
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    if val.lower().strip() == "drop":
+        return "drop"
+    elif val.lower().strip() == "refuse":
+        return "refuse"
+    elif val.lower().strip() == "dangerous":
+        return "dangerous"
+    else:
+        raise ValueError("Invalid header map behaviour: %s" % val)
+
+
+class HeaderMap(Setting):
+    name = "header_map"
+    section = "Server Mechanics"
+    cli = ["--header-map"]
+    validator = validate_header_map_behaviour
+    default = "drop"
+    desc = """\
+        Configure how header field names are mapped into environ
+
+        Headers containing underscores are permitted by RFC9110,
+        but gunicorn joining headers of different names into
+        the same environment variable will dangerously confuse applications as to which is which.
+
+        The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
+        The value ``refuse`` will return an error if a request contains *any* such header.
+        The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+        header field names into the same environ name.
+
+        Use with care and only if necessary and after considering if your problem could
+        instead be solved by specifically renaming or rewriting only the intended headers
+        on a proxy in front of Gunicorn.
+
+        .. versionadded:: 22.0.0
+        """
+
+
+class TolerateDangerousFraming(Setting):
+    name = "tolerate_dangerous_framing"
+    section = "Server Mechanics"
+    cli = ["--tolerate-dangerous-framing"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Process requests with both Transfer-Encoding and Content-Length
+
+        This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
+
+        Use with care and only if necessary. May be removed in a future version.
+
+        .. versionadded:: 22.0.0
         """

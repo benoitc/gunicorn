@@ -1,0 +1,5 @@
+-r requirements_flaskapp.txt
+-r requirements_cherryapp.txt
+-r requirements_pyramidapp.txt
+-r requirements_tornadoapp.txt
+-r requirements_webpyapp.txt

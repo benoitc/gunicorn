@@ -1,0 +1,5 @@
+GET /french.. HTTP/1.1\r\n
+Content-Lengthÿ: 3\r\n
+Content-Length: 3\r\n
+\r\n
+ÄÄÄ

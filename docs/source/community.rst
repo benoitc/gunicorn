@@ -15,7 +15,7 @@ for 3 different purposes:
   * `Mailing list <https://github.com/benoitc/gunicorn/projects/3>`_ : Discussion of Gunicorn development, new features
     and project management.  
 
-Project maintenance guidelines are avaible on the `wiki <https://github.com/benoitc/gunicorn/wiki/Project-management>`_
+Project maintenance guidelines are available on the `wiki <https://github.com/benoitc/gunicorn/wiki/Project-management>`_
 .
 
 IRC

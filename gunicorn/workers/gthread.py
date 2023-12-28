@@ -9,7 +9,9 @@
 # Keepalive connections are put back in the loop waiting for an event.
 # If no event happen after the keep alive timeout, the connection is
 # closed.
+# pylint: disable=no-else-break
 
+from concurrent import futures
 import errno
 import os
 import selectors
@@ -25,15 +27,9 @@ from threading import RLock
 from . import base
 from .. import http
 from .. import util
+from .. import sock
 from ..http import wsgi
 
-try:
-    import concurrent.futures as futures
-except ImportError:
-    raise RuntimeError("""
-    You need to install the 'futures' package to use this worker with this
-    Python version.
-    """)
 
 class TConn(object):
 
@@ -45,20 +41,22 @@ class TConn(object):
 
         self.timeout = None
         self.parser = None
+        self.initialized = False
 
         # set the socket to non blocking
         self.sock.setblocking(False)
 
     def init(self):
+        self.initialized = True
         self.sock.setblocking(True)
+
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
-                self.sock = ssl.wrap_socket(self.sock, server_side=True,
-                        **self.cfg.ssl_options)
+                self.sock = sock.ssl_wrap_socket(self.sock, self.cfg)
 
             # initialize the parser
-            self.parser = http.RequestParser(self.cfg, self.sock)
+            self.parser = http.RequestParser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
         # set the timeout
@@ -71,7 +69,7 @@ class TConn(object):
 class ThreadWorker(base.Worker):
 
     def __init__(self, *args, **kwargs):
-        super(ThreadWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
         self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
         # initialise the pool
@@ -88,13 +86,17 @@ class ThreadWorker(base.Worker):
 
         if max_keepalived <= 0 and cfg.keepalive:
             log.warning("No keepalived connections can be handled. " +
-                    "Check the number of worker connections and threads.")
+                        "Check the number of worker connections and threads.")
 
     def init_process(self):
-        self.tpool = futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
+        self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
         self._lock = RLock()
-        super(ThreadWorker, self).init_process()
+        super().init_process()
+
+    def get_thread_pool(self):
+        """Override this method to customize how the thread pool is created"""
+        return futures.ThreadPoolExecutor(max_workers=self.cfg.threads)
 
     def handle_quit(self, sig, frame):
         self.alive = False
@@ -120,24 +122,29 @@ class ThreadWorker(base.Worker):
             sock, client = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, sock, client, server)
+
             self.nr_conns += 1
-            # enqueue the job
-            self.enqueue_req(conn)
+            # wait until socket is readable
+            with self._lock:
+                self.poller.register(conn.sock, selectors.EVENT_READ,
+                                     partial(self.on_client_socket_readable, conn))
         except EnvironmentError as e:
-            if e.errno not in (errno.EAGAIN,
-                    errno.ECONNABORTED, errno.EWOULDBLOCK):
+            if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
+                               errno.EWOULDBLOCK):
                 raise
 
-    def reuse_connection(self, conn, client):
+    def on_client_socket_readable(self, conn, client):
         with self._lock:
             # unregister the client from the poller
             self.poller.unregister(client)
-            # remove the connection from keepalive
-            try:
-                self._keep.remove(conn)
-            except ValueError:
-                # race condition
-                return
+
+            if conn.initialized:
+                # remove the connection from keepalive
+                try:
+                    self._keep.remove(conn)
+                except ValueError:
+                    # race condition
+                    return
 
         # submit the connection to a worker
         self.enqueue_req(conn)
@@ -169,6 +176,9 @@ class ThreadWorker(base.Worker):
                             raise
                     except KeyError:
                         # already removed by the system, continue
+                        pass
+                    except ValueError:
+                        # already removed by the system continue
                         pass
 
                 # close the socket
@@ -205,11 +215,11 @@ class ThreadWorker(base.Worker):
 
                 # check (but do not wait) for finished requests
                 result = futures.wait(self.futures, timeout=0,
-                        return_when=futures.FIRST_COMPLETED)
+                                      return_when=futures.FIRST_COMPLETED)
             else:
                 # wait for a request to finish
                 result = futures.wait(self.futures, timeout=1.0,
-                        return_when=futures.FIRST_COMPLETED)
+                                      return_when=futures.FIRST_COMPLETED)
 
             # clean up finished requests
             for fut in result.done:
@@ -218,7 +228,7 @@ class ThreadWorker(base.Worker):
             if not self.is_parent_alive():
                 break
 
-            # hanle keepalive timeouts
+            # handle keepalive timeouts
             self.murder_keepalived()
 
         self.tpool.shutdown(False)
@@ -239,7 +249,7 @@ class ThreadWorker(base.Worker):
             (keepalive, conn) = fs.result()
             # if the connection should be kept alived add it
             # to the eventloop and record it
-            if keepalive:
+            if keepalive and self.alive:
                 # flag the socket as non blocked
                 conn.sock.setblocking(False)
 
@@ -250,11 +260,11 @@ class ThreadWorker(base.Worker):
 
                     # add the socket to the event loop
                     self.poller.register(conn.sock, selectors.EVENT_READ,
-                            partial(self.reuse_connection, conn))
+                                         partial(self.on_client_socket_readable, conn))
             else:
                 self.nr_conns -= 1
                 conn.close()
-        except:
+        except Exception:
             # an exception happened, make sure to close the
             # socket.
             self.nr_conns -= 1
@@ -286,11 +296,13 @@ class ThreadWorker(base.Worker):
                 self.handle_error(req, conn.sock, conn.client, e)
 
         except EnvironmentError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET):
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
                 if e.errno == errno.ECONNRESET:
                     self.log.debug("Ignoring connection reset")
+                elif e.errno == errno.ENOTCONN:
+                    self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring connection epipe")
         except Exception as e:
@@ -305,15 +317,16 @@ class ThreadWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
             resp, environ = wsgi.create(req, conn.sock, conn.client,
-                    conn.server, self.cfg)
+                                        conn.server, self.cfg)
             environ["wsgi.multithread"] = True
             self.nr += 1
-            if self.alive and self.nr >= self.max_requests:
-                self.log.info("Autorestarting worker after current request.")
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
                 resp.force_close()
-                self.alive = False
 
-            if not self.cfg.keepalive:
+            if not self.alive or not self.cfg.keepalive:
                 resp.force_close()
             elif len(self._keep) >= self.max_keepalived:
                 resp.force_close()
@@ -327,9 +340,9 @@ class ThreadWorker(base.Worker):
                         resp.write(item)
 
                 resp.close()
+            finally:
                 request_time = datetime.now() - request_start
                 self.log.access(resp, req, environ, request_time)
-            finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
 

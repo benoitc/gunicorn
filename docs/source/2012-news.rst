@@ -75,7 +75,7 @@ Changelog - 2012
 - fix tornado.wsgi.WSGIApplication calling error
 
 - **breaking change**: take the control on graceful reload back.
-  graceful can't be overrided anymore using the on_reload function.
+  graceful can't be overridden anymore using the on_reload function.
 
 0.14.3 / 2012-05-15
 -------------------

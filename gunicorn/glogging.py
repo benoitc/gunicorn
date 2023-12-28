@@ -5,9 +5,10 @@
 
 import base64
 import binascii
+import json
 import time
 import logging
-logging.Logger.manager.emittedNoHandlerWarning = 1
+logging.Logger.manager.emittedNoHandlerWarning = 1  # noqa
 from logging.config import dictConfig
 from logging.config import fileConfig
 import os
@@ -21,76 +22,74 @@ from gunicorn import util
 
 # syslog facility codes
 SYSLOG_FACILITIES = {
-        "auth":     4,
-        "authpriv": 10,
-        "cron":     9,
-        "daemon":   3,
-        "ftp":      11,
-        "kern":     0,
-        "lpr":      6,
-        "mail":     2,
-        "news":     7,
-        "security": 4,  #  DEPRECATED
-        "syslog":   5,
-        "user":     1,
-        "uucp":     8,
-        "local0":   16,
-        "local1":   17,
-        "local2":   18,
-        "local3":   19,
-        "local4":   20,
-        "local5":   21,
-        "local6":   22,
-        "local7":   23
-        }
+    "auth": 4,
+    "authpriv": 10,
+    "cron": 9,
+    "daemon": 3,
+    "ftp": 11,
+    "kern": 0,
+    "lpr": 6,
+    "mail": 2,
+    "news": 7,
+    "security": 4,  # DEPRECATED
+    "syslog": 5,
+    "user": 1,
+    "uucp": 8,
+    "local0": 16,
+    "local1": 17,
+    "local2": 18,
+    "local3": 19,
+    "local4": 20,
+    "local5": 21,
+    "local6": 22,
+    "local7": 23
+}
 
-
-CONFIG_DEFAULTS = dict(
-        version=1,
-        disable_existing_loggers=False,
-
-        root={"level": "INFO", "handlers": ["console"]},
-        loggers={
-            "gunicorn.error": {
-                "level": "INFO",
-                "handlers": ["error_console"],
-                "propagate": True,
-                "qualname": "gunicorn.error"
-            },
-
-            "gunicorn.access": {
-                "level": "INFO",
-                "handlers": ["console"],
-                "propagate": True,
-                "qualname": "gunicorn.access"
-            }
+CONFIG_DEFAULTS = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
+        "gunicorn.error": {
+            "level": "INFO",
+            "handlers": ["error_console"],
+            "propagate": True,
+            "qualname": "gunicorn.error"
         },
-        handlers={
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stdout"
-            },
-            "error_console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stderr"
-            },
-        },
-        formatters={
-            "generic": {
-                "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
-                "class": "logging.Formatter"
-            }
+
+        "gunicorn.access": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": True,
+            "qualname": "gunicorn.access"
         }
-)
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": "ext://sys.stdout"
+        },
+        "error_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": "ext://sys.stderr"
+        },
+    },
+    "formatters": {
+        "generic": {
+            "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+            "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
+            "class": "logging.Formatter"
+        }
+    }
+}
 
 
 def loggers():
     """ get list of all loggers """
     root = logging.root
-    existing = root.manager.loggerDict.keys()
+    existing = list(root.manager.loggerDict.keys())
     return [logging.getLogger(name) for name in existing]
 
 
@@ -108,11 +107,11 @@ class SafeAtoms(dict):
         if k.startswith("{"):
             kl = k.lower()
             if kl in self:
-                return super(SafeAtoms, self).__getitem__(kl)
+                return super().__getitem__(kl)
             else:
                 return "-"
         if k in self:
-            return super(SafeAtoms, self).__getitem__(k)
+            return super().__getitem__(k)
         else:
             return '-'
 
@@ -213,8 +212,10 @@ class Logger(object):
 
         # set gunicorn.access handler
         if cfg.accesslog is not None:
-            self._set_handler(self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout)
+            self._set_handler(
+                self.access_log, cfg.accesslog,
+                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout
+            )
 
         # set syslog handler
         if cfg.syslog:
@@ -238,6 +239,21 @@ class Logger(object):
                     TypeError
             ) as exc:
                 raise RuntimeError(str(exc))
+        elif cfg.logconfig_json:
+            config = CONFIG_DEFAULTS.copy()
+            if os.path.exists(cfg.logconfig_json):
+                try:
+                    config_json = json.load(open(cfg.logconfig_json))
+                    config.update(config_json)
+                    dictConfig(config)
+                except (
+                    json.JSONDecodeError,
+                    AttributeError,
+                    ImportError,
+                    ValueError,
+                    TypeError
+                ) as exc:
+                    raise RuntimeError(str(exc))
         elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
@@ -273,7 +289,7 @@ class Logger(object):
         self.error_log.log(lvl, msg, *args, **kwargs)
 
     def atoms(self, resp, req, environ, request_time):
-        """ Gets atoms for log formating.
+        """ Gets atoms for log formatting.
         """
         status = resp.status
         if isinstance(status, str):
@@ -284,7 +300,8 @@ class Logger(object):
             'u': self._get_user(environ) or '-',
             't': self.now(),
             'r': "%s %s %s" % (environ['REQUEST_METHOD'],
-                environ['RAW_URI'], environ["SERVER_PROTOCOL"]),
+                               environ['RAW_URI'],
+                               environ["SERVER_PROTOCOL"]),
             's': status,
             'm': environ.get('REQUEST_METHOD'),
             'U': environ.get('PATH_INFO'),
@@ -295,7 +312,8 @@ class Logger(object):
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
             'T': request_time.seconds,
-            'D': (request_time.seconds*1000000) + request_time.microseconds,
+            'D': (request_time.seconds * 1000000) + request_time.microseconds,
+            'M': (request_time.seconds * 1000) + int(request_time.microseconds / 1000),
             'L': "%d.%06d" % (request_time.seconds, request_time.microseconds),
             'p': "<%s>" % os.getpid()
         }
@@ -330,19 +348,20 @@ class Logger(object):
         """
 
         if not (self.cfg.accesslog or self.cfg.logconfig or
-           self.cfg.logconfig_dict or
+           self.cfg.logconfig_dict or self.cfg.logconfig_json or
            (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
             return
 
         # wrap atoms:
         # - make sure atoms will be test case insensitively
         # - if atom doesn't exist replace it by '-'
-        safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
-            request_time))
+        safe_atoms = self.atoms_wrapper_class(
+            self.atoms(resp, req, environ, request_time)
+        )
 
         try:
             self.access_log.info(self.cfg.access_log_format, safe_atoms)
-        except:
+        except Exception:
             self.error(traceback.format_exc())
 
     def now(self):
@@ -360,7 +379,6 @@ class Logger(object):
                 self.logfile = open(self.cfg.errorlog, 'a+')
                 os.dup2(self.logfile.fileno(), sys.stdout.fileno())
                 os.dup2(self.logfile.fileno(), sys.stderr.fileno())
-
 
         for log in loggers():
             for handler in log.handlers:
@@ -399,7 +417,7 @@ class Logger(object):
             if output == "-":
                 h = logging.StreamHandler(stream)
             else:
-                util.check_is_writeable(output)
+                util.check_is_writable(output)
                 h = logging.FileHandler(output)
                 # make sure the user can reopen the file
                 try:
@@ -415,10 +433,7 @@ class Logger(object):
 
     def _set_syslog_handler(self, log, cfg, fmt, name):
         # setup format
-        if not cfg.syslog_prefix:
-            prefix = cfg.proc_name.replace(":", ".")
-        else:
-            prefix = cfg.syslog_prefix
+        prefix = cfg.syslog_prefix or cfg.proc_name.replace(":", ".")
 
         prefix = "gunicorn.%s.%s" % (prefix, name)
 
@@ -436,7 +451,7 @@ class Logger(object):
 
         # finally setup the syslog handler
         h = logging.handlers.SysLogHandler(address=addr,
-                facility=facility, socktype=socktype)
+                                           facility=facility, socktype=socktype)
 
         h.setFormatter(fmt)
         h._gunicorn = True
@@ -445,7 +460,7 @@ class Logger(object):
     def _get_user(self, environ):
         user = None
         http_auth = environ.get("HTTP_AUTHORIZATION")
-        if http_auth and http_auth.startswith('Basic'):
+        if http_auth and http_auth.lower().startswith('basic'):
             auth = http_auth.split(" ", 1)
             if len(auth) == 2:
                 try:
@@ -453,11 +468,7 @@ class Logger(object):
                     # so we need to convert it to a byte string
                     auth = base64.b64decode(auth[1].strip().encode('utf-8'))
                     # b64decode returns a byte string
-                    auth = auth.decode('utf-8')
-                    auth = auth.split(":", 1)
+                    user = auth.split(b":", 1)[0].decode("UTF-8")
                 except (TypeError, binascii.Error, UnicodeDecodeError) as exc:
                     self.debug("Couldn't get username: %s", exc)
-                    return user
-                if len(auth) == 2:
-                    user = auth[0]
         return user

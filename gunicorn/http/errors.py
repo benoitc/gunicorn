@@ -22,6 +22,15 @@ class NoMoreData(IOError):
         return "No more data after: %r" % self.buf
 
 
+class ConfigurationProblem(ParseException):
+    def __init__(self, info):
+        self.info = info
+        self.code = 500
+
+    def __str__(self):
+        return "Configuration problem: %s" % self.info
+
+
 class InvalidRequestLine(ParseException):
     def __init__(self, req):
         self.req = req
@@ -62,6 +71,15 @@ class InvalidHeaderName(ParseException):
 
     def __str__(self):
         return "Invalid HTTP header name: %r" % self.hdr
+
+
+class UnsupportedTransferCoding(ParseException):
+    def __init__(self, hdr):
+        self.hdr = hdr
+        self.code = 501
+
+    def __str__(self):
+        return "Unsupported transfer coding: %r" % self.hdr
 
 
 class InvalidChunkSize(IOError):

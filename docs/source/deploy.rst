@@ -2,7 +2,7 @@
 Deploying Gunicorn
 ==================
 
-We strongly recommend to use Gunicorn behind a proxy server.
+We strongly recommend using Gunicorn behind a proxy server.
 
 Nginx Configuration
 ===================
@@ -37,6 +37,22 @@ To turn off buffering, you only need to add ``proxy_buffering off;`` to your
       proxy_pass http://app_server;
   }
   ...
+
+If you want to ignore aborted requests like health check of Load Balancer, some
+of which close the connection without waiting for a response, you need to turn
+on `ignoring client abort`_.
+
+To ignore aborted requests, you only need to add
+``proxy_ignore_client_abort on;`` to your ``location`` block::
+
+    ...
+    proxy_ignore_client_abort on;
+    ...
+
+.. note::
+    The default value of ``proxy_ignore_client_abort`` is ``off``. Error code
+    499 may appear in Nginx log and ``Ignoring EPIPE`` may appear in Gunicorn
+    log if loglevel is set to ``debug``.
 
 It is recommended to pass protocol information to Gunicorn. Many web
 frameworks use this information to generate URLs. Without this
@@ -216,7 +232,7 @@ A tool that is starting to be common on linux systems is Systemd_. It is a
 system services manager that allows for strict process management, resources
 and permissions control.
 
-Below are configurations files and instructions for using systemd to create
+Below are configuration files and instructions for using systemd to create
 a unix socket for incoming Gunicorn requests.  Systemd will listen on this
 socket and start gunicorn automatically in response to traffic.  Later in
 this section are instructions for configuring Nginx to forward web traffic
@@ -258,9 +274,9 @@ to the newly created unix socket:
     # Our service won't need permissions for the socket, since it
     # inherits the file descriptor by socket activation
     # only the nginx daemon will need access to the socket
-    User=www-data
+    SocketUser=www-data
     # Optionally restrict the socket permissions even more.
-    # Mode=600
+    # SocketMode=600
 
     [Install]
     WantedBy=sockets.target
@@ -286,8 +302,8 @@ HTML from your server in the terminal.
 
 .. note::
 
-    ``www-data`` is the default nginx user in debian, other distriburions use
-    different users (for example: ``http`` or ``nginx``). Check you distro to
+    ``www-data`` is the default nginx user in debian, other distributions use
+    different users (for example: ``http`` or ``nginx``). Check your distro to
     know what to put for the socket user, and for the sudo command.
 
 You must now configure your web proxy to send traffic to the new Gunicorn
@@ -357,3 +373,4 @@ utility::
 .. _Virtualenv: https://pypi.python.org/pypi/virtualenv
 .. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/
 .. _Gaffer: https://gaffer.readthedocs.io/
+.. _`ignoring client abort`: http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_client_abort

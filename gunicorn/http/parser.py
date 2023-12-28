@@ -11,13 +11,14 @@ class Parser(object):
 
     mesg_class = None
 
-    def __init__(self, cfg, source):
+    def __init__(self, cfg, source, source_addr):
         self.cfg = cfg
         if hasattr(source, "recv"):
             self.unreader = SocketUnreader(source)
         else:
             self.unreader = IterUnreader(source)
         self.mesg = None
+        self.source_addr = source_addr
 
         # request counter (for keepalive connetions)
         self.req_count = 0
@@ -38,7 +39,7 @@ class Parser(object):
 
         # Parse the next request
         self.req_count += 1
-        self.mesg = self.mesg_class(self.cfg, self.unreader, self.req_count)
+        self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
         if not self.mesg:
             raise StopIteration()
         return self.mesg

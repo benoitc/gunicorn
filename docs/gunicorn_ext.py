@@ -48,29 +48,33 @@ def format_settings(app):
 
 
 def fmt_setting(s):
-    if callable(s.default):
+    if hasattr(s, "default_doc"):
+        val = s.default_doc
+    elif callable(s.default):
         val = inspect.getsource(s.default)
-        val = "\n".join("    %s" % l for l in val.splitlines())
-        val = " ::\n\n" + val
+        val = "\n".join("    %s" % line for line in val.splitlines())
+        val = "\n\n.. code-block:: python\n\n" + val
     elif s.default == '':
-        val = "``(empty string)``"
+        val = "``''``"
     else:
-        val = "``%s``" % s.default
+        val = "``%r``" % s.default
 
     if s.cli and s.meta:
-        args = ["%s %s" % (arg, s.meta) for arg in s.cli]
-        cli = ', '.join(args)
+        cli = " or ".join("``%s %s``" % (arg, s.meta) for arg in s.cli)
     elif s.cli:
-        cli = ", ".join(s.cli)
+        cli = " or ".join("``%s``" % arg for arg in s.cli)
+    else:
+        cli = ""
 
     out = []
     out.append(".. _%s:\n" % s.name.replace("_", "-"))
-    out.append("%s" % s.name)
-    out.append("~" * len(s.name))
+    out.append("``%s``" % s.name)
+    out.append("~" * (len(s.name) + 4))
     out.append("")
     if s.cli:
-        out.append("* ``%s``" % cli)
-    out.append("* %s" % val)
+        out.append("**Command line:** %s" % cli)
+        out.append("")
+    out.append("**Default:** %s" % val)
     out.append("")
     out.append(s.desc)
     out.append("")

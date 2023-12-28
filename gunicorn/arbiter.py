@@ -154,7 +154,7 @@ class Arbiter(object):
 
             self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
-        listeners_str = ",".join([str(l) for l in self.LISTENERS])
+        listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
@@ -223,17 +223,15 @@ class Arbiter(object):
                 self.log.info("Handling signal: %s", signame)
                 handler()
                 self.wakeup()
-        except StopIteration:
-            self.halt()
-        except KeyboardInterrupt:
+        except (StopIteration, KeyboardInterrupt):
             self.halt()
         except HaltServer as inst:
             self.halt(reason=inst.reason, exit_status=inst.exit_status)
         except SystemExit:
             raise
         except Exception:
-            self.log.info("Unhandled exception in main loop",
-                          exc_info=True)
+            self.log.error("Unhandled exception in main loop",
+                           exc_info=True)
             self.stop(False)
             if self.pidfile is not None:
                 self.pidfile.unlink()
@@ -297,8 +295,8 @@ class Arbiter(object):
     def handle_usr2(self):
         """\
         SIGUSR2 handling.
-        Creates a new master/worker set as a slave of the current
-        master without affecting old workers. Use this to do live
+        Creates a new arbiter/worker set as a fork of the current
+        arbiter without affecting old workers. Use this to do live
         deployment with the ability to backout a change.
         """
         self.reexec()
@@ -342,9 +340,12 @@ class Arbiter(object):
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
         self.stop()
-        self.log.info("Shutting down: %s", self.master_name)
+
+        log_func = self.log.info if exit_status == 0 else self.log.error
+        log_func("Shutting down: %s", self.master_name)
         if reason is not None:
-            self.log.info("Reason: %s", reason)
+            log_func("Reason: %s", reason)
+
         if self.pidfile is not None:
             self.pidfile.unlink()
         self.cfg.on_exit(self)
@@ -423,7 +424,7 @@ class Arbiter(object):
             environ['LISTEN_FDS'] = str(len(self.LISTENERS))
         else:
             environ['GUNICORN_FD'] = ','.join(
-                str(l.fileno()) for l in self.LISTENERS)
+                str(lnr.fileno()) for lnr in self.LISTENERS)
 
         os.chdir(self.START_CTX['cwd'])
 
@@ -456,11 +457,11 @@ class Arbiter(object):
         # do we need to change listener ?
         if old_address != self.cfg.address:
             # close all listeners
-            for l in self.LISTENERS:
-                l.close()
+            for lnr in self.LISTENERS:
+                lnr.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
-            listeners_str = ",".join([str(l) for l in self.LISTENERS])
+            listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
             self.log.info("Listening at: %s", listeners_str)
 
         # do some actions on reload
@@ -522,12 +523,35 @@ class Arbiter(object):
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
                     exitcode = status >> 8
+                    if exitcode != 0:
+                        self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
+
+                    if exitcode > 0:
+                        # If the exit code of the worker is greater than 0,
+                        # let the user know.
+                        self.log.error("Worker (pid:%s) exited with code %s.",
+                                       wpid, exitcode)
+                    elif status > 0:
+                        # If the exit code of the worker is 0 and the status
+                        # is greater than 0, then it was most likely killed
+                        # via a signal.
+                        try:
+                            sig_name = signal.Signals(status).name
+                        except ValueError:
+                            sig_name = "code {}".format(status)
+                        msg = "Worker (pid:{}) was sent {}!".format(
+                            wpid, sig_name)
+
+                        # Additional hint for SIGKILL
+                        if status == signal.SIGKILL:
+                            msg += " Perhaps out of memory?"
+                        self.log.error(msg)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
@@ -592,7 +616,7 @@ class Arbiter(object):
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             sys.exit(self.APP_LOAD_ERROR)
-        except:
+        except Exception:
             self.log.exception("Exception in worker process")
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)
@@ -602,9 +626,9 @@ class Arbiter(object):
             try:
                 worker.tmp.close()
                 self.cfg.worker_exit(self, worker)
-            except:
+            except Exception:
                 self.log.warning("Exception during worker exit:\n%s",
-                                  traceback.format_exc())
+                                 traceback.format_exc())
 
     def spawn_workers(self):
         """\

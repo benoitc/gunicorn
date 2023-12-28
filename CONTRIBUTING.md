@@ -141,7 +141,7 @@ The relevant maintainer for a pull request is assigned in 3 steps:
 
 * Step 2: Find the MAINTAINERS file which affects this directory. If the directory itself does not have a MAINTAINERS file, work your way up the the repo hierarchy until you find one.
 
-* Step 3: The first maintainer listed is the primary maintainer. The pull request is assigned to him. He may assign it to other listed maintainers, at his discretion.
+* Step 3: The first maintainer listed is the primary maintainer who is assigned the Pull Request. The primary maintainer can reassign a Pull Request to other listed maintainers.
 
 
 ### I'm a maintainer, should I make pull requests too?
