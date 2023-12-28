@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import os
+import time
 import platform
 import tempfile
 
@@ -40,10 +41,11 @@ class WorkerTmp(object):
             raise
 
     def notify(self):
-        os.utime(self._tmp.fileno())
+        new_time = time.monotonic()
+        os.utime(self._tmp.fileno(), (new_time, new_time))
 
     def last_update(self):
-        return os.fstat(self._tmp.fileno()).st_ctime
+        return os.fstat(self._tmp.fileno()).st_mtime
 
     def fileno(self):
         return self._tmp.fileno()
