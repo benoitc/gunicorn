@@ -3,30 +3,41 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import socket
 from unittest import mock
+
+import pytest
 
 from gunicorn import sock
 
+@pytest.fixture(scope='function')
+def addr(request, tmp_path):
+    if isinstance(request.param, str):
+        return str(tmp_path / request.param)
+    return request.param
 
-@mock.patch('os.stat')
-def test_create_sockets_unix_bytes(stat):
-    conf = mock.Mock(address=[b'127.0.0.1:8000'])
+
+@pytest.mark.parametrize(
+    'addr, family',
+    [
+        ('gunicorn.sock', socket.AF_UNIX),
+        (('0.0.0.0', 0), socket.AF_INET),
+        (('::', 0), socket.AF_INET6),
+    ],
+    indirect=['addr'],
+)
+@mock.patch('socket.socket')
+@mock.patch('gunicorn.util.chown')
+def test_create_socket(chown, socket, addr, family):
+    conf = mock.Mock(address=[addr], umask=0o22)
     log = mock.Mock()
-    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
-        listeners = sock.create_sockets(conf, log)
-        assert len(listeners) == 1
-        print(type(listeners[0]))
-        assert isinstance(listeners[0], sock.UnixSocket)
-
-
-@mock.patch('os.stat')
-def test_create_sockets_unix_strings(stat):
-    conf = mock.Mock(address=['127.0.0.1:8000'])
-    log = mock.Mock()
-    with mock.patch.object(sock.UnixSocket, '__init__', lambda *args: None):
-        listeners = sock.create_sockets(conf, log)
-        assert len(listeners) == 1
-        assert isinstance(listeners[0], sock.UnixSocket)
+    listener = sock.create_socket(conf, log, addr)
+    assert listener == socket.return_value
+    socket.assert_called_with(family)
+    listener.bind.assert_called_with(addr)
+    listener.listen.assert_called_with(conf.backlog)
+    if family is socket.AF_UNIX:
+        chown.assert_called_with(addr, conf.uid, conf.gid)
 
 
 def test_socket_close():
@@ -41,7 +52,7 @@ def test_socket_close():
 
 @mock.patch('os.unlink')
 def test_unix_socket_close_unlink(unlink):
-    listener = mock.Mock()
+    listener = mock.Mock(family=socket.AF_UNIX)
     listener.getsockname.return_value = '/var/run/test.sock'
     sock.close_sockets([listener])
     listener.close.assert_called_with()
@@ -50,7 +61,7 @@ def test_unix_socket_close_unlink(unlink):
 
 @mock.patch('os.unlink')
 def test_unix_socket_close_without_unlink(unlink):
-    listener = mock.Mock()
+    listener = mock.Mock(family=socket.AF_UNIX)
     listener.getsockname.return_value = '/var/run/test.sock'
     sock.close_sockets([listener], False)
     listener.close.assert_called_with()

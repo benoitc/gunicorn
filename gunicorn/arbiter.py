@@ -154,7 +154,7 @@ class Arbiter(object):
 
             self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
-        listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
+        listeners_str = ",".join([sock.get_uri(lnr) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
@@ -461,7 +461,7 @@ class Arbiter(object):
                 lnr.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
-            listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
+            listeners_str = ",".join([sock.get_uri(lnr) for lnr in self.LISTENERS])
             self.log.info("Listening at: %s", listeners_str)
 
         # do some actions on reload
