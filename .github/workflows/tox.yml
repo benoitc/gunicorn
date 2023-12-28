@@ -15,7 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest] # All OSes pass except Windows because tests need Unix-only fcntl, grp, pwd, etc.
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "pypy-3.8" ]
+        python-version:
+         # CPython <= 3.7 is EoL since 2923-06-27
+         - "3.7"
+         - "3.8"
+         - "3.9"
+         - "3.10"
+         - "3.11"
+         - "3.12"
+         # PyPy <= 3.8 is EoL since 2023-06-16
+         - "pypy-3.8"
     steps:
       - uses: actions/checkout@v4
       - name: Using Python ${{ matrix.python-version }}
