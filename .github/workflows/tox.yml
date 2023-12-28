@@ -8,6 +8,8 @@ env:
 jobs:
   tox:
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
