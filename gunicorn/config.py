@@ -2026,7 +2026,7 @@ class NewSSLContext(Setting):
                 context.minimum_version = ssl.TLSVersion.TLSv1_3
                 return context
 
-        .. versionadded:: 20.2
+        .. versionadded:: 21.0
         """
 
 
@@ -2110,7 +2110,7 @@ class SSLVersion(Setting):
     desc = """\
     SSL version to use (see stdlib ssl module's).
 
-    .. deprecated:: 20.2
+    .. deprecated:: 21.0
        The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
     ============= ============
