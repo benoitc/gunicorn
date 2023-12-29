@@ -58,13 +58,13 @@ class WSGIApplication(Application):
             return self.load_wsgiapp()
 
 
-def run():
+def run(prog=None):
     """\
     The ``gunicorn`` command line runner for launching Gunicorn with
     generic WSGI applications.
     """
     from gunicorn.app.wsgiapp import WSGIApplication
-    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]").run()
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
 
 
 if __name__ == '__main__':
