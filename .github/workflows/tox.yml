@@ -26,6 +26,13 @@ jobs:
          # PyPy <= 3.8 is EoL since 2023-06-16
          - "pypy-3.9"
          - "pypy-3.10"
+        mindep: [false]
+        include:
+         # pin OS lower than usual tests, even if that is slow / soon removed
+         # point is to prove we got our minimum deps documented
+         - os: ubuntu-20.04
+           python-version: "3.7"
+           mindep: true
     steps:
       - uses: actions/checkout@v4
       - name: Using Python ${{ matrix.python-version }}
@@ -42,3 +49,5 @@ jobs:
       - run: tox -e run-module
       - run: tox -e run-entrypoint
       - run: tox -e py
+      - if: ${{ matrix.mindep }}
+        run: tox -e mindep
