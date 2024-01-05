@@ -267,6 +267,18 @@ def set_non_blocking(fd):
 
 
 def close(sock):
+    if hasattr(sock, 'unwrap'):
+        try:
+            sock = sock.unwrap()
+        except socket.error as e:
+            if e.args[0] != 0:
+                # Some platforms sometimes produce an exception with errno = 0 here
+                # Or maybe that's just a gevent thing.
+                raise
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except socket.error:
+        pass
     try:
         sock.close()
     except socket.error:
