@@ -1,5 +1,5 @@
 gevent
 eventlet
 coverage
-pytest
+pytest>=7.2.0
 pytest-cov

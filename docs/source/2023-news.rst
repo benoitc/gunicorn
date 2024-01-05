@@ -10,9 +10,11 @@ Changelog - 2023
 - on HTTP versions < 1.1 support for chunked transfer is refused (only used in exploits)
 - requests conflicting configured or passed SCRIPT_NAME now produce a verbose error
 - Trailer fields are no longer inspected for headers indicating secure scheme
+- support Python 3.12
 
 ** Breaking changes **
 
+- minimum version is Python 3.7
 - the limitations on valid characters in the HTTP method have been bounded to Internet Standards
 - requests specifying unsupported transfer coding (order) are refused by default (rare)
 - HTTP methods are no longer casefolded by default (IANA method registry contains none affacted)
