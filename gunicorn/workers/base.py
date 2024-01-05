@@ -125,7 +125,7 @@ class Worker(object):
                 os.write(self.PIPE[1], b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
-                sys.exit(0)
+                os._exit(0)
 
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
@@ -195,12 +195,12 @@ class Worker(object):
         # worker_int callback
         self.cfg.worker_int(self)
         time.sleep(0.1)
-        sys.exit(0)
+        os._exit(0)
 
     def handle_abort(self, sig, frame):
         self.alive = False
         self.cfg.worker_abort(self)
-        sys.exit(1)
+        os._exit(1)
 
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
