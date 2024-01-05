@@ -13,6 +13,7 @@ from gunicorn import config
 from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
+from gunicorn.util import load_class
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
 from gunicorn.instrument import statsd
@@ -55,12 +56,28 @@ class NoConfigApp(Application):
         pass
 
 
+class CustomWorker(SyncWorker):
+    pass
+
+
 class WSGIApp(WSGIApplication):
     def __init__(self):
         super().__init__("no_usage", prog="gunicorn_test")
 
     def load(self):
         pass
+
+
+def test_worker_class():
+
+    c = config.Config()
+    c.set("worker_class", CustomWorker)
+    assert c.worker_class == CustomWorker
+
+    try:
+        assert isinstance(load_class(c.worker_class), object)
+    except AttributeError:
+        pytest.fail("'load_class doesn't support type class argument'")
 
 
 def test_defaults():
