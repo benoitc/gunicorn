@@ -27,7 +27,7 @@ This is fixing the bad file description error.
 - support python 3.11
 - fix gevent and eventlet workers
 - fix threads support (gththread): improve performance and unblock requests
-- SSL: noaw use SSLContext object
+- SSL: now use SSLContext object
 - HTTP parser: miscellaneous fixes
 - remove unecessary setuid calls
 - fix testing
