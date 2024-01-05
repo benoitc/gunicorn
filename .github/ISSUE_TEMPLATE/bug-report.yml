@@ -1,0 +1,47 @@
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests
+name: Bug Report
+description: File a bug report
+# could always prepend title, but that leads to odd titles when reporter is unaware
+# title: "[Bug]: "
+labels: ["- Bugs -"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem in gunicorn.
+        As limited time can be spent on triaging reports, we would appreciate if you
+          * look for existing reports that may match your problem
+          * include relevant information before anyone even asks
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: A python traceback? A HTTP error displayed in the browser?
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: gunicorn version
+    validations:
+      required: true
+  - type: dropdown
+    id: installation-method
+    attributes:
+      label: Installation Method
+      description: How did you install gunicorn?
+      options:
+        - pip (PyPI)
+        - apt (Debian/Ubuntu)
+        - Development version from GitHub
+        - I do not know how to tell.
+        - Something else
+      default: 0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Python version
+      description: "If PyPy: please be specific!"
+    validations:
+      required: true
