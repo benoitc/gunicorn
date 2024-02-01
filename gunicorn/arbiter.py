@@ -522,31 +522,39 @@ class Arbiter(object):
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
-                    exitcode = status >> 8
-                    if exitcode != 0:
-                        self.log.error("Worker (pid:%s) exited with code %s",
-                                       wpid, exitcode)
-                    if exitcode == self.WORKER_BOOT_ERROR:
-                        reason = "Worker failed to boot."
-                        raise HaltServer(reason, self.WORKER_BOOT_ERROR)
-                    if exitcode == self.APP_LOAD_ERROR:
-                        reason = "App failed to load."
-                        raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    if exitcode == 0 and status > 0:
+                    exitcode = os.WEXITSTATUS(status) \
+                        if os.WIFEXITED(status) else 0
+
+                    signum = os.WTERMSIG(status) \
+                        if os.WIFSIGNALED(status) else 0
+                    try:
+                        sig_name = signal.Signals(signum).name
+                    except ValueError:
+                        sig_name = str(signum)
+
+                    if exitcode != 0:
+                        self.log.error("Child exited with code %s (pid: %s)",
+                                       exitcode, wpid)
+                    elif signum in (0, signal.SIGTERM):
+                        # 0: as seen from macos/py311 from reload on workers
+                        # where workers from SIGTERM but waitpid/nohang gives
+                        # me 0.
+                        self.log.info("Child terminated (pid: %s)", wpid)
+                    else:
                         # If the exit code of the worker is 0 and the status
                         # is greater than 0, then it was most likely killed
                         # via a signal.
-                        try:
-                            sig_name = signal.Signals(status).name
-                        except ValueError:
-                            sig_name = "code {}".format(status)
-                        msg = "Worker (pid:%s) was sent %s!"
+                        self.log.error("Child exited from signal %s (pid: %s)",
+                                       sig_name, wpid)
 
-                        # Additional hint for SIGKILL
-                        if status == signal.SIGKILL:
-                            msg += " Perhaps out of memory?"
-                        self.log.error(msg, wpid, sig_name)
+                    if exitcode == self.WORKER_BOOT_ERROR:
+                        reason = "Worker failed to boot."
+                        raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+
+                    if exitcode == self.APP_LOAD_ERROR:
+                        reason = "App failed to load."
+                        raise HaltServer(reason, self.APP_LOAD_ERROR)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
