@@ -1,0 +1,4 @@
+GET /stuff/here?foo=bar HTTP/1.1\r\n
+Content-Length: 0 1\r\n
+\r\n
+x

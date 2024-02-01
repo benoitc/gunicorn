@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import os
+import time
 import platform
 import tempfile
 
@@ -39,14 +40,12 @@ class WorkerTmp(object):
             os.close(fd)
             raise
 
-        self.spinner = 0
-
     def notify(self):
-        self.spinner = (self.spinner + 1) % 2
-        os.fchmod(self._tmp.fileno(), self.spinner)
+        new_time = time.monotonic()
+        os.utime(self._tmp.fileno(), (new_time, new_time))
 
     def last_update(self):
-        return os.fstat(self._tmp.fileno()).st_ctime
+        return os.fstat(self._tmp.fileno()).st_mtime
 
     def fileno(self):
         return self._tmp.fileno()

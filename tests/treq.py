@@ -51,7 +51,9 @@ class request(object):
         with open(self.fname, 'rb') as handle:
             self.data = handle.read()
         self.data = self.data.replace(b"\n", b"").replace(b"\\r\\n", b"\r\n")
-        self.data = self.data.replace(b"\\0", b"\000")
+        self.data = self.data.replace(b"\\0", b"\000").replace(b"\\n", b"\n").replace(b"\\t", b"\t")
+        if b"\\" in self.data:
+            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL and CRLF")
 
     # Functions for sending data to the parser.
     # These functions mock out reading from a
@@ -246,8 +248,10 @@ class request(object):
     def check(self, cfg, sender, sizer, matcher):
         cases = self.expect[:]
         p = RequestParser(cfg, sender(), None)
-        for req in p:
+        parsed_request_idx = -1
+        for parsed_request_idx, req in enumerate(p):
             self.same(req, sizer, matcher, cases.pop(0))
+        assert len(self.expect) == parsed_request_idx + 1
         assert not cases
 
     def same(self, req, sizer, matcher, exp):
@@ -262,7 +266,8 @@ class request(object):
         assert req.trailers == exp.get("trailers", [])
 
 
-class badrequest(object):
+class badrequest:
+    # FIXME: no good reason why this cannot match what the more extensive mechanism above
     def __init__(self, fname):
         self.fname = fname
         self.name = os.path.basename(fname)
@@ -270,7 +275,9 @@ class badrequest(object):
         with open(self.fname) as handle:
             self.data = handle.read()
         self.data = self.data.replace("\n", "").replace("\\r\\n", "\r\n")
-        self.data = self.data.replace("\\0", "\000")
+        self.data = self.data.replace("\\0", "\000").replace("\\n", "\n").replace("\\t", "\t")
+        if "\\" in self.data:
+            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL and CRLF")
         self.data = self.data.encode('latin1')
 
     def send(self):
@@ -283,4 +290,6 @@ class badrequest(object):
 
     def check(self, cfg):
         p = RequestParser(cfg, self.send(), None)
-        next(p)
+        # must fully consume iterator, otherwise EOF errors could go unnoticed
+        for _ in p:
+            pass
