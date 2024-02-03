@@ -178,6 +178,10 @@ class Arbiter:
         """ Note: Signal handler! No logging allowed. """
         self.SIG_QUEUE.put(sig)
 
+        # Some UNIXes require SIGCHLD to be reinstalled, see python signal docs
+        if sig == signal.SIGCHLD:
+            signal.signal(sig, self.signal)
+
     def run(self):
         "Main master loop."
         self.start()
