@@ -12,8 +12,8 @@ At this time, **only the latest release** receives any security attention whatso
 
 | Version | Status          |
 | ------- | ------------------ |
-| latest release  | :white_check_mark: |
-| 21.2.0  | :x: |
+| master  | :white_check_mark: |
+| 21.2.0  | :white_check_mark: |
 | 20.0.0  | :x: |
 | < 20.0  | :x: |
 
