@@ -6,6 +6,7 @@ import errno
 import os
 import random
 import select
+import selectors
 import signal
 import sys
 import time
@@ -75,6 +76,8 @@ class Arbiter(object):
             "cwd": cwd,
             0: sys.executable
         }
+
+        self.poller = select.poll()
 
     def _get_num_workers(self):
         return self._num_workers
@@ -180,6 +183,8 @@ class Arbiter(object):
         for p in pair:
             util.set_non_blocking(p)
             util.close_on_exec(p)
+
+        self.poller.register(self.PIPE[0], selectors.EVENT_READ)
 
         self.log.close_on_exec()
 
@@ -357,8 +362,8 @@ class Arbiter(object):
         A readable PIPE means a signal occurred.
         """
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
-            if not ready[0]:
+            events = self.poller.poll(1.0)
+            if len(events) < 1:
                 return
             while os.read(self.PIPE[0], 1):
                 pass
