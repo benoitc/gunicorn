@@ -38,6 +38,7 @@ classifiers = [
 requires-python = ">=3.7"
 dependencies = [
     'importlib_metadata; python_version<"3.8"',
+    #"packaging>=21.0",
     "packaging",
 ]
 dynamic = ["version"]
@@ -50,11 +51,51 @@ Documentation = "https://docs.gunicorn.org"
 Changelog = "https://docs.gunicorn.org/en/stable/news.html"
 
 [project.optional-dependencies]
-gevent = ["gevent>=1.4.0"]
-eventlet = ["eventlet>=0.24.1"]
-tornado = ["tornado>=0.2"]
+gevent = [
+    # 21.8.0 is what Ubuntu 22.04 shipped
+    # 22.8.0 is lowest tested OK on 3.11
+    # 22.10 is the last version to support 3.7
+    #'gevent>=21.8.0; python_version<"3.11"',
+    #'gevent>=22.8.0; python_version>="3.11"',
+    # gevent 1.4.0 does not build for 3.11 (incompat Cython)
+    "gevent>=1.4.0",
+]
+eventlet = [
+    # eventlet 0.34.1 known to break older gunicorn
+    # (removed toplevel __version__, re-added since)
+    # eventlet 0.26.0 needed for 3.7
+    # eventlet 0.26.1 needed for 3.7 dependencies
+    # eventlet 0.33.0 needed for python 3.10
+    #'eventlet>=0.26.1; python_version<"3.10"',
+    #'eventlet>=0.33.3; python_version>="3.10"',
+    "eventlet>=0.24.1",
+]
+tornado = [
+    # arbitrary unsupported release with grave issues
+    # pick version that does not play nice with CPython3 and work our way up
+    #"tornado>=3.0.2",
+    "tornado>=0.2",
+]
 gthread = []
-setproctitle = ["setproctitle"]
+setproctitle = [
+    # 1.2.0 needed for Python 3.8
+    #"setproctitle>=1.2.0",
+    "setproctitle",
+]
+testing-mindep = [
+    # this sections helps tox/pip select lowest version
+    # .. needs to manually kept in sync with other sections
+    "coverage[toml]==5.2.1",
+    "packaging==21.0",
+    "pytest==7.2.0",
+    "setproctitle==1.2.0",
+    "setuptools==61.2",
+    "tornado==3.0.2",
+    'eventlet==0.26.1; python_version<"3.10"',
+    'eventlet==0.33.3; python_version>="3.10"',
+    'gevent==21.8.0; python_version<"3.11"',
+    'gevent==22.8.0; python_version>="3.11"',
+]
 testing = [
     "gevent",
     "eventlet",
@@ -67,12 +108,21 @@ testing = [
 # duplicates "python -m gunicorn" handling in __main__.py
 gunicorn = "gunicorn.app.wsgiapp:run"
 
-# note the quotes around "paste.server_runner" to escape the dot
 [project.entry-points."paste.server_runner"]
+# note the quotes around "paste.server_runner" to escape the dot
 main = "gunicorn.app.pasterapp:serve"
 
+[tool.coverage.report]
+omit = [
+    # workaround for bad test tripping pytest+coverage:
+    # tests will load such file as configuration
+    # when we delete the source, we do not care for its coverage
+    "*/gunicorn.conf.py",
+]
+
 [tool.pytest.ini_options]
-# # can override these: python -m pytest --override-ini="addopts="
+# can override these: python -m pytest --override-ini="addopts="
+faulthandler_timeout = 25
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
 addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
