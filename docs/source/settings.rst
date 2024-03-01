@@ -1087,6 +1087,10 @@ Or in the configuration file:
 
     raw_env = ["FOO=1"]
 
+In the config file, use ``raw_env``, Ex.::
+
+    raw_env=['FOO=1', 'BAR=2']
+
 .. _pidfile:
 
 ``pidfile``
