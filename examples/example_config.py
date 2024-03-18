@@ -175,7 +175,7 @@ proc_name = None
 #
 #   pre_fork - Called just prior to forking the worker subprocess.
 #
-#       A callable that accepts the same arguments as after_fork
+#       A callable that accepts the same arguments as post_fork
 #
 #   pre_exec - Called just prior to forking off a secondary
 #       master process during things like config reloading.
