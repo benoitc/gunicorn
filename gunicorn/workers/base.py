@@ -169,6 +169,7 @@ class Worker(object):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
         # init new signaling
+        signal.signal(signal.SIGHUP, self.handle_exit)
         signal.signal(signal.SIGQUIT, self.handle_quit)
         signal.signal(signal.SIGTERM, self.handle_exit)
         signal.signal(signal.SIGINT, self.handle_quit)
