@@ -119,6 +119,20 @@ Extends :ref:`reload` option to also watch and reload on additional files
 
 .. versionadded:: 19.8
 
+.. _reload-ignored-files:
+
+``reload_ignored_files``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--reload-ignored-file FILES``
+
+**Default:** ``[]``
+
+Extends :ref:`reload` option to ignore reload on watched files
+(e.g., logs, generated files etc.).
+
+.. versionadded:: 20.0
+
 .. _spew:
 
 ``spew``
