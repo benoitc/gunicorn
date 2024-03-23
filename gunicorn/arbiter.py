@@ -333,7 +333,7 @@ class Arbiter(object):
         """
         try:
             os.write(self.PIPE[1], b'.')
-        except IOError as e:
+        except OSError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
