@@ -16,7 +16,7 @@ Changelog - 2021
 - fix tornado usage with latest versions of Django 
 - add support for python -m gunicorn
 - fix systemd socket activation example
-- allows to set wsgi application in configg file using `wsgi_app`
+- allows to set wsgi application in config file using `wsgi_app`
 - document `--timeout = 0`
 - always close a connection when the number of requests exceeds the max requests
 - Disable keepalive during graceful shutdown
