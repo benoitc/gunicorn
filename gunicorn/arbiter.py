@@ -109,7 +109,7 @@ class Arbiter(object):
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
 
-        # set enviroment' variables
+        # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
                 os.environ[k] = v
