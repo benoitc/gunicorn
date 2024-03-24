@@ -29,7 +29,7 @@ This is fixing the bad file description error.
 - fix threads support (gththread): improve performance and unblock requests
 - SSL: noaw use SSLContext object
 - HTTP parser: miscellaneous fixes
-- remove unecessary setuid calls
+- remove unnecessary setuid calls
 - fix testing
 - improve logging
 - miscellaneous fixes to core engine

@@ -5,7 +5,7 @@ Changelog - 2023
 22.0.0 - TBDTBDTBD
 ==================
 
-- fix numerous security vulnerabilites in HTTP parser (closing some request smuggling vectors)
+- fix numerous security vulnerabilities in HTTP parser (closing some request smuggling vectors)
 - parsing additional requests is no longer attempted past unsupported request framing
 - on HTTP versions < 1.1 support for chunked transfer is refused (only used in exploits)
 - requests conflicting configured or passed SCRIPT_NAME now produce a verbose error
@@ -17,7 +17,7 @@ Changelog - 2023
 - minimum version is Python 3.7
 - the limitations on valid characters in the HTTP method have been bounded to Internet Standards
 - requests specifying unsupported transfer coding (order) are refused by default (rare)
-- HTTP methods are no longer casefolded by default (IANA method registry contains none affacted)
+- HTTP methods are no longer casefolded by default (IANA method registry contains none affected)
 - HTTP methods containing the number sign (#) are no longer accepted by default (rare)
 - HTTP versions < 1.0 or >= 2.0 are no longer accepted by default (rare, only HTTP/1.1 is supported)
 - HTTP versions consisting of multiple digits or containing a prefix/suffix are no longer accepted
@@ -46,9 +46,9 @@ This is fixing the bad file description error.
 - support python 3.11
 - fix gevent and eventlet workers
 - fix threads support (gththread): improve performance and unblock requests
-- SSL: noaw use SSLContext object
+- SSL: now use SSLContext object
 - HTTP parser: miscellaneous fixes
-- remove unecessary setuid calls
+- remove unnecessary setuid calls
 - fix testing
 - improve logging
 - miscellaneous fixes to core engine

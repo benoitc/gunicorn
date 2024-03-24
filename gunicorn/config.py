@@ -2233,7 +2233,7 @@ class PasteGlobalConf(Setting):
 
         The option can be specified multiple times.
 
-        The variables are passed to the the PasteDeploy entrypoint. Example::
+        The variables are passed to the PasteDeploy entrypoint. Example::
 
             $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 

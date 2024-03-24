@@ -210,7 +210,7 @@ H            protocol
 s            status
 B            response length
 b            response length or ``'-'`` (CLF format)
-f            referer
+f            referrer
 a            user agent
 T            request time in seconds
 M            request time in milliseconds
@@ -569,7 +569,7 @@ Whether client certificate is required (see stdlib ssl module's)
 ===========  ===========================
 --cert-reqs      Description
 ===========  ===========================
-`0`          no client veirifcation
+`0`          no client verification
 `1`          ssl.CERT_OPTIONAL
 `2`          ssl.CERT_REQUIRED
 ===========  ===========================
