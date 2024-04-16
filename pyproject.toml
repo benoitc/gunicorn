@@ -51,7 +51,7 @@ Changelog = "https://docs.gunicorn.org/en/stable/news.html"
 
 [project.optional-dependencies]
 gevent = ["gevent>=1.4.0"]
-eventlet = ["eventlet>=0.24.1"]
+eventlet = ["eventlet>=0.24.1,!=0.36.0"]
 tornado = ["tornado>=0.2"]
 gthread = []
 setproctitle = ["setproctitle"]
