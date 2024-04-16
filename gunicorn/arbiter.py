@@ -190,9 +190,13 @@ class Arbiter(object):
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def signal(self, sig, frame):
+        self.log.info(f"Signal handler received signal {signal.strsignal(sig)}")
         if len(self.SIG_QUEUE) < 5:
+            self.log.info("Signal added to queue")
             self.SIG_QUEUE.append(sig)
             self.wakeup()
+        else:
+            self.log.info("Signal discarded (full queue)")
 
     def run(self):
         "Main master loop."
@@ -240,6 +244,7 @@ class Arbiter(object):
 
     def handle_chld(self, sig, frame):
         "SIGCHLD handling"
+        self.log.info("Received signal SIGCHLD")
         self.reap_workers()
         self.wakeup()
 
@@ -332,6 +337,7 @@ class Arbiter(object):
         """\
         Wake up the arbiter by writing to the PIPE
         """
+        self.log.info("Waking up arbitrer")
         try:
             os.write(self.PIPE[1], b'.')
         except IOError as e:
@@ -361,13 +367,12 @@ class Arbiter(object):
             ready = select.select([self.PIPE[0]], [], [], 1.0)
             if not ready[0]:
                 return
-            self.log.info("Arbiter begin to sleep")
             while os.read(self.PIPE[0], 1):
                 pass
-            self.log.info("Arbiter.py: Arbiter stopped sleeping")
+            self.log.info("Arbiter awakens")
         except (select.error, OSError) as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
-            self.log.info(f"Arbiter.py: Error during arbiter sleep: {e}")
+            self.log.info(f"Arbiter.py: Error during arbiter awakening: {e}")
             error_number = getattr(e, 'errno', e.args[0])
             if error_number not in [errno.EAGAIN, errno.EINTR]:
                 raise
@@ -381,6 +386,9 @@ class Arbiter(object):
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
+        self.log.info(
+            f"stop() called, grafeful={graceful}"
+        )
         unlink = (
             self.reexec_pid == self.master_pid == 0
             and not self.systemd
@@ -394,11 +402,13 @@ class Arbiter(object):
             sig = signal.SIGQUIT
         limit = time.time() + self.cfg.graceful_timeout
         # instruct the workers to exit
+        self.log.info(f"Sending {signal.strsignal(sig)} signal to worker processes")
         self.kill_workers(sig)
         # wait until the graceful timeout
         while self.WORKERS and time.time() < limit:
             time.sleep(0.1)
 
+        self.log.info("Sending SIGKILL to worker processes")
         self.kill_workers(signal.SIGKILL)
 
     def reexec(self):
@@ -668,6 +678,9 @@ class Arbiter(object):
          """
         try:
             os.kill(pid, sig)
+            self.log.info(
+                f"Worker process pid={pid} was sent signal {signal.strsignal(sig)}"
+            )
         except OSError as e:
             if e.errno == errno.ESRCH:
                 try:
