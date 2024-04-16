@@ -166,7 +166,7 @@ class Message(object):
                 content_length = value
             elif name == "TRANSFER-ENCODING":
                 if value.lower() == "chunked":
-                    # DANGER: transer codings stack, and stacked chunking is never intended
+                    # DANGER: transfer codings stack, and stacked chunking is never intended
                     if chunked:
                         raise InvalidHeader("TRANSFER-ENCODING", req=self)
                     chunked = True
