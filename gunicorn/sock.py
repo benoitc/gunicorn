@@ -87,7 +87,8 @@ def create_sockets(conf, log, fds=None):
         # first initialization of gunicorn
         old_umask = os.umask(conf.umask)
         try:
-            for addr in [bind for bind in conf.address if not isinstance(bind, int)]:
+            bind_list = [bind for bind in conf.address if not isinstance(bind, int)]
+            for addr in bind_list:
                 sock = create_socket(conf, log, addr)
                 set_socket_options(conf, sock)
                 listeners.append(sock)
