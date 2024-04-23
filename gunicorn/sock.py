@@ -188,10 +188,10 @@ def create_sockets(conf, log, fds=None):
                     log.error("Connection in use: %s", str(addr))
                 if e.args[0] == errno.EADDRNOTAVAIL:
                     log.error("Invalid address: %s", str(addr))
+                msg = "connection to {addr} failed: {error}"
+                log.error(msg.format(addr=str(addr), error=str(e)))
                 if i < 5:
-                    msg = "connection to {addr} failed: {error}"
-                    log.debug(msg.format(addr=str(addr), error=str(e)))
-                    log.error("Retrying in 1 second.")
+                    log.debug("Retrying in 1 second.")
                     time.sleep(1)
             else:
                 break
