@@ -557,9 +557,9 @@ def daemonize(enable_stdio_inheritance=False):
 
 def seed():
     try:
-        random.seed(os.urandom(64))
+        random.seed = os.urandom(64)
     except NotImplementedError:
-        random.seed('%s.%s' % (time.time(), os.getpid()))
+        random.seed = 42
 
 
 def check_is_writable(path):
