@@ -78,6 +78,7 @@ class Message(object):
         # handle scheme headers
         scheme_header = False
         secure_scheme_headers = {}
+        allowed_forwarder_headers = []
         if from_trailer:
             # nonsense. either a request is https from the beginning
             #  .. or we are just behind a proxy who does not remove conflicting trailers
@@ -86,6 +87,7 @@ class Message(object):
               not isinstance(self.peer_addr, tuple)
               or self.peer_addr[0] in cfg.forwarded_allow_ips):
             secure_scheme_headers = cfg.secure_scheme_headers
+            allowed_forwarder_headers = ["SCRIPT_NAME"]
 
         # Parse headers into key/value pairs paying attention
         # to continuation lines.
@@ -147,7 +149,10 @@ class Message(object):
             # HTTP_X_FORWARDED_FOR = 2001:db8::ha:cc:ed,127.0.0.1,::1
             # Only modify after fixing *ALL* header transformations; network to wsgi env
             if "_" in name:
-                if self.cfg.header_map == "dangerous":
+                if name in allowed_forwarder_headers:
+                    # This forwarder may override our environment
+                    pass
+                elif self.cfg.header_map == "dangerous":
                     # as if we did not know we cannot safely map this
                     pass
                 elif self.cfg.header_map == "drop":
