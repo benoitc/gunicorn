@@ -1232,17 +1232,18 @@ the headers defined here can not be passed directly from the client.
 
 **Command line:** ``--forwarded-allow-ips STRING``
 
-**Default:** ``'127.0.0.1'``
+**Default:** ``'127.0.0.1,::1'``
 
 Front-end's IPs from which allowed to handle set secure headers.
 (comma separate).
 
-Set to ``*`` to disable checking of Front-end IPs (useful for setups
+Set to ``*`` to disable checking of Front-end IPs. This is useful for setups
 where you don't know in advance the IP address of Front-end, but
-you still trust the environment).
+instead have ensured via other means that none other than your
+authorized Front-ends can access gunicorn.
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
-variable. If it is not defined, the default is ``"127.0.0.1"``.
+variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
 
 .. note::
 
@@ -1497,6 +1498,9 @@ The safe default ``drop`` is to silently drop headers that cannot be unambiguous
 The value ``refuse`` will return an error if a request contains *any* such header.
 The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
 header field names into the same environ name.
+
+The (at this time, not configurable) header `SCRIPT_NAME` is permitted
+ without consulting this setting, if it is received from an allowed forwarder.
 
 Use with care and only if necessary and after considering if your problem could
 instead be solved by specifically renaming or rewriting only the intended headers
