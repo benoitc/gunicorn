@@ -164,16 +164,32 @@ def test_str_validation():
     pytest.raises(TypeError, c.set, "proc_name", 2)
 
 
-def test_str_to_list_validation():
+def test_str_to_addr_list_validation():
     c = config.Config()
-    assert c.forwarded_allow_ips == ["127.0.0.1"]
-    c.set("forwarded_allow_ips", "127.0.0.1,192.168.0.1")
-    assert c.forwarded_allow_ips == ["127.0.0.1", "192.168.0.1"]
+    assert c.forwarded_allow_ips == ["127.0.0.1", "::1"]
+    c.set("forwarded_allow_ips", "127.0.0.1,192.0.2.1")
+    assert c.forwarded_allow_ips == ["127.0.0.1", "192.0.2.1"]
     c.set("forwarded_allow_ips", "")
     assert c.forwarded_allow_ips == []
     c.set("forwarded_allow_ips", None)
     assert c.forwarded_allow_ips == []
+    # demand addresses are specified unambiguously
     pytest.raises(TypeError, c.set, "forwarded_allow_ips", 1)
+    # demand networks are specified unambiguously
+    pytest.raises(ValueError, c.set, "forwarded_allow_ips", "127.0.0")
+    # detect typos
+    pytest.raises(ValueError, c.set, "forwarded_allow_ips", "::f:")
+
+
+def test_str_to_list():
+    c = config.Config()
+    assert c.forwarder_headers == ["SCRIPT_NAME"]
+    c.set("forwarder_headers", "SCRIPT_NAME,REMOTE_USER")
+    assert c.forwarder_headers == ["SCRIPT_NAME", "REMOTE_USER"]
+    c.set("forwarder_headers", "")
+    assert c.forwarder_headers == []
+    c.set("forwarder_headers", None)
+    assert c.forwarder_headers == []
 
 
 def test_callable_validation():
