@@ -9,6 +9,7 @@ import argparse
 import copy
 import grp
 import inspect
+import ipaddress
 import os
 import pwd
 import re
@@ -400,6 +401,17 @@ def validate_list_string(val):
 
 def validate_list_of_existing_files(val):
     return [validate_file_exists(v) for v in validate_list_string(val)]
+
+
+def validate_string_to_addr_list(val):
+    val = validate_string_to_list(val)
+
+    for addr in val:
+        if addr == "*":
+            continue
+        _vaid_ip = ipaddress.ip_address(addr)
+
+    return val
 
 
 def validate_string_to_list(val):
@@ -1262,7 +1274,7 @@ class ForwardedAllowIPS(Setting):
     section = "Server Mechanics"
     cli = ["--forwarded-allow-ips"]
     meta = "STRING"
-    validator = validate_string_to_list
+    validator = validate_string_to_addr_list
     default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1,::1")
     desc = """\
         Front-end's IPs from which allowed to handle set secure headers.
@@ -2369,6 +2381,26 @@ def validate_header_map_behaviour(val):
         raise ValueError("Invalid header map behaviour: %s" % val)
 
 
+class ForwarderHeaders(Setting):
+    name = "forwarder_headers"
+    section = "Server Mechanics"
+    cli = ["--forwarder-headers"]
+    validator = validate_string_to_list
+    default = "SCRIPT_NAME"
+    desc = """\
+
+        A list containing upper-case header field names that the front-end proxy
+        sets, to be used in WSGI environment.
+
+        If headers named in this list are not present in the request, they will be ignored.
+
+        This option can be used to transfer SCRIPT_NAME and REMOTE_USER.
+
+        It is important that your front-end proxy configuration ensures that
+        the headers defined here can not be passed directly from the client.
+        """
+
+
 class HeaderMap(Setting):
     name = "header_map"
     section = "Server Mechanics"
@@ -2384,11 +2416,12 @@ class HeaderMap(Setting):
 
         The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
         The value ``refuse`` will return an error if a request contains *any* such header.
-        The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+        The value ``dangerous`` matches the previous, not advisable, behaviour of mapping different
         header field names into the same environ name.
 
-        The (at this time, not configurable) header `SCRIPT_NAME` is permitted
-         without consulting this setting, if it is received from an allowed forwarder.
+        If the source IP is permitted by ``forwarded-allow-ips``, *and* the header name is
+        present in ``forwarder-headers``, the header is mapped into environment regardless of
+        the state of this setting.
 
         Use with care and only if necessary and after considering if your problem could
         instead be solved by specifically renaming or rewriting only the intended headers

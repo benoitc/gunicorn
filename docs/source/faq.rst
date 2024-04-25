@@ -11,7 +11,9 @@ How do I set SCRIPT_NAME?
 -------------------------
 
 By default ``SCRIPT_NAME`` is an empty string. The value could be set by
-setting ``SCRIPT_NAME`` in the environment or as an HTTP header.
+setting ``SCRIPT_NAME`` in the environment or as an HTTP header. Note that
+this headers contains and underscore, so it is only accepted from trusted
+forwarders listed in the ``forwarded-allow-ips`` setting.
 
 
 Server Stuff

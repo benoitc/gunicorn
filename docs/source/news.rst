@@ -5,20 +5,27 @@ Changelog
 23.0.0 - unreleased
 ===================
 
-* minor docs fixes (:pr:`3217`, :pr:`3089`, :pr:`3167`)
-* worker_class parameter accepts a class (:pr:`3079`)
-* fix deadlock if request terminated during chunked parsing (:pr:`2688`)
-* permit receiving Transfer-Encodings: compress, deflate, gzip (:pr:`3261`)
-* permit Transfer-Encoding headers specifying multiple encodings. note: no parameters, still (:pr:`3261`)
-* sdist generation now explicitly excludes sphinx build folder (:pr:`3257`)
-* decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising `TypeError` (:pr:`2336`)
-* raise correct Exception when encounting invalid chunked requests (:pr:`3258`)
+- minor docs fixes (:pr:`3217`, :pr:`3089`, :pr:`3167`)
+- worker_class parameter accepts a class (:pr:`3079`)
+- fix deadlock if request terminated during chunked parsing (:pr:`2688`)
+- permit receiving Transfer-Encodings: compress, deflate, gzip (:pr:`3261`)
+- permit Transfer-Encoding headers specifying multiple encodings. note: no parameters, still (:pr:`3261`)
+- sdist generation now explicitly excludes sphinx build folder (:pr:`3257`)
+- decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising `TypeError` (:pr:`2336`)
+- raise correct Exception when encounting invalid chunked requests (:pr:`3258`)
+- the SCRIPT_NAME header when received from allowed forwarders is no longer restricted for containing an underscore (:pr:`3192`)
+
+** NOTE **
+
+- The SCRIPT_NAME change mitigates a regression that appeared first in the 22.0.0 release
+- Review your ``forwarded-allow-ips`` setting if you are still not seeing the SCRIPT_NAME transmitted
 
 ** Breaking changes **
-* refuse requests where the uri field is empty (:pr:`3255`)
-* refuse requests with invalid CR/LR/NUL in heade field values (:pr:`3253`)
-* remove temporary `--tolerate-dangerous-framing` switch from 22.0 (:pr:`3260`)
-* If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
+
+- refuse requests where the uri field is empty (:pr:`3255`)
+- refuse requests with invalid CR/LR/NUL in heade field values (:pr:`3253`)
+- remove temporary `--tolerate-dangerous-framing` switch from 22.0 (:pr:`3260`)
+- If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
 
 22.0.0 - 2024-04-17
 ===================
