@@ -146,7 +146,7 @@ class Message(object):
             # HTTP_X_FORWARDED_FOR = 2001:db8::ha:cc:ed,127.0.0.1,::1
             # Only modify after fixing *ALL* header transformations; network to wsgi env
             if "_" in name:
-                if name in forwarder_headers:
+                if name in forwarder_headers or "*" in forwarder_headers:
                     # This forwarder may override our environment
                     pass
                 elif self.cfg.header_map == "dangerous":
