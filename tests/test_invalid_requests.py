@@ -23,5 +23,6 @@ def test_http_parser(fname):
     cfg = env["cfg"]
     req = treq.badrequest(fname)
 
-    with pytest.raises(expect):
+    # telling pytest to match the exception string validates its __str__()
+    with pytest.raises(expect, match="."):
         req.check(cfg)
