@@ -212,10 +212,10 @@ def test_reload_engine_validation():
     assert c.reload_engine == 'poll'
 
     pytest.raises(ConfigError, c.set, "reload_engine", "invalid")
-    pytest.raises(ConfigError, c.set, "reload_engine", tuple())
-    pytest.raises(ConfigError, c.set, "reload_engine", (1,2,3))
-    pytest.raises(ConfigError, c.set, "reload_engine", [])
-    pytest.raises(ConfigError, c.set, "reload_engine", 0)
+    pytest.raises(TypeError, c.set, "reload_engine", tuple())
+    pytest.raises(TypeError, c.set, "reload_engine", (1,2,3))
+    pytest.raises(TypeError, c.set, "reload_engine", [])
+    pytest.raises(TypeError, c.set, "reload_engine", 0)
 
 
 def test_callable_validation_for_string():
