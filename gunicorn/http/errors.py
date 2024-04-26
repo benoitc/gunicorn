@@ -53,7 +53,7 @@ class InvalidHTTPVersion(ParseException):
         self.version = version
 
     def __str__(self):
-        return "Invalid HTTP Version: %r" % self.version
+        return "Invalid HTTP Version: %r" % (self.version,)
 
 
 class InvalidHeader(ParseException):
