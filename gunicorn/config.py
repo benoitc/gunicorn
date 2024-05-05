@@ -924,6 +924,10 @@ class Reload(Setting):
         .. note::
            In order to use the inotify reloader, you must have the ``inotify``
            package installed.
+        .. warning::
+           By default, enabling this will modify the handling of application errors
+           such that sensitive information is shared in response to any request;
+           see :ref:`on-fatal` for details.
         '''
 
 
@@ -956,10 +960,13 @@ class ReloadExtraFiles(Setting):
     validator = validate_list_of_existing_files
     default = []
     desc = """\
-        Extends :ref:`reload` option to also watch and reload on additional files
-        (e.g., templates, configurations, specifications, etc.).
+        Reload when these files appear modified. Can be used either on its own or to extend
+         the :ref:`reload` option to also watch and reload on additional files
+         (e.g., templates, configurations, specifications, etc.).
 
         .. versionadded:: 19.8
+        .. versionchanged:: 23.1.0
+           Now effective also when :ref:`reload` is not enabled.
         """
 
 
@@ -2465,4 +2472,48 @@ class HeaderMap(Setting):
         on a proxy in front of Gunicorn.
 
         .. versionadded:: 22.0.0
+        """
+
+
+def validate_fatal_behaviour(val):
+    # FIXME: refactor all of this subclassing stdlib argparse
+
+    if val is None:
+        return
+
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    if val.lower().strip() == "world-readable":
+        return "world-readable"
+    elif val.lower().strip() == "refuse":
+        return "refuse"
+    elif val.lower().strip() == "brief":
+        return "brief"
+    elif val.lower().strip() == "world-readable-with-reload":
+        return "world-readable-with-reload"
+    else:
+        raise ValueError("Invalid header map behaviour: %s" % val)
+
+
+class OnFatal(Setting):
+    name = "on_fatal"
+    section = "Server Mechanics"
+    cli = ["--on-fatal"]
+    validator = validate_fatal_behaviour
+    default = "world-readable-with-reload"
+    desc = """\
+        Configure what to do if loading the application fails
+
+        If set to ``world-readable``, send the traceback to the client.
+        If set to ``brief``, repond with a simple error status.
+        If set to ``refuse``, stop processing requests.
+        The default behavior is ``world-readable-with-reload``, which is equivalent
+        to ``world-readable`` when :ref:`reload` is enabled, or ``refuse`` otherwise.
+
+        The behaviour of ``world-readable`` (or, the default in conjunction with
+        ``reload``) risks exposing sensitive code and data and is not suitable
+        for production use.
+
+        .. versionadded:: 23.1.0
+           The new *default* matches the previous behavior.
         """

@@ -85,6 +85,10 @@ because it consumes less system resources.
 .. note::
    In order to use the inotify reloader, you must have the ``inotify``
    package installed.
+.. warning::
+   By default, enabling this will modify the handling of application errors
+   such that sensitive information is shared in response to any request;
+   see :ref:`on-fatal` for details.
 
 .. _reload-engine:
 
@@ -114,10 +118,13 @@ Valid engines are:
 
 **Default:** ``[]``
 
-Extends :ref:`reload` option to also watch and reload on additional files
-(e.g., templates, configurations, specifications, etc.).
+Reload when these files appear modified. Can be used either on its own or to extend
+ the :ref:`reload` option to also watch and reload on additional files
+ (e.g., templates, configurations, specifications, etc.).
 
 .. versionadded:: 19.8
+.. versionchanged:: 23.1.0
+   Now effective also when :ref:`reload` is not enabled.
 
 .. _spew:
 
@@ -1569,6 +1576,30 @@ instead be solved by specifically renaming or rewriting only the intended header
 on a proxy in front of Gunicorn.
 
 .. versionadded:: 22.0.0
+
+.. _on-fatal:
+
+``on_fatal``
+~~~~~~~~~~~~
+
+**Command line:** ``--on-fatal``
+
+**Default:** ``'world-readable-with-reload'``
+
+Configure what to do if loading the application fails
+
+If set to ``world-readable``, send the traceback to the client.
+If set to ``brief``, repond with a simple error status.
+If set to ``refuse``, stop processing requests.
+The default behavior is ``world-readable-with-reload``, which is equivalent
+to ``world-readable`` when :ref:`reload` is enabled, or ``refuse`` otherwise.
+
+The behaviour of ``world-readable`` (or, the default in conjunction with
+``reload``) risks exposing sensitive code and data and is not suitable
+for production use.
+
+.. versionadded:: 23.1.0
+   The new *default* matches the previous behavior.
 
 Server Socket
 -------------
