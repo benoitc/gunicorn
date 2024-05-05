@@ -55,13 +55,40 @@ eventlet = ["eventlet>=0.24.1,!=0.36.0"]
 tornado = ["tornado>=0.2"]
 gthread = []
 setproctitle = ["setproctitle"]
+# note: extra names use dashes, not underscores
+lint-types = [
+  "mypy>=1.10.0",
+]
+# linting on fixed versions, upgrading to matrix-incompat pylint release is OK
+lint-code = [
+    "pylint==2.17.4",
+    "pycodestyle",
+]
+lint-docs = [
+    "restructuredtext_lint",
+    "pygments",
+]
+# note we are styling stubs to work on 3.10 - this may not always match code
+style-types = [
+  "isort==5.12.0",
+  "pyupgrade==3.15.2",
+  "black==23.11.0",
+]
 testing = [
     "gevent",
     "eventlet",
     "coverage",
-    "pytest",
-    "pytest-cov",
+    "pytest>=7.2.0",
 ]
+dev = [
+    # setuptools v68.0 fails hard on invalid pyproject.toml
+    # which a developer would want to know
+    # otherwise, oldest known-working version is 61.2
+    "setuptools>=68.0",
+    "sphinx",
+    "sphinx_rtd_theme",
+]
+
 
 [project.scripts]
 # duplicates "python -m gunicorn" handling in __main__.py
@@ -75,7 +102,7 @@ main = "gunicorn.app.pasterapp:serve"
 # # can override these: python -m pytest --override-ini="addopts="
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
-addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+addopts = "--assert=plain"
 
 [tool.setuptools]
 zip-safe = false
@@ -87,3 +114,40 @@ find = {namespaces = false}
 
 [tool.setuptools.dynamic]
 version = {attr = "gunicorn.__version__"}
+
+[tool.mypy]
+# protect against typos here
+warn_unused_configs = true
+no_implicit_reexport = true
+warn_unused_ignores = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+# setproctitle known to not be typed
+# misnomer, we actualy want ignore_untyped_imports
+module = "setproctitle"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# gevent known to not be typed
+module = "eventlet"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# gevent known to not be typed
+module = "gevent"
+ignore_missing_imports = true
+
+[tool.pypuprade]
+# pyupgrade does not read this. specify --py37-plus yourself
+
+[tool.black]
+line-length = 88
+target-version = ["py37", "py38", "py39", "py310", "py311", "py312"]
+
+[tool.isort]
+line_length = 88
+# changes stdlib category - all or auto (=current) can produce inconsistent results
+# py_version = "py310"
+profile = "black"

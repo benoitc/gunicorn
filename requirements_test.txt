@@ -1,5 +1,0 @@
-gevent
-eventlet
-coverage
-pytest>=7.2.0
-pytest-cov
