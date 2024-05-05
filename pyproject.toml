@@ -59,9 +59,11 @@ testing = [
     "gevent",
     "eventlet",
     "coverage",
-    "pytest",
+    "pytest>=7.2.0",
     "pytest-cov",
+    "tornado>=6.0",
 ]
+
 
 [project.scripts]
 # duplicates "python -m gunicorn" handling in __main__.py
@@ -72,10 +74,11 @@ gunicorn = "gunicorn.app.wsgiapp:run"
 main = "gunicorn.app.pasterapp:serve"
 
 [tool.pytest.ini_options]
-# # can override these: python -m pytest --override-ini="addopts="
+# can override these: python -m pytest --override-ini="addopts="
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
-addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+addopts = ["--strict-markers", "--assert=plain", "--cov=gunicorn", "--cov-report=xml"]
+xfail_strict = true
 
 [tool.setuptools]
 zip-safe = false
