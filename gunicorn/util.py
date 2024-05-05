@@ -31,6 +31,8 @@ from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
 
+# RFC9112 7.1
+REASON_PHRASE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
 # Server and Date aren't technically hop-by-hop
@@ -138,8 +140,21 @@ def get_username(uid):
     return pwd.getpwuid(uid).pw_name
 
 
+def drop_supplemental_groups():
+    # only root/CAP_SETGID can do this
+    try:
+        os.setgroups([])
+    except OSError as ex:
+        if ex.errno != errno.EPERM:
+            raise
+
+
 def set_owner_process(uid, gid, initgroups=False):
     """ set user and group of workers processes """
+
+    # note: uid/gid can be larger than 2**32
+    # note: setgid() does not empty supplemental group list
+    # note: will never act on uid=0 / gid=0
 
     if gid:
         if uid:
@@ -148,21 +163,24 @@ def set_owner_process(uid, gid, initgroups=False):
             except KeyError:
                 initgroups = False
 
-        # versions of python < 2.6.2 don't manage unsigned int for
-        # groups like on osx or fedora
-        gid = abs(gid) & 0x7FFFFFFF
-
         if initgroups:
             os.initgroups(username, gid)
         elif gid != os.getgid():
             os.setgid(gid)
+            drop_supplemental_groups()
 
     if uid and uid != os.getuid():
         os.setuid(uid)
 
 
 def chown(path, uid, gid):
-    os.chown(path, uid, gid)
+    # we use None for unchanged
+    if uid is None and gid is None:
+        return
+    # os.chown semantics are -1 for unchanged
+    int_uid = -1 if uid is None else uid
+    int_gid = -1 if gid is None else gid
+    os.chown(path, int_uid, int_gid)
 
 
 if sys.platform.startswith("win"):
@@ -312,6 +330,15 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
+    # we may to reflect user input in mesg
+    #  .. as long as it is escaped appropriately for indicated Content-Type
+    # we should send out own reason text
+    #  .. we shall never send misleading or invalid HTTP status lines
+    assert REASON_PHRASE_RE.fullmatch(reason)
+    # we should avoid chosing status codes that are already used to indicate
+    #  special handling in our proxies
+    assert 100 <= status_int <= 599  # RFC9110 15
+
     html_error = textwrap.dedent("""\
     <html>
       <head>
