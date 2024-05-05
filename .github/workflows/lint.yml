@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toxenv: [lint, docs-lint, pycodestyle]
+        toxenv: [lint, docs-lint, pycodestyle, format, mypy]
         python-version: [ "3.10" ]
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +26,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox
       - run: tox -e ${{ matrix.toxenv }}
+      - name: "Lint support files"
+        if: ${{ ! matrix.toxenv }}
+        # github UI shows a green checkmark instead of the original outcome :(
+        # should probably be called "force-conclusion: success"
+        continue-on-error: true
+        env:
+          # annoying results for pl_PL and fr_FR.. still the only *obvious* choice
+          LC_ALL: C
+        run: |
+          tail +6 THANKS | sort --ignore-case --check
+          sort --check .gitignore
