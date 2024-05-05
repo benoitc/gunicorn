@@ -1,0 +1,3 @@
+from gunicorn.sock import TCPSocket as TCPSocket
+
+def close_on_exec(fd: int | TCPSocket) -> None: ...
