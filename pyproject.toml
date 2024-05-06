@@ -102,7 +102,8 @@ main = "gunicorn.app.pasterapp:serve"
 # # can override these: python -m pytest --override-ini="addopts="
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
-addopts = "--assert=plain"
+addopts = ["--strict-markers", "--assert=plain"]
+xfail-strict = true
 
 [tool.setuptools]
 zip-safe = false

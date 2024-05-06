@@ -1,6 +1,7 @@
 # no implementation here
 # .. providing this file allows importing module on unsupported platforms.
 
+
 class Unsupported(RuntimeError):
     pass
 
@@ -8,15 +9,24 @@ class Unsupported(RuntimeError):
 def matching_effective_uid_gid(uid, gid):
     if uid is None and gid is None:
         return True
-    raise Unsupported("geteuid() unsupported on this platform. Have your service manager setup user/group instead.")
+    raise Unsupported(
+        "geteuid() unsupported on this platform. "
+        "Have your service manager setup user/group instead."
+    )
 
 
 def resolve_uid(val):
-    raise Unsupported("setuid() unsupported on this platform. Have your service manager setup user/group instead.")
+    raise Unsupported(
+        "setuid() unsupported on this platform. "
+        "Have your service manager setup user/group instead."
+    )
 
 
 def resolve_gid(val):
-    raise Unsupported("setgid() unsupported on this platform. Have your service manager setup user/group instead.")
+    raise Unsupported(
+        "setgid() unsupported on this platform. "
+        "Have your service manager setup user/group instead."
+    )
 
 
 def close_on_exec(fd):
@@ -36,9 +46,15 @@ def set_owner_process(uid, gid, initgroups=False):
     """set user and group of workers processes"""
 
     if gid is not None:
-        raise Unsupported("setgid() unsupported on this platform. Have your service manager setup user/group instead.")
+        raise Unsupported(
+            "setgid() unsupported on this platform. "
+            "Have your service manager setup user/group instead."
+        )
     if uid is not None:
-        raise Unsupported("setuid() unsupported on this platform. Have your service manager setup user/group instead.")
+        raise Unsupported(
+            "setuid() unsupported on this platform. "
+            "Have your service manager setup user/group instead."
+        )
 
 
 ALL = [

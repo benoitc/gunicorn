@@ -1,3 +1,4 @@
+import errno
 import fcntl
 import grp
 import os
@@ -14,6 +15,7 @@ def resolve_gid(val):
 
 def _assert_cloexec(fd):
     # Python 3.4+: file descriptors created by Python non-inheritable by default
+    # .. but note that sysstemd may pass us LISTEN_FDS without such promise
     fd_flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     # mind the difference between os.O_CLOEXEC and fcntl.FD_CLOEXEC
     if not fd_flags | fcntl.FD_CLOEXEC:

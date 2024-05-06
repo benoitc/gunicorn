@@ -28,9 +28,9 @@ except (ModuleNotFoundError, ImportError):
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 if sys.platform.startswith("win"):
-    from gunicorn.windows import close_on_exec, pipe2, resolve_gid, resolve_uid, set_owner_process, matching_effective_uid_gid
+    from gunicorn.windows import *  # pylint: disable=wildcard-import,unused-wildcard-import
 else:
-    from gunicorn.unix import close_on_exec, pipe2, resolve_gid, resolve_uid, set_owner_process, matching_effective_uid_gid
+    from gunicorn.unix import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 import urllib.parse
 

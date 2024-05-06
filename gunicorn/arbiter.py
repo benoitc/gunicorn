@@ -176,7 +176,7 @@ class Arbiter(object):
             os.close(p)
 
         # initialize the pipe
-        self.PIPE = pair = util.pipe2()
+        self.PIPE = util.pipe2()
 
         self.log.close_on_exec()
 

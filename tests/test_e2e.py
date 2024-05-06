@@ -7,18 +7,37 @@ import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 # pytest does not like exceptions from threads
 #  - so use subprocess.Popen for now
 # from threading import Thread, Event
 
 
-GRACEFUL_TIMEOUT = 2
-WORKER_COUNT = 3
-SERVER_PORT = 2048 + secrets.randbelow(1024 * 14)
-# FIXME: should also test inherited socket
-SERVER_BIND = "[::1]:%d" % SERVER_PORT
+GRACEFUL_TIMEOUT = 1
+WORKER_COUNT = 2
 APP_BASENAME = "testsyntax"
 APP_APPNAME = "wsgiapp"
+
+TEST_TOLERATES_BAD_BOOT = (
+    "sync",
+    "eventlet",
+    pytest.param("gevent", marks=pytest.mark.xfail),
+    pytest.param("gevent_wsgi", marks=pytest.mark.xfail),
+    pytest.param("gevent_pywsgi", marks=pytest.mark.xfail),
+    pytest.param("tornado", marks=pytest.mark.xfail),
+    pytest.param("gthread", marks=pytest.mark.xfail),
+)
+
+TEST_TOLERATES_BAD_RELOAD = (
+    "sync",
+    "eventlet",
+    "gevent",
+    pytest.param("gevent_wsgi", marks=pytest.mark.xfail),
+    pytest.param("gevent_pywsgi", marks=pytest.mark.xfail),
+    pytest.param("tornado", marks=pytest.mark.xfail),
+    "gthread",
+)
 
 PY_OK = """
 import sys
@@ -85,14 +104,15 @@ def wsgiapp(environ_, start_response_):
 class Server:
     def __init__(
         self,
-        *args,
+        *,
         temp_path,
+        server_bind,
+        worker_class,
         start_valid=True,
         use_config=False,
         public_traceback=True,
-        **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        # super().__init__(*args, **kwargs)
         # self.launched = Event()
         self.p = None
         assert isinstance(temp_path, Path)
@@ -101,8 +121,26 @@ class Server:
         self.conf_path = (
             (temp_path / "gunicorn.conf.py").absolute() if use_config else os.devnull
         )
-        self._start_valid = start_valid
-        self._public_traceback = public_traceback
+        self._write_initial = self.write_ok if start_valid else self.write_bad
+        self._argv = [
+            sys.executable,
+            "-m",
+            "gunicorn",
+            "--config=%s" % self.conf_path,
+            "--log-level=debug",
+            "--worker-class=%s" % worker_class,
+            "--workers=%d" % WORKER_COUNT,
+            "--enable-stdio-inheritance",
+            "--access-logfile=-",
+            "--disable-redirect-access-to-syslog",
+            "--graceful-timeout=%d" % (GRACEFUL_TIMEOUT,),
+            "--on-fatal=%s" % ("world-readable" if public_traceback else "quiet",),
+            # "--reload",
+            "--reload-extra=%s" % self.py_path,
+            "--bind=%s" % server_bind,
+            "--reuse-port",
+            "%s:%s" % (APP_BASENAME, APP_APPNAME),
+        ]
 
     def write_bad(self):
         with open(self.conf_path, "w+") as f:
@@ -117,7 +155,7 @@ class Server:
             f.write(PY_OK)
 
     def __enter__(self):
-        (self.write_ok if self._start_valid else self.write_bad)()
+        self._write_initial()
         self.run()
         return self
 
@@ -125,33 +163,14 @@ class Server:
         if self.p is None:
             return
         self.p.send_signal(signal.SIGKILL)
-        stdout, stderr = self.p.communicate(timeout=2)
+        stdout, stderr = self.p.communicate(timeout=2 + GRACEFUL_TIMEOUT)
         ret = self.p.returncode
-        assert stdout == b""
+        assert stdout == b"", stdout
         assert ret == 0, (ret, stdout, stderr)
 
     def run(self):
         self.p = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "gunicorn",
-                "--config=%s" % self.conf_path,
-                "--log-level=debug",
-                "--worker-class=sync",
-                "--workers=%d" % WORKER_COUNT,
-                "--enable-stdio-inheritance",
-                "--access-logfile=-",
-                "--disable-redirect-access-to-syslog",
-                "--graceful-timeout=%d" % (GRACEFUL_TIMEOUT,),
-                "--on-fatal=%s"
-                % ("world-readable" if self._public_traceback else "quiet",),
-                # "--reload",
-                "--reload-extra=%s" % self.py_path,
-                "--bind=%s" % SERVER_BIND,
-                "--reuse-port",
-                "%s:%s" % (APP_BASENAME, APP_APPNAME),
-            ],
+            self._argv,
             bufsize=0,  # allow read to return short
             cwd=self.temp_path,
             shell=False,
@@ -165,16 +184,17 @@ class Server:
         os.set_blocking(self.p.stderr.fileno(), False)
         # self.launched.set()
 
-    def _graceful_quit(self):
+    def graceful_quit(self):
         self.p.send_signal(signal.SIGTERM)
         # self.p.kill()
         stdout, stderr = self.p.communicate(timeout=2 * GRACEFUL_TIMEOUT)
         assert stdout == b""
-        ret = self.p.poll()
+        ret = self.p.poll()  # will return None if running
         assert ret == 0, (ret, stdout, stderr)
+        self.p = None
         return stderr.decode("utf-8", "surrogateescape")
 
-    def _read_stdio(self, *, key, timeout_sec, wait_for_keyword):
+    def read_stdio(self, *, key, timeout_sec, wait_for_keyword):
         # try:
         #    stdout, stderr = self.p.communicate(timeout=timeout)
         # except subprocess.TimeoutExpired:
@@ -197,29 +217,41 @@ class Server:
 
 
 class Client:
+    def __init__(self, host_port):
+        self._host_port = host_port
+
     def run(self):
         import http.client
 
-        conn = http.client.HTTPConnection(SERVER_BIND, timeout=2)
+        conn = http.client.HTTPConnection(self._host_port, timeout=2)
         conn.request("GET", "/", headers={"Host": "localhost"}, body="GETBODY!")
         return conn.getresponse()
 
 
-def test_process_request_after_fixing_syntax_error():
+@pytest.mark.parametrize("worker_class", TEST_TOLERATES_BAD_BOOT)
+def test_process_request_after_fixing_syntax_error(worker_class):
     # 1. start up the server with invalid app
     # 2. fixup the app by writing to file
     # 3. await reload: the app should begin working soon
 
-    client = Client()
+    fixed_port = 2048 + secrets.randbelow(1024 * 14)
+    # FIXME: should also test inherited socket (LISTEN_FDS)
+    server_bind = "[::1]:%d" % fixed_port
+
+    client = Client(server_bind)
 
     with TemporaryDirectory(suffix="_temp_py") as tempdir_name:
         with Server(
-            temp_path=Path(tempdir_name), start_valid=False, public_traceback=False
+            worker_class=worker_class,
+            server_bind=server_bind,
+            temp_path=Path(tempdir_name),
+            start_valid=False,
+            public_traceback=False,
         ) as server:
             OUT = 0
             ERR = 1
 
-            boot_log = server._read_stdio(
+            boot_log = server.read_stdio(
                 key=ERR, wait_for_keyword="Arbiter booted", timeout_sec=5
             )
 
@@ -230,14 +262,14 @@ def test_process_request_after_fixing_syntax_error():
 
             # worker could not load, request will fail
             response = client.run()
-            assert response.status == 500
-            assert response.reason == "Internal Server Error"
+            assert response.status == 500, (response.status, response.reason)
+            assert response.reason == "Internal Server Error", response.reason
             body = response.read(64 * 1024).decode("utf-8", "surrogateescape")
             # --on-fatal=quiet responds, but does NOT share traceback
             assert "error" in body.lower()
             assert "load_wsgi" not in body.lower()
 
-            _access_log = server._read_stdio(
+            _access_log = server.read_stdio(
                 key=OUT,
                 wait_for_keyword='GET / HTTP/1.1" 500 ',
                 timeout_sec=5,
@@ -246,7 +278,7 @@ def test_process_request_after_fixing_syntax_error():
             server.write_ok()
             # os.utime(editable_file)
 
-            reload_log = server._read_stdio(
+            reload_log = server.read_stdio(
                 key=ERR, wait_for_keyword="reloading", timeout_sec=5
             )
             assert "%s.py modified" % (APP_BASENAME,) in reload_log
@@ -254,48 +286,58 @@ def test_process_request_after_fixing_syntax_error():
 
             # worker did boot now, request should work
             response = client.run()
-            assert response.status == 200
-            assert response.reason == "OK"
+            assert response.status == 200, (response.status, response.reason)
+            assert response.reason == "OK", response.reason
             body = response.read(64 * 1024).decode("utf-8", "surrogateescape")
             assert "response body from app" == body
 
-            _debug_log = server._read_stdio(
+            _debug_log = server.read_stdio(
                 key=ERR,
                 wait_for_keyword="stderr from app",
                 timeout_sec=5,
             )
 
-            shutdown_log = server._graceful_quit()
+            shutdown_log = server.graceful_quit()
             assert "Handling signal: term" in shutdown_log
             assert "Worker exiting " in shutdown_log
             assert "Shutting down: Master" in shutdown_log
 
 
-def test_process_shutdown_cleanly_after_inserting_syntax_error():
+@pytest.mark.parametrize("worker_class", TEST_TOLERATES_BAD_RELOAD)
+def test_process_shutdown_cleanly_after_inserting_syntax_error(worker_class):
     # 1. start with valid application
     # 2. now insert fatal error by writing to app
     # 3. await reload, the shutdown gracefully
 
-    client = Client()
+    fixed_port = 2048 + secrets.randbelow(1024 * 14)
+    # FIXME: should also test inherited socket (LISTEN_FDS)
+    server_bind = "[::1]:%d" % fixed_port
+
+    client = Client(server_bind)
 
     with TemporaryDirectory(suffix="_temp_py") as tempdir_name:
-        with Server(temp_path=Path(tempdir_name), start_valid=True) as server:
+        with Server(
+            server_bind=server_bind,
+            worker_class=worker_class,
+            temp_path=Path(tempdir_name),
+            start_valid=True,
+        ) as server:
             OUT = 0
             ERR = 1
 
-            boot_log = server._read_stdio(
+            boot_log = server.read_stdio(
                 key=ERR, wait_for_keyword="Arbiter booted", timeout_sec=5
             )
             assert "Booting worker" in boot_log
 
             # worker did boot now, request should work
             response = client.run()
-            assert response.status == 200
-            assert response.reason == "OK"
+            assert response.status == 200, (response.status, response.reason)
+            assert response.reason == "OK", response.reason
             body = response.read(64 * 1024).decode("utf-8", "surrogateescape")
             assert "response body from app" == body
 
-            _debug_log = server._read_stdio(
+            _debug_log = server.read_stdio(
                 key=ERR,
                 wait_for_keyword="stderr from app",
                 timeout_sec=5,
@@ -307,7 +349,7 @@ def test_process_shutdown_cleanly_after_inserting_syntax_error():
 
             # this test can fail flaky, when the keyword is not last line logged
             # .. but the worker count is only logged when changed
-            reload_log = server._read_stdio(
+            reload_log = server.read_stdio(
                 key=ERR,
                 wait_for_keyword="SyntaxError: ",
                 # wait_for_keyword="%d workers" % WORKER_COUNT,
@@ -320,19 +362,19 @@ def test_process_shutdown_cleanly_after_inserting_syntax_error():
 
             # worker could not load, request will fail
             response = client.run()
-            assert response.status == 500
-            assert response.reason == "Internal Server Error"
+            assert response.status == 500, (response.status, response.reason)
+            assert response.reason == "Internal Server Error", response.reason
             body = response.read(64 * 1024).decode("utf-8", "surrogateescape")
             # its a traceback
             assert "load_wsgi" in body.lower()
 
-            _access_log = server._read_stdio(
+            _access_log = server.read_stdio(
                 key=OUT,
                 wait_for_keyword='GET / HTTP/1.1" 500 ',
                 timeout_sec=5,
             )
 
-            shutdown_log = server._graceful_quit()
+            shutdown_log = server.graceful_quit()
             assert "Handling signal: term" in shutdown_log
             assert "Worker exiting " in shutdown_log
             assert "Shutting down: Master" in shutdown_log
