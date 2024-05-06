@@ -101,10 +101,7 @@ class Worker(object):
         util.seed()
 
         # For waking ourselves up
-        self.PIPE = os.pipe()
-        for p in self.PIPE:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        self.PIPE = util.pipe2()
 
         # Prevent fd inheritance
         for s in self.sockets:

@@ -7,10 +7,8 @@
 
 import argparse
 import copy
-import grp
 import inspect
 import os
-import pwd
 import re
 import shlex
 import ssl
@@ -450,7 +448,7 @@ def validate_user(val):
         return int(val)
     else:
         try:
-            return pwd.getpwnam(val).pw_uid
+            return util.resolve_uid(val)
         except KeyError:
             raise ConfigError("No such user: '%s'" % val)
 
@@ -465,7 +463,7 @@ def validate_group(val):
         return int(val)
     else:
         try:
-            return grp.getgrnam(val).gr_gid
+            return util.resolve_gid(val)
         except KeyError:
             raise ConfigError("No such group: '%s'" % val)
 

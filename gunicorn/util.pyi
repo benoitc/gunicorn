@@ -16,6 +16,25 @@ from gunicorn.glogging import Logger
 from gunicorn.workers import SUPPORTED_WORKERS as SUPPORTED_WORKERS
 from gunicorn.workers.sync import SyncWorker
 
+if sys.platform.startswith("win"):
+    from gunicorn.windows import (
+        close_on_exec,
+        matching_effective_uid_gid,
+        pipe2,
+        resolve_gid,
+        resolve_uid,
+        set_owner_process,
+    )
+else:
+    from gunicorn.unix import (
+        close_on_exec,
+        matching_effective_uid_gid,
+        pipe2,
+        resolve_gid,
+        resolve_uid,
+        set_owner_process,
+    )
+
 REDIRECT_TO: str
 hop_headers: set[str]
 

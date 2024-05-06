@@ -5,14 +5,12 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -29,6 +27,11 @@ except (ModuleNotFoundError, ImportError):
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
+if sys.platform.startswith("win"):
+    from gunicorn.windows import close_on_exec, pipe2, resolve_gid, resolve_uid, set_owner_process, matching_effective_uid_gid
+else:
+    from gunicorn.unix import close_on_exec, pipe2, resolve_gid, resolve_uid, set_owner_process, matching_effective_uid_gid
+
 import urllib.parse
 
 # RFC9112 7.1
@@ -135,44 +138,6 @@ def get_arity(f):
     return arity
 
 
-def get_username(uid):
-    """ get the username for a user id"""
-    return pwd.getpwuid(uid).pw_name
-
-
-def drop_supplemental_groups():
-    # only root/CAP_SETGID can do this
-    try:
-        os.setgroups([])
-    except OSError as ex:
-        if ex.errno != errno.EPERM:
-            raise
-
-
-def set_owner_process(uid, gid, initgroups=False):
-    """ set user and group of workers processes """
-
-    # note: uid/gid can be larger than 2**32
-    # note: setgid() does not empty supplemental group list
-    # note: will never act on uid=0 / gid=0
-
-    if gid:
-        if uid:
-            try:
-                username = get_username(uid)
-            except KeyError:
-                initgroups = False
-
-        if initgroups:
-            os.initgroups(username, gid)
-        elif gid != os.getgid():
-            os.setgid(gid)
-            drop_supplemental_groups()
-
-    if uid and uid != os.getuid():
-        os.setuid(uid)
-
-
 def chown(path, uid, gid):
     # we use None for unchanged
     if uid is None and gid is None:
@@ -271,17 +236,6 @@ def parse_address(netloc, default_port='8000'):
         raise RuntimeError("%r is not a valid port number." % port)
 
     return host.lower(), port
-
-
-def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
-
-
-def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
 
 def close(sock):
