@@ -271,6 +271,8 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
+    # Python 3.4+: file descriptors created by Python non-inheritable by default
+    # .. but note that sysstemd may pass us LISTEN_FDS without such promise
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
