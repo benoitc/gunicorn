@@ -14,29 +14,33 @@ import pytest
 # from threading import Thread, Event
 
 
-GRACEFUL_TIMEOUT = 1
-WORKER_COUNT = 2
+GRACEFUL_TIMEOUT = 3
+
+# test flaky for WORKER_COUNT != 1, awaiting *last* worker not implemented
+WORKER_COUNT = 1
 APP_BASENAME = "testsyntax"
 APP_APPNAME = "wsgiapp"
 
 TEST_TOLERATES_BAD_BOOT = (
     "sync",
     "eventlet",
-    pytest.param("gevent", marks=pytest.mark.xfail),
-    pytest.param("gevent_wsgi", marks=pytest.mark.xfail),
-    pytest.param("gevent_pywsgi", marks=pytest.mark.xfail),
-    pytest.param("tornado", marks=pytest.mark.xfail),
-    pytest.param("gthread", marks=pytest.mark.xfail),
+    "gevent",
+    "gevent_wsgi",
+    "gevent_pywsgi",
+    "tornado",
+    "gthread",
+    # pytest.param("expected_failure", marks=pytest.mark.xfail),
 )
 
 TEST_TOLERATES_BAD_RELOAD = (
     "sync",
     "eventlet",
     "gevent",
-    pytest.param("gevent_wsgi", marks=pytest.mark.xfail),
-    pytest.param("gevent_pywsgi", marks=pytest.mark.xfail),
-    pytest.param("tornado", marks=pytest.mark.xfail),
+    "gevent_wsgi",
+    "gevent_pywsgi",
+    "tornado",
     "gthread",
+    # pytest.param("expected_failure", marks=pytest.mark.xfail),
 )
 
 PY_OK = """
@@ -119,7 +123,9 @@ class Server:
         self.temp_path = temp_path
         self.py_path = (temp_path / ("%s.py" % APP_BASENAME)).absolute()
         self.conf_path = (
-            (temp_path / "gunicorn.conf.py").absolute() if use_config else os.devnull
+            (temp_path / "gunicorn.conf.py").absolute()
+            if use_config
+            else Path(os.devnull)
         )
         self._write_initial = self.write_ok if start_valid else self.write_bad
         self._argv = [
@@ -184,35 +190,50 @@ class Server:
         os.set_blocking(self.p.stderr.fileno(), False)
         # self.launched.set()
 
-    def graceful_quit(self):
+    def graceful_quit(self, expect=()):
         self.p.send_signal(signal.SIGTERM)
         # self.p.kill()
-        stdout, stderr = self.p.communicate(timeout=2 * GRACEFUL_TIMEOUT)
+        stdout, stderr = self.p.communicate(timeout=2 + GRACEFUL_TIMEOUT)
         assert stdout == b""
         ret = self.p.poll()  # will return None if running
         assert ret == 0, (ret, stdout, stderr)
         self.p = None
-        return stderr.decode("utf-8", "surrogateescape")
+        ret = stderr.decode("utf-8", "surrogateescape")
+        for keyword in expect:
+            assert keyword in ret, (keyword, ret)
+        return ret
 
-    def read_stdio(self, *, key, timeout_sec, wait_for_keyword):
+    def read_stdio(self, *, key, timeout_sec, wait_for_keyword, expect=()):
         # try:
         #    stdout, stderr = self.p.communicate(timeout=timeout)
         # except subprocess.TimeoutExpired:
         buf = ["", ""]
-        extra = 0
-        for _ in range(timeout_sec * 10):
+        seen_keyword = 0
+        poll_per_second = 20
+        for _ in range(timeout_sec * poll_per_second):
             for fd, file in enumerate([self.p.stdout, self.p.stderr]):
                 read = file.read(64 * 1024)
                 if read is not None:
                     buf[fd] += read.decode("utf-8", "surrogateescape")
-            if extra or wait_for_keyword in buf[key]:
-                extra += 1
-            # wait a bit *after* seeing the keyword to increase chance of reading context
-            if extra > 3:
+            if seen_keyword or wait_for_keyword in buf[key]:
+                seen_keyword += 1
+            for additional_keyword in tuple(expect):
+                for somewhere in buf:
+                    if additional_keyword in somewhere:
+                        expect.remove(additional_keyword)
+            # gathered all the context we wanted
+            if seen_keyword and not expect:
                 break
-            time.sleep(0.1)
+            # not seen expected output? wait for % of original timeout
+            # .. maybe we will still see better error context that way
+            if seen_keyword > (0.50 * timeout_sec * poll_per_second):
+                break
+            time.sleep(1.0 / poll_per_second)
         # assert buf[abs(key - 1)] == ""
-        assert wait_for_keyword in buf[key], buf[key]
+        assert wait_for_keyword in buf[key], (wait_for_keyword, *buf)
+        for additional_keyword in expect:
+            for somewhere in buf:
+                assert additional_keyword in somewhere, (additional_keyword, *buf)
         return buf[key]
 
 
@@ -251,14 +272,17 @@ def test_process_request_after_fixing_syntax_error(worker_class):
             OUT = 0
             ERR = 1
 
-            boot_log = server.read_stdio(
-                key=ERR, wait_for_keyword="Arbiter booted", timeout_sec=5
+            _boot_log = server.read_stdio(
+                key=ERR,
+                wait_for_keyword="Arbiter booted",
+                timeout_sec=5,
+                expect={
+                    "SyntaxError: invalid syntax",
+                    '%s.py", line ' % (APP_BASENAME,),
+                },
             )
 
             # raise RuntimeError(boot_log)
-
-            assert "SyntaxError: invalid syntax" in boot_log, boot_log
-            assert '%s.py", line ' % (APP_BASENAME,) in boot_log
 
             # worker could not load, request will fail
             response = client.run()
@@ -271,18 +295,22 @@ def test_process_request_after_fixing_syntax_error(worker_class):
 
             _access_log = server.read_stdio(
                 key=OUT,
-                wait_for_keyword='GET / HTTP/1.1" 500 ',
+                wait_for_keyword='"GET / HTTP/1.1" 500 ',
                 timeout_sec=5,
             )
             # trigger reloader
             server.write_ok()
             # os.utime(editable_file)
 
-            reload_log = server.read_stdio(
-                key=ERR, wait_for_keyword="reloading", timeout_sec=5
+            _reload_log = server.read_stdio(
+                key=ERR,
+                wait_for_keyword="reloading",
+                timeout_sec=5,
+                expect={
+                    "%s.py modified" % (APP_BASENAME,),
+                    "Booting worker",
+                },
             )
-            assert "%s.py modified" % (APP_BASENAME,) in reload_log
-            assert "Booting worker" in reload_log
 
             # worker did boot now, request should work
             response = client.run()
@@ -295,12 +323,19 @@ def test_process_request_after_fixing_syntax_error(worker_class):
                 key=ERR,
                 wait_for_keyword="stderr from app",
                 timeout_sec=5,
+                expect={
+                    # read access log
+                    '"GET / HTTP/1.1"',
+                },
             )
 
-            shutdown_log = server.graceful_quit()
-            assert "Handling signal: term" in shutdown_log
-            assert "Worker exiting " in shutdown_log
-            assert "Shutting down: Master" in shutdown_log
+            _shutdown_log = server.graceful_quit(
+                expect={
+                    "Handling signal: term",
+                    "Worker exiting ",
+                    "Shutting down: Master",
+                }
+            )
 
 
 @pytest.mark.parametrize("worker_class", TEST_TOLERATES_BAD_RELOAD)
@@ -325,10 +360,14 @@ def test_process_shutdown_cleanly_after_inserting_syntax_error(worker_class):
             OUT = 0
             ERR = 1
 
-            boot_log = server.read_stdio(
-                key=ERR, wait_for_keyword="Arbiter booted", timeout_sec=5
+            _boot_log = server.read_stdio(
+                key=ERR,
+                wait_for_keyword="Arbiter booted",
+                timeout_sec=5,
+                expect={
+                    "Booting worker",
+                },
             )
-            assert "Booting worker" in boot_log
 
             # worker did boot now, request should work
             response = client.run()
@@ -349,16 +388,18 @@ def test_process_shutdown_cleanly_after_inserting_syntax_error(worker_class):
 
             # this test can fail flaky, when the keyword is not last line logged
             # .. but the worker count is only logged when changed
-            reload_log = server.read_stdio(
+            _reload_log = server.read_stdio(
                 key=ERR,
                 wait_for_keyword="SyntaxError: ",
                 # wait_for_keyword="%d workers" % WORKER_COUNT,
                 timeout_sec=6,
+                expect={
+                    "reloading",
+                    "%s.py modified" % (APP_BASENAME,),
+                    "SyntaxError: invalid syntax",
+                    '%s.py", line ' % (APP_BASENAME,),
+                },
             )
-            assert "reloading" in reload_log, reload_log
-            assert "%s.py modified" % (APP_BASENAME,) in reload_log
-            assert "SyntaxError: invalid syntax" in reload_log, reload_log
-            assert '%s.py", line ' % (APP_BASENAME,) in reload_log
 
             # worker could not load, request will fail
             response = client.run()
@@ -370,11 +411,14 @@ def test_process_shutdown_cleanly_after_inserting_syntax_error(worker_class):
 
             _access_log = server.read_stdio(
                 key=OUT,
-                wait_for_keyword='GET / HTTP/1.1" 500 ',
+                wait_for_keyword='"GET / HTTP/1.1" 500 ',
                 timeout_sec=5,
             )
 
-            shutdown_log = server.graceful_quit()
-            assert "Handling signal: term" in shutdown_log
-            assert "Worker exiting " in shutdown_log
-            assert "Shutting down: Master" in shutdown_log
+            _shutdown_log = server.graceful_quit(
+                expect={
+                    "Handling signal: term",
+                    "Worker exiting ",
+                    "Shutting down: Master",
+                },
+            )

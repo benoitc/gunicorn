@@ -103,7 +103,7 @@ main = "gunicorn.app.pasterapp:serve"
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
 addopts = ["--strict-markers", "--assert=plain"]
-xfail-strict = true
+xfail_strict = true
 
 [tool.setuptools]
 zip-safe = false

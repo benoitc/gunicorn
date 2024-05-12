@@ -34,7 +34,7 @@ class GeventWorker(AsyncWorker):
     def init_process(self) -> None: ...
 
 class GeventResponse:
-    status: int
+    status: str
     headers: list[tuple[str, str]]
     sent: int
     def __init__(
@@ -42,6 +42,9 @@ class GeventResponse:
     ) -> None: ...
 
 class PyWSGIHandler(pywsgi.WSGIHandler):
+    status: bytes
+    response_headers: list[tuple[bytes, bytes]]
+
     def log_request(self) -> None: ...
     def get_environ(self) -> WSGIEnvironment: ...
 

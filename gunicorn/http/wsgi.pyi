@@ -39,7 +39,7 @@ class Response:
     req: Message
     sock: Incomplete
     version: str
-    status: int
+    status: str
     chunked: bool
     must_close: bool
     headers: list[tuple[str, str]]
