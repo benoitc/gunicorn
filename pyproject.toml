@@ -59,9 +59,11 @@ testing = [
     "gevent",
     "eventlet",
     "coverage",
-    "pytest",
+    "pytest>=7.2.0",
     "pytest-cov",
+    "tornado>=6.0",
 ]
+
 
 [project.scripts]
 # duplicates "python -m gunicorn" handling in __main__.py
