@@ -1,5 +1,7 @@
 name: tox
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+# https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
+
 permissions:
   contents: read # to fetch code (actions/checkout)
 env:

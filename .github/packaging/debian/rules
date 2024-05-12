@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export PYBUILD_NAME = gunicorn
+
+export PYBUILD_DISABLE = test
+
+# until this works: use debian/tests/upstream
+# export PYBUILD_TEST_PYTEST = 0
+
+# pyproject.toml referring to not installed plugins could otherwise confuse pytest
+export PYBUILD_TEST_ARGS = --override-ini=addopts=
+
+# distutils: try running via setup.py
+# assuming pyproject is broken, as it decided to create UNKNOWN.egg-info
+# export PYBUILD_SYSTEM = distutils
+export PYBUILD_SYSTEM = pyproject
+
+%:
+	dh $@ --with=python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	# super()
+	dh_auto_install
+	# split binary/library into separate packages
+	mkdir -p debian/gunicorn/usr/bin
+	find debian/
+	mv debian/python3-gunicorn/usr/bin/gunicorn debian/gunicorn/usr/bin
+
+# split of examples into separate package is handled by dh_installexamples(1)

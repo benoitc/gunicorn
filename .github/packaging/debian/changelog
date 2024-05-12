@@ -1,0 +1,6 @@
+gunicorn (22.1.0-0~ci0+github1) unstable; urgency=low
+
+  * Initial release (not meant to be installed. CI testing artifact only).
+
+ -- Octocat <octocat@github.invalid>  Sun, 10 Dec 2023 23:28:24 +0100
+

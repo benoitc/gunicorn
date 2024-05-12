@@ -1,0 +1,68 @@
+Source: gunicorn
+Section: httpd
+Priority: optional
+Homepage: https://gunicorn.org/
+Maintainer: Octocat <octocat@github.invalid>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-python,
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-setuptools,
+Standards-Version: 4.6.2
+Testsuite: autopkgtest-pkg-python
+Rules-Requires-Root: no
+
+Package: gunicorn
+Section: httpd
+Priority: optional
+Architecture: all
+Depends:
+ python3-gunicorn (= ${binary:Version}),
+ ${misc:Depends},
+ ${python3:Depends},
+Provides:
+  gunicorn3,
+  httpd-wsgi3
+Conflicts:
+  gunicorn3,
+Replaces:
+  gunicorn3,
+Suggests:
+ python3-setproctitle,
+ python3-pastedeploy,
+ python3-eventlet,
+ python3-tornado,
+Description: Event-based HTTP/WSGI server
+ Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
+ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
+ compatible with various web frameworks, simply implemented, light on server
+ resource usage, and fairly speedy.
+ .
+ This is the server.
+
+Package: gunicorn-examples
+Section: python
+Priority: optional
+Architecture: all
+Description: Event-based HTTP/WSGI server (examples)
+ Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
+ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
+ compatible with various web frameworks, simply implemented, light on server
+ resource usage, and fairly speedy.
+ .
+ These are the examples.
+
+Package: python3-gunicorn
+Section: python
+Priority: optional
+Architecture: all
+Suggests: gunicorn
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Event-based HTTP/WSGI server (Python 3 libraries)
+ Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
+ worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
+ compatible with various web frameworks, simply implemented, light on server
+ resource usage, and fairly speedy.
+ .
+ This is the Python library for Python 3.
