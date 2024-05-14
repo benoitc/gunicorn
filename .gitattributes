@@ -1,0 +1,10 @@
+# note: edits here should cross-check with MANIFEST.in
+# note: setuptools-scm will prioritize MANIFEST.in over git attrs
+
+# someone wanting these would clone git instead of using source tarball
+.github export-ignore
+appveyor.yml export-ignore
+.readthedocs.yaml export-ignore
+
+# Debian prefers upstream source *without* packaging metadata
+.github/packaging/ export-ignore
