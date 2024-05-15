@@ -169,7 +169,7 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
         resp_headers_bytes = getattr(self, 'response_headers', [])
-        resp_headers = [(n.decode(), v.decode()) for n,v in resp_headers_bytes]
+        resp_headers = [(n.decode(), v.decode()) for (n, v) in resp_headers_bytes]
         resp = GeventResponse(self.status.decode(), resp_headers, self.response_length)
         if hasattr(self, 'headers'):
             req_headers = self.headers.items()

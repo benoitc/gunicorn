@@ -21,7 +21,7 @@ WORKER_COUNT = 1
 APP_BASENAME = "testsyntax"
 APP_APPNAME = "wsgiapp"
 
-TEST_TOLERATES_BAD_BOOT = (
+TEST_TOLERATES_BAD_BOOT = [
     "sync",
     "eventlet",
     "gevent",
@@ -30,9 +30,9 @@ TEST_TOLERATES_BAD_BOOT = (
     "tornado",
     "gthread",
     # pytest.param("expected_failure", marks=pytest.mark.xfail),
-)
+]
 
-TEST_TOLERATES_BAD_RELOAD = (
+TEST_TOLERATES_BAD_RELOAD = [
     "sync",
     "eventlet",
     "gevent",
@@ -41,7 +41,18 @@ TEST_TOLERATES_BAD_RELOAD = (
     "tornado",
     "gthread",
     # pytest.param("expected_failure", marks=pytest.mark.xfail),
-)
+]
+
+
+try:
+    from tornado import options
+except ImportError:
+    for T in (TEST_TOLERATES_BAD_BOOT, TEST_TOLERATES_BAD_RELOAD):
+        T.remove("tornado")
+        T.append(
+            pytest.param("tornado", marks=pytest.mark.skip("tornado not installed"))
+        )
+
 
 PY_OK = """
 import sys

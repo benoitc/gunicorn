@@ -79,6 +79,7 @@ testing = [
     "eventlet",
     "coverage",
     "pytest>=7.2.0",
+    "tornado>=6.0",
 ]
 dev = [
     # setuptools v68.0 fails hard on invalid pyproject.toml

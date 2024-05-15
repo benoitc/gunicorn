@@ -74,7 +74,7 @@ class TornadoWorker(Worker):
         req_headers = []
         # FIXME: unfinished
         sent = 0
-        response_time = datetime.timedelta(seconds = 1000.0 * request.request_time())
+        response_time = datetime.timedelta(seconds=1000.0 * request.request_time())
         resp = TornadoResponse(status, headers, sent)
         self.log.access(resp, req_headers, environ, response_time)
 
