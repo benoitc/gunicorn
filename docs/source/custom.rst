@@ -16,6 +16,25 @@ a custom Application:
     :start-after: # See the NOTICE for more information
     :lines: 2-
 
+Using server hooks
+------------------
+
+If you wish to include server hooks in your custom application, you can specify a function in the config options.  Here is an example with the `pre_fork` hook:
+
+.. code-block:: python
+
+   def pre_fork(server, worker):
+       print(f"pre-fork server {server} worker {worker}", file=sys.stderr)
+
+   # ...
+   if __name__ == '__main__':
+       options = {
+           'bind': '%s:%s' % ('127.0.0.1', '8080'),
+           'workers': number_of_workers(),
+           'pre_fork': pre_fork,
+       }
+
+
 Direct Usage of Existing WSGI Apps
 ----------------------------------
 
