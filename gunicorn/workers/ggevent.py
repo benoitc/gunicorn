@@ -154,6 +154,9 @@ class GeventResponse(object):
     sent = None
 
     def __init__(self, status, headers, clength):
+        assert isinstance(status, str)
+        assert all(isinstance(fname, str) and isinstance(fvalue, str) for fname, fvalue in headers)
+        assert isinstance(clength, int)
         self.status = status
         self.headers = headers
         self.sent = clength
@@ -165,8 +168,9 @@ class PyWSGIHandler(pywsgi.WSGIHandler):
         start = datetime.fromtimestamp(self.time_start)
         finish = datetime.fromtimestamp(self.time_finish)
         response_time = finish - start
-        resp_headers = getattr(self, 'response_headers', {})
-        resp = GeventResponse(self.status, resp_headers, self.response_length)
+        resp_headers_bytes = getattr(self, 'response_headers', [])
+        resp_headers = [(n.decode(), v.decode()) for (n, v) in resp_headers_bytes]
+        resp = GeventResponse(self.status.decode(), resp_headers, self.response_length)
         if hasattr(self, 'headers'):
             req_headers = self.headers.items()
         else:

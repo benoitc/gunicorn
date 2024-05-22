@@ -101,10 +101,7 @@ class Worker(object):
         util.seed()
 
         # For waking ourselves up
-        self.PIPE = os.pipe()
-        for p in self.PIPE:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        self.PIPE = util.pipe2()
 
         # Prevent fd inheritance
         for s in self.sockets:
@@ -118,7 +115,7 @@ class Worker(object):
         self.init_signals()
 
         # start the reloader
-        if self.cfg.reload:
+        if self.cfg.reload or self.cfg.reload_extra_files:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
@@ -129,6 +126,7 @@ class Worker(object):
 
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
+                                         auto_detect=self.cfg.reload,
                                          callback=changed)
 
         self.load_wsgi()
@@ -145,7 +143,16 @@ class Worker(object):
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
-            if not self.cfg.reload:
+            if self.cfg.on_fatal == "world-readable":
+                pass
+            elif self.cfg.on_fatal == "quiet":
+                self.log.exception(e)
+                self.wsgi = util.make_fail_app("Internal Server Error")
+                return
+            elif self.cfg.on_fatal == "guess" and self.cfg.reload:
+                pass
+            else:
+                # secure fallthrough: "refuse"
                 raise
 
             self.log.exception(e)

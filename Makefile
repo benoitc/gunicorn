@@ -1,17 +1,16 @@
 build:
 	virtualenv venv
-	venv/bin/pip install -e .
-	venv/bin/pip install -r requirements_dev.txt
+	venv/bin/pip install -e .[dev,testing]
 
 test:
-	venv/bin/python setup.py test
+	venv/bin/python -m pytest
 
 coverage:
-	venv/bin/python setup.py test --cov
+	venv/bin/python -m converage run --source=gunicorn -m pytest
+	venv/bin/python -m converage xml
 
 clean:
-	@rm -rf .Python MANIFEST build dist venv* *.egg-info *.egg
-	@find . -type f -name "*.py[co]" -delete
-	@find . -type d -name "__pycache__" -delete
+	# unlike rm -rf, git-clean -X will only delete files ignored by git
+	@git clean -X -f -- .Python MANIFEST build dist "venv*" "*.egg-info" "*.egg" __pycache__
 
 .PHONY: build clean coverage test

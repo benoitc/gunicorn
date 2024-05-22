@@ -176,10 +176,7 @@ class Arbiter(object):
             os.close(p)
 
         # initialize the pipe
-        self.PIPE = pair = os.pipe()
-        for p in pair:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        self.PIPE = util.pipe2()
 
         self.log.close_on_exec()
 

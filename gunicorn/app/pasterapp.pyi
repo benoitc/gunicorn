@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+from _typeshed.wsgi import WSGIApplication as _WSGIApplication
+
+from gunicorn.app.wsgiapp import WSGIApplication as WSGIApplication
+from gunicorn.config import get_default_config_file as get_default_config_file
+
+def get_wsgi_app(
+    config_uri: str, name: Incomplete | None = ..., defaults: Incomplete | None = ...
+) -> _WSGIApplication: ...
+def has_logging_config(config_file: str) -> bool: ...
+def serve(
+    app: _WSGIApplication, global_conf: dict[str, Incomplete], **local_conf: Incomplete
+) -> None: ...

@@ -5,9 +5,13 @@
 
 import os
 import sys
+import datetime
 
 try:
     import tornado
+    # instruct tornado to leave our logging config intact
+    from tornado import options
+    options.logging = "none"
 except ImportError:
     raise RuntimeError("You need tornado installed to use this worker.")
 import tornado.web
@@ -28,6 +32,21 @@ from gunicorn.sock import ssl_context
 TORNADO5 = tornado.version_info >= (5, 0, 0)
 
 
+class TornadoResponse(object):
+
+    status = None
+    headers = None
+    sent = None
+
+    def __init__(self, status, headers, clength):
+        assert isinstance(status, str)
+        assert all(isinstance(fname, str) and isinstance(fvalue, str) for fname, fvalue in headers)
+        assert isinstance(clength, int)
+        self.status = status
+        self.headers = headers
+        self.sent = clength
+
+
 class TornadoWorker(Worker):
 
     @classmethod
@@ -45,6 +64,19 @@ class TornadoWorker(Worker):
     def handle_exit(self, sig, frame):
         if self.alive:
             super().handle_exit(sig, frame)
+
+    def handle_log(self, status_code, request, environ) -> None:
+        # FIXME: unfinished
+        status = "%d" % status_code
+        # FIXME: unfinished
+        headers = []
+        # FIXME: unfinished
+        req_headers = []
+        # FIXME: unfinished
+        sent = 0
+        response_time = datetime.timedelta(seconds=1000.0 * request.request_time())
+        resp = TornadoResponse(status, headers, sent)
+        self.log.access(resp, req_headers, environ, response_time)
 
     def handle_request(self):
         self.nr += 1
@@ -113,6 +145,15 @@ class TornadoWorker(Worker):
         elif not isinstance(app, WSGIContainer) and \
                 not isinstance(app, tornado.web.Application):
             app = WSGIContainer(app)
+
+        # Monkey-patching WSGIContainer to call gunicorn log
+        if isinstance(app, WSGIContainer):
+            def new_log(instance, status_code, request):
+                env = instance.environ(request)
+                env['RAW_URI'] = request.path  # FIXME: guessed, not tested
+                self.handle_log(status_code, request, env)
+            # FIXME: pylint hates instance patching
+            app._log = new_log.__get__(app, WSGIContainer)
 
         # Monkey-patching HTTPConnection.finish to count the
         # number of requests being handled by Tornado. This

@@ -89,8 +89,8 @@ def test_property_access():
     assert c.address == [("127.0.0.1", 8000)]
 
     # User and group defaults
-    assert os.geteuid() == c.uid
-    assert os.getegid() == c.gid
+    assert c.uid is None
+    assert c.gid is None
 
     # Proc name
     assert "gunicorn" == c.proc_name

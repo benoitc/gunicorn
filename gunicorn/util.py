@@ -5,14 +5,12 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -29,8 +27,15 @@ except (ModuleNotFoundError, ImportError):
 
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
+if sys.platform.startswith("win"):
+    from gunicorn.windows import *  # pylint: disable=wildcard-import,unused-wildcard-import
+else:
+    from gunicorn.unix import *  # pylint: disable=wildcard-import,unused-wildcard-import
+
 import urllib.parse
 
+# RFC9112 7.1
+REASON_PHRASE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
 # Server and Date aren't technically hop-by-hop
@@ -133,36 +138,14 @@ def get_arity(f):
     return arity
 
 
-def get_username(uid):
-    """ get the username for a user id"""
-    return pwd.getpwuid(uid).pw_name
-
-
-def set_owner_process(uid, gid, initgroups=False):
-    """ set user and group of workers processes """
-
-    if gid:
-        if uid:
-            try:
-                username = get_username(uid)
-            except KeyError:
-                initgroups = False
-
-        # versions of python < 2.6.2 don't manage unsigned int for
-        # groups like on osx or fedora
-        gid = abs(gid) & 0x7FFFFFFF
-
-        if initgroups:
-            os.initgroups(username, gid)
-        elif gid != os.getgid():
-            os.setgid(gid)
-
-    if uid and uid != os.getuid():
-        os.setuid(uid)
-
-
 def chown(path, uid, gid):
-    os.chown(path, uid, gid)
+    # we use None for unchanged
+    if uid is None and gid is None:
+        return
+    # os.chown semantics are -1 for unchanged
+    int_uid = -1 if uid is None else uid
+    int_gid = -1 if gid is None else gid
+    os.chown(path, int_uid, int_gid)
 
 
 if sys.platform.startswith("win"):
@@ -255,17 +238,6 @@ def parse_address(netloc, default_port='8000'):
     return host.lower(), port
 
 
-def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
-
-
-def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
-
-
 def close(sock):
     try:
         sock.close()
@@ -312,6 +284,15 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
+    # we may to reflect user input in mesg
+    #  .. as long as it is escaped appropriately for indicated Content-Type
+    # we should send out own reason text
+    #  .. we shall never send misleading or invalid HTTP status lines
+    assert REASON_PHRASE_RE.fullmatch(reason)
+    # we should avoid chosing status codes that are already used to indicate
+    #  special handling in our proxies
+    assert 100 <= status_int <= 599  # RFC9110 15
+
     html_error = textwrap.dedent("""\
     <html>
       <head>

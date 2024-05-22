@@ -1,9 +1,0 @@
--r requirements_test.txt
-
-# setuptools v68.0 fails hard on invalid pyproject.toml
-# which a developer would want to know
-# otherwise, oldest known-working version is 61.2
-setuptools>=68.0
-
-sphinx
-sphinx_rtd_theme
