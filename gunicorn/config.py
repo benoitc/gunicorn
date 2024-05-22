@@ -1506,7 +1506,7 @@ class LogConfigDict(Setting):
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+    takes precedence over the :ref:`logconfig` and :ref:`logconfig-json` options,
     which uses the older file configuration format and JSON
     respectively.
 
