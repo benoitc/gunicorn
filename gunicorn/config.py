@@ -1395,7 +1395,7 @@ class AccessLogFormat(Setting):
         s            status
         B            response length
         b            response length or ``'-'`` (CLF format)
-        f            referer
+        f            referrer (note: header is ``referer``)
         a            user agent
         T            request time in seconds
         M            request time in milliseconds
@@ -2154,7 +2154,7 @@ class CertReqs(Setting):
     ===========  ===========================
     --cert-reqs      Description
     ===========  ===========================
-    `0`          no client veirifcation
+    `0`          no client verification
     `1`          ssl.CERT_OPTIONAL
     `2`          ssl.CERT_REQUIRED
     ===========  ===========================
