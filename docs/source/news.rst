@@ -2,6 +2,24 @@
 Changelog
 =========
 
+23.0.0 - unreleased
+===================
+
+* minor docs fixes (:pr:`3217`, :pr:`3089`, :pr:`3167`)
+* worker_class parameter accepts a class (:pr:`3079`)
+* fix deadlock if request terminated during chunked parsing (:pr:`2688`)
+* permit receiving Transfer-Encodings: compress, deflate, gzip (:pr:`3261`)
+* permit Transfer-Encoding headers specifying multiple encodings. note: no parameters, still (:pr:`3261`)
+* sdist generation now explicitly excludes sphinx build folder (:pr:`3257`)
+* decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising `TypeError` (:pr:`2336`)
+* raise correct Exception when encounting invalid chunked requests (:pr:`3258`)
+
+** Breaking changes **
+* refuse requests where the uri field is empty (:pr:`3255`)
+* refuse requests with invalid CR/LR/NUL in heade field values (:pr:`3253`)
+* remove temporary `--tolerate-dangerous-framing` switch from 22.0 (:pr:`3260`)
+* If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
+
 22.0.0 - 2024-04-17
 ===================
 
@@ -33,49 +51,12 @@ Changelog
 
 - fix CVE-2024-1135
 
-21.2.0 - 2023-07-19
-===================
-
-- fix thread worker: revert change considering connection as idle . 
-
-*** NOTE ***
-
-This is fixing the bad file description error.
-
-21.1.0 - 2023-07-18
-===================
-
-- fix thread worker: fix socket removal from the queue
-
-21.0.1 - 2023-07-17
-===================
-
-- fix documentation build
-
-21.0.0 - 2023-07-17
-===================
-
-- support python 3.11
-- fix gevent and eventlet workers
-- fix threads support (gththread): improve performance and unblock requests
-- SSL: now use SSLContext object
-- HTTP parser: miscellaneous fixes
-- remove unnecessary setuid calls
-- fix testing
-- improve logging
-- miscellaneous fixes to core engine
-
-*** RELEASE NOTE ***
-
-We made this release major to start our new release cycle. More info will be provided on our discussion forum.
-
 History
 =======
 
 .. toctree::
    :titlesonly:
 
-   2024-news
    2023-news
    2021-news
    2020-news
