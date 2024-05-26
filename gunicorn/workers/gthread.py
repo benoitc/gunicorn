@@ -54,7 +54,7 @@ class TConn(object):
         return bool(self.parser)
 
     def set_keepalive_timeout(self):
-        self.timeout = time.time() + self.cfg.keepalive
+        self.timeout = time.monotonic() + self.cfg.keepalive
 
     def close(self):
         util.close(self.sock)
@@ -158,10 +158,9 @@ class ThreadWorker(base.Worker):
             lambda fut: self.method_queue.defer(self.finish_request, conn, fut))
 
     def murder_keepalived(self):
-        now = time.time()
+        now = time.monotonic()
         while self.keepalived_conns:
-            delta = self.keepalived_conns[0].timeout - now
-            if delta > 0:
+            if now < self.keepalived_conns[0].timeout:
                 break
 
             conn = self.keepalived_conns.popleft()
@@ -208,9 +207,9 @@ class ThreadWorker(base.Worker):
         self.set_accept_enabled(False)
 
         # ... but try handle all already accepted connections within the grace period
-        graceful_timeout = time.time() + self.cfg.graceful_timeout
+        graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
         while self.nr_conns > 0:
-            time_remaining = max(graceful_timeout - time.time(), 0)
+            time_remaining = max(graceful_timeout - time.monotonic(), 0)
             if time_remaining == 0:
                 break
             self.wait_for_and_dispatch_events(timeout=time_remaining)

@@ -112,7 +112,7 @@ class SyncWorker(base.Worker):
 
     def run(self):
         # if no timeout is given the worker will never wait and will
-        # use the CPU for nothing. This minimal timeout prevent it.
+        # use the CPU for nothing. This minimal timeout prevents it.
         timeout = self.timeout or 0.5
 
         # self.socket appears to lose its blocking status after

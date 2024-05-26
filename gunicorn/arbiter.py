@@ -353,7 +353,7 @@ class Arbiter(object):
 
     def sleep(self):
         """\
-        Sleep until PIPE is readable or we timeout.
+        Sleep until PIPE is readable or we timeout (1s).
         A readable PIPE means a signal occurred.
         """
         try:
