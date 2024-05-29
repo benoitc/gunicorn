@@ -1,0 +1,8 @@
+GET / HTTP/1.1\r\n
+Host: x\r\n
+Newline: a\n
+Content-Length: 26\r\n
+X-Forwarded-By: broken-proxy\r\n\r\n
+GET / HTTP/1.1\n
+Host: x\r\n
+\r\n
