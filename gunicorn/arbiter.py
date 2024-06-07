@@ -10,6 +10,7 @@ import signal
 import sys
 import time
 import traceback
+import socket
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -151,8 +152,8 @@ class Arbiter(object):
                 fds = []
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
-
-            self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
+            if not (self.cfg.reuse_port and hasattr(socket, 'SO_REUSEPORT')):
+                self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
         listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
@@ -605,6 +606,8 @@ class Arbiter(object):
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
+            if self.cfg.reuse_port:
+                worker.sockets = sock.create_sockets(self.cfg, self.log)
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)
