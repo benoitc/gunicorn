@@ -652,3 +652,20 @@ def bytes_to_str(b):
 
 def unquote_to_wsgi_str(string):
     return urllib.parse.unquote_to_bytes(string).decode('latin-1')
+
+
+class Status:
+    """
+    This class's object holds information about the worker's status.
+    The status is represented by an object instead of a simple type to enable
+    sharing between different parts of the application.
+    """
+
+    def __init__(self, is_alive=True):
+        self._is_alive = is_alive
+
+    def is_alive(self):
+        return self._is_alive
+
+    def set_alive(self, is_alive):
+        self._is_alive = is_alive

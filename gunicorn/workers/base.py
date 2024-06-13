@@ -24,6 +24,7 @@ from gunicorn.http.errors import (
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
+from gunicorn.util import Status
 
 
 class Worker(object):
@@ -59,12 +60,21 @@ class Worker(object):
         else:
             self.max_requests = sys.maxsize
 
+        self.status = Status()
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
+
+    @property
+    def alive(self):
+        return self.status.is_alive()
+
+    @alive.setter
+    def alive(self, value):
+        self.status.set_alive(value)
 
     def notify(self):
         """\

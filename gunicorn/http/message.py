@@ -17,6 +17,7 @@ from gunicorn.http.errors import (
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
+from gunicorn.util import Status
 
 MAX_REQUEST_LINE = 8190
 MAX_HEADERS = 32768
@@ -31,7 +32,7 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 
 
 class Message(object):
-    def __init__(self, cfg, unreader, peer_addr):
+    def __init__(self, cfg, unreader, peer_addr, status=None):
         self.cfg = cfg
         self.unreader = unreader
         self.peer_addr = peer_addr
@@ -42,6 +43,7 @@ class Message(object):
         self.body = None
         self.scheme = "https" if cfg.is_ssl else "http"
         self.must_close = False
+        self.status = status if status else Status()
 
         # set headers limits
         self.limit_request_fields = cfg.limit_request_fields
@@ -227,6 +229,8 @@ class Message(object):
     def should_close(self):
         if self.must_close:
             return True
+        if not status.is_alive():
+            return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
                 v = v.lower().strip(" \t")
@@ -239,7 +243,7 @@ class Message(object):
 
 
 class Request(Message):
-    def __init__(self, cfg, unreader, peer_addr, req_number=1):
+    def __init__(self, cfg, unreader, peer_addr, req_number=1, status=None):
         self.method = None
         self.uri = None
         self.path = None
@@ -254,7 +258,7 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
-        super().__init__(cfg, unreader, peer_addr)
+        super().__init__(cfg, unreader, peer_addr, status=status)
 
     def get_data(self, unreader, buf, stop=False):
         data = unreader.read()
