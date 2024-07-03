@@ -10,6 +10,7 @@ import signal
 import sys
 import time
 import traceback
+from contextlib import suppress
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -442,10 +443,8 @@ class Arbiter(object):
                 os.environ[k] = self.cfg.env_orig[k]
             else:
                 # delete the value set by gunicorn
-                try:
+                with suppress(KeyError):
                     del os.environ[k]
-                except KeyError:
-                    pass
 
         # reload conf
         self.app.reload()
