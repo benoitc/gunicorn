@@ -87,6 +87,10 @@ class GeventWorker(AsyncWorker):
             self.notify()
             gevent.sleep(1.0)
 
+        # Wait for pending keepalive connections to complete before stopping the acceptance of new requests
+        if self.cfg.keepalive:
+            self._wait_for_keepalive(servers)
+
         try:
             # Stop accepting requests
             for server in servers:
@@ -116,6 +120,19 @@ class GeventWorker(AsyncWorker):
                 server.stop(timeout=1)
         except Exception:
             pass
+
+    def _wait_for_keepalive(self, servers):
+        # Retrieve all active greenlets and repeatedly check, until the keepalive period ends,
+        # if any of those greenlets are still active. If none are active, exit the loop.
+
+        greenlets = {id(greenlet) for server in servers for greenlet in server.pool.greenlets}
+        ts = time.time()
+
+        while time.time() - ts <= self.cfg.keepalive:
+            if not greenlets.intersection({id(greenlet) for server in servers for greenlet in server.pool.greenlets}):
+                break
+            self.notify()
+            gevent.sleep(1.0)
 
     def handle(self, listener, client, addr):
         # Connected socket timeout defaults to socket.getdefaulttimeout().
