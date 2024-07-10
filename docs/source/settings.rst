@@ -725,6 +725,22 @@ Called to recycle workers during a reload via SIGHUP.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
+.. _on-stopping:
+
+``on_stopping``
+~~~~~~~~~~~~~~~
+
+**Default:** 
+
+.. code-block:: python
+
+        def on_stopping(server):
+            pass
+
+Called just before the master process is stopped.
+
+The callable needs to accept a single instance variable for the Arbiter.
+
 .. _when-ready:
 
 ``when_ready``

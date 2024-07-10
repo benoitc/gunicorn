@@ -1767,6 +1767,22 @@ class OnReload(Setting):
         """
 
 
+class OnStopping(Setting):
+    name = "on_stopping"
+    section = "Server Hooks"
+    validator = validate_callable(1)
+    type = callable
+
+    def on_stopping(server):
+        pass
+    default = staticmethod(on_stopping)
+    desc = """\
+        Called just before the master process is stopped.
+
+        The callable needs to accept a single instance variable for the Arbiter.
+        """
+
+
 class WhenReady(Setting):
     name = "when_ready"
     section = "Server Hooks"
