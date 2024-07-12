@@ -126,9 +126,9 @@ class GeventWorker(AsyncWorker):
         # if any of those greenlets are still active. If none are active, exit the loop.
 
         greenlets = {id(greenlet) for server in servers for greenlet in server.pool.greenlets}
-        ts = time.time()
+        ts = time.monotonic()
 
-        while time.time() - ts <= self.cfg.keepalive:
+        while time.monotonic() - ts <= self.cfg.keepalive:
             if not greenlets.intersection({id(greenlet) for server in servers for greenlet in server.pool.greenlets}):
                 break
             self.notify()
