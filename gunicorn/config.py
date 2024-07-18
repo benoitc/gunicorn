@@ -1113,28 +1113,6 @@ class Pidfile(Setting):
         """
 
 
-class WorkerTmpDir(Setting):
-    name = "worker_tmp_dir"
-    section = "Server Mechanics"
-    cli = ["--worker-tmp-dir"]
-    meta = "DIR"
-    validator = validate_string
-    default = None
-    desc = """\
-        A directory to use for the worker heartbeat temporary file.
-
-        If not set, the default temporary directory will be used.
-
-        .. note::
-           The current heartbeat system involves calling ``os.fchmod`` on
-           temporary file handlers and may block a worker for arbitrary time
-           if the directory is on a disk-backed filesystem.
-
-           See :ref:`blocking-os-fchmod` for more detailed information
-           and a solution for avoiding this problem.
-        """
-
-
 class User(Setting):
     name = "user"
     section = "Server Mechanics"

@@ -556,7 +556,6 @@ class Arbiter(object):
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
                         continue
-                    worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:
             if e.errno != errno.ECHILD:
@@ -596,10 +595,6 @@ class Arbiter(object):
             self.WORKERS[pid] = worker
             return pid
 
-        # Do not inherit the temporary files of other workers
-        for sibling in self.WORKERS.values():
-            sibling.tmp.close()
-
         # Process Child
         worker.pid = os.getpid()
         try:
@@ -624,7 +619,6 @@ class Arbiter(object):
         finally:
             self.log.info("Worker exiting (pid: %s)", worker.pid)
             try:
-                worker.tmp.close()
                 self.cfg.worker_exit(self, worker)
             except Exception:
                 self.log.warning("Exception during worker exit:\n%s",
@@ -664,7 +658,6 @@ class Arbiter(object):
             if e.errno == errno.ESRCH:
                 try:
                     worker = self.WORKERS.pop(pid)
-                    worker.tmp.close()
                     self.cfg.worker_exit(self, worker)
                     return
                 except (KeyError, OSError):
