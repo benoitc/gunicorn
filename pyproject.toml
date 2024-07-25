@@ -76,6 +76,9 @@ main = "gunicorn.app.pasterapp:serve"
 norecursedirs = ["examples", "lib", "local", "src"]
 testpaths = ["tests/"]
 addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+filterwarnings = [
+    "error",
+]
 
 [tool.setuptools]
 zip-safe = false
