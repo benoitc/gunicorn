@@ -39,9 +39,12 @@ def test_reload_on_syntax_error():
     log = mock.Mock()
     worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log)
 
-    worker.init_process()
-    reloader.start.assert_called_with()
-    reloader.add_extra_file.assert_called_with('syntax_error_filename')
+    try:
+        worker.init_process()
+        reloader.start.assert_called_with()
+        reloader.add_extra_file.assert_called_with('syntax_error_filename')
+    finally:
+        worker.tmp.close()
 
 
 def test_start_reloader_after_load_wsgi():
@@ -56,13 +59,16 @@ def test_start_reloader_after_load_wsgi():
     log = mock.Mock()
     worker = MyWorker(age=0, ppid=0, sockets=[], app=app, timeout=0, cfg=cfg, log=log)
 
-    worker.load_wsgi = mock.Mock()
-    mock_parent = mock.Mock()
-    mock_parent.attach_mock(worker.load_wsgi, 'load_wsgi')
-    mock_parent.attach_mock(reloader.start, 'reloader_start')
+    try:
+        worker.load_wsgi = mock.Mock()
+        mock_parent = mock.Mock()
+        mock_parent.attach_mock(worker.load_wsgi, 'load_wsgi')
+        mock_parent.attach_mock(reloader.start, 'reloader_start')
 
-    worker.init_process()
-    mock_parent.assert_has_calls([
-        mock.call.load_wsgi(),
-        mock.call.reloader_start(),
-    ])
+        worker.init_process()
+        mock_parent.assert_has_calls([
+            mock.call.load_wsgi(),
+            mock.call.reloader_start(),
+        ])
+    finally:
+        worker.tmp.close()
