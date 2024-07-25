@@ -184,11 +184,14 @@ def test_socket_unreader_chunk():
     fake_sock = t.FakeSocket(io.BytesIO(b'Lorem ipsum dolor'))
     sock_unreader = SocketUnreader(fake_sock, max_chunk=5)
 
-    assert sock_unreader.chunk() == b'Lorem'
-    assert sock_unreader.chunk() == b' ipsu'
-    assert sock_unreader.chunk() == b'm dol'
-    assert sock_unreader.chunk() == b'or'
-    assert sock_unreader.chunk() == b''
+    try:
+        assert sock_unreader.chunk() == b'Lorem'
+        assert sock_unreader.chunk() == b' ipsu'
+        assert sock_unreader.chunk() == b'm dol'
+        assert sock_unreader.chunk() == b'or'
+        assert sock_unreader.chunk() == b''
+    finally:
+        fake_sock.close()
 
 
 def test_length_reader_read():
