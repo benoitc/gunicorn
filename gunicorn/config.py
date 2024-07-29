@@ -724,6 +724,61 @@ class WorkerConnections(Setting):
         """
 
 
+class PruneFunction(Setting):
+    name = "prune_function"
+    section = "Worker Processes"
+    cli = ["--prune-function"]
+    validator = validate_callable(1)
+    type = callable
+
+    def prune_score(pid):
+        return 0
+    default = staticmethod(prune_score)
+    desc = """\
+        A function that is passed a process ID of a worker and returns a
+        score (such as total memory used).  Once every prune seconds, the
+        worker with the highest score is killed (unless the score is below
+        the prune floor).
+        """
+
+
+class PruneSeconds(Setting):
+    name = "prune_seconds"
+    section = "Worker Processes"
+    cli = ["--prune-seconds"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        How many seconds to wait between killing the worker with the highest
+        score from the prune function.  If set to 0 (the default), then no
+        pruning is done.  The actual time waited is a random value between
+        95% and 105% of this value.
+
+        A worker handling an unusually large request can significantly grow
+        how much memory it is consuming for the rest of its existence.  So
+        rare large requests will tend to eventually make every worker
+        unnecessarily large.  If the large requests are indeed rare, then
+        you can significantly reduce the total memory used by your service
+        by periodically pruning the largest worker process.
+        """
+
+
+class PruneFloor(Setting):
+    name = "prune_floor"
+    section = "Worker Processes"
+    cli = ["--prune-floor"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        When the score from the prune function is at or below this value, the
+        worker will not be killed even if it has the highest score.
+        """
+
+
 class MaxRequests(Setting):
     name = "max_requests"
     section = "Worker Processes"

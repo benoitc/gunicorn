@@ -72,6 +72,39 @@ timeout = 30
 keepalive = 2
 
 #
+#   prune_function
+#       A function that is passed a process ID of a worker and returns a
+#       score (such as total memory used).  Once every prune seconds, the
+#       worker with the highest score is killed (unless the score is below
+#       the prune floor).
+#
+#   prune_seconds
+#       How many seconds to wait between killing the worker with the highest
+#       score from the prune function.  If set to 0 (the default), then no
+#       pruning is done.  The actual time waited is a random value between
+#       90% and 100% of this value.
+#
+#   prune_floor
+#       When the score from the prune function is at or below this value, the
+#       worker will not be killed even if it has the highest score.
+#
+
+import psutil
+
+def proc_vmsize(pid):
+    # Return how many MB of virtual memory is being used by a worker process
+    try:
+        p = psutil.Process(pid)
+        mb = p.memory_info().vms/1024/1024
+        return mb
+    except psutil.NoSuchProcessError:
+        return 0
+
+prune_seconds = 5*60            # Prune largest worker every 4.75-5.25m
+prune_function = proc_vmsize    # Measure worker size in MB of VM
+prune_floor = 300               # Don't kill workers using <= 300 MB of VM
+
+#
 #   spew - Install a trace function that spews every line of Python
 #       that is executed when running the server. This is the
 #       nuclear option.
