@@ -65,6 +65,14 @@ class InvalidHeader(ParseException):
         return "Invalid HTTP Header: %r" % self.hdr
 
 
+class ObsoleteFolding(ParseException):
+    def __init__(self, hdr):
+        self.hdr = hdr
+
+    def __str__(self):
+        return "Obsolete line folding is unacceptable: %r" % (self.hdr, )
+
+
 class InvalidHeaderName(ParseException):
     def __init__(self, hdr):
         self.hdr = hdr

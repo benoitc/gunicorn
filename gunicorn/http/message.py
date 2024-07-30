@@ -12,7 +12,7 @@ from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
-    UnsupportedTransferCoding,
+    UnsupportedTransferCoding, ObsoleteFolding,
 )
 from gunicorn.http.errors import InvalidProxyLine, ForbiddenProxyRequest
 from gunicorn.http.errors import InvalidSchemeHeaders
@@ -110,10 +110,13 @@ class Message(object):
             # b"\xDF".decode("latin-1").upper().encode("ascii") == b"SS"
             name = name.upper()
 
-            value = [value.lstrip(" \t")]
+            value = [value.strip(" \t")]
 
-            # Consume value continuation lines
+            # Consume value continuation lines..
             while lines and lines[0].startswith((" ", "\t")):
+                # .. which is obsolete here, and no longer done by default
+                if not self.cfg.permit_obsolete_folding:
+                    raise ObsoleteFolding(name)
                 curr = lines.pop(0)
                 header_length += len(curr) + len("\r\n")
                 if header_length > self.limit_request_field_size > 0:

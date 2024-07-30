@@ -2243,6 +2243,27 @@ class PasteGlobalConf(Setting):
         """
 
 
+class PermitObsoleteFolding(Setting):
+    name = "permit_obsolete_folding"
+    section = "Server Mechanics"
+    cli = ["--permit-obsolete-folding"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit requests employing obsolete HTTP line folding mechanism
+
+        The folding mechanism was deprecated by rfc7230 Section 3.2.4 and will not be
+         employed in HTTP request headers from standards-compliant HTTP clients.
+
+        This option is provided to diagnose backwards-incompatible changes.
+        Use with care and only if necessary. Temporary; the precise effect of this option may
+        change in a future version, or it may be removed altogether.
+
+        .. versionadded:: 23.0.0
+        """
+
+
 class StripHeaderSpaces(Setting):
     name = "strip_header_spaces"
     section = "Server Mechanics"
