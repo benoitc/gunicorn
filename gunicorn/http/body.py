@@ -91,6 +91,8 @@ class ChunkedReader(object):
             chunk_size = chunk_size.rstrip(b" \t")
         if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)
+        if len(chunk_size) == 0:
+            raise InvalidChunkSize(chunk_size)
         chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
