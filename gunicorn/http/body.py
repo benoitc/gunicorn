@@ -15,6 +15,7 @@ class ChunkedReader(object):
         self.req = req
         self.parser = self.parse_chunked(unreader)
         self.buf = io.BytesIO()
+        self.finished = False
 
     def read(self, size):
         if not isinstance(size, int):
@@ -91,6 +92,8 @@ class ChunkedReader(object):
             chunk_size = chunk_size.rstrip(b" \t")
         if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)
+        if len(chunk_size) == 0:
+            raise InvalidChunkSize(chunk_size)
         chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
@@ -98,6 +101,7 @@ class ChunkedReader(object):
                 self.parse_trailers(unreader, rest_chunk)
             except NoMoreData:
                 pass
+            self.finished = True
             return (0, None)
         return (chunk_size, rest_chunk)
 
@@ -112,6 +116,7 @@ class LengthReader(object):
     def __init__(self, unreader, length):
         self.unreader = unreader
         self.length = length
+        self.finished = (length == 0)
 
     def read(self, size):
         if not isinstance(size, int):
@@ -135,6 +140,9 @@ class LengthReader(object):
         ret, rest = buf[:size], buf[size:]
         self.unreader.unread(rest)
         self.length -= size
+        assert self.length >= 0
+        if self.length == 0:
+            self.finished = True
         return ret
 
 
@@ -191,6 +199,10 @@ class Body(object):
         return ret
 
     next = __next__
+
+    @property
+    def finished(self):
+        return self.reader.finished
 
     def getsize(self, size):
         if size is None:
