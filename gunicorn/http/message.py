@@ -426,6 +426,17 @@ class Request(Message):
         # URI
         self.uri = bits[1]
 
+        # Python stdlib explicitly tells us it will not perform validation.
+        # https://docs.python.org/3/library/urllib.parse.html#url-parsing-security
+        # There are *four* `request-target` forms in rfc9112, none of them can be empty:
+        # 1. origin-form, which starts with a slash
+        # 2. absolute-form, which starts with a non-empty scheme
+        # 3. authority-form, (for CONNECT) which contains a colon after the host
+        # 4. asterisk-form, which is an asterisk (`\x2A`)
+        # => manually reject one always invalid URI: empty
+        if len(self.uri) == 0:
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
+
         try:
             parts = split_request_uri(self.uri)
         except ValueError:
