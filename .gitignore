@@ -7,6 +7,7 @@
 .tox
 __pycache__
 build
+docs/_build
 coverage.xml
 dist
 examples/frameworks/django/testing/testdb.sql
