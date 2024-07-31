@@ -6,8 +6,8 @@ Requirements
 
 To generate documentation you need to install:
 
- - Python >= 3.4
- - Sphinx (http://sphinx-doc.org/)
+ - Python >= 3.7
+ - Sphinx (https://www.sphinx-doc.org/)
 
 
 Generate html
