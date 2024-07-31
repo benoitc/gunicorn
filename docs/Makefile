@@ -1,5 +1,7 @@
 # Makefile for Sphinx documentation
 #
+# if you want to compare this file to current sphinx defaults, recreate it:
+# BUILDDIR=build sphinx-quickstart --sep --extensions=gunicorn_ext --templatedir=_templates --makefile --batchfile --no-use-make-mode --master=index
 
 # You can set these variables from the command line.
 PYTHON        = python
