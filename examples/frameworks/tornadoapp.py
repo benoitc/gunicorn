@@ -8,31 +8,23 @@
 #   $ gunicorn -k tornado tornadoapp:app
 #
 
-from datetime import timedelta
+import tornado.ioloop
+import tornado.web
+from tornado import gen
 
-from tornado.web import Application, RequestHandler, asynchronous
-from tornado.ioloop import IOLoop
-
-class MainHandler(RequestHandler):
+class MainHandler(tornado.web.RequestHandler):
+    @gen.coroutine
     def get(self):
-        self.write("Hello, world")
+        # Your asynchronous code here
+        yield gen.sleep(1)  # Example of an asynchronous operation
+        self.write("Hello, World!")
 
-class LongPollHandler(RequestHandler):
-    @asynchronous
-    def get(self):
-        lines = ['line 1\n', 'line 2\n']
+def make_app():
+    return tornado.web.Application([
+        (r"/", MainHandler),
+    ])
 
-        def send():
-            try:
-                self.write(lines.pop(0))
-                self.flush()
-            except:
-                self.finish()
-            else:
-                IOLoop.instance().add_timeout(timedelta(0, 20), send)
-        send()
-
-app = Application([
-    (r"/", MainHandler),
-    (r"/longpoll", LongPollHandler)
-])
+if __name__ == "__main__":
+    app = make_app()
+    app.listen(8888)
+    tornado.ioloop.IOLoop.current().start()
