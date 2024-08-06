@@ -1,2 +1,2 @@
-from gunicorn.http.errors import UnsupportedTransferCoding
-request = UnsupportedTransferCoding
+from gunicorn.http.errors import InvalidHeader 
+request = InvalidHeader 
