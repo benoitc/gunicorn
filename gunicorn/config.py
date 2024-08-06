@@ -2369,30 +2369,3 @@ class HeaderMap(Setting):
 
         .. versionadded:: 22.0.0
         """
-
-
-class TolerateDangerousFraming(Setting):
-    name = "tolerate_dangerous_framing"
-    section = "Server Mechanics"
-    cli = ["--tolerate-dangerous-framing"]
-    validator = validate_bool
-    action = "store_true"
-    default = False
-    desc = """\
-        Process requests with both Transfer-Encoding and Content-Length
-
-        This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
-
-        In any case, the connection is closed after the malformed request,
-        as it is unclear if and at which boundary additional requests start.
-
-        Use with care and only if necessary.
-        Temporary; will be changed or removed in a future version.
-
-        .. versionadded:: 22.0.0
-        .. versionchanged: 22.1.0
-           The newly added rejection of invalid and dangerous characters CR, LF and NUL in
-           header field values is also controlled with this setting. rfc9110 permits both
-           rejecting and SP-replacing. With this option set, Gunicorn passes the field value
-           unchanged. With this option unset, Gunicorn rejects the request.
-        """
