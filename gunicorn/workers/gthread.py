@@ -41,15 +41,12 @@ class TConn(object):
 
         self.timeout = None
         self.parser = None
-        self.initialized = False
 
         # set the socket to non blocking
         self.sock.setblocking(False)
 
     def init(self):
-        self.initialized = True
         self.sock.setblocking(True)
-
         if self.parser is None:
             # wrap the socket if needed
             if self.cfg.is_ssl:
@@ -122,29 +119,25 @@ class ThreadWorker(base.Worker):
             sock, client = listener.accept()
             # initialize the connection object
             conn = TConn(self.cfg, sock, client, server)
-
             self.nr_conns += 1
-            # wait until socket is readable
-            with self._lock:
-                self.poller.register(conn.sock, selectors.EVENT_READ,
-                                     partial(self.on_client_socket_readable, conn))
+
+            # enqueue the job
+            self.enqueue_req(conn)
         except EnvironmentError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                errno.EWOULDBLOCK):
                 raise
 
-    def on_client_socket_readable(self, conn, client):
+    def reuse_connection(self, conn, client):
         with self._lock:
             # unregister the client from the poller
             self.poller.unregister(client)
-
-            if conn.initialized:
-                # remove the connection from keepalive
-                try:
-                    self._keep.remove(conn)
-                except ValueError:
-                    # race condition
-                    return
+            # remove the connection from keepalive
+            try:
+                self._keep.remove(conn)
+            except ValueError:
+                # race condition
+                return
 
         # submit the connection to a worker
         self.enqueue_req(conn)
@@ -260,7 +253,7 @@ class ThreadWorker(base.Worker):
 
                     # add the socket to the event loop
                     self.poller.register(conn.sock, selectors.EVENT_READ,
-                                         partial(self.on_client_socket_readable, conn))
+                                         partial(self.reuse_connection, conn))
             else:
                 self.nr_conns -= 1
                 conn.close()
