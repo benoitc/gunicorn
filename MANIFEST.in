@@ -10,4 +10,6 @@ recursive-include examples *
 recursive-include docs *
 recursive-include examples/frameworks *
 recursive-exclude * __pycache__
+recursive-exclude docs/build *
+recursive-exclude docs/_build *
 recursive-exclude * *.py[co]
