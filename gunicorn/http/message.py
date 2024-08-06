@@ -28,6 +28,7 @@ TOKEN_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(RFC9110_5_6_2_TOKEN_SPECIAL
 METHOD_BADCHAR_RE = re.compile("[a-z#]")
 # usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
+RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
 
 
 class Message(object):
@@ -120,6 +121,12 @@ class Message(object):
                                               "fields size")
                 value.append(curr.strip("\t "))
             value = " ".join(value)
+
+            if RFC9110_5_5_INVALID_AND_DANGEROUS.search(value):
+                if not self.cfg.tolerate_dangerous_framing:
+                    raise InvalidHeader(name)
+                # value = RFC9110_5_5_INVALID_AND_DANGEROUS.sub(" ", value)
+                self.force_close()
 
             if header_length > self.limit_request_field_size > 0:
                 raise LimitRequestHeaders("limit request headers fields size")

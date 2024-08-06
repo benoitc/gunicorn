@@ -210,7 +210,7 @@ H            protocol
 s            status
 B            response length
 b            response length or ``'-'`` (CLF format)
-f            referrer
+f            referer
 a            user agent
 T            request time in seconds
 M            request time in milliseconds
@@ -347,7 +347,7 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.jso
 
 **Command line:** ``--log-syslog-to SYSLOG_ADDR``
 
-**Default:** ``'unix:///var/run/syslog'``
+**Default:** ``'udp://localhost:514'``
 
 Address to send syslog messages.
 
@@ -527,7 +527,7 @@ SSL certificate file
 
 SSL version to use (see stdlib ssl module's).
 
-.. deprecated:: 20.2
+.. deprecated:: 21.0
    The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
 ============= ============
@@ -569,7 +569,7 @@ Whether client certificate is required (see stdlib ssl module's)
 ===========  ===========================
 --cert-reqs      Description
 ===========  ===========================
-`0`          no client verification
+`0`          no client veirifcation
 `1`          ssl.CERT_OPTIONAL
 `2`          ssl.CERT_REQUIRED
 ===========  ===========================
@@ -982,7 +982,7 @@ Following example shows a configuration file that sets the minimum TLS version t
         context.minimum_version = ssl.TLSVersion.TLSv1_3
         return context
 
-.. versionadded:: 20.2
+.. versionadded:: 21.0
 
 Server Mechanics
 ----------------
@@ -1390,7 +1390,7 @@ Set a PasteDeploy global config variable in ``key=value`` form.
 
 The option can be specified multiple times.
 
-The variables are passed to the the PasteDeploy entrypoint. Example::
+The variables are passed to the PasteDeploy entrypoint. Example::
 
     $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
 
@@ -1410,7 +1410,125 @@ Strip spaces present between the header name and the the ``:``.
 This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
 See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
 
+Use with care and only if necessary. Deprecated; scheduled for removal in 25.0.0
+
+.. versionadded:: 20.0.1
+
+.. _permit-unconventional-http-method:
+
+``permit_unconventional_http_method``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--permit-unconventional-http-method``
+
+**Default:** ``False``
+
+Permit HTTP methods not matching conventions, such as IANA registration guidelines
+
+This permits request methods of length less than 3 or more than 20,
+methods with lowercase characters or methods containing the # character.
+HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+If unset, Gunicorn will apply nonstandard restrictions and cause 400 response status
+in cases where otherwise 501 status is expected. While this option does modify that
+behaviour, it should not be depended upon to guarantee standards-compliant behaviour.
+Rather, it is provided temporarily, to assist in diagnosing backwards-incompatible
+changes around the incomplete application of those restrictions.
+
+Use with care and only if necessary. Temporary; scheduled for removal in 24.0.0
+
+.. versionadded:: 22.0.0
+
+.. _permit-unconventional-http-version:
+
+``permit_unconventional_http_version``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--permit-unconventional-http-version``
+
+**Default:** ``False``
+
+Permit HTTP version not matching conventions of 2023
+
+This disables the refusal of likely malformed request lines.
+It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
+
+This option is provided to diagnose backwards-incompatible changes.
+Use with care and only if necessary. Temporary; the precise effect of this option may
+change in a future version, or it may be removed altogether.
+
+.. versionadded:: 22.0.0
+
+.. _casefold-http-method:
+
+``casefold_http_method``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--casefold-http-method``
+
+**Default:** ``False``
+
+Transform received HTTP methods to uppercase
+
+HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+This option is provided because previous versions of gunicorn defaulted to this behaviour.
+
+Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
+
+.. versionadded:: 22.0.0
+
+.. _header-map:
+
+``header_map``
+~~~~~~~~~~~~~~
+
+**Command line:** ``--header-map``
+
+**Default:** ``'drop'``
+
+Configure how header field names are mapped into environ
+
+Headers containing underscores are permitted by RFC9110,
+but gunicorn joining headers of different names into
+the same environment variable will dangerously confuse applications as to which is which.
+
+The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
+The value ``refuse`` will return an error if a request contains *any* such header.
+The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+header field names into the same environ name.
+
+Use with care and only if necessary and after considering if your problem could
+instead be solved by specifically renaming or rewriting only the intended headers
+on a proxy in front of Gunicorn.
+
+.. versionadded:: 22.0.0
+
+.. _tolerate-dangerous-framing:
+
+``tolerate_dangerous_framing``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--tolerate-dangerous-framing``
+
+**Default:** ``False``
+
+Process requests with both Transfer-Encoding and Content-Length
+
+This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
+
+In any case, the connection is closed after the malformed request,
+as it is unclear if and at which boundary additional requests start.
+
 Use with care and only if necessary.
+Temporary; will be changed or removed in a future version.
+
+.. versionadded:: 22.0.0
+.. versionchanged: 22.1.0
+   The newly added rejection of invalid and dangerous characters CR, LF and NUL in
+   header field values is also controlled with this setting. rfc9110 permits both
+   rejecting and SP-replacing. With this option set, Gunicorn passes the field value
+   unchanged. With this option unset, Gunicorn rejects the request.
 
 Server Socket
 -------------
