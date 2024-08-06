@@ -1,6 +1,5 @@
 POST /chunked HTTP/1.1\r\n
-Transfer-Encoding: gzip\r\n
-Transfer-Encoding: chunked\r\n
+Transfer-Encoding: gzip,chunked\r\n
 \r\n
 5\r\n
 hello\r\n
