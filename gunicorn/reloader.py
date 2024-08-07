@@ -32,7 +32,7 @@ class Reloader(threading.Thread):
             if getattr(module, '__file__', None)
         ]
 
-        fnames.extend(self._extra_files)
+        fnames.extend(os.path.realpath(fn) for fn in self._extra_files)
 
         return fnames
 
