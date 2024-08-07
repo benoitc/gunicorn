@@ -75,10 +75,7 @@ WSGI application, this is not a recommended configuration.
 AsyncIO Workers
 ---------------
 
-These workers are compatible with Python 3.
-
-You can port also your application to use aiohttp_'s ``web.Application`` API and use the
-``aiohttp.worker.GunicornWebWorker`` worker.
+Third-party workers can be usedd to use Gunicorn with asyncio frameworks. 
 
 Choosing a Worker Type
 ======================
