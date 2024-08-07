@@ -22,6 +22,11 @@ class NoMoreData(IOError):
         return "No more data after: %r" % self.buf
 
 
+class IncompleteBody(ParseException):
+    def __str__(self):
+        return "Incomplete Request Body"
+
+
 class ConfigurationProblem(ParseException):
     def __init__(self, info):
         self.info = info

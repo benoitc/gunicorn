@@ -15,6 +15,7 @@ from ssl import SSLError
 
 from gunicorn import util
 from gunicorn.http.errors import (
+    IncompleteBody,
     ForbiddenProxyRequest, InvalidHeader,
     InvalidHeaderName, InvalidHTTPVersion,
     InvalidProxyLine, InvalidRequestLine,
@@ -233,6 +234,8 @@ class Worker(object):
                 reason = "Request Header Fields Too Large"
                 mesg = "Error parsing headers: '%s'" % str(exc)
                 status_int = 431
+            elif isinstance(exc, IncompleteBody):
+                mesg = "'%s'" % str(exc)
             elif isinstance(exc, InvalidProxyLine):
                 mesg = "'%s'" % str(exc)
             elif isinstance(exc, ForbiddenProxyRequest):
