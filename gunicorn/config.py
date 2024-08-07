@@ -9,6 +9,7 @@ import argparse
 import copy
 import grp
 import inspect
+import itertools
 import os
 import pwd
 import re
@@ -942,14 +943,21 @@ class ReloadExtraFiles(Setting):
     section = "Debugging"
     cli = ["--reload-extra-file"]
     meta = "FILES"
-    validator = validate_list_of_existing_files
     default = []
+    nargs = '+'
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
         .. versionadded:: 19.8
+        .. versionchanged:: 22.0
+           It is now possible to pass multiple arguments to each instance of the flag.
         """
+
+    # Once Python 3.8 is required, the `extend` makes this overload unnecessary
+    def validator(val):
+        flat = list(itertools.chain.from_iterable(val))
+        return validate_list_of_existing_files(flat)
 
 
 class Spew(Setting):
