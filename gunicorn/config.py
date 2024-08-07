@@ -1693,6 +1693,20 @@ class StatsdPrefix(Setting):
     """
 
 
+class BacklogMetric(Setting):
+    name = "enable_backlog_metric"
+    section = "Logging"
+    cli = ["--enable-backlog-metric"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Enable socket backlog metric (only supported on Linux).
+
+    .. versionadded:: 23.1
+    """
+
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"

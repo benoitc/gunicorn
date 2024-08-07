@@ -73,7 +73,7 @@ class BaseSocket:
         self.sock = None
 
     def get_backlog(self):
-        return None
+        return -1
 
 
 class TCPSocket(BaseSocket):
@@ -93,19 +93,22 @@ class TCPSocket(BaseSocket):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return super().set_options(sock, bound=bound)
 
-    def get_backlog(self):
-        if self.sock and PLATFORM == "linux":
-            # tcp_info struct from include/uapi/linux/tcp.h
-            fmt = 'B' * 8 + 'I' * 24
-            try:
-                tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
-                                                       socket.TCP_INFO, 104)
-                # 12 is tcpi_unacked
-                return struct.unpack(fmt, tcp_info_struct)[12]
-            except AttributeError:
-                pass
-
-        return None
+    if PLATFORM == "linux":
+        def get_backlog(self):
+            if self.sock:
+                # tcp_info struct from include/uapi/linux/tcp.h
+                fmt = 'B' * 8 + 'I' * 24
+                try:
+                    tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
+                                                           socket.TCP_INFO, 104)
+                    # 12 is tcpi_unacked
+                    return struct.unpack(fmt, tcp_info_struct)[12]
+                except AttributeError:
+                    pass
+            return 0
+    else:
+        def get_backlog(self):
+            return -1
 
 
 class TCP6Socket(TCPSocket):
