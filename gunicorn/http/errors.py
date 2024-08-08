@@ -14,7 +14,7 @@ class ParseException(Exception):
     pass
 
 
-class NoMoreData(IOError):
+class NoMoreData(OSError):
     def __init__(self, buf=None):
         self.buf = buf
 
@@ -90,7 +90,7 @@ class UnsupportedTransferCoding(ParseException):
         return "Unsupported transfer coding: %r" % self.hdr
 
 
-class InvalidChunkSize(IOError):
+class InvalidChunkSize(OSError):
     def __init__(self, data):
         self.data = data
 
@@ -98,7 +98,7 @@ class InvalidChunkSize(IOError):
         return "Invalid chunk size: %r" % self.data
 
 
-class ChunkMissingTerminator(IOError):
+class ChunkMissingTerminator(OSError):
     def __init__(self, term):
         self.term = term
 
