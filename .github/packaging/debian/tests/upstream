@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+cp -r tests ${AUTOPKGTEST_TMP}
+cd ${AUTOPKGTEST_TMP}
+
+# why that --override-ini=?
+# pyproject.toml could mention plugins not installed during build
+#  => workaround by setting empty
+
+for p in $(pyversions -s); do
+    $p -m pytest --override-ini=addopts= tests/
+done
