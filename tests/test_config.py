@@ -166,6 +166,7 @@ def test_str_validation():
 
 def test_str_to_addr_list_validation():
     c = config.Config()
+    assert c.proxy_allow_ips == ["127.0.0.1", "::1"]
     assert c.forwarded_allow_ips == ["127.0.0.1", "::1"]
     c.set("forwarded_allow_ips", "127.0.0.1,192.0.2.1")
     assert c.forwarded_allow_ips == ["127.0.0.1", "192.0.2.1"]
@@ -183,7 +184,7 @@ def test_str_to_addr_list_validation():
 
 def test_str_to_list():
     c = config.Config()
-    assert c.forwarder_headers == ["SCRIPT_NAME"]
+    assert c.forwarder_headers == ["SCRIPT_NAME", "PATH_INFO"]
     c.set("forwarder_headers", "SCRIPT_NAME,REMOTE_USER")
     assert c.forwarder_headers == ["SCRIPT_NAME", "REMOTE_USER"]
     c.set("forwarder_headers", "")
