@@ -161,7 +161,15 @@ class Application(BaseApplication):
         cfg = self.init(parser, args, args.args)
 
         # set up import paths and follow symlinks
-        self.chdir()
+        try:
+            self.chdir()
+        except Exception as e:
+            msg = "Warning: failed to chdir to default path '%s'" \
+                  " before loading config: %s\n" \
+                  "Continuing with current working directory." \
+                  % (sys.cfg.chdir, e)
+            print(msg, file=sys.stderr)
+            sys.stderr.flush()
 
         # Load up the any app specific configuration
         if cfg:
