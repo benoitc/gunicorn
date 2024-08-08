@@ -3,6 +3,9 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# config contains callables - comparing those is intended here
+# pylint: disable=comparison-with-callable
+
 import os
 import re
 import sys

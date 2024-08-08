@@ -12,6 +12,8 @@ from gunicorn import util
 
 class WSGIApplication(Application):
     def init(self, parser, opts, args):
+        # pylint: disable=cyclic-import
+
         self.app_uri = None
 
         if opts.paste:
@@ -48,6 +50,8 @@ class WSGIApplication(Application):
         return util.import_app(self.app_uri)
 
     def load_pasteapp(self):
+        # pylint: disable=cyclic-import
+
         from .pasterapp import get_wsgi_app
         return get_wsgi_app(self.app_uri, defaults=self.cfg.paste_global_conf)
 

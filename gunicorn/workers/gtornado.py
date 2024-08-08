@@ -98,9 +98,12 @@ class TornadoWorker(Worker):
             for callback in self.callbacks:
                 callback.start()
         else:
-            PeriodicCallback(self.watchdog, 1000, io_loop=self.ioloop).start()
-            PeriodicCallback(self.heartbeat, 1000, io_loop=self.ioloop).start()
-
+            PeriodicCallback(  # pylint: disable=unexpected-keyword-arg
+                self.watchdog, 1000, io_loop=self.ioloop
+            ).start()
+            PeriodicCallback(  # pylint: disable=unexpected-keyword-arg
+                self.heartbeat, 1000, io_loop=self.ioloop
+            ).start()
         # Assume the app is a WSGI callable if its not an
         # instance of tornado.web.Application or is an
         # instance of tornado.wsgi.WSGIApplication
@@ -133,7 +136,7 @@ class TornadoWorker(Worker):
 
             class _HTTPServer(tornado.httpserver.HTTPServer):
 
-                def on_close(instance, server_conn):
+                def on_close(instance, server_conn):  # pylint: disable=arguments-renamed
                     self.handle_request()
                     super(_HTTPServer, instance).on_close(server_conn)
 

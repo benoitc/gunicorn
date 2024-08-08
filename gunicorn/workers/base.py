@@ -256,6 +256,8 @@ class Worker(object):
                 reason = "Forbidden"
                 mesg = "'%s'" % str(exc)
                 status_int = 403
+            else:
+                raise AssertionError("mismatched except/elif branches")
 
             msg = "Invalid request from ip={ip}: {error}"
             self.log.warning(msg.format(ip=addr[0], error=str(exc)))
