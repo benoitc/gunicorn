@@ -1208,7 +1208,7 @@ temporary directory.
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. If the source IP is permitted by
-``forwarded-allow-ips`` (below), *and* at least one request header matches
+:ref:`forwarded-allow-ips` (below), *and* at least one request header matches
 a key-value pair listed in this dictionary, then Gunicorn will set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
@@ -1235,15 +1235,20 @@ the headers defined here can not be passed directly from the client.
 **Default:** ``'127.0.0.1,::1'``
 
 Front-end's IPs from which allowed to handle set secure headers.
-(comma separate).
+(comma separated).
 
-Set to ``*`` to disable checking of Front-end IPs. This is useful for setups
-where you don't know in advance the IP address of Front-end, but
-instead have ensured via other means that none other than your
-authorized Front-ends can access gunicorn.
+Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
 variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
+
+.. note::
+
+    This option does not affect UNIX socket connections. Connections not associated with
+    an IP address are treated as allowed, unconditionally.
 
 .. note::
 
@@ -1370,13 +1375,19 @@ Example for stunnel config::
 
 **Command line:** ``--proxy-allow-from``
 
-**Default:** ``'127.0.0.1'``
+**Default:** ``'127.0.0.1,::1'``
 
-Front-end's IPs from which allowed accept proxy requests (comma separate).
+Front-end's IPs from which allowed accept proxy requests (comma separated).
 
-Set to ``*`` to disable checking of Front-end IPs (useful for setups
-where you don't know in advance the IP address of Front-end, but
-you still trust the environment)
+Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.
+
+.. note::
+
+    This option does not affect UNIX socket connections. Connections not associated with
+    an IP address are treated as allowed, unconditionally.
 
 .. _raw-paste-global-conf:
 
@@ -1486,14 +1497,15 @@ Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
 
 **Command line:** ``--forwarder-headers``
 
-**Default:** ``'SCRIPT_NAME'``
+**Default:** ``'SCRIPT_NAME,PATH_INFO'``
 
 A list containing upper-case header field names that the front-end proxy
-sets, to be used in WSGI environment.
+(see :ref:`forwarded-allow-ips`) sets, to be used in WSGI environment.
 
-If headers named in this list are not present in the request, they will be ignored.
+This option has no effect for headers not present in the request.
 
-This option can be used to transfer SCRIPT_NAME and REMOTE_USER.
+This option can be used to transfer ``SCRIPT_NAME``, ``PATH_INFO``
+and ``REMOTE_USER``.
 
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
@@ -1518,8 +1530,8 @@ The value ``refuse`` will return an error if a request contains *any* such heade
 The value ``dangerous`` matches the previous, not advisable, behaviour of mapping different
 header field names into the same environ name.
 
-If the source IP is permitted by ``forwarded-allow-ips``, *and* the header name is
-present in ``forwarder-headers``, the header is mapped into environment regardless of
+If the source is permitted as explained in :ref:`forwarded-allow-ips`, *and* the header name is
+present in :ref:`forwarder-headers`, the header is mapped into environment regardless of
 the state of this setting.
 
 Use with care and only if necessary and after considering if your problem could
