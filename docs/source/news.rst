@@ -13,18 +13,20 @@ Changelog
 - sdist generation now explicitly excludes sphinx build folder (:pr:`3257`)
 - decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising `TypeError` (:pr:`2336`)
 - raise correct Exception when encounting invalid chunked requests (:pr:`3258`)
-- the SCRIPT_NAME header when received from allowed forwarders is no longer restricted for containing an underscore (:pr:`3192`)
+- the SCRIPT_NAME and PATH_INFO headers, when received from allowed forwarders, are no longer restricted for containing an underscore (:pr:`3192`)
+- include IPv6 loopback address ``[::1]`` in default for :ref:`forwarded-allow-ips` and :ref:`proxy-allow-ips` (:pr:`3192`)
 
 ** NOTE **
 
 - The SCRIPT_NAME change mitigates a regression that appeared first in the 22.0.0 release
-- Review your ``forwarded-allow-ips`` setting if you are still not seeing the SCRIPT_NAME transmitted
+- Review your :ref:`forwarded-allow-ips` setting if you are still not seeing the SCRIPT_NAME transmitted
+- Review your :ref:`forwarder-headers` setting if you are missing headers after upgrading from a version prior to 22.0.0
 
 ** Breaking changes **
 
 - refuse requests where the uri field is empty (:pr:`3255`)
 - refuse requests with invalid CR/LR/NUL in heade field values (:pr:`3253`)
-- remove temporary `--tolerate-dangerous-framing` switch from 22.0 (:pr:`3260`)
+- remove temporary ``--tolerate-dangerous-framing`` switch from 22.0 (:pr:`3260`)
 - If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
 
 22.0.0 - 2024-04-17
