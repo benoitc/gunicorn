@@ -5,7 +5,6 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
@@ -256,14 +255,17 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    # available since Python 3.4, equivalent to either:
+    # ioctl(fd, FIOCLEX)
+    # fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC)
+    os.set_inheritable(fd, False)
 
 
 def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    # available since Python 3.5, equivalent to either:
+    # ioctl(fd, FIONBIO)
+    # fcntl(fd, fcntl.F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+    os.set_blocking(fd, False)
 
 
 def close(sock):
