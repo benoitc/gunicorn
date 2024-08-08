@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -8,7 +7,7 @@ import os
 import tempfile
 
 
-class Pidfile(object):
+class Pidfile:
     """\
     Manage a PID file. If a specific name is provided
     it and '"%s.oldpid" % name' will be used. Otherwise
@@ -52,7 +51,7 @@ class Pidfile(object):
     def unlink(self):
         """ delete pidfile"""
         try:
-            with open(self.fname, "r") as f:
+            with open(self.fname) as f:
                 pid1 = int(f.read() or 0)
 
             if pid1 == self.pid:
@@ -65,7 +64,7 @@ class Pidfile(object):
         if not self.fname:
             return
         try:
-            with open(self.fname, "r") as f:
+            with open(self.fname) as f:
                 try:
                     wpid = int(f.read())
                 except ValueError:
@@ -80,7 +79,7 @@ class Pidfile(object):
                     if e.args[0] == errno.ESRCH:
                         return
                     raise
-        except IOError as e:
+        except OSError as e:
             if e.args[0] == errno.ENOENT:
                 return
             raise

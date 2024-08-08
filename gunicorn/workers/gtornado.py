@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -135,7 +134,7 @@ class TornadoWorker(Worker):
 
                 def on_close(instance, server_conn):
                     self.handle_request()
-                    super(_HTTPServer, instance).on_close(server_conn)
+                    super().on_close(server_conn)
 
             server_class = _HTTPServer
 

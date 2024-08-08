@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -7,7 +6,7 @@ from gunicorn.http.message import Request
 from gunicorn.http.unreader import SocketUnreader, IterUnreader
 
 
-class Parser(object):
+class Parser:
 
     mesg_class = None
 

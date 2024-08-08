@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -162,7 +161,7 @@ def parse_syslog_address(addr):
     return (socktype, (host, port))
 
 
-class Logger(object):
+class Logger:
 
     LOG_LEVELS = {
         "critical": logging.CRITICAL,

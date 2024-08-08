@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -7,7 +6,7 @@
 import sys
 import time
 
-class TestIter(object):
+class TestIter:
 
     def __iter__(self):
         lines = [b'line 1\n', b'line 2\n']

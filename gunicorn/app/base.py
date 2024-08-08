@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -14,7 +13,7 @@ from gunicorn.config import Config, get_default_config_file
 from gunicorn import debug
 
 
-class BaseApplication(object):
+class BaseApplication:
     """
     An application interface for configuring and loading
     the various necessities for any given web framework.
