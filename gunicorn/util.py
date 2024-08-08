@@ -575,7 +575,7 @@ def to_bytestring(value, encoding="utf8"):
     if isinstance(value, bytes):
         return value
     if not isinstance(value, str):
-        raise TypeError('%r is not a string' % value)
+        raise TypeError('%r is not a string' % (value, ))
 
     return value.encode(encoding)
 
