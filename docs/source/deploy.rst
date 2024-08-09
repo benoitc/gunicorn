@@ -246,13 +246,14 @@ to the newly created unix socket:
     After=network.target
 
     [Service]
+    # gunicorn can let systemd know when it is ready
     Type=notify
+    NotifyAccess=main
     # the specific user that our service will run as
     User=someuser
     Group=someuser
-    # another option for an even more restricted service is
-    # DynamicUser=yes
-    # see http://0pointer.net/blog/dynamic-users-with-systemd.html
+    # this user can be transiently created by systemd
+    # DynamicUser=true
     RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
     ExecStart=/usr/bin/gunicorn applicationname.wsgi
@@ -260,6 +261,8 @@ to the newly created unix socket:
     KillMode=mixed
     TimeoutStopSec=5
     PrivateTmp=true
+    # if your app does not need administrative capabilities, let systemd know
+    # ProtectSystem=strict
 
     [Install]
     WantedBy=multi-user.target
@@ -272,11 +275,12 @@ to the newly created unix socket:
     [Socket]
     ListenStream=/run/gunicorn.sock
     # Our service won't need permissions for the socket, since it
-    # inherits the file descriptor by socket activation
-    # only the nginx daemon will need access to the socket
+    # inherits the file descriptor by socket activation.
+    # Only the nginx daemon will need access to the socket:
     SocketUser=www-data
-    # Optionally restrict the socket permissions even more.
-    # SocketMode=600
+    SocketGroup=www-data
+    # Once the user/group is correct, restrict the permissions:
+    SocketMode=0660
 
     [Install]
     WantedBy=sockets.target

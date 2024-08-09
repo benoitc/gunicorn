@@ -1208,7 +1208,7 @@ temporary directory.
 
 A dictionary containing headers and values that the front-end proxy
 uses to indicate HTTPS requests. If the source IP is permitted by
-``forwarded-allow-ips`` (below), *and* at least one request header matches
+:ref:`forwarded-allow-ips` (below), *and* at least one request header matches
 a key-value pair listed in this dictionary, then Gunicorn will set
 ``wsgi.url_scheme`` to ``https``, so your application can tell that the
 request is secure.
@@ -1232,17 +1232,23 @@ the headers defined here can not be passed directly from the client.
 
 **Command line:** ``--forwarded-allow-ips STRING``
 
-**Default:** ``'127.0.0.1'``
+**Default:** ``'127.0.0.1,::1'``
 
 Front-end's IPs from which allowed to handle set secure headers.
-(comma separate).
+(comma separated).
 
-Set to ``*`` to disable checking of Front-end IPs (useful for setups
-where you don't know in advance the IP address of Front-end, but
-you still trust the environment).
+Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.
 
 By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
-variable. If it is not defined, the default is ``"127.0.0.1"``.
+variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
+
+.. note::
+
+    This option does not affect UNIX socket connections. Connections not associated with
+    an IP address are treated as allowed, unconditionally.
 
 .. note::
 
@@ -1369,13 +1375,19 @@ Example for stunnel config::
 
 **Command line:** ``--proxy-allow-from``
 
-**Default:** ``'127.0.0.1'``
+**Default:** ``'127.0.0.1,::1'``
 
-Front-end's IPs from which allowed accept proxy requests (comma separate).
+Front-end's IPs from which allowed accept proxy requests (comma separated).
 
-Set to ``*`` to disable checking of Front-end IPs (useful for setups
-where you don't know in advance the IP address of Front-end, but
-you still trust the environment)
+Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.
+
+.. note::
+
+    This option does not affect UNIX socket connections. Connections not associated with
+    an IP address are treated as allowed, unconditionally.
 
 .. _raw-paste-global-conf:
 
@@ -1498,6 +1510,26 @@ Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
 
 .. versionadded:: 22.0.0
 
+.. _forwarder-headers:
+
+``forwarder_headers``
+~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--forwarder-headers``
+
+**Default:** ``'SCRIPT_NAME,PATH_INFO'``
+
+A list containing upper-case header field names that the front-end proxy
+(see :ref:`forwarded-allow-ips`) sets, to be used in WSGI environment.
+
+This option has no effect for headers not present in the request.
+
+This option can be used to transfer ``SCRIPT_NAME``, ``PATH_INFO``
+and ``REMOTE_USER``.
+
+It is important that your front-end proxy configuration ensures that
+the headers defined here can not be passed directly from the client.
+
 .. _header-map:
 
 ``header_map``
@@ -1515,8 +1547,12 @@ the same environment variable will dangerously confuse applications as to which 
 
 The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
 The value ``refuse`` will return an error if a request contains *any* such header.
-The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+The value ``dangerous`` matches the previous, not advisable, behaviour of mapping different
 header field names into the same environ name.
+
+If the source is permitted as explained in :ref:`forwarded-allow-ips`, *and* the header name is
+present in :ref:`forwarder-headers`, the header is mapped into environment regardless of
+the state of this setting.
 
 Use with care and only if necessary and after considering if your problem could
 instead be solved by specifically renaming or rewriting only the intended headers
