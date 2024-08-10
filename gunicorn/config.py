@@ -1403,7 +1403,7 @@ class AccessLogFormat(Setting):
         ===========  ===========
         h            remote address
         l            ``'-'``
-        u            user name
+        u            user name (if HTTP Basic auth used)
         t            date of the request
         r            status line (e.g. ``GET / HTTP/1.1``)
         m            request method
