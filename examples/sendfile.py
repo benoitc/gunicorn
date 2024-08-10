@@ -8,7 +8,7 @@ import os
 from wsgiref.validate import validator
 
 
-@validator
+# @validator  # breaks sendfile
 def app(environ, start_response):
     """Simplest possible application object"""
     status = '200 OK'
