@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -16,7 +15,7 @@ __all__ = ['spew', 'unspew']
 _token_spliter = re.compile(r'\W+')
 
 
-class Spew(object):
+class Spew:
 
     def __init__(self, trace_names=None, show_values=True):
         self.trace_names = trace_names
@@ -37,7 +36,7 @@ class Spew(object):
                 try:
                     src = inspect.getsourcelines(frame)
                     line = src[lineno]
-                except IOError:
+                except OSError:
                     line = 'Unknown code named [%s].  VM instruction #%d' % (
                         frame.f_code.co_name, frame.f_lasti)
             if self.trace_names is None or name in self.trace_names:

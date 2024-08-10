@@ -17,7 +17,7 @@ class MemoryWatch(threading.Thread):
     def memory_usage(self, pid):
         try:
             out = commands.getoutput("ps -o rss -p %s" % pid)
-        except IOError:
+        except OSError:
             return -1
         used_mem = sum(int(x) for x in out.split('\n')[1:])
         return used_mem

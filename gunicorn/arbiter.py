@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -18,7 +17,7 @@ from gunicorn import sock, systemd, util
 from gunicorn import __version__, SERVER_SOFTWARE
 
 
-class Arbiter(object):
+class Arbiter:
     """
     Arbiter maintain the workers processes alive. It launches or
     kills them if needed. It also manages application reloading
@@ -333,7 +332,7 @@ class Arbiter(object):
         """
         try:
             os.write(self.PIPE[1], b'.')
-        except IOError as e:
+        except OSError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
@@ -362,7 +361,7 @@ class Arbiter(object):
                 return
             while os.read(self.PIPE[0], 1):
                 pass
-        except (select.error, OSError) as e:
+        except OSError as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
             error_number = getattr(e, 'errno', e.args[0])
             if error_number not in [errno.EAGAIN, errno.EINTR]:

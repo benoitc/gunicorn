@@ -1,4 +1,3 @@
-
 raise RuntimeError("Bad app!")
 
 def app(environ, start_response):

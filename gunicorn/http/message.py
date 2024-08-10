@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -31,7 +30,7 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
 
 
-class Message(object):
+class Message:
     def __init__(self, cfg, unreader, peer_addr):
         self.cfg = cfg
         self.unreader = unreader
@@ -376,13 +375,13 @@ class Request(Message):
             try:
                 socket.inet_pton(socket.AF_INET, s_addr)
                 socket.inet_pton(socket.AF_INET, d_addr)
-            except socket.error:
+            except OSError:
                 raise InvalidProxyLine(line)
         elif proto == "TCP6":
             try:
                 socket.inet_pton(socket.AF_INET6, s_addr)
                 socket.inet_pton(socket.AF_INET6, d_addr)
-            except socket.error:
+            except OSError:
                 raise InvalidProxyLine(line)
 
         try:

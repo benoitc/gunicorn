@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -147,7 +146,7 @@ class GeventWorker(AsyncWorker):
         super().init_process()
 
 
-class GeventResponse(object):
+class GeventResponse:
 
     status = None
     headers = None

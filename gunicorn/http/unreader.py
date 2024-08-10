@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -10,7 +9,7 @@ import os
 # a given type of data source.
 
 
-class Unreader(object):
+class Unreader:
     def __init__(self):
         self.buf = io.BytesIO()
 

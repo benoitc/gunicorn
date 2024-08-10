@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -14,7 +13,7 @@ PLATFORM = platform.system()
 IS_CYGWIN = PLATFORM.startswith('CYGWIN')
 
 
-class WorkerTmp(object):
+class WorkerTmp:
 
     def __init__(self, cfg):
         old_umask = os.umask(cfg.umask)
