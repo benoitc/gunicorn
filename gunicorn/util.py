@@ -31,6 +31,7 @@ from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
+REASON_PHRASE_RE = re.compile(rb'[ \t\x21-\x7e\x80-\xff]*')
 
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
@@ -307,6 +308,16 @@ def write_nonblock(sock, data, chunked=False):
 
 
 def write_error(sock, status_int, reason, mesg):
+    # we may reflect user input in mesg
+    #  .. as long as it is escaped appropriately for indicated Content-Type
+    # we should send our own reason text
+    #  .. we shall never send misleading or invalid HTTP status lines
+    if not REASON_PHRASE_RE.fullmatch(reason.encode("latin-1")):
+        raise AssertionError("Attempted to return malformed error reason: %r" % (reason, ))
+    # we should avoid chosing status codes that are already in use
+    #  indicating special handling in our proxies
+    if not (100 <= status_int <= 599):  # RFC9110 15
+        raise AssertionError("Attempted to return invalid error status code: %r" % (status_int, ))
     html_error = textwrap.dedent("""\
     <html>
       <head>
