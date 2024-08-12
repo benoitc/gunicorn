@@ -5,6 +5,7 @@ include README.rst
 include THANKS
 include requirements_dev.txt
 include requirements_test.txt
+include tox.ini
 recursive-include tests *
 recursive-include examples *
 recursive-include docs *
