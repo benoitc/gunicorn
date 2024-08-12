@@ -54,17 +54,18 @@ class Reloader(threading.Thread):
 
 
 has_inotify = False
+inotify = None  # inotify.adapters
+Inotify = None  # inotify.adapters.Inotify
 if sys.platform.startswith('linux'):
     try:
-        import inotify.constants as _
+        from inotify.adapters import Inotify
+        import inotify.constants
         has_inotify = True
     except ImportError:
         pass
 
 
 if has_inotify:
-    from inotify.adapters import Inotify
-    import inotify.constants
 
     class InotifyReloader(threading.Thread):
         event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE
