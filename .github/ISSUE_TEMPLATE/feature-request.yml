@@ -1,0 +1,31 @@
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests
+name: Feature Request
+description: Request a new feature or modified default behaviour
+# could always prepend title, but that leads to odd titles when reporter is unaware
+# title: "[FR]: "
+# title: "[RFF]: "
+# need to cleanup existing labels before adding this
+# labels: ["- Features -"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest improvements for Gunicorn.
+        As limited time can be spent on triaging, we would appreciate if you
+          * look for existing requests that may match yours
+          * include in your report considerations about not breaking existing functionality
+          * include in your report considerations about maintaining the feature
+  - type: textarea
+    id: what-problem
+    attributes:
+      label: What problem would like like to see solved
+      description: How is what you want to do not currently easily achieved with gunicorn?
+      placeholder: I would like to do X, which is currently not supported on Y.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: How would you like to see the problem solved
+      description: Please be specific. Explicitly mention what existing functionality might be impacted.
+      placeholder: I would modify the X component to accept Y also for in the Z case. The B case for Y will remain untouched. The A case will stop working, but that could have never worked due to C anyway.

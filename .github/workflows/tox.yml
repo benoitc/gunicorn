@@ -1,5 +1,12 @@
 name: tox
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - ".github/ISSUE_TEMPLATE/**"
+  pull_request:
+    paths-ignore:
+      - ".github/ISSUE_TEMPLATE/**"
+
 permissions:
   contents: read # to fetch code (actions/checkout)
 env:
