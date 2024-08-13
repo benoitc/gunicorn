@@ -18,7 +18,7 @@ class NoMoreData(IOError):
         self.buf = buf
 
     def __str__(self):
-        return "No more data after: %r" % self.buf
+        return "No more data after: %r" % (self.buf, )
 
 
 class ConfigurationProblem(ParseException):
@@ -27,7 +27,7 @@ class ConfigurationProblem(ParseException):
         self.code = 500
 
     def __str__(self):
-        return "Configuration problem: %s" % self.info
+        return "Configuration problem: %s" % (self.info, )
 
 
 class InvalidRequestLine(ParseException):
@@ -36,7 +36,7 @@ class InvalidRequestLine(ParseException):
         self.code = 400
 
     def __str__(self):
-        return "Invalid HTTP request line: %r" % self.req
+        return "Invalid HTTP request line: %r" % (self.req, )
 
 
 class InvalidRequestMethod(ParseException):
@@ -44,7 +44,7 @@ class InvalidRequestMethod(ParseException):
         self.method = method
 
     def __str__(self):
-        return "Invalid HTTP method: %r" % self.method
+        return "Invalid HTTP method: %r" % (self.method, )
 
 
 class InvalidHTTPVersion(ParseException):
@@ -52,7 +52,7 @@ class InvalidHTTPVersion(ParseException):
         self.version = version
 
     def __str__(self):
-        return "Invalid HTTP Version: %r" % (self.version,)
+        return "Invalid HTTP Version: %r" % (self.version, )
 
 
 class InvalidHeader(ParseException):
@@ -61,7 +61,7 @@ class InvalidHeader(ParseException):
         self.req = req
 
     def __str__(self):
-        return "Invalid HTTP Header: %r" % self.hdr
+        return "Invalid HTTP Header: %r" % (self.hdr, )
 
 
 class ObsoleteFolding(ParseException):
@@ -77,7 +77,7 @@ class InvalidHeaderName(ParseException):
         self.hdr = hdr
 
     def __str__(self):
-        return "Invalid HTTP header name: %r" % self.hdr
+        return "Invalid HTTP header name: %r" % (self.hdr, )
 
 
 class UnsupportedTransferCoding(ParseException):
@@ -86,7 +86,7 @@ class UnsupportedTransferCoding(ParseException):
         self.code = 501
 
     def __str__(self):
-        return "Unsupported transfer coding: %r" % self.hdr
+        return "Unsupported transfer coding: %r" % (self.hdr, )
 
 
 class InvalidChunkSize(IOError):
@@ -94,7 +94,7 @@ class InvalidChunkSize(IOError):
         self.data = data
 
     def __str__(self):
-        return "Invalid chunk size: %r" % self.data
+        return "Invalid chunk size: %r" % (self.data, )
 
 
 class ChunkMissingTerminator(IOError):
@@ -102,7 +102,7 @@ class ChunkMissingTerminator(IOError):
         self.term = term
 
     def __str__(self):
-        return "Invalid chunk terminator is not '\\r\\n': %r" % self.term
+        return "Invalid chunk terminator is not '\\r\\n': %r" % (self.term, )
 
 
 class LimitRequestLine(ParseException):
@@ -128,7 +128,7 @@ class InvalidProxyLine(ParseException):
         self.code = 400
 
     def __str__(self):
-        return "Invalid PROXY line: %r" % self.line
+        return "Invalid PROXY line: %r" % (self.line, )
 
 
 class ForbiddenProxyRequest(ParseException):
@@ -137,7 +137,7 @@ class ForbiddenProxyRequest(ParseException):
         self.code = 403
 
     def __str__(self):
-        return "Proxy request from %r not allowed" % self.host
+        return "Proxy request from %r not allowed" % (self.host, )
 
 
 class InvalidSchemeHeaders(ParseException):
