@@ -178,8 +178,9 @@ class Message:
             elif name == "TRANSFER-ENCODING":
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
-                vals = [v.strip() for v in value.split(',')]
-                for val in vals:
+                te_split_at_comma = [v.strip() for v in value.split(',')]
+                # N.B. we might have split in the middle of quoted transfer-parameter
+                for val in te_split_at_comma:
                     if val.lower() == "chunked":
                         # DANGER: transfer codings stack, and stacked chunking is never intended
                         if chunked:
@@ -187,7 +188,7 @@ class Message:
                         chunked = True
                     elif val.lower() == "identity":
                         # does not do much, could still plausibly desync from what the proxy does
-                        # safe option: nuke it, its never needed
+                        # safe option: reject, its never needed
                         if chunked:
                             raise InvalidHeader("TRANSFER-ENCODING", req=self)
                     elif val.lower() in ('compress', 'deflate', 'gzip'):
@@ -196,6 +197,8 @@ class Message:
                             raise InvalidHeader("TRANSFER-ENCODING", req=self)
                         self.force_close()
                     else:
+                        # DANGER: this not only rejects unknown encodings, but also
+                        #  leftovers from not splitting at transfer-coding boundary
                         raise UnsupportedTransferCoding(value)
 
         if chunked:
@@ -203,11 +206,13 @@ class Message:
             #  a) CL + TE (TE overrides CL.. only safe if the recipient sees it that way too)
             #  b) chunked HTTP/1.0 (always faulty)
             if self.version < (1, 1):
-                # framing wonky, see RFC 9112 Section 6.1
+                # framing is faulty
+                # https://datatracker.ietf.org/doc/html/rfc9112#section-6.1-16
                 raise InvalidHeader("TRANSFER-ENCODING", req=self)
             if content_length is not None:
                 # we cannot be certain the message framing we understood matches proxy intent
                 #  -> whatever happens next, remaining input must not be trusted
+                # https://datatracker.ietf.org/doc/html/rfc9112#section-6.1-15
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
             self.body = Body(ChunkedReader(self, self.unreader))
         elif content_length is not None:
