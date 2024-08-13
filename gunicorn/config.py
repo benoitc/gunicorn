@@ -238,7 +238,6 @@ class Config:
 class SettingMeta(type):
     def __new__(cls, name, bases, attrs):
         super_new = super().__new__
-        parents = [b for b in bases if isinstance(b, SettingMeta)]
 
         # creating parent class, return without registering known setting
         if "desc" not in attrs:
