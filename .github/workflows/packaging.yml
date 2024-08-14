@@ -1,0 +1,86 @@
+name: packaging
+# Goal: produce .deb files on Ubuntu >= 24.04 (noble) or Debian >= 12 (bookworm/bullseye-backports)
+# https://wiki.debian.org/Packaging
+# https://www.debian.org/doc/debian-policy/
+# https://www.debian.org/doc/packaging-manuals/python-policy/
+
+# https://docs.github.com/articles/events-that-trigger-workflows
+on:
+  push:
+    tags:
+     - '*'
+  pull_request:
+    # self
+    paths:
+      - .github/workflows/packaging.yml
+      - .github/packaging/debian/*
+      - pyproject.toml
+  workflow_dispatch:
+  # https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+env:
+  # note that some tools care only for the name, not the value
+  FORCE_COLOR: 1
+
+  # reduce metadata. unlike elsewhere, build artifacts should differ by content only
+  SOURCE_DATE_EPOCH: 0
+
+jobs:
+  dpkg-buildpackage:
+    name: buildpackage-${{ matrix.python-version }}
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes
+    timeout-minutes: 5
+    # https://docs.github.com/articles/virtual-environments-for-github-actions
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategymatrix
+      matrix:
+        python-version: [ "os-py" ]
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          path: source
+      - name: prepare deb source dir (debian)
+        # why the incorrect version? because this way we can skip rewrite debian/changelog for now
+        shell: bash
+        run: |
+          mkdir --verbose --parents upload/debian
+          mkdir --verbose --parents debian
+          ( cd source/ && git archive --format=tar --prefix=gunicorn-22.1.0/ HEAD | gzip ) > debian/gunicorn_22.1.0.orig.tar.gz
+          ( cd debian/ && tar --extract --file gunicorn_22.1.0.orig.tar.gz gunicorn-22.1.0 )
+          test -s debian/gunicorn-22.1.0/pyproject.toml
+          rsync -vrlt source/.github/packaging/debian/ debian/gunicorn-22.1.0/debian
+          chmod --changes +x debian/gunicorn-22.1.0/debian/control
+          ls -l debian/gunicorn-22.1.0/
+       # ideally, build-dep step would be executed by dkpg scripts
+      - name: Install dpkg Dependencies
+        shell: bash
+        run: |
+             sudo apt-get update
+             sudo DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential dpkg-dev make python3-all quilt debhelper dh-python python3-setuptools pybuild-plugin-pyproject
+             # print versions
+             apt policy python3-all python3-all build-essential debhelper dh-python pybuild-plugin-pyproject
+             apt policy python3-toml python3-tomli
+             apt policy python3-setuptools python3-distutils python3-setuptools-whl python3-pep517 python3-build
+      - name: build deb (debian)
+        shell: bash
+        run: |
+             test -s debian/gunicorn-22.1.0/pyproject.toml
+             test -s debian/gunicorn-22.1.0/debian/control
+             test -d debian/gunicorn-22.1.0/tests
+             ( cd debian/gunicorn-22.1.0/ && dpkg-buildpackage --unsigned-source --unsigned-changes )
+             # note that Ubuntu 22.04 does not allow zstd in dpkg tools
+             rsync --ignore-missing-args -trv debian/*.{deb,tar.gz,tar.xz,tar.zstd,buildinfo,changes,dsc} upload/debian/
+      - uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6 # v4.2.0
+        with:
+          path: |
+            upload/debian/*
+          name: deb
+          retention-days: 5
+          # deb and source tarball are already compressed
+          compression-level: 0
+          if-no-files-found: error
