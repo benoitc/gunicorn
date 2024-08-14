@@ -29,6 +29,8 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker:
 
+    WORKAROUND_BASE_EXCEPTIONS = ()  # none
+
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )]

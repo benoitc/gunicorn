@@ -110,6 +110,8 @@ class SyncWorker(base.Worker):
                 return
 
     def run(self):
+        assert len(self.WORKAROUND_BASE_EXCEPTIONS) == 0
+
         # if no timeout is given the worker will never wait and will
         # use the CPU for nothing. This minimal timeout prevent it.
         timeout = self.timeout or 0.5
