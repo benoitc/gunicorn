@@ -81,7 +81,7 @@ class AsyncWorker(base.Worker):
                     self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except BaseException as e:
+        except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
