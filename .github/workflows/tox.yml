@@ -54,6 +54,11 @@ jobs:
           cache-dependency-path: requirements_test.txt
           check-latest: true
           allow-prereleases: ${{ matrix.unsupported }}
+      - name: Add test utils
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo systemctl mask nginx.service
+          sudo apt install nginx openssl
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
