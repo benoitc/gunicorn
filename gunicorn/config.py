@@ -2125,33 +2125,14 @@ class SSLVersion(Setting):
     section = "SSL"
     cli = ["--ssl-version"]
     validator = validate_ssl_version
+    default = object()  # always warn unless left at default
+    default_doc = "(ignored)"
 
-    if hasattr(ssl, "PROTOCOL_TLS"):
-        default = ssl.PROTOCOL_TLS
-    else:
-        default = ssl.PROTOCOL_SSLv23
-
-    default = ssl.PROTOCOL_SSLv23
     desc = """\
     SSL version to use (see stdlib ssl module's).
 
     .. deprecated:: 21.0
-       The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
-
-    ============= ============
-    --ssl-version Description
-    ============= ============
-    SSLv3         SSLv3 is not-secure and is strongly discouraged.
-    SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
-    TLS           Negotiate highest possible version between client/server.
-                  Can yield SSL. (Python 3.6+)
-    TLSv1         TLS 1.0
-    TLSv1_1       TLS 1.1 (Python 3.4+)
-    TLSv1_2       TLS 1.2 (Python 3.4+)
-    TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
-                  but only support server-side SSLSocket connections.
-                  (Python 3.6+)
-    ============= ============
+       The option is deprecated and it is currently **ignored**. Use :ref:`ssl-context` instead.
 
     .. versionchanged:: 19.7
        The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
