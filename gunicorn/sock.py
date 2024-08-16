@@ -107,7 +107,7 @@ class UnixSocket(BaseSocket):
             try:
                 st = os.stat(addr)
             except OSError as e:
-                if e.args[0] != errno.ENOENT:
+                if e.errno != errno.ENOENT:
                     raise
             else:
                 if stat.S_ISSOCK(st.st_mode):
@@ -183,9 +183,9 @@ def create_sockets(conf, log, fds=None):
             try:
                 sock = sock_type(addr, conf, log)
             except OSError as e:
-                if e.args[0] == errno.EADDRINUSE:
+                if e.errno == errno.EADDRINUSE:
                     log.error("Connection in use: %s", str(addr))
-                if e.args[0] == errno.EADDRNOTAVAIL:
+                if e.errno == errno.EADDRNOTAVAIL:
                     log.error("Invalid address: %s", str(addr))
                 msg = "connection to {addr} failed: {error}"
                 log.error(msg.format(addr=str(addr), error=str(e)))

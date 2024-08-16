@@ -74,12 +74,12 @@ class Pidfile:
                     os.kill(wpid, 0)
                     return wpid
                 except OSError as e:
-                    if e.args[0] == errno.EPERM:
+                    if e.errno == errno.EPERM:
                         return wpid
-                    if e.args[0] == errno.ESRCH:
+                    if e.errno == errno.ESRCH:
                         return
                     raise
         except OSError as e:
-            if e.args[0] == errno.ENOENT:
+            if e.errno == errno.ENOENT:
                 return
             raise

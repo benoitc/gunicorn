@@ -40,9 +40,9 @@ class SyncWorker(base.Worker):
                 return ret[0]
 
         except OSError as e:
-            if e.args[0] == errno.EINTR:
+            if e.errno == errno.EINTR:
                 return self.sockets
-            if e.args[0] == errno.EBADF:
+            if e.errno == errno.EBADF:
                 if self.nr < 0:
                     return self.sockets
                 else:
