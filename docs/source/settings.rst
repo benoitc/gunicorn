@@ -1635,14 +1635,14 @@ libraries may be installed using setuptools' ``extras_require`` feature.
 A string referring to one of the following bundled classes:
 
 * ``sync``
+* ``gthread``
 * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
-  ``pip install gunicorn[eventlet]``)
+  ``pip install gunicorn[eventlet]``).
+  Usages in new projects are discouraged.
 * ``gevent``   - Requires gevent >= 1.4 (or install it via
   ``pip install gunicorn[gevent]``)
 * ``tornado``  - Requires tornado >= 0.2 (or install it via
   ``pip install gunicorn[tornado]``)
-* ``gthread``  - Python 2 requires the futures package to be installed
-  (or install it via ``pip install gunicorn[gthread]``)
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
