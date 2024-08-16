@@ -1151,8 +1151,10 @@ Note that this affects unix socket permissions.
 
 A valid value for the ``os.umask(mode)`` call or a string compatible
 with ``int(value, 0)`` (``0`` means Python guesses the base, so values
-like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
+like ``0``, ``0xFF``, ``0o022`` are valid for decimal, hex, and octal
 representations)
+
+.. note:: For historical reasons, leading zero is treated like ``0o``.
 
 .. _initgroups:
 
