@@ -1100,6 +1100,10 @@ A filename to use for the PID file.
 
 If not set, no PID file will be written.
 
+.. note::
+   During master re-exec, a ``.2`` suffix is added to
+   this path to store the PID of the newly launched master.
+
 .. _worker-tmp-dir:
 
 ``worker_tmp_dir``

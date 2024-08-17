@@ -60,7 +60,9 @@ class Arbiter:
         self.pidfile = None
         self.systemd = False
         self.worker_age = 0
+        # old master has != 0 until new master is dead or promoted
         self.reexec_pid = 0
+        # new master has != 0 until old master is dead (until promotion)
         self.master_pid = 0
         self.master_name = "Master"
 
@@ -413,8 +415,10 @@ class Arbiter:
         master_pid = os.getpid()
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
+            # old master
             return
 
+        # new master
         self.cfg.pre_exec(self)
 
         environ = self.cfg.env_orig.copy()
@@ -519,7 +523,13 @@ class Arbiter:
                     break
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
+                    self.log.info("Master exited before promotion.")
+                    continue
                 else:
+                    worker = self.WORKERS.pop(wpid, None)
+                    if not worker:
+                        self.log.debug("Non-worker subprocess (pid:%s) exited", wpid)
+                        continue
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
@@ -554,9 +564,6 @@ class Arbiter:
                             msg += " Perhaps out of memory?"
                         self.log.error(msg)
 
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:
