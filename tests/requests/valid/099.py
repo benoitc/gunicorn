@@ -270,5 +270,9 @@ Content-Disposition: form-data; name="foobar_manager_record_domain-8-INITIAL_FOR
 
 0
 ---------------------
-""".decode('utf-8').replace('\n', '\r\n').encode('utf-8'),
+""".decode(
+        'utf-8'
+    )
+    .replace('\n', '\r\n')
+    .encode('utf-8'),
 }

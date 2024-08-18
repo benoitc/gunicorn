@@ -5,7 +5,7 @@ request = {
     "headers": [
         ("SERVER", "http://127.0.0.1:5984"),
         ("CONTENT-TYPE", "application/json"),
-        ("CONTENT-LENGTH", "14")
+        ("CONTENT-LENGTH", "14"),
     ],
-    "body": b'{"nom": "nom"}'
+    "body": b'{"nom": "nom"}',
 }

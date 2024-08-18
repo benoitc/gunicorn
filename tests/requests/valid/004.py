@@ -3,7 +3,7 @@ request = {
     "uri": uri("/silly"),
     "version": (1, 1),
     "headers": [
-        ("AAAAAAAAAAAAA", "++++++++++")
+        ("AAAAAAAAAAAAA", "++++++++++"),
     ],
-    "body": b""
+    "body": b"",
 }

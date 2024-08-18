@@ -1,7 +1,3 @@
-from gunicorn.config import Config
-
-cfg = Config()
-
 request = {
     "method": "GET",
     "uri": uri("/stuff/here?foo=bar"),
@@ -10,5 +6,5 @@ request = {
         ('TRANSFER-ENCODING', 'identity'),
         ('TRANSFER-ENCODING', 'chunked'),
     ],
-    "body": b"hello"
+    "body": b"hello",
 }

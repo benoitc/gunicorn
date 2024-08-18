@@ -1,6 +1,3 @@
-from gunicorn.config import Config
-
-cfg = Config()
 cfg.set("proxy_protocol", True)
 
 req1 = {
@@ -11,9 +8,9 @@ req1 = {
         ("SERVER", "http://127.0.0.1:5984"),
         ("CONTENT-TYPE", "application/json"),
         ("CONTENT-LENGTH", "14"),
-        ("CONNECTION", "keep-alive")
+        ("CONNECTION", "keep-alive"),
     ],
-    "body": b'{"nom": "nom"}'
+    "body": b'{"nom": "nom"}',
 }
 
 
@@ -23,8 +20,8 @@ req2 = {
     "version": (1, 1),
     "headers": [
         ("TRANSFER-ENCODING", "chunked"),
-        ],
-    "body": b"all your base are belong to us"
+    ],
+    "body": b"all your base are belong to us",
 }
 
 request = [req1, req2]

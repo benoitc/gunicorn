@@ -1,7 +1,5 @@
 from gunicorn.http.errors import ObsoleteFolding
-from gunicorn.config import Config
 
-cfg = Config()
 cfg.set('permit_obsolete_folding', True)
 
 request = {
@@ -12,5 +10,5 @@ request = {
         ("LONG", "one two"),
         ("HOST", "localhost"),
     ],
-    "body": b""
+    "body": b"",
 }

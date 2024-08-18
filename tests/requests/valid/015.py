@@ -5,7 +5,7 @@ request = {
     "headers": [
         ("HOST", "0.0.0.0:5000"),
         ("USER-AGENT", "ApacheBench/2.3"),
-        ("ACCEPT", "*/*")
+        ("ACCEPT", "*/*"),
     ],
-    "body": b""
+    "body": b"",
 }

@@ -1,6 +1,3 @@
-from gunicorn.config import Config
-
-cfg = Config()
 cfg.set("strip_header_spaces", True)
 
 request = {
@@ -10,5 +7,5 @@ request = {
     "headers": [
         ("CONTENT-LENGTH", "3"),
     ],
-    "body": b"xyz"
+    "body": b"xyz",
 }
