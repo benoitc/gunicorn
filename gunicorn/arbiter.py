@@ -42,6 +42,7 @@ class Arbiter:
     SIG_QUEUE = queue.SimpleQueue()
     SIGNALS = [getattr(signal.Signals, "SIG%s" % x)
                for x in "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+    WAKEUP_REQUEST = signal.NSIG
 
     def __init__(self, app):
         os.environ["SERVER_SOFTWARE"] = SERVER_SOFTWARE
@@ -180,11 +181,17 @@ class Arbiter:
 
     def signal(self, sig, frame):
         """ Note: Signal handler! No logging allowed. """
-        self.SIG_QUEUE.put(sig)
+        self.wakeup(due_to_signal=sig)
 
         # Some UNIXes require SIGCHLD to be reinstalled, see python signal docs
         if sig == signal.SIGCHLD:
             signal.signal(sig, self.signal)
+
+    def wakeup(self, due_to_signal=None):
+        """\
+        Wake up the main master loop.
+        """
+        self.SIG_QUEUE.put(due_to_signal or self.WAKEUP_REQUEST)
 
     def run(self):
         "Main master loop."
@@ -199,9 +206,10 @@ class Arbiter:
 
                 try:
                     sig = self.SIG_QUEUE.get(timeout=1)
-                    if sig != signal.SIGCHLD:
-                        self.log.info("Handling signal: %s", signal.Signals(sig).name)
-                    self.SIG_HANDLERS[sig]()
+                    if sig != self.WAKEUP_REQUEST:
+                        if sig != signal.SIGCHLD:
+                            self.log.info("Handling signal: %s", signal.Signals(sig).name)
+                        self.SIG_HANDLERS[sig]()
                 except queue.Empty:
                     pass
 
