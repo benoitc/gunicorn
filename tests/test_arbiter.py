@@ -72,17 +72,20 @@ def test_arbiter_stop_does_not_unlink_when_using_reuse_port(close_sockets):
 @mock.patch('os.getpid')
 @mock.patch('os.fork')
 @mock.patch('os.execve')
-def test_arbiter_reexec_passing_systemd_sockets(execve, fork, getpid):
+@mock.patch('gunicorn.systemd.sd_notify')
+def test_arbiter_reexec_passing_systemd_sockets(sd_notify, execve, fork, getpid):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     arbiter.LISTENERS = [mock.Mock(), mock.Mock()]
     arbiter.systemd = True
     fork.return_value = 0
-    getpid.side_effect = [2, 3]
+    sd_notify.return_value = None
+    getpid.side_effect = [2, 3, 3]  # 2 getpid calls in new master
     arbiter.reexec()
     environ = execve.call_args[0][2]
     assert environ['GUNICORN_PID'] == '2'
     assert environ['LISTEN_FDS'] == '2'
     assert environ['LISTEN_PID'] == '3'
+    sd_notify.assert_called_once()
 
 
 @mock.patch('os.getpid')

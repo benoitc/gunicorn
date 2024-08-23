@@ -256,7 +256,10 @@ class Arbiter:
         - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s", self.master_name)
+        systemd.sd_notify("RELOADING=1\nSTATUS=Gunicorn arbiter reloading..", self.log)
         self.reload()
+        # possibly premature, newly launched workers might have failed
+        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter reloaded", self.log)
 
     def handle_term(self):
         "SIGTERM handling"
@@ -332,6 +335,8 @@ class Arbiter:
                 self.pidfile.rename(self.cfg.pidfile)
             # reset proctitle
             util._setproctitle("master [%s]" % self.proc_name)
+            # MAINPID does not change here, it was already set on fork
+            systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter promoted" % (os.getpid(), ), self.log)
 
     def wakeup(self):
         """\
@@ -437,6 +442,9 @@ class Arbiter:
         os.chdir(self.START_CTX['cwd'])
 
         # exec the process using the original environment
+        self.log.debug("exe=%r argv=%r" % (self.START_CTX[0], self.START_CTX['args']))
+        # let systemd know are are in control
+        systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec" % (master_pid, ), self.log)
         os.execve(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
@@ -527,6 +535,8 @@ class Arbiter:
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                     self.log.info("Master exited before promotion.")
+                    # let systemd know we are (back) in control
+                    systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec aborted" % (os.getpid(), ), self.log)
                     continue
                 else:
                     worker = self.WORKERS.pop(wpid, None)
