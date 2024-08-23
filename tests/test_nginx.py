@@ -273,7 +273,11 @@ def generate_dummy_ssl_cert(cert_path, key_path):
             "req",
             "-new",
             "-newkey",
-            "ed25519",
+            # "ed25519",
+            #  OpenBSD 7.5 / LibreSSL 3.9.0 / Python 3.10.13
+            #  ssl.SSLError: [SSL: UNKNOWN_CERTIFICATE_TYPE] unknown certificate type (_ssl.c:3900)
+            # workaround: use RSA keys for testing
+            "rsa",
             "-outform",
             "PEM",
             "-subj",
