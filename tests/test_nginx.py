@@ -260,8 +260,8 @@ class NginxProcess(SubProcess):
             f.write(config)
         self._argv = [
             CMD_NGINX,
-            "-e",
-            "stderr",
+            # nginx 1.19.5+ added the -e cmdline flag - may be testing earlier
+            # "-e", "stderr",
             "-c",
             "%s" % self.conf_path,
         ]
