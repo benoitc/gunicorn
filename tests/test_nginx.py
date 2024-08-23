@@ -10,10 +10,12 @@
 import importlib
 import os
 import secrets
+import shutil
 import signal
 import subprocess
 import sys
 import time
+from itertools import chain
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
@@ -61,7 +63,7 @@ WORKER_DEPENDS = {
     "gevent_pywsgi": ["gevent"],
     "tornado": ["tornado"],
 }
-DEP_WANTED = set(sum(WORKER_DEPENDS.values(), start=[]))  # type: set[str]
+DEP_WANTED = set(chain(*WORKER_DEPENDS.values()))  # type: set[str]
 DEP_INSTALLED = set()  # type: set[str]
 
 for dependency in DEP_WANTED:
