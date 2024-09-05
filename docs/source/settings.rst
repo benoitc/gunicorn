@@ -443,7 +443,7 @@ Address is a string of the form:
 **Default:** ``''``
 
 A comma-delimited list of datadog statsd (dogstatsd) tags to append to
-statsd metrics.
+statsd metrics. e.g. 'tag1:value1,tag2:value2'
 
 .. versionadded:: 20
 
