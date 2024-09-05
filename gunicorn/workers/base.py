@@ -264,7 +264,7 @@ class Worker:
             if hasattr(req, "uri"):
                 self.log.exception("Error handling request %s", req.uri)
             else:
-                self.log.exception("Error handling request (no URI read)")
+                self.log.debug("Error handling request (no URI read)")
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
