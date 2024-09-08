@@ -1,0 +1,67 @@
+name: bsd
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '*.py'
+      - 'tox.ini'
+      - '.github/workflows/bsd.yml'
+  pull_request:
+    branches:
+      - master
+permissions:
+  # BOLD WARNING: do not add permissions, this workflow executes remote code
+  contents: read
+env:
+  FORCE_COLOR: 1
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  freebsd:
+    name: freebsd
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          prepare: pkg install -y nginx python311 py311-pip py311-tox py311-sqlite3
+          usesh: true
+          copyback: false
+          # not a typo: "openssl --version" != "openssl version"
+          run: |
+            uname -a \
+            && python3.11 --version \
+            && python3.11 -m tox --version \
+            && openssl version \
+            && pkg info nginx \
+            && python3.11 -m tox -e run-module \
+            && python3.11 -m tox -e run-entrypoint \
+            && python3.11 -m tox -e py
+
+  openbsd:
+    name: openbsd
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1
+        with:
+          prepare: pkg_add python py3-pip py3-tox py3-sqlite3 nginx
+          usesh: true
+          copyback: false
+          run: |
+            uname -a \
+            && python3 --version \
+            && python3 -m tox --version \
+            && openssl version \
+            && pkg_info nginx \
+            && python3 -m tox -e run-module \
+            && python3 -m tox -e run-entrypoint \
+            && python3 -m tox -e py

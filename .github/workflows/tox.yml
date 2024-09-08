@@ -1,5 +1,11 @@
 name: tox
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 permissions:
   contents: read # to fetch code (actions/checkout)
 env:
@@ -19,7 +25,7 @@ jobs:
          - ubuntu-latest
          # not defaulting to macos-latest: Python <= 3.9 was missing from macos-14 @ arm64
          - macos-13
-         # Not testing Windows, because tests need Unix-only fcntl, grp, pwd, etc.
+         # Not testing Windows, because tests need Unix-only non-blocking pipes, grp, pwd, etc.
         python-version:
          # CPython <= 3.7 is EoL since 2023-06-27
          - "3.7"
@@ -54,6 +60,11 @@ jobs:
           cache-dependency-path: requirements_test.txt
           check-latest: true
           allow-prereleases: ${{ matrix.unsupported }}
+      - name: Add test utils
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo systemctl mask nginx.service
+          sudo apt install nginx openssl
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip

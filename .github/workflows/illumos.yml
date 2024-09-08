@@ -1,0 +1,52 @@
+name: illumos
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '*.py'
+      - 'tox.ini'
+      - '.github/workflows/illumos.yml'
+  pull_request:
+    branches:
+      - master
+permissions:
+  # BOLD WARNING: do not add permissions, this workflow executes remote code
+  contents: read
+env:
+  FORCE_COLOR: 1
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  omnios:
+    name: illumos
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/omnios-vm@v1
+        with:
+          # need gcc: compile greenlet from source
+          # autoconf must pretend inotify unavail: libev FTBFS
+          # /tmp/.nginx must exist because nginx will not create configured tmp
+          prepare: |
+            pkg install pip-311 python-311 sqlite-3 nginx gcc13
+          usesh: true
+          copyback: false
+          run: |
+            cat /etc/release \
+            && uname -a \
+            && python3 --version \
+            && openssl version \
+            && pkg info nginx \
+            && gcc -dM -E - </dev/null \
+            && ac_cv_header_sys_inotify_h=no ac_cv_func_inotify_init=no python3 -m pip install gevent \
+            && mkdir -p /tmp/.nginx \
+            && python3 -m pip install tox \
+            && python3 -m tox --version \
+            && python3 -m tox -e run-module \
+            && python3 -m tox -e run-entrypoint \
+            && python3 -m tox -e py
