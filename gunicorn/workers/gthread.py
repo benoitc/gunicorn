@@ -280,6 +280,7 @@ class ThreadWorker(base.Worker):
             # handle the request
             keepalive = self.handle_request(req, conn)
             if keepalive:
+                conn.parser.finish()
                 return (keepalive, conn)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)

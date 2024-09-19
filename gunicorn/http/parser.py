@@ -25,17 +25,17 @@ class Parser:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def finish(self):
         # Stop if HTTP dictates a stop.
         if self.mesg and self.mesg.should_close():
             raise StopIteration()
-
         # Discard any unread body of the previous message
         if self.mesg:
             data = self.mesg.body.read(8192)
             while data:
                 data = self.mesg.body.read(8192)
 
+    def __next__(self):
         # Parse the next request
         self.req_count += 1
         self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
