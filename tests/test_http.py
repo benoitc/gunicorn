@@ -137,6 +137,14 @@ def test_unreader_unread():
     assert b'hi there' in unreader.read()
 
 
+def test_unreader_unread_should_place_data_at_the_beginning_of_the_buffer():
+    unreader = IterUnreader([b"abc", b"def"])
+    ab = unreader.read(2)
+    unreader.unread(ab)
+
+    assert unreader.read(None) == b"abc"
+
+
 def test_unreader_read_zero_size():
     unreader = Unreader()
     unreader.chunk = mock.MagicMock(side_effect=[b'qwerty', b'asdfgh'])
