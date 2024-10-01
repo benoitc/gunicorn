@@ -75,7 +75,7 @@ WSGI application, this is not a recommended configuration.
 AsyncIO Workers
 ---------------
 
-Third-party workers can be usedd to use Gunicorn with asyncio frameworks. 
+Third-party workers can be used to use Gunicorn with asyncio frameworks. 
 
 Choosing a Worker Type
 ======================
