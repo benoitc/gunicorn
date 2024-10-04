@@ -550,7 +550,7 @@ class Arbiter:
                         # Additional hint for SIGKILL
                         if status == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
-                        self.log.error(msg)
+                        self.log.warning(msg)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
