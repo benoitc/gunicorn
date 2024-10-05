@@ -478,12 +478,22 @@ class Arbiter:
         # set new proc_name
         util._setproctitle("master [%s]" % self.proc_name)
 
+        last_worker_to_kill = self.worker_age
+
         # spawn new workers
         for _ in range(self.cfg.workers):
             self.spawn_worker()
 
         # manage workers
         self.manage_workers()
+
+        # wait for all old workers to be replaced
+        deadline = time.monotonic() + self.cfg.graceful_timeout
+        while time.monotonic() < deadline:
+            oldest_worker = list(self.WORKERS.values())[0].age
+            if oldest_worker > last_worker_to_kill:
+                break
+            time.sleep(0.1)
 
     def murder_workers(self):
         """\
