@@ -15,7 +15,7 @@ class StatsdTestException(Exception):
     pass
 
 
-class MockSocket(object):
+class MockSocket:
     "Pretend to be a UDP socket"
     def __init__(self, failp):
         self.failp = failp

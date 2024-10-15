@@ -11,6 +11,11 @@ Changelog - 2023
 
 This is fixing the bad file description error.
 
+21.1.0 - 2023-07-18
+===================
+
+- fix thread worker: fix socket removal from the queue
+
 21.0.1 - 2023-07-17
 ===================
 

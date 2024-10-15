@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # An example of a standalone application using the internal API of Gunicorn.
 #

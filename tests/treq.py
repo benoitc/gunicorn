@@ -39,7 +39,7 @@ def load_py(fname):
     return vars(mod)
 
 
-class request(object):
+class request:
     def __init__(self, fname, expect):
         self.fname = fname
         self.name = os.path.basename(fname)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -53,7 +52,7 @@ class InvalidHTTPVersion(ParseException):
         self.version = version
 
     def __str__(self):
-        return "Invalid HTTP Version: %r" % self.version
+        return "Invalid HTTP Version: %r" % (self.version,)
 
 
 class InvalidHeader(ParseException):
@@ -63,6 +62,14 @@ class InvalidHeader(ParseException):
 
     def __str__(self):
         return "Invalid HTTP Header: %r" % self.hdr
+
+
+class ObsoleteFolding(ParseException):
+    def __init__(self, hdr):
+        self.hdr = hdr
+
+    def __str__(self):
+        return "Obsolete line folding is unacceptable: %r" % (self.hdr, )
 
 
 class InvalidHeaderName(ParseException):

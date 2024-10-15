@@ -1,0 +1,4 @@
+GET / HTTP/1.1\r\n
+Host: localhost\r\n
+Name: \t value \t \r\n
+\r\n

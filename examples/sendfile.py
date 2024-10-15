@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -9,7 +8,7 @@ import os
 from wsgiref.validate import validator
 
 
-@validator
+# @validator  # breaks sendfile
 def app(environ, start_response):
     """Simplest possible application object"""
     status = '200 OK'

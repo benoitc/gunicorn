@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -98,6 +97,8 @@ class Statsd(Logger):
         Logger.access(self, resp, req, environ, request_time)
         duration_in_ms = request_time.seconds * 1000 + float(request_time.microseconds) / 10 ** 3
         status = resp.status
+        if isinstance(status, bytes):
+            status = status.decode('utf-8')
         if isinstance(status, str):
             status = int(status.split(None, 1)[0])
         self.histogram("gunicorn.request.duration", duration_in_ms)

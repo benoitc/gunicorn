@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -9,6 +8,7 @@ import argparse
 import copy
 import grp
 import inspect
+import ipaddress
 import os
 import pwd
 import re
@@ -43,7 +43,7 @@ def auto_int(_, x):
     return int(x, 0)
 
 
-class Config(object):
+class Config:
 
     def __init__(self, usage=None, prog=None):
         self.settings = make_settings()
@@ -103,18 +103,20 @@ class Config(object):
     def worker_class_str(self):
         uri = self.settings['worker_class'].get()
 
-        # are we using a threaded worker?
-        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
-        if is_sync and self.threads > 1:
-            return "gthread"
-        return uri
+        if isinstance(uri, str):
+            # are we using a threaded worker?
+            is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+            if is_sync and self.threads > 1:
+                return "gthread"
+            return uri
+        return uri.__name__
 
     @property
     def worker_class(self):
         uri = self.settings['worker_class'].get()
 
         # are we using a threaded worker?
-        is_sync = uri.endswith('SyncWorker') or uri == 'sync'
+        is_sync = isinstance(uri, str) and (uri.endswith('SyncWorker') or uri == 'sync')
         if is_sync and self.threads > 1:
             uri = "gunicorn.workers.gthread.ThreadWorker"
 
@@ -253,7 +255,7 @@ class SettingMeta(type):
         setattr(cls, "short", desc.splitlines()[0])
 
 
-class Setting(object):
+class Setting:
     name = None
     value = None
     section = None
@@ -398,6 +400,17 @@ def validate_list_string(val):
 
 def validate_list_of_existing_files(val):
     return [validate_file_exists(v) for v in validate_list_string(val)]
+
+
+def validate_string_to_addr_list(val):
+    val = validate_string_to_list(val)
+
+    for addr in val:
+        if addr == "*":
+            continue
+        _vaid_ip = ipaddress.ip_address(addr)
+
+    return val
 
 
 def validate_string_to_list(val):
@@ -1236,7 +1249,7 @@ class SecureSchemeHeader(Setting):
 
         A dictionary containing headers and values that the front-end proxy
         uses to indicate HTTPS requests. If the source IP is permitted by
-        ``forwarded-allow-ips`` (below), *and* at least one request header matches
+        :ref:`forwarded-allow-ips` (below), *and* at least one request header matches
         a key-value pair listed in this dictionary, then Gunicorn will set
         ``wsgi.url_scheme`` to ``https``, so your application can tell that the
         request is secure.
@@ -1260,18 +1273,24 @@ class ForwardedAllowIPS(Setting):
     section = "Server Mechanics"
     cli = ["--forwarded-allow-ips"]
     meta = "STRING"
-    validator = validate_string_to_list
-    default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+    validator = validate_string_to_addr_list
+    default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1,::1")
     desc = """\
         Front-end's IPs from which allowed to handle set secure headers.
-        (comma separate).
+        (comma separated).
 
-        Set to ``*`` to disable checking of Front-end IPs (useful for setups
-        where you don't know in advance the IP address of Front-end, but
-        you still trust the environment).
+        Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+        where you don't know in advance the IP address of front-end, but
+        instead have ensured via other means that only your
+        authorized front-ends can access Gunicorn.
 
         By default, the value of the ``FORWARDED_ALLOW_IPS`` environment
-        variable. If it is not defined, the default is ``"127.0.0.1"``.
+        variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
+
+        .. note::
+
+            This option does not affect UNIX socket connections. Connections not associated with
+            an IP address are treated as allowed, unconditionally.
 
         .. note::
 
@@ -1383,7 +1402,7 @@ class AccessLogFormat(Setting):
         ===========  ===========
         h            remote address
         l            ``'-'``
-        u            user name
+        u            user name (if HTTP Basic auth used)
         t            date of the request
         r            status line (e.g. ``GET / HTTP/1.1``)
         m            request method
@@ -1393,7 +1412,7 @@ class AccessLogFormat(Setting):
         s            status
         B            response length
         b            response length or ``'-'`` (CLF format)
-        f            referer
+        f            referrer (note: header is ``referer``)
         a            user agent
         T            request time in seconds
         M            request time in milliseconds
@@ -1504,7 +1523,7 @@ class LogConfigDict(Setting):
     desc = """\
     The log config dictionary to use, using the standard Python
     logging module's dictionary configuration format. This option
-    takes precedence over the :ref:`logconfig` and :ref:`logConfigJson` options,
+    takes precedence over the :ref:`logconfig` and :ref:`logconfig-json` options,
     which uses the older file configuration format and JSON
     respectively.
 
@@ -2060,14 +2079,20 @@ class ProxyAllowFrom(Setting):
     name = "proxy_allow_ips"
     section = "Server Mechanics"
     cli = ["--proxy-allow-from"]
-    validator = validate_string_to_list
-    default = "127.0.0.1"
+    validator = validate_string_to_addr_list
+    default = "127.0.0.1,::1"
     desc = """\
-        Front-end's IPs from which allowed accept proxy requests (comma separate).
+        Front-end's IPs from which allowed accept proxy requests (comma separated).
 
-        Set to ``*`` to disable checking of Front-end IPs (useful for setups
-        where you don't know in advance the IP address of Front-end, but
-        you still trust the environment)
+        Set to ``*`` to disable checking of front-end IPs. This is useful for setups
+        where you don't know in advance the IP address of front-end, but
+        instead have ensured via other means that only your
+        authorized front-ends can access Gunicorn.
+
+        .. note::
+
+            This option does not affect UNIX socket connections. Connections not associated with
+            an IP address are treated as allowed, unconditionally.
         """
 
 
@@ -2152,7 +2177,7 @@ class CertReqs(Setting):
     ===========  ===========================
     --cert-reqs      Description
     ===========  ===========================
-    `0`          no client veirifcation
+    `0`          no client verification
     `1`          ssl.CERT_OPTIONAL
     `2`          ssl.CERT_REQUIRED
     ===========  ===========================
@@ -2241,6 +2266,27 @@ class PasteGlobalConf(Setting):
         """
 
 
+class PermitObsoleteFolding(Setting):
+    name = "permit_obsolete_folding"
+    section = "Server Mechanics"
+    cli = ["--permit-obsolete-folding"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Permit requests employing obsolete HTTP line folding mechanism
+
+        The folding mechanism was deprecated by rfc7230 Section 3.2.4 and will not be
+         employed in HTTP request headers from standards-compliant HTTP clients.
+
+        This option is provided to diagnose backwards-incompatible changes.
+        Use with care and only if necessary. Temporary; the precise effect of this option may
+        change in a future version, or it may be removed altogether.
+
+        .. versionadded:: 23.0.0
+        """
+
+
 class StripHeaderSpaces(Setting):
     name = "strip_header_spaces"
     section = "Server Mechanics"
@@ -2254,7 +2300,7 @@ class StripHeaderSpaces(Setting):
         This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
         See https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn.
 
-        Use with care and only if necessary. May be removed in a future version.
+        Use with care and only if necessary. Deprecated; scheduled for removal in 25.0.0
 
         .. versionadded:: 20.0.1
         """
@@ -2274,9 +2320,13 @@ class PermitUnconventionalHTTPMethod(Setting):
         methods with lowercase characters or methods containing the # character.
         HTTP methods are case sensitive by definition, and merely uppercase by convention.
 
-        This option is provided to diagnose backwards-incompatible changes.
+        If unset, Gunicorn will apply nonstandard restrictions and cause 400 response status
+        in cases where otherwise 501 status is expected. While this option does modify that
+        behaviour, it should not be depended upon to guarantee standards-compliant behaviour.
+        Rather, it is provided temporarily, to assist in diagnosing backwards-incompatible
+        changes around the incomplete application of those restrictions.
 
-        Use with care and only if necessary. May be removed in a future version.
+        Use with care and only if necessary. Temporary; scheduled for removal in 24.0.0
 
         .. versionadded:: 22.0.0
         """
@@ -2296,7 +2346,8 @@ class PermitUnconventionalHTTPVersion(Setting):
         It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
 
         This option is provided to diagnose backwards-incompatible changes.
-        Use with care and only if necessary. May be removed in a future version.
+        Use with care and only if necessary. Temporary; the precise effect of this option may
+        change in a future version, or it may be removed altogether.
 
         .. versionadded:: 22.0.0
         """
@@ -2316,7 +2367,7 @@ class CasefoldHTTPMethod(Setting):
 
          This option is provided because previous versions of gunicorn defaulted to this behaviour.
 
-         Use with care and only if necessary. May be removed in a future version.
+         Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
 
          .. versionadded:: 22.0.0
          """
@@ -2340,6 +2391,27 @@ def validate_header_map_behaviour(val):
         raise ValueError("Invalid header map behaviour: %s" % val)
 
 
+class ForwarderHeaders(Setting):
+    name = "forwarder_headers"
+    section = "Server Mechanics"
+    cli = ["--forwarder-headers"]
+    validator = validate_string_to_list
+    default = "SCRIPT_NAME,PATH_INFO"
+    desc = """\
+
+        A list containing upper-case header field names that the front-end proxy
+        (see :ref:`forwarded-allow-ips`) sets, to be used in WSGI environment.
+
+        This option has no effect for headers not present in the request.
+
+        This option can be used to transfer ``SCRIPT_NAME``, ``PATH_INFO``
+        and ``REMOTE_USER``.
+
+        It is important that your front-end proxy configuration ensures that
+        the headers defined here can not be passed directly from the client.
+        """
+
+
 class HeaderMap(Setting):
     name = "header_map"
     section = "Server Mechanics"
@@ -2355,30 +2427,16 @@ class HeaderMap(Setting):
 
         The safe default ``drop`` is to silently drop headers that cannot be unambiguously mapped.
         The value ``refuse`` will return an error if a request contains *any* such header.
-        The value ``dangerous`` matches the previous, not advisabble, behaviour of mapping different
+        The value ``dangerous`` matches the previous, not advisable, behaviour of mapping different
         header field names into the same environ name.
+
+        If the source is permitted as explained in :ref:`forwarded-allow-ips`, *and* the header name is
+        present in :ref:`forwarder-headers`, the header is mapped into environment regardless of
+        the state of this setting.
 
         Use with care and only if necessary and after considering if your problem could
         instead be solved by specifically renaming or rewriting only the intended headers
         on a proxy in front of Gunicorn.
-
-        .. versionadded:: 22.0.0
-        """
-
-
-class TolerateDangerousFraming(Setting):
-    name = "tolerate_dangerous_framing"
-    section = "Server Mechanics"
-    cli = ["--tolerate-dangerous-framing"]
-    validator = validate_bool
-    action = "store_true"
-    default = False
-    desc = """\
-        Process requests with both Transfer-Encoding and Content-Length
-
-        This is known to induce vulnerabilities, but not strictly forbidden by RFC9112.
-
-        Use with care and only if necessary. May be removed in a future version.
 
         .. versionadded:: 22.0.0
         """

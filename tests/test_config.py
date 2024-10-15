@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -13,6 +12,7 @@ from gunicorn import config
 from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
+from gunicorn.util import load_class
 from gunicorn.workers.sync import SyncWorker
 from gunicorn import glogging
 from gunicorn.instrument import statsd
@@ -32,7 +32,7 @@ def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
 
-class AltArgs(object):
+class AltArgs:
     def __init__(self, args=None):
         self.args = args or []
         self.orig = sys.argv
@@ -55,12 +55,28 @@ class NoConfigApp(Application):
         pass
 
 
+class CustomWorker(SyncWorker):
+    pass
+
+
 class WSGIApp(WSGIApplication):
     def __init__(self):
         super().__init__("no_usage", prog="gunicorn_test")
 
     def load(self):
         pass
+
+
+def test_worker_class():
+
+    c = config.Config()
+    c.set("worker_class", CustomWorker)
+    assert c.worker_class == CustomWorker
+
+    try:
+        assert isinstance(load_class(c.worker_class), object)
+    except AttributeError:
+        pytest.fail("'load_class doesn't support type class argument'")
 
 
 def test_defaults():
@@ -98,7 +114,7 @@ def test_property_access():
     # Not a config property
     pytest.raises(AttributeError, getattr, c, "foo")
     # Force to be not an error
-    class Baz(object):
+    class Baz:
         def get(self):
             return 3.14
     c.settings["foo"] = Baz()
@@ -147,16 +163,33 @@ def test_str_validation():
     pytest.raises(TypeError, c.set, "proc_name", 2)
 
 
-def test_str_to_list_validation():
+def test_str_to_addr_list_validation():
     c = config.Config()
-    assert c.forwarded_allow_ips == ["127.0.0.1"]
-    c.set("forwarded_allow_ips", "127.0.0.1,192.168.0.1")
-    assert c.forwarded_allow_ips == ["127.0.0.1", "192.168.0.1"]
+    assert c.proxy_allow_ips == ["127.0.0.1", "::1"]
+    assert c.forwarded_allow_ips == ["127.0.0.1", "::1"]
+    c.set("forwarded_allow_ips", "127.0.0.1,192.0.2.1")
+    assert c.forwarded_allow_ips == ["127.0.0.1", "192.0.2.1"]
     c.set("forwarded_allow_ips", "")
     assert c.forwarded_allow_ips == []
     c.set("forwarded_allow_ips", None)
     assert c.forwarded_allow_ips == []
+    # demand addresses are specified unambiguously
     pytest.raises(TypeError, c.set, "forwarded_allow_ips", 1)
+    # demand networks are specified unambiguously
+    pytest.raises(ValueError, c.set, "forwarded_allow_ips", "127.0.0")
+    # detect typos
+    pytest.raises(ValueError, c.set, "forwarded_allow_ips", "::f:")
+
+
+def test_str_to_list():
+    c = config.Config()
+    assert c.forwarder_headers == ["SCRIPT_NAME", "PATH_INFO"]
+    c.set("forwarder_headers", "SCRIPT_NAME,REMOTE_USER")
+    assert c.forwarder_headers == ["SCRIPT_NAME", "REMOTE_USER"]
+    c.set("forwarder_headers", "")
+    assert c.forwarder_headers == []
+    c.set("forwarder_headers", None)
+    assert c.forwarder_headers == []
 
 
 def test_callable_validation():

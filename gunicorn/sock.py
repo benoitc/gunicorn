@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -14,7 +13,7 @@ import time
 from gunicorn import util
 
 
-class BaseSocket(object):
+class BaseSocket:
 
     def __init__(self, address, conf, log, fd=None):
         self.log = log
@@ -43,7 +42,7 @@ class BaseSocket(object):
                 and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            except socket.error as err:
+            except OSError as err:
                 if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL):
                     raise
         if not bound:
@@ -66,7 +65,7 @@ class BaseSocket(object):
 
         try:
             self.sock.close()
-        except socket.error as e:
+        except OSError as e:
             self.log.info("Error while closing socket %s", str(e))
 
         self.sock = None
@@ -183,15 +182,15 @@ def create_sockets(conf, log, fds=None):
         for i in range(5):
             try:
                 sock = sock_type(addr, conf, log)
-            except socket.error as e:
+            except OSError as e:
                 if e.args[0] == errno.EADDRINUSE:
                     log.error("Connection in use: %s", str(addr))
                 if e.args[0] == errno.EADDRNOTAVAIL:
                     log.error("Invalid address: %s", str(addr))
+                msg = "connection to {addr} failed: {error}"
+                log.error(msg.format(addr=str(addr), error=str(e)))
                 if i < 5:
-                    msg = "connection to {addr} failed: {error}"
-                    log.debug(msg.format(addr=str(addr), error=str(e)))
-                    log.error("Retrying in 1 second.")
+                    log.debug("Retrying in 1 second.")
                     time.sleep(1)
             else:
                 break
