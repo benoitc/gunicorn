@@ -81,7 +81,11 @@ class AsyncWorker(base.Worker):
                     self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except BaseException as e:
+        except self.WORKAROUND_BASE_EXCEPTIONS as e:
+            self.log.warning("Catched async exception (compat workaround). "
+                             "If this is not a bug in your app, please file a report.")
+            self.handle_error(req, client, addr, e)
+        except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)

@@ -123,6 +123,8 @@ def patch_sendfile():
 
 class EventletWorker(AsyncWorker):
 
+    WORKAROUND_BASE_EXCEPTIONS = (eventlet.Timeout, )
+
     def patch(self):
         hubs.use_hub()
         eventlet.monkey_patch()
