@@ -64,3 +64,6 @@ class FakeSocket:
 
     def seek(self, offset, whence=0):
         self.tmp.seek(offset, whence)
+
+    def close(self):
+        self.tmp.close()
