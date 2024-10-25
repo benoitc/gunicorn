@@ -4,6 +4,7 @@
 
 import os
 import socket
+import time
 
 SD_LISTEN_FDS_START = 3
 
@@ -66,6 +67,13 @@ def sd_notify(state, logger, unset_environment=False):
         if addr[0] == '@':
             addr = '\0' + addr[1:]
         sock.connect(addr)
+        assert state.endswith("\n")
+        if "RELOADING" in state:  # broad, but systemd man promises tolerating
+            # wrong clock on some platforms.. but this is only needed on Linux
+            # nsec = 10**-9
+            # usec = 10**-6
+            state += "MONOTONIC_USEC=%d\n" % (1_000*time.monotonic_ns(), )
+        logger.debug("sd_notify: %r" % (state, ))
         sock.sendall(state.encode('utf-8'))
     except Exception:
         logger.debug("Exception while invoking sd_notify()", exc_info=True)
