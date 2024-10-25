@@ -10,7 +10,7 @@ request = {
         ("ACCEPT-ENCODING", "gzip,deflate"),
         ("ACCEPT-CHARSET", "ISO-8859-1,utf-8;q=0.7,*;q=0.7"),
         ("KEEP-ALIVE", "300"),
-        ("CONNECTION", "keep-alive")
+        ("CONNECTION", "keep-alive"),
     ],
-    "body": b""
+    "body": b"",
 }

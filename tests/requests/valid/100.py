@@ -3,5 +3,5 @@ request = {
     "uri": uri("///keeping_slashes"),
     "version": (1, 1),
     "headers": [],
-    "body": b""
+    "body": b"",
 }

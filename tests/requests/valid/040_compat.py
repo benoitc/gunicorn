@@ -1,6 +1,3 @@
-from gunicorn.config import Config
-
-cfg = Config()
 cfg.set("header_map", "dangerous")
 
 request = {
@@ -12,5 +9,5 @@ request = {
         ("CONTENT-LENGTH", "7"),
         ("CONTENT_LENGTH", "-1E23"),
     ],
-    "body": b'tricked'
+    "body": b'tricked',
 }

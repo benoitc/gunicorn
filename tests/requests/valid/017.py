@@ -4,7 +4,7 @@ request = {
     "version": (1, 0),
     "headers": [
         ("IF-MATCH", "bazinga!"),
-        ("IF-MATCH", "large-sound")
+        ("IF-MATCH", "large-sound"),
     ],
-    "body": b""
+    "body": b"",
 }

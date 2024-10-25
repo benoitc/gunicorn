@@ -3,7 +3,7 @@ request = {
     "uri": uri("/chunked_w_extensions"),
     "version": (1, 1),
     "headers": [
-        ("TRANSFER-ENCODING", "chunked")
+        ("TRANSFER-ENCODING", "chunked"),
     ],
-    "body": b"hello world"
+    "body": b"hello world",
 }

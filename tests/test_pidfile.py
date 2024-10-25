@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import os
 import errno
 from unittest import mock
 
@@ -15,7 +16,7 @@ def builtin(name):
 @mock.patch(builtin('open'), new_callable=mock.mock_open)
 def test_validate_no_file(_open):
     pidfile = gunicorn.pidfile.Pidfile('test.pid')
-    _open.side_effect = IOError(errno.ENOENT)
+    _open.side_effect = OSError(errno.ENOENT, os.strerror(errno.ENOENT))
     assert pidfile.validate() is None
 
 
@@ -37,7 +38,7 @@ def test_validate_file_pid_malformed(_open):
 @mock.patch('os.kill')
 def test_validate_file_pid_exists_kill_exception(kill, _open):
     pidfile = gunicorn.pidfile.Pidfile('test.pid')
-    kill.side_effect = OSError(errno.EPERM)
+    kill.side_effect = OSError(errno.EPERM, os.strerror(errno.EPERM))
     assert pidfile.validate() == 1
 
 
@@ -45,5 +46,5 @@ def test_validate_file_pid_exists_kill_exception(kill, _open):
 @mock.patch('os.kill')
 def test_validate_file_pid_does_not_exist(kill, _open):
     pidfile = gunicorn.pidfile.Pidfile('test.pid')
-    kill.side_effect = OSError(errno.ESRCH)
+    kill.side_effect = OSError(errno.ESRCH, os.strerror(errno.ESRCH))
     assert pidfile.validate() is None

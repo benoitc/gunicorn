@@ -4,7 +4,7 @@ request = {
     "version": (1, 1),
     "headers": [
         ('TRANSFER-ENCODING', 'gzip'),
-        ('TRANSFER-ENCODING', 'chunked')
+        ('TRANSFER-ENCODING', 'chunked'),
     ],
-    "body": b"hello world"
+    "body": b"hello world",
 }
