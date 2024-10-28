@@ -130,6 +130,7 @@ class Worker:
 
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
+                                         ignored_files=self.cfg.reload_ignored_files,
                                          callback=changed)
 
         self.load_wsgi()
