@@ -64,6 +64,8 @@ class Arbiter:
         self.master_pid = 0
         self.master_name = "Master"
 
+        self.signal_warnings = []
+
         cwd = util.getcwd()
 
         args = sys.argv[:]
@@ -204,6 +206,14 @@ class Arbiter:
 
             while True:
                 self.maybe_promote_master()
+
+                warnings, self.signal_warnings = self.signal_warnings, []
+                for (wpid, sig) in warnings:
+                    self.log.warning(
+                        "Worker with pid %s was terminated due to signal %s",
+                        wpid,
+                        sig,
+                    )
 
                 sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
                 if sig is None:
@@ -532,6 +542,12 @@ class Arbiter:
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
+                    if os.WIFSIGNALED(status):
+                        # Log it later. Not in the SIGCHLD handler. #2564
+                        # https://stackoverflow.com/q/45680378
+                        self.signal_warnings.append(
+                            (wpid, os.WTERMSIG(status))
+                        )
 
                     if exitcode > 0:
                         # If the exit code of the worker is greater than 0,
@@ -574,8 +590,10 @@ class Arbiter:
         workers = self.WORKERS.items()
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
-            (pid, _) = workers.pop(0)
-            self.kill_worker(pid, signal.SIGTERM)
+            (pid, worker) = workers.pop(0)
+            if not worker.sigtermed:
+                worker.sigtermed = True
+                self.kill_worker(pid, signal.SIGTERM)
 
         active_worker_count = len(workers)
         if self._last_logged_active_worker_count != active_worker_count:
