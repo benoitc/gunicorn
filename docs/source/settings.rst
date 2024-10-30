@@ -1793,3 +1793,6 @@ set this to a higher value.
    ``sync`` worker does not support persistent connections and will
    ignore this option.
 
+.. note::
+   When the worker becomes idle, some connections may remain open for
+   up to twice the specified keepalive value.

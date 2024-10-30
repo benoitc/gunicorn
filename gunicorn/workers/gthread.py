@@ -206,8 +206,13 @@ class ThreadWorker(base.Worker):
 
             # can we accept more connections?
             if self.nr_conns < self.worker_connections:
+                # Block for new events until worker times out or keepalive timeout.
+                select_timeout = self.timeout or 1.0
+                if self._keep:
+                    select_timeout = min(select_timeout, self.cfg.keepalive)
+
                 # wait for an event
-                events = self.poller.select(self.timeout)
+                events = self.poller.select(select_timeout)
                 for key, _ in events:
                     callback = key.data
                     callback(key.fileobj)
