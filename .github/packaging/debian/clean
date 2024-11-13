@@ -1,0 +1,8 @@
+gunicorn.egg-info/
+gunicorn.egg-info/entry_points.txt
+gunicorn.egg-info/dependency_links.txt
+gunicorn.egg-info/SOURCES.txt
+gunicorn.egg-info/not-zip-safe
+gunicorn.egg-info/top_level.txt
+gunicorn.egg-info/requires.txt
+gunicorn.egg-info/PKG-INFO

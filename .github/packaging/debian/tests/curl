@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -eu
+
+cd debian/tests
+gunicorn --daemon --bind unix:gunicorn.sock  --pid=gunicorn.pid --workers=2 test:app
+sleep 5
+
+curl --unix-socket gunicorn.sock http://localhost/ | grep -F 'DEBIAN'
+kill $(cat gunicorn.pid)
+rm -f gunicorn.pid gunicorn.sock
