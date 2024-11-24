@@ -20,6 +20,8 @@ for reference on setting at the command line.
 
     .. versionadded:: 19.7
 
+.. _config-file:
+
 Config File
 -----------
 
@@ -56,6 +58,8 @@ directory where gunicorn is being run.
 A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
 
 .. versionadded:: 20.1.0
+
+.. _debugging:
 
 Debugging
 ---------
@@ -154,6 +158,8 @@ configuration is correct, and 1 if the configuration is incorrect.
 **Default:** ``False``
 
 Print the configuration settings as fully resolved. Implies :ref:`check-config`.
+
+.. _logging:
 
 Logging
 -------
@@ -461,6 +467,8 @@ if not provided).
 
 .. versionadded:: 19.2
 
+.. _process-naming:
+
 Process Naming
 --------------
 
@@ -490,6 +498,8 @@ If not set, the *default_proc_name* setting will be used.
 **Default:** ``'gunicorn'``
 
 Internal setting that is adjusted for each type of application.
+
+.. _ssl:
 
 SSL
 ---
@@ -530,20 +540,20 @@ SSL version to use (see stdlib ssl module's).
 .. deprecated:: 21.0
    The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
-============= ============
---ssl-version Description
-============= ============
-SSLv3         SSLv3 is not-secure and is strongly discouraged.
-SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
-TLS           Negotiate highest possible version between client/server.
-              Can yield SSL. (Python 3.6+)
-TLSv1         TLS 1.0
-TLSv1_1       TLS 1.1 (Python 3.4+)
-TLSv1_2       TLS 1.2 (Python 3.4+)
-TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
-              but only support server-side SSLSocket connections.
-              (Python 3.6+)
-============= ============
+================= ============
+``--ssl-version`` Description
+================= ============
+`SSLv3``          SSLv3 is not-secure and is strongly discouraged.
+`SSLv23``         Alias for TLS. Deprecated in Python 3.6, use TLS.
+`TLS``            Negotiate highest possible version between client/server.
+                  Can yield SSL. (Python 3.6+)
+`TLSv1``          TLS 1.0
+`TLSv1_1``        TLS 1.1 (Python 3.4+)
+`TLSv1_2``        TLS 1.2 (Python 3.4+)
+`TLS_SERVER``     Auto-negotiate the highest protocol version like TLS,
+                  but only support server-side SSLSocket connections.
+                  (Python 3.6+)
+================= ============
 
 .. versionchanged:: 19.7
    The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
@@ -566,13 +576,13 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
 
 Whether client certificate is required (see stdlib ssl module's)
 
-===========  ===========================
---cert-reqs      Description
-===========  ===========================
-`0`          no client verification
-`1`          ssl.CERT_OPTIONAL
-`2`          ssl.CERT_REQUIRED
-===========  ===========================
+===============  ===========================
+``--cert-reqs``  Description
+===============  ===========================
+`0`              no client verification
+`1`              ssl.CERT_OPTIONAL
+`2`              ssl.CERT_REQUIRED
+===============  ===========================
 
 .. _ca-certs:
 
@@ -630,6 +640,8 @@ OWASP provides details on user-agent compatibility at each security level.
 See the `OpenSSL Cipher List Format Documentation
 <https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
 for details on the format of an OpenSSL cipher list.
+
+.. _security:
 
 Security
 --------
@@ -689,6 +701,8 @@ header field sizes.
 .. warning::
    Setting this parameter to a very high or unlimited value can open
    up for DDOS attacks.
+
+.. _server-hooks:
 
 Server Hooks
 ------------
@@ -983,6 +997,8 @@ Following example shows a configuration file that sets the minimum TLS version t
         return context
 
 .. versionadded:: 21.0
+
+.. _server-mechanics:
 
 Server Mechanics
 ----------------
@@ -1560,6 +1576,8 @@ on a proxy in front of Gunicorn.
 
 .. versionadded:: 22.0.0
 
+.. _server-socket:
+
 Server Socket
 -------------
 
@@ -1608,6 +1626,8 @@ attempting to connect. It should only affect servers under significant
 load.
 
 Must be a positive integer. Generally set in the 64-2048 range.
+
+.. _worker-processes:
 
 Worker Processes
 ----------------

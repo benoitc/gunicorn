@@ -33,7 +33,7 @@ Changelog - 2013
   config file.
 - fix graceful timeout with the Eventlet worker
 - fix: don't raise an error when closing the socket if already closed
-- fix: fix --settings parameter for django application and try to find
+- fix: fix ``--settings`` parameter for django application and try to find
   the django settings when using the ``gunicorn`` command.
 - fix: give the initial global_conf to paster application
 - fix: fix 'Expect: 100-continue' support on Python 3

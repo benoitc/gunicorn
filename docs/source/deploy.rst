@@ -350,7 +350,7 @@ Logging
 =======
 
 Logging can be configured by using various flags detailed in the
-`configuration documentation`_ or by creating a `logging configuration file`_.
+:ref:`configuration documentation<logging>` or by creating a `logging configuration file`_.
 Send the ``USR1`` signal to rotate logs if you are using the logrotate
 utility::
 
@@ -372,7 +372,6 @@ utility::
 .. _`example service`: https://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc
 .. _Supervisor: http://supervisord.org/
 .. _`simple configuration`: https://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf
-.. _`configuration documentation`: http://docs.gunicorn.org/en/latest/settings.html#logging
 .. _`logging configuration file`: https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf
 .. _Virtualenv: https://pypi.python.org/pypi/virtualenv
 .. _Systemd: https://www.freedesktop.org/wiki/Software/systemd/

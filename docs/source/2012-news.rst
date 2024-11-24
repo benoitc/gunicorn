@@ -22,7 +22,7 @@ Changelog - 2012
 -------------------
 
 - **Added support for Python 3.2 & 3.3**
-- Expose --pythonpath command to all gunicorn commands
+- Expose :ref:`pythonpath` command to all gunicorn commands
 - Honor $PORT environment variable, useful for deployment on heroku
 - Removed support for Python 2.5
 - Make sure we reopen the logs on the console
@@ -66,7 +66,7 @@ Changelog - 2012
 0.14.4 / 2012-06-24
 -------------------
 
-- new --graceful-timeout option
+- new :ref:`graceful-timeout` option
 - fix multiple issues with request limit
 - more fixes in django settings resolutions
 - fix gevent.core import
@@ -109,10 +109,10 @@ Changelog - 2012
 -------------------
 
 - check if Request line is too large: You can now pass the parameter
-  ``--limit-request-line`` or set the ``limit_request_line`` in your
+  ``--limit-request-line`` or set the :ref:`limit-request-line` in your
   configuration file to set the max size of the request line in bytes.
 - limit the number of headers fields and their size. Add
-  ``--limit-request-field`` and ``limit-request-field-size`` settings
+  ``--limit-request-field`` and :ref:`limit-request-field-size` settings
 - add ``p`` variable to the log access format to log pidfile
 - add ``{HeaderName}o`` variable to the logo access format to log the
   response header HeaderName

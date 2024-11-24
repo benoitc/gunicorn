@@ -95,8 +95,8 @@ Extra
 Documentation
 +++++++++++++
 
-- update faq: put a note on how `watch logs in the console
-  <http://docs.gunicorn.org/en/latest/faq.html#why-i-don-t-see-any-logs-in-the-console>`_
+- update faq: put a note on how :ref:`watch logs in the console
+  <why-i-don-t-see-any-logs-in-the-console>`
   since many people asked for it.
 
 
@@ -104,8 +104,8 @@ Documentation
 =================
 
 Gunicorn 19.0 is a major release with new features and fixes. This
-version improve a lot the usage of Gunicorn with python 3 by adding `two
-new workers <http://docs.gunicorn.org/en/latest/design.html#asyncio-workers>`_
+version improve a lot the usage of Gunicorn with python 3 by adding
+:ref:`two new workers <async-workers>`
 to it: `gthread` a fully threaded async worker using futures and `gaiohttp` a
 worker using asyncio.
 
@@ -153,14 +153,14 @@ core
 - add support for python 3.4
 - fix: do not swallow unexpected errors when reaping
 - fix: remove incompatible SSL option with python 2.6
-- add new async gthread worker and `--threads` options allows to set multiple
+- add new async gthread worker and :ref:`threads` options allows to set multiple
   threads to listen on connection
 - deprecate `gunicorn_django` and `gunicorn_paster`
 - switch QUIT and TERM signal
 - reap workers in SIGCHLD handler
 - add universal wheel support
 - use `email.utils.formatdate` in gunicorn.util.http_date
-- deprecate the `--debug` option
+- deprecate the ``--debug`` option
 - fix: log exceptions that occur after response start …
 - allows loading of applications from `.pyc` files (#693)
 - fix: issue #691, raw_env config file parsing
@@ -171,7 +171,7 @@ core
   setups.
 - add: include tz offset in access log
 - add: include access logs in the syslog handler.
-- add --reload option for code reloading
+- add :ref:`reload` option for code reloading
 - add the capability to load `gunicorn.base.Application` without the loading of
   the arguments of the command line. It allows you to :ref:`embed gunicorn in
   your own application <custom>`.
@@ -181,7 +181,7 @@ core
 - fix logging: don't try to redirect stdout/stderr to the logfile.
 - fix logging: don't propagate log
 - improve logging: file option can be overridden by the gunicorn options
-  `--error-logfile` and `--access-logfile` if they are given.
+  :ref:`errorlog` and :ref:`accesslog` if they are given.
 - fix: don't override SERVER_* by the Host header
 - fix: handle_error
 - add more option to configure SSL

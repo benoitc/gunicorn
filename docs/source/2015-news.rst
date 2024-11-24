@@ -19,7 +19,7 @@ Core
 
 - improvement: handle HaltServer in manage_workers (:issue:`1095`)
 - fix: Do not rely on sendfile sending requested count (:issue:`1155`)
-- fix: claridy --no-sendfile default (:issue:`1156`)
+- fix: clarify :ref:`sendfile` default (:issue:`1156`)
 - fix: LoggingCatch sendfile failure from no file descriptor (:issue:`1160`)
 
 Logging
@@ -122,9 +122,9 @@ Documentation
 - don't duplicate NGINX config files examples (:issue:`1050`, :issue:`1048`)
 - add `web.py` framework example (:issue:`1117`)
 - update Debian/Ubuntu installations instructions (:issue:`1112`)
-- clarify `pythonpath` setting description (:issue:`1080`)
+- clarify ref:`pythonpath` setting description (:issue:`1080`)
 - tweak some example for python3
-- clarify `sendfile` documentation
+- clarify ref:`sendfile` documentation
 - miscellaneous typos in source code comments (thanks!)
 - clarify why REMOTE_ADD may not be the user's IP address (:issue:`1037`)
 
@@ -186,9 +186,9 @@ Core
 ++++
 
 - optimize the sync workers when listening on a single interface
-- add `--sendfile` settings to enable/disable sendfile. fix :issue:`856` .
+- add :ref:`sendfile` settings to enable/disable sendfile. fix :issue:`856` .
 - add the selectors module to the code base. :issue:`886`
-- add `--max-requests-jitter` setting to set the maximum jitter to add to the
+- add :ref:`max-requests-jitter` setting to set the maximum jitter to add to the
   max-requests setting.
 - fix :issue:`899` propagate proxy_protocol_info to keep-alive requests
 - fix :issue:`863` worker timeout: dynamic timeout has been removed

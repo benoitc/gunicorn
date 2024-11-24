@@ -121,11 +121,10 @@ So for a typical Django project, invoking Gunicorn would look like::
    ``manage.py`` file.
 
 You can use the
-`--env <http://docs.gunicorn.org/en/latest/settings.html#raw-env>`_ option
+:ref:`raw-env` option
 to set the path to load the settings. In case you need it you can also
 add your application path to ``PYTHONPATH`` using the
-`--pythonpath <http://docs.gunicorn.org/en/latest/settings.html#pythonpath>`_
-option::
+:ref:`pythonpath` option::
 
     $ gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi
 
@@ -150,19 +149,19 @@ commands, specify it as a server in your configuration file:
 
 This approach is the quickest way to get started with Gunicorn, but there are
 some limitations. Gunicorn will have no control over how the application is
-loaded, so settings such as reload_ will have no effect and Gunicorn will be
-unable to hot upgrade a running application. Using the daemon_ option may
+loaded, so settings such as :ref:`reload` will have no effect and Gunicorn will be
+unable to hot upgrade a running application. Using the :ref:`daemon` option may
 confuse your command line tool. Instead, use the built-in support for these
 features provided by that tool. For example, run ``pserve --reload`` instead of
 specifying ``reload = True`` in the server configuration block. For advanced
-configuration of Gunicorn, such as `Server Hooks`_ specifying a Gunicorn
+configuration of Gunicorn, such as :ref:`server-hooks` specifying a Gunicorn
 configuration file using the ``config`` key is supported.
 
 To use the full power of Gunicorn's reloading and hot code upgrades, use the
-`paste option`_ to run your application instead. When used this way, Gunicorn
+:ref:`paste` to run your application instead. When used this way, Gunicorn
 will use the application defined by the PasteDeploy configuration file, but
 Gunicorn will not use any server configuration defined in the file. Instead,
-`configure gunicorn`_.
+:ref:`configure gunicorn<settings>`.
 
 For example::
 
@@ -174,11 +173,4 @@ Or use a different application::
 
 With both approaches, Gunicorn will use any loggers section found in Paste
 Deployment configuration file, unless instructed otherwise by specifying
-additional `logging settings`_.
-
-.. _reload: http://docs.gunicorn.org/en/latest/settings.html#reload
-.. _daemon: http://docs.gunicorn.org/en/latest/settings.html#daemon
-.. _Server Hooks: http://docs.gunicorn.org/en/latest/settings.html#server-hooks
-.. _paste option: http://docs.gunicorn.org/en/latest/settings.html#paste
-.. _configure gunicorn: http://docs.gunicorn.org/en/latest/configure.html
-.. _logging settings: http://docs.gunicorn.org/en/latest/settings.html#logging
+additional :ref:`logging settings<logging>`.
