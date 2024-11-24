@@ -97,6 +97,14 @@ class InvalidChunkSize(IOError):
         return "Invalid chunk size: %r" % self.data
 
 
+class InvalidChunkExtension(IOError):
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return "Invalid chunk extension: %r" % self.data
+
+
 class ChunkMissingTerminator(IOError):
     def __init__(self, term):
         self.term = term
