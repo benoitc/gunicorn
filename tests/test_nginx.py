@@ -19,7 +19,6 @@ from itertools import chain
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
-from filelock import FileLock
 
 import pytest
 
@@ -27,12 +26,14 @@ if TYPE_CHECKING:
     import http.client
     from typing import Any, NamedTuple, Self
 
-CMD_OPENSSL = Path("/usr/bin/openssl")
-CMD_NGINX = Path("/usr/sbin/nginx")
+# test runner may not be system administrator. not needed here, to run nginx
+PATH = "/usr/sbin:/usr/local/sbin:" + os.environ.get("PATH", "/usr/local/bin:/usr/bin")
+CMD_OPENSSL = shutil.which("openssl", path=PATH)
+CMD_NGINX = shutil.which("nginx", path=PATH)
 
 pytestmark = pytest.mark.skipif(
-    not CMD_OPENSSL.is_file() or not CMD_NGINX.is_file(),
-    reason="need %s and %s" % (CMD_OPENSSL, CMD_NGINX),
+    CMD_OPENSSL is None or CMD_NGINX is None,
+    reason="need nginx and openssl binaries",
 )
 
 STDOUT = 0
@@ -51,6 +52,8 @@ TEST_SIMPLE = [
 ]  # type: list[str|NamedTuple]
 
 WORKER_DEPENDS = {
+    "sync": [],
+    "gthread": [],
     "aiohttp.GunicornWebWorker": ["aiohttp"],
     "aiohttp.GunicornUVLoopWebWorker": ["aiohttp", "uvloop"],
     "uvicorn.workers.UvicornWorker": ["uvicorn"],  # deprecated
@@ -65,6 +68,7 @@ WORKER_DEPENDS = {
 }
 DEP_WANTED = set(chain(*WORKER_DEPENDS.values()))  # type: set[str]
 DEP_INSTALLED = set()  # type: set[str]
+WORKER_ORDER = list(WORKER_DEPENDS.keys())
 
 for dependency in DEP_WANTED:
     try:
@@ -86,7 +90,7 @@ for worker_name, worker_needs in WORKER_DEPENDS.items():
             T.append(skipped_worker)
 
 WORKER_COUNT = 2
-GRACEFUL_TIMEOUT = 3
+GRACEFUL_TIMEOUT = 2
 APP_IMPORT_NAME = "testsyntax"
 APP_FUNC_NAME = "myapp"
 HTTP_HOST = "local.test"
@@ -153,9 +157,9 @@ class SubProcess:
         if self.p is None:
             return
         self.p.send_signal(signal.SIGKILL)
-        stdout, stderr = self.p.communicate(timeout=1 + GRACEFUL_TIMEOUT)
+        stdout, stderr = self.p.communicate(timeout=2 + GRACEFUL_TIMEOUT)
         ret = self.p.returncode
-        assert stdout == b"", stdout
+        assert stdout[-512:] == b"", stdout
         assert ret == 0, (ret, stdout, stderr)
 
     def read_stdio(self, *, key, timeout_sec, wait_for_keyword, expect=None):
@@ -172,11 +176,13 @@ class SubProcess:
         assert self.p.stdout is not None  # this helps static type checkers
         assert self.p.stderr is not None  # this helps static type checkers
         for _ in range(timeout_sec * poll_per_second):
-            print("parsing", buf, "waiting for", wait_for_keyword, unseen_keywords)
+            keep_reading = False
+            # print(f"parsing {buf!r} waiting for {wait_for_keyword!r} + {unseen_keywords!r}")
             for fd, file in enumerate([self.p.stdout, self.p.stderr]):
                 read = file.read(64 * 1024)
                 if read is not None:
                     buf[fd] += read.decode("utf-8", "surrogateescape")
+                    keep_reading = True
             if seen_keyword or wait_for_keyword in buf[key]:
                 seen_keyword += 1
             for additional_keyword in tuple(unseen_keywords):
@@ -185,7 +191,8 @@ class SubProcess:
                         unseen_keywords.remove(additional_keyword)
             # gathered all the context we wanted
             if seen_keyword and not unseen_keywords:
-                break
+                if not keep_reading:
+                    break
             # not seen expected output? wait for % of original timeout
             # .. maybe we will still see better error context that way
             if seen_keyword > (0.5 * timeout_sec * poll_per_second):
@@ -216,7 +223,7 @@ class SubProcess:
         os.set_blocking(self.p.stderr.fileno(), False)
         assert self.p.stdout is not None  # this helps static type checkers
 
-    def graceful_quit(self, expect=None):
+    def graceful_quit(self, expect=None, ignore=None):
         # type: (set[str]|None) -> str
         if self.p is None:
             raise AssertionError("called graceful_quit() when not running")
@@ -225,17 +232,21 @@ class SubProcess:
         stdout = self.p.stdout.read(64 * 1024) or b""
         stderr = self.p.stderr.read(64 * 1024) or b""
         try:
-            o, e = self.p.communicate(timeout=GRACEFUL_TIMEOUT)
+            o, e = self.p.communicate(timeout=2 + GRACEFUL_TIMEOUT)
             stdout += o
             stderr += e
         except subprocess.TimeoutExpired:
             pass
-        assert stdout == b""
+        out = stdout.decode("utf-8", "surrogateescape")
+        for line in out.split("\n"):
+            if any(i in line for i in (ignore or ())):
+                continue
+            assert line == ""
+        exitcode = self.p.poll()  # will return None if running
         self.p.stdout.close()
         self.p.stderr.close()
-        exitcode = self.p.poll()  # will return None if running
         assert exitcode == 0, (exitcode, stdout, stderr)
-        print("output after signal: ", stdout, stderr, exitcode)
+        # print("output after signal: ", stdout, stderr, exitcode)
         self.p = None
         ret = stderr.decode("utf-8", "surrogateescape")
         for keyword in expect or ():
@@ -306,9 +317,9 @@ def dummy_ssl_cert(tmp_path_factory):
     key = base_tmp_dir / "dummy.key"
     print(crt, key)
     # generate once, reuse for all tests
-    with FileLock("%s.lock" % crt):
-        if not crt.is_file():
-            generate_dummy_ssl_cert(crt, key)
+    # with FileLock("%s.lock" % crt):
+    if not crt.is_file():
+        generate_dummy_ssl_cert(crt, key)
     return crt, key
 
 
@@ -339,13 +350,17 @@ class GunicornProcess(SubProcess):
                 "--keyfile=%s" % key_path,
             ]
 
+        thread_opt = []
+        if worker_class != "sync":
+            thread_opt = ["--threads=50"]
+
         self._argv = [
             sys.executable,
             "-m",
             "gunicorn",
             "--config=%s" % self.conf_path,
             "--log-level=debug",
-            "--worker-class=%s" % worker_class,
+            "--worker-class=%s" % (worker_class,),
             "--workers=%d" % WORKER_COUNT,
             # unsupported at the time this test was submitted
             # "--buf-read-size=%d" % read_size,
@@ -355,6 +370,7 @@ class GunicornProcess(SubProcess):
             "--graceful-timeout=%d" % (GRACEFUL_TIMEOUT,),
             "--bind=%s" % server_bind,
             "--reuse-port",
+            *thread_opt,
             *ssl_opt,
             "--",
             f"{APP_IMPORT_NAME}:{APP_FUNC_NAME}",
@@ -387,7 +403,9 @@ class Client:
 @pytest.mark.parametrize("worker_class", TEST_SIMPLE)
 def test_nginx_proxy(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
     # avoid ports <= 6144 which may be in use by CI runner
-    fixed_port = 1024 * 6 + secrets.randbelow(1024 * 9)
+    # avoid quickly reusing ports as they might not be cleared immediately on BSD
+    worker_index = WORKER_ORDER.index(worker_class)
+    fixed_port = 1024 * 6 + (2 if ssl else 0) + (4 * worker_index)
     # FIXME: should also test inherited socket (LISTEN_FDS)
     # FIXME: should also test non-inherited (named) UNIX socket
     gunicorn_bind = "[::1]:%d" % fixed_port
@@ -425,14 +443,14 @@ def test_nginx_proxy(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
         ) as proxy:
             proxy.read_stdio(
                 key=STDERR,
-                timeout_sec=4,
+                timeout_sec=8,
                 wait_for_keyword="start worker processes",
             )
 
             server.read_stdio(
                 key=STDERR,
                 wait_for_keyword="Arbiter booted",
-                timeout_sec=4,
+                timeout_sec=8,
                 expect={
                     "Booting worker",
                 },
@@ -447,11 +465,11 @@ def test_nginx_proxy(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
                 # using 1.1 to not fail on tornado reporting for 1.0
                 # nginx sees our HTTP/1.1 request
                 proxy.read_stdio(
-                    key=STDOUT, timeout_sec=2, wait_for_keyword="GET %s HTTP/1.1" % path
+                    key=STDOUT, timeout_sec=4, wait_for_keyword="GET %s HTTP/1.1" % path
                 )
                 # gunicorn sees the HTTP/1.1 request from nginx
                 server.read_stdio(
-                    key=STDOUT, timeout_sec=2, wait_for_keyword="GET %s HTTP/1.1" % path
+                    key=STDOUT, timeout_sec=4, wait_for_keyword="GET %s HTTP/1.1" % path
                 )
 
             server.graceful_quit(
