@@ -17,7 +17,7 @@ disable=
     broad-except,
     duplicate-bases,
     duplicate-code,
-    eval-used,
+    superfluous-parens,
     fixme,
     import-error,
     import-outside-toplevel,
