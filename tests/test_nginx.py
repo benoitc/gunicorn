@@ -402,10 +402,10 @@ class Client:
 @pytest.mark.parametrize("ssl", [False, True], ids=["plain", "ssl"])
 @pytest.mark.parametrize("worker_class", TEST_SIMPLE)
 def test_nginx_proxy(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
-    # avoid ports <= 6144 which may be in use by CI runner
+    # avoid ports <= 6178 which may be in use by CI runner
     # avoid quickly reusing ports as they might not be cleared immediately on BSD
     worker_index = WORKER_ORDER.index(worker_class)
-    fixed_port = 1024 * 6 + (2 if ssl else 0) + (4 * worker_index)
+    fixed_port = 6178 + 512 + (2 if ssl else 0) + (4 * worker_index)
     # FIXME: should also test inherited socket (LISTEN_FDS)
     # FIXME: should also test non-inherited (named) UNIX socket
     gunicorn_bind = "[::1]:%d" % fixed_port

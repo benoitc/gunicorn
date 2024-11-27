@@ -367,9 +367,9 @@ def test_wrk(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
     if worker_class == "eventlet" and ssl:
         pytest.skip("eventlet worker does not catch errors in ssl.wrap_socket")
 
-    # avoid ports <= 6144 which may be in use by CI runne
+    # avoid ports <= 6178 which may be in use by CI runne
     worker_index = WORKER_ORDER.index(worker_class)
-    fixed_port = 1024 * 6 + 1024 + (2 if ssl else 0) + (4 * worker_index)
+    fixed_port = 6178 + 1024 + (2 if ssl else 0) + (4 * worker_index)
     # FIXME: should also test inherited socket (LISTEN_FDS)
     # FIXME: should also test non-inherited (named) UNIX socket
     gunicorn_bind = "[::1]:%d" % fixed_port
