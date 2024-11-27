@@ -1,5 +1,11 @@
 name: tox
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 permissions:
   contents: read # to fetch code (actions/checkout)
 env:
