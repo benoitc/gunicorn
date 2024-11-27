@@ -922,6 +922,10 @@ class Reload(Setting):
         because it consumes less system resources.
 
         .. note::
+           If the application fails to load while this option is used,
+           the (potentially sensitive!) traceback will be shared in
+           the response to subsequent HTTP requests.
+        .. note::
            In order to use the inotify reloader, you must have the ``inotify``
            package installed.
         '''
@@ -956,10 +960,13 @@ class ReloadExtraFiles(Setting):
     validator = validate_list_of_existing_files
     default = []
     desc = """\
-        Extends :ref:`reload` option to also watch and reload on additional files
+        Alternative or extension to :ref:`reload` option to (also) watch
+        and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
         .. versionadded:: 19.8
+        .. versionchanged:: 23.FIXME
+            Option no longer silently ignored if used without :ref:`reload`.
         """
 
 
