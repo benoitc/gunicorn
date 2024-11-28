@@ -60,7 +60,7 @@ def test_wrk(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
             path = "/pytest/basic"
             with WrkClient(proxy_method + "://" + gunicorn_bind, path=path) as client:
                 out = client.get()
-            print("##############\n" + out)
+            # print("##############\n" + out)
 
             extract = WrkClient.RE_RATE.search(out)
             assert extract is not None, out
