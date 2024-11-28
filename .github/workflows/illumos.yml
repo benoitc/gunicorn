@@ -36,14 +36,16 @@ jobs:
           # /tmp/.nginx must exist because nginx will not create configured tmp
           # build-essential shall point to suitable gcc13/gcc14/..
           # TODO: replace python-MN with version-agnostic alias
+          # release: "r151048"
           prepare: |
-            pkg install pip-312 python-312 sqlite-3 nginx build-essential
+            pkg install pip-312 python-312 sqlite-3 nginx gcc14
           usesh: true
           copyback: false
           run: |
             cat /etc/release \
             && uname -a \
             && python3 --version \
+            && python3 -c 'import os,sys,platform;print(platform.system(),sys.platform,os.name)' \
             && openssl version \
             && pkg info nginx \
             && gcc -dM -E - </dev/null \

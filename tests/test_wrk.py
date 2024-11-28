@@ -7,6 +7,7 @@
 #   --override-ini=addopts=--strict-markers --exitfirst \
 #   -- tests/test_nginx.py
 
+import platform
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -22,6 +23,9 @@ from support_subprocess import (
 
 # @pytest.mark.parametrize("read_size", [50+secrets.randbelow(2048)])
 @WrkClient.pytest_supported()
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy", reason="slow on Github CI"
+)
 @pytest.mark.parametrize("ssl", [False, True], ids=["plain", "ssl"])
 @pytest.mark.parametrize("worker_class", WORKER_PYTEST_LIST)
 def test_wrk(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
@@ -65,10 +69,13 @@ def test_wrk(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
             extract = WrkClient.RE_RATE.search(out)
             assert extract is not None, out
             rate = float(extract.groups()[0])
+            expected = 50
             if worker_class == "sync":
-                assert rate > 5
-            else:
-                assert rate > 50
+                expected = 5
+            # test way too short to make slow GitHub runners fast on PyPy
+            if platform.python_implementation() == "PyPy":
+                expected //= 5
+            assert rate > expected, (rate, expected)
 
             server.read_stdio(timeout_sec=2, wait_for_keyword="GET %s HTTP/1.1" % path)
             if ssl:

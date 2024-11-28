@@ -86,9 +86,22 @@ def test_nginx_proxy(*, ssl, worker_class, dummy_ssl_cert, read_size=1024):
                 },
             )
 
+            path = "/dummy"
+            try:
+                response = client.get(path, test=True)
+            except TimeoutError as exc:
+                raise AssertionError(f"failed to query proxy: {exc!r}") from exc
+            assert response.status == 400
+            test_body = response.read()
+            assert b"nginx" in test_body
+            proxy.read_stdio(timeout_sec=4, wait_for_keyword="GET %s HTTP/1.1" % path)
+
             for num_request in range(5):
                 path = "/pytest/%d" % (num_request)
-                response = client.get(path)
+                try:
+                    response = client.get(path)
+                except TimeoutError as exc:
+                    raise AssertionError(f"failed to fetch {path!r}: {exc!r}") from exc
                 assert response.status == 200
                 assert response.read() == b"response body from app"
 

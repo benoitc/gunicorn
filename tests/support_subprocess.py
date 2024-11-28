@@ -63,7 +63,9 @@ http {{
   default_type application/octet-stream;
   access_log /dev/stdout combined;
   upstream upstream_gunicorn {{
-    server {gunicorn_upstream} fail_timeout=0;
+    # max_fails=0 prevents nginx from assuming unavailable
+    #  .. which is nowadays (reasonably) ignored for single server
+    server {gunicorn_upstream} max_fails=0;
   }}
 
   server {{ listen {server_bind} default_server; return 400; }}
@@ -146,8 +148,11 @@ class SubProcess(subprocess.Popen):
             self.send_signal(self.EXIT_SIGNAL)
             try:
                 stdout, stderr = self.communicate(timeout=1)
-                # assert stdout[-512:] == b"", stdout
-                logger.debug(f"stdout not empty on shutdown, sample: {stdout[-512:]!r}")
+                if stdout:
+                    logger.debug(
+                        f"stdout not empty on shutdown, sample: {stdout[-512:]!r}"
+                    )
+                assert stdout[-512:] == b"", stdout
             except subprocess.TimeoutExpired:
                 pass
             # only helpful for diagnostics. we are shutting down unexpected
@@ -166,7 +171,7 @@ class SubProcess(subprocess.Popen):
         buf = ["", ""]
         seen_keyword = 0
         unseen_keywords = list(expect or [])
-        poll_per_second = 20
+        poll_per_second = 30
         assert key in {0, 1}, key
         assert self.stdout is not None  # this helps static type checkers
         assert self.stderr is not None  # this helps static type checkers
@@ -303,7 +308,7 @@ class NginxProcess(SubProcess):
 
 def generate_dummy_ssl_cert(cert_path, key_path):
     # dummy self-signed cert
-    subprocess.check_output(
+    subprocess.check_call(
         [
             CMD_OPENSSL,
             "req",
@@ -329,7 +334,11 @@ def generate_dummy_ssl_cert(cert_path, key_path):
             "-out",
             "%s" % (cert_path),
         ],
+        stdin=subprocess.DEVNULL,
+        stderr=None,
+        stdout=subprocess.DEVNULL,
         shell=False,
+        timeout=20,
     )
 
 
@@ -396,7 +405,8 @@ class GunicornProcess(SubProcess):
             "--disable-redirect-access-to-syslog",
             "--graceful-timeout=%d" % (GRACEFUL_TIMEOUT,),
             "--bind=%s" % server_bind,
-            "--reuse-port",
+            # untested on non-Linux
+            # "--reuse-port",
             *thread_opt,
             *ssl_opt,
             "--",
@@ -414,15 +424,25 @@ class StdlibClient:
         # type: () -> Self
         import http.client
 
-        self.conn = http.client.HTTPConnection(self._host_port, timeout=2)
+        self.conn = http.client.HTTPConnection(self._host_port, timeout=5)
         return self
 
     def __exit__(self, *exc):
         self.conn.close()
 
-    def get(self, path):
+    def get(self, path="/", test=False):
         # type: () -> http.client.HTTPResponse
-        self.conn.request("GET", path, headers={"Host": HTTP_HOST}, body="GETBODY!")
+        body = b"GETBODY!"
+        self.conn.request(
+            "GET",
+            path,
+            headers={
+                "Host": "invalid.invalid." if test else HTTP_HOST,
+                "Connection": "close",
+                "Content-Length": "%d" % (len(body),),
+            },
+            body=body,
+        )
         return self.conn.getresponse()
 
 

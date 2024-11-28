@@ -39,6 +39,7 @@ jobs:
           run: |
             uname -a \
             && python3.11 --version \
+            && python3.11 -c 'import os,sys,platform;print(platform.system(),sys.platform,os.name)' \
             && python3.11 -m tox --version \
             && openssl version \
             && pkg info nginx \
@@ -62,6 +63,7 @@ jobs:
           run: |
             uname -a \
             && python3 --version \
+            && python3 -c 'import os,sys,platform;print(platform.system(),sys.platform,os.name)' \
             && python3 -m tox --version \
             && openssl version \
             && pkg_info nginx \
