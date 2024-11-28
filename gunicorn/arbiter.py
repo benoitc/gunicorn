@@ -523,7 +523,7 @@ class Arbiter:
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
-                    exitcode = status >> 8
+                    exitcode = os.waitstatus_to_exitcode(status)
                     if exitcode != 0:
                         self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
                     if exitcode == self.WORKER_BOOT_ERROR:
