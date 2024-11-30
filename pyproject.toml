@@ -56,6 +56,7 @@ tornado = ["tornado>=0.2"]
 gthread = []
 setproctitle = ["setproctitle"]
 testing = [
+    "gevent!=24.10.1,!=24.10.2,!=24.10.3,!=24.11.1;sys_platform=='sunos5'",
     "gevent",
     "eventlet",
     "coverage",
