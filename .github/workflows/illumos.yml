@@ -38,7 +38,7 @@ jobs:
           # TODO: replace python-MN with version-agnostic alias
           # release: "r151048"
           prepare: |
-            pkg install pip-312 python-312 sqlite-3 nginx gcc14 git
+            pkg install pip-312 python-312 sqlite-3 nginx gcc14
           usesh: true
           copyback: false
           run: |
@@ -49,7 +49,7 @@ jobs:
             && openssl version \
             && pkg info nginx \
             && gcc -dM -E - </dev/null \
-            && ac_cv_header_sys_inotify_h=no ac_cv_func_inotify_init=no python3 -m pip install git+https://github.com/gevent/gevent.git@676d86a3ae799118d79ddc225e9286c6a75755a4 \
+            && ac_cv_header_sys_inotify_h=no ac_cv_func_inotify_init=no python3 -m pip install 'gevent!=24.10.1,!=24.10.2,!=24.10.3,!=24.11.1' \
             && mkdir -p /tmp/.nginx \
             && python3 -m pip install tox \
             && python3 -m tox --version \

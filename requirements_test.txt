@@ -1,4 +1,5 @@
-git+https://github.com/gevent/gevent.git@676d86a3ae799118d79ddc225e9286c6a75755a4
+gevent!=24.10.1,!=24.10.2,!=24.10.3,!=24.11.1;sys_platform=='sunos5'
+gevent
 eventlet
 coverage
 pytest>=7.2.0
