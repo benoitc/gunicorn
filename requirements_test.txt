@@ -1,4 +1,4 @@
-gevent
+git+https://github.com/gevent/gevent.git@676d86a3ae799118d79ddc225e9286c6a75755a4
 eventlet
 coverage
 pytest>=7.2.0
