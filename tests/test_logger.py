@@ -49,6 +49,27 @@ def test_atoms_zero_bytes():
     assert atoms['B'] == 0
 
 
+def test_custom_date_format():
+    response = SimpleNamespace(
+        status='200', response_length=0,
+        headers=(('Content-Type', 'application/json'),), sent=0,
+    )
+    request = SimpleNamespace(headers=(('Accept', 'application/json'),))
+    environ = {
+        'REQUEST_METHOD': 'GET', 'RAW_URI': '/my/path?foo=bar',
+        'PATH_INFO': '/my/path', 'QUERY_STRING': 'foo=bar',
+        'SERVER_PROTOCOL': 'HTTP/1.1',
+    }
+    conf = Config()
+    conf.set('logconfig_dict', {'datefmt': "[%a %Y-%m-%d %H:%M:%S %z]"})
+    logger = Logger(conf)
+    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    try:
+        datetime.datetime.strptime(atoms['t'], "[%a %Y-%m-%d %H:%M:%S %z]")
+    except ValueError as e:
+        pytest.fail("{}".format(e))
+
+
 @pytest.mark.parametrize('auth', [
     # auth type is case in-sensitive
     'Basic YnJrMHY6',

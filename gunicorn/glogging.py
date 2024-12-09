@@ -173,7 +173,7 @@ class Logger:
     loglevel = logging.INFO
 
     error_fmt = r"%(asctime)s [%(process)d] [%(levelname)s] %(message)s"
-    datefmt = r"[%Y-%m-%d %H:%M:%S %z]"
+    default_datefmt = r"[%Y-%m-%d %H:%M:%S %z]"
 
     access_fmt = "%(message)s"
     syslog_fmt = "[%(process)d] %(message)s"
@@ -196,6 +196,7 @@ class Logger:
         self.loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(self.loglevel)
         self.access_log.setLevel(logging.INFO)
+        self.datefmt = cfg.logconfig_dict.get('datefmt', self.default_datefmt)
 
         # set gunicorn.error handler
         if self.cfg.capture_output and cfg.errorlog != "-":
@@ -365,7 +366,7 @@ class Logger:
 
     def now(self):
         """ return date in Apache Common Log Format """
-        return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
+        return time.strftime(self.datefmt)
 
     def reopen_files(self):
         if self.cfg.capture_output and self.cfg.errorlog != "-":
