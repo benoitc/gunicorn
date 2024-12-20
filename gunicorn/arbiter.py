@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -10,6 +9,7 @@ import signal
 import sys
 import time
 import traceback
+import socket
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
@@ -18,7 +18,7 @@ from gunicorn import sock, systemd, util
 from gunicorn import __version__, SERVER_SOFTWARE
 
 
-class Arbiter(object):
+class Arbiter:
     """
     Arbiter maintain the workers processes alive. It launches or
     kills them if needed. It also manages application reloading
@@ -93,7 +93,7 @@ class Arbiter(object):
             self.log = self.cfg.logger_class(app.cfg)
 
         # reopen files
-        if 'GUNICORN_FD' in os.environ:
+        if 'GUNICORN_PID' in os.environ:
             self.log.reopen_files()
 
         self.worker_class = self.cfg.worker_class
@@ -109,7 +109,7 @@ class Arbiter(object):
                 in sorted(self.cfg.settings.items(),
                           key=lambda setting: setting[1]))))
 
-        # set enviroment' variables
+        # set environment' variables
         if self.cfg.env:
             for k, v in self.cfg.env.items():
                 os.environ[k] = v
@@ -152,7 +152,8 @@ class Arbiter(object):
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
 
-            self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
+            if not (self.cfg.reuse_port and hasattr(socket, 'SO_REUSEPORT')):
+                self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
         listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
@@ -333,7 +334,7 @@ class Arbiter(object):
         """
         try:
             os.write(self.PIPE[1], b'.')
-        except IOError as e:
+        except OSError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
@@ -362,7 +363,7 @@ class Arbiter(object):
                 return
             while os.read(self.PIPE[0], 1):
                 pass
-        except (select.error, OSError) as e:
+        except OSError as e:
             # TODO: select.error is a subclass of OSError since Python 3.3.
             error_number = getattr(e, 'errno', e.args[0])
             if error_number not in [errno.EAGAIN, errno.EINTR]:
@@ -616,6 +617,8 @@ class Arbiter(object):
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
+            if self.cfg.reuse_port:
+                worker.sockets = sock.create_sockets(self.cfg, self.log)
             self.cfg.post_fork(self, worker)
             worker.init_process()
             sys.exit(0)

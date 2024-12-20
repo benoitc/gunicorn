@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Gunicorn documentation build configuration file
 #

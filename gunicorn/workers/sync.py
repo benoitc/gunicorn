@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -40,7 +39,7 @@ class SyncWorker(base.Worker):
                     os.read(self.PIPE[0], 1)
                 return ret[0]
 
-        except select.error as e:
+        except OSError as e:
             if e.args[0] == errno.EINTR:
                 return self.sockets
             if e.args[0] == errno.EBADF:
@@ -73,7 +72,7 @@ class SyncWorker(base.Worker):
                 # process.
                 continue
 
-            except EnvironmentError as e:
+            except OSError as e:
                 if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                    errno.EWOULDBLOCK):
                     raise
@@ -102,7 +101,7 @@ class SyncWorker(base.Worker):
 
                     try:
                         self.accept(listener)
-                    except EnvironmentError as e:
+                    except OSError as e:
                         if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                            errno.EWOULDBLOCK):
                             raise
@@ -144,7 +143,7 @@ class SyncWorker(base.Worker):
             else:
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
-        except EnvironmentError as e:
+        except OSError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
             else:
@@ -188,7 +187,7 @@ class SyncWorker(base.Worker):
                 self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()
-        except EnvironmentError:
+        except OSError:
             # pass to next try-except level
             util.reraise(*sys.exc_info())
         except Exception:
@@ -199,7 +198,7 @@ class SyncWorker(base.Worker):
                 try:
                     client.shutdown(socket.SHUT_RDWR)
                     client.close()
-                except EnvironmentError:
+                except OSError:
                     pass
                 raise StopIteration()
             raise

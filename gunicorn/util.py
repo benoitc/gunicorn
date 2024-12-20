@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -148,10 +147,6 @@ def set_owner_process(uid, gid, initgroups=False):
             except KeyError:
                 initgroups = False
 
-        # versions of python < 2.6.2 don't manage unsigned int for
-        # groups like on osx or fedora
-        gid = abs(gid) & 0x7FFFFFFF
-
         if initgroups:
             os.initgroups(username, gid)
         elif gid != os.getgid():
@@ -217,7 +212,7 @@ def unlink(filename):
 def is_ipv6(addr):
     try:
         socket.inet_pton(socket.AF_INET6, addr)
-    except socket.error:  # not a valid address
+    except OSError:  # not a valid address
         return False
     except ValueError:  # ipv6 not supported on this platform
         return False
@@ -269,7 +264,7 @@ def set_non_blocking(fd):
 def close(sock):
     try:
         sock.close()
-    except socket.error:
+    except OSError:
         pass
 
 
@@ -566,7 +561,7 @@ def check_is_writable(path):
     try:
         with open(path, 'a') as f:
             f.close()
-    except IOError as e:
+    except OSError as e:
         raise RuntimeError("Error: '%s' isn't writable [%r]" % (path, e))
 
 
@@ -587,7 +582,7 @@ def has_fileno(obj):
     # check BytesIO case and maybe others
     try:
         obj.fileno()
-    except (AttributeError, IOError, io.UnsupportedOperation):
+    except (AttributeError, OSError, io.UnsupportedOperation):
         return False
 
     return True

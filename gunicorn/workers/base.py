@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -
 #
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
@@ -20,13 +19,15 @@ from gunicorn.http.errors import (
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
     LimitRequestHeaders, LimitRequestLine,
+    UnsupportedTransferCoding,
+    ConfigurationProblem, ObsoleteFolding,
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
 
 
-class Worker(object):
+class Worker:
 
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
@@ -210,7 +211,8 @@ class Worker(object):
             InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
             LimitRequestLine, LimitRequestHeaders,
             InvalidProxyLine, ForbiddenProxyRequest,
-            InvalidSchemeHeaders,
+            InvalidSchemeHeaders, UnsupportedTransferCoding,
+            ConfigurationProblem, ObsoleteFolding,
             SSLError,
         )):
 
@@ -223,6 +225,14 @@ class Worker(object):
                 mesg = "Invalid Method '%s'" % str(exc)
             elif isinstance(exc, InvalidHTTPVersion):
                 mesg = "Invalid HTTP Version '%s'" % str(exc)
+            elif isinstance(exc, UnsupportedTransferCoding):
+                mesg = "%s" % str(exc)
+                status_int = 501
+            elif isinstance(exc, ConfigurationProblem):
+                mesg = "%s" % str(exc)
+                status_int = 500
+            elif isinstance(exc, ObsoleteFolding):
+                mesg = "%s" % str(exc)
             elif isinstance(exc, (InvalidHeaderName, InvalidHeader,)):
                 mesg = "%s" % str(exc)
                 if not req and hasattr(exc, "req"):
