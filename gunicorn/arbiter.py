@@ -39,7 +39,7 @@ class Arbiter:
     WORKERS = {}
 
     # I love dynamic languages
-    SIG_QUEUE = queue.SimpleQueue()
+    SIG_QUEUE = queue.SimpleQueue()  # Reentrant and enqueue of item never blocks
     SIGNALS = [getattr(signal.Signals, "SIG%s" % x)
                for x in "CHLD HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     WAKEUP_REQUEST = signal.NSIG
@@ -138,6 +138,8 @@ class Arbiter:
             self.pidfile.create(self.pid)
         self.cfg.on_starting(self)
 
+        self.log.close_on_exec()
+
         self.init_signals()
 
         if not self.LISTENERS:
@@ -169,13 +171,6 @@ class Arbiter:
         self.cfg.when_ready(self)
 
     def init_signals(self):
-        """\
-        Initialize master signal handling. Most of the signals
-        are queued. Child signals only wake up the master.
-        """
-        self.log.close_on_exec()
-
-        # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
 
@@ -193,6 +188,22 @@ class Arbiter:
         """
         self.SIG_QUEUE.put(due_to_signal or self.WAKEUP_REQUEST)
 
+    def wait_for_signals(self, timeout):
+        """\
+        Returns list of pending signals (or empty list if timeout)
+        """
+        signals = []
+
+        def append_signal(sig):
+            if sig != self.WAKEUP_REQUEST:
+                signals.append(sig)
+        try:
+            append_signal(self.SIG_QUEUE.get(block=True, timeout=timeout))
+            while True:
+                append_signal(self.SIG_QUEUE.get(block=False))
+        except queue.Empty:
+            return signals
+
     def run(self):
         "Main master loop."
         self.start()
@@ -204,14 +215,10 @@ class Arbiter:
             while True:
                 self.maybe_promote_master()
 
-                try:
-                    sig = self.SIG_QUEUE.get(timeout=1)
-                    if sig != self.WAKEUP_REQUEST:
-                        if sig != signal.SIGCHLD:
-                            self.log.info("Handling signal: %s", signal.Signals(sig).name)
-                        self.SIG_HANDLERS[sig]()
-                except queue.Empty:
-                    pass
+                for sig in self.wait_for_signals(timeout=1):
+                    log = self.log.debug if sig == signal.SIGCHLD else self.log.info
+                    log("Handling signal: %s", signal.Signals(sig).name)
+                    self.SIG_HANDLERS[sig]()
 
                 self.murder_workers()
                 self.manage_workers()
