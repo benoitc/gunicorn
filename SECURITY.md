@@ -25,6 +25,6 @@ Please target reports against :white_check_mark: or current master. Please under
 
 ## Python Versions
 
-Gunicorn runs on Python 3.8+, we *highly recommend* the latest release of a
+Gunicorn runs on Python 3.9+, we *highly recommend* the latest release of a
 [supported series](https://devguide.python.org/versions/) and will not prioritize issues exclusively 
 affecting in EoL environments.
