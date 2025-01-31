@@ -254,7 +254,6 @@ to the newly created unix socket:
     Group=someuser
     # this user can be transiently created by systemd
     # DynamicUser=true
-    RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
     ExecStart=/usr/bin/gunicorn applicationname.wsgi
     ExecReload=/bin/kill -s HUP $MAINPID
