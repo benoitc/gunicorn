@@ -126,6 +126,10 @@ class Config:
         return worker_class
 
     @property
+    def worker_connections_enqueue_async(self):
+        return self.settings['worker_connections_enqueue_async'].get()
+
+    @property
     def address(self):
         s = self.settings['bind'].get()
         return [util.parse_address(util.bytes_to_str(bind)) for bind in s]
@@ -734,6 +738,30 @@ class WorkerConnections(Setting):
         The maximum number of simultaneous clients.
 
         This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
+        """
+
+
+class WorkerConnectionsEnqueueAsync(Setting):
+    name = "worker_connections_enqueue_async"
+    section = "Worker Processes"
+    cli = ["--worker-connections-enqueue-async"]
+    validator = validate_bool
+    action = 'store_true'
+    default = False
+    desc = """\
+        Enqueue accepted connections to worker asynchronously.
+
+        It helps to use Gunicorn without reverse proxy.
+        When clients connect to Gunicorn, the server will start read data only when clients sent data.
+        If clients keep connections without sending data, server only accept the connections and no block the worker;
+
+        .. note::
+           If you're enable ``max-requests`` and it option, the worker can restart with accepted connections.
+
+           When clients send data via connections after restart the worker,
+           clients may have error ``Connection reset by peer``
+
+        This setting only affects the ``gthread`` worker types.
         """
 
 
