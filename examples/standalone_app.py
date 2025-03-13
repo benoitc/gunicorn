@@ -29,18 +29,16 @@ def handler_app(environ, start_response):
     return [response_body]
 
 
-class StandaloneApplication(gunicorn.app.base.BaseApplication):
+class StandaloneApplication(gunicorn.app.base.Application):
 
     def __init__(self, app, options=None):
-        self.options = options or {}
+        self.my_options = options or {}
         self.application = app
         super().__init__()
 
-    def load_config(self):
-        config = {key: value for key, value in self.options.items()
-                  if key in self.cfg.settings and value is not None}
-        for key, value in config.items():
-            self.cfg.set(key.lower(), value)
+    def init(self, parser, opts, args):
+        """Return our options in order to override the default configurations."""
+        return self.my_options
 
     def load(self):
         return self.application
