@@ -1,4 +1,5 @@
 import os
+import platform
 import secrets
 import signal
 import subprocess
@@ -286,6 +287,9 @@ class Client:
         return conn.getresponse()
 
 
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy", reason="slow on Github CI"
+)
 @pytest.mark.parametrize("worker_class", TEST_TOLERATES_BAD_BOOT)
 def test_process_request_after_fixing_syntax_error(worker_class):
     # 1. start up the server with invalid app
@@ -373,6 +377,9 @@ def test_process_request_after_fixing_syntax_error(worker_class):
             )
 
 
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy", reason="slow on Github CI"
+)
 @pytest.mark.parametrize("worker_class", TEST_TOLERATES_BAD_RELOAD)
 def test_process_shutdown_cleanly_after_inserting_syntax_error(worker_class):
     # 1. start with valid application
