@@ -1170,9 +1170,9 @@ class User(Setting):
         change the worker process user.
 
         .. note::
-           Prior to version 22.1.0 leaving this option unspecified still
+           Prior to version 23.1.0 leaving this option unspecified still
            attempted to setuid to the current user.
-           After version 22.1.0 leaving this option unspecified will
+           After version 23.1.0 leaving this option unspecified will
            not attempt changing user.
         """
 
