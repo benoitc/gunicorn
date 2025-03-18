@@ -43,7 +43,7 @@ TEST_TOLERATES_BAD_RELOAD = [
 
 
 try:
-    from tornado import options
+    from tornado import options as installed_check_  # pylint: disable=unused-import
     for T in (TEST_TOLERATES_BAD_BOOT, TEST_TOLERATES_BAD_RELOAD):
         T.append(
             pytest.param("tornado", marks=pytest.mark.xfail)
