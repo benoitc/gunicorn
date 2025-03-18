@@ -27,7 +27,6 @@ TEST_TOLERATES_BAD_BOOT = [
     "gevent",
     "gevent_wsgi",
     "gevent_pywsgi",
-    pytest.param("tornado", marks=pytest.mark.xfail),
     "gthread",
     # pytest.param("expected_failure", marks=pytest.mark.xfail),
 ]
@@ -38,7 +37,6 @@ TEST_TOLERATES_BAD_RELOAD = [
     "gevent",
     "gevent_wsgi",
     "gevent_pywsgi",
-    pytest.param("tornado", marks=pytest.mark.xfail),
     "gthread",
     # pytest.param("expected_failure", marks=pytest.mark.xfail),
 ]
@@ -46,9 +44,12 @@ TEST_TOLERATES_BAD_RELOAD = [
 
 try:
     from tornado import options
+    for T in (TEST_TOLERATES_BAD_BOOT, TEST_TOLERATES_BAD_RELOAD):
+        T.append(
+            pytest.param("tornado", marks=pytest.mark.xfail)
+        )
 except ImportError:
     for T in (TEST_TOLERATES_BAD_BOOT, TEST_TOLERATES_BAD_RELOAD):
-        T.remove("tornado")
         T.append(
             pytest.param("tornado", marks=pytest.mark.skip("tornado not installed"))
         )
