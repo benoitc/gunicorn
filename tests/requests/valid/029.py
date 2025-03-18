@@ -1,6 +1,4 @@
-from gunicorn.config import Config
 
-cfg = Config()
 
 request = {
     "method": "GET",
