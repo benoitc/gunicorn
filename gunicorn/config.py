@@ -681,7 +681,8 @@ class WorkerClass(Setting):
         * ``gthread``
         * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
           ``pip install gunicorn[eventlet]``).
-          Usages in new projects are discouraged.
+          Usages in new projects `are discouraged
+          <https://github.com/eventlet/eventlet/blob/master/README.rst>`_.
         * ``gevent``   - Requires gevent >= 1.4 (or install it via
           ``pip install gunicorn[gevent]``)
         * ``tornado``  - Requires tornado >= 0.2 (or install it via
