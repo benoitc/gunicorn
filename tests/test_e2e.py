@@ -328,11 +328,11 @@ def test_process_request_after_fixing_syntax_error(worker_class):
                 expect={
                     "%s.py modified" % (APP_BASENAME,),
                     "Booting worker",
+                    "Worker exiting",  # safeguard against hitting the old worker
                 },
             )
 
             # worker did boot now, request should work
-            time.sleep(0.5)
             response = client.run()
             assert response.status == 200, (response.status, response.reason)
             assert response.reason == "OK", response.reason
