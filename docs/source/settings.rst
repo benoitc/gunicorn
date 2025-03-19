@@ -1181,12 +1181,12 @@ retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
 
 .. note::
-   Prior to version 22.1.0 leaving this option unspecified still
-   attempted to setgid to the current group, setting only this option
-   would not modify the list of supplementary groups.
-   After version 22.1.0 leaving this option unspecified will
-   not attempt changing groups, setting this option will always
-   result in supplementary group list being reset.
+   Prior to version 23.1.0 leaving this option unspecified
+   attempted to setgid anyway, while potentially leaving
+   unintended supplemental groups.
+   After version 23.1.0 leaving this option unspecified will
+   not attempt changing groups. Unless :ref:`initgroups`
+   is effective, will clear supplemental groups.
 
 .. _umask:
 
@@ -1220,6 +1220,8 @@ groups of which the specified username is a member, plus the specified
 group id.
 
 .. versionadded:: 19.7
+.. note::
+   Silently ignored when username lookup fails.
 
 .. _tmp-upload-dir:
 
@@ -1617,7 +1619,8 @@ The default behaviour ``guess`` is to share the traceback with the world
 The behaviour of ``world-readable`` (or, by extension ``guess``) risks exposing
  sensitive data and is not recommended for production use.
 
-.. versionadded:: 22.1.0
+.. versionadded:: 23.1.0
+   The previous behaviour matches the new *default* behaviour.
 
 Server Socket
 -------------
