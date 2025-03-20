@@ -1,0 +1,18 @@
+POST /1 HTTP/1.1\r\n
+Host: example.com\r\n
+Connection: keep-alive\r\n
+ \r\n
+Content-Length: 3\r\n
+\r\n
+123
+POST /2 HTTP/1.1\r\n
+Host: example.com\r\n
+Connection: close\r\n
+ \r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+3\r\n
+123\r\n
+0\r\n
+Trailer-Checksum: 0\r\n
+\r\n
