@@ -137,8 +137,21 @@ def get_username(uid):
     return pwd.getpwuid(uid).pw_name
 
 
+def drop_supplemental_groups():
+    # only root/CAP_SETGID can do this
+    try:
+        os.setgroups([])
+    except OSError as ex:
+        if ex.errno != errno.EPERM:
+            raise
+
+
 def set_owner_process(uid, gid, initgroups=False):
     """ set user and group of workers processes """
+
+    # note: uid/gid can be larger than 2**32
+    # note: setgid() does not empty supplemental group list
+    # note: will never act on uid=0 / gid=0
 
     if gid:
         if uid:
@@ -151,13 +164,20 @@ def set_owner_process(uid, gid, initgroups=False):
             os.initgroups(username, gid)
         elif gid != os.getgid():
             os.setgid(gid)
+            drop_supplemental_groups()
 
     if uid and uid != os.getuid():
         os.setuid(uid)
 
 
 def chown(path, uid, gid):
-    os.chown(path, uid, gid)
+    # we use None for unchanged
+    if uid is None and gid is None:
+        return
+    # os.chown semantics are -1 for unchanged
+    int_uid = -1 if uid is None else uid
+    int_gid = -1 if gid is None else gid
+    os.chown(path, int_uid, int_gid)
 
 
 if sys.platform.startswith("win"):
@@ -251,6 +271,8 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
+    # Python 3.4+: file descriptors created by Python non-inheritable by default
+    # .. but note that sysstemd may pass us LISTEN_FDS without such promise
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)

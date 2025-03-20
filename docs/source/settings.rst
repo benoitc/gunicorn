@@ -85,6 +85,10 @@ because it consumes less system resources.
 .. note::
    In order to use the inotify reloader, you must have the ``inotify``
    package installed.
+.. note::
+   By default, enabling this will modify the handling of application errors
+   from returning a general error to sharing sensitive information,
+   see :ref:`on-fatal` for details.
 
 .. _reload-engine:
 
@@ -114,10 +118,13 @@ Valid engines are:
 
 **Default:** ``[]``
 
-Extends :ref:`reload` option to also watch and reload on additional files
-(e.g., templates, configurations, specifications, etc.).
+Reload when these files appear modified. Can be used either on its own or to extend
+ the :ref:`reload` option to also watch and reload on additional files
+ (e.g., templates, configurations, specifications, etc.).
 
 .. versionadded:: 19.8
+.. versionchanged:: 23.1.0
+   Now effective also when :ref:`reload` is not enabled.
 
 .. _spew:
 
@@ -702,6 +709,7 @@ Server Hooks
 
 .. code-block:: python
 
+        @staticmethod
         def on_starting(server):
             pass
 
@@ -718,6 +726,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
+        @staticmethod
         def on_reload(server):
             pass
 
@@ -734,6 +743,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
+        @staticmethod
         def when_ready(server):
             pass
 
@@ -750,6 +760,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
+        @staticmethod
         def pre_fork(server, worker):
             pass
 
@@ -767,6 +778,7 @@ new Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def post_fork(server, worker):
             pass
 
@@ -784,6 +796,7 @@ new Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def post_worker_init(worker):
             pass
 
@@ -801,6 +814,7 @@ Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def worker_int(worker):
             pass
 
@@ -818,6 +832,7 @@ Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def worker_abort(worker):
             pass
 
@@ -837,6 +852,7 @@ Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def pre_exec(server):
             pass
 
@@ -853,6 +869,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
+        @staticmethod
         def pre_request(worker, req):
             worker.log.debug("%s %s", req.method, req.path)
 
@@ -870,6 +887,7 @@ the Request.
 
 .. code-block:: python
 
+        @staticmethod
         def post_request(worker, req, environ, resp):
             pass
 
@@ -887,6 +905,7 @@ the Request.
 
 .. code-block:: python
 
+        @staticmethod
         def child_exit(server, worker):
             pass
 
@@ -906,6 +925,7 @@ the just-exited Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def worker_exit(server, worker):
             pass
 
@@ -923,6 +943,7 @@ the just-exited Worker.
 
 .. code-block:: python
 
+        @staticmethod
         def nworkers_changed(server, new_value, old_value):
             pass
 
@@ -943,6 +964,7 @@ be ``None``.
 
 .. code-block:: python
 
+        @staticmethod
         def on_exit(server):
             pass
 
@@ -959,6 +981,7 @@ The callable needs to accept a single instance variable for the Arbiter.
 
 .. code-block:: python
 
+        @staticmethod
         def ssl_context(config, default_ssl_context_factory):
             return default_ssl_context_factory()
 
@@ -1128,13 +1151,19 @@ If not set, the default temporary directory will be used.
 
 **Command line:** ``-u USER`` or ``--user USER``
 
-**Default:** ``os.geteuid()``
+**Default:** ``None``
 
 Switch worker processes to run as this user.
 
 A valid user id (as an integer) or the name of a user that can be
 retrieved with a call to ``pwd.getpwnam(value)`` or ``None`` to not
 change the worker process user.
+
+.. note::
+   Prior to version 23.1.0 leaving this option unspecified still
+   attempted to setuid to the current user.
+   After version 23.1.0 leaving this option unspecified will
+   not attempt changing user.
 
 .. _group:
 
@@ -1143,13 +1172,21 @@ change the worker process user.
 
 **Command line:** ``-g GROUP`` or ``--group GROUP``
 
-**Default:** ``os.getegid()``
+**Default:** ``None``
 
 Switch worker process to run as this group.
 
 A valid group id (as an integer) or the name of a user that can be
 retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
+
+.. note::
+   Prior to version 23.1.0 leaving this option unspecified
+   attempted to setgid anyway, while potentially leaving
+   unintended supplemental groups.
+   After version 23.1.0 leaving this option unspecified will
+   not attempt changing groups. Unless :ref:`initgroups`
+   is effective, will clear supplemental groups.
 
 .. _umask:
 
@@ -1183,6 +1220,8 @@ groups of which the specified username is a member, plus the specified
 group id.
 
 .. versionadded:: 19.7
+.. note::
+   Silently ignored when username lookup fails.
 
 .. _tmp-upload-dir:
 
@@ -1559,6 +1598,29 @@ instead be solved by specifically renaming or rewriting only the intended header
 on a proxy in front of Gunicorn.
 
 .. versionadded:: 22.0.0
+
+.. _on-fatal:
+
+``on_fatal``
+~~~~~~~~~~~~
+
+**Command line:** ``--on-fatal``
+
+**Default:** ``'guess'``
+
+Configure what to do if loading the application fails
+
+If set to ``world-readable``, always send the traceback to the client.
+
+The default behaviour ``guess`` is to share the traceback with the world
+ if :ref:`reload` is in use. If set to ``refuse``, stop processing requests.
+ If set to ``quiet``, respond with error status but do not share internals.
+
+The behaviour of ``world-readable`` (or, by extension ``guess``) risks exposing
+ sensitive data and is not recommended for production use.
+
+.. versionadded:: 23.1.0
+   The previous behaviour matches the new *default* behaviour.
 
 Server Socket
 -------------
