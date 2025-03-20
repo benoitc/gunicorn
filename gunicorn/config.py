@@ -2138,20 +2138,20 @@ class SSLVersion(Setting):
     .. deprecated:: 21.0
        The option is deprecated and it is currently ignored. Use :ref:`ssl-context` instead.
 
-    ============= ============
-    --ssl-version Description
-    ============= ============
-    SSLv3         SSLv3 is not-secure and is strongly discouraged.
-    SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
-    TLS           Negotiate highest possible version between client/server.
-                  Can yield SSL. (Python 3.6+)
-    TLSv1         TLS 1.0
-    TLSv1_1       TLS 1.1 (Python 3.4+)
-    TLSv1_2       TLS 1.2 (Python 3.4+)
-    TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
-                  but only support server-side SSLSocket connections.
-                  (Python 3.6+)
-    ============= ============
+    ================= ============
+    ``--ssl-version`` Description
+    ================= ============
+    `SSLv3``          SSLv3 is not-secure and is strongly discouraged.
+    `SSLv23``         Alias for TLS. Deprecated in Python 3.6, use TLS.
+    `TLS``            Negotiate highest possible version between client/server.
+                      Can yield SSL. (Python 3.6+)
+    `TLSv1``          TLS 1.0
+    `TLSv1_1``        TLS 1.1 (Python 3.4+)
+    `TLSv1_2``        TLS 1.2 (Python 3.4+)
+    `TLS_SERVER``     Auto-negotiate the highest protocol version like TLS,
+                      but only support server-side SSLSocket connections.
+                      (Python 3.6+)
+    ================= ============
 
     .. versionchanged:: 19.7
        The default value has been changed from ``ssl.PROTOCOL_TLSv1`` to
@@ -2174,13 +2174,13 @@ class CertReqs(Setting):
     desc = """\
     Whether client certificate is required (see stdlib ssl module's)
 
-    ===========  ===========================
-    --cert-reqs      Description
-    ===========  ===========================
-    `0`          no client verification
-    `1`          ssl.CERT_OPTIONAL
-    `2`          ssl.CERT_REQUIRED
-    ===========  ===========================
+    ===============  ===========================
+    ``--cert-reqs``  Description
+    ===============  ===========================
+    `0`              no client verification
+    `1`              ssl.CERT_OPTIONAL
+    `2`              ssl.CERT_REQUIRED
+    ===============  ===========================
     """
 
 

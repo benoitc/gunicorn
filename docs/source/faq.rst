@@ -109,6 +109,8 @@ threads. However `a work has been started
 .. _worker_class: settings.html#worker-class
 .. _`number of workers`: design.html#how-many-workers
 
+.. _why-i-don-t-see-any-logs-in-the-console:
+
 Why I don't see any logs in the console?
 ----------------------------------------
 
