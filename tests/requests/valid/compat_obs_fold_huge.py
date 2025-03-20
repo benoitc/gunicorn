@@ -1,6 +1,4 @@
-from gunicorn.config import Config
 
-cfg = Config()
 cfg.set('permit_obsolete_folding', True)
 
 certificate = """-----BEGIN CERTIFICATE-----

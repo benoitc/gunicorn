@@ -1,6 +1,4 @@
-from gunicorn.config import Config
 
-cfg = Config()
 cfg.set("strip_header_spaces", True)
 
 request = {

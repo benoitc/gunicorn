@@ -1,6 +1,4 @@
-from gunicorn.config import Config
 
-cfg = Config()
 cfg.set('limit_request_line', 0)
 cfg.set('limit_request_field_size', 0)
 request = {
