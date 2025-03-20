@@ -7,7 +7,7 @@ Accept-Encoding: gzip, deflate\r\n
 Cookie: csrftoken=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX; sessionid=YYYYYYYYYYYYYYYYYYYYYYYYYYYY\r\n
 Connection: keep-alive\r\n
 Content-Type: multipart/form-data; boundary=---------------------------320761477111544\r\n
-Content-Length: 17914\r\n
+Content-Length: 8599\r\n
 \r\n
 -----------------------------320761477111544\r\n
 Content-Disposition: form-data; name="csrfmiddlewaretoken"\r\n
