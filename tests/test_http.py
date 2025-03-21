@@ -104,6 +104,23 @@ def test_http_header_encoding():
     with pytest.raises(UnicodeEncodeError):
         mocked_socket.sendall(util.to_bytestring(header_str, "ascii"))
 
+def test_http_reflected_xss_in_error():
+    """ If we put arbitrary user input into the HTTP status line, our proxy could get confused """
+
+    mocked_socket = mock.MagicMock()
+    with pytest.raises(UnicodeEncodeError):
+        util.write_error(
+            mocked_socket, 501,
+            "Not latin-1: \N{egg}",
+            "unused_",
+        )
+
+    with pytest.raises(AssertionError):
+        util.write_error(
+            mocked_socket, 501,
+            "Extra newline shall not appear in HTTP Status line: \n",
+            "harmless, will appear properly quoted in html",
+        )
 
 def test_http_invalid_response_header():
     """ tests whether http response headers are contains control chars """
