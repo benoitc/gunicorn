@@ -1,5 +1,7 @@
 name: tox
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+# https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
+
 permissions:
   contents: read # to fetch code (actions/checkout)
 env:
@@ -14,6 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        mindep: [false]
         unsupported: [false]
         os:
          - ubuntu-latest
@@ -36,7 +39,6 @@ jobs:
          # https://github.com/actions/runner-images/issues/9741
          - os: macos-latest
            python-version: "3.12"
-           unsupported: false
          # will run these without showing red CI results should they fail
          - os: macos-latest
            python-version: "3.13"
@@ -44,6 +46,11 @@ jobs:
          - os: ubuntu-latest
            python-version: "3.13"
            unsupported: true
+         # pin OS lower than usual tests, even if that is slow / soon removed
+         # point is to prove we got our minimum deps documented
+         - os: ubuntu-20.04
+           python-version: "3.7"
+           mindep: true
     steps:
       - uses: actions/checkout@v4
       - name: Using Python ${{ matrix.python-version }}
@@ -53,14 +60,16 @@ jobs:
           cache: pip
           cache-dependency-path: requirements_test.txt
           check-latest: true
-          allow-prereleases: ${{ matrix.unsupported }}
+          allow-prereleases: ${{ matrix.unsupported || false }}
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install tox
       - run: tox -e run-module
-        continue-on-error: ${{ matrix.unsupported }}
+        continue-on-error: ${{ matrix.unsupported || false }}
       - run: tox -e run-entrypoint
-        continue-on-error: ${{ matrix.unsupported }}
+        continue-on-error: ${{ matrix.unsupported || false }}
       - run: tox -e py
-        continue-on-error: ${{ matrix.unsupported }}
+        continue-on-error: ${{ matrix.unsupported || false }}
+      - if: ${{ matrix.mindep || false }}
+        run: tox -e mindep
