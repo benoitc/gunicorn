@@ -15,7 +15,7 @@ def builtin(name):
 @mock.patch(builtin('open'), new_callable=mock.mock_open)
 def test_validate_no_file(_open):
     pidfile = gunicorn.pidfile.Pidfile('test.pid')
-    _open.side_effect = IOError(errno.ENOENT)
+    _open.side_effect = OSError(errno.ENOENT)
     assert pidfile.validate() is None
 
 
