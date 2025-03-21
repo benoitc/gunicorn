@@ -54,6 +54,8 @@ class Reloader(threading.Thread):
 
 
 has_inotify = False
+inotify = None  # inotify.adapters
+Inotify = None  # inotify.adapters.Inotify
 if sys.platform.startswith('linux'):
     try:
         from inotify.adapters import Inotify
