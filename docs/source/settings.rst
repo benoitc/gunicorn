@@ -1193,11 +1193,7 @@ group id.
 
 Directory to store temporary request data as they are read.
 
-This may disappear in the near future.
-
-This path should be writable by the process permissions set for Gunicorn
-workers. If not specified, Gunicorn will choose a system generated
-temporary directory.
+Unused, and may be removed from a future Gunicorn version.
 
 .. _secure-scheme-headers:
 
