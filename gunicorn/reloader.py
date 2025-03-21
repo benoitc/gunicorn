@@ -14,17 +14,21 @@ COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
 class Reloader(threading.Thread):
-    def __init__(self, extra_files=None, interval=1, callback=None):
+    def __init__(self, extra_files=None, interval=1, callback=None, auto_detect=False):
         super().__init__()
         self.daemon = True
         self._extra_files = set(extra_files or ())
         self._interval = interval
         self._callback = callback
+        self._auto_detect = auto_detect
 
     def add_extra_file(self, filename):
         self._extra_files.add(filename)
 
     def get_files(self):
+        if not self._auto_detect:
+            return self._extra_files
+
         fnames = [
             COMPILED_EXT_RE.sub('py', module.__file__)
             for module in tuple(sys.modules.values())
@@ -71,12 +75,13 @@ if has_inotify:
                       | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM
                       | inotify.constants.IN_MOVED_TO)
 
-        def __init__(self, extra_files=None, callback=None):
+        def __init__(self, extra_files=None, callback=None, auto_detect=False):
             super().__init__()
             self.daemon = True
             self._callback = callback
             self._dirs = set()
             self._watcher = Inotify()
+            self._auto_detect = auto_detect
 
             for extra_file in extra_files:
                 self.add_extra_file(extra_file)
@@ -91,6 +96,9 @@ if has_inotify:
             self._dirs.add(dirname)
 
         def get_dirs(self):
+            if not self._auto_detect:
+                return set()
+
             fnames = [
                 os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
                 for module in tuple(sys.modules.values())
@@ -100,6 +108,7 @@ if has_inotify:
             return set(fnames)
 
         def run(self):
+            # FIXME: _watchers/_dirs inconsistent - latter gets reset
             self._dirs = self.get_dirs()
 
             for dirname in self._dirs:
@@ -117,7 +126,7 @@ if has_inotify:
 else:
 
     class InotifyReloader:
-        def __init__(self, extra_files=None, callback=None):
+        def __init__(self, extra_files=None, callback=None, auto_detect=False):
             raise ImportError('You must have the inotify module installed to '
                               'use the inotify reloader')
 
