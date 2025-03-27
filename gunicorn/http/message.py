@@ -53,9 +53,10 @@ GUNICORN_NONSTANDARD_URI_CHARACTERS = (
     # used in tests/requests/valid/027.http (utf8 decoded as latin-1)
     #   "\N{LATIN CAPITAL LETTER A WITH TILDE}"
     #   "\N{NO-BREAK SPACE}"
-    # includes the above - all latin-1 upper bits
+    # any with significant bit set - includes the above
     #   also includes "\N{SOFT HYPHEN}"
-    + bytes(range(0xA0, 0xff + 1)).decode("latin-1")
+    # simplify this once util.bytes_to_str is deleted
+    + bytes(range(0x80, 0xff + 1)).decode("latin-1")
 )
 GUNICORN_URI_SPECIALS = RFC3986_2_URI_SPECIALS + GUNICORN_NONSTANDARD_URI_CHARACTERS
 URI_CHARACTERS_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(GUNICORN_URI_SPECIALS)))
