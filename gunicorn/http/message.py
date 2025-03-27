@@ -48,6 +48,8 @@ RFC3986_2_URI_SPECIALS = (
 )
 GUNICORN_NONSTANDARD_URI_CHARACTERS = (
     "\N{QUOTATION MARK}"
+    # firefox and curl do not consider pipe escape-worthy
+    "\N{VERTICAL LINE}"
     # used in tests/requests/valid/027.http (utf8 decoded as latin-1)
     #   "\N{LATIN CAPITAL LETTER A WITH TILDE}"
     #   "\N{NO-BREAK SPACE}"
