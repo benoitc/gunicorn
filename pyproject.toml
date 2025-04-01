@@ -6,14 +6,14 @@ build-backend = "setuptools.build_meta"
 # see https://packaging.python.org/en/latest/specifications/pyproject-toml/
 name = "gunicorn"
 authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 description = "WSGI HTTP Server for UNIX"
 readme = "README.rst"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Other Environment",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX",
     "Programming Language :: Python",
@@ -75,7 +75,6 @@ addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
 [tool.setuptools]
 zip-safe = false
 include-package-data = true
-license-files = ["LICENSE"]
 
 [tool.setuptools.packages]
 find = {namespaces = false}
