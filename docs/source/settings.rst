@@ -1595,6 +1595,11 @@ If the ``PORT`` environment variable is defined, the default
 is ``['0.0.0.0:$PORT']``. If it is not defined, the default
 is ``['127.0.0.1:8000']``.
 
+.. note::
+   Specifying any fd://FD socket or inheriting any socket from systemd
+   (LISTEN_FDS) results in other bind addresses to be skipped.
+   Do not mix fd://FD and systemd socket activation.
+
 .. _backlog:
 
 ``backlog``
