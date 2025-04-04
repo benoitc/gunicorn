@@ -151,6 +151,7 @@ class Arbiter:
                 self.systemd = True
                 fds = range(systemd.SD_LISTEN_FDS_START,
                             systemd.SD_LISTEN_FDS_START + listen_fds)
+                self.log.debug("Inherited sockets from systemd: %r", fds)
 
             elif self.master_pid:
                 fds = []
@@ -171,6 +172,10 @@ class Arbiter:
             self.worker_class.check_config(self.cfg, self.log)
 
         self.cfg.when_ready(self)
+
+        # # call `pkill --oldest -TERM -f "gunicorn: master "` instead
+        # if self.master_pid and self.systemd:
+        #     os.kill(self.master_pid, signal.SIGTERM)
 
     def init_signals(self):
         """\
@@ -350,7 +355,12 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
-        systemd.sd_notify("STOPPING=1\nSTATUS=Gunicorn shutting down..\n", self.log)
+        if self.master_pid != 0:
+            # if NotifyAccess=main, systemd needs to know old master is in control
+            systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=New arbiter shutdown\n" % (self.master_pid, ), self.log)
+        elif self.reexec_pid == 0:
+            # skip setting status if this is merely superseded master stopping
+            systemd.sd_notify("STOPPING=1\nSTATUS=Shutting down..\n", self.log)
 
         self.stop()
 
@@ -425,6 +435,10 @@ class Arbiter:
         master_pid = os.getpid()
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
+            # let systemd know they will be in control after exec()
+            systemd.sd_notify(
+                "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in forked..\n" % (self.reexec_pid, ), self.log
+            )
             # old master
             return
 
@@ -437,6 +451,9 @@ class Arbiter:
         if self.systemd:
             environ['LISTEN_PID'] = str(os.getpid())
             environ['LISTEN_FDS'] = str(len(self.LISTENERS))
+            # move socket fds back to 3+N after we duped+closed them
+            # for idx, lnr in enumerate(self.LISTENERS):
+            #    os.dup2(lnr.fileno(), 3+idx)
         else:
             environ['GUNICORN_FD'] = ','.join(
                 str(lnr.fileno()) for lnr in self.LISTENERS)
@@ -445,8 +462,10 @@ class Arbiter:
 
         # exec the process using the original environment
         self.log.debug("exe=%r argv=%r" % (self.START_CTX[0], self.START_CTX['args']))
-        # let systemd know are are in control
-        systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec\n" % (master_pid, ), self.log)
+        # let systemd know we will be in control after exec()
+        systemd.sd_notify(
+            "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in progress..\n" % (self.reexec_pid, ), self.log
+        )
         os.execve(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
@@ -538,8 +557,7 @@ class Arbiter:
                     self.reexec_pid = 0
                     self.log.info("Master exited before promotion.")
                     # let systemd know we are (back) in control
-                    systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec aborted\n" % (os.getpid(), ), self.log)
-                    continue
+                    systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Old arbiter promoted\n" % (os.getpid(), ), self.log)
                 else:
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
