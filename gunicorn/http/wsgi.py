@@ -117,13 +117,14 @@ def create(req, sock, client, server, cfg):
     host = None
     script_name = os.environ.get("SCRIPT_NAME", "")
 
+    if req._expected_100_continue:
+        sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
+        # rfc9112: Expect MUST be forwarded if the request is forwarded
+        # N.B. gunicorn just sends at most one - application might send another
+
     # add the headers to the environ
     for hdr_name, hdr_value in req.headers:
-        if hdr_name == "EXPECT":
-            # handle expect
-            if hdr_value.lower() == "100-continue":
-                sock.send(b"HTTP/1.1 100 Continue\r\n\r\n")
-        elif hdr_name == 'HOST':
+        if hdr_name == 'HOST':
             host = hdr_value
         elif hdr_name == "SCRIPT_NAME":
             script_name = hdr_value
