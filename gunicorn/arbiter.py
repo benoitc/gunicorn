@@ -173,9 +173,7 @@ class Arbiter:
 
         self.cfg.when_ready(self)
 
-        # # call `pkill --oldest -TERM -f "gunicorn: master "` instead
-        # if self.master_pid and self.systemd:
-        #     os.kill(self.master_pid, signal.SIGTERM)
+        # systemd: not yet shutting down old master here (wait for workers)
 
     def init_signals(self):
         """\
@@ -343,6 +341,13 @@ class Arbiter:
             # MAINPID does not change here, it was already set on fork
             systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter promoted\n" % (os.getpid(), ), self.log)
 
+        elif self.systemd and len(self.WORKERS) >= 1:
+            # still attached to old master, but we are ready to take over
+            #  this automates `kill -TERM $(cat /var/run/gunicorn.pid)`
+            self.log.debug("systemd managed: shutting down old master %d after re-exec", self.master_pid)
+            os.kill(self.master_pid, signal.SIGTERM)
+
+
     def wakeup(self):
         """\
         Wake up the arbiter by writing to the PIPE
@@ -464,7 +469,7 @@ class Arbiter:
         self.log.debug("exe=%r argv=%r" % (self.START_CTX[0], self.START_CTX['args']))
         # let systemd know we will be in control after exec()
         systemd.sd_notify(
-            "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in progress..\n" % (self.reexec_pid, ), self.log
+            "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in progress..\n" % (os.getpid(), ), self.log
         )
         os.execve(self.START_CTX[0], self.START_CTX['args'], environ)
 
