@@ -79,7 +79,7 @@ def test_arbiter_reexec_passing_systemd_sockets(sd_notify, execve, fork, getpid)
     arbiter.systemd = True
     fork.return_value = 0
     sd_notify.return_value = None
-    getpid.side_effect = [2, 3]
+    getpid.side_effect = [2, 3, 3]  # 2 getpid calls in new master
     arbiter.reexec()
     environ = execve.call_args[0][2]
     assert environ['GUNICORN_PID'] == '2'
