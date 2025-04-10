@@ -247,7 +247,8 @@ to the newly created unix socket:
 
     [Service]
     # gunicorn can let systemd know when it is ready
-    Type=notify
+    # in systemd versions prior to v253 use Type=notify
+    Type=notify-reload
     NotifyAccess=main
     # the specific user that our service will run as
     User=someuser
