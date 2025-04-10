@@ -140,6 +140,10 @@ def get_username(uid):
 def set_owner_process(uid, gid, initgroups=False):
     """ set user and group of workers processes """
 
+    # note: uid/gid can be larger than 2**32
+    # note: setgid() does not empty supplemental group list
+    # note: will never act on uid=0 / gid=0
+
     if gid:
         if uid:
             try:
@@ -157,6 +161,7 @@ def set_owner_process(uid, gid, initgroups=False):
 
 
 def chown(path, uid, gid):
+    # N.B. os.chown semantics are -1 for unchanged
     os.chown(path, uid, gid)
 
 

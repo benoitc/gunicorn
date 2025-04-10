@@ -1162,6 +1162,9 @@ class User(Setting):
         A valid user id (as an integer) or the name of a user that can be
         retrieved with a call to ``pwd.getpwnam(value)`` or ``None`` to not
         change the worker process user.
+
+        .. note::
+           Leaving this option unspecified does not skip username lookup.
         """
 
 
@@ -1179,6 +1182,11 @@ class Group(Setting):
         A valid group id (as an integer) or the name of a user that can be
         retrieved with a call to ``grp.getgrnam(value)`` or ``None`` to not
         change the worker processes group.
+
+        .. note::
+           Leaving this option unspecified does not skip username lookup.
+        .. warning::
+           This sets effective group ID - beware of supplemental groups!
         """
 
 
@@ -1216,6 +1224,8 @@ class Initgroups(Setting):
         group id.
 
         .. versionadded:: 19.7
+        .. note::
+           Silently ignored when username lookup fails.
         """
 
 
