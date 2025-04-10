@@ -119,7 +119,7 @@ class Worker:
         self.init_signals()
 
         # start the reloader
-        if self.cfg.reload:
+        if self.cfg.reload or self.cfg.reload_extra_files:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
@@ -130,6 +130,7 @@ class Worker:
 
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
+                                         auto_detect=self.cfg.reload,
                                          callback=changed)
 
         self.load_wsgi()
@@ -146,24 +147,26 @@ class Worker:
         try:
             self.wsgi = self.app.wsgi()
         except SyntaxError as e:
-            if not self.cfg.reload:
+            if self.cfg.on_fatal == "world-readable":
+                pass
+            elif self.cfg.on_fatal == "brief":
+                self.log.exception(e)
+                self.wsgi = util.make_fail_app("Internal Server Error")
+                return
+            elif self.cfg.on_fatal == "world-readable-with-reload" and self.cfg.reload:
+                pass
+            else:  # self.cfg.on_fatal == "refuse"
+                # secure fallthrough
                 raise
 
             self.log.exception(e)
 
-            # fix from PR #1228
-            # storing the traceback into exc_tb will create a circular reference.
-            # per https://docs.python.org/2/library/sys.html#sys.exc_info warning,
-            # delete the traceback after use.
-            try:
-                _, exc_val, exc_tb = sys.exc_info()
-                self.reloader.add_extra_file(exc_val.filename)
+            if self.reloader is not None and e.filename is not None:
+                self.reloader.add_extra_file(e.filename)
 
-                tb_string = io.StringIO()
-                traceback.print_tb(exc_tb, file=tb_string)
+            with io.StringIO() as tb_string:
+                traceback.print_tb(e.__traceback__, file=tb_string)
                 self.wsgi = util.make_fail_app(tb_string.getvalue())
-            finally:
-                del exc_tb
 
     def init_signals(self):
         # reset signaling
