@@ -52,7 +52,10 @@ def fmt_setting(s):
         val = s.default_doc
     elif callable(s.default):
         val = inspect.getsource(s.default)
-        val = "\n".join("    %s" % line for line in val.splitlines())
+        # defaults are def'd inside class; strip the @decorator
+        val = "\n".join("    %s" % line
+                        for line in val.splitlines()
+                        if not line.strip() == "@staticmethod")
         val = "\n\n.. code-block:: python\n\n" + val
     elif s.default == '':
         val = "``''``"
