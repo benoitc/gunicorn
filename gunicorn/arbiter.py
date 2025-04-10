@@ -173,6 +173,8 @@ class Arbiter:
 
         self.cfg.when_ready(self)
 
+        # systemd: not yet shutting down old master here (wait for workers)
+
     def init_signals(self):
         """\
         Initialize master signal handling. Most of the signals
@@ -338,6 +340,12 @@ class Arbiter:
             util._setproctitle("master [%s]" % self.proc_name)
             # MAINPID does not change here, it was already set on fork
             systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter promoted" % (os.getpid(), ), self.log)
+
+        elif self.systemd and len(self.WORKERS) >= 1:
+            # still attached to old master, but we are ready to take over
+            #  this automates `kill -TERM $(cat /var/run/gunicorn.pid)`
+            self.log.debug("systemd managed: shutting down old master %d after re-exec", self.master_pid)
+            os.kill(self.master_pid, signal.SIGTERM)
 
     def wakeup(self):
         """\
