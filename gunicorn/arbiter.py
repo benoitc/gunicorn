@@ -347,7 +347,6 @@ class Arbiter:
             self.log.debug("systemd managed: shutting down old master %d after re-exec", self.master_pid)
             os.kill(self.master_pid, signal.SIGTERM)
 
-
     def wakeup(self):
         """\
         Wake up the arbiter by writing to the PIPE
