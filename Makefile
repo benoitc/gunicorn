@@ -4,7 +4,7 @@ build:
 	venv/bin/pip install -r requirements_dev.txt
 
 test:
-	venv/bin/python setup.py test
+	venv/bin/pytest
 
 coverage:
 	venv/bin/python setup.py test --cov
