@@ -365,6 +365,13 @@ def validate_pos_int(val):
     return val
 
 
+def validate_pos_float(val):
+    val = float(val)
+    if val < 0:
+        raise ValueError("Value must be positive: %s" % val)
+    return val
+
+
 def validate_ssl_version(val):
     if val != SSLVersion.default:
         sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
@@ -811,7 +818,25 @@ class GracefulTimeout(Setting):
 
         After receiving a restart signal, workers have this much time to finish
         serving requests. Workers still alive after the timeout (starting from
-        the receipt of the restart signal) are force killed.
+        the receipt of the restart signal) are sent a quick shutdown signal (if
+        quick_shutdown_timeout is greater than zero) then are force killed.
+        """
+
+
+class QuickShutdownTimeout(Setting):
+    name = "quick_shutdown_timeout"
+    section = "Worker Processes"
+    cli = ["--quick-shutdown-timeout"]
+    meta = "INT"
+    validator = validate_pos_float
+    type = float
+    default = 0
+    desc = """\
+        Timeout for quick worker shutdown.
+
+        After receiving a quick shutdown signal, workers have this much time to
+        finish serving requests. Workers still alive after the timeout (starting
+        from the receipt of the quick shutdown signal) are force killed.
         """
 
 
