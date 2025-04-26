@@ -21,7 +21,7 @@ IRC
 
 The Gunicorn channel is on the `Libera Chat <https://libera.chat/>`_ IRC
 network. You can chat with others on `#gunicorn channel
-<https://web.libera.chat/#gunicorn>`_
+<https://web.libera.chat/?channels=#gunicorn>`_
 
 Issue Tracking
 ==============
