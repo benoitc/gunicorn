@@ -574,6 +574,7 @@ class Arbiter:
         workers = self.WORKERS.items()
         workers = sorted(workers, key=lambda w: w[1].age)
         while len(workers) > self.num_workers:
+            self.log("KILLING WORKER because there are {} when there should be {}", len(workers), self.num_workers)
             (pid, _) = workers.pop(0)
             self.kill_worker(pid, signal.SIGTERM)
 
@@ -672,6 +673,7 @@ class Arbiter:
         :attr pid: int, worker pid
         :attr sig: `signal.SIG*` value
          """
+        self.log.info("KILLING WORKER: Sending %s to worker %s", sig, pid)
         try:
             os.kill(pid, sig)
         except OSError as e:
