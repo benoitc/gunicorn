@@ -215,6 +215,7 @@ a            user agent
 T            request time in seconds
 M            request time in milliseconds
 D            request time in microseconds
+N            request time in nanoseconds
 L            request time in decimal seconds
 p            process ID
 {header}i    request header
@@ -1148,7 +1149,7 @@ change the worker process user.
 Switch worker process to run as this group.
 
 A valid group id (as an integer) or the name of a user that can be
-retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
+retrieved with a call to ``grp.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
 
 .. _umask:

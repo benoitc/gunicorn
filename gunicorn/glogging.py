@@ -310,10 +310,11 @@ class Logger:
             'B': getattr(resp, 'sent', None),
             'f': environ.get('HTTP_REFERER', '-'),
             'a': environ.get('HTTP_USER_AGENT', '-'),
-            'T': request_time.seconds,
-            'D': (request_time.seconds * 1000000) + request_time.microseconds,
-            'M': (request_time.seconds * 1000) + int(request_time.microseconds / 1000),
-            'L': "%d.%06d" % (request_time.seconds, request_time.microseconds),
+            'T': request_time // 1_000_000_000,
+            'M': request_time // 1_000_000,
+            'D': request_time // 1_000,
+            'N': request_time,
+            'L': "%.6f" % (request_time / 1e+9),
             'p': "<%s>" % os.getpid()
         }
 
