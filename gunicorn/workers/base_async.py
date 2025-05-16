@@ -2,11 +2,11 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from datetime import datetime
 import errno
 import socket
 import ssl
 import sys
+import time
 
 from gunicorn import http
 from gunicorn.http import wsgi
@@ -197,7 +197,7 @@ class AsyncWorker(base.Worker):
                 self.log.exception("Exception in post_request hook")
 
     def handle_request(self, listener_name, req, sock, addr):
-        request_start = datetime.now()
+        request_start = time.monotonic_ns()
         environ = {}
         resp = None
         try:
@@ -225,7 +225,7 @@ class AsyncWorker(base.Worker):
                         resp.write(item)
                 resp.close()
             finally:
-                request_time = datetime.now() - request_start
+                request_time = time.monotonic_ns() - request_start
                 self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()
