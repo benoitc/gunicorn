@@ -205,7 +205,7 @@ class ThreadWorker(base.Worker):
             self.notify()
 
             # can we accept more connections?
-            if self.nr_conns < self.worker_connections:
+            if self.nr_conns < self.worker_connections or not self.futures:
                 # wait for an event
                 events = self.poller.select(1.0)
                 for key, _ in events:
