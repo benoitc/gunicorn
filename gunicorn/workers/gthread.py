@@ -74,6 +74,8 @@ class ThreadWorker(base.Worker):
         # initialise the pool
         self.tpool = None
         self.poller = None
+        # poller for active connections
+        self.current_poller = None
         self._lock = None
         self.futures = deque()
         self._keep = deque()
@@ -90,6 +92,7 @@ class ThreadWorker(base.Worker):
     def init_process(self):
         self.tpool = self.get_thread_pool()
         self.poller = selectors.DefaultSelector()
+        self.current_poller = selectors.DefaultSelector()
         self._lock = RLock()
         super().init_process()
 
@@ -125,8 +128,9 @@ class ThreadWorker(base.Worker):
             self.nr_conns += 1
             # wait until socket is readable
             with self._lock:
-                self.poller.register(conn.sock, selectors.EVENT_READ,
-                                     partial(self.on_client_socket_readable, conn))
+                for poller in [self.poller, self.current_poller]:
+                    poller.register(conn.sock, selectors.EVENT_READ,
+                                    partial(self.on_client_socket_readable, conn))
         except OSError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                errno.EWOULDBLOCK):
@@ -135,7 +139,8 @@ class ThreadWorker(base.Worker):
     def on_client_socket_readable(self, conn, client):
         with self._lock:
             # unregister the client from the poller
-            self.poller.unregister(client)
+            for poller in [self.poller, self.current_poller]:
+                poller.unregister(client)
 
             if conn.initialized:
                 # remove the connection from keepalive
@@ -168,17 +173,18 @@ class ThreadWorker(base.Worker):
                 self.nr_conns -= 1
                 # remove the socket from the poller
                 with self._lock:
-                    try:
-                        self.poller.unregister(conn.sock)
-                    except OSError as e:
-                        if e.errno != errno.EBADF:
-                            raise
-                    except KeyError:
-                        # already removed by the system, continue
-                        pass
-                    except ValueError:
-                        # already removed by the system continue
-                        pass
+                    for poller in [self.poller, self.current_poller]:
+                        try:
+                            poller.unregister(conn.sock)
+                        except OSError as e:
+                            if e.errno != errno.EBADF:
+                                raise
+                        except KeyError:
+                            # already removed by the system, continue
+                            pass
+                        except ValueError:
+                            # already removed by the system continue
+                            pass
 
                 # close the socket
                 conn.close()
@@ -204,21 +210,29 @@ class ThreadWorker(base.Worker):
             # notify the arbiter we are alive
             self.notify()
 
+            future_timeout = 0.0
+            poller = None
+
             # can we accept more connections?
-            if self.nr_conns < self.worker_connections or not self.futures:
+            if self.nr_conns < self.worker_connections:
+                poller = self.poller
+            elif not self.futures:
+                # if we have no active connections processing,
+                # we need to poll sockets for active connections
+                # to close
+                poller = self.current_poller
+                future_timeout = 1.0
+
+            if poller is not None:
                 # wait for an event
-                events = self.poller.select(1.0)
+                events = poller.select(1.0)
                 for key, _ in events:
                     callback = key.data
                     callback(key.fileobj)
 
-                # check (but do not wait) for finished requests
-                result = futures.wait(self.futures, timeout=0,
-                                      return_when=futures.FIRST_COMPLETED)
-            else:
-                # wait for a request to finish
-                result = futures.wait(self.futures, timeout=1.0,
-                                      return_when=futures.FIRST_COMPLETED)
+            # check (but do not wait) for finished requests
+            result = futures.wait(self.futures, timeout=future_timeout,
+                                  return_when=futures.FIRST_COMPLETED)
 
             # clean up finished requests
             for fut in result.done:
@@ -232,6 +246,7 @@ class ThreadWorker(base.Worker):
 
         self.tpool.shutdown(False)
         self.poller.close()
+        self.current_poller.close()
 
         for s in self.sockets:
             s.close()
@@ -258,8 +273,9 @@ class ThreadWorker(base.Worker):
                     self._keep.append(conn)
 
                     # add the socket to the event loop
-                    self.poller.register(conn.sock, selectors.EVENT_READ,
-                                         partial(self.on_client_socket_readable, conn))
+                    for poller in [self.poller, self.current_poller]:
+                        poller.register(conn.sock, selectors.EVENT_READ,
+                                        partial(self.on_client_socket_readable, conn))
             else:
                 self.nr_conns -= 1
                 conn.close()
