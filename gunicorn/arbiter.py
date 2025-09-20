@@ -251,7 +251,9 @@ class Arbiter:
         - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s", self.master_name)
+        systemd.sd_notify("RELOADING=1\nSTATUS=Gunicorn arbiter reloading", self.log)
         self.reload()
+        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter reloaded", self.log)
 
     def handle_term(self):
         "SIGTERM handling"
