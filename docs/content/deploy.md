@@ -296,13 +296,12 @@ Requires=gunicorn.socket
 After=network.target
 
 [Service]
-Type=notify
+Type=notify-reload
 NotifyAccess=main
 User=someuser
 Group=someuser
 WorkingDirectory=/home/someuser/applicationroot
 ExecStart=/usr/bin/gunicorn --bind unix:/run/gunicorn.sock applicationname.wsgi
-ExecReload=/bin/kill -s HUP $MAINPID
 KillMode=mixed
 TimeoutStopSec=5
 PrivateTmp=true
@@ -311,9 +310,19 @@ PrivateTmp=true
 WantedBy=multi-user.target
 ```
 
-`Type=notify` lets Gunicorn report readiness to systemd. If the service should
-run under a transient user consider adding `DynamicUser=true`. Tighten
-permissions further with `ProtectSystem=strict` if the app permits.
+!!! info
+
+    `Type=notify-reload` lets Gunicorn report readiness to systemd. If the
+    service should run under a transient user consider adding
+    `DynamicUser=true`. Tighten permissions further with `ProtectSystem=strict`
+    if the app permits.
+
+!!! note
+
+    With systemd version < v253:
+
+    - change `Type=notify` to `Type=notify-reload`
+    - add `ExecReload=/bin/kill -s HUP $MAINPID`
 
 Socket activation file:
 

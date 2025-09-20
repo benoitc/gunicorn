@@ -183,7 +183,8 @@ class Arbiter:
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
-        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
+        if self.systemd:
+            systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
 
         # check worker class requirements
         if hasattr(self.worker_class, "check_config"):
@@ -283,10 +284,14 @@ class Arbiter:
         - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s", self.master_name)
+        if self.systemd:
+            systemd.sd_notify("RELOADING=1\nSTATUS=Gunicorn arbiter reloading", self.log)
         self.reload()
         # Forward to dirty arbiter
         if self.dirty_arbiter_pid:
             self.kill_dirty_arbiter(signal.SIGHUP)
+        if self.systemd:
+            systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter reloaded", self.log)
 
     def handle_term(self):
         "SIGTERM handling"
