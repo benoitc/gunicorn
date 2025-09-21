@@ -377,6 +377,9 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        if self.systemd:
+            systemd.sd_notify("STOPPING=1\nSTATUS=Gunicorn arbiter stopping", self.log)
+
         # Stop control socket server first
         self._stop_control_server()
 
