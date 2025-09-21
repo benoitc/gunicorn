@@ -342,6 +342,7 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        systemd.sd_notify("STOPPING=1\nSTATUS=Gunicorn arbiter stopping", self.log)
         self.stop()
 
         log_func = self.log.info if exit_status == 0 else self.log.error
