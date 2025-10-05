@@ -21,29 +21,17 @@ jobs:
          - macos-13
          # Not testing Windows, because tests need Unix-only fcntl, grp, pwd, etc.
         python-version:
-         # CPython <= 3.7 is EoL since 2023-06-27
-         - "3.7"
-         - "3.8"
-         - "3.9"
-         - "3.10"
-         - "3.11"
+         # Supporting only N (3.13) and N-1 (3.12)
          - "3.12"
-         # PyPy <= 3.8 is EoL since 2023-06-16
-         - "pypy-3.9"
-         - "pypy-3.10"
+         - "3.13"
         include:
-         # Note: potentially "universal2" release
-         # https://github.com/actions/runner-images/issues/9741
+         # Test on macos-latest (arm64) with both versions
          - os: macos-latest
            python-version: "3.12"
            unsupported: false
-         # will run these without showing red CI results should they fail
          - os: macos-latest
            python-version: "3.13"
-           unsupported: true
-         - os: ubuntu-latest
-           python-version: "3.13"
-           unsupported: true
+           unsupported: false
     steps:
       - uses: actions/checkout@v5
       - name: Using Python ${{ matrix.python-version }}
