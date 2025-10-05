@@ -157,7 +157,7 @@ benoitc.
 
 * Step 1: learn the component inside out
 * Step 2: make yourself useful by contributing code, bugfixes, support etc.
-* Step 3: volunteer on the irc channel (#gunicorn@freenode)
+* Step 3: volunteer on our [Libera Chat](https://libera.chat/) irc channel [#gunicorn](https://web.libera.chat/?channels=#gunicorn)
 
 Don't forget: being a maintainer is a time investment. Make sure you
 will have time to make yourself available.  You don't have to be a
