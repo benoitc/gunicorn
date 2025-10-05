@@ -42,7 +42,7 @@ jobs:
         run: |
           # this will update docs/source/settings.rst - but will not create html output
           (cd docs && sphinx-build -b "dummy" -d _build/doctrees source "_build/dummy")
-          git update-index --assume-unchanged settings.rst
+          git update-index --assume-unchanged docs/source/settings.rst
           if unclean=$(git status --untracked-files=no --porcelain) && [ -z "$unclean" ]; then
             echo "no uncommitted changes in working tree (as it should be)"
           else
