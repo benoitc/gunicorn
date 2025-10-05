@@ -11,7 +11,7 @@ request = {
         ("COOKIE", "csrftoken=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX; sessionid=YYYYYYYYYYYYYYYYYYYYYYYYYYYY"),
         ("CONNECTION", "keep-alive"),
         ("CONTENT-TYPE", "multipart/form-data; boundary=---------------------------320761477111544"),
-        ("CONTENT-LENGTH", "17914"),
+        ("CONTENT-LENGTH", "8599"),
     ],
     "body": b"""-----------------------------320761477111544
 Content-Disposition: form-data; name="csrfmiddlewaretoken"
