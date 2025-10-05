@@ -13,7 +13,7 @@ environment:
     #- TOXENV: run-entrypoint
     #  PYTHON: "C:\\Python38-x64"
     # Windows is not ready for testing!!!
-    # Python's fcntl, grp, pwd, os.geteuid(), and socket.AF_UNIX are all Unix-only.
+    # Python's non-blocking pipes, grp, pwd, os.geteuid(), and socket.AF_UNIX are all Unix-only.
     #- TOXENV: py35
     #  PYTHON: "C:\\Python35-x64"
     #- TOXENV: py36
