@@ -243,6 +243,8 @@ class Arbiter:
         self.reap_workers()
         self.wakeup()
 
+    handle_cld = handle_chld  # chld aliased as cld in some systems
+
     def handle_hup(self):
         """\
         HUP handling.
