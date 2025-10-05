@@ -876,7 +876,8 @@ the Request.
 Called after a worker processes the request.
 
 The callable needs to accept two instance variables for the Worker and
-the Request.
+the Request. If a third parameter is defined it will be passed the
+environment. If a fourth parameter is defined it will be passed the Response.
 
 .. _child-exit:
 
