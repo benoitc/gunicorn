@@ -807,7 +807,7 @@ class GracefulTimeout(Setting):
     type = int
     default = 30
     desc = """\
-        Timeout for graceful workers restart.
+        Timeout for graceful workers restart in seconds.
 
         After receiving a restart signal, workers have this much time to finish
         serving requests. Workers still alive after the timeout (starting from
