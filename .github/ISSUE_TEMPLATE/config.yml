@@ -1,0 +1,11 @@
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests
+
+blank_issues_enabled: true
+
+# hack: make GitHub hide the "no template" button, re-add as custom URL
+#  idea stolen from https://github.com/pypa/pip
+#blank_issues_enabled: false
+#contact_links:
+#  - name: "(maintainers only) let me file a report without template"
+#    url: "https://github.com/benoitc/gunicorn/issues/new"
+#    about: "Only maintainers can do this."
