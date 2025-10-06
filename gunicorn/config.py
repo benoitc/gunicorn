@@ -832,7 +832,7 @@ class QuickShutdownTimeout(Setting):
     type = float
     default = 0
     desc = """\
-        Timeout for quick worker shutdown.
+        Timeout for quick worker shutdown in seconds.
 
         After receiving a quick shutdown signal, workers have this much time to
         finish serving requests. Workers still alive after the timeout (starting
