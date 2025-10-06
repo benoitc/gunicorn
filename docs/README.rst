@@ -4,16 +4,26 @@ Generate Documentation
 Requirements
 ------------
 
-To generate documentation you need to install:
+Install the documentation dependencies with::
 
- - Python >= 3.7
- - Sphinx (https://www.sphinx-doc.org/)
+    pip install -r requirements_dev.txt
+
+This provides MkDocs with the Material theme and supporting plugins.
 
 
-Generate html
--------------
+Build static HTML
+-----------------
 ::
 
-    $ make html
+    mkdocs build
 
-The command generates html document inside ``build/html`` dir.
+The rendered site is emitted into the ``site/`` directory.
+
+
+Preview locally
+---------------
+::
+
+    mkdocs serve
+
+This serves the documentation at http://127.0.0.1:8000/ with live reload.

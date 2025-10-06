@@ -5,5 +5,8 @@
 # otherwise, oldest known-working version is 61.2
 setuptools>=68.0
 
-sphinx
-sphinx_rtd_theme
+mkdocs>=1.6
+mkdocs-material>=9.5
+mkdocs-gen-files>=0.5
+mkdocs-macros-plugin>=1.0
+pymdown-extensions>=10.0

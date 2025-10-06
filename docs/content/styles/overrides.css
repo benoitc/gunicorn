@@ -1,0 +1,192 @@
+:root {
+  --gunicorn-green: #1d692d;
+  --gunicorn-green-dark: #14501f;
+  --gunicorn-green-light: #2a8729;
+  --gunicorn-cream: #f6f6f1;
+  --md-primary-fg-color: var(--gunicorn-green-light);
+  --md-primary-fg-color--light: #3da843;
+  --md-primary-fg-color--dark: var(--gunicorn-green-dark);
+  --md-accent-fg-color: var(--gunicorn-green);
+}
+
+[data-md-color-scheme="slate"] {
+  --gunicorn-cream: #1d1f1d;
+  --md-primary-fg-color: var(--gunicorn-green);
+  --md-primary-fg-color--light: #3da843;
+  --md-primary-fg-color--dark: var(--gunicorn-green-dark);
+  --md-accent-fg-color: var(--gunicorn-green-light);
+}
+
+.md-header__button.md-logo svg {
+  height: 1.8rem;
+}
+
+.md-typeset .hero {
+  margin: 2rem 0 3rem;
+  padding: 3.5rem;
+  background: linear-gradient(135deg, rgba(29, 105, 45, 0.96), rgba(42, 135, 41, 0.85));
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .hero {
+  background: linear-gradient(135deg, rgba(20, 80, 31, 0.95), rgba(29, 105, 45, 0.88));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+.md-typeset .hero__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.md-typeset .hero__copy {
+  flex: 1 1 320px;
+  max-width: 520px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.md-typeset .hero__copy h1 {
+  margin: 0 0 1rem;
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.md-typeset .hero__cta {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.md-typeset .hero__code {
+  flex: 1 1 260px;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.5rem;
+  backdrop-filter: blur(4px);
+  font-size: 0.95rem;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .hero__code {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.md-typeset .hero__code pre {
+  margin: 0 0 1rem;
+  border: none;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e8f5ea;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .hero__code pre {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.md-typeset .hero__version {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.md-typeset .feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.6rem;
+  margin: 2.5rem 0 3rem;
+}
+
+.md-typeset .feature-card {
+  background: var(--gunicorn-cream);
+  border-radius: 14px;
+  padding: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .feature-card {
+  background: rgba(45, 48, 45, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+}
+
+.md-typeset .feature-card h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  color: var(--gunicorn-green-dark);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .feature-card h3 {
+  color: var(--gunicorn-cream);
+}
+
+.md-typeset .feature-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  color: var(--gunicorn-green);
+}
+
+.md-typeset .feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12);
+}
+
+.md-typeset .feature-card:hover a::after {
+  content: '\\2192';
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.md-typeset .feature-card a::after {
+  content: '\\2192';
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateX(0);
+}
+
+@media (max-width: 960px) {
+  .md-typeset .hero {
+    padding: 2.25rem;
+  }
+
+  .md-typeset .hero__copy h1 {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .md-typeset .hero {
+    margin-top: 1.5rem;
+    padding: 1.75rem;
+  }
+
+  .md-typeset .hero__cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .md-typeset .hero__code {
+    width: 100%;
+  }
+}
+
+.md-footer-meta__inner {
+  flex-wrap: wrap;
+}
+
+.md-typeset .hero__logo {
+  height: 64px;
+  margin-bottom: 1.25rem;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .hero__logo {
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.35));
+}

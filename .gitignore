@@ -16,3 +16,5 @@ examples/frameworks/pylonstest/pylonstest.egg-info/
 MANIFEST
 nohup.out
 setuptools-*
+site/
+docs/site/

@@ -9,9 +9,15 @@ test:
 coverage:
 	venv/bin/python setup.py test --cov
 
+docs:
+	mkdocs build
+
+docs-serve:
+	mkdocs serve
+
 clean:
 	@rm -rf .Python MANIFEST build dist venv* *.egg-info *.egg
 	@find . -type f -name "*.py[co]" -delete
 	@find . -type d -name "__pycache__" -delete
 
-.PHONY: build clean coverage test
+.PHONY: build clean coverage docs docs-serve test
