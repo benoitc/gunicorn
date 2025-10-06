@@ -123,10 +123,18 @@ class ThreadWorker(base.Worker):
             conn = TConn(self.cfg, sock, client, server)
 
             self.nr_conns += 1
-            # wait until socket is readable
-            with self._lock:
-                self.poller.register(conn.sock, selectors.EVENT_READ,
-                                     partial(self.on_client_socket_readable, conn))
+
+            if not self.cfg.worker_connections_enqueue_async:
+                # submit the connection to a worker
+                self.enqueue_req(conn)
+            else:
+                # wait until socket is readable
+                with self._lock:
+                    self.poller.register(
+                        conn.sock,
+                        selectors.EVENT_READ,
+                        partial(self.on_client_socket_readable, conn),
+                    )
         except OSError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED,
                                errno.EWOULDBLOCK):
@@ -137,7 +145,7 @@ class ThreadWorker(base.Worker):
             # unregister the client from the poller
             self.poller.unregister(client)
 
-            if conn.initialized:
+            if not self.cfg.worker_connections_enqueue_async or conn.initialized:
                 # remove the connection from keepalive
                 try:
                     self._keep.remove(conn)
