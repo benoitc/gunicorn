@@ -1,7 +1,0 @@
-================
-Changelog - 2020
-================
-
-.. note::
-
-   Please see :doc:`news` for the latest changes
