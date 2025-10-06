@@ -10,9 +10,11 @@ signals used internally by Gunicorn to communicate with the workers.
 Master process
 ==============
 
-- ``QUIT``, ``INT``: Quick shutdown
+- ``QUIT``, ``INT``: Quick shutdown. Waits for workers to finish their current
+  requests up to the :ref:`quick-shutdown-timeout`.
 - ``TERM``: Graceful shutdown. Waits for workers to finish their
-  current requests up to the :ref:`graceful-timeout`.
+  current requests up to the
+  :ref:`graceful-timeout` + :ref:`quick-shutdown-timeout`.
 - ``HUP``: Reload the configuration, start the new worker processes with a new
   configuration and gracefully shutdown older workers. If the application is
   not preloaded (using the :ref:`preload-app` option), Gunicorn will also load

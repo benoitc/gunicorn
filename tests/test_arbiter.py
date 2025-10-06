@@ -3,11 +3,12 @@
 # See the NOTICE for more information.
 
 import os
+import signal
 from unittest import mock
 
 import gunicorn.app.base
 import gunicorn.arbiter
-from gunicorn.config import ReusePort
+import gunicorn.config
 
 
 class DummyApplication(gunicorn.app.base.BaseApplication):
@@ -63,10 +64,53 @@ def test_arbiter_stop_does_not_unlink_systemd_listeners(close_sockets):
 @mock.patch('gunicorn.sock.close_sockets')
 def test_arbiter_stop_does_not_unlink_when_using_reuse_port(close_sockets):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    arbiter.cfg.settings['reuse_port'] = ReusePort()
+    arbiter.cfg.settings['reuse_port'] = gunicorn.config.ReusePort()
     arbiter.cfg.settings['reuse_port'].set(True)
     arbiter.stop()
     close_sockets.assert_called_with([], False)
+
+
+@mock.patch('os.kill')
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_graceful_no_sigquit(close_sockets, kill):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['graceful_timeout'] = gunicorn.config.GracefulTimeout()
+    arbiter.cfg.settings['graceful_timeout'].set(1)
+    arbiter.WORKERS = {42: mock.Mock()}
+    arbiter.stop()
+    kill.assert_has_calls([
+        mock.call(42, signal.SIGTERM),
+        mock.call(42, signal.SIGKILL),
+    ])
+
+
+@mock.patch('os.kill')
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_quick(close_sockets, kill):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.WORKERS = {42: mock.Mock()}
+    arbiter.stop(graceful=False)
+    kill.assert_has_calls([
+        mock.call(42, signal.SIGINT),
+        mock.call(42, signal.SIGKILL),
+    ])
+
+
+@mock.patch('os.kill')
+@mock.patch('gunicorn.sock.close_sockets')
+def test_arbiter_stop_graceful_then_quick(close_sockets, kill):
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['graceful_timeout'] = gunicorn.config.GracefulTimeout()
+    arbiter.cfg.settings['graceful_timeout'].set(1)
+    arbiter.cfg.settings['quick_shutdown_timeout'] = gunicorn.config.QuickShutdownTimeout()
+    arbiter.cfg.settings['quick_shutdown_timeout'].set(0.1)
+    arbiter.WORKERS = {42: mock.Mock()}
+    arbiter.stop()
+    kill.assert_has_calls([
+        mock.call(42, signal.SIGTERM),
+        mock.call(42, signal.SIGINT),
+        mock.call(42, signal.SIGKILL),
+    ])
 
 
 @mock.patch('os.getpid')
