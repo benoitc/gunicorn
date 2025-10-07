@@ -38,6 +38,8 @@ applications are programmed.
 closed after response has been sent (even if you manually add ``Keep-Alive``
 or ``Connection: keep-alive`` header in your application).
 
+.. _async-workers:
+
 Async Workers
 -------------
 
