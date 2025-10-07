@@ -461,6 +461,19 @@ if not provided).
 
 .. versionadded:: 19.2
 
+.. _enable-backlog-metric:
+
+``enable_backlog_metric``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--enable-backlog-metric``
+
+**Default:** ``False``
+
+Enable socket backlog metric (only supported on Linux).
+
+.. versionadded:: 23.1
+
 Process Naming
 --------------
 
