@@ -322,6 +322,9 @@ class ThreadWorker(base.Worker):
             if self.nr >= self.max_requests:
                 if self.alive:
                     self.log.info("Autorestarting worker after current request.")
+                    # do not accept new connections
+                    for sock_ in self.sockets:
+                        self.poller.unregister(sock_)
                     self.alive = False
                 resp.force_close()
 
