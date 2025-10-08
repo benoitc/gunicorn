@@ -7,6 +7,8 @@ from gunicorn.config import Config
 from gunicorn.glogging import Logger
 
 
+ONE_SECOND_IN_NS = 1_000_000_000
+
 def test_atoms_defaults():
     response = SimpleNamespace(
         status='200', response_length=1024,
@@ -19,7 +21,7 @@ def test_atoms_defaults():
         'SERVER_PROTOCOL': 'HTTP/1.1',
     }
     logger = Logger(Config())
-    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    atoms = logger.atoms(response, request, environ, ONE_SECOND_IN_NS)
     assert isinstance(atoms, dict)
     assert atoms['r'] == 'GET /my/path?foo=bar HTTP/1.1'
     assert atoms['m'] == 'GET'
@@ -30,7 +32,7 @@ def test_atoms_defaults():
     assert atoms['B'] == 1024
     assert atoms['{accept}i'] == 'application/json'
     assert atoms['{content-type}o'] == 'application/json'
-
+    assert atoms['N'] == ONE_SECOND_IN_NS
 
 def test_atoms_zero_bytes():
     response = SimpleNamespace(
@@ -44,7 +46,7 @@ def test_atoms_zero_bytes():
         'SERVER_PROTOCOL': 'HTTP/1.1',
     }
     logger = Logger(Config())
-    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    atoms = logger.atoms(response, request, environ, ONE_SECOND_IN_NS)
     assert atoms['b'] == '0'
     assert atoms['B'] == 0
 
@@ -68,7 +70,7 @@ def test_get_username_from_basic_auth_header(auth):
         'HTTP_AUTHORIZATION': auth,
     }
     logger = Logger(Config())
-    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    atoms = logger.atoms(response, request, environ, ONE_SECOND_IN_NS)
     assert atoms['u'] == 'brk0v'
 
 
@@ -87,5 +89,5 @@ def test_get_username_handles_malformed_basic_auth_header():
     }
     logger = Logger(Config())
 
-    atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
+    atoms = logger.atoms(response, request, environ, ONE_SECOND_IN_NS)
     assert atoms['u'] == '-'

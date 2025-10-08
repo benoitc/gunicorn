@@ -4,7 +4,6 @@ import os
 import shutil
 import socket
 import tempfile
-from datetime import timedelta
 from types import SimpleNamespace
 
 from gunicorn.config import Config
@@ -111,8 +110,8 @@ def test_instrument():
     assert logger.sock.msgs[0] == b"gunicorn.log.critical:1|c|@1.0"
     logger.sock.reset()
 
-    logger.access(SimpleNamespace(status="200 OK"), None, {}, timedelta(seconds=7))
-    assert logger.sock.msgs[0] == b"gunicorn.request.duration:7000.0|ms"
+    logger.access(SimpleNamespace(status="200 OK"), None, {}, 7000000000)
+    assert logger.sock.msgs[0] == b"gunicorn.request.duration:7000|ms"
     assert logger.sock.msgs[1] == b"gunicorn.requests:1|c|@1.0"
     assert logger.sock.msgs[2] == b"gunicorn.request.status.200:1|c|@1.0"
 

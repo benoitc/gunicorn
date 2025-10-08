@@ -3,13 +3,13 @@
 # See the NOTICE for more information.
 #
 
-from datetime import datetime
 import errno
 import os
 import select
 import socket
 import ssl
 import sys
+import time
 
 from gunicorn import http
 from gunicorn.http import wsgi
@@ -163,7 +163,7 @@ class SyncWorker(base.Worker):
         resp = None
         try:
             self.cfg.pre_request(self, req)
-            request_start = datetime.now()
+            request_start = time.monotonic_ns()
             resp, environ = wsgi.create(req, client, addr,
                                         listener.getsockname(), self.cfg)
             # Force the connection closed until someone shows
@@ -183,7 +183,7 @@ class SyncWorker(base.Worker):
                         resp.write(item)
                 resp.close()
             finally:
-                request_time = datetime.now() - request_start
+                request_time = time.monotonic_ns() - request_start
                 self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()

@@ -8,7 +8,6 @@ import signal
 import sys
 import time
 import traceback
-from datetime import datetime
 from random import randint
 from ssl import SSLError
 
@@ -204,7 +203,7 @@ class Worker:
         sys.exit(1)
 
     def handle_error(self, req, client, addr, exc):
-        request_start = datetime.now()
+        request_start = time.monotonic_ns()
         addr = addr or ('', -1)  # unix socket case
         if isinstance(exc, (
             InvalidRequestLine, InvalidRequestMethod,
@@ -268,7 +267,7 @@ class Worker:
             mesg = ""
 
         if req is not None:
-            request_time = datetime.now() - request_start
+            request_time = time.monotonic_ns() - request_start
             environ = default_environ(req, client, self.cfg)
             environ['REMOTE_ADDR'] = addr[0]
             environ['REMOTE_PORT'] = str(addr[1])

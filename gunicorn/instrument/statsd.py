@@ -95,7 +95,7 @@ class Statsd(Logger):
         request_time is a datetime.timedelta
         """
         Logger.access(self, resp, req, environ, request_time)
-        duration_in_ms = request_time.seconds * 1000 + float(request_time.microseconds) / 10 ** 3
+        duration_in_ms = request_time // 1_000_000
         status = resp.status
         if isinstance(status, bytes):
             status = status.decode('utf-8')
