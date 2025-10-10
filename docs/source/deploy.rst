@@ -247,7 +247,8 @@ to the newly created unix socket:
 
     [Service]
     # gunicorn can let systemd know when it is ready
-    Type=notify
+    # if systemd versions >= v253, otherwise use 'Type=notify'
+    Type=notify-reload
     NotifyAccess=main
     # the specific user that our service will run as
     User=someuser
@@ -257,7 +258,8 @@ to the newly created unix socket:
     RuntimeDirectory=gunicorn
     WorkingDirectory=/home/someuser/applicationroot
     ExecStart=/usr/bin/gunicorn applicationname.wsgi
-    ExecReload=/bin/kill -s HUP $MAINPID
+    # if 'Type=notify' instead of 'Type=notify-reload' (depending on systemd version)
+    # ExecReload=/bin/kill -s HUP $MAINPID
     KillMode=mixed
     TimeoutStopSec=5
     PrivateTmp=true
