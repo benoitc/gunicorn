@@ -1703,6 +1703,58 @@ The maximum number of simultaneous clients.
 
 This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
 
+.. _prune-function:
+
+``prune_function``
+~~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--prune-function``
+
+**Default:** 
+
+.. code-block:: python
+
+        def prune_score(pid):
+            return 0
+
+A function that is passed a process ID of a worker and returns a
+score (such as total memory used).  Once every prune seconds, the
+worker with the highest score is killed (unless the score is below
+the prune floor).
+
+.. _prune-seconds:
+
+``prune_seconds``
+~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--prune-seconds INT``
+
+**Default:** ``0``
+
+How many seconds to wait between killing the worker with the highest
+score from the prune function.  If set to 0 (the default), then no
+pruning is done.  The actual time waited is a random value between
+95% and 105% of this value.
+
+A worker handling an unusually large request can significantly grow
+how much memory it is consuming for the rest of its existence.  So
+rare large requests will tend to eventually make every worker
+unnecessarily large.  If the large requests are indeed rare, then
+you can significantly reduce the total memory used by your service
+by periodically pruning the largest worker process.
+
+.. _prune-floor:
+
+``prune_floor``
+~~~~~~~~~~~~~~~
+
+**Command line:** ``--prune-floor INT``
+
+**Default:** ``0``
+
+When the score from the prune function is at or below this value, the
+worker will not be killed even if it has the highest score.
+
 .. _max-requests:
 
 ``max_requests``

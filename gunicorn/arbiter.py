@@ -63,6 +63,7 @@ class Arbiter:
         self.reexec_pid = 0
         self.master_pid = 0
         self.master_name = "Master"
+        self.next_prune = None
 
         cwd = util.getcwd()
 
@@ -204,6 +205,13 @@ class Arbiter:
 
             while True:
                 self.maybe_promote_master()
+                if 0 < self.cfg.prune_seconds:
+                    if self.next_prune is None:
+                        self.next_prune = time.monotonic() + self.cfg.prune_seconds
+                    elif self.next_prune <= time.monotonic():
+                        self.prune_worker()
+                        self.next_prune += self.cfg.prune_seconds * (
+                            0.95 + 0.10 * random.random())
 
                 sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
                 if sig is None:
@@ -487,6 +495,22 @@ class Arbiter:
         # manage workers
         self.manage_workers()
 
+    def prune_worker(self):
+        """\
+        Kill the worker with highest prune score
+        """
+        workers = list(self.WORKERS.items())
+        maxi = self.cfg.prune_floor
+        victim = 0
+        for pid, _ in workers:
+            score = self.cfg.prune_function(pid)
+            if maxi < score:
+                maxi = score
+                victim = pid
+        if victim != 0:
+            self.log.info(f"Pruning worker (pid: {victim}) with score {score}")
+            self.kill_worker(victim, signal.SIGTERM)
+
     def murder_workers(self):
         """\
         Kill unused/idle workers
@@ -587,9 +611,9 @@ class Arbiter:
 
     def spawn_worker(self):
         self.worker_age += 1
-        worker = self.worker_class(self.worker_age, self.pid, self.LISTENERS,
-                                   self.app, self.timeout / 2.0,
-                                   self.cfg, self.log)
+        worker = self.worker_class(
+            self.worker_age, self.pid, self.LISTENERS, self.app,
+            self.timeout / 2.0, self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
         pid = os.fork()
         if pid != 0:
