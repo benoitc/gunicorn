@@ -68,8 +68,11 @@ class Arbiter:
 
         cwd = util.getcwd()
 
-        args = sys.argv[:]
-        args.insert(0, sys.executable)
+        if sys.version_info < (3, 10):
+            args = sys.argv[:]
+            args.insert(0, sys.executable)
+        else:
+            args = sys.orig_argv[:]
 
         # init start context
         self.START_CTX = {
