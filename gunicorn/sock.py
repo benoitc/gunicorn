@@ -24,8 +24,8 @@ class BaseSocket:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
             bound = False
         else:
-            sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
-            os.close(fd)
+            # does not duplicate the fd, this LISTEN_FDS stays at fds 3+N
+            sock = socket.socket(self.FAMILY, socket.SOCK_STREAM, fileno=fd)
             bound = True
 
         self.sock = self.set_options(sock, bound=bound)
@@ -156,6 +156,12 @@ def create_sockets(conf, log, fds=None):
         fdaddr += list(fds)
     laddr = [bind for bind in addr if not isinstance(bind, int)]
 
+    # LISTEN_FDS=1 + fd://3
+    uniq_fdaddr = set()
+    duped_fdaddr = {fd for fd in fdaddr if fd in uniq_fdaddr or uniq_fdaddr.add(fd)}
+    if duped_fdaddr:
+        log.warning("Binding with fd:// is unsupported with systemd/re-exec.")
+
     # check ssl config early to raise the error on startup
     # only the certfile is needed since it can contains the keyfile
     if conf.certfile and not os.path.exists(conf.certfile):
@@ -167,9 +173,11 @@ def create_sockets(conf, log, fds=None):
     # sockets are already bound
     if fdaddr:
         for fd in fdaddr:
-            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, fileno=fd)
             sock_name = sock.getsockname()
             sock_type = _sock_type(sock_name)
+            log.debug("listen: fd %d => fd %d for %s", fd, sock.fileno(), sock_name)
+            sock.detach()  # only created to call getsockname(), will re-attach shorty
             listener = sock_type(sock_name, conf, log, fd=fd)
             listeners.append(listener)
 
