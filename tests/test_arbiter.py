@@ -71,15 +71,15 @@ def test_arbiter_stop_does_not_unlink_when_using_reuse_port(close_sockets):
 
 @mock.patch('os.getpid')
 @mock.patch('os.fork')
-@mock.patch('os.execvpe')
-def test_arbiter_reexec_passing_systemd_sockets(execvpe, fork, getpid):
+@mock.patch('os.execve')
+def test_arbiter_reexec_passing_systemd_sockets(execve, fork, getpid):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     arbiter.LISTENERS = [mock.Mock(), mock.Mock()]
     arbiter.systemd = True
     fork.return_value = 0
     getpid.side_effect = [2, 3]
     arbiter.reexec()
-    environ = execvpe.call_args[0][2]
+    environ = execve.call_args[0][2]
     assert environ['GUNICORN_PID'] == '2'
     assert environ['LISTEN_FDS'] == '2'
     assert environ['LISTEN_PID'] == '3'
@@ -87,8 +87,8 @@ def test_arbiter_reexec_passing_systemd_sockets(execvpe, fork, getpid):
 
 @mock.patch('os.getpid')
 @mock.patch('os.fork')
-@mock.patch('os.execvpe')
-def test_arbiter_reexec_passing_gunicorn_sockets(execvpe, fork, getpid):
+@mock.patch('os.execve')
+def test_arbiter_reexec_passing_gunicorn_sockets(execve, fork, getpid):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
     listener1 = mock.Mock()
     listener2 = mock.Mock()
@@ -98,7 +98,7 @@ def test_arbiter_reexec_passing_gunicorn_sockets(execvpe, fork, getpid):
     fork.return_value = 0
     getpid.side_effect = [2, 3]
     arbiter.reexec()
-    environ = execvpe.call_args[0][2]
+    environ = execve.call_args[0][2]
     assert environ['GUNICORN_FD'] == '4,5'
     assert environ['GUNICORN_PID'] == '2'
 
