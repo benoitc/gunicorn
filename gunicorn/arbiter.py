@@ -394,7 +394,7 @@ class Arbiter:
 
         if not graceful or self.cfg.quick_shutdown_timeout > 0:
             deadline = time.time() + self.cfg.quick_shutdown_timeout
-            self.kill_workers(signal.SIGINT)
+            self.kill_workers(signal.SIGQUIT)
             self.sleep_until(deadline)
 
         self.kill_workers(signal.SIGKILL)
