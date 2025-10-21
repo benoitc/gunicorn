@@ -386,17 +386,22 @@ class Arbiter:
         sock.close_sockets(self.LISTENERS, unlink)
 
         self.LISTENERS = []
-        sig = signal.SIGTERM
-        if not graceful:
-            sig = signal.SIGQUIT
-        limit = time.time() + self.cfg.graceful_timeout
-        # instruct the workers to exit
-        self.kill_workers(sig)
-        # wait until the graceful timeout
-        while self.WORKERS and time.time() < limit:
-            time.sleep(0.1)
+
+        if graceful:
+            deadline = time.time() + self.cfg.graceful_timeout
+            self.kill_workers(signal.SIGTERM)
+            self.sleep_until(deadline)
+
+        if not graceful or self.cfg.quick_shutdown_timeout > 0:
+            deadline = time.time() + self.cfg.quick_shutdown_timeout
+            self.kill_workers(signal.SIGQUIT)
+            self.sleep_until(deadline)
 
         self.kill_workers(signal.SIGKILL)
+
+    def sleep_until(self, deadline):
+        while self.WORKERS and time.time() < deadline:
+            time.sleep(0.1)
 
     def reexec(self):
         """\

@@ -102,8 +102,7 @@ class ThreadWorker(base.Worker):
         # worker_int callback
         self.cfg.worker_int(self)
         self.tpool.shutdown(False)
-        time.sleep(0.1)
-        sys.exit(0)
+        self.quick_exit()
 
     def _wrap_future(self, fs, conn):
         fs.conn = conn

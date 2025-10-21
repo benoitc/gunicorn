@@ -191,12 +191,18 @@ class Worker:
     def handle_exit(self, sig, frame):
         self.alive = False
 
+    def quick_exit(self):
+        timeout = self.cfg.quick_shutdown_timeout
+        if timeout <= 0:
+            timeout = 0.1
+        time.sleep(timeout)
+        sys.exit(0)
+
     def handle_quit(self, sig, frame):
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
-        time.sleep(0.1)
-        sys.exit(0)
+        self.quick_exit()
 
     def handle_abort(self, sig, frame):
         self.alive = False
