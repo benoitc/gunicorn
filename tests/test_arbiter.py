@@ -91,7 +91,7 @@ def test_arbiter_stop_quick(close_sockets, kill):
     arbiter.WORKERS = {42: mock.Mock()}
     arbiter.stop(graceful=False)
     kill.assert_has_calls([
-        mock.call(42, signal.SIGINT),
+        mock.call(42, signal.SIGQUIT),
         mock.call(42, signal.SIGKILL),
     ])
 
@@ -108,7 +108,7 @@ def test_arbiter_stop_graceful_then_quick(close_sockets, kill):
     arbiter.stop()
     kill.assert_has_calls([
         mock.call(42, signal.SIGTERM),
-        mock.call(42, signal.SIGINT),
+        mock.call(42, signal.SIGQUIT),
         mock.call(42, signal.SIGKILL),
     ])
 
