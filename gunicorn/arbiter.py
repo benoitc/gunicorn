@@ -503,8 +503,8 @@ class Arbiter:
 
             if not worker.aborted:
                 self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
-                worker.aborted = True
                 self.kill_worker(pid, signal.SIGABRT)
+                worker.aborted = True
             else:
                 self.kill_worker(pid, signal.SIGKILL)
 
