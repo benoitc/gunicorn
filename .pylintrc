@@ -18,7 +18,7 @@ disable=
     cyclic-import,
     duplicate-bases,
     duplicate-code,
-    eval-used,
+    superfluous-parens,
     fixme,
     import-error,
     import-outside-toplevel,
