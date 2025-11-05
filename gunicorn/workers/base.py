@@ -50,6 +50,7 @@ class Worker:
         self.cfg = cfg
         self.booted = False
         self.aborted = False
+        self.sigtermed = False
         self.reloader = None
 
         self.nr = 0
