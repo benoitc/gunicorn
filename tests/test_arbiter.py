@@ -185,3 +185,54 @@ def test_env_vars_available_during_preload():
     # Note that we aren't making any assertions here, they are made in the
     # dummy application object being loaded here instead.
     gunicorn.arbiter.Arbiter(PreloadedAppWithEnvSettings())
+
+
+@mock.patch('os.waitpid')
+@mock.patch('os.WIFSIGNALED')
+@mock.patch('os.WTERMSIG')
+def test_arbiter_reap_workers_with_signal(mock_wtermsig, mock_wifsignaled, mock_os_waitpid):
+    """Test that workers terminated by signals are logged with signal names."""
+    # Simulate SIGABRT (signal number 6)
+    mock_os_waitpid.side_effect = [(42, 6), (0, 0)]
+    mock_wifsignaled.return_value = True
+    mock_wtermsig.return_value = 6  # SIGABRT
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+
+    with mock.patch.object(arbiter.log, 'error') as mock_log_error:
+        arbiter.reap_workers()
+        # Verify that the log message contains the signal name "SIGABRT"
+        assert mock_log_error.called
+        log_message = mock_log_error.call_args[0][0]
+        assert 'SIGABRT' in log_message
+        assert 'pid:42' in log_message or 'pid:{}'.format(42) in log_message
+
+
+@mock.patch('os.waitpid')
+@mock.patch('os.WIFSIGNALED')
+@mock.patch('os.WIFEXITED')
+@mock.patch('os.WEXITSTATUS')
+def test_arbiter_reap_workers_with_exitcode_134(mock_wexitstatus, mock_wifexited,
+                                                 mock_wifsignaled, mock_os_waitpid):
+    """Test that workers exiting with code 134 (128+6) are logged as SIGABRT."""
+    # Simulate exit code 134 (128 + SIGABRT)
+    mock_os_waitpid.side_effect = [(42, 34304), (0, 0)]  # 34304 = 134 << 8
+    mock_wifsignaled.return_value = False
+    mock_wifexited.return_value = True
+    mock_wexitstatus.return_value = 134
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['child_exit'] = mock.Mock()
+    mock_worker = mock.Mock()
+    arbiter.WORKERS = {42: mock_worker}
+
+    with mock.patch.object(arbiter.log, 'error') as mock_log_error:
+        arbiter.reap_workers()
+        # Verify that the log message contains the signal name "SIGABRT", not "code 134"
+        assert mock_log_error.called
+        log_message = mock_log_error.call_args[0][0]
+        assert 'SIGABRT' in log_message
+        assert 'code 134' not in log_message

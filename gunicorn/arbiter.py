@@ -523,36 +523,47 @@ class Arbiter:
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
-                    exitcode = status >> 8
-                    if exitcode != 0:
-                        self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
-                    if exitcode == self.WORKER_BOOT_ERROR:
-                        reason = "Worker failed to boot."
-                        raise HaltServer(reason, self.WORKER_BOOT_ERROR)
-                    if exitcode == self.APP_LOAD_ERROR:
-                        reason = "App failed to load."
-                        raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    if exitcode > 0:
-                        # If the exit code of the worker is greater than 0,
-                        # let the user know.
-                        self.log.error("Worker (pid:%s) exited with code %s.",
-                                       wpid, exitcode)
-                    elif status > 0:
-                        # If the exit code of the worker is 0 and the status
-                        # is greater than 0, then it was most likely killed
-                        # via a signal.
+                    # Check if process was terminated by a signal
+                    if os.WIFSIGNALED(status):
+                        sig_number = os.WTERMSIG(status)
                         try:
-                            sig_name = signal.Signals(status).name
+                            sig_name = signal.Signals(sig_number).name
                         except ValueError:
-                            sig_name = "code {}".format(status)
+                            sig_name = "signal {}".format(sig_number)
                         msg = "Worker (pid:{}) was sent {}!".format(
                             wpid, sig_name)
 
                         # Additional hint for SIGKILL
-                        if status == signal.SIGKILL:
+                        if sig_number == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
                         self.log.error(msg)
+                    elif os.WIFEXITED(status):
+                        exitcode = os.WEXITSTATUS(status)
+
+                        # Check if exitcode indicates signal termination (shell convention: 128 + signal_number)
+                        if exitcode > 128:
+                            sig_number = exitcode - 128
+                            try:
+                                sig_name = signal.Signals(sig_number).name
+                            except ValueError:
+                                sig_name = "signal {}".format(sig_number)
+                            msg = "Worker (pid:{}) was sent {}!".format(
+                                wpid, sig_name)
+
+                            # Additional hint for SIGKILL
+                            if sig_number == signal.SIGKILL:
+                                msg += " Perhaps out of memory?"
+                            self.log.error(msg)
+                        elif exitcode != 0:
+                            self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
+
+                        if exitcode == self.WORKER_BOOT_ERROR:
+                            reason = "Worker failed to boot."
+                            raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+                        if exitcode == self.APP_LOAD_ERROR:
+                            reason = "App failed to load."
+                            raise HaltServer(reason, self.APP_LOAD_ERROR)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
