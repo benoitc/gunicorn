@@ -39,9 +39,15 @@ class WorkerTmp:
             os.close(fd)
             raise
 
-    def notify(self):
-        new_time = time.monotonic()
+        # set the file times in the future if a delay is configured
+        self._set_time(delay=cfg.timeout_delay)
+
+    def _set_time(self, delay=0):
+        new_time = time.monotonic() + delay
         os.utime(self._tmp.fileno(), (new_time, new_time))
+
+    def notify(self):
+        self._set_time()
 
     def last_update(self):
         return os.fstat(self._tmp.fileno()).st_mtime
