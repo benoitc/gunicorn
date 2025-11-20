@@ -798,6 +798,24 @@ class Timeout(Setting):
         """
 
 
+class TimeoutDelay(Setting):
+    name = "timeout_delay"
+    section = "Worker Processes"
+    cli = ["--timeout-delay"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        Workers are allowed this much time to start up before the timeout period
+        is enforced. If the worker is active before this delay expires, the
+        delay period is cancelled and timeout checks begin immediately.
+
+        Value is a positive number or 0. Setting it to 0 has the effect of
+        no delay period before timeout checks are enforced.
+        """
+
+
 class GracefulTimeout(Setting):
     name = "graceful_timeout"
     section = "Worker Processes"

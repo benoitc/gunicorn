@@ -1758,6 +1758,22 @@ For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.
 
+.. _timeout-delay:
+
+``timeout_delay``
+~~~~~~~~~~~~~~~~~
+
+**Command line:** ``--timeout-delay INT``
+
+**Default:** ``0``
+
+Workers are allowed this much time to start up before the timeout period
+is enforced. If the worker is active before this delay expires, the
+delay period is cancelled and timeout checks begin immediately.
+
+Value is a positive number or 0. Setting it to 0 has the effect of
+no delay period before timeout checks are enforced.
+
 .. _graceful-timeout:
 
 ``graceful_timeout``
