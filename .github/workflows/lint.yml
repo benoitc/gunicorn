@@ -14,15 +14,15 @@ jobs:
       fail-fast: false
       matrix:
         toxenv: [lint, docs-lint, pycodestyle]
-        python-version: [ "3.10" ]
+        python-version: [ "3.12" ]
         include:
           # for actions that want git env, not tox env
           - toxenv: null
-            python-version: "3.10"
+            python-version: "3.12"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Using Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -42,6 +42,7 @@ jobs:
         run: |
           # this will update docs/source/settings.rst - but will not create html output
           (cd docs && sphinx-build -b "dummy" -d _build/doctrees source "_build/dummy")
+          git update-index --assume-unchanged docs/source/settings.rst
           if unclean=$(git status --untracked-files=no --porcelain) && [ -z "$unclean" ]; then
             echo "no uncommitted changes in working tree (as it should be)"
           else

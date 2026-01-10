@@ -32,7 +32,7 @@ The documentation is hosted at https://docs.gunicorn.org.
 Installation
 ------------
 
-Gunicorn requires **Python 3.x >= 3.7**.
+Gunicorn requires **Python 3.x >= 3.10**.
 
 Install from PyPI::
 

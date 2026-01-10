@@ -2,11 +2,11 @@ version: '{branch}.{build}'
 environment:
   matrix:
     - TOXENV: lint
-      PYTHON: "C:\\Python38-x64"
+      PYTHON: "C:\\Python312-x64"
     - TOXENV: docs-lint
-      PYTHON: "C:\\Python38-x64"
+      PYTHON: "C:\\Python312-x64"
     - TOXENV: pycodestyle
-      PYTHON: "C:\\Python38-x64"
+      PYTHON: "C:\\Python312-x64"
     # Windows cannot even import the module when they unconditionally import, see below.
     #- TOXENV: run-module
     #  PYTHON: "C:\\Python38-x64"
@@ -32,11 +32,7 @@ environment:
     #  PYTHON: "C:\\Python312-x64"
 matrix:
   allow_failures:
-    - TOXENV: py35
-    - TOXENV: py36
-    - TOXENV: py37
-    - TOXENV: py38
-    - TOXENV: py39
+    # No failures expected for py312 and py313
 init:
   - SET "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 install:

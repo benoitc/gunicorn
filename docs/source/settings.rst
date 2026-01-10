@@ -347,7 +347,7 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.jso
 
 **Command line:** ``--log-syslog-to SYSLOG_ADDR``
 
-**Default:** ``'udp://localhost:514'``
+**Default:** ``'unix:///var/run/syslog'``
 
 Address to send syslog messages.
 
@@ -1148,7 +1148,7 @@ change the worker process user.
 Switch worker process to run as this group.
 
 A valid group id (as an integer) or the name of a user that can be
-retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
+retrieved with a call to ``grp.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
 
 .. _umask:
@@ -1767,7 +1767,7 @@ single request.
 
 **Default:** ``30``
 
-Timeout for graceful workers restart.
+Timeout for graceful workers restart in seconds.
 
 After receiving a restart signal, workers have this much time to finish
 serving requests. Workers still alive after the timeout (starting from

@@ -807,7 +807,7 @@ class GracefulTimeout(Setting):
     type = int
     default = 30
     desc = """\
-        Timeout for graceful workers restart.
+        Timeout for graceful workers restart in seconds.
 
         After receiving a restart signal, workers have this much time to finish
         serving requests. Workers still alive after the timeout (starting from
@@ -1177,7 +1177,7 @@ class Group(Setting):
         Switch worker process to run as this group.
 
         A valid group id (as an integer) or the name of a user that can be
-        retrieved with a call to ``pwd.getgrnam(value)`` or ``None`` to not
+        retrieved with a call to ``grp.getgrnam(value)`` or ``None`` to not
         change the worker processes group.
         """
 
