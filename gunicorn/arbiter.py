@@ -208,7 +208,9 @@ class Arbiter:
                     if not handler:
                         self.log.error("Unhandled signal: %s", signame)
                         continue
-                    self.log.info("Handling signal: %s", signame)
+                    # Log SIGCHLD at debug level since it's frequent
+                    log_level = self.log.debug if sig == signal.SIGCHLD else self.log.info
+                    log_level("Handling signal: %s", signame)
                     handler()
 
                 self.murder_workers()
