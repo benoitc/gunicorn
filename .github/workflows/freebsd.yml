@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        freebsd-version: ['14.2']
+        freebsd-version: ['14.1']
         python-version: ['312', '313']
     steps:
       - uses: actions/checkout@v6
