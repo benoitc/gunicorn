@@ -2096,6 +2096,53 @@ class ProxyAllowFrom(Setting):
         """
 
 
+class Protocol(Setting):
+    name = "protocol"
+    section = "Server Mechanics"
+    cli = ["--protocol"]
+    meta = "STRING"
+    validator = validate_string
+    default = "http"
+    desc = """\
+        The protocol for incoming connections.
+
+        * ``http`` - Standard HTTP/1.x (default)
+        * ``uwsgi`` - uWSGI binary protocol (for nginx uwsgi_pass)
+
+        When using the uWSGI protocol, Gunicorn can receive requests from
+        nginx using the uwsgi_pass directive::
+
+            upstream gunicorn {
+                server 127.0.0.1:8000;
+            }
+            location / {
+                uwsgi_pass gunicorn;
+                include uwsgi_params;
+            }
+        """
+
+
+class UWSGIAllowFrom(Setting):
+    name = "uwsgi_allow_ips"
+    section = "Server Mechanics"
+    cli = ["--uwsgi-allow-from"]
+    validator = validate_string_to_addr_list
+    default = "127.0.0.1,::1"
+    desc = """\
+        IPs allowed to send uWSGI protocol requests (comma separated).
+
+        Set to ``*`` to allow all IPs. This is useful for setups where you
+        don't know in advance the IP address of front-end, but instead have
+        ensured via other means that only your authorized front-ends can
+        access Gunicorn.
+
+        .. note::
+
+            This option does not affect UNIX socket connections. Connections not associated with
+            an IP address are treated as allowed, unconditionally.
+        """
+
+
 class KeyFile(Setting):
     name = "keyfile"
     section = "SSL"
