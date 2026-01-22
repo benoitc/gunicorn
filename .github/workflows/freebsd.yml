@@ -19,8 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        freebsd-version: ['14.2']
-        python-version: ['312', '313']
+        include:
+          - freebsd-version: '14.2'
+            python-version: '3.12'
+            python-pkg: 'python312'
+          - freebsd-version: '14.2'
+            python-version: '3.13'
+            python-pkg: 'python313'
     steps:
       - uses: actions/checkout@v6
 
@@ -30,7 +35,7 @@ jobs:
           release: ${{ matrix.freebsd-version }}
           usesh: true
           prepare: |
-            pkg install -y python${{ matrix.python-version }} py${{ matrix.python-version }}-sqlite3
+            pkg install -y ${{ matrix.python-pkg }}
           run: |
             python3 -m venv venv
             . venv/bin/activate
