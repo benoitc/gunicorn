@@ -12,6 +12,8 @@ nav:
       - Run: run.md
       - Configure: configure.md
       - Deploy: deploy.md
+      - ASGI Worker: asgi.md
+      - uWSGI Protocol: uwsgi.md
       - Signals: signals.md
       - Instrumentation: instrumentation.md
       - Custom: custom.md
