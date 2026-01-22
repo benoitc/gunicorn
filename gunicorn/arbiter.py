@@ -60,14 +60,19 @@ class Arbiter:
         self.pidfile = None
         self.systemd = False
         self.worker_age = 0
+        # old master has != 0 until new master is dead or promoted
         self.reexec_pid = 0
+        # new master has != 0 until old master is dead (until promotion)
         self.master_pid = 0
         self.master_name = "Master"
 
         cwd = util.getcwd()
 
-        args = sys.argv[:]
-        args.insert(0, sys.executable)
+        if sys.version_info < (3, 10):
+            args = sys.argv[:]
+            args.insert(0, sys.executable)
+        else:
+            args = sys.orig_argv[:]
 
         # init start context
         self.START_CTX = {
@@ -146,6 +151,7 @@ class Arbiter:
                 self.systemd = True
                 fds = range(systemd.SD_LISTEN_FDS_START,
                             systemd.SD_LISTEN_FDS_START + listen_fds)
+                self.log.debug("Inherited sockets from systemd: %r", fds)
 
             elif self.master_pid:
                 fds = []
@@ -166,6 +172,8 @@ class Arbiter:
             self.worker_class.check_config(self.cfg, self.log)
 
         self.cfg.when_ready(self)
+
+        # systemd: not yet shutting down old master here (wait for workers)
 
     def init_signals(self):
         """\
@@ -251,7 +259,10 @@ class Arbiter:
         - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s", self.master_name)
+        systemd.sd_notify("RELOADING=1\nSTATUS=Gunicorn arbiter reloading..", self.log)
         self.reload()
+        # possibly premature, newly launched workers might have failed
+        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter reloaded", self.log)
 
     def handle_term(self):
         "SIGTERM handling"
@@ -327,6 +338,14 @@ class Arbiter:
                 self.pidfile.rename(self.cfg.pidfile)
             # reset proctitle
             util._setproctitle("master [%s]" % self.proc_name)
+            # MAINPID does not change here, it was already set on fork
+            systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter promoted" % (os.getpid(), ), self.log)
+
+        elif self.systemd and len(self.WORKERS) >= 1:
+            # still attached to old master, but we are ready to take over
+            #  this automates `kill -TERM $(cat /var/run/gunicorn.pid)`
+            self.log.debug("systemd managed: shutting down old master %d after re-exec", self.master_pid)
+            os.kill(self.master_pid, signal.SIGTERM)
 
     def wakeup(self):
         """\
@@ -340,6 +359,13 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        if self.master_pid != 0:
+            # if NotifyAccess=main, systemd needs to know old master is in control
+            systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=New arbiter shutdown" % (self.master_pid, ), self.log)
+        elif self.reexec_pid == 0:
+            # skip setting status if this is merely superseded master stopping
+            systemd.sd_notify("STOPPING=1\nSTATUS=Shutting down..", self.log)
+
         self.stop()
 
         log_func = self.log.info if exit_status == 0 else self.log.error
@@ -413,8 +439,14 @@ class Arbiter:
         master_pid = os.getpid()
         self.reexec_pid = os.fork()
         if self.reexec_pid != 0:
+            # let systemd know they will be in control after exec()
+            systemd.sd_notify(
+                "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in forked.." % (self.reexec_pid, ), self.log
+            )
+            # old master
             return
 
+        # new master
         self.cfg.pre_exec(self)
 
         environ = self.cfg.env_orig.copy()
@@ -430,7 +462,12 @@ class Arbiter:
         os.chdir(self.START_CTX['cwd'])
 
         # exec the process using the original environment
-        os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
+        self.log.debug("exe=%r argv=%r" % (self.START_CTX[0], self.START_CTX['args']))
+        # let systemd know we will be in control after exec()
+        systemd.sd_notify(
+            "RELOADING=1\nMAINPID=%d\nSTATUS=Gunicorn arbiter re-exec in progress.." % (os.getpid(), ), self.log
+        )
+        os.execve(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
         old_address = self.cfg.address
@@ -519,7 +556,14 @@ class Arbiter:
                     break
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
+                    self.log.info("Master exited before promotion.")
+                    # let systemd know we are (back) in control
+                    systemd.sd_notify("READY=1\nMAINPID=%d\nSTATUS=Old arbiter promoted" % (os.getpid(), ), self.log)
                 else:
+                    worker = self.WORKERS.pop(wpid, None)
+                    if not worker:
+                        self.log.debug("Non-worker subprocess (pid:%s) exited", wpid)
+                        continue
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
@@ -554,9 +598,6 @@ class Arbiter:
                             msg += " Perhaps out of memory?"
                         self.log.error(msg)
 
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:

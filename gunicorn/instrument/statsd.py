@@ -35,6 +35,7 @@ class Statsd(Logger):
             self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
             self.sock.connect(cfg.statsd_host)
         except Exception:
+            self.sock.close()
             self.sock = None
 
         self.dogstatsd_tags = cfg.dogstatsd_tags

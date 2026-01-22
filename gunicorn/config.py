@@ -616,6 +616,11 @@ class Bind(Setting):
         If the ``PORT`` environment variable is defined, the default
         is ``['0.0.0.0:$PORT']``. If it is not defined, the default
         is ``['127.0.0.1:8000']``.
+
+        .. note::
+           Specifying any fd://FD socket or inheriting any socket from systemd
+           (LISTEN_FDS) results in other bind addresses to be skipped.
+           Do not mix fd://FD and systemd socket activation.
         """
 
 
@@ -1123,6 +1128,10 @@ class Pidfile(Setting):
         A filename to use for the PID file.
 
         If not set, no PID file will be written.
+
+        .. note::
+           During master re-exec, a ``.2`` suffix is added to
+           this path to store the PID of the newly launched master.
         """
 
 

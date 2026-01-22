@@ -117,3 +117,9 @@ running::
     20859 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.02 gunicorn: worker [test:app]
     20860 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.02 gunicorn: worker [test:app]
     20861 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+
+If no pidfile is available (``kill -TERM $(cat /var/run/gunicorn.pid)``) then killing
+the *oldest* process (``pkill --oldest -TERM -f "gunicorn: master "``) should suffice.
+
+When running via systemd socket activation, Gunicorn will *automatically* issue the graceful
+shutdown of the old master, as part of starting up the new one.
