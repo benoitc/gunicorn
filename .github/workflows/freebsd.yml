@@ -19,18 +19,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        freebsd-version: ['14.1']
+        freebsd-version: ['14.2']
         python-version: ['312', '313']
     steps:
       - uses: actions/checkout@v6
 
       - name: Test on FreeBSD
-        uses: cross-platform-actions/action@v0.32.0
+        uses: vmactions/freebsd-vm@v1
         with:
-          operating_system: freebsd
-          version: ${{ matrix.freebsd-version }}
+          release: ${{ matrix.freebsd-version }}
+          usesh: true
+          prepare: |
+            pkg install -y python${{ matrix.python-version }} py${{ matrix.python-version }}-pip py${{ matrix.python-version }}-sqlite3
           run: |
-            sudo pkg install -y python${{ matrix.python-version }} py${{ matrix.python-version }}-pip py${{ matrix.python-version }}-sqlite3
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
