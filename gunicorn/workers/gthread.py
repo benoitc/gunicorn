@@ -58,7 +58,7 @@ class TConn:
                 self.sock = sock.ssl_wrap_socket(self.sock, self.cfg)
 
             # initialize the parser
-            self.parser = http.RequestParser(self.cfg, self.sock, self.client)
+            self.parser = http.get_parser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
         # Use monotonic clock for reliability (time.time() can jump due to NTP)

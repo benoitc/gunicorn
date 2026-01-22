@@ -1,0 +1,29 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/uwsgi/Dockerfile.gunicorn
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8000)); s.close()"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "8080:8080"
+    depends_on:
+      gunicorn:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
