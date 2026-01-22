@@ -53,8 +53,8 @@ tornado = ["tornado>=6.5.0"]
 gthread = []
 setproctitle = ["setproctitle"]
 testing = [
-    "gevent",
-    "eventlet",
+    "gevent>=23.9.0",
+    "eventlet>=0.40.3",
     "coverage",
     "pytest",
     "pytest-cov",
