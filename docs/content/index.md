@@ -4,65 +4,114 @@
   <div class="hero__inner">
     <div class="hero__copy">
       <img class="hero__logo" src="assets/gunicorn.svg" alt="Gunicorn mascot" />
-      <h1>Production-ready Python web services</h1>
-      <p>Gunicorn is a dependable WSGI HTTP server for UNIX that keeps Python applications running fast and resilient in production. Built on a pre-fork worker model and trusted in countless deployments, it pairs clean configuration with flexible worker strategies so you can meet any traffic pattern.</p>
+      <h1>The Python WSGI Server<br>for Production</h1>
+      <p class="hero__tagline">Fast, reliable, and battle-tested. Gunicorn runs your Python web applications with the stability and performance you need in production.</p>
       <div class="hero__cta">
-        <a class="md-button md-button--primary" href="install/">Install Gunicorn</a>
-        <a class="md-button" href="https://github.com/benoitc/gunicorn">View on GitHub</a>
+        <a class="md-button md-button--primary" href="quickstart/">Get Started</a>
+        <a class="md-button" href="https://github.com/benoitc/gunicorn">GitHub</a>
       </div>
     </div>
     <div class="hero__code">
-      <pre><code class="language-console">$ pip install gunicorn
-$ gunicorn example:app --workers 3</code></pre>
-      <div class="hero__version">Latest release: <span>{{ release }}</span></div>
+      <pre><code class="language-bash">pip install gunicorn
+gunicorn myapp:app --workers 4</code></pre>
+      <div class="hero__version">v{{ release }}</div>
     </div>
   </div>
 </div>
 
-## Quickstart
+<section class="pillars">
+  <div class="pillar">
+    <div class="pillar__icon">🚀</div>
+    <h3>Production-Proven</h3>
+    <p>Trusted by thousands of companies worldwide. The pre-fork worker model handles traffic spikes gracefully.</p>
+  </div>
+  <div class="pillar">
+    <div class="pillar__icon">⚡</div>
+    <h3>Lightweight</h3>
+    <p>Minimal dependencies, simple configuration. Runs efficiently from containers to bare metal servers.</p>
+  </div>
+  <div class="pillar">
+    <div class="pillar__icon">🔌</div>
+    <h3>Compatible</h3>
+    <p>Works with any WSGI framework. Django, Flask, Pyramid—your app just runs. Now with ASGI support.</p>
+  </div>
+</section>
 
-1. Install Gunicorn into your application environment.
-2. Point Gunicorn at your WSGI app: `gunicorn myproject.wsgi`.
-3. Tune worker type, concurrency, and hooks using the rich [settings](reference/settings.md).
+## Works With Your Stack
 
-Need a longer walkthrough? Jump into the [install guide](install.md).
+<div class="frameworks">
+  <div class="framework" title="Django">
+    <span class="framework__name">Django</span>
+  </div>
+  <div class="framework" title="Flask">
+    <span class="framework__name">Flask</span>
+  </div>
+  <div class="framework" title="FastAPI">
+    <span class="framework__name">FastAPI</span>
+  </div>
+  <div class="framework" title="Pyramid">
+    <span class="framework__name">Pyramid</span>
+  </div>
+  <div class="framework" title="Starlette">
+    <span class="framework__name">Starlette</span>
+  </div>
+  <div class="framework" title="Falcon">
+    <span class="framework__name">Falcon</span>
+  </div>
+</div>
 
-## Why teams choose Gunicorn
+## Choose Your Worker
 
 <section class="feature-grid">
   <article class="feature-card">
-    <h3>Works with your framework</h3>
-    <p>Django, Flask, FastAPI, Pyramid, you name it&mdash;Gunicorn speaks WSGI so your stack just runs.</p>
-    <a href="run/">Running Gunicorn &rarr;</a>
+    <h3>Sync Workers</h3>
+    <p>The default. One request per worker. Simple, predictable, and perfect for most applications.</p>
+    <a href="design/#sync-workers">Learn more</a>
   </article>
   <article class="feature-card">
-    <h3>Flexible workers</h3>
-    <p>Sync, async, gevent, eventlet&mdash;choose the concurrency model that fits.</p>
-    <a href="reference/settings/#worker_class">Worker classes &rarr;</a>
+    <h3>Async Workers</h3>
+    <p>Gevent or Eventlet for thousands of concurrent connections. Ideal for I/O-bound workloads.</p>
+    <a href="design/#async-workers">Learn more</a>
   </article>
   <article class="feature-card">
-    <h3>Battle-tested hooks</h3>
-    <p>Lifecycle hooks let you instrument, reload, and extend Gunicorn to match your deployment requirements.</p>
-    <a href="custom/">Server hooks &rarr;</a>
+    <h3>Thread Workers</h3>
+    <p>Multiple threads per worker. Balance between concurrency and simplicity.</p>
+    <a href="reference/settings/#threads">Learn more</a>
   </article>
   <article class="feature-card">
-    <h3>Containers to bare metal</h3>
-    <p>Deploy with systemd, Kubernetes, Heroku, or Docker&mdash;the configuration stays predictable everywhere.</p>
-    <a href="deploy/">Deployment patterns &rarr;</a>
+    <h3>ASGI Workers <span class="badge badge--new">Beta</span></h3>
+    <p>Native asyncio support for FastAPI, Starlette, and other async frameworks.</p>
+    <a href="asgi/">Learn more</a>
   </article>
 </section>
 
-## Documentation map
+## Quick Links
 
-- [Install](install.md): Set up Gunicorn in a clean environment.
-- [Run](run.md): CLI usage and integration with frameworks.
-- [Configure](configure.md): Combine CLI flags and config files effectively.
-- [Settings reference](reference/settings.md): Generated from the Gunicorn source of truth.
-- [Signals](signals.md): Manage worker lifecycle in production.
-- [Instrumentation](instrumentation.md): Monitor metrics and logs.
+<div class="quick-links">
+  <a href="quickstart/" class="quick-link">
+    <strong>Quickstart</strong>
+    <span>Get running in 5 minutes</span>
+  </a>
+  <a href="deploy/" class="quick-link">
+    <strong>Deployment</strong>
+    <span>Nginx, systemd, Docker</span>
+  </a>
+  <a href="reference/settings/" class="quick-link">
+    <strong>Settings</strong>
+    <span>100+ configuration options</span>
+  </a>
+  <a href="faq/" class="quick-link">
+    <strong>FAQ</strong>
+    <span>Common questions answered</span>
+  </a>
+</div>
 
-## Community & support
+## Community
 
-- Report bugs or request features on [GitHub Issues](https://github.com/benoitc/gunicorn/issues).
-- Discuss strategies with maintainers in `#gunicorn` on [Libera Chat](https://libera.chat/).
-- Contributions are welcome&mdash;see the [contributing guide](community.md#contributing) and say hi to the maintainers.
+<div class="community-links">
+
+- **[GitHub Issues](https://github.com/benoitc/gunicorn/issues)** — Report bugs and request features
+- **[#gunicorn on Libera Chat](https://web.libera.chat/#gunicorn)** — Chat with the community
+- **[Contributing](community/#contributing)** — Help improve Gunicorn
+
+</div>
