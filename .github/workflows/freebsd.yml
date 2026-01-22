@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Test on FreeBSD
-        uses: cross-platform-actions/action@v0.25.0
+        uses: cross-platform-actions/action@v0.32.0
         with:
           operating_system: freebsd
           version: ${{ matrix.freebsd-version }}
