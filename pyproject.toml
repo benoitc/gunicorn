@@ -58,6 +58,7 @@ testing = [
     "coverage",
     "pytest",
     "pytest-cov",
+    "pytest-asyncio",
 ]
 
 [project.scripts]

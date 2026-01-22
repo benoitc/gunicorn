@@ -2440,3 +2440,94 @@ class HeaderMap(Setting):
 
         .. versionadded:: 22.0.0
         """
+
+
+def validate_asgi_loop(val):
+    if val is None:
+        return "auto"
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    val = val.lower().strip()
+    if val not in ("auto", "asyncio", "uvloop"):
+        raise ValueError("Invalid ASGI loop: %s" % val)
+    return val
+
+
+def validate_asgi_lifespan(val):
+    if val is None:
+        return "auto"
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    val = val.lower().strip()
+    if val not in ("auto", "on", "off"):
+        raise ValueError("Invalid ASGI lifespan: %s" % val)
+    return val
+
+
+class ASGILoop(Setting):
+    name = "asgi_loop"
+    section = "Worker Processes"
+    cli = ["--asgi-loop"]
+    meta = "STRING"
+    validator = validate_asgi_loop
+    default = "auto"
+    desc = """\
+        Event loop implementation for ASGI workers.
+
+        - auto: Use uvloop if available, otherwise asyncio
+        - asyncio: Use Python's built-in asyncio event loop
+        - uvloop: Use uvloop (must be installed separately)
+
+        This setting only affects the ``asgi`` worker type.
+
+        uvloop typically provides better performance but requires
+        installing the uvloop package.
+
+        .. versionadded:: 24.0.0
+        """
+
+
+class ASGILifespan(Setting):
+    name = "asgi_lifespan"
+    section = "Worker Processes"
+    cli = ["--asgi-lifespan"]
+    meta = "STRING"
+    validator = validate_asgi_lifespan
+    default = "auto"
+    desc = """\
+        Control ASGI lifespan protocol handling.
+
+        - auto: Detect if app supports lifespan, enable if so
+        - on: Always run lifespan protocol (fail if unsupported)
+        - off: Never run lifespan protocol
+
+        The lifespan protocol allows ASGI applications to run code at
+        startup and shutdown. This is essential for frameworks like
+        FastAPI that need to initialize database connections, caches,
+        or other resources.
+
+        This setting only affects the ``asgi`` worker type.
+
+        .. versionadded:: 24.0.0
+        """
+
+
+class RootPath(Setting):
+    name = "root_path"
+    section = "Server Mechanics"
+    cli = ["--root-path"]
+    meta = "STRING"
+    validator = validate_string
+    default = ""
+    desc = """\
+        The root path for ASGI applications.
+
+        This is used to set the ``root_path`` in the ASGI scope, which
+        allows applications to know their mount point when behind a
+        reverse proxy.
+
+        For example, if your application is mounted at ``/api``, set
+        this to ``/api``.
+
+        .. versionadded:: 24.0.0
+        """
