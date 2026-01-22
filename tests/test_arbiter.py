@@ -393,7 +393,8 @@ class TestReapWorkers:
         mock_worker = mock.Mock()
         arbiter.WORKERS = {42: mock_worker}
 
-        with mock.patch.object(arbiter.log, 'error') as mock_log:
+        # SIGTERM should be logged as warning (not error)
+        with mock.patch.object(arbiter.log, 'warning') as mock_log:
             arbiter.reap_workers()
 
         # Should log the signal

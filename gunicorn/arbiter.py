@@ -535,10 +535,13 @@ class Arbiter:
                         msg = "Worker (pid:{}) was sent {}!".format(
                             wpid, sig_name)
 
-                        # Additional hint for SIGKILL
+                        # SIGKILL suggests OOM, log as error
                         if sig == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
-                        self.log.error(msg)
+                            self.log.error(msg)
+                        else:
+                            # SIGTERM/SIGQUIT are expected during shutdown
+                            self.log.warning(msg)
 
                     if exitcode is not None and exitcode != 0:
                         self.log.error("Worker (pid:%s) exited with code %s.",
