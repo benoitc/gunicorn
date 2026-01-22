@@ -20,7 +20,6 @@ import ssl
 import sys
 import time
 from collections import deque
-from datetime import datetime
 from functools import partial
 
 from . import base
@@ -390,7 +389,7 @@ class ThreadWorker(base.Worker):
         resp = None
         try:
             self.cfg.pre_request(self, req)
-            request_start = datetime.now()
+            request_start = time.monotonic_ns()
             resp, environ = wsgi.create(req, conn.sock, conn.client,
                                         conn.server, self.cfg)
             environ["wsgi.multithread"] = True
@@ -416,7 +415,7 @@ class ThreadWorker(base.Worker):
 
                 resp.close()
             finally:
-                request_time = datetime.now() - request_start
+                request_time = time.monotonic_ns() - request_start
                 self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()
