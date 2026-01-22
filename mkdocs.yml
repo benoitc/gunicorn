@@ -28,6 +28,7 @@ nav:
       - Settings: reference/settings.md
   - News:
       - Latest: news.md
+      - '2026': 2026-news.md
       - '2024': 2024-news.md
       - '2023': 2023-news.md
       - '2021': 2021-news.md

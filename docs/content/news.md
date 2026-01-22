@@ -1,6 +1,28 @@
 <span id="news"></span>
 # Changelog
 
+## 24.0.0 - 2026-XX-XX
+
+### New Features
+
+- **ASGI Worker (Beta)**: Native asyncio-based ASGI support for running async Python
+  frameworks like FastAPI, Starlette, and Quart without external dependencies
+  - HTTP/1.1 with keepalive connections
+  - WebSocket support
+  - Lifespan protocol for startup/shutdown hooks
+  - Optional uvloop for improved performance
+
+- **uWSGI Binary Protocol**: Support for receiving requests from nginx via
+  `uwsgi_pass` directive
+
+- **Documentation Migration**: Migrated to MkDocs with Material theme
+
+### Breaking changes
+
+- Minimum Python version is now 3.12
+
+---
+
 ## 23.0.0 - 2024-08-10
 
 - minor docs fixes ([PR #3217](https://github.com/benoitc/gunicorn/pull/3217), [PR #3089](https://github.com/benoitc/gunicorn/pull/3089), [PR #3167](https://github.com/benoitc/gunicorn/pull/3167))
@@ -59,6 +81,7 @@
 
 ## History
 
+- [2026](2026-news.md)
 - [2024](2024-news.md)
 - [2023](2023-news.md)
 - [2021](2021-news.md)
