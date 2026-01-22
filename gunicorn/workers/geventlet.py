@@ -20,16 +20,16 @@ else:
 # each worker process after fork, in the patch() method.
 eventlet.monkey_patch()
 
-from functools import partial
-import sys
+from functools import partial  # noqa: E402
+import sys  # noqa: E402
 
-from eventlet import hubs, greenthread
-from eventlet.greenio import GreenSocket
-import eventlet.wsgi
-import greenlet
+from eventlet import hubs, greenthread  # noqa: E402
+from eventlet.greenio import GreenSocket  # noqa: E402
+import eventlet.wsgi  # noqa: E402
+import greenlet  # noqa: E402
 
-from gunicorn.workers.base_async import AsyncWorker
-from gunicorn.sock import ssl_wrap_socket
+from gunicorn.workers.base_async import AsyncWorker  # noqa: E402
+from gunicorn.sock import ssl_wrap_socket  # noqa: E402
 
 # ALREADY_HANDLED is removed in 0.30.3+ now it's `WSGI_LOCAL.already_handled: bool`
 # https://github.com/eventlet/eventlet/pull/544
