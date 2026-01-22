@@ -3,8 +3,8 @@
 # See the NOTICE for more information.
 import errno
 import os
+import queue
 import random
-import select
 import signal
 import sys
 import time
@@ -37,10 +37,10 @@ class Arbiter:
 
     LISTENERS = []
     WORKERS = {}
-    PIPE = []
 
-    # I love dynamic languages
-    SIG_QUEUE = []
+    # Sentinel value for non-signal wakeups
+    WAKEUP_REQUEST = signal.NSIG
+
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
@@ -54,6 +54,9 @@ class Arbiter:
         self._num_workers = None
         self._last_logged_active_worker_count = None
         self.log = None
+
+        # Signal queue - SimpleQueue is reentrant-safe for signal handlers
+        self.SIG_QUEUE = queue.SimpleQueue()
 
         self.setup(app)
 
@@ -172,27 +175,16 @@ class Arbiter:
         Initialize master signal handling. Most of the signals
         are queued. Child signals only wake up the master.
         """
-        # close old PIPE
-        for p in self.PIPE:
-            os.close(p)
-
-        # initialize the pipe
-        self.PIPE = pair = os.pipe()
-        for p in pair:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
-
         self.log.close_on_exec()
 
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
-        signal.signal(signal.SIGCHLD, self.handle_chld)
+        signal.signal(signal.SIGCHLD, self.signal_chld)
 
     def signal(self, sig, frame):
-        if len(self.SIG_QUEUE) < 5:
-            self.SIG_QUEUE.append(sig)
-            self.wakeup()
+        """Signal handler - NO LOGGING, just queue the signal."""
+        self.SIG_QUEUE.put_nowait(sig)
 
     def run(self):
         "Main master loop."
@@ -205,25 +197,24 @@ class Arbiter:
             while True:
                 self.maybe_promote_master()
 
-                sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
-                if sig is None:
-                    self.sleep()
-                    self.murder_workers()
-                    self.manage_workers()
-                    continue
+                # Wait for and process signals
+                for sig in self.wait_for_signals(timeout=1.0):
+                    if sig not in self.SIG_NAMES:
+                        self.log.info("Ignoring unknown signal: %s", sig)
+                        continue
 
-                if sig not in self.SIG_NAMES:
-                    self.log.info("Ignoring unknown signal: %s", sig)
-                    continue
+                    signame = self.SIG_NAMES.get(sig)
+                    handler = getattr(self, "handle_%s" % signame, None)
+                    if not handler:
+                        self.log.error("Unhandled signal: %s", signame)
+                        continue
+                    # Log SIGCHLD at debug level since it's frequent
+                    log_level = self.log.debug if sig == signal.SIGCHLD else self.log.info
+                    log_level("Handling signal: %s", signame)
+                    handler()
 
-                signame = self.SIG_NAMES.get(sig)
-                handler = getattr(self, "handle_%s" % signame, None)
-                if not handler:
-                    self.log.error("Unhandled signal: %s", signame)
-                    continue
-                self.log.info("Handling signal: %s", signame)
-                handler()
-                self.wakeup()
+                self.murder_workers()
+                self.manage_workers()
         except (StopIteration, KeyboardInterrupt):
             self.halt()
         except HaltServer as inst:
@@ -238,10 +229,13 @@ class Arbiter:
                 self.pidfile.unlink()
             sys.exit(-1)
 
-    def handle_chld(self, sig, frame):
-        "SIGCHLD handling"
+    def signal_chld(self, sig, frame):
+        """SIGCHLD signal handler - NO LOGGING, just queue the signal."""
+        self.SIG_QUEUE.put_nowait(sig)
+
+    def handle_chld(self):
+        """SIGCHLD handling - called from main loop, safe to log."""
         self.reap_workers()
-        self.wakeup()
 
     def handle_hup(self):
         """\
@@ -329,14 +323,8 @@ class Arbiter:
             util._setproctitle("master [%s]" % self.proc_name)
 
     def wakeup(self):
-        """\
-        Wake up the arbiter by writing to the PIPE
-        """
-        try:
-            os.write(self.PIPE[1], b'.')
-        except OSError as e:
-            if e.errno not in [errno.EAGAIN, errno.EINTR]:
-                raise
+        """Wake up the arbiter's main loop."""
+        self.SIG_QUEUE.put_nowait(self.WAKEUP_REQUEST)
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
@@ -352,24 +340,30 @@ class Arbiter:
         self.cfg.on_exit(self)
         sys.exit(exit_status)
 
-    def sleep(self):
+    def wait_for_signals(self, timeout=1.0):
         """\
-        Sleep until PIPE is readable or we timeout.
-        A readable PIPE means a signal occurred.
+        Wait for signals with timeout.
+        Returns a list of signals that were received.
         """
+        signals = []
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
-            if not ready[0]:
-                return
-            while os.read(self.PIPE[0], 1):
-                pass
-        except OSError as e:
-            # TODO: select.error is a subclass of OSError since Python 3.3.
-            error_number = getattr(e, 'errno', e.args[0])
-            if error_number not in [errno.EAGAIN, errno.EINTR]:
-                raise
+            # Block until we get a signal or timeout
+            sig = self.SIG_QUEUE.get(block=True, timeout=timeout)
+            if sig != self.WAKEUP_REQUEST:
+                signals.append(sig)
+            # Drain any additional queued signals
+            while True:
+                try:
+                    sig = self.SIG_QUEUE.get_nowait()
+                    if sig != self.WAKEUP_REQUEST:
+                        signals.append(sig)
+                except queue.Empty:
+                    break
+        except queue.Empty:
+            pass
         except KeyboardInterrupt:
             sys.exit()
+        return signals
 
     def stop(self, graceful=True):
         """\
@@ -394,9 +388,12 @@ class Arbiter:
         self.kill_workers(sig)
         # wait until the graceful timeout
         while self.WORKERS and time.time() < limit:
+            self.reap_workers()
             time.sleep(0.1)
 
         self.kill_workers(signal.SIGKILL)
+        # Final reap to clean up any remaining zombies
+        self.reap_workers()
 
     def reexec(self):
         """\
@@ -480,12 +477,27 @@ class Arbiter:
         # set new proc_name
         util._setproctitle("master [%s]" % self.proc_name)
 
+        # Remember current worker age before spawning new workers
+        last_worker_age = self.worker_age
+
         # spawn new workers
         for _ in range(self.cfg.workers):
             self.spawn_worker()
 
-        # manage workers
+        # manage workers - this will kill old workers beyond num_workers
         self.manage_workers()
+
+        # wait for old workers to terminate to prevent double SIGTERM
+        deadline = time.monotonic() + self.cfg.graceful_timeout
+        while time.monotonic() < deadline:
+            if not self.WORKERS:
+                break
+            # Check if all remaining workers are newer than last_worker_age
+            oldest = min(w.age for w in self.WORKERS.values())
+            if oldest > last_worker_age:
+                break
+            self.reap_workers()
+            time.sleep(0.1)
 
     def murder_workers(self):
         """\
@@ -523,36 +535,36 @@ class Arbiter:
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
-                    exitcode = status >> 8
-                    if exitcode != 0:
-                        self.log.error('Worker (pid:%s) exited with code %s', wpid, exitcode)
+                    exitcode = None
+                    if os.WIFEXITED(status):
+                        exitcode = os.WEXITSTATUS(status)
+                    elif os.WIFSIGNALED(status):
+                        sig = os.WTERMSIG(status)
+                        try:
+                            sig_name = signal.Signals(sig).name
+                        except ValueError:
+                            sig_name = "signal {}".format(sig)
+                        msg = "Worker (pid:{}) was sent {}!".format(
+                            wpid, sig_name)
+
+                        # SIGKILL suggests OOM, log as error
+                        if sig == signal.SIGKILL:
+                            msg += " Perhaps out of memory?"
+                            self.log.error(msg)
+                        else:
+                            # SIGTERM/SIGQUIT are expected during shutdown
+                            self.log.warning(msg)
+
+                    if exitcode is not None and exitcode != 0:
+                        self.log.error("Worker (pid:%s) exited with code %s.",
+                                       wpid, exitcode)
+
                     if exitcode == self.WORKER_BOOT_ERROR:
                         reason = "Worker failed to boot."
                         raise HaltServer(reason, self.WORKER_BOOT_ERROR)
                     if exitcode == self.APP_LOAD_ERROR:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
-
-                    if exitcode > 0:
-                        # If the exit code of the worker is greater than 0,
-                        # let the user know.
-                        self.log.error("Worker (pid:%s) exited with code %s.",
-                                       wpid, exitcode)
-                    elif status > 0:
-                        # If the exit code of the worker is 0 and the status
-                        # is greater than 0, then it was most likely killed
-                        # via a signal.
-                        try:
-                            sig_name = signal.Signals(status).name
-                        except ValueError:
-                            sig_name = "code {}".format(status)
-                        msg = "Worker (pid:{}) was sent {}!".format(
-                            wpid, sig_name)
-
-                        # Additional hint for SIGKILL
-                        if status == signal.SIGKILL:
-                            msg += " Perhaps out of memory?"
-                        self.log.error(msg)
 
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
