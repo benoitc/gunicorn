@@ -2,7 +2,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import errno
 import os
 import signal
 from unittest import mock
@@ -452,7 +451,6 @@ class TestSighupReload:
         # Mock app.reload to prevent it from resetting config
         arbiter.app.reload = mock.Mock()
         # Mock setup to prevent it from resetting num_workers
-        original_setup = arbiter.setup
         arbiter.setup = mock.Mock()
 
         arbiter.reload()
