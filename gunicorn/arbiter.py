@@ -372,6 +372,8 @@ class Arbiter:
         :attr graceful: boolean, If True (the default) workers will be
         killed gracefully  (ie. trying to wait for the current connection)
         """
+        self.cfg.on_stopping(self)
+
         unlink = (
             self.reexec_pid == self.master_pid == 0
             and not self.systemd
