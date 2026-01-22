@@ -416,3 +416,125 @@ class TestReapWorkers:
         # Should include OOM hint
         log_messages = ' '.join(str(call) for call in mock_log.call_args_list)
         assert 'out of memory' in log_messages.lower()
+
+
+# ============================================================================
+# SIGHUP Reload Tests
+# ============================================================================
+
+class TestSighupReload:
+    """Tests for SIGHUP (reload) handling."""
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_spawns_new_workers(self, mock_manage, mock_spawn):
+        """Verify that reload spawns the configured number of workers."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('workers', 3)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        # Mock app.reload to prevent it from resetting config
+        arbiter.app.reload = mock.Mock()
+        # Mock setup to prevent it from resetting num_workers
+        original_setup = arbiter.setup
+        arbiter.setup = mock.Mock()
+
+        arbiter.reload()
+
+        assert mock_spawn.call_count == 3
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_calls_manage_workers(self, mock_manage, mock_spawn):
+        """Verify that reload calls manage_workers after spawning."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('workers', 1)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+
+        arbiter.reload()
+
+        mock_manage.assert_called_once()
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_logs_hang_up(self, mock_manage, mock_spawn):
+        """Verify that handle_hup logs the hang up message."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+
+        with mock.patch.object(arbiter.log, 'info') as mock_log:
+            arbiter.handle_hup()
+
+        # Check that "Hang up" was logged
+        assert any('Hang up' in str(call) for call in mock_log.call_args_list)
+
+
+# ============================================================================
+# Worker Lifecycle Tests
+# ============================================================================
+
+class TestWorkerLifecycle:
+    """Tests for worker spawning, killing, and lifecycle management."""
+
+    @mock.patch('os.fork')
+    def test_spawn_worker_adds_to_workers_dict(self, mock_fork):
+        """Verify that spawn_worker adds the worker to WORKERS dict."""
+        mock_fork.return_value = 12345  # Non-zero = parent process
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.WORKERS = {}
+        arbiter.pid = os.getpid()
+        arbiter.LISTENERS = []
+
+        pid = arbiter.spawn_worker()
+
+        assert pid == 12345
+        assert 12345 in arbiter.WORKERS
+        assert arbiter.WORKERS[12345].age == arbiter.worker_age
+
+    def test_kill_worker_sends_signal(self):
+        """Verify that kill_worker sends the specified signal."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('os.kill') as mock_kill:
+            arbiter.kill_worker(42, signal.SIGTERM)
+
+        mock_kill.assert_called_once_with(42, signal.SIGTERM)
+
+    def test_murder_workers_sends_sigabrt_first(self):
+        """Verify that murder_workers sends SIGABRT on first timeout."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = False
+        # Simulate timeout by returning a very old update time
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=100), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill:
+            arbiter.murder_workers()
+
+        mock_kill.assert_called_once_with(42, signal.SIGABRT)
+        assert mock_worker.aborted is True
+
+    def test_murder_workers_sends_sigkill_second(self):
+        """Verify that murder_workers sends SIGKILL on second timeout."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = True  # Already aborted once
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=100), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill:
+            arbiter.murder_workers()
+
+        mock_kill.assert_called_once_with(42, signal.SIGKILL)
