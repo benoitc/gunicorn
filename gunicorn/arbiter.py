@@ -3,8 +3,8 @@
 # See the NOTICE for more information.
 import errno
 import os
+import queue
 import random
-import select
 import signal
 import sys
 import time
@@ -37,10 +37,10 @@ class Arbiter:
 
     LISTENERS = []
     WORKERS = {}
-    PIPE = []
 
-    # I love dynamic languages
-    SIG_QUEUE = []
+    # Sentinel value for non-signal wakeups
+    WAKEUP_REQUEST = signal.NSIG
+
     SIGNALS = [getattr(signal, "SIG%s" % x)
                for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
     SIG_NAMES = dict(
@@ -54,6 +54,9 @@ class Arbiter:
         self._num_workers = None
         self._last_logged_active_worker_count = None
         self.log = None
+
+        # Signal queue - SimpleQueue is reentrant-safe for signal handlers
+        self.SIG_QUEUE = queue.SimpleQueue()
 
         self.setup(app)
 
@@ -172,16 +175,6 @@ class Arbiter:
         Initialize master signal handling. Most of the signals
         are queued. Child signals only wake up the master.
         """
-        # close old PIPE
-        for p in self.PIPE:
-            os.close(p)
-
-        # initialize the pipe
-        self.PIPE = pair = os.pipe()
-        for p in pair:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
-
         self.log.close_on_exec()
 
         # initialize all signals
@@ -190,9 +183,8 @@ class Arbiter:
         signal.signal(signal.SIGCHLD, self.signal_chld)
 
     def signal(self, sig, frame):
-        if len(self.SIG_QUEUE) < 5:
-            self.SIG_QUEUE.append(sig)
-            self.wakeup()
+        """Signal handler - NO LOGGING, just queue the signal."""
+        self.SIG_QUEUE.put_nowait(sig)
 
     def run(self):
         "Main master loop."
@@ -205,25 +197,22 @@ class Arbiter:
             while True:
                 self.maybe_promote_master()
 
-                sig = self.SIG_QUEUE.pop(0) if self.SIG_QUEUE else None
-                if sig is None:
-                    self.sleep()
-                    self.murder_workers()
-                    self.manage_workers()
-                    continue
+                # Wait for and process signals
+                for sig in self.wait_for_signals(timeout=1.0):
+                    if sig not in self.SIG_NAMES:
+                        self.log.info("Ignoring unknown signal: %s", sig)
+                        continue
 
-                if sig not in self.SIG_NAMES:
-                    self.log.info("Ignoring unknown signal: %s", sig)
-                    continue
+                    signame = self.SIG_NAMES.get(sig)
+                    handler = getattr(self, "handle_%s" % signame, None)
+                    if not handler:
+                        self.log.error("Unhandled signal: %s", signame)
+                        continue
+                    self.log.info("Handling signal: %s", signame)
+                    handler()
 
-                signame = self.SIG_NAMES.get(sig)
-                handler = getattr(self, "handle_%s" % signame, None)
-                if not handler:
-                    self.log.error("Unhandled signal: %s", signame)
-                    continue
-                self.log.info("Handling signal: %s", signame)
-                handler()
-                self.wakeup()
+                self.murder_workers()
+                self.manage_workers()
         except (StopIteration, KeyboardInterrupt):
             self.halt()
         except HaltServer as inst:
@@ -239,10 +228,8 @@ class Arbiter:
             sys.exit(-1)
 
     def signal_chld(self, sig, frame):
-        """SIGCHLD signal handler - NO LOGGING, just queue and wakeup."""
-        if len(self.SIG_QUEUE) < 5:
-            self.SIG_QUEUE.append(sig)
-            self.wakeup()
+        """SIGCHLD signal handler - NO LOGGING, just queue the signal."""
+        self.SIG_QUEUE.put_nowait(sig)
 
     def handle_chld(self):
         """SIGCHLD handling - called from main loop, safe to log."""
@@ -334,14 +321,8 @@ class Arbiter:
             util._setproctitle("master [%s]" % self.proc_name)
 
     def wakeup(self):
-        """\
-        Wake up the arbiter by writing to the PIPE
-        """
-        try:
-            os.write(self.PIPE[1], b'.')
-        except OSError as e:
-            if e.errno not in [errno.EAGAIN, errno.EINTR]:
-                raise
+        """Wake up the arbiter's main loop."""
+        self.SIG_QUEUE.put_nowait(self.WAKEUP_REQUEST)
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
@@ -357,24 +338,30 @@ class Arbiter:
         self.cfg.on_exit(self)
         sys.exit(exit_status)
 
-    def sleep(self):
+    def wait_for_signals(self, timeout=1.0):
         """\
-        Sleep until PIPE is readable or we timeout.
-        A readable PIPE means a signal occurred.
+        Wait for signals with timeout.
+        Returns a list of signals that were received.
         """
+        signals = []
         try:
-            ready = select.select([self.PIPE[0]], [], [], 1.0)
-            if not ready[0]:
-                return
-            while os.read(self.PIPE[0], 1):
-                pass
-        except OSError as e:
-            # TODO: select.error is a subclass of OSError since Python 3.3.
-            error_number = getattr(e, 'errno', e.args[0])
-            if error_number not in [errno.EAGAIN, errno.EINTR]:
-                raise
+            # Block until we get a signal or timeout
+            sig = self.SIG_QUEUE.get(block=True, timeout=timeout)
+            if sig != self.WAKEUP_REQUEST:
+                signals.append(sig)
+            # Drain any additional queued signals
+            while True:
+                try:
+                    sig = self.SIG_QUEUE.get_nowait()
+                    if sig != self.WAKEUP_REQUEST:
+                        signals.append(sig)
+                except queue.Empty:
+                    break
+        except queue.Empty:
+            pass
         except KeyboardInterrupt:
             sys.exit()
+        return signals
 
     def stop(self, graceful=True):
         """\
@@ -399,9 +386,12 @@ class Arbiter:
         self.kill_workers(sig)
         # wait until the graceful timeout
         while self.WORKERS and time.time() < limit:
+            self.reap_workers()
             time.sleep(0.1)
 
         self.kill_workers(signal.SIGKILL)
+        # Final reap to clean up any remaining zombies
+        self.reap_workers()
 
     def reexec(self):
         """\

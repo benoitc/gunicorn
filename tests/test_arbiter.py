@@ -214,18 +214,13 @@ class TestSignalHandlerRegistration:
             assert expected_signals.issubset(registered_signals), \
                 f"Missing signals: {expected_signals - registered_signals}"
 
-    def test_init_signals_creates_pipe(self):
-        """Verify that init_signals creates a new pipe for wakeup."""
+    def test_init_signals_creates_queue(self):
+        """Verify that arbiter has a SimpleQueue for signals."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
 
-        with mock.patch('os.pipe', return_value=(3, 4)) as mock_pipe, \
-             mock.patch('gunicorn.util.set_non_blocking'), \
-             mock.patch('gunicorn.util.close_on_exec'), \
-             mock.patch('signal.signal'):
-            arbiter.init_signals()
-
-            mock_pipe.assert_called_once()
-            assert arbiter.PIPE == (3, 4)
+        # Verify SimpleQueue was created
+        import queue
+        assert isinstance(arbiter.SIG_QUEUE, queue.SimpleQueue)
 
     def test_sigchld_has_separate_handler(self):
         """Verify that SIGCHLD uses a separate signal handler from other signals."""
@@ -262,52 +257,72 @@ class TestSignalHandlerRegistration:
 # ============================================================================
 
 class TestSignalQueue:
-    """Tests for signal queueing and wakeup mechanism."""
+    """Tests for signal queueing and wakeup mechanism using SimpleQueue."""
 
     def test_signal_queued_on_receipt(self):
         """Verify that signals are queued when the signal handler is called."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.SIG_QUEUE = []
-        arbiter.PIPE = [0, 1]  # Dummy pipe
 
-        with mock.patch('os.write'):
-            arbiter.signal(signal.SIGHUP, None)
+        arbiter.signal(signal.SIGHUP, None)
 
-        assert signal.SIGHUP in arbiter.SIG_QUEUE
+        # Get the signal from the queue
+        sig = arbiter.SIG_QUEUE.get_nowait()
+        assert sig == signal.SIGHUP
 
-    def test_signal_queue_max_size(self):
-        """Verify that signal queue has a maximum size of 5."""
+    def test_multiple_signals_queued(self):
+        """Verify that multiple signals can be queued."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.SIG_QUEUE = []
-        arbiter.PIPE = [0, 1]  # Dummy pipe
 
-        with mock.patch('os.write'):
-            # Queue 10 signals
-            for _ in range(10):
-                arbiter.signal(signal.SIGHUP, None)
+        # Queue multiple signals
+        arbiter.signal(signal.SIGHUP, None)
+        arbiter.signal(signal.SIGTERM, None)
+        arbiter.signal_chld(signal.SIGCHLD, None)
 
-        # Only 5 should be queued
-        assert len(arbiter.SIG_QUEUE) == 5
+        signals = []
+        while True:
+            try:
+                signals.append(arbiter.SIG_QUEUE.get_nowait())
+            except Exception:
+                break
 
-    def test_wakeup_writes_to_pipe(self):
-        """Verify that wakeup writes to the pipe to wake up select."""
+        assert signal.SIGHUP in signals
+        assert signal.SIGTERM in signals
+        assert signal.SIGCHLD in signals
+
+    def test_wakeup_puts_sentinel(self):
+        """Verify that wakeup puts the WAKEUP_REQUEST sentinel to the queue."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.PIPE = [3, 4]
 
-        with mock.patch('os.write') as mock_write:
-            arbiter.wakeup()
+        arbiter.wakeup()
 
-        mock_write.assert_called_once_with(4, b'.')
+        sig = arbiter.SIG_QUEUE.get_nowait()
+        assert sig == arbiter.WAKEUP_REQUEST
 
-    def test_sleep_returns_on_pipe_data(self):
-        """Verify that sleep returns when data is available on the pipe."""
+    def test_wait_for_signals_returns_signals(self):
+        """Verify that wait_for_signals returns queued signals."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.PIPE = [3, 4]
 
-        with mock.patch('select.select', return_value=([3], [], [])), \
-             mock.patch('os.read', side_effect=[b'.', OSError(errno.EAGAIN, '')]):
-            # Should not block/timeout
-            arbiter.sleep()
+        # Queue some signals
+        arbiter.SIG_QUEUE.put_nowait(signal.SIGHUP)
+        arbiter.SIG_QUEUE.put_nowait(signal.SIGTERM)
+
+        signals = arbiter.wait_for_signals(timeout=0.1)
+
+        assert signal.SIGHUP in signals
+        assert signal.SIGTERM in signals
+
+    def test_wait_for_signals_filters_wakeup_request(self):
+        """Verify that WAKEUP_REQUEST sentinel is filtered from results."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+
+        # Queue a wakeup request and a real signal
+        arbiter.SIG_QUEUE.put_nowait(arbiter.WAKEUP_REQUEST)
+        arbiter.SIG_QUEUE.put_nowait(signal.SIGHUP)
+
+        signals = arbiter.wait_for_signals(timeout=0.1)
+
+        assert arbiter.WAKEUP_REQUEST not in signals
+        assert signal.SIGHUP in signals
 
 
 # ============================================================================
