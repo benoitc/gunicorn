@@ -162,7 +162,8 @@ class Arbiter:
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
-        systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
+        if self.systemd:
+            systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
 
         # check worker class requirements
         if hasattr(self.worker_class, "check_config"):
@@ -245,7 +246,11 @@ class Arbiter:
         - Gracefully shutdown the old worker processes
         """
         self.log.info("Hang up: %s", self.master_name)
+        if self.systemd:
+            systemd.sd_notify("RELOADING=1\nSTATUS=Gunicorn arbiter reloading", self.log)
         self.reload()
+        if self.systemd:
+            systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter reloaded", self.log)
 
     def handle_term(self):
         "SIGTERM handling"
@@ -328,6 +333,8 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        if self.systemd:
+            systemd.sd_notify("STOPPING=1\nSTATUS=Gunicorn arbiter stopping", self.log)
         self.stop()
 
         log_func = self.log.info if exit_status == 0 else self.log.error

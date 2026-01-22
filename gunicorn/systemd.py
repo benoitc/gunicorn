@@ -4,6 +4,7 @@
 
 import os
 import socket
+import time
 
 SD_LISTEN_FDS_START = 3
 
@@ -66,6 +67,8 @@ def sd_notify(state, logger, unset_environment=False):
         if addr[0] == '@':
             addr = '\0' + addr[1:]
         sock.connect(addr)
+        monotonic_usecs = time.clock_gettime_ns(time.CLOCK_MONOTONIC) // 1000
+        state = "%s\nMONOTONIC_USEC=%d" % (state, monotonic_usecs)
         sock.sendall(state.encode('utf-8'))
     except Exception:
         logger.debug("Exception while invoking sd_notify()", exc_info=True)
