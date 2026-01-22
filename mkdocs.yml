@@ -60,6 +60,7 @@ theme:
     - search.highlight
     - search.suggest
     - toc.follow
+    - toc.integrate
 
 plugins:
   - search
@@ -94,6 +95,9 @@ markdown_extensions:
 extra_css:
   - styles/overrides.css
   - assets/stylesheets/home.css
+
+extra_javascript:
+  - assets/javascripts/toc-collapse.js
 
 extra:
   social:
