@@ -1,0 +1,47 @@
+name: FreeBSD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  test:
+    name: FreeBSD ${{ matrix.freebsd-version }} / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - freebsd-version: '14.2'
+            python-version: '3.12'
+            python-pkg: 'python312 py312-sqlite3'
+          - freebsd-version: '14.2'
+            python-version: '3.13'
+            python-pkg: 'python313 py313-sqlite3'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.freebsd-version }}
+          usesh: true
+          prepare: |
+            pkg install -y ${{ matrix.python-pkg }}
+          run: |
+            python${{ matrix.python-version }} -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install pytest pytest-cov coverage
+            pip install -e .
+            pytest --cov=gunicorn -v tests/ \
+              --ignore=tests/workers/test_ggevent.py \
+              --ignore=tests/workers/test_geventlet.py

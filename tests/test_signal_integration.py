@@ -18,6 +18,10 @@ import time
 import pytest
 
 
+# Timeout for CI environments (VMs can be slow)
+CI_TIMEOUT = 30
+
+
 # Simple WSGI app inline
 SIMPLE_APP = '''
 def application(environ, start_response):
@@ -40,7 +44,7 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-def wait_for_server(host, port, timeout=10):
+def wait_for_server(host, port, timeout=CI_TIMEOUT):
     """Wait until server is accepting connections."""
     start = time.monotonic()
     while time.monotonic() - start < timeout:
@@ -142,7 +146,7 @@ class TestSignalHandlingIntegration:
 
         # Wait for process to exit
         try:
-            exit_code = proc.wait(timeout=10)
+            exit_code = proc.wait(timeout=CI_TIMEOUT)
             assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
         except subprocess.TimeoutExpired:
             proc.kill()
@@ -161,7 +165,7 @@ class TestSignalHandlingIntegration:
 
         # Wait for process to exit
         try:
-            exit_code = proc.wait(timeout=10)
+            exit_code = proc.wait(timeout=CI_TIMEOUT)
             assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
         except subprocess.TimeoutExpired:
             proc.kill()
