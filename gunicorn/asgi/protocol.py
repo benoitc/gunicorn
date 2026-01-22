@@ -143,7 +143,17 @@ class ASGIProtocol(asyncio.Protocol):
             self._close_transport()
 
     def _is_websocket_upgrade(self, request):
-        """Check if request is a WebSocket upgrade."""
+        """Check if request is a WebSocket upgrade.
+
+        Per RFC 6455 Section 4.1, the opening handshake requires:
+        - HTTP method MUST be GET
+        - Upgrade header MUST be "websocket" (case-insensitive)
+        - Connection header MUST contain "Upgrade"
+        """
+        # RFC 6455: The method of the request MUST be GET
+        if request.method != "GET":
+            return False
+
         upgrade = None
         connection = None
         for name, value in request.headers:

@@ -172,7 +172,29 @@ class UWSGIRequest:
             var_count += 1
 
     def _extract_request_info(self):
-        """Extract HTTP request info from uWSGI vars."""
+        """Extract HTTP request info from uWSGI vars.
+
+        Header Mapping (CGI/WSGI to HTTP):
+
+        The uWSGI protocol passes HTTP headers using CGI-style environment
+        variable naming. This method converts them back to HTTP header format:
+
+        - HTTP_* vars: Strip 'HTTP_' prefix, replace '_' with '-'
+          Example: HTTP_X_FORWARDED_FOR -> X-FORWARDED-FOR
+          Example: HTTP_ACCEPT_ENCODING -> ACCEPT-ENCODING
+
+        - CONTENT_TYPE: Mapped directly to CONTENT-TYPE header
+          (CGI spec excludes HTTP_ prefix for this header)
+
+        - CONTENT_LENGTH: Mapped directly to CONTENT-LENGTH header
+          (CGI spec excludes HTTP_ prefix for this header)
+
+        Note: The underscore-to-hyphen conversion is lossy. Headers that
+        originally contained underscores (e.g., X_Custom_Header) cannot be
+        distinguished from hyphenated headers (X-Custom-Header) after
+        passing through nginx/uWSGI. This is a CGI/WSGI specification
+        limitation, not specific to this implementation.
+        """
         # Method
         self.method = self.uwsgi_vars.get('REQUEST_METHOD', 'GET')
 
@@ -192,7 +214,8 @@ class UWSGIRequest:
         elif 'wsgi.url_scheme' in self.uwsgi_vars:
             self.scheme = self.uwsgi_vars['wsgi.url_scheme']
 
-        # Extract HTTP headers (HTTP_* vars)
+        # Extract HTTP headers from CGI-style vars
+        # See docstring above for mapping details
         for key, value in self.uwsgi_vars.items():
             if key.startswith('HTTP_'):
                 # Convert HTTP_HEADER_NAME to HEADER-NAME
