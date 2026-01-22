@@ -46,6 +46,7 @@ nav:
 
 theme:
   name: material
+  custom_dir: overrides
   language: en
   logo: assets/gunicorn.svg
   favicon: assets/gunicorn.svg
@@ -92,6 +93,7 @@ markdown_extensions:
 
 extra_css:
   - styles/overrides.css
+  - assets/stylesheets/home.css
 
 extra:
   social:

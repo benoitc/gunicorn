@@ -1,0 +1,30 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+{{ super() }}
+{% endblock %}
+
+{% block htmltitle %}
+<title>Gunicorn - Python WSGI HTTP Server for UNIX</title>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ 'assets/stylesheets/home.css' | url }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block site_nav %}{% endblock %}
+
+{% block container %}
+<main class="home">
+  {{ page.content }}
+</main>
+{% endblock %}
+
+{% block footer %}
+{{ super() }}
+{% endblock %}
