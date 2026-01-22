@@ -42,4 +42,4 @@ jobs:
 
       - name: Run uWSGI integration tests
         run: |
-          pytest tests/docker/uwsgi/ -v --tb=short
+          pytest tests/docker/uwsgi/ -v --tb=short -p no:cov
