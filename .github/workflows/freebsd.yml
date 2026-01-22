@@ -40,7 +40,7 @@ jobs:
             python${{ matrix.python-version }} -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install pytest pytest-cov coverage
+            pip install pytest pytest-cov pytest-asyncio coverage
             pip install -e .
             pytest --cov=gunicorn -v tests/ \
               --ignore=tests/workers/test_ggevent.py \

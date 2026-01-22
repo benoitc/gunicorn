@@ -38,8 +38,8 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest requests
+          python -m pip install pytest pytest-cov requests
 
       - name: Run uWSGI integration tests
         run: |
-          pytest tests/docker/uwsgi/ -v --tb=short -p no:cov
+          pytest tests/docker/uwsgi/ -v --tb=short
