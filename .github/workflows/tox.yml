@@ -18,6 +18,7 @@ jobs:
         os:
          - ubuntu-latest
          # Not testing Windows: tests need Unix-only fcntl, grp, pwd, etc.
+         # FreeBSD: tested in separate freebsd.yml workflow
         python-version:
          # Supporting Python 3.10 through 3.13
          - "3.10"
