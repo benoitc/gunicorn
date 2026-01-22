@@ -11,11 +11,11 @@ import time
 try:
     import gevent
 except ImportError:
-    raise RuntimeError("gevent worker requires gevent 23.9.0 or higher")
+    raise RuntimeError("gevent worker requires gevent 24.10.1 or higher")
 else:
     from packaging.version import parse as parse_version
-    if parse_version(gevent.__version__) < parse_version('23.9.0'):
-        raise RuntimeError("gevent worker requires gevent 23.9.0 or higher")
+    if parse_version(gevent.__version__) < parse_version('24.10.1'):
+        raise RuntimeError("gevent worker requires gevent 24.10.1 or higher")
 
 from gevent.pool import Pool
 from gevent.server import StreamServer

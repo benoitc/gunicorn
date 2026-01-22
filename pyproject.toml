@@ -47,13 +47,13 @@ Documentation = "https://docs.gunicorn.org"
 Changelog = "https://docs.gunicorn.org/en/stable/news.html"
 
 [project.optional-dependencies]
-gevent = ["gevent>=23.9.0"]
+gevent = ["gevent>=24.10.1"]
 eventlet = ["eventlet>=0.40.3"]
 tornado = ["tornado>=6.5.0"]
 gthread = []
 setproctitle = ["setproctitle"]
 testing = [
-    "gevent>=23.9.0",
+    "gevent>=24.10.1",
     "eventlet>=0.40.3",
     "coverage",
     "pytest",

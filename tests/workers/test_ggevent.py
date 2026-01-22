@@ -20,10 +20,10 @@ def test_import():
 
 
 def test_version_requirement():
-    """Test that gevent 23.9.0+ is required."""
+    """Test that gevent 24.10.1+ is required."""
     from gunicorn.workers import ggevent
     from packaging.version import parse as parse_version
-    assert parse_version(gevent.__version__) >= parse_version('23.9.0')
+    assert parse_version(gevent.__version__) >= parse_version('24.10.1')
 
 
 class TestGeventWorkerInit:
