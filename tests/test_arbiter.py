@@ -228,17 +228,17 @@ class TestSignalHandlerRegistration:
             assert arbiter.PIPE == (3, 4)
 
     def test_sigchld_has_separate_handler(self):
-        """Verify that SIGCHLD uses a separate handler from other signals."""
+        """Verify that SIGCHLD uses a separate signal handler from other signals."""
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
 
         with mock.patch('signal.signal') as mock_signal:
             arbiter.init_signals()
 
-            # Find the handler for SIGCHLD
+            # Find the handler for SIGCHLD - uses signal_chld for async-signal-safety
             sigchld_calls = [c for c in mock_signal.call_args_list
                             if c[0][0] == signal.SIGCHLD]
             assert len(sigchld_calls) == 1
-            assert sigchld_calls[0][0][1] == arbiter.handle_chld
+            assert sigchld_calls[0][0][1] == arbiter.signal_chld
 
             # Find handlers for other signals
             other_calls = [c for c in mock_signal.call_args_list

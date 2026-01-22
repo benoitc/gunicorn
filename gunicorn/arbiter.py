@@ -187,7 +187,7 @@ class Arbiter:
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
-        signal.signal(signal.SIGCHLD, self.handle_chld)
+        signal.signal(signal.SIGCHLD, self.signal_chld)
 
     def signal(self, sig, frame):
         if len(self.SIG_QUEUE) < 5:
@@ -238,10 +238,15 @@ class Arbiter:
                 self.pidfile.unlink()
             sys.exit(-1)
 
-    def handle_chld(self, sig, frame):
-        "SIGCHLD handling"
+    def signal_chld(self, sig, frame):
+        """SIGCHLD signal handler - NO LOGGING, just queue and wakeup."""
+        if len(self.SIG_QUEUE) < 5:
+            self.SIG_QUEUE.append(sig)
+            self.wakeup()
+
+    def handle_chld(self):
+        """SIGCHLD handling - called from main loop, safe to log."""
         self.reap_workers()
-        self.wakeup()
 
     def handle_hup(self):
         """\
