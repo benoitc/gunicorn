@@ -70,6 +70,18 @@ Choose a worker type based on your application's needs.
     gunicorn myapp:app -k gthread --threads 4
     ```
 
+=== "ASGI"
+
+    Native **asyncio** support for modern async frameworks.
+
+    - For FastAPI, Starlette, Quart, and other ASGI apps
+    - Full async/await support
+    - See the [ASGI Guide](asgi.md) for details
+
+    ```bash
+    gunicorn myapp:app -k uvicorn.workers.UvicornWorker
+    ```
+
 === "Gevent"
 
     **Greenlet-based** async worker using [Gevent](http://www.gevent.org/).
@@ -107,28 +119,16 @@ Choose a worker type based on your application's needs.
     gunicorn myapp:app -k tornado
     ```
 
-=== "ASGI"
-
-    Native **asyncio** support for modern async frameworks.
-
-    - For FastAPI, Starlette, Quart, and other ASGI apps
-    - Full async/await support
-    - See the [ASGI Guide](asgi.md) for details
-
-    ```bash
-    gunicorn myapp:app -k uvicorn.workers.UvicornWorker
-    ```
-
 ## Comparison
 
 | Worker | Concurrency Model | Keep-Alive | Best For |
 |--------|-------------------|------------|----------|
 | `sync` | 1 request/worker | ❌ | CPU-bound apps behind a proxy |
 | `gthread` | Thread pool | ✅ | Mixed workloads, moderate concurrency |
+| ASGI workers | AsyncIO | ✅ | Modern async frameworks (FastAPI, etc.) |
 | `gevent` | Greenlets | ✅ | I/O-bound, WebSockets, streaming |
 | `eventlet` | Greenlets | ✅ | I/O-bound, long-polling |
 | `tornado` | Tornado IOLoop | ✅ | Native Tornado applications |
-| ASGI workers | AsyncIO | ✅ | Modern async frameworks (FastAPI, etc.) |
 
 !!! tip "Quick Decision Guide"
 
