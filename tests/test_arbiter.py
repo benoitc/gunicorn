@@ -2,11 +2,16 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import errno
 import os
+import signal
 from unittest import mock
+
+import pytest
 
 import gunicorn.app.base
 import gunicorn.arbiter
+import gunicorn.errors
 from gunicorn.config import ReusePort
 
 
@@ -185,3 +190,229 @@ def test_env_vars_available_during_preload():
     # Note that we aren't making any assertions here, they are made in the
     # dummy application object being loaded here instead.
     gunicorn.arbiter.Arbiter(PreloadedAppWithEnvSettings())
+
+
+# ============================================================================
+# Signal Handler Registration Tests
+# ============================================================================
+
+class TestSignalHandlerRegistration:
+    """Tests for signal handler registration during arbiter initialization."""
+
+    def test_init_signals_registers_all_signals(self):
+        """Verify that init_signals registers handlers for all expected signals."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+
+        with mock.patch('signal.signal') as mock_signal:
+            arbiter.init_signals()
+
+            # Verify all expected signals are registered
+            registered_signals = {call[0][0] for call in mock_signal.call_args_list}
+            expected_signals = set(arbiter.SIGNALS)
+            expected_signals.add(signal.SIGCHLD)
+
+            assert expected_signals.issubset(registered_signals), \
+                f"Missing signals: {expected_signals - registered_signals}"
+
+    def test_init_signals_creates_pipe(self):
+        """Verify that init_signals creates a new pipe for wakeup."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+
+        with mock.patch('os.pipe', return_value=(3, 4)) as mock_pipe, \
+             mock.patch('gunicorn.util.set_non_blocking'), \
+             mock.patch('gunicorn.util.close_on_exec'), \
+             mock.patch('signal.signal'):
+            arbiter.init_signals()
+
+            mock_pipe.assert_called_once()
+            assert arbiter.PIPE == (3, 4)
+
+    def test_sigchld_has_separate_handler(self):
+        """Verify that SIGCHLD uses a separate handler from other signals."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+
+        with mock.patch('signal.signal') as mock_signal:
+            arbiter.init_signals()
+
+            # Find the handler for SIGCHLD
+            sigchld_calls = [c for c in mock_signal.call_args_list
+                            if c[0][0] == signal.SIGCHLD]
+            assert len(sigchld_calls) == 1
+            assert sigchld_calls[0][0][1] == arbiter.handle_chld
+
+            # Find handlers for other signals
+            other_calls = [c for c in mock_signal.call_args_list
+                          if c[0][0] in arbiter.SIGNALS]
+            for call in other_calls:
+                assert call[0][1] == arbiter.signal
+
+    def test_signals_list_contains_expected(self):
+        """Verify that SIGNALS list contains all expected signal types."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+
+        expected = ['HUP', 'QUIT', 'INT', 'TERM', 'TTIN', 'TTOU',
+                    'USR1', 'USR2', 'WINCH']
+        for name in expected:
+            sig = getattr(signal, f'SIG{name}')
+            assert sig in arbiter.SIGNALS, f"SIG{name} not in SIGNALS list"
+
+
+# ============================================================================
+# Signal Queue Tests
+# ============================================================================
+
+class TestSignalQueue:
+    """Tests for signal queueing and wakeup mechanism."""
+
+    def test_signal_queued_on_receipt(self):
+        """Verify that signals are queued when the signal handler is called."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.SIG_QUEUE = []
+        arbiter.PIPE = [0, 1]  # Dummy pipe
+
+        with mock.patch('os.write'):
+            arbiter.signal(signal.SIGHUP, None)
+
+        assert signal.SIGHUP in arbiter.SIG_QUEUE
+
+    def test_signal_queue_max_size(self):
+        """Verify that signal queue has a maximum size of 5."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.SIG_QUEUE = []
+        arbiter.PIPE = [0, 1]  # Dummy pipe
+
+        with mock.patch('os.write'):
+            # Queue 10 signals
+            for _ in range(10):
+                arbiter.signal(signal.SIGHUP, None)
+
+        # Only 5 should be queued
+        assert len(arbiter.SIG_QUEUE) == 5
+
+    def test_wakeup_writes_to_pipe(self):
+        """Verify that wakeup writes to the pipe to wake up select."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.PIPE = [3, 4]
+
+        with mock.patch('os.write') as mock_write:
+            arbiter.wakeup()
+
+        mock_write.assert_called_once_with(4, b'.')
+
+    def test_sleep_returns_on_pipe_data(self):
+        """Verify that sleep returns when data is available on the pipe."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.PIPE = [3, 4]
+
+        with mock.patch('select.select', return_value=([3], [], [])), \
+             mock.patch('os.read', side_effect=[b'.', OSError(errno.EAGAIN, '')]):
+            # Should not block/timeout
+            arbiter.sleep()
+
+
+# ============================================================================
+# Reap Workers Tests
+# ============================================================================
+
+class TestReapWorkers:
+    """Tests for worker reaping and exit status handling."""
+
+    @mock.patch('os.waitpid')
+    def test_reap_normal_exit(self, mock_waitpid):
+        """Verify that a worker with normal exit (code 0) is properly reaped."""
+        mock_waitpid.side_effect = [(42, 0), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        arbiter.reap_workers()
+
+        mock_worker.tmp.close.assert_called_once()
+        arbiter.cfg.child_exit.assert_called_once_with(arbiter, mock_worker)
+        assert 42 not in arbiter.WORKERS
+
+    @mock.patch('os.waitpid')
+    def test_reap_exit_with_error_code(self, mock_waitpid):
+        """Verify that a worker exiting with non-zero code is logged."""
+        # Exit code 1 (status = 1 << 8 = 256)
+        mock_waitpid.side_effect = [(42, 256), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_log:
+            arbiter.reap_workers()
+
+        # Should log the error exit
+        assert any('exited with code' in str(call) for call in mock_log.call_args_list)
+
+    @mock.patch('os.waitpid')
+    def test_reap_worker_boot_error(self, mock_waitpid):
+        """Verify that WORKER_BOOT_ERROR causes HaltServer."""
+        # Exit code 3 (WORKER_BOOT_ERROR) = status 3 << 8 = 768
+        mock_waitpid.side_effect = [(42, 768), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with pytest.raises(gunicorn.errors.HaltServer) as exc_info:
+            arbiter.reap_workers()
+
+        assert exc_info.value.exit_status == gunicorn.arbiter.Arbiter.WORKER_BOOT_ERROR
+
+    @mock.patch('os.waitpid')
+    def test_reap_app_load_error(self, mock_waitpid):
+        """Verify that APP_LOAD_ERROR causes HaltServer."""
+        # Exit code 4 (APP_LOAD_ERROR) = status 4 << 8 = 1024
+        mock_waitpid.side_effect = [(42, 1024), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with pytest.raises(gunicorn.errors.HaltServer) as exc_info:
+            arbiter.reap_workers()
+
+        assert exc_info.value.exit_status == gunicorn.arbiter.Arbiter.APP_LOAD_ERROR
+
+    @mock.patch('os.waitpid')
+    def test_reap_killed_by_signal(self, mock_waitpid):
+        """Verify that a worker killed by signal is properly identified."""
+        # Status for SIGTERM (15) killed process
+        mock_waitpid.side_effect = [(42, signal.SIGTERM), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_log:
+            arbiter.reap_workers()
+
+        # Should log the signal
+        assert any('SIGTERM' in str(call) for call in mock_log.call_args_list)
+
+    @mock.patch('os.waitpid')
+    def test_reap_killed_by_sigkill_oom_hint(self, mock_waitpid):
+        """Verify that SIGKILL adds OOM hint to log message."""
+        # Status for SIGKILL (9) killed process
+        mock_waitpid.side_effect = [(42, signal.SIGKILL), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_log:
+            arbiter.reap_workers()
+
+        # Should include OOM hint
+        log_messages = ' '.join(str(call) for call in mock_log.call_args_list)
+        assert 'out of memory' in log_messages.lower()
