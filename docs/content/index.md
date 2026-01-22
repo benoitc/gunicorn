@@ -1,117 +1,127 @@
-# Gunicorn
+---
+template: home.html
+title: Gunicorn - Python WSGI HTTP Server
+---
 
-<div class="hero">
-  <div class="hero__inner">
-    <div class="hero__copy">
-      <img class="hero__logo" src="assets/gunicorn.svg" alt="Gunicorn mascot" />
-      <h1>The Python WSGI Server<br>for Production</h1>
-      <p class="hero__tagline">Fast, reliable, and battle-tested. Gunicorn runs your Python web applications with the stability and performance you need in production.</p>
-      <div class="hero__cta">
-        <a class="md-button md-button--primary" href="quickstart/">Get Started</a>
-        <a class="md-button" href="https://github.com/benoitc/gunicorn">GitHub</a>
+<section class="hero">
+  <div class="container">
+    <img class="hero__logo" src="assets/gunicorn.svg" alt="Gunicorn" style="width: 350px;" />
+    <h1>The Python WSGI Server</h1>
+    <p class="hero__tagline">
+      Battle-tested. Production-ready. One command to serve your Python apps.
+    </p>
+    <div class="hero__buttons">
+      <a class="btn btn--primary" href="quickstart/">Get Started</a>
+      <a class="btn btn--secondary" href="https://github.com/benoitc/gunicorn">View on GitHub</a>
+    </div>
+    <div class="terminal">
+      <div class="terminal__header">
+        <span class="terminal__dot terminal__dot--red"></span>
+        <span class="terminal__dot terminal__dot--yellow"></span>
+        <span class="terminal__dot terminal__dot--green"></span>
+      </div>
+      <div class="terminal__body">
+        <span class="terminal__line"><span class="terminal__prompt">$ </span>pip install gunicorn</span>
+        <span class="terminal__line"><span class="terminal__prompt">$ </span>gunicorn myapp:app</span>
+        <span class="terminal__line terminal__comment"># Listening at http://127.0.0.1:8000</span>
       </div>
     </div>
-    <div class="hero__code">
-      <pre><code class="language-bash">pip install gunicorn
-gunicorn myapp:app --workers 4</code></pre>
-      <div class="hero__version">v{{ release }}</div>
+  </div>
+</section>
+
+<section class="why">
+  <div class="container">
+    <h2>Why Gunicorn?</h2>
+    <div class="pillars">
+      <div class="pillar">
+        <h3>Production-Proven</h3>
+        <p>Trusted by thousands of companies. The pre-fork worker model handles traffic spikes gracefully.</p>
+      </div>
+      <div class="pillar">
+        <h3>Lightweight</h3>
+        <p>Minimal dependencies, simple configuration. Efficient from containers to bare metal.</p>
+      </div>
+      <div class="pillar">
+        <h3>Compatible</h3>
+        <p>Works with any WSGI or ASGI framework. Django, Flask, FastAPI—it just runs.</p>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<section class="pillars">
-  <div class="pillar">
-    <div class="pillar__icon">🚀</div>
-    <h3>Production-Proven</h3>
-    <p>Trusted by thousands of companies worldwide. The pre-fork worker model handles traffic spikes gracefully.</p>
-  </div>
-  <div class="pillar">
-    <div class="pillar__icon">⚡</div>
-    <h3>Lightweight</h3>
-    <p>Minimal dependencies, simple configuration. Runs efficiently from containers to bare metal servers.</p>
-  </div>
-  <div class="pillar">
-    <div class="pillar__icon">🔌</div>
-    <h3>Compatible</h3>
-    <p>Works with any WSGI framework. Django, Flask, Pyramid—your app just runs. Now with ASGI support.</p>
+<section class="frameworks">
+  <div class="container">
+    <h2>Works With Your Stack</h2>
+    <p class="frameworks__subtitle">WSGI and ASGI frameworks, no changes needed</p>
+    <div class="frameworks__list">
+      <span class="framework-tag">Django</span>
+      <span class="framework-tag">Flask</span>
+      <span class="framework-tag framework-tag--new">FastAPI</span>
+      <span class="framework-tag">Pyramid</span>
+      <span class="framework-tag framework-tag--new">Starlette</span>
+      <span class="framework-tag">Falcon</span>
+      <span class="framework-tag">Bottle</span>
+      <span class="framework-tag framework-tag--new">Quart</span>
+    </div>
   </div>
 </section>
 
-## Works With Your Stack
-
-<div class="frameworks">
-  <div class="framework" title="Django">
-    <span class="framework__name">Django</span>
+<section class="workers">
+  <div class="container">
+    <h2>Choose Your Worker</h2>
+    <div class="workers__grid">
+      <a class="worker" href="design/#sync-workers">
+        <h3>Sync</h3>
+        <p>The default. One request per worker. Simple and predictable.</p>
+      </a>
+      <a class="worker" href="design/#async-workers">
+        <h3>Async (Gevent/Eventlet)</h3>
+        <p>Thousands of concurrent connections for I/O-bound workloads.</p>
+      </a>
+      <a class="worker" href="reference/settings/#threads">
+        <h3>Threads</h3>
+        <p>Multiple threads per worker. Balance concurrency and simplicity.</p>
+      </a>
+      <a class="worker" href="asgi/">
+        <h3>ASGI <span class="badge">Beta</span></h3>
+        <p>Native asyncio for FastAPI, Starlette, and async frameworks.</p>
+      </a>
+    </div>
   </div>
-  <div class="framework" title="Flask">
-    <span class="framework__name">Flask</span>
-  </div>
-  <div class="framework" title="FastAPI">
-    <span class="framework__name">FastAPI</span>
-  </div>
-  <div class="framework" title="Pyramid">
-    <span class="framework__name">Pyramid</span>
-  </div>
-  <div class="framework" title="Starlette">
-    <span class="framework__name">Starlette</span>
-  </div>
-  <div class="framework" title="Falcon">
-    <span class="framework__name">Falcon</span>
-  </div>
-</div>
-
-## Choose Your Worker
-
-<section class="feature-grid">
-  <article class="feature-card">
-    <h3>Sync Workers</h3>
-    <p>The default. One request per worker. Simple, predictable, and perfect for most applications.</p>
-    <a href="design/#sync-workers">Learn more</a>
-  </article>
-  <article class="feature-card">
-    <h3>Async Workers</h3>
-    <p>Gevent or Eventlet for thousands of concurrent connections. Ideal for I/O-bound workloads.</p>
-    <a href="design/#async-workers">Learn more</a>
-  </article>
-  <article class="feature-card">
-    <h3>Thread Workers</h3>
-    <p>Multiple threads per worker. Balance between concurrency and simplicity.</p>
-    <a href="reference/settings/#threads">Learn more</a>
-  </article>
-  <article class="feature-card">
-    <h3>ASGI Workers <span class="badge badge--new">Beta</span></h3>
-    <p>Native asyncio support for FastAPI, Starlette, and other async frameworks.</p>
-    <a href="asgi/">Learn more</a>
-  </article>
 </section>
 
-## Quick Links
+<section class="quick-links">
+  <div class="container">
+    <h2>Documentation</h2>
+    <div class="quick-links__grid">
+      <a class="quick-link" href="quickstart/">
+        <strong>Quickstart</strong>
+        <span>Get running in 5 minutes</span>
+      </a>
+      <a class="quick-link" href="deploy/">
+        <strong>Deployment</strong>
+        <span>Nginx, systemd, Docker</span>
+      </a>
+      <a class="quick-link" href="reference/settings/">
+        <strong>Settings</strong>
+        <span>All configuration options</span>
+      </a>
+      <a class="quick-link" href="faq/">
+        <strong>FAQ</strong>
+        <span>Common questions</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-<div class="quick-links">
-  <a href="quickstart/" class="quick-link">
-    <strong>Quickstart</strong>
-    <span>Get running in 5 minutes</span>
-  </a>
-  <a href="deploy/" class="quick-link">
-    <strong>Deployment</strong>
-    <span>Nginx, systemd, Docker</span>
-  </a>
-  <a href="reference/settings/" class="quick-link">
-    <strong>Settings</strong>
-    <span>100+ configuration options</span>
-  </a>
-  <a href="faq/" class="quick-link">
-    <strong>FAQ</strong>
-    <span>Common questions answered</span>
-  </a>
-</div>
-
-## Community
-
-<div class="community-links">
-
-- **[GitHub Issues](https://github.com/benoitc/gunicorn/issues)** — Report bugs and request features
-- **[#gunicorn on Libera Chat](https://web.libera.chat/#gunicorn)** — Chat with the community
-- **[Contributing](community/#contributing)** — Help improve Gunicorn
-
-</div>
+<section class="home-footer">
+  <div class="container">
+    <h2>Join the Community</h2>
+    <p>Questions? Bugs? Ideas? We're here to help.</p>
+    <div class="home-footer__links">
+      <a href="https://github.com/benoitc/gunicorn/issues">GitHub Issues</a>
+      <a href="https://web.libera.chat/#gunicorn">#gunicorn on Libera</a>
+      <a href="community/">Contributing</a>
+    </div>
+  </div>
+</section>
