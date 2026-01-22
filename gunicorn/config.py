@@ -678,9 +678,9 @@ class WorkerClass(Setting):
         A string referring to one of the following bundled classes:
 
         * ``sync``
-        * ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
+        * ``eventlet`` - Requires eventlet >= 0.40.3 (or install it via
           ``pip install gunicorn[eventlet]``)
-        * ``gevent``   - Requires gevent >= 1.4 (or install it via
+        * ``gevent``   - Requires gevent >= 23.9.0 (or install it via
           ``pip install gunicorn[gevent]``)
         * ``tornado``  - Requires tornado >= 0.2 (or install it via
           ``pip install gunicorn[tornado]``)

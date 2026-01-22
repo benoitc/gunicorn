@@ -2,25 +2,34 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-from functools import partial
-import sys
-
+# NOTE: eventlet import and monkey_patch() must happen before any other imports
+# to ensure all standard library modules are properly patched.
 try:
     import eventlet
 except ImportError:
-    raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
+    raise RuntimeError("eventlet worker requires eventlet 0.40.3 or higher")
 else:
     from packaging.version import parse as parse_version
-    if parse_version(eventlet.__version__) < parse_version('0.24.1'):
-        raise RuntimeError("eventlet worker requires eventlet 0.24.1 or higher")
+    if parse_version(eventlet.__version__) < parse_version('0.40.3'):
+        raise RuntimeError("eventlet worker requires eventlet 0.40.3 or higher")
 
-from eventlet import hubs, greenthread
-from eventlet.greenio import GreenSocket
-import eventlet.wsgi
-import greenlet
+# Perform monkey patching early, before importing other modules.
+# This ensures that all subsequent imports get the patched versions.
+# NOTE: hubs.use_hub() must NOT be called here - it creates OS resources
+# (like kqueue on macOS) that don't survive fork. It must be called in
+# each worker process after fork, in the patch() method.
+eventlet.monkey_patch()
 
-from gunicorn.workers.base_async import AsyncWorker
-from gunicorn.sock import ssl_wrap_socket
+from functools import partial  # noqa: E402
+import sys  # noqa: E402
+
+from eventlet import hubs, greenthread  # noqa: E402
+from eventlet.greenio import GreenSocket  # noqa: E402
+import eventlet.wsgi  # noqa: E402
+import greenlet  # noqa: E402
+
+from gunicorn.workers.base_async import AsyncWorker  # noqa: E402
+from gunicorn.sock import ssl_wrap_socket  # noqa: E402
 
 # ALREADY_HANDLED is removed in 0.30.3+ now it's `WSGI_LOCAL.already_handled: bool`
 # https://github.com/eventlet/eventlet/pull/544
@@ -124,8 +133,11 @@ def patch_sendfile():
 class EventletWorker(AsyncWorker):
 
     def patch(self):
+        # NOTE: eventlet.monkey_patch() is called at module import time to
+        # ensure all imports are properly patched. However, hubs.use_hub()
+        # must be called here (after fork) because it creates OS resources
+        # like kqueue that don't survive fork.
         hubs.use_hub()
-        eventlet.monkey_patch()
         patch_sendfile()
 
     def is_already_handled(self, respiter):
