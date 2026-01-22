@@ -4,13 +4,15 @@
    ============================================ */
 
 .home {
-  --accent: #499848;
-  --accent-hover: #3d8040;
-  --text: #333;
-  --text-muted: #666;
+  --accent: #00a650;
+  --accent-hover: #00c853;
+  --accent-dark: #008542;
+  --teal: #00bfa5;
+  --text: #1a1a2e;
+  --text-muted: #555;
   --bg: #fff;
-  --bg-alt: #f6f8fa;
-  --border: #e1e4e8;
+  --bg-alt: #f8faf8;
+  --border: #e0e6e0;
   --code-bg: #0d1117;
   --max-width: 900px;
 
@@ -25,10 +27,10 @@
 
 [data-md-color-scheme="slate"] .home {
   --text: #e6e6e6;
-  --text-muted: #999;
-  --bg: #1a1a1a;
-  --bg-alt: #242424;
-  --border: #333;
+  --text-muted: #aaa;
+  --bg: #0d1117;
+  --bg-alt: #161b22;
+  --border: #30363d;
 }
 
 /* Remove MkDocs constraints */
@@ -111,12 +113,14 @@
 }
 
 .btn--primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 166, 80, 0.3);
 }
 
 .btn--primary:hover {
-  background: var(--accent-hover);
+  box-shadow: 0 6px 20px rgba(0, 166, 80, 0.4);
+  transform: translateY(-2px);
 }
 
 .btn--secondary {
@@ -171,7 +175,7 @@
 }
 
 .terminal__prompt {
-  color: var(--accent);
+  color: var(--accent-hover);
   user-select: none;
 }
 

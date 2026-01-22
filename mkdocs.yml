@@ -50,17 +50,41 @@ theme:
   language: en
   logo: assets/gunicorn.svg
   favicon: assets/gunicorn.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
   features:
     - content.code.copy
+    - content.code.annotate
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tracking
     - navigation.sections
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.top
+    - navigation.path
     - search.highlight
     - search.suggest
+    - search.share
     - toc.follow
     - toc.integrate
+    - header.autohide
 
 plugins:
   - search
