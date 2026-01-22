@@ -1,0 +1,41 @@
+name: FreeBSD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  test:
+    name: FreeBSD ${{ matrix.freebsd-version }} / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        freebsd-version: ['14.2']
+        python-version: ['312', '313']
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test on FreeBSD
+        uses: cross-platform-actions/action@v0.25.0
+        with:
+          operating_system: freebsd
+          version: ${{ matrix.freebsd-version }}
+          run: |
+            sudo pkg install -y python${{ matrix.python-version }} py${{ matrix.python-version }}-pip py${{ matrix.python-version }}-sqlite3
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install pytest pytest-cov coverage
+            pip install -e .
+            pytest --cov=gunicorn -v tests/ \
+              --ignore=tests/workers/test_ggevent.py \
+              --ignore=tests/workers/test_geventlet.py
