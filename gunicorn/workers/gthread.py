@@ -46,6 +46,9 @@ class TConn:
         self.sock.setblocking(False)
 
     def init(self):
+        # Guard against double initialization
+        if self.initialized:
+            return
         self.initialized = True
         self.sock.setblocking(True)
 
@@ -58,8 +61,8 @@ class TConn:
             self.parser = http.RequestParser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
-        # set the timeout
-        self.timeout = time.time() + self.cfg.keepalive
+        # Use monotonic clock for reliability (time.time() can jump due to NTP)
+        self.timeout = time.monotonic() + self.cfg.keepalive
 
     def close(self):
         util.close(self.sock)
@@ -111,8 +114,8 @@ class ThreadWorker(base.Worker):
         fs.add_done_callback(self.finish_request)
 
     def enqueue_req(self, conn):
-        conn.init()
-        # submit the connection to a worker
+        # submit the connection to a worker thread
+        # (conn.init() is called in handle() to avoid SSL errors in main thread)
         fs = self.tpool.submit(self.handle, conn)
         self._wrap_future(fs, conn)
 
@@ -149,7 +152,7 @@ class ThreadWorker(base.Worker):
         self.enqueue_req(conn)
 
     def murder_keepalived(self):
-        now = time.time()
+        now = time.monotonic()
         while True:
             with self._lock:
                 try:
@@ -273,6 +276,9 @@ class ThreadWorker(base.Worker):
         keepalive = False
         req = None
         try:
+            # Initialize connection in worker thread to handle SSL errors gracefully
+            # (ENOTCONN from ssl_wrap_socket would crash main thread otherwise)
+            conn.init()
             req = next(conn.parser)
             if not req:
                 return (False, conn)
@@ -280,6 +286,9 @@ class ThreadWorker(base.Worker):
             # handle the request
             keepalive = self.handle_request(req, conn)
             if keepalive:
+                # Discard any unread request body before keepalive
+                # to prevent socket appearing readable due to leftover bytes
+                conn.parser.finish_body()
                 return (keepalive, conn)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
