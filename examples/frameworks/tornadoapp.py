@@ -7,23 +7,27 @@
 #   $ gunicorn -k tornado tornadoapp:app
 #
 
+import asyncio
 import tornado.ioloop
 import tornado.web
-from tornado import gen
+
 
 class MainHandler(tornado.web.RequestHandler):
-    @gen.coroutine
-    def get(self):
+    async def get(self):
         # Your asynchronous code here
-        yield gen.sleep(1)  # Example of an asynchronous operation
+        await asyncio.sleep(1)  # Example of an asynchronous operation
         self.write("Hello, World!")
+
 
 def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
     ])
 
+
+app = make_app()
+
+
 if __name__ == "__main__":
-    app = make_app()
     app.listen(8888)
     tornado.ioloop.IOLoop.current().start()
