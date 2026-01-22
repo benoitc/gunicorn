@@ -189,7 +189,7 @@ def _convert_desc(desc: str) -> str:
 
 
 def _format_setting(setting: guncfg.Setting) -> str:
-    lines: list[str] = [f"## `{setting.name}`", ""]
+    lines: list[str] = [f"### `{setting.name}`", ""]
 
     cli = _format_cli(setting)
     if cli:
@@ -220,7 +220,7 @@ def render_settings() -> str:
     for setting in known_settings:
         if setting.section != current_section:
             current_section = setting.section
-            sections.append(f"# {current_section}\n")
+            sections.append(f"## {current_section}\n")
         sections.append(_format_setting(setting))
 
     return "\n".join(sections).strip() + "\n"

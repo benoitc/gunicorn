@@ -18,9 +18,9 @@ regenerated during every documentation build.
 
 <span id="blocking_os_fchmod"></span>
 
-# Config File
+## Config File
 
-## `config`
+### `config`
 
 **Command line:** `-c CONFIG`, `--config CONFIG`
 
@@ -40,7 +40,7 @@ directory where gunicorn is being run.
     Loading the config from a Python module requires the ``python:``
     prefix.
 
-## `wsgi_app`
+### `wsgi_app`
 
 **Default:** `None`
 
@@ -48,9 +48,9 @@ A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
 
 !!! info "Added in 20.1.0"
 
-# Debugging
+## Debugging
 
-## `reload`
+### `reload`
 
 **Command line:** `--reload`
 
@@ -73,7 +73,7 @@ because it consumes less system resources.
     In order to use the inotify reloader, you must have the ``inotify``
     package installed.
 
-## `reload_engine`
+### `reload_engine`
 
 **Command line:** `--reload-engine STRING`
 
@@ -89,7 +89,7 @@ Valid engines are:
 
 !!! info "Added in 19.7"
 
-## `reload_extra_files`
+### `reload_extra_files`
 
 **Command line:** `--reload-extra-file FILES`
 
@@ -100,7 +100,7 @@ Extends [reload](#reload) option to also watch and reload on additional files
 
 !!! info "Added in 19.8"
 
-## `spew`
+### `spew`
 
 **Command line:** `--spew`
 
@@ -110,7 +110,7 @@ Install a trace function that spews every line executed by the server.
 
 This is the nuclear option.
 
-## `check_config`
+### `check_config`
 
 **Command line:** `--check-config`
 
@@ -119,7 +119,7 @@ This is the nuclear option.
 Check the configuration and exit. The exit status is 0 if the
 configuration is correct, and 1 if the configuration is incorrect.
 
-## `print_config`
+### `print_config`
 
 **Command line:** `--print-config`
 
@@ -127,9 +127,9 @@ configuration is correct, and 1 if the configuration is incorrect.
 
 Print the configuration settings as fully resolved. Implies [check-config](#check_config).
 
-# Logging
+## Logging
 
-## `accesslog`
+### `accesslog`
 
 **Command line:** `--access-logfile FILE`
 
@@ -139,7 +139,7 @@ The Access log file to write to.
 
 ``'-'`` means log to stdout.
 
-## `disable_redirect_access_to_syslog`
+### `disable_redirect_access_to_syslog`
 
 **Command line:** `--disable-redirect-access-to-syslog`
 
@@ -149,7 +149,7 @@ Disable redirect access logs to syslog.
 
 !!! info "Added in 19.8"
 
-## `access_log_format`
+### `access_log_format`
 
 **Command line:** `--access-logformat STRING`
 
@@ -189,7 +189,7 @@ Use lowercase for header and environment variable names, and put
 
     %({x-forwarded-for}i)s
 
-## `errorlog`
+### `errorlog`
 
 **Command line:** `--error-logfile FILE`, `--log-file FILE`
 
@@ -202,7 +202,7 @@ Using ``'-'`` for FILE makes gunicorn log to stderr.
 !!! info "Changed in 19.2"
     Log to stderr by default.
 
-## `loglevel`
+### `loglevel`
 
 **Command line:** `--log-level LEVEL`
 
@@ -218,7 +218,7 @@ Valid level names are:
 * ``'error'``
 * ``'critical'``
 
-## `capture_output`
+### `capture_output`
 
 **Command line:** `--capture-output`
 
@@ -228,7 +228,7 @@ Redirect stdout/stderr to specified file in [errorlog](#errorlog).
 
 !!! info "Added in 19.6"
 
-## `logger_class`
+### `logger_class`
 
 **Command line:** `--logger-class STRING`
 
@@ -242,7 +242,7 @@ normal usages in logging. It provides error and access logging.
 You can provide your own logger by giving Gunicorn a Python path to a
 class that quacks like ``gunicorn.glogging.Logger``.
 
-## `logconfig`
+### `logconfig`
 
 **Command line:** `--log-config FILE`
 
@@ -252,7 +252,7 @@ The log config file to use.
 Gunicorn uses the standard Python logging module's Configuration
 file format.
 
-## `logconfig_dict`
+### `logconfig_dict`
 
 **Default:** `{}`
 
@@ -269,7 +269,7 @@ which can be found at ``gunicorn.glogging.CONFIG_DEFAULTS``.
 
 !!! info "Added in 19.8"
 
-## `logconfig_json`
+### `logconfig_json`
 
 **Command line:** `--log-config-json FILE`
 
@@ -281,7 +281,7 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.jso
 
 !!! info "Added in 20.0"
 
-## `syslog_addr`
+### `syslog_addr`
 
 **Command line:** `--log-syslog-to SYSLOG_ADDR`
 
@@ -297,7 +297,7 @@ Address is a string of the form:
 * ``udp://HOST:PORT`` : for UDP sockets
 * ``tcp://HOST:PORT`` : for TCP sockets
 
-## `syslog`
+### `syslog`
 
 **Command line:** `--log-syslog`
 
@@ -309,7 +309,7 @@ Send *Gunicorn* logs to syslog.
     You can now disable sending access logs by using the
     disable-redirect-access-to-syslog setting.
 
-## `syslog_prefix`
+### `syslog_prefix`
 
 **Command line:** `--log-syslog-prefix SYSLOG_PREFIX`
 
@@ -320,7 +320,7 @@ Makes Gunicorn use the parameter as program-name in the syslog entries.
 All entries will be prefixed by ``gunicorn.<prefix>``. By default the
 program name is the name of the process.
 
-## `syslog_facility`
+### `syslog_facility`
 
 **Command line:** `--log-syslog-facility SYSLOG_FACILITY`
 
@@ -328,7 +328,7 @@ program name is the name of the process.
 
 Syslog facility name
 
-## `enable_stdio_inheritance`
+### `enable_stdio_inheritance`
 
 **Command line:** `-R`, `--enable-stdio-inheritance`
 
@@ -341,7 +341,7 @@ Enable inheritance for stdio file descriptors in daemon mode.
 Note: To disable the Python stdout buffering, you can to set the user
 environment variable ``PYTHONUNBUFFERED`` .
 
-## `statsd_host`
+### `statsd_host`
 
 **Command line:** `--statsd-host STATSD_ADDR`
 
@@ -356,7 +356,7 @@ Address is a string of the form:
 
 !!! info "Added in 19.1"
 
-## `dogstatsd_tags`
+### `dogstatsd_tags`
 
 **Command line:** `--dogstatsd-tags DOGSTATSD_TAGS`
 
@@ -367,7 +367,7 @@ statsd metrics.
 
 !!! info "Added in 20"
 
-## `statsd_prefix`
+### `statsd_prefix`
 
 **Command line:** `--statsd-prefix STATSD_PREFIX`
 
@@ -378,9 +378,9 @@ if not provided).
 
 !!! info "Added in 19.2"
 
-# Process Naming
+## Process Naming
 
-## `proc_name`
+### `proc_name`
 
 **Command line:** `-n STRING`, `--name STRING`
 
@@ -395,15 +395,15 @@ module.
 
 If not set, the *default_proc_name* setting will be used.
 
-## `default_proc_name`
+### `default_proc_name`
 
 **Default:** `'gunicorn'`
 
 Internal setting that is adjusted for each type of application.
 
-# SSL
+## SSL
 
-## `keyfile`
+### `keyfile`
 
 **Command line:** `--keyfile FILE`
 
@@ -411,7 +411,7 @@ Internal setting that is adjusted for each type of application.
 
 SSL key file
 
-## `certfile`
+### `certfile`
 
 **Command line:** `--certfile FILE`
 
@@ -419,7 +419,7 @@ SSL key file
 
 SSL certificate file
 
-## `ssl_version`
+### `ssl_version`
 
 **Command line:** `--ssl-version`
 
@@ -457,7 +457,7 @@ TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
     The default value has been changed from ``ssl.PROTOCOL_SSLv23`` to
     ``ssl.PROTOCOL_TLS`` when Python >= 3.6 .
 
-## `cert_reqs`
+### `cert_reqs`
 
 **Command line:** `--cert-reqs`
 
@@ -473,7 +473,7 @@ Whether client certificate is required (see stdlib ssl module's)
 `2`          ssl.CERT_REQUIRED
 ===========  ===========================
 
-## `ca_certs`
+### `ca_certs`
 
 **Command line:** `--ca-certs FILE`
 
@@ -481,7 +481,7 @@ Whether client certificate is required (see stdlib ssl module's)
 
 CA certificates file
 
-## `suppress_ragged_eofs`
+### `suppress_ragged_eofs`
 
 **Command line:** `--suppress-ragged-eofs`
 
@@ -489,7 +489,7 @@ CA certificates file
 
 Suppress ragged EOFs (see stdlib ssl module's)
 
-## `do_handshake_on_connect`
+### `do_handshake_on_connect`
 
 **Command line:** `--do-handshake-on-connect`
 
@@ -497,7 +497,7 @@ Suppress ragged EOFs (see stdlib ssl module's)
 
 Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
 
-## `ciphers`
+### `ciphers`
 
 **Command line:** `--ciphers`
 
@@ -518,9 +518,9 @@ See the `OpenSSL Cipher List Format Documentation
 <https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT>`_
 for details on the format of an OpenSSL cipher list.
 
-# Security
+## Security
 
-## `limit_request_line`
+### `limit_request_line`
 
 **Command line:** `--limit-request-line INT`
 
@@ -539,7 +539,7 @@ from 0 (unlimited) to 8190.
 
 This parameter can be used to prevent any DDOS attack.
 
-## `limit_request_fields`
+### `limit_request_fields`
 
 **Command line:** `--limit-request-fields INT`
 
@@ -552,7 +552,7 @@ prevent DDOS attack. Used with the *limit_request_field_size* it allows
 more safety. By default this value is 100 and can't be larger than
 32768.
 
-## `limit_request_field_size`
+### `limit_request_field_size`
 
 **Command line:** `--limit-request-field_size INT`
 
@@ -567,9 +567,9 @@ header field sizes.
     Setting this parameter to a very high or unlimited value can open
     up for DDOS attacks.
 
-# Server Hooks
+## Server Hooks
 
-## `on_starting`
+### `on_starting`
 
 **Default:**
 
@@ -582,7 +582,7 @@ Called just before the master process is initialized.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
-## `on_reload`
+### `on_reload`
 
 **Default:**
 
@@ -595,7 +595,7 @@ Called to recycle workers during a reload via SIGHUP.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
-## `when_ready`
+### `when_ready`
 
 **Default:**
 
@@ -608,7 +608,7 @@ Called just after the server is started.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
-## `pre_fork`
+### `pre_fork`
 
 **Default:**
 
@@ -622,7 +622,7 @@ Called just before a worker is forked.
 The callable needs to accept two instance variables for the Arbiter and
 new Worker.
 
-## `post_fork`
+### `post_fork`
 
 **Default:**
 
@@ -636,7 +636,7 @@ Called just after a worker has been forked.
 The callable needs to accept two instance variables for the Arbiter and
 new Worker.
 
-## `post_worker_init`
+### `post_worker_init`
 
 **Default:**
 
@@ -650,7 +650,7 @@ Called just after a worker has initialized the application.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
-## `worker_int`
+### `worker_int`
 
 **Default:**
 
@@ -664,7 +664,7 @@ Called just after a worker exited on SIGINT or SIGQUIT.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
-## `worker_abort`
+### `worker_abort`
 
 **Default:**
 
@@ -680,7 +680,7 @@ This call generally happens on timeout.
 The callable needs to accept one instance variable for the initialized
 Worker.
 
-## `pre_exec`
+### `pre_exec`
 
 **Default:**
 
@@ -693,7 +693,7 @@ Called just before a new master process is forked.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
-## `pre_request`
+### `pre_request`
 
 **Default:**
 
@@ -707,7 +707,7 @@ Called just before a worker processes the request.
 The callable needs to accept two instance variables for the Worker and
 the Request.
 
-## `post_request`
+### `post_request`
 
 **Default:**
 
@@ -721,7 +721,7 @@ Called after a worker processes the request.
 The callable needs to accept two instance variables for the Worker and
 the Request.
 
-## `child_exit`
+### `child_exit`
 
 **Default:**
 
@@ -737,7 +737,7 @@ the just-exited Worker.
 
 !!! info "Added in 19.7"
 
-## `worker_exit`
+### `worker_exit`
 
 **Default:**
 
@@ -751,7 +751,7 @@ Called just after a worker has been exited, in the worker process.
 The callable needs to accept two instance variables for the Arbiter and
 the just-exited Worker.
 
-## `nworkers_changed`
+### `nworkers_changed`
 
 **Default:**
 
@@ -768,7 +768,7 @@ two integers of number of workers after and before change.
 If the number of workers is set for the first time, *old_value* would
 be ``None``.
 
-## `on_exit`
+### `on_exit`
 
 **Default:**
 
@@ -781,7 +781,7 @@ Called just before exiting Gunicorn.
 
 The callable needs to accept a single instance variable for the Arbiter.
 
-## `ssl_context`
+### `ssl_context`
 
 **Default:**
 
@@ -812,9 +812,9 @@ def ssl_context(conf, default_ssl_context_factory):
 
 !!! info "Added in 21.0"
 
-# Server Mechanics
+## Server Mechanics
 
-## `preload_app`
+### `preload_app`
 
 **Command line:** `--preload`
 
@@ -827,7 +827,7 @@ speed up server boot times. Although, if you defer application loading
 to each worker process, you can reload your application code easily by
 restarting workers.
 
-## `sendfile`
+### `sendfile`
 
 **Command line:** `--no-sendfile`
 
@@ -847,7 +847,7 @@ to enable or disable its usage.
 !!! info "Changed in 19.6"
     added support for the ``SENDFILE`` environment variable
 
-## `reuse_port`
+### `reuse_port`
 
 **Command line:** `--reuse-port`
 
@@ -857,7 +857,7 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 
 !!! info "Added in 19.8"
 
-## `chdir`
+### `chdir`
 
 **Command line:** `--chdir`
 
@@ -867,7 +867,7 @@ Set the ``SO_REUSEPORT`` flag on the listening socket.
 
 Change directory to specified directory before loading apps.
 
-## `daemon`
+### `daemon`
 
 **Command line:** `-D`, `--daemon`
 
@@ -878,7 +878,7 @@ Daemonize the Gunicorn process.
 Detaches the server from the controlling terminal and enters the
 background.
 
-## `raw_env`
+### `raw_env`
 
 **Command line:** `-e ENV`, `--env ENV`
 
@@ -900,7 +900,7 @@ Or in the configuration file:
 raw_env = ["FOO=1"]
 ```
 
-## `pidfile`
+### `pidfile`
 
 **Command line:** `-p FILE`, `--pid FILE`
 
@@ -910,7 +910,7 @@ A filename to use for the PID file.
 
 If not set, no PID file will be written.
 
-## `worker_tmp_dir`
+### `worker_tmp_dir`
 
 **Command line:** `--worker-tmp-dir DIR`
 
@@ -928,7 +928,7 @@ If not set, the default temporary directory will be used.
     See [blocking-os-fchmod](#blocking_os_fchmod) for more detailed information
     and a solution for avoiding this problem.
 
-## `user`
+### `user`
 
 **Command line:** `-u USER`, `--user USER`
 
@@ -942,7 +942,7 @@ A valid user id (as an integer) or the name of a user that can be
 retrieved with a call to ``pwd.getpwnam(value)`` or ``None`` to not
 change the worker process user.
 
-## `group`
+### `group`
 
 **Command line:** `-g GROUP`, `--group GROUP`
 
@@ -956,7 +956,7 @@ A valid group id (as an integer) or the name of a user that can be
 retrieved with a call to ``grp.getgrnam(value)`` or ``None`` to not
 change the worker processes group.
 
-## `umask`
+### `umask`
 
 **Command line:** `-m INT`, `--umask INT`
 
@@ -971,7 +971,7 @@ with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
 representations)
 
-## `initgroups`
+### `initgroups`
 
 **Command line:** `--initgroups`
 
@@ -983,7 +983,7 @@ group id.
 
 !!! info "Added in 19.7"
 
-## `tmp_upload_dir`
+### `tmp_upload_dir`
 
 **Default:** `None`
 
@@ -995,7 +995,7 @@ This path should be writable by the process permissions set for Gunicorn
 workers. If not specified, Gunicorn will choose a system generated
 temporary directory.
 
-## `secure_scheme_headers`
+### `secure_scheme_headers`
 
 **Default:** `{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`
 
@@ -1018,7 +1018,7 @@ when handling HTTPS requests.
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
 
-## `forwarded_allow_ips`
+### `forwarded_allow_ips`
 
 **Command line:** `--forwarded-allow-ips STRING`
 
@@ -1100,7 +1100,7 @@ variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
           - ``InvalidSchemeHeaders()`` raised
           - IP address allowed, but the two secure headers disagreed on if HTTPS was used
 
-## `pythonpath`
+### `pythonpath`
 
 **Command line:** `--pythonpath STRING`
 
@@ -1111,7 +1111,7 @@ A comma-separated list of directories to add to the Python path.
 e.g.
 ``'/home/djangoprojects/myproject,/home/python/mylibrary'``.
 
-## `paste`
+### `paste`
 
 **Command line:** `--paste STRING`, `--paster STRING`
 
@@ -1124,7 +1124,7 @@ e.g. ``production.ini#admin``.
 At this time, using alternate server blocks is not supported. Use the
 command line arguments to control server configuration instead.
 
-## `proxy_protocol`
+### `proxy_protocol`
 
 **Command line:** `--proxy-protocol`
 
@@ -1146,7 +1146,7 @@ Example for stunnel config::
     cert = /etc/ssl/certs/stunnel.pem
     key = /etc/ssl/certs/stunnel.key
 
-## `proxy_allow_ips`
+### `proxy_allow_ips`
 
 **Command line:** `--proxy-allow-from`
 
@@ -1163,7 +1163,7 @@ authorized front-ends can access Gunicorn.
     This option does not affect UNIX socket connections. Connections not associated with
     an IP address are treated as allowed, unconditionally.
 
-## `protocol`
+### `protocol`
 
 **Command line:** `--protocol STRING`
 
@@ -1185,7 +1185,7 @@ nginx using the uwsgi_pass directive::
         include uwsgi_params;
     }
 
-## `uwsgi_allow_ips`
+### `uwsgi_allow_ips`
 
 **Command line:** `--uwsgi-allow-from`
 
@@ -1202,7 +1202,7 @@ access Gunicorn.
     This option does not affect UNIX socket connections. Connections not associated with
     an IP address are treated as allowed, unconditionally.
 
-## `raw_paste_global_conf`
+### `raw_paste_global_conf`
 
 **Command line:** `--paste-global CONF`
 
@@ -1218,7 +1218,7 @@ The variables are passed to the PasteDeploy entrypoint. Example::
 
 !!! info "Added in 19.7"
 
-## `permit_obsolete_folding`
+### `permit_obsolete_folding`
 
 **Command line:** `--permit-obsolete-folding`
 
@@ -1235,7 +1235,7 @@ change in a future version, or it may be removed altogether.
 
 !!! info "Added in 23.0.0"
 
-## `strip_header_spaces`
+### `strip_header_spaces`
 
 **Command line:** `--strip-header-spaces`
 
@@ -1250,7 +1250,7 @@ Use with care and only if necessary. Deprecated; scheduled for removal in 25.0.0
 
 !!! info "Added in 20.0.1"
 
-## `permit_unconventional_http_method`
+### `permit_unconventional_http_method`
 
 **Command line:** `--permit-unconventional-http-method`
 
@@ -1272,7 +1272,7 @@ Use with care and only if necessary. Temporary; scheduled for removal in 24.0.0
 
 !!! info "Added in 22.0.0"
 
-## `permit_unconventional_http_version`
+### `permit_unconventional_http_version`
 
 **Command line:** `--permit-unconventional-http-version`
 
@@ -1289,7 +1289,7 @@ change in a future version, or it may be removed altogether.
 
 !!! info "Added in 22.0.0"
 
-## `casefold_http_method`
+### `casefold_http_method`
 
 **Command line:** `--casefold-http-method`
 
@@ -1305,7 +1305,7 @@ Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
 
 !!! info "Added in 22.0.0"
 
-## `forwarder_headers`
+### `forwarder_headers`
 
 **Command line:** `--forwarder-headers`
 
@@ -1322,7 +1322,7 @@ and ``REMOTE_USER``.
 It is important that your front-end proxy configuration ensures that
 the headers defined here can not be passed directly from the client.
 
-## `header_map`
+### `header_map`
 
 **Command line:** `--header-map`
 
@@ -1349,7 +1349,7 @@ on a proxy in front of Gunicorn.
 
 !!! info "Added in 22.0.0"
 
-## `root_path`
+### `root_path`
 
 **Command line:** `--root-path STRING`
 
@@ -1366,9 +1366,9 @@ this to ``/api``.
 
 !!! info "Added in 24.0.0"
 
-# Server Socket
+## Server Socket
 
-## `bind`
+### `bind`
 
 **Command line:** `-b ADDRESS`, `--bind ADDRESS`
 
@@ -1393,7 +1393,7 @@ If the ``PORT`` environment variable is defined, the default
 is ``['0.0.0.0:$PORT']``. If it is not defined, the default
 is ``['127.0.0.1:8000']``.
 
-## `backlog`
+### `backlog`
 
 **Command line:** `--backlog INT`
 
@@ -1408,9 +1408,9 @@ load.
 
 Must be a positive integer. Generally set in the 64-2048 range.
 
-# Worker Processes
+## Worker Processes
 
-## `workers`
+### `workers`
 
 **Command line:** `-w INT`, `--workers INT`
 
@@ -1426,7 +1426,7 @@ By default, the value of the ``WEB_CONCURRENCY`` environment variable,
 which is set by some Platform-as-a-Service providers such as Heroku. If
 it is not defined, the default is ``1``.
 
-## `worker_class`
+### `worker_class`
 
 **Command line:** `-k STRING`, `--worker-class STRING`
 
@@ -1456,7 +1456,7 @@ Python path to a subclass of ``gunicorn.workers.base.Worker``.
 This alternative syntax will load the gevent class:
 ``gunicorn.workers.ggevent.GeventWorker``.
 
-## `threads`
+### `threads`
 
 **Command line:** `--threads INT`
 
@@ -1479,7 +1479,7 @@ This setting only affects the Gthread worker type.
     setting to more than 1, the ``gthread`` worker type will be used
     instead.
 
-## `worker_connections`
+### `worker_connections`
 
 **Command line:** `--worker-connections INT`
 
@@ -1489,7 +1489,7 @@ The maximum number of simultaneous clients.
 
 This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
 
-## `max_requests`
+### `max_requests`
 
 **Command line:** `--max-requests INT`
 
@@ -1504,7 +1504,7 @@ to help limit the damage of memory leaks.
 If this is set to zero (the default) then the automatic worker
 restarts are disabled.
 
-## `max_requests_jitter`
+### `max_requests_jitter`
 
 **Command line:** `--max-requests-jitter INT`
 
@@ -1518,7 +1518,7 @@ restarts to avoid all workers restarting at the same time.
 
 !!! info "Added in 19.2"
 
-## `timeout`
+### `timeout`
 
 **Command line:** `-t INT`, `--timeout INT`
 
@@ -1535,7 +1535,7 @@ For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.
 
-## `graceful_timeout`
+### `graceful_timeout`
 
 **Command line:** `--graceful-timeout INT`
 
@@ -1547,7 +1547,7 @@ After receiving a restart signal, workers have this much time to finish
 serving requests. Workers still alive after the timeout (starting from
 the receipt of the restart signal) are force killed.
 
-## `keepalive`
+### `keepalive`
 
 **Command line:** `--keep-alive INT`
 
@@ -1564,7 +1564,7 @@ set this to a higher value.
     ``sync`` worker does not support persistent connections and will
     ignore this option.
 
-## `asgi_loop`
+### `asgi_loop`
 
 **Command line:** `--asgi-loop STRING`
 
@@ -1583,7 +1583,7 @@ installing the uvloop package.
 
 !!! info "Added in 24.0.0"
 
-## `asgi_lifespan`
+### `asgi_lifespan`
 
 **Command line:** `--asgi-lifespan STRING`
 
