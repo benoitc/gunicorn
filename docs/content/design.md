@@ -95,6 +95,18 @@ Choose a worker type based on your application's needs.
     gunicorn myapp:app -k eventlet --worker-connections 1000
     ```
 
+=== "Tornado"
+
+    Worker for [Tornado](https://www.tornadoweb.org/) applications.
+
+    - Designed for Tornado's async framework
+    - Can serve WSGI apps, but not recommended for that use case
+    - Use when running native Tornado applications
+
+    ```bash
+    gunicorn myapp:app -k tornado
+    ```
+
 === "ASGI"
 
     Native **asyncio** support for modern async frameworks.
@@ -115,6 +127,7 @@ Choose a worker type based on your application's needs.
 | `gthread` | Thread pool | ✅ | Mixed workloads, moderate concurrency |
 | `gevent` | Greenlets | ✅ | I/O-bound, WebSockets, streaming |
 | `eventlet` | Greenlets | ✅ | I/O-bound, long-polling |
+| `tornado` | Tornado IOLoop | ✅ | Native Tornado applications |
 | ASGI workers | AsyncIO | ✅ | Modern async frameworks (FastAPI, etc.) |
 
 !!! tip "Quick Decision Guide"
