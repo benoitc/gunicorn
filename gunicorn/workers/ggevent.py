@@ -11,11 +11,11 @@ import time
 try:
     import gevent
 except ImportError:
-    raise RuntimeError("gevent worker requires gevent 1.4 or higher")
+    raise RuntimeError("gevent worker requires gevent 23.9.0 or higher")
 else:
     from packaging.version import parse as parse_version
-    if parse_version(gevent.__version__) < parse_version('1.4'):
-        raise RuntimeError("gevent worker requires gevent 1.4 or higher")
+    if parse_version(gevent.__version__) < parse_version('23.9.0'):
+        raise RuntimeError("gevent worker requires gevent 23.9.0 or higher")
 
 from gevent.pool import Pool
 from gevent.server import StreamServer
@@ -89,10 +89,7 @@ class GeventWorker(AsyncWorker):
         try:
             # Stop accepting requests
             for server in servers:
-                if hasattr(server, 'close'):  # gevent 1.0
-                    server.close()
-                if hasattr(server, 'kill'):  # gevent < 1.0
-                    server.kill()
+                server.close()
 
             # Handle current requests until graceful_timeout
             ts = time.time()
