@@ -37,7 +37,7 @@ jobs:
           prepare: |
             pkg install -y ${{ matrix.python-pkg }}
           run: |
-            python3 -m venv venv
+            python${{ matrix.python-version }} -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
             pip install pytest pytest-cov coverage
