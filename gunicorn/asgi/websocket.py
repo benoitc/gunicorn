@@ -12,7 +12,6 @@ import asyncio
 import base64
 import hashlib
 import struct
-import os
 
 
 # WebSocket frame opcodes
@@ -81,7 +80,7 @@ class WebSocketProtocol:
 
         try:
             await self.app(self.scope, self._receive, self._send)
-        except Exception as e:
+        except Exception:
             self.log.exception("Error in WebSocket ASGI application")
         finally:
             read_task.cancel()
@@ -180,7 +179,8 @@ class WebSocketProtocol:
                 if opcode == OPCODE_CLOSE:
                     await self._handle_close(payload)
                     break
-                elif opcode == OPCODE_PING:
+
+                if opcode == OPCODE_PING:
                     await self._send_frame(OPCODE_PONG, payload)
                 elif opcode == OPCODE_PONG:
                     # Ignore pongs
@@ -212,7 +212,7 @@ class WebSocketProtocol:
                     "code": self.close_code or CLOSE_ABNORMAL,
                 })
 
-    async def _read_frame(self):
+    async def _read_frame(self):  # pylint: disable=too-many-return-statements
         """Read a single WebSocket frame.
 
         Returns:
@@ -326,10 +326,9 @@ class WebSocketProtocol:
 
         self.closed = True
 
-    async def _handle_continuation(self, payload):
+    async def _handle_continuation(self, payload):  # pylint: disable=unused-argument
         """Handle continuation frame (already processed in _read_frame)."""
-        # This is called for partial fragments, nothing to do
-        pass
+        # This is called for partial fragments, nothing to do here
 
     async def _send_frame(self, opcode, payload):
         """Send a WebSocket frame.

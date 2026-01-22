@@ -12,7 +12,6 @@ HTTP parsing infrastructure.
 import asyncio
 import os
 import signal
-import ssl
 import sys
 
 from gunicorn.workers import base

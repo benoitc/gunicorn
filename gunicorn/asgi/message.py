@@ -477,7 +477,7 @@ class AsyncRequest:
             self._body_reader = self._chunked_body_reader()
 
         try:
-            return await self._body_reader.__anext__()
+            return await anext(self._body_reader)
         except StopAsyncIteration:
             self._body_remaining = 0
             return b""
@@ -489,7 +489,7 @@ class AsyncRequest:
             size_line = await self._read_chunk_size_line()
             # Parse chunk size (handle extensions)
             chunk_size, *_ = size_line.split(b";", 1)
-            if _ :
+            if _:
                 chunk_size = chunk_size.rstrip(b" \t")
 
             if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):

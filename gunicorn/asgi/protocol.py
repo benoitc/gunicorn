@@ -10,14 +10,27 @@ to ASGI applications.
 """
 
 import asyncio
-import base64
-import hashlib
-import traceback
 from datetime import datetime
 
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.message import AsyncRequest
 from gunicorn.http.errors import NoMoreData
+
+
+class ASGIResponseInfo:
+    """Simple container for ASGI response info for access logging."""
+
+    def __init__(self, status, headers, sent):
+        self.status = status
+        self.sent = sent
+        # Convert headers to list of string tuples for logging
+        self.headers = []
+        for name, value in headers:
+            if isinstance(name, bytes):
+                name = name.decode("latin-1")
+            if isinstance(value, bytes):
+                value = value.decode("latin-1")
+            self.headers.append((name, value))
 
 
 class ASGIProtocol(asyncio.Protocol):
@@ -97,30 +110,30 @@ class ASGIProtocol(asyncio.Protocol):
                 if self._is_websocket_upgrade(request):
                     await self._handle_websocket(request, sockname, peername)
                     break  # WebSocket takes over the connection
-                else:
-                    # Handle HTTP request
-                    keepalive = await self._handle_http_request(
-                        request, sockname, peername
-                    )
 
-                    # Increment worker request count
-                    self.worker.nr += 1
+                # Handle HTTP request
+                keepalive = await self._handle_http_request(
+                    request, sockname, peername
+                )
 
-                    # Check max_requests
-                    if self.worker.nr >= self.worker.max_requests:
-                        self.log.info("Autorestarting worker after current request.")
-                        self.worker.alive = False
-                        keepalive = False
+                # Increment worker request count
+                self.worker.nr += 1
 
-                    if not keepalive or not self.worker.alive:
-                        break
+                # Check max_requests
+                if self.worker.nr >= self.worker.max_requests:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.worker.alive = False
+                    keepalive = False
 
-                    # Check connection limits for keepalive
-                    if not self.cfg.keepalive:
-                        break
+                if not keepalive or not self.worker.alive:
+                    break
 
-                    # Drain any unread body before next request
-                    await request.drain_body()
+                # Check connection limits for keepalive
+                if not self.cfg.keepalive:
+                    break
+
+                # Drain any unread body before next request
+                await request.drain_body()
 
         except asyncio.CancelledError:
             pass
@@ -155,8 +168,12 @@ class ASGIProtocol(asyncio.Protocol):
         scope = self._build_http_scope(request, sockname, peername)
         response_started = False
         response_complete = False
-        body_parts = []
         exc_to_raise = None
+
+        # Response tracking for access logging
+        response_status = 500
+        response_headers = []
+        response_sent = 0
 
         # Receive queue for body
         receive_queue = asyncio.Queue()
@@ -177,6 +194,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
+            nonlocal response_status, response_headers, response_sent
 
             msg_type = message["type"]
 
@@ -185,9 +203,9 @@ class ASGIProtocol(asyncio.Protocol):
                     exc_to_raise = RuntimeError("Response already started")
                     return
                 response_started = True
-                status = message["status"]
-                headers = message.get("headers", [])
-                await self._send_response_start(status, headers, request)
+                response_status = message["status"]
+                response_headers = message.get("headers", [])
+                await self._send_response_start(response_status, response_headers, request)
 
             elif msg_type == "http.response.body":
                 if not response_started:
@@ -202,9 +220,14 @@ class ASGIProtocol(asyncio.Protocol):
 
                 if body:
                     await self._send_body(body)
+                    response_sent += len(body)
 
                 if not more_body:
                     response_complete = True
+
+        # Build environ for logging
+        environ = self._build_environ(request, sockname, peername)
+        resp = None
 
         try:
             request_start = datetime.now()
@@ -212,22 +235,27 @@ class ASGIProtocol(asyncio.Protocol):
 
             await self.app(scope, receive, send)
 
-            if exc_to_raise:
+            if exc_to_raise is not None:
                 raise exc_to_raise
 
             # Ensure response was sent
             if not response_started:
                 await self._send_error_response(500, "Internal Server Error")
+                response_status = 500
 
-        except Exception as e:
+        except Exception:
             self.log.exception("Error in ASGI application")
             if not response_started:
                 await self._send_error_response(500, "Internal Server Error")
+                response_status = 500
             return False
         finally:
             try:
                 request_time = datetime.now() - request_start
-                self.cfg.post_request(self.worker, request, {}, None)
+                # Create response info for logging
+                resp = ASGIResponseInfo(response_status, response_headers, response_sent)
+                self.log.access(resp, request, environ, request_time)
+                self.cfg.post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -291,6 +319,24 @@ class ASGIProtocol(asyncio.Protocol):
 
         return scope
 
+    def _build_environ(self, request, sockname, peername):
+        """Build minimal WSGI-like environ dict for access logging."""
+        environ = {
+            "REQUEST_METHOD": request.method,
+            "RAW_URI": request.uri,
+            "PATH_INFO": request.path,
+            "QUERY_STRING": request.query or "",
+            "SERVER_PROTOCOL": f"HTTP/{request.version[0]}.{request.version[1]}",
+            "REMOTE_ADDR": peername[0] if peername else "-",
+        }
+
+        # Add HTTP headers as environ vars
+        for name, value in request.headers:
+            key = "HTTP_" + name.replace("-", "_")
+            environ[key] = value
+
+        return environ
+
     def _build_websocket_scope(self, request, sockname, peername):
         """Build ASGI WebSocket scope from parsed request."""
         # Build headers list as bytes tuples
@@ -334,9 +380,6 @@ class ASGIProtocol(asyncio.Protocol):
 
         # Build headers
         header_lines = []
-        has_content_length = False
-        has_transfer_encoding = False
-        has_connection = False
 
         for name, value in headers:
             if isinstance(name, bytes):
@@ -344,13 +387,6 @@ class ASGIProtocol(asyncio.Protocol):
             if isinstance(value, bytes):
                 value = value.decode("latin-1")
             header_lines.append(f"{name}: {value}\r\n")
-            name_lower = name.lower()
-            if name_lower == "content-length":
-                has_content_length = True
-            elif name_lower == "transfer-encoding":
-                has_transfer_encoding = True
-            elif name_lower == "connection":
-                has_connection = True
 
         # Add server header if not present
         header_lines.append("Server: gunicorn/asgi\r\n")
