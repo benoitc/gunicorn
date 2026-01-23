@@ -41,10 +41,10 @@ dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://gunicorn.org"
-Documentation = "https://docs.gunicorn.org"
+Documentation = "https://gunicorn.org"
 "Issue tracker" = "https://github.com/benoitc/gunicorn/issues"
 "Source code" = "https://github.com/benoitc/gunicorn"
-Changelog = "https://docs.gunicorn.org/en/stable/news.html"
+Changelog = "https://gunicorn.org/news/"
 
 [project.optional-dependencies]
 gevent = ["gevent>=24.10.1"]

@@ -1179,7 +1179,7 @@ Example for stunnel config::
     cert = /etc/ssl/certs/stunnel.pem
     key = /etc/ssl/certs/stunnel.key
 
-!!! info "Changed in 24.0.0"
+!!! info "Changed in 24.1.0"
     Extended to support version selection (v1, v2, auto).
 
 ### `proxy_allow_ips`

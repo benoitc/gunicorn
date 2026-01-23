@@ -6,9 +6,9 @@ body:
         Have a question about Gunicorn?
 
         Before asking, please check:
-        - [Documentation](https://docs.gunicorn.org/)
-        - [FAQ](https://docs.gunicorn.org/en/latest/faq.html)
-        - [Settings Reference](https://docs.gunicorn.org/en/latest/settings.html)
+        - [Documentation](https://gunicorn.org/)
+        - [FAQ](https://gunicorn.org/faq/)
+        - [Settings Reference](https://gunicorn.org/reference/settings/)
         - [Existing discussions](https://github.com/benoitc/gunicorn/discussions)
 
   - type: textarea

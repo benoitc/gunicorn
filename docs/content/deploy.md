@@ -78,6 +78,92 @@ proxy IP rather than the upstream client. To log the real client address, set
 
 When binding Gunicorn to a UNIX socket `REMOTE_ADDR` will be empty.
 
+## PROXY Protocol
+
+The [PROXY protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)
+allows load balancers and reverse proxies to pass original client connection
+information (IP address, port) to backend servers. This is especially useful
+when TLS termination happens at the proxy layer.
+
+Gunicorn supports both PROXY protocol v1 (text format) and v2 (binary format).
+
+### Configuration
+
+Enable PROXY protocol with the `--proxy-protocol` option:
+
+```bash
+# Auto-detect v1 or v2 (recommended)
+gunicorn --proxy-protocol auto app:app
+
+# Force v1 only (text format)
+gunicorn --proxy-protocol v1 app:app
+
+# Force v2 only (binary format, more efficient)
+gunicorn --proxy-protocol v2 app:app
+```
+
+Using `--proxy-protocol` without a value is equivalent to `auto`.
+
+!!! warning "Security"
+    Only enable PROXY protocol when Gunicorn is behind a trusted proxy that sends
+    PROXY headers. Configure [`--proxy-allow-from`](reference/settings.md#proxy_allow_ips)
+    to restrict which IPs can send PROXY protocol headers.
+
+### HAProxy
+
+HAProxy can send PROXY protocol headers to backends. Example configuration:
+
+```haproxy
+frontend https_front
+    bind *:443 ssl crt /etc/ssl/certs/site.pem
+    default_backend gunicorn_back
+
+backend gunicorn_back
+    # Send PROXY protocol v2 (binary, more efficient)
+    server gunicorn 127.0.0.1:8000 send-proxy-v2
+
+    # Or use v1 (text format)
+    # server gunicorn 127.0.0.1:8000 send-proxy
+```
+
+Start Gunicorn to accept PROXY protocol:
+
+```bash
+gunicorn -b 127.0.0.1:8000 --proxy-protocol v2 --proxy-allow-from 127.0.0.1 app:app
+```
+
+### stunnel
+
+[stunnel](https://www.stunnel.org/) can terminate TLS and forward connections
+with PROXY protocol headers:
+
+```ini
+# /etc/stunnel/stunnel.conf
+[https]
+accept = 443
+connect = 127.0.0.1:8000
+cert = /etc/ssl/certs/stunnel.pem
+key = /etc/ssl/certs/stunnel.key
+protocol = proxy
+```
+
+The `protocol = proxy` directive tells stunnel to prepend PROXY protocol v1
+headers to forwarded connections.
+
+### AWS/ELB
+
+AWS Network Load Balancers (NLB) and Application Load Balancers (ALB) support
+PROXY protocol v2. Enable it in the target group settings, then configure
+Gunicorn:
+
+```bash
+gunicorn --proxy-protocol v2 --proxy-allow-from '*' app:app
+```
+
+!!! note
+    When using `--proxy-allow-from '*'` ensure Gunicorn is not directly
+    accessible from the internet—only through the load balancer.
+
 ## Using virtual environments
 
 Install Gunicorn inside your project

@@ -9,7 +9,7 @@ body:
 
         **Before submitting, please:**
         - Search [existing discussions](https://github.com/benoitc/gunicorn/discussions) and [issues](https://github.com/benoitc/gunicorn/issues) for duplicates
-        - Check the [FAQ](https://docs.gunicorn.org/en/latest/faq.html) and [documentation](https://docs.gunicorn.org/)
+        - Check the [FAQ](https://gunicorn.org/faq/) and [documentation](https://gunicorn.org/)
 
   - type: dropdown
     id: type
