@@ -17,9 +17,11 @@
 
 - **Documentation Migration**: Migrated to MkDocs with Material theme
 
-### Breaking changes
+### Security
 
-- Minimum Python version is now 3.12
+- **eventlet**: Require eventlet >= 0.40.3 (CVE-2021-21419, CVE-2025-58068)
+- **gevent**: Require gevent >= 24.10.1 (CVE-2023-41419, CVE-2024-3219)
+- **tornado**: Require tornado >= 6.5.0 (CVE-2025-47287)
 
 ---
 
