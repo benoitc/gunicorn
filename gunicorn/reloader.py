@@ -13,7 +13,7 @@ import threading
 COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
-class Reloader(threading.Thread):
+class ReloaderBase(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
         super().__init__()
         self.daemon = True
@@ -35,6 +35,8 @@ class Reloader(threading.Thread):
 
         return fnames
 
+
+class Reloader(ReloaderBase):
     def run(self):
         mtimes = {}
         while True:
@@ -65,25 +67,21 @@ if sys.platform.startswith('linux'):
 
 if has_inotify:
 
-    class InotifyReloader(threading.Thread):
+    class InotifyReloader(ReloaderBase):
         event_mask = (inotify.constants.IN_CREATE | inotify.constants.IN_DELETE
                       | inotify.constants.IN_DELETE_SELF | inotify.constants.IN_MODIFY
                       | inotify.constants.IN_MOVE_SELF | inotify.constants.IN_MOVED_FROM
                       | inotify.constants.IN_MOVED_TO)
 
         def __init__(self, extra_files=None, callback=None):
-            super().__init__()
-            self.daemon = True
-            self._callback = callback
+            super().__init__(extra_files=extra_files, callback=callback)
             self._dirs = set()
             self._watcher = Inotify()
 
-            for extra_file in extra_files:
-                self.add_extra_file(extra_file)
-
         def add_extra_file(self, filename):
-            dirname = os.path.dirname(filename)
+            super().add_extra_file(filename)
 
+            dirname = os.path.dirname(filename)
             if dirname in self._dirs:
                 return
 
@@ -91,23 +89,22 @@ if has_inotify:
             self._dirs.add(dirname)
 
         def get_dirs(self):
-            fnames = [
-                os.path.dirname(os.path.abspath(COMPILED_EXT_RE.sub('py', module.__file__)))
-                for module in tuple(sys.modules.values())
-                if getattr(module, '__file__', None)
-            ]
+            dirnames = [os.path.dirname(os.path.abspath(fname)) for fname in self.get_files()]
+            return set(dirnames)
 
-            return set(fnames)
+        def refresh_dirs(self):
+            new_dirs = self.get_dirs().difference(self._dirs)
+            self._dirs.update(new_dirs)
+            for new_dir in new_dirs:
+                if os.path.isdir(new_dir):
+                    self._watcher.add_watch(new_dir, mask=self.event_mask)
 
         def run(self):
-            self._dirs = self.get_dirs()
-
-            for dirname in self._dirs:
-                if os.path.isdir(dirname):
-                    self._watcher.add_watch(dirname, mask=self.event_mask)
+            self.refresh_dirs()
 
             for event in self._watcher.event_gen():
                 if event is None:
+                    self.refresh_dirs()
                     continue
 
                 filename = event[3]
