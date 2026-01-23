@@ -27,7 +27,7 @@ docker run -p 8000:8000 -v $(pwd):/app ghcr.io/benoitc/gunicorn app:app
 | `GUNICORN_BIND` | Full bind address | `[::]:8000` (IPv4+IPv6) |
 | `GUNICORN_HOST` | Bind host | `[::]` |
 | `GUNICORN_PORT` | Bind port | `8000` |
-| `GUNICORN_WORKERS` | Number of workers | Number of CPUs |
+| `GUNICORN_WORKERS` | Number of workers | `(2 * CPU) + 1` |
 | `GUNICORN_ARGS` | Additional arguments | (none) |
 
 ### With Configuration

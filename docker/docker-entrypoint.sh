@@ -15,9 +15,9 @@ if [ "${1:0:1}" = '-' ] || [ -z "${1##*:*}" ]; then
         set -- --bind "$BIND" "$@"
     fi
 
-    # Add workers if not specified - default to number of CPUs
+    # Add workers if not specified - default to (2 * CPU_COUNT) + 1
     if [[ ! " $* $GUNICORN_ARGS " =~ " --workers " ]] && [[ ! " $* $GUNICORN_ARGS " =~ " -w " ]] && [[ ! "$* $GUNICORN_ARGS" =~ --workers= ]] && [[ ! "$* $GUNICORN_ARGS" =~ -w= ]]; then
-        WORKERS="${GUNICORN_WORKERS:-$(nproc)}"
+        WORKERS="${GUNICORN_WORKERS:-$(( 2 * $(nproc) + 1 ))}"
         set -- --workers "$WORKERS" "$@"
     fi
 

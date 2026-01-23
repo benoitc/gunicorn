@@ -20,7 +20,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 #   GUNICORN_BIND    - full bind address (default: [::]:8000, IPv4+IPv6)
 #   GUNICORN_HOST    - bind host (default: [::])
 #   GUNICORN_PORT    - bind port (default: 8000)
-#   GUNICORN_WORKERS - number of workers (default: number of CPUs)
+#   GUNICORN_WORKERS - number of workers (default: 2 * CPU + 1)
 #   GUNICORN_ARGS    - additional arguments (e.g., "--timeout 120")
 
 USER gunicorn
