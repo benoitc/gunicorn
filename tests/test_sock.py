@@ -39,6 +39,30 @@ def test_create_socket(chown, socket, addr, family):
         chown.assert_called_with(addr, conf.uid, conf.gid)
 
 
+@pytest.mark.parametrize(
+    'addr, is_ssl, addr_as_uri',
+    [
+        ('gunicorn.sock', False, "unix://%s"),
+        (('192.0.2.1', 80), False, "http://192.0.2.1:80"),
+        (('192.0.2.1', 443), True, "https://192.0.2.1:443"),
+        (('[fe80::1]', 443), True, "https://[fe80::1]:443"),
+    ],
+    indirect=['addr'],
+)
+@mock.patch('socket.socket')
+@mock.patch('gunicorn.util.chown')
+def test_get_socket_uri(chown, socket, addr, is_ssl, addr_as_uri):
+    conf = mock.Mock(address=[addr], umask=0o22)
+    log = mock.Mock()
+    listener = sock.create_socket(conf, log, addr)
+    assert listener == socket.return_value
+    # mock
+    listener.getsockname = lambda: addr
+    if isinstance(addr, str):
+        addr_as_uri = addr_as_uri.replace("%s", addr)
+    assert sock.get_uri(listener, is_ssl=is_ssl) == addr_as_uri
+
+
 def test_socket_close():
     listener1 = mock.Mock()
     listener1.getsockname.return_value = ('127.0.0.1', '80')
