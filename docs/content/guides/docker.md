@@ -20,6 +20,30 @@ Mount your application directory and run:
 docker run -p 8000:8000 -v $(pwd):/app ghcr.io/benoitc/gunicorn app:app
 ```
 
+### Running in Background
+
+Use `-d` (detached mode) to run the container in the background:
+
+```bash
+# Start in background
+docker run -d --name myapp -p 8000:8000 -v $(pwd):/app ghcr.io/benoitc/gunicorn app:app
+
+# View logs
+docker logs myapp
+
+# Follow logs in real-time
+docker logs -f myapp
+
+# Stop the container
+docker stop myapp
+
+# Start it again
+docker start myapp
+
+# Remove the container
+docker rm myapp
+```
+
 ### Environment Variables
 
 | Variable | Description | Default |
