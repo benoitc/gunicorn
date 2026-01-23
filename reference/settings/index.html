@@ -3740,12 +3740,22 @@ e.g. <code>production.ini#admin</code>.</p>
 <p>At this time, using alternate server blocks is not supported. Use the
 command line arguments to control server configuration instead.</p>
 <h3 id="proxy_protocol"><code>proxy_protocol</code><a class="headerlink" href="#proxy_protocol" title="Permanent link">&para;</a></h3>
-<p><strong>Command line:</strong> <code>--proxy-protocol</code></p>
-<p><strong>Default:</strong> <code>False</code></p>
-<p>Enable detect PROXY protocol (PROXY mode).</p>
-<p>Allow using HTTP and Proxy together. It may be useful for work with
-stunnel as HTTPS frontend and Gunicorn as HTTP server.</p>
-<p>PROXY protocol: <a href="http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt">http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt</a></p>
+<p><strong>Command line:</strong> <code>--proxy-protocol MODE</code></p>
+<p><strong>Default:</strong> <code>'off'</code></p>
+<p>Enable PROXY protocol support.</p>
+<p>Allow using HTTP and PROXY protocol together. It may be useful for work
+with stunnel as HTTPS frontend and Gunicorn as HTTP server, or with
+HAProxy.</p>
+<p>Accepted values:</p>
+<ul>
+<li><code>off</code> - Disabled (default)</li>
+<li><code>v1</code> - PROXY protocol v1 only (text format)</li>
+<li><code>v2</code> - PROXY protocol v2 only (binary format)</li>
+<li><code>auto</code> - Auto-detect v1 or v2</li>
+</ul>
+<p>Using <code>--proxy-protocol</code> without a value is equivalent to <code>auto</code>.</p>
+<p>PROXY protocol v1: <a href="http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt">http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt</a>
+PROXY protocol v2: <a href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt</a></p>
 <p>Example for stunnel config::</p>
 <div class="highlight"><pre><span></span><code>[https]
 protocol = proxy
@@ -3754,6 +3764,10 @@ connect = 80
 cert = /etc/ssl/certs/stunnel.pem
 key = /etc/ssl/certs/stunnel.key
 </code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 24.0.0</p>
+<p>Extended to support version selection (v1, v2, auto).</p>
+</div>
 <h3 id="proxy_allow_ips"><code>proxy_allow_ips</code><a class="headerlink" href="#proxy_allow_ips" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--proxy-allow-from</code></p>
 <p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
