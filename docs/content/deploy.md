@@ -214,7 +214,6 @@ Type=notify
 NotifyAccess=main
 User=someuser
 Group=someuser
-RuntimeDirectory=gunicorn
 WorkingDirectory=/home/someuser/applicationroot
 ExecStart=/usr/bin/gunicorn applicationname.wsgi
 ExecReload=/bin/kill -s HUP $MAINPID
