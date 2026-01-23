@@ -3153,7 +3153,14 @@ which can be found at <code>gunicorn.glogging.CONFIG_DEFAULTS</code>.</p>
 </div>
 <h3 id="syslog_addr"><code>syslog_addr</code><a class="headerlink" href="#syslog_addr" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--log-syslog-to SYSLOG_ADDR</code></p>
-<p><strong>Default:</strong> <code>'unix:///var/run/syslog'</code></p>
+<p><strong>Default:</strong></p>
+<p>Platform-specific:</p>
+<ul>
+<li>macOS: <code>'unix:///var/run/syslog'</code></li>
+<li>FreeBSD/DragonFly: <code>'unix:///var/run/log'</code></li>
+<li>OpenBSD: <code>'unix:///dev/log'</code></li>
+<li>Linux/other: <code>'udp://localhost:514'</code></li>
+</ul>
 <p>Address to send syslog messages.</p>
 <p>Address is a string of the form:</p>
 <ul>
@@ -3934,11 +3941,11 @@ libraries may be installed using setuptools' <code>extras_require</code> feature
 <p>A string referring to one of the following bundled classes:</p>
 <ul>
 <li><code>sync</code></li>
-<li><code>eventlet</code> - Requires eventlet &gt;= 0.24.1 (or install it via
+<li><code>eventlet</code> - Requires eventlet &gt;= 0.40.3 (or install it via
   <code>pip install gunicorn[eventlet]</code>)</li>
-<li><code>gevent</code>   - Requires gevent &gt;= 1.4 (or install it via
+<li><code>gevent</code>   - Requires gevent &gt;= 24.10.1 (or install it via
   <code>pip install gunicorn[gevent]</code>)</li>
-<li><code>tornado</code>  - Requires tornado &gt;= 0.2 (or install it via
+<li><code>tornado</code>  - Requires tornado &gt;= 6.5.0 (or install it via
   <code>pip install gunicorn[tornado]</code>)</li>
 <li><code>gthread</code>  - Python 2 requires the futures package to be installed
   (or install it via <code>pip install gunicorn[gthread]</code>)</li>
