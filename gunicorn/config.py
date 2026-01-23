@@ -407,12 +407,15 @@ def validate_list_of_existing_files(val):
 def validate_string_to_addr_list(val):
     val = validate_string_to_list(val)
 
+    result = []
     for addr in val:
         if addr == "*":
+            result.append(addr)
             continue
-        _vaid_ip = ipaddress.ip_address(addr)
+        # Support both single IPs and CIDR networks
+        result.append(ipaddress.ip_network(addr, strict=False))
 
-    return val
+    return result
 
 
 def validate_string_to_list(val):
@@ -1278,8 +1281,11 @@ class ForwardedAllowIPS(Setting):
     validator = validate_string_to_addr_list
     default = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1,::1")
     desc = """\
-        Front-end's IPs from which allowed to handle set secure headers.
-        (comma separated).
+        Front-end's IP addresses or networks from which allowed to handle
+        set secure headers. (comma separated).
+
+        Supports both individual IP addresses (e.g., ``192.168.1.1``) and
+        CIDR networks (e.g., ``192.168.0.0/16``).
 
         Set to ``*`` to disable checking of front-end IPs. This is useful for setups
         where you don't know in advance the IP address of front-end, but
@@ -2094,7 +2100,11 @@ class ProxyAllowFrom(Setting):
     validator = validate_string_to_addr_list
     default = "127.0.0.1,::1"
     desc = """\
-        Front-end's IPs from which allowed accept proxy requests (comma separated).
+        Front-end's IP addresses or networks from which allowed accept
+        proxy requests (comma separated).
+
+        Supports both individual IP addresses (e.g., ``192.168.1.1``) and
+        CIDR networks (e.g., ``192.168.0.0/16``).
 
         Set to ``*`` to disable checking of front-end IPs. This is useful for setups
         where you don't know in advance the IP address of front-end, but

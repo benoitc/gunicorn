@@ -3,6 +3,7 @@
 # See the NOTICE for more information.
 
 import io
+import ipaddress
 import re
 import socket
 
@@ -28,6 +29,22 @@ METHOD_BADCHAR_RE = re.compile("[a-z#]")
 # usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
+
+
+def _ip_in_allow_list(ip_str, allow_list):
+    """Check if IP address is in the allow list (which may contain networks)."""
+    if '*' in allow_list:
+        return True
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+    for network in allow_list:
+        if network == '*':
+            return True
+        if ip in network:
+            return True
+    return False
 
 
 class Message:
@@ -82,9 +99,8 @@ class Message:
             # nonsense. either a request is https from the beginning
             #  .. or we are just behind a proxy who does not remove conflicting trailers
             pass
-        elif ('*' in cfg.forwarded_allow_ips or
-              not isinstance(self.peer_addr, tuple)
-              or self.peer_addr[0] in cfg.forwarded_allow_ips):
+        elif (not isinstance(self.peer_addr, tuple)
+              or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips)):
             secure_scheme_headers = cfg.secure_scheme_headers
             forwarder_headers = cfg.forwarder_headers
 
@@ -352,9 +368,8 @@ class Request(Message):
 
     def proxy_protocol_access_check(self):
         # check in allow list
-        if ("*" not in self.cfg.proxy_allow_ips and
-            isinstance(self.peer_addr, tuple) and
-                self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+        if (isinstance(self.peer_addr, tuple) and
+                not _ip_in_allow_list(self.peer_addr[0], self.cfg.proxy_allow_ips)):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
     def parse_proxy_protocol(self, line):

@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import ipaddress
 import os
 import re
 import sys
@@ -165,10 +166,30 @@ def test_str_validation():
 
 def test_str_to_addr_list_validation():
     c = config.Config()
-    assert c.proxy_allow_ips == ["127.0.0.1", "::1"]
-    assert c.forwarded_allow_ips == ["127.0.0.1", "::1"]
+    # Default values are now network objects
+    assert c.proxy_allow_ips == [
+        ipaddress.ip_network("127.0.0.1/32"),
+        ipaddress.ip_network("::1/128")
+    ]
+    assert c.forwarded_allow_ips == [
+        ipaddress.ip_network("127.0.0.1/32"),
+        ipaddress.ip_network("::1/128")
+    ]
+    # Single IPs are converted to /32 or /128 networks
     c.set("forwarded_allow_ips", "127.0.0.1,192.0.2.1")
-    assert c.forwarded_allow_ips == ["127.0.0.1", "192.0.2.1"]
+    assert c.forwarded_allow_ips == [
+        ipaddress.ip_network("127.0.0.1/32"),
+        ipaddress.ip_network("192.0.2.1/32")
+    ]
+    # CIDR networks are supported
+    c.set("forwarded_allow_ips", "127.0.0.0/8,192.168.0.0/16")
+    assert c.forwarded_allow_ips == [
+        ipaddress.ip_network("127.0.0.0/8"),
+        ipaddress.ip_network("192.168.0.0/16")
+    ]
+    # Wildcard is preserved as string
+    c.set("forwarded_allow_ips", "*")
+    assert c.forwarded_allow_ips == ["*"]
     c.set("forwarded_allow_ips", "")
     assert c.forwarded_allow_ips == []
     c.set("forwarded_allow_ips", None)
