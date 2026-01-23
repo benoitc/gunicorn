@@ -1287,6 +1287,119 @@ class TestSignalInteraction:
         worker.method_queue.close()
 
 
+class TestKeepaliveBlockingMode:
+    """Tests for socket blocking mode on keepalive connections (issue #3448)."""
+
+    def create_worker(self):
+        """Create a worker for testing."""
+        cfg = Config()
+        cfg.set('workers', 1)
+        cfg.set('threads', 4)
+        cfg.set('worker_connections', 1000)
+        cfg.set('keepalive', 2)
+
+        worker = gthread.ThreadWorker(
+            age=1,
+            ppid=os.getpid(),
+            sockets=[],
+            app=mock.Mock(),
+            timeout=30,
+            cfg=cfg,
+            log=mock.Mock(),
+        )
+        return worker
+
+    def test_handle_sets_blocking_on_keepalive_connection(self):
+        """Test that handle() sets socket to blocking mode on keepalive connections.
+
+        On keepalive connections, the socket is in non-blocking mode (set by
+        finish_request() for the selector). handle() must set it back to blocking
+        before reading request/body to avoid SSLWantReadError on SSL connections.
+        """
+        worker = self.create_worker()
+        worker.wsgi = mock.Mock(return_value=[b'response'])
+
+        # Create a connection that simulates a keepalive reuse
+        cfg = Config()
+        sock = FakeSocket()
+        conn = gthread.TConn(cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+
+        # Simulate the state after finish_request() for keepalive:
+        # - socket is non-blocking (for selector registration)
+        # - connection is already initialized
+        conn.init()  # First request initialized the connection
+        sock.setblocking(False)  # finish_request() set non-blocking for selector
+        assert sock.blocking is False
+        assert conn.initialized is True
+
+        # Verify that handle() sets the socket to blocking mode
+        # Mock the parser to avoid actually parsing
+        mock_parser = mock.Mock()
+        mock_parser.__next__ = mock.Mock(return_value=None)  # No request
+        conn.parser = mock_parser
+
+        worker.handle(conn)
+
+        # Socket should be set to blocking mode by handle()
+        assert sock.blocking is True
+
+    def test_handle_sets_blocking_before_body_read(self):
+        """Test that socket is blocking before WSGI app reads request body.
+
+        This is the core fix for issue #3448: Flask's request.get_json()
+        reads the body, which triggers socket.recv(). If the socket is
+        non-blocking, this raises SSLWantReadError on SSL connections.
+        """
+        worker = self.create_worker()
+
+        cfg = Config()
+        sock = FakeSocket()
+        conn = gthread.TConn(cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+
+        # Simulate keepalive state
+        conn.init()
+        sock.setblocking(False)
+
+        # Track when blocking is set vs when body would be read
+        blocking_state_at_body_read = [None]
+
+        def mock_wsgi(environ, start_response):
+            # This simulates Flask's request.get_json() reading the body
+            # The socket must be blocking at this point
+            blocking_state_at_body_read[0] = sock.blocking
+            start_response('200 OK', [])
+            return [b'response']
+
+        worker.wsgi = mock_wsgi
+
+        # Mock parser to return a request
+        mock_request = mock.Mock()
+        mock_request.headers = []
+        mock_request.unreader = mock.Mock()
+        mock_request.body = mock.Mock()
+        mock_request.body.read.return_value = b''
+
+        mock_parser = mock.Mock()
+        mock_parser.__next__ = mock.Mock(return_value=mock_request)
+        mock_parser.finish_body = mock.Mock()
+        conn.parser = mock_parser
+
+        # Mock handle_request to invoke wsgi
+        original_handle_request = worker.handle_request
+
+        def mock_handle_request(req, conn):
+            # Simplified version that just calls wsgi
+            worker.wsgi({}, lambda s, h: None)
+            return True
+
+        worker.handle_request = mock_handle_request
+
+        worker.handle(conn)
+
+        # Socket must be blocking when WSGI app reads body
+        assert blocking_state_at_body_read[0] is True
+
+
 class TestFinishBodySSL:
     """Tests for SSL error handling in finish_body()."""
 

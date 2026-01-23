@@ -344,6 +344,12 @@ class ThreadWorker(base.Worker):
         """Handle a request on a connection. Runs in a worker thread."""
         req = None
         try:
+            # Always ensure blocking mode in worker thread.
+            # Critical for keepalive connections: the socket is set to non-blocking
+            # for the selector in finish_request(), but must be blocking for
+            # request/body reading to avoid SSLWantReadError on SSL connections.
+            conn.sock.setblocking(True)
+
             # Initialize connection in worker thread to handle SSL errors gracefully
             # (ENOTCONN from ssl_wrap_socket would crash main thread otherwise)
             conn.init()
