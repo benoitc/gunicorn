@@ -1826,6 +1826,11 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Fix signal handling regression where SIGCLD alias caused "Unhandled signal: cld"
+  errors on Linux when workers fail during boot
+  (<a href="https://github.com/benoitc/gunicorn/discussions/3453">#3453</a>)</p>
+</li>
+<li>
 <p>Fix socket blocking mode on keepalive connections preventing SSL handshake
   failures with async workers
   (<a href="https://github.com/benoitc/gunicorn/pull/3452">PR #3452</a>)</p>
