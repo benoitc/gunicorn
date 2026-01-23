@@ -1,0 +1,120 @@
+title: "[Bug] "
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        Before submitting, please:
+        - Search [existing discussions](https://github.com/benoitc/gunicorn/discussions) and [issues](https://github.com/benoitc/gunicorn/issues) for duplicates
+        - Check the [FAQ](https://docs.gunicorn.org/en/latest/faq.html) and [documentation](https://docs.gunicorn.org/)
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of what the bug is
+      placeholder: What happened? What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the behavior
+      placeholder: |
+        1. Create a simple app with...
+        2. Run gunicorn with...
+        3. Send request...
+        4. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Your gunicorn configuration (command line or config file)
+      render: bash
+      placeholder: |
+        gunicorn --workers 4 --bind 0.0.0.0:8000 myapp:app
+
+        # Or config file contents
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: Relevant logs or error messages (use --log-level debug for more detail)
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: gunicorn-version
+    attributes:
+      label: Gunicorn Version
+      description: Output of `gunicorn --version`
+      placeholder: gunicorn 24.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Output of `python --version`
+      placeholder: Python 3.12.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: worker-class
+    attributes:
+      label: Worker Class
+      description: Which worker type are you using?
+      options:
+        - sync (default)
+        - gthread
+        - gevent
+        - eventlet
+        - tornado
+        - asgi (beta)
+        - custom
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: Your OS and version
+      placeholder: Ubuntu 22.04, macOS 14.0, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem (proxy setup, Docker, etc.)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing discussions and issues for duplicates
+          required: true
+        - label: I have checked the documentation and FAQ
+          required: true
+        - label: I have included the minimal configuration to reproduce this issue
+          required: true

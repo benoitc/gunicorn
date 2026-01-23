@@ -21,24 +21,22 @@ to do everything for everybody. This means that we might decide against
 incorporating a new feature. However, there might be a way to implement
 that feature *on top of* Gunicorn.
 
-### Discuss your design on the mailing list
+### Start with a Discussion
 
-We recommend discussing your plans [on the mailing
-list](http://gunicorn.org/#community) before starting to code -
-especially for more ambitious contributions.  This gives other
-contributors a chance to point you in the right direction, give feedback
-on your design, and maybe point out if someone else is working on the
-same thing.
+We use [GitHub Discussions](https://github.com/benoitc/gunicorn/discussions)
+as the starting point for all bug reports, feature requests, and questions.
+This allows for proper triage before creating formal issues.
 
-### Create issues...
+- **Bug reports**: Start in [Q&A](https://github.com/benoitc/gunicorn/discussions/categories/q-a)
+- **Feature requests**: Start in [Ideas](https://github.com/benoitc/gunicorn/discussions/categories/ideas)
+- **Questions**: Start in [Q&A](https://github.com/benoitc/gunicorn/discussions/categories/q-a)
 
-Any significant improvement should be documented as [a github
-issue](https://github.com/benoitc/gunicorn/issues) before anybody starts
-working on it.
+After discussion and triage, maintainers will create issues for confirmed
+bugs and approved features.
 
-### ...but check for existing issues first!
+### Check for existing discussions first!
 
-Please take a moment to check that an issue doesn't already exist
+Please take a moment to check that a discussion or issue doesn't already exist
 documenting your bug report or improvement proposal. If it does, it
 never hurts to add a quick "+1" or "I have this problem too". This will
 help prioritize the most common problems and requests.

@@ -1,0 +1,50 @@
+title: "[Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Gunicorn?
+
+        Before asking, please check:
+        - [Documentation](https://docs.gunicorn.org/)
+        - [FAQ](https://docs.gunicorn.org/en/latest/faq.html)
+        - [Settings Reference](https://docs.gunicorn.org/en/latest/settings.html)
+        - [Existing discussions](https://github.com/benoitc/gunicorn/discussions)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant context (your setup, what you've tried, etc.)
+      placeholder: |
+        I'm running gunicorn with...
+        I've tried...
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration (if relevant)
+      description: Your gunicorn configuration
+      render: bash
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked the documentation and FAQ
+          required: true
+        - label: I have searched existing discussions
+          required: true

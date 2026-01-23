@@ -1,0 +1,74 @@
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature!
+
+        Before submitting, please:
+        - Search [existing discussions](https://github.com/benoitc/gunicorn/discussions) and [issues](https://github.com/benoitc/gunicorn/issues) for similar requests
+        - Check if this is already possible with existing configuration
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What's the use case?
+      placeholder: I'm trying to... but currently...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this to work?
+      placeholder: |
+        I'd like a new setting `--my-option` that...
+
+        Example usage:
+        gunicorn --my-option value myapp:app
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other solutions have you considered or tried?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Feature Scope
+      description: What area does this feature affect?
+      options:
+        - Configuration / Settings
+        - Worker behavior
+        - HTTP handling
+        - Logging / Instrumentation
+        - Signals / Process management
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to contribute a PR for this feature
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing discussions and issues for similar requests
+          required: true
