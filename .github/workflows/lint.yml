@@ -36,17 +36,17 @@ jobs:
       - name: Install Dependencies (non-toxic)
         if: ${{ ! matrix.toxenv }}
         run: |
-          python -m pip install sphinx
-      - name: "Update docs"
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: "Check generated docs"
         if: ${{ ! matrix.toxenv }}
         run: |
-          # this will update docs/source/settings.rst - but will not create html output
-          (cd docs && sphinx-build -b "dummy" -d _build/doctrees source "_build/dummy")
-          git update-index --assume-unchanged docs/source/settings.rst
+          # Regenerate settings.md and check for uncommitted changes
+          python scripts/build_settings_doc.py
           if unclean=$(git status --untracked-files=no --porcelain) && [ -z "$unclean" ]; then
             echo "no uncommitted changes in working tree (as it should be)"
           else
-            echo "did you forget to run `make -C docs html`?"
+            echo "did you forget to run 'python scripts/build_settings_doc.py'?"
             echo "$unclean"
             exit 2
           fi

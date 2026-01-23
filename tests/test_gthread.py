@@ -5,19 +5,17 @@
 """Tests for the gthread worker."""
 
 import errno
+import fcntl
 import os
-import queue
 import selectors
 import threading
 import time
 from collections import deque
 from concurrent import futures
-from functools import partial
 from unittest import mock
 
 import pytest
 
-from gunicorn import http
 from gunicorn.config import Config
 from gunicorn.workers import gthread
 
@@ -85,7 +83,7 @@ class TestTConn:
         sock = FakeSocket()
         sock.setblocking(True)
 
-        conn = gthread.TConn(cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        gthread.TConn(cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
 
         # TConn sets socket to non-blocking in __init__
         assert sock.blocking is False
@@ -147,7 +145,7 @@ class TestPollableMethodQueue:
         q.init()
 
         results = []
-        q.defer(lambda x: results.append(x), 42)
+        q.defer(results.append, 42)
 
         # Simulate the selector reading from the pipe
         q.run_callbacks(None)
@@ -162,7 +160,7 @@ class TestPollableMethodQueue:
 
         results = []
         for i in range(5):
-            q.defer(lambda x: results.append(x), i)
+            q.defer(results.append, i)
 
         q.run_callbacks(None)
 
@@ -220,9 +218,6 @@ class TestPollableMethodQueue:
 
     def test_queue_nonblocking_pipe(self):
         """Test that pipe is non-blocking (BSD compatibility)."""
-        import os
-        import fcntl
-
         q = gthread.PollableMethodQueue()
         q.init()
 
@@ -889,18 +884,22 @@ class TestWorkerLiveness:
         # Track notify calls
         notify_calls = []
         original_notify = worker.notify
+
         def tracking_notify():
             notify_calls.append(time.monotonic())
             original_notify()
+
         worker.notify = tracking_notify
 
         # Mock poller.select to exit after first iteration
         call_count = [0]
+
         def mock_select(timeout):
             call_count[0] += 1
             if call_count[0] > 1:
                 worker.alive = False
             return []
+
         worker.poller.select.side_effect = mock_select
 
         # Mock is_parent_alive to return True
@@ -1010,6 +1009,7 @@ class TestSignalHandling:
 
         # Track iterations
         iterations = [0]
+
         def mock_select(timeout):
             iterations[0] += 1
             if iterations[0] == 1:
@@ -1022,6 +1022,7 @@ class TestSignalHandling:
                 # Connection finishes
                 worker.nr_conns = 0
             return []
+
         worker.poller.select.side_effect = mock_select
         worker.is_parent_alive = mock.Mock(return_value=True)
 
@@ -1096,9 +1097,11 @@ class TestWorkerArbiterIntegration:
         worker.ppid = 99999999  # Invalid ppid
 
         iterations = [0]
+
         def mock_select(timeout):
             iterations[0] += 1
             return []
+
         worker.poller.select.side_effect = mock_select
 
         worker.run()
@@ -1349,6 +1352,7 @@ class TestFinishBodySSL:
 
         # Create a mock message body that returns data then raises SSLWantReadError
         call_count = [0]
+
         def mock_read(size):
             call_count[0] += 1
             if call_count[0] <= 2:
