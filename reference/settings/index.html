@@ -1,0 +1,4146 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gunicorn.org/reference/settings/">
+      
+      
+        <link rel="prev" href="../../faq/">
+      
+      
+        <link rel="next" href="../../news/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/gunicorn.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Settings - Gunicorn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../styles/overrides.css">
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/home.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#settings" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gunicorn" class="md-header__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+      
+  <img src="../../assets/gunicorn.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gunicorn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Settings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/benoitc/gunicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    benoitc/gunicorn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../deploy/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../community/" class="md-tabs__link">
+          
+  
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../news/" class="md-tabs__link">
+          
+  
+  
+  News
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gunicorn" class="md-nav__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+      
+  <img src="../../assets/gunicorn.svg" alt="logo">
+
+    </a>
+    Gunicorn
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/benoitc/gunicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    benoitc/gunicorn
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../run/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../asgi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ASGI Worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../uwsgi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uWSGI Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../instrumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instrumentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../custom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../community/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#config-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config File
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Config File">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsgi_app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        wsgi_app
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debugging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reload_engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reload_engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reload_extra_files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reload_extra_files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spew" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spew
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        check_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#print_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        print_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#accesslog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        accesslog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disable_redirect_access_to_syslog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disable_redirect_access_to_syslog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access_log_format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        access_log_format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorlog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        errorlog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loglevel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        loglevel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capture_output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        capture_output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logger_class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logger_class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logconfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logconfig_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logconfig_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logconfig_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        logconfig_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syslog_addr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syslog_addr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syslog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syslog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syslog_prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syslog_prefix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syslog_facility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syslog_facility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enable_stdio_inheritance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        enable_stdio_inheritance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsd_host" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        statsd_host
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dogstatsd_tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dogstatsd_tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsd_prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        statsd_prefix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#process-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Naming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Process Naming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#proc_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        proc_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default_proc_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        default_proc_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SSL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        keyfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#certfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        certfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssl_version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ssl_version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cert_reqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cert_reqs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ca_certs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ca_certs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suppress_ragged_eofs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        suppress_ragged_eofs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#do_handshake_on_connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        do_handshake_on_connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ciphers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#limit_request_line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        limit_request_line
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limit_request_fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        limit_request_fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limit_request_field_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        limit_request_field_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server Hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on_starting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_starting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on_reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when_ready" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        when_ready
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre_fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pre_fork
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post_fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        post_fork
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post_worker_init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        post_worker_init
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_int" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_int
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_abort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_abort
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre_exec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pre_exec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pre_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        post_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#child_exit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        child_exit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_exit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_exit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nworkers_changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nworkers_changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on_exit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_exit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssl_context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ssl_context
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-mechanics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Mechanics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server Mechanics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preload_app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        preload_app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sendfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sendfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reuse_port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reuse_port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chdir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chdir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        daemon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw_env" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw_env
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pidfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pidfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_tmp_dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_tmp_dir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        user
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        group
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#umask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        umask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#initgroups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        initgroups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tmp_upload_dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tmp_upload_dir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secure_scheme_headers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        secure_scheme_headers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forwarded_allow_ips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forwarded_allow_ips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pythonpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pythonpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paste" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paste
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        proxy_protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_allow_ips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        proxy_allow_ips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uwsgi_allow_ips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        uwsgi_allow_ips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw_paste_global_conf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        raw_paste_global_conf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permit_obsolete_folding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        permit_obsolete_folding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strip_header_spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        strip_header_spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permit_unconventional_http_method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        permit_unconventional_http_method
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permit_unconventional_http_version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        permit_unconventional_http_version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#casefold_http_method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        casefold_http_method
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forwarder_headers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forwarder_headers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#header_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        header_map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#root_path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        root_path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Socket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server Socket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bind
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backlog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        backlog
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Processes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Processes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker_connections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#max_requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        max_requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#max_requests_jitter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        max_requests_jitter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graceful_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graceful_timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keepalive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        keepalive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asgi_loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        asgi_loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asgi_lifespan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        asgi_lifespan
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    News
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    News
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2026-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2024-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2024
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2023-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2023
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2021-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2021
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2020-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2020
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2019-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2019
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2018-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2018
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2017-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2017
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2016-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2016
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2015-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2015
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2014-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2014
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2013-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2013
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2012-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2012
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2011-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2011
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2010-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2010
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p><strong>Generated file</strong> — update <code>gunicorn/config.py</code> instead.</p>
+</blockquote>
+<h1 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h1>
+<p>This reference is built directly from <code>gunicorn.config.KNOWN_SETTINGS</code> and is
+regenerated during every documentation build.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Settings can be provided through the <code>GUNICORN_CMD_ARGS</code> environment
+variable. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span><span class="nv">GUNICORN_CMD_ARGS</span><span class="o">=</span><span class="s2">&quot;--bind=127.0.0.1 --workers=3&quot;</span><span class="w"> </span>gunicorn<span class="w"> </span>app:app
+</code></pre></div>
+<p><em>Added in 19.7.</em></p>
+</div>
+<p><span id="blocking_os_fchmod"></span></p>
+<h2 id="config-file">Config File<a class="headerlink" href="#config-file" title="Permanent link">&para;</a></h2>
+<h3 id="config"><code>config</code><a class="headerlink" href="#config" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-c CONFIG</code>, <code>--config CONFIG</code></p>
+<p><strong>Default:</strong> <code>'./gunicorn.conf.py'</code></p>
+<p><a href="../../configure/#configuration-file">The Gunicorn config file</a>.</p>
+<p>A string of the form <code>PATH</code>, <code>file:PATH</code>, or <code>python:MODULE_NAME</code>.</p>
+<p>Only has an effect when specified on the command line or as part of an
+application specific configuration.</p>
+<p>By default, a file named <code>gunicorn.conf.py</code> will be read from the same
+directory where gunicorn is being run.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.4</p>
+<p>Loading the config from a Python module requires the <code>python:</code>
+prefix.</p>
+</div>
+<h3 id="wsgi_app"><code>wsgi_app</code><a class="headerlink" href="#wsgi_app" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>A WSGI application path in pattern <code>$(MODULE_NAME):$(VARIABLE_NAME)</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 20.1.0</p>
+</div>
+<h2 id="debugging">Debugging<a class="headerlink" href="#debugging" title="Permanent link">&para;</a></h2>
+<h3 id="reload"><code>reload</code><a class="headerlink" href="#reload" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--reload</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Restart workers when code changes.</p>
+<p>This setting is intended for development. It will cause workers to be
+restarted whenever application code changes.</p>
+<p>The reloader is incompatible with application preloading. When using a
+paste configuration be sure that the server block does not import any
+application code or the reload will not work as designed.</p>
+<p>The default behavior is to attempt inotify with a fallback to file
+system polling. Generally, inotify should be preferred if available
+because it consumes less system resources.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In order to use the inotify reloader, you must have the <code>inotify</code>
+package installed.</p>
+</div>
+<h3 id="reload_engine"><code>reload_engine</code><a class="headerlink" href="#reload_engine" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--reload-engine STRING</code></p>
+<p><strong>Default:</strong> <code>'auto'</code></p>
+<p>The implementation that should be used to power <a href="#reload">reload</a>.</p>
+<p>Valid engines are:</p>
+<ul>
+<li><code>'auto'</code></li>
+<li><code>'poll'</code></li>
+<li><code>'inotify'</code> (requires inotify)</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.7</p>
+</div>
+<h3 id="reload_extra_files"><code>reload_extra_files</code><a class="headerlink" href="#reload_extra_files" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--reload-extra-file FILES</code></p>
+<p><strong>Default:</strong> <code>[]</code></p>
+<p>Extends <a href="#reload">reload</a> option to also watch and reload on additional files
+(e.g., templates, configurations, specifications, etc.).</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.8</p>
+</div>
+<h3 id="spew"><code>spew</code><a class="headerlink" href="#spew" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--spew</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Install a trace function that spews every line executed by the server.</p>
+<p>This is the nuclear option.</p>
+<h3 id="check_config"><code>check_config</code><a class="headerlink" href="#check_config" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--check-config</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Check the configuration and exit. The exit status is 0 if the
+configuration is correct, and 1 if the configuration is incorrect.</p>
+<h3 id="print_config"><code>print_config</code><a class="headerlink" href="#print_config" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--print-config</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Print the configuration settings as fully resolved. Implies <a href="#check_config">check-config</a>.</p>
+<h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
+<h3 id="accesslog"><code>accesslog</code><a class="headerlink" href="#accesslog" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--access-logfile FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>The Access log file to write to.</p>
+<p><code>'-'</code> means log to stdout.</p>
+<h3 id="disable_redirect_access_to_syslog"><code>disable_redirect_access_to_syslog</code><a class="headerlink" href="#disable_redirect_access_to_syslog" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--disable-redirect-access-to-syslog</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Disable redirect access logs to syslog.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.8</p>
+</div>
+<h3 id="access_log_format"><code>access_log_format</code><a class="headerlink" href="#access_log_format" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--access-logformat STRING</code></p>
+<p><strong>Default:</strong> <code>'%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'</code></p>
+<p>The access log format.</p>
+<p>===========  ===========
+Identifier   Description
+===========  ===========
+h            remote address
+l            <code>'-'</code>
+u            user name (if HTTP Basic auth used)
+t            date of the request
+r            status line (e.g. <code>GET / HTTP/1.1</code>)
+m            request method
+U            URL path without query string
+q            query string
+H            protocol
+s            status
+B            response length
+b            response length or <code>'-'</code> (CLF format)
+f            referrer (note: header is <code>referer</code>)
+a            user agent
+T            request time in seconds
+M            request time in milliseconds
+D            request time in microseconds
+L            request time in decimal seconds
+p            process ID
+{header}i    request header
+{header}o    response header
+{variable}e  environment variable
+===========  ===========</p>
+<p>Use lowercase for header and environment variable names, and put
+<code>{...}x</code> names inside <code>%(...)s</code>. For example::</p>
+<div class="highlight"><pre><span></span><code>%({x-forwarded-for}i)s
+</code></pre></div>
+<h3 id="errorlog"><code>errorlog</code><a class="headerlink" href="#errorlog" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--error-logfile FILE</code>, <code>--log-file FILE</code></p>
+<p><strong>Default:</strong> <code>'-'</code></p>
+<p>The Error log file to write to.</p>
+<p>Using <code>'-'</code> for FILE makes gunicorn log to stderr.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.2</p>
+<p>Log to stderr by default.</p>
+</div>
+<h3 id="loglevel"><code>loglevel</code><a class="headerlink" href="#loglevel" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-level LEVEL</code></p>
+<p><strong>Default:</strong> <code>'info'</code></p>
+<p>The granularity of Error log outputs.</p>
+<p>Valid level names are:</p>
+<ul>
+<li><code>'debug'</code></li>
+<li><code>'info'</code></li>
+<li><code>'warning'</code></li>
+<li><code>'error'</code></li>
+<li><code>'critical'</code></li>
+</ul>
+<h3 id="capture_output"><code>capture_output</code><a class="headerlink" href="#capture_output" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--capture-output</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Redirect stdout/stderr to specified file in <a href="#errorlog">errorlog</a>.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.6</p>
+</div>
+<h3 id="logger_class"><code>logger_class</code><a class="headerlink" href="#logger_class" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--logger-class STRING</code></p>
+<p><strong>Default:</strong> <code>'gunicorn.glogging.Logger'</code></p>
+<p>The logger you want to use to log events in Gunicorn.</p>
+<p>The default class (<code>gunicorn.glogging.Logger</code>) handles most
+normal usages in logging. It provides error and access logging.</p>
+<p>You can provide your own logger by giving Gunicorn a Python path to a
+class that quacks like <code>gunicorn.glogging.Logger</code>.</p>
+<h3 id="logconfig"><code>logconfig</code><a class="headerlink" href="#logconfig" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-config FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>The log config file to use.
+Gunicorn uses the standard Python logging module's Configuration
+file format.</p>
+<h3 id="logconfig_dict"><code>logconfig_dict</code><a class="headerlink" href="#logconfig_dict" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong> <code>{}</code></p>
+<p>The log config dictionary to use, using the standard Python
+logging module's dictionary configuration format. This option
+takes precedence over the <a href="#logconfig">logconfig</a> and <a href="#logconfig_json">logconfig-json</a> options,
+which uses the older file configuration format and JSON
+respectively.</p>
+<p>Format: <a href="https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig">https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig</a></p>
+<p>For more context you can look at the default configuration dictionary for logging,
+which can be found at <code>gunicorn.glogging.CONFIG_DEFAULTS</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.8</p>
+</div>
+<h3 id="logconfig_json"><code>logconfig_json</code><a class="headerlink" href="#logconfig_json" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-config-json FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>The log config to read config from a JSON file</p>
+<p>Format: <a href="https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig">https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig</a></p>
+<div class="admonition info">
+<p class="admonition-title">Added in 20.0</p>
+</div>
+<h3 id="syslog_addr"><code>syslog_addr</code><a class="headerlink" href="#syslog_addr" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-syslog-to SYSLOG_ADDR</code></p>
+<p><strong>Default:</strong> <code>'unix:///var/run/syslog'</code></p>
+<p>Address to send syslog messages.</p>
+<p>Address is a string of the form:</p>
+<ul>
+<li><code>unix://PATH#TYPE</code> : for unix domain socket. <code>TYPE</code> can be <code>stream</code>
+  for the stream driver or <code>dgram</code> for the dgram driver.
+  <code>stream</code> is the default.</li>
+<li><code>udp://HOST:PORT</code> : for UDP sockets</li>
+<li><code>tcp://HOST:PORT</code> : for TCP sockets</li>
+</ul>
+<h3 id="syslog"><code>syslog</code><a class="headerlink" href="#syslog" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-syslog</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Send <em>Gunicorn</em> logs to syslog.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.8</p>
+<p>You can now disable sending access logs by using the
+disable-redirect-access-to-syslog setting.</p>
+</div>
+<h3 id="syslog_prefix"><code>syslog_prefix</code><a class="headerlink" href="#syslog_prefix" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-syslog-prefix SYSLOG_PREFIX</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>Makes Gunicorn use the parameter as program-name in the syslog entries.</p>
+<p>All entries will be prefixed by <code>gunicorn.&lt;prefix&gt;</code>. By default the
+program name is the name of the process.</p>
+<h3 id="syslog_facility"><code>syslog_facility</code><a class="headerlink" href="#syslog_facility" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--log-syslog-facility SYSLOG_FACILITY</code></p>
+<p><strong>Default:</strong> <code>'user'</code></p>
+<p>Syslog facility name</p>
+<h3 id="enable_stdio_inheritance"><code>enable_stdio_inheritance</code><a class="headerlink" href="#enable_stdio_inheritance" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-R</code>, <code>--enable-stdio-inheritance</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Enable stdio inheritance.</p>
+<p>Enable inheritance for stdio file descriptors in daemon mode.</p>
+<p>Note: To disable the Python stdout buffering, you can to set the user
+environment variable <code>PYTHONUNBUFFERED</code> .</p>
+<h3 id="statsd_host"><code>statsd_host</code><a class="headerlink" href="#statsd_host" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--statsd-host STATSD_ADDR</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>The address of the StatsD server to log to.</p>
+<p>Address is a string of the form:</p>
+<ul>
+<li><code>unix://PATH</code> : for a unix domain socket.</li>
+<li><code>HOST:PORT</code> : for a network address</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.1</p>
+</div>
+<h3 id="dogstatsd_tags"><code>dogstatsd_tags</code><a class="headerlink" href="#dogstatsd_tags" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dogstatsd-tags DOGSTATSD_TAGS</code></p>
+<p><strong>Default:</strong> <code>''</code></p>
+<p>A comma-delimited list of datadog statsd (dogstatsd) tags to append to
+statsd metrics.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 20</p>
+</div>
+<h3 id="statsd_prefix"><code>statsd_prefix</code><a class="headerlink" href="#statsd_prefix" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--statsd-prefix STATSD_PREFIX</code></p>
+<p><strong>Default:</strong> <code>''</code></p>
+<p>Prefix to use when emitting statsd metrics (a trailing <code>.</code> is added,
+if not provided).</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.2</p>
+</div>
+<h2 id="process-naming">Process Naming<a class="headerlink" href="#process-naming" title="Permanent link">&para;</a></h2>
+<h3 id="proc_name"><code>proc_name</code><a class="headerlink" href="#proc_name" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-n STRING</code>, <code>--name STRING</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>A base to use with setproctitle for process naming.</p>
+<p>This affects things like <code>ps</code> and <code>top</code>. If you're going to be
+running more than one instance of Gunicorn you'll probably want to set a
+name to tell them apart. This requires that you install the setproctitle
+module.</p>
+<p>If not set, the <em>default_proc_name</em> setting will be used.</p>
+<h3 id="default_proc_name"><code>default_proc_name</code><a class="headerlink" href="#default_proc_name" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong> <code>'gunicorn'</code></p>
+<p>Internal setting that is adjusted for each type of application.</p>
+<h2 id="ssl">SSL<a class="headerlink" href="#ssl" title="Permanent link">&para;</a></h2>
+<h3 id="keyfile"><code>keyfile</code><a class="headerlink" href="#keyfile" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--keyfile FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>SSL key file</p>
+<h3 id="certfile"><code>certfile</code><a class="headerlink" href="#certfile" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--certfile FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>SSL certificate file</p>
+<h3 id="ssl_version"><code>ssl_version</code><a class="headerlink" href="#ssl_version" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--ssl-version</code></p>
+<p><strong>Default:</strong> <code>&lt;_SSLMethod.PROTOCOL_TLS: 2&gt;</code></p>
+<p>SSL version to use (see stdlib ssl module's).</p>
+<div class="admonition danger">
+<p class="admonition-title">Deprecated in 21.0</p>
+<p>The option is deprecated and it is currently ignored. Use <a href="#ssl_context">ssl-context</a> instead.</p>
+</div>
+<p>============= ============
+--ssl-version Description
+============= ============
+SSLv3         SSLv3 is not-secure and is strongly discouraged.
+SSLv23        Alias for TLS. Deprecated in Python 3.6, use TLS.
+TLS           Negotiate highest possible version between client/server.
+              Can yield SSL. (Python 3.6+)
+TLSv1         TLS 1.0
+TLSv1_1       TLS 1.1 (Python 3.4+)
+TLSv1_2       TLS 1.2 (Python 3.4+)
+TLS_SERVER    Auto-negotiate the highest protocol version like TLS,
+              but only support server-side SSLSocket connections.
+              (Python 3.6+)
+============= ============</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.7</p>
+<p>The default value has been changed from <code>ssl.PROTOCOL_TLSv1</code> to
+<code>ssl.PROTOCOL_SSLv23</code>.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 20.0</p>
+<p>This setting now accepts string names based on <code>ssl.PROTOCOL_</code>
+constants.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 20.0.1</p>
+<p>The default value has been changed from <code>ssl.PROTOCOL_SSLv23</code> to
+<code>ssl.PROTOCOL_TLS</code> when Python &gt;= 3.6 .</p>
+</div>
+<h3 id="cert_reqs"><code>cert_reqs</code><a class="headerlink" href="#cert_reqs" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--cert-reqs</code></p>
+<p><strong>Default:</strong> <code>&lt;VerifyMode.CERT_NONE: 0&gt;</code></p>
+<p>Whether client certificate is required (see stdlib ssl module's)</p>
+<p>===========  ===========================
+--cert-reqs      Description
+===========  ===========================
+<code>0</code>          no client verification
+<code>1</code>          ssl.CERT_OPTIONAL
+<code>2</code>          ssl.CERT_REQUIRED
+===========  ===========================</p>
+<h3 id="ca_certs"><code>ca_certs</code><a class="headerlink" href="#ca_certs" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--ca-certs FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>CA certificates file</p>
+<h3 id="suppress_ragged_eofs"><code>suppress_ragged_eofs</code><a class="headerlink" href="#suppress_ragged_eofs" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--suppress-ragged-eofs</code></p>
+<p><strong>Default:</strong> <code>True</code></p>
+<p>Suppress ragged EOFs (see stdlib ssl module's)</p>
+<h3 id="do_handshake_on_connect"><code>do_handshake_on_connect</code><a class="headerlink" href="#do_handshake_on_connect" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--do-handshake-on-connect</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Whether to perform SSL handshake on socket connect (see stdlib ssl module's)</p>
+<h3 id="ciphers"><code>ciphers</code><a class="headerlink" href="#ciphers" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--ciphers</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>SSL Cipher suite to use, in the format of an OpenSSL cipher list.</p>
+<p>By default we use the default cipher list from Python's <code>ssl</code> module,
+which contains ciphers considered strong at the time of each Python
+release.</p>
+<p>As a recommended alternative, the Open Web App Security Project (OWASP)
+offers <code>a vetted set of strong cipher strings rated A+ to C-
+&lt;https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet&gt;</code>_.
+OWASP provides details on user-agent compatibility at each security level.</p>
+<p>See the <code>OpenSSL Cipher List Format Documentation
+&lt;https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT&gt;</code>_
+for details on the format of an OpenSSL cipher list.</p>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<h3 id="limit_request_line"><code>limit_request_line</code><a class="headerlink" href="#limit_request_line" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--limit-request-line INT</code></p>
+<p><strong>Default:</strong> <code>4094</code></p>
+<p>The maximum size of HTTP request line in bytes.</p>
+<p>This parameter is used to limit the allowed size of a client's
+HTTP request-line. Since the request-line consists of the HTTP
+method, URI, and protocol version, this directive places a
+restriction on the length of a request-URI allowed for a request
+on the server. A server needs this value to be large enough to
+hold any of its resource names, including any information that
+might be passed in the query part of a GET request. Value is a number
+from 0 (unlimited) to 8190.</p>
+<p>This parameter can be used to prevent any DDOS attack.</p>
+<h3 id="limit_request_fields"><code>limit_request_fields</code><a class="headerlink" href="#limit_request_fields" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--limit-request-fields INT</code></p>
+<p><strong>Default:</strong> <code>100</code></p>
+<p>Limit the number of HTTP headers fields in a request.</p>
+<p>This parameter is used to limit the number of headers in a request to
+prevent DDOS attack. Used with the <em>limit_request_field_size</em> it allows
+more safety. By default this value is 100 and can't be larger than
+32768.</p>
+<h3 id="limit_request_field_size"><code>limit_request_field_size</code><a class="headerlink" href="#limit_request_field_size" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--limit-request-field_size INT</code></p>
+<p><strong>Default:</strong> <code>8190</code></p>
+<p>Limit the allowed size of an HTTP request header field.</p>
+<p>Value is a positive number or 0. Setting it to 0 will allow unlimited
+header field sizes.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting this parameter to a very high or unlimited value can open
+up for DDOS attacks.</p>
+</div>
+<h2 id="server-hooks">Server Hooks<a class="headerlink" href="#server-hooks" title="Permanent link">&para;</a></h2>
+<h3 id="on_starting"><code>on_starting</code><a class="headerlink" href="#on_starting" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_starting</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just before the master process is initialized.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+<h3 id="on_reload"><code>on_reload</code><a class="headerlink" href="#on_reload" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_reload</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called to recycle workers during a reload via SIGHUP.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+<h3 id="when_ready"><code>when_ready</code><a class="headerlink" href="#when_ready" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">when_ready</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after the server is started.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+<h3 id="pre_fork"><code>pre_fork</code><a class="headerlink" href="#pre_fork" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pre_fork</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just before a worker is forked.</p>
+<p>The callable needs to accept two instance variables for the Arbiter and
+new Worker.</p>
+<h3 id="post_fork"><code>post_fork</code><a class="headerlink" href="#post_fork" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_fork</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a worker has been forked.</p>
+<p>The callable needs to accept two instance variables for the Arbiter and
+new Worker.</p>
+<h3 id="post_worker_init"><code>post_worker_init</code><a class="headerlink" href="#post_worker_init" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_worker_init</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a worker has initialized the application.</p>
+<p>The callable needs to accept one instance variable for the initialized
+Worker.</p>
+<h3 id="worker_int"><code>worker_int</code><a class="headerlink" href="#worker_int" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">worker_int</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a worker exited on SIGINT or SIGQUIT.</p>
+<p>The callable needs to accept one instance variable for the initialized
+Worker.</p>
+<h3 id="worker_abort"><code>worker_abort</code><a class="headerlink" href="#worker_abort" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">worker_abort</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called when a worker received the SIGABRT signal.</p>
+<p>This call generally happens on timeout.</p>
+<p>The callable needs to accept one instance variable for the initialized
+Worker.</p>
+<h3 id="pre_exec"><code>pre_exec</code><a class="headerlink" href="#pre_exec" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pre_exec</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just before a new master process is forked.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+<h3 id="pre_request"><code>pre_request</code><a class="headerlink" href="#pre_request" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pre_request</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+    <span class="n">worker</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</code></pre></div>
+<p>Called just before a worker processes the request.</p>
+<p>The callable needs to accept two instance variables for the Worker and
+the Request.</p>
+<h3 id="post_request"><code>post_request</code><a class="headerlink" href="#post_request" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_request</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="n">req</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">resp</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called after a worker processes the request.</p>
+<p>The callable needs to accept two instance variables for the Worker and
+the Request.</p>
+<h3 id="child_exit"><code>child_exit</code><a class="headerlink" href="#child_exit" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">child_exit</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a worker has been exited, in the master process.</p>
+<p>The callable needs to accept two instance variables for the Arbiter and
+the just-exited Worker.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.7</p>
+</div>
+<h3 id="worker_exit"><code>worker_exit</code><a class="headerlink" href="#worker_exit" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">worker_exit</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a worker has been exited, in the worker process.</p>
+<p>The callable needs to accept two instance variables for the Arbiter and
+the just-exited Worker.</p>
+<h3 id="nworkers_changed"><code>nworkers_changed</code><a class="headerlink" href="#nworkers_changed" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">nworkers_changed</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">new_value</span><span class="p">,</span> <span class="n">old_value</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after <em>num_workers</em> has been changed.</p>
+<p>The callable needs to accept an instance variable of the Arbiter and
+two integers of number of workers after and before change.</p>
+<p>If the number of workers is set for the first time, <em>old_value</em> would
+be <code>None</code>.</p>
+<h3 id="on_exit"><code>on_exit</code><a class="headerlink" href="#on_exit" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_exit</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just before exiting Gunicorn.</p>
+<p>The callable needs to accept a single instance variable for the Arbiter.</p>
+<h3 id="ssl_context"><code>ssl_context</code><a class="headerlink" href="#ssl_context" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">ssl_context</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">default_ssl_context_factory</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">default_ssl_context_factory</span><span class="p">()</span>
+</code></pre></div>
+<p>Called when SSLContext is needed.</p>
+<p>Allows customizing SSL context.</p>
+<p>The callable needs to accept an instance variable for the Config and
+a factory function that returns default SSLContext which is initialized
+with certificates, private key, cert_reqs, and ciphers according to
+config and can be further customized by the callable.
+The callable needs to return SSLContext object.</p>
+<p>Following example shows a configuration file that sets the minimum TLS version to 1.3:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">ssl_context</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">default_ssl_context_factory</span><span class="p">):</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">ssl</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">default_ssl_context_factory</span><span class="p">()</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">minimum_version</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">TLSVersion</span><span class="o">.</span><span class="n">TLSv1_3</span>
+    <span class="k">return</span> <span class="n">context</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Added in 21.0</p>
+</div>
+<h2 id="server-mechanics">Server Mechanics<a class="headerlink" href="#server-mechanics" title="Permanent link">&para;</a></h2>
+<h3 id="preload_app"><code>preload_app</code><a class="headerlink" href="#preload_app" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--preload</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Load application code before the worker processes are forked.</p>
+<p>By preloading an application you can save some RAM resources as well as
+speed up server boot times. Although, if you defer application loading
+to each worker process, you can reload your application code easily by
+restarting workers.</p>
+<h3 id="sendfile"><code>sendfile</code><a class="headerlink" href="#sendfile" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--no-sendfile</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>Disables the use of <code>sendfile()</code>.</p>
+<p>If not set, the value of the <code>SENDFILE</code> environment variable is used
+to enable or disable its usage.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.2</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.4</p>
+<p>Swapped <code>--sendfile</code> with <code>--no-sendfile</code> to actually allow
+disabling.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 19.6</p>
+<p>added support for the <code>SENDFILE</code> environment variable</p>
+</div>
+<h3 id="reuse_port"><code>reuse_port</code><a class="headerlink" href="#reuse_port" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--reuse-port</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Set the <code>SO_REUSEPORT</code> flag on the listening socket.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.8</p>
+</div>
+<h3 id="chdir"><code>chdir</code><a class="headerlink" href="#chdir" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--chdir</code></p>
+<p><strong>Default:</strong></p>
+<p><code>'.'</code></p>
+<p>Change directory to specified directory before loading apps.</p>
+<h3 id="daemon"><code>daemon</code><a class="headerlink" href="#daemon" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-D</code>, <code>--daemon</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Daemonize the Gunicorn process.</p>
+<p>Detaches the server from the controlling terminal and enters the
+background.</p>
+<h3 id="raw_env"><code>raw_env</code><a class="headerlink" href="#raw_env" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-e ENV</code>, <code>--env ENV</code></p>
+<p><strong>Default:</strong> <code>[]</code></p>
+<p>Set environment variables in the execution environment.</p>
+<p>Should be a list of strings in the <code>key=value</code> format.</p>
+<p>For example on the command line:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>gunicorn<span class="w"> </span>-b<span class="w"> </span><span class="m">127</span>.0.0.1:8000<span class="w"> </span>--env<span class="w"> </span><span class="nv">FOO</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>test:app
+</code></pre></div>
+<p>Or in the configuration file:</p>
+<div class="highlight"><pre><span></span><code><span class="n">raw_env</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;FOO=1&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h3 id="pidfile"><code>pidfile</code><a class="headerlink" href="#pidfile" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-p FILE</code>, <code>--pid FILE</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>A filename to use for the PID file.</p>
+<p>If not set, no PID file will be written.</p>
+<h3 id="worker_tmp_dir"><code>worker_tmp_dir</code><a class="headerlink" href="#worker_tmp_dir" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--worker-tmp-dir DIR</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>A directory to use for the worker heartbeat temporary file.</p>
+<p>If not set, the default temporary directory will be used.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The current heartbeat system involves calling <code>os.fchmod</code> on
+temporary file handlers and may block a worker for arbitrary time
+if the directory is on a disk-backed filesystem.</p>
+<p>See <a href="#blocking_os_fchmod">blocking-os-fchmod</a> for more detailed information
+and a solution for avoiding this problem.</p>
+</div>
+<h3 id="user"><code>user</code><a class="headerlink" href="#user" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-u USER</code>, <code>--user USER</code></p>
+<p><strong>Default:</strong></p>
+<p><code>os.geteuid()</code></p>
+<p>Switch worker processes to run as this user.</p>
+<p>A valid user id (as an integer) or the name of a user that can be
+retrieved with a call to <code>pwd.getpwnam(value)</code> or <code>None</code> to not
+change the worker process user.</p>
+<h3 id="group"><code>group</code><a class="headerlink" href="#group" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-g GROUP</code>, <code>--group GROUP</code></p>
+<p><strong>Default:</strong></p>
+<p><code>os.getegid()</code></p>
+<p>Switch worker process to run as this group.</p>
+<p>A valid group id (as an integer) or the name of a user that can be
+retrieved with a call to <code>grp.getgrnam(value)</code> or <code>None</code> to not
+change the worker processes group.</p>
+<h3 id="umask"><code>umask</code><a class="headerlink" href="#umask" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-m INT</code>, <code>--umask INT</code></p>
+<p><strong>Default:</strong> <code>0</code></p>
+<p>A bit mask for the file mode on files written by Gunicorn.</p>
+<p>Note that this affects unix socket permissions.</p>
+<p>A valid value for the <code>os.umask(mode)</code> call or a string compatible
+with <code>int(value, 0)</code> (<code>0</code> means Python guesses the base, so values
+like <code>0</code>, <code>0xFF</code>, <code>0022</code> are valid for decimal, hex, and octal
+representations)</p>
+<h3 id="initgroups"><code>initgroups</code><a class="headerlink" href="#initgroups" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--initgroups</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>If true, set the worker process's group access list with all of the
+groups of which the specified username is a member, plus the specified
+group id.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.7</p>
+</div>
+<h3 id="tmp_upload_dir"><code>tmp_upload_dir</code><a class="headerlink" href="#tmp_upload_dir" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>Directory to store temporary request data as they are read.</p>
+<p>This may disappear in the near future.</p>
+<p>This path should be writable by the process permissions set for Gunicorn
+workers. If not specified, Gunicorn will choose a system generated
+temporary directory.</p>
+<h3 id="secure_scheme_headers"><code>secure_scheme_headers</code><a class="headerlink" href="#secure_scheme_headers" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong> <code>{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}</code></p>
+<p>A dictionary containing headers and values that the front-end proxy
+uses to indicate HTTPS requests. If the source IP is permitted by
+<a href="#forwarded_allow_ips">forwarded-allow-ips</a> (below), <em>and</em> at least one request header matches
+a key-value pair listed in this dictionary, then Gunicorn will set
+<code>wsgi.url_scheme</code> to <code>https</code>, so your application can tell that the
+request is secure.</p>
+<p>If the other headers listed in this dictionary are not present in the request, they will be ignored,
+but if the other headers are present and do not match the provided values, then
+the request will fail to parse. See the note below for more detailed examples of this behaviour.</p>
+<p>The dictionary should map upper-case header names to exact string
+values. The value comparisons are case-sensitive, unlike the header
+names, so make sure they're exactly what your front-end proxy sends
+when handling HTTPS requests.</p>
+<p>It is important that your front-end proxy configuration ensures that
+the headers defined here can not be passed directly from the client.</p>
+<h3 id="forwarded_allow_ips"><code>forwarded_allow_ips</code><a class="headerlink" href="#forwarded_allow_ips" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--forwarded-allow-ips STRING</code></p>
+<p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
+<p>Front-end's IPs from which allowed to handle set secure headers.
+(comma separated).</p>
+<p>Set to <code>*</code> to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.</p>
+<p>By default, the value of the <code>FORWARDED_ALLOW_IPS</code> environment
+variable. If it is not defined, the default is <code>"127.0.0.1,::1"</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option does not affect UNIX socket connections. Connections not associated with
+an IP address are treated as allowed, unconditionally.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The interplay between the request headers, the value of <code>forwarded_allow_ips</code>, and the value of
+<code>secure_scheme_headers</code> is complex. Various scenarios are documented below to further elaborate.
+In each case, we have a request from the remote address 134.213.44.18, and the default value of
+<code>secure_scheme_headers</code>:</p>
+<p>.. code::</p>
+<div class="highlight"><pre><span></span><code>secure_scheme_headers = {
+    &#39;X-FORWARDED-PROTOCOL&#39;: &#39;ssl&#39;,
+    &#39;X-FORWARDED-PROTO&#39;: &#39;https&#39;,
+    &#39;X-FORWARDED-SSL&#39;: &#39;on&#39;
+}
+</code></pre></div>
+<p>.. list-table::
+    :header-rows: 1
+    :align: center
+    :widths: auto</p>
+<div class="highlight"><pre><span></span><code>* - ``forwarded-allow-ips``
+  - Secure Request Headers
+  - Result
+  - Explanation
+* - .. code::
+
+        [&quot;127.0.0.1&quot;]
+  - .. code::
+
+        X-Forwarded-Proto: https
+  - .. code::
+
+        wsgi.url_scheme = &quot;http&quot;
+  - IP address was not allowed
+* - .. code::
+
+        &quot;*&quot;
+  - &lt;none&gt;
+  - .. code::
+
+        wsgi.url_scheme = &quot;http&quot;
+  - IP address allowed, but no secure headers provided
+* - .. code::
+
+        &quot;*&quot;
+  - .. code::
+
+        X-Forwarded-Proto: https
+  - .. code::
+
+        wsgi.url_scheme = &quot;https&quot;
+  - IP address allowed, one request header matched
+* - .. code::
+
+        [&quot;134.213.44.18&quot;]
+  - .. code::
+
+        X-Forwarded-Ssl: on
+        X-Forwarded-Proto: http
+  - ``InvalidSchemeHeaders()`` raised
+  - IP address allowed, but the two secure headers disagreed on if HTTPS was used
+</code></pre></div>
+</div>
+<h3 id="pythonpath"><code>pythonpath</code><a class="headerlink" href="#pythonpath" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--pythonpath STRING</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>A comma-separated list of directories to add to the Python path.</p>
+<p>e.g.
+<code>'/home/djangoprojects/myproject,/home/python/mylibrary'</code>.</p>
+<h3 id="paste"><code>paste</code><a class="headerlink" href="#paste" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--paste STRING</code>, <code>--paster STRING</code></p>
+<p><strong>Default:</strong> <code>None</code></p>
+<p>Load a PasteDeploy config file. The argument may contain a <code>#</code>
+symbol followed by the name of an app section from the config file,
+e.g. <code>production.ini#admin</code>.</p>
+<p>At this time, using alternate server blocks is not supported. Use the
+command line arguments to control server configuration instead.</p>
+<h3 id="proxy_protocol"><code>proxy_protocol</code><a class="headerlink" href="#proxy_protocol" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--proxy-protocol</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Enable detect PROXY protocol (PROXY mode).</p>
+<p>Allow using HTTP and Proxy together. It may be useful for work with
+stunnel as HTTPS frontend and Gunicorn as HTTP server.</p>
+<p>PROXY protocol: <a href="http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt">http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt</a></p>
+<p>Example for stunnel config::</p>
+<div class="highlight"><pre><span></span><code>[https]
+protocol = proxy
+accept  = 443
+connect = 80
+cert = /etc/ssl/certs/stunnel.pem
+key = /etc/ssl/certs/stunnel.key
+</code></pre></div>
+<h3 id="proxy_allow_ips"><code>proxy_allow_ips</code><a class="headerlink" href="#proxy_allow_ips" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--proxy-allow-from</code></p>
+<p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
+<p>Front-end's IPs from which allowed accept proxy requests (comma separated).</p>
+<p>Set to <code>*</code> to disable checking of front-end IPs. This is useful for setups
+where you don't know in advance the IP address of front-end, but
+instead have ensured via other means that only your
+authorized front-ends can access Gunicorn.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option does not affect UNIX socket connections. Connections not associated with
+an IP address are treated as allowed, unconditionally.</p>
+</div>
+<h3 id="protocol"><code>protocol</code><a class="headerlink" href="#protocol" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--protocol STRING</code></p>
+<p><strong>Default:</strong> <code>'http'</code></p>
+<p>The protocol for incoming connections.</p>
+<ul>
+<li><code>http</code> - Standard HTTP/1.x (default)</li>
+<li><code>uwsgi</code> - uWSGI binary protocol (for nginx uwsgi_pass)</li>
+</ul>
+<p>When using the uWSGI protocol, Gunicorn can receive requests from
+nginx using the uwsgi_pass directive::</p>
+<div class="highlight"><pre><span></span><code>upstream gunicorn {
+    server 127.0.0.1:8000;
+}
+location / {
+    uwsgi_pass gunicorn;
+    include uwsgi_params;
+}
+</code></pre></div>
+<h3 id="uwsgi_allow_ips"><code>uwsgi_allow_ips</code><a class="headerlink" href="#uwsgi_allow_ips" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--uwsgi-allow-from</code></p>
+<p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
+<p>IPs allowed to send uWSGI protocol requests (comma separated).</p>
+<p>Set to <code>*</code> to allow all IPs. This is useful for setups where you
+don't know in advance the IP address of front-end, but instead have
+ensured via other means that only your authorized front-ends can
+access Gunicorn.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option does not affect UNIX socket connections. Connections not associated with
+an IP address are treated as allowed, unconditionally.</p>
+</div>
+<h3 id="raw_paste_global_conf"><code>raw_paste_global_conf</code><a class="headerlink" href="#raw_paste_global_conf" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--paste-global CONF</code></p>
+<p><strong>Default:</strong> <code>[]</code></p>
+<p>Set a PasteDeploy global config variable in <code>key=value</code> form.</p>
+<p>The option can be specified multiple times.</p>
+<p>The variables are passed to the PasteDeploy entrypoint. Example::</p>
+<div class="highlight"><pre><span></span><code>$ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.7</p>
+</div>
+<h3 id="permit_obsolete_folding"><code>permit_obsolete_folding</code><a class="headerlink" href="#permit_obsolete_folding" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--permit-obsolete-folding</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Permit requests employing obsolete HTTP line folding mechanism</p>
+<p>The folding mechanism was deprecated by rfc7230 Section 3.2.4 and will not be
+ employed in HTTP request headers from standards-compliant HTTP clients.</p>
+<p>This option is provided to diagnose backwards-incompatible changes.
+Use with care and only if necessary. Temporary; the precise effect of this option may
+change in a future version, or it may be removed altogether.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 23.0.0</p>
+</div>
+<h3 id="strip_header_spaces"><code>strip_header_spaces</code><a class="headerlink" href="#strip_header_spaces" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--strip-header-spaces</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Strip spaces present between the header name and the the <code>:</code>.</p>
+<p>This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard.
+See <a href="https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn">https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn</a>.</p>
+<p>Use with care and only if necessary. Deprecated; scheduled for removal in 25.0.0</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 20.0.1</p>
+</div>
+<h3 id="permit_unconventional_http_method"><code>permit_unconventional_http_method</code><a class="headerlink" href="#permit_unconventional_http_method" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--permit-unconventional-http-method</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Permit HTTP methods not matching conventions, such as IANA registration guidelines</p>
+<p>This permits request methods of length less than 3 or more than 20,
+methods with lowercase characters or methods containing the # character.
+HTTP methods are case sensitive by definition, and merely uppercase by convention.</p>
+<p>If unset, Gunicorn will apply nonstandard restrictions and cause 400 response status
+in cases where otherwise 501 status is expected. While this option does modify that
+behaviour, it should not be depended upon to guarantee standards-compliant behaviour.
+Rather, it is provided temporarily, to assist in diagnosing backwards-incompatible
+changes around the incomplete application of those restrictions.</p>
+<p>Use with care and only if necessary. Temporary; scheduled for removal in 24.0.0</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 22.0.0</p>
+</div>
+<h3 id="permit_unconventional_http_version"><code>permit_unconventional_http_version</code><a class="headerlink" href="#permit_unconventional_http_version" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--permit-unconventional-http-version</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Permit HTTP version not matching conventions of 2023</p>
+<p>This disables the refusal of likely malformed request lines.
+It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.</p>
+<p>This option is provided to diagnose backwards-incompatible changes.
+Use with care and only if necessary. Temporary; the precise effect of this option may
+change in a future version, or it may be removed altogether.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 22.0.0</p>
+</div>
+<h3 id="casefold_http_method"><code>casefold_http_method</code><a class="headerlink" href="#casefold_http_method" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--casefold-http-method</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Transform received HTTP methods to uppercase</p>
+<p>HTTP methods are case sensitive by definition, and merely uppercase by convention.</p>
+<p>This option is provided because previous versions of gunicorn defaulted to this behaviour.</p>
+<p>Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 22.0.0</p>
+</div>
+<h3 id="forwarder_headers"><code>forwarder_headers</code><a class="headerlink" href="#forwarder_headers" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--forwarder-headers</code></p>
+<p><strong>Default:</strong> <code>'SCRIPT_NAME,PATH_INFO'</code></p>
+<p>A list containing upper-case header field names that the front-end proxy
+(see <a href="#forwarded_allow_ips">forwarded-allow-ips</a>) sets, to be used in WSGI environment.</p>
+<p>This option has no effect for headers not present in the request.</p>
+<p>This option can be used to transfer <code>SCRIPT_NAME</code>, <code>PATH_INFO</code>
+and <code>REMOTE_USER</code>.</p>
+<p>It is important that your front-end proxy configuration ensures that
+the headers defined here can not be passed directly from the client.</p>
+<h3 id="header_map"><code>header_map</code><a class="headerlink" href="#header_map" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--header-map</code></p>
+<p><strong>Default:</strong> <code>'drop'</code></p>
+<p>Configure how header field names are mapped into environ</p>
+<p>Headers containing underscores are permitted by RFC9110,
+but gunicorn joining headers of different names into
+the same environment variable will dangerously confuse applications as to which is which.</p>
+<p>The safe default <code>drop</code> is to silently drop headers that cannot be unambiguously mapped.
+The value <code>refuse</code> will return an error if a request contains <em>any</em> such header.
+The value <code>dangerous</code> matches the previous, not advisable, behaviour of mapping different
+header field names into the same environ name.</p>
+<p>If the source is permitted as explained in <a href="#forwarded_allow_ips">forwarded-allow-ips</a>, <em>and</em> the header name is
+present in <a href="#forwarder_headers">forwarder-headers</a>, the header is mapped into environment regardless of
+the state of this setting.</p>
+<p>Use with care and only if necessary and after considering if your problem could
+instead be solved by specifically renaming or rewriting only the intended headers
+on a proxy in front of Gunicorn.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 22.0.0</p>
+</div>
+<h3 id="root_path"><code>root_path</code><a class="headerlink" href="#root_path" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--root-path STRING</code></p>
+<p><strong>Default:</strong> <code>''</code></p>
+<p>The root path for ASGI applications.</p>
+<p>This is used to set the <code>root_path</code> in the ASGI scope, which
+allows applications to know their mount point when behind a
+reverse proxy.</p>
+<p>For example, if your application is mounted at <code>/api</code>, set
+this to <code>/api</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 24.0.0</p>
+</div>
+<h2 id="server-socket">Server Socket<a class="headerlink" href="#server-socket" title="Permanent link">&para;</a></h2>
+<h3 id="bind"><code>bind</code><a class="headerlink" href="#bind" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-b ADDRESS</code>, <code>--bind ADDRESS</code></p>
+<p><strong>Default:</strong> <code>['127.0.0.1:8000']</code></p>
+<p>The socket to bind.</p>
+<p>A string of the form: <code>HOST</code>, <code>HOST:PORT</code>, <code>unix:PATH</code>,
+<code>fd://FD</code>. An IP is a valid <code>HOST</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 20.0</p>
+<p>Support for <code>fd://FD</code> got added.</p>
+</div>
+<p>Multiple addresses can be bound. ex.::</p>
+<div class="highlight"><pre><span></span><code>$ gunicorn -b 127.0.0.1:8000 -b [::1]:8000 test:app
+</code></pre></div>
+<p>will bind the <code>test:app</code> application on localhost both on ipv6
+and ipv4 interfaces.</p>
+<p>If the <code>PORT</code> environment variable is defined, the default
+is <code>['0.0.0.0:$PORT']</code>. If it is not defined, the default
+is <code>['127.0.0.1:8000']</code>.</p>
+<h3 id="backlog"><code>backlog</code><a class="headerlink" href="#backlog" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--backlog INT</code></p>
+<p><strong>Default:</strong> <code>2048</code></p>
+<p>The maximum number of pending connections.</p>
+<p>This refers to the number of clients that can be waiting to be served.
+Exceeding this number results in the client getting an error when
+attempting to connect. It should only affect servers under significant
+load.</p>
+<p>Must be a positive integer. Generally set in the 64-2048 range.</p>
+<h2 id="worker-processes">Worker Processes<a class="headerlink" href="#worker-processes" title="Permanent link">&para;</a></h2>
+<h3 id="workers"><code>workers</code><a class="headerlink" href="#workers" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-w INT</code>, <code>--workers INT</code></p>
+<p><strong>Default:</strong> <code>1</code></p>
+<p>The number of worker processes for handling requests.</p>
+<p>A positive integer generally in the <code>2-4 x $(NUM_CORES)</code> range.
+You'll want to vary this a bit to find the best for your particular
+application's work load.</p>
+<p>By default, the value of the <code>WEB_CONCURRENCY</code> environment variable,
+which is set by some Platform-as-a-Service providers such as Heroku. If
+it is not defined, the default is <code>1</code>.</p>
+<h3 id="worker_class"><code>worker_class</code><a class="headerlink" href="#worker_class" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-k STRING</code>, <code>--worker-class STRING</code></p>
+<p><strong>Default:</strong> <code>'sync'</code></p>
+<p>The type of workers to use.</p>
+<p>The default class (<code>sync</code>) should handle most "normal" types of
+workloads. You'll want to read :doc:<code>design</code> for information on when
+you might want to choose one of the other worker classes. Required
+libraries may be installed using setuptools' <code>extras_require</code> feature.</p>
+<p>A string referring to one of the following bundled classes:</p>
+<ul>
+<li><code>sync</code></li>
+<li><code>eventlet</code> - Requires eventlet &gt;= 0.24.1 (or install it via
+  <code>pip install gunicorn[eventlet]</code>)</li>
+<li><code>gevent</code>   - Requires gevent &gt;= 1.4 (or install it via
+  <code>pip install gunicorn[gevent]</code>)</li>
+<li><code>tornado</code>  - Requires tornado &gt;= 0.2 (or install it via
+  <code>pip install gunicorn[tornado]</code>)</li>
+<li><code>gthread</code>  - Python 2 requires the futures package to be installed
+  (or install it via <code>pip install gunicorn[gthread]</code>)</li>
+</ul>
+<p>Optionally, you can provide your own worker by giving Gunicorn a
+Python path to a subclass of <code>gunicorn.workers.base.Worker</code>.
+This alternative syntax will load the gevent class:
+<code>gunicorn.workers.ggevent.GeventWorker</code>.</p>
+<h3 id="threads"><code>threads</code><a class="headerlink" href="#threads" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--threads INT</code></p>
+<p><strong>Default:</strong> <code>1</code></p>
+<p>The number of worker threads for handling requests.</p>
+<p>Run each worker with the specified number of threads.</p>
+<p>A positive integer generally in the <code>2-4 x $(NUM_CORES)</code> range.
+You'll want to vary this a bit to find the best for your particular
+application's work load.</p>
+<p>If it is not defined, the default is <code>1</code>.</p>
+<p>This setting only affects the Gthread worker type.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you try to use the <code>sync</code> worker type and set the <code>threads</code>
+setting to more than 1, the <code>gthread</code> worker type will be used
+instead.</p>
+</div>
+<h3 id="worker_connections"><code>worker_connections</code><a class="headerlink" href="#worker_connections" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--worker-connections INT</code></p>
+<p><strong>Default:</strong> <code>1000</code></p>
+<p>The maximum number of simultaneous clients.</p>
+<p>This setting only affects the <code>gthread</code>, <code>eventlet</code> and <code>gevent</code> worker types.</p>
+<h3 id="max_requests"><code>max_requests</code><a class="headerlink" href="#max_requests" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--max-requests INT</code></p>
+<p><strong>Default:</strong> <code>0</code></p>
+<p>The maximum number of requests a worker will process before restarting.</p>
+<p>Any value greater than zero will limit the number of requests a worker
+will process before automatically restarting. This is a simple method
+to help limit the damage of memory leaks.</p>
+<p>If this is set to zero (the default) then the automatic worker
+restarts are disabled.</p>
+<h3 id="max_requests_jitter"><code>max_requests_jitter</code><a class="headerlink" href="#max_requests_jitter" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--max-requests-jitter INT</code></p>
+<p><strong>Default:</strong> <code>0</code></p>
+<p>The maximum jitter to add to the <em>max_requests</em> setting.</p>
+<p>The jitter causes the restart per worker to be randomized by
+<code>randint(0, max_requests_jitter)</code>. This is intended to stagger worker
+restarts to avoid all workers restarting at the same time.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 19.2</p>
+</div>
+<h3 id="timeout"><code>timeout</code><a class="headerlink" href="#timeout" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>-t INT</code>, <code>--timeout INT</code></p>
+<p><strong>Default:</strong> <code>30</code></p>
+<p>Workers silent for more than this many seconds are killed and restarted.</p>
+<p>Value is a positive number or 0. Setting it to 0 has the effect of
+infinite timeouts by disabling timeouts for all workers entirely.</p>
+<p>Generally, the default of thirty seconds should suffice. Only set this
+noticeably higher if you're sure of the repercussions for sync workers.
+For the non sync workers it just means that the worker process is still
+communicating and is not tied to the length of time required to handle a
+single request.</p>
+<h3 id="graceful_timeout"><code>graceful_timeout</code><a class="headerlink" href="#graceful_timeout" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--graceful-timeout INT</code></p>
+<p><strong>Default:</strong> <code>30</code></p>
+<p>Timeout for graceful workers restart in seconds.</p>
+<p>After receiving a restart signal, workers have this much time to finish
+serving requests. Workers still alive after the timeout (starting from
+the receipt of the restart signal) are force killed.</p>
+<h3 id="keepalive"><code>keepalive</code><a class="headerlink" href="#keepalive" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--keep-alive INT</code></p>
+<p><strong>Default:</strong> <code>2</code></p>
+<p>The number of seconds to wait for requests on a Keep-Alive connection.</p>
+<p>Generally set in the 1-5 seconds range for servers with direct connection
+to the client (e.g. when you don't have separate load balancer). When
+Gunicorn is deployed behind a load balancer, it often makes sense to
+set this to a higher value.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>sync</code> worker does not support persistent connections and will
+ignore this option.</p>
+</div>
+<h3 id="asgi_loop"><code>asgi_loop</code><a class="headerlink" href="#asgi_loop" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--asgi-loop STRING</code></p>
+<p><strong>Default:</strong> <code>'auto'</code></p>
+<p>Event loop implementation for ASGI workers.</p>
+<ul>
+<li>auto: Use uvloop if available, otherwise asyncio</li>
+<li>asyncio: Use Python's built-in asyncio event loop</li>
+<li>uvloop: Use uvloop (must be installed separately)</li>
+</ul>
+<p>This setting only affects the <code>asgi</code> worker type.</p>
+<p>uvloop typically provides better performance but requires
+installing the uvloop package.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 24.0.0</p>
+</div>
+<h3 id="asgi_lifespan"><code>asgi_lifespan</code><a class="headerlink" href="#asgi_lifespan" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--asgi-lifespan STRING</code></p>
+<p><strong>Default:</strong> <code>'auto'</code></p>
+<p>Control ASGI lifespan protocol handling.</p>
+<ul>
+<li>auto: Detect if app supports lifespan, enable if so</li>
+<li>on: Always run lifespan protocol (fail if unsupported)</li>
+<li>off: Never run lifespan protocol</li>
+</ul>
+<p>The lifespan protocol allows ASGI applications to run code at
+startup and shutdown. This is essential for frameworks like
+FastAPI that need to initialize database connections, caches,
+or other resources.</p>
+<p>This setting only affects the <code>asgi</code> worker type.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 24.0.0</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/benoitc/gunicorn" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/gunicorn/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.path", "search.highlight", "search.suggest", "search.share", "toc.follow", "toc.integrate", "header.autohide"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../assets/javascripts/toc-collapse.js"></script>
+      
+    
+  </body>
+</html>
