@@ -1826,8 +1826,8 @@
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>-w<span class="w"> </span>/app<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>python:3.12-slim<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;pip install gunicorn &amp;&amp; gunicorn app:app&quot;</span>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/benoitc/gunicorn:latest
+docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
 </code></pre></div>
 <p>See the <a href="../guides/docker/">Docker guide</a> for production configurations.</p>
 </div>

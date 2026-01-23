@@ -744,6 +744,100 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#official-docker-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Official Docker Image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Official Docker Image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-base-image-recommended-for-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As Base Image (Recommended for Production)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With Docker Compose
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#available-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-your-own-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building Your Own Image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#basic-dockerfile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -767,7 +861,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#environment-variables" class="md-nav__link">
+  <a href="#environment-variables_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Environment Variables
@@ -1896,6 +1990,89 @@
 <p>Running Gunicorn in Docker containers is the most common deployment pattern
 for modern Python applications. This guide covers best practices for
 containerizing Gunicorn applications.</p>
+<h2 id="official-docker-image">Official Docker Image<a class="headerlink" href="#official-docker-image" title="Permanent link">&para;</a></h2>
+<p>Gunicorn provides an official Docker image on GitHub Container Registry:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/benoitc/gunicorn:latest
+</code></pre></div>
+<h3 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h3>
+<p>Mount your application directory and run:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
+</code></pre></div>
+<h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GUNICORN_BIND</code></td>
+<td>Full bind address</td>
+<td><code>[::]:8000</code> (IPv4+IPv6)</td>
+</tr>
+<tr>
+<td><code>GUNICORN_HOST</code></td>
+<td>Bind host</td>
+<td><code>[::]</code></td>
+</tr>
+<tr>
+<td><code>GUNICORN_PORT</code></td>
+<td>Bind port</td>
+<td><code>8000</code></td>
+</tr>
+<tr>
+<td><code>GUNICORN_WORKERS</code></td>
+<td>Number of workers</td>
+<td>Number of CPUs</td>
+</tr>
+<tr>
+<td><code>GUNICORN_ARGS</code></td>
+<td>Additional arguments</td>
+<td>(none)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="with-configuration">With Configuration<a class="headerlink" href="#with-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">9000</span>:9000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_PORT</span><span class="o">=</span><span class="m">9000</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_WORKERS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_ARGS</span><span class="o">=</span><span class="s2">&quot;--timeout 120 --access-logfile -&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
+</code></pre></div>
+<h3 id="as-base-image-recommended-for-production">As Base Image (Recommended for Production)<a class="headerlink" href="#as-base-image-recommended-for-production" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">ghcr.io/benoitc/gunicorn:24.1.0</span>
+
+<span class="c"># Install app dependencies</span>
+<span class="k">COPY</span><span class="w"> </span>requirements.txt<span class="w"> </span>.
+<span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c"># Copy application</span>
+<span class="k">COPY</span><span class="w"> </span>--chown<span class="o">=</span>gunicorn:gunicorn<span class="w"> </span>.<span class="w"> </span>.
+
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;myapp:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--workers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;4&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h3 id="with-docker-compose">With Docker Compose<a class="headerlink" href="#with-docker-compose" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">web</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/benoitc/gunicorn:latest</span>
+<span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8000:8000&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./app:/app</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;myapp:app&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--workers&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;4&quot;</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<h3 id="available-tags">Available Tags<a class="headerlink" href="#available-tags" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ghcr.io/benoitc/gunicorn:latest</code> - Latest release</li>
+<li><code>ghcr.io/benoitc/gunicorn:24.1.0</code> - Specific version</li>
+<li><code>ghcr.io/benoitc/gunicorn:24.1</code> - Minor version</li>
+<li><code>ghcr.io/benoitc/gunicorn:24</code> - Major version</li>
+</ul>
+<h2 id="building-your-own-image">Building Your Own Image<a class="headerlink" href="#building-your-own-image" title="Permanent link">&para;</a></h2>
+<p>For more control, build a custom image using the patterns below.</p>
 <h2 id="basic-dockerfile">Basic Dockerfile<a class="headerlink" href="#basic-dockerfile" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span>
 
@@ -1916,7 +2093,7 @@ containerizing Gunicorn applications.</p>
 docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>myapp
 </code></pre></div>
 <h2 id="production-configuration">Production Configuration<a class="headerlink" href="#production-configuration" title="Permanent link">&para;</a></h2>
-<h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<h3 id="environment-variables_1">Environment Variables<a class="headerlink" href="#environment-variables_1" title="Permanent link">&para;</a></h3>
 <p>Use environment variables for configuration:</p>
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span>
 
