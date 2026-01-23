@@ -48,8 +48,8 @@ docker rm myapp
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GUNICORN_BIND` | Full bind address | `[::]:8000` (IPv4+IPv6) |
-| `GUNICORN_HOST` | Bind host | `[::]` |
+| `GUNICORN_BIND` | Full bind address | `0.0.0.0:8000` |
+| `GUNICORN_HOST` | Bind host | `0.0.0.0` |
 | `GUNICORN_PORT` | Bind port | `8000` |
 | `GUNICORN_WORKERS` | Number of workers | `(2 * CPU) + 1` |
 | `GUNICORN_ARGS` | Additional arguments | (none) |

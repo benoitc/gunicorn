@@ -17,8 +17,8 @@ COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Configuration via environment:
-#   GUNICORN_BIND    - full bind address (default: [::]:8000, IPv4+IPv6)
-#   GUNICORN_HOST    - bind host (default: [::])
+#   GUNICORN_BIND    - full bind address (default: 0.0.0.0:8000)
+#   GUNICORN_HOST    - bind host (default: 0.0.0.0)
 #   GUNICORN_PORT    - bind port (default: 8000)
 #   GUNICORN_WORKERS - number of workers (default: 2 * CPU + 1)
 #   GUNICORN_ARGS    - additional arguments (e.g., "--timeout 120")

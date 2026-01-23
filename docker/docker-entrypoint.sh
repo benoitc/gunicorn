@@ -6,9 +6,8 @@ if [ "${1:0:1}" = '-' ] || [ -z "${1##*:*}" ]; then
     # First arg is a flag or contains ':' (app:callable), run gunicorn
 
     # Build bind address from GUNICORN_HOST and GUNICORN_PORT, or use GUNICORN_BIND
-    # Default: listen on both IPv4 and IPv6
     PORT="${GUNICORN_PORT:-8000}"
-    BIND="${GUNICORN_BIND:-${GUNICORN_HOST:-[::]}:${PORT}}"
+    BIND="${GUNICORN_BIND:-${GUNICORN_HOST:-0.0.0.0}:${PORT}}"
 
     # Add bind if not specified in args or GUNICORN_ARGS
     if [[ ! " $* $GUNICORN_ARGS " =~ " --bind " ]] && [[ ! " $* $GUNICORN_ARGS " =~ " -b " ]] && [[ ! "$* $GUNICORN_ARGS" =~ --bind= ]] && [[ ! "$* $GUNICORN_ARGS" =~ -b= ]]; then
