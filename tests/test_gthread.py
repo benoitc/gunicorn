@@ -1282,3 +1282,118 @@ class TestSignalInteraction:
         assert worker.alive is False  # But shutting down
 
         worker.method_queue.close()
+
+
+class TestFinishBodySSL:
+    """Tests for SSL error handling in finish_body()."""
+
+    def test_finish_body_handles_ssl_want_read_error(self):
+        """Test that finish_body() handles SSLWantReadError gracefully.
+
+        When discarding unread body data on SSL connections, the socket
+        may raise SSLWantReadError if there's no application data available.
+        This should be treated as "no more data" rather than an error.
+        """
+        import ssl
+        from gunicorn.http.parser import RequestParser
+
+        # Create a mock SSL socket that raises SSLWantReadError on recv
+        class MockSSLSocket:
+            def __init__(self):
+                self._fileno = 123
+
+            def fileno(self):
+                return self._fileno
+
+            def recv(self, size):
+                raise ssl.SSLWantReadError("The operation did not complete")
+
+            def setblocking(self, blocking):
+                pass
+
+        cfg = Config()
+        sock = MockSSLSocket()
+        parser = RequestParser(cfg, sock, ('127.0.0.1', 12345))
+
+        # Create a mock message with a body that will trigger socket read
+        mock_body = mock.Mock()
+        mock_body.read.side_effect = ssl.SSLWantReadError("The operation did not complete")
+
+        mock_mesg = mock.Mock()
+        mock_mesg.body = mock_body
+        parser.mesg = mock_mesg
+
+        # finish_body() should handle SSLWantReadError without raising
+        parser.finish_body()  # Should not raise
+
+        # Verify body.read was called
+        mock_body.read.assert_called_once_with(8192)
+
+    def test_finish_body_reads_all_data_before_ssl_error(self):
+        """Test that finish_body() reads all available data before SSLWantReadError."""
+        import ssl
+        from gunicorn.http.parser import RequestParser
+
+        cfg = Config()
+
+        # Create a mock socket
+        class MockSocket:
+            def recv(self, size):
+                return b''
+
+            def setblocking(self, blocking):
+                pass
+
+        sock = MockSocket()
+        parser = RequestParser(cfg, sock, ('127.0.0.1', 12345))
+
+        # Create a mock message body that returns data then raises SSLWantReadError
+        call_count = [0]
+        def mock_read(size):
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                return b'x' * size  # Return data first two times
+            raise ssl.SSLWantReadError("The operation did not complete")
+
+        mock_body = mock.Mock()
+        mock_body.read.side_effect = mock_read
+
+        mock_mesg = mock.Mock()
+        mock_mesg.body = mock_body
+        parser.mesg = mock_mesg
+
+        # finish_body() should read all data and handle SSLWantReadError
+        parser.finish_body()  # Should not raise
+
+        # Verify body.read was called multiple times (2 data reads + 1 error)
+        assert call_count[0] == 3
+
+    def test_finish_body_normal_operation(self):
+        """Test that finish_body() works normally when no SSL error occurs."""
+        from gunicorn.http.parser import RequestParser
+
+        cfg = Config()
+
+        class MockSocket:
+            def recv(self, size):
+                return b''
+
+            def setblocking(self, blocking):
+                pass
+
+        sock = MockSocket()
+        parser = RequestParser(cfg, sock, ('127.0.0.1', 12345))
+
+        # Create a mock message body that returns empty (end of data)
+        mock_body = mock.Mock()
+        mock_body.read.return_value = b''
+
+        mock_mesg = mock.Mock()
+        mock_mesg.body = mock_body
+        parser.mesg = mock_mesg
+
+        # finish_body() should work normally
+        parser.finish_body()
+
+        # Verify body.read was called once and returned empty
+        mock_body.read.assert_called_once_with(8192)
