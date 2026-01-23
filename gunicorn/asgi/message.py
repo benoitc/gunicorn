@@ -39,17 +39,21 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
 
 
-def _ip_in_allow_list(ip_str, allow_list):
-    """Check if IP address is in the allow list (which may contain networks)."""
+def _ip_in_allow_list(ip_str, allow_list, networks):
+    """Check if IP address is in the allow list.
+
+    Args:
+        ip_str: The IP address string to check
+        allow_list: The original allow list (strings, may contain "*")
+        networks: Pre-computed ipaddress.ip_network objects from config
+    """
     if '*' in allow_list:
         return True
     try:
         ip = ipaddress.ip_address(ip_str)
     except ValueError:
         return False
-    for network in allow_list:
-        if network == '*':
-            return True
+    for network in networks:
         if ip in network:
             return True
     return False
@@ -219,7 +223,8 @@ class AsyncRequest:
     def _proxy_protocol_access_check(self):
         """Check if proxy protocol is allowed from this peer."""
         if (isinstance(self.peer_addr, tuple) and
-                not _ip_in_allow_list(self.peer_addr[0], self.cfg.proxy_allow_ips)):
+                not _ip_in_allow_list(self.peer_addr[0], self.cfg.proxy_allow_ips,
+                                      self.cfg.proxy_allow_networks())):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
     async def _parse_proxy_protocol_v1(self, buf):
@@ -430,7 +435,8 @@ class AsyncRequest:
         if from_trailer:
             pass
         elif (not isinstance(self.peer_addr, tuple)
-              or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips)):
+              or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips,
+                                   cfg.forwarded_allow_networks())):
             secure_scheme_headers = cfg.secure_scheme_headers
             forwarder_headers = cfg.forwarder_headers
 

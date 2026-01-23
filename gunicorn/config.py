@@ -47,6 +47,8 @@ class Config:
 
     def __init__(self, usage=None, prog=None):
         self.settings = make_settings()
+        self._forwarded_allow_networks = None
+        self._proxy_allow_networks = None
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
@@ -173,6 +175,26 @@ class Config:
     @property
     def is_ssl(self):
         return self.certfile or self.keyfile
+
+    def forwarded_allow_networks(self):
+        """Return cached network objects for forwarded_allow_ips (internal use)."""
+        if self._forwarded_allow_networks is None:
+            self._forwarded_allow_networks = [
+                ipaddress.ip_network(addr)
+                for addr in self.forwarded_allow_ips
+                if addr != "*"
+            ]
+        return self._forwarded_allow_networks
+
+    def proxy_allow_networks(self):
+        """Return cached network objects for proxy_allow_ips (internal use)."""
+        if self._proxy_allow_networks is None:
+            self._proxy_allow_networks = [
+                ipaddress.ip_network(addr)
+                for addr in self.proxy_allow_ips
+                if addr != "*"
+            ]
+        return self._proxy_allow_networks
 
     @property
     def ssl_options(self):
@@ -407,15 +429,16 @@ def validate_list_of_existing_files(val):
 def validate_string_to_addr_list(val):
     val = validate_string_to_list(val)
 
-    result = []
     for addr in val:
         if addr == "*":
-            result.append(addr)
             continue
-        # Support both single IPs and CIDR networks
-        result.append(ipaddress.ip_network(addr, strict=False))
+        # Validate that it's a valid IP address or CIDR network
+        # but keep the string representation for backward compatibility.
+        # Use strict mode to detect mistakes like 192.168.1.1/24 where
+        # host bits are set (should be 192.168.1.0/24).
+        ipaddress.ip_network(addr)
 
-    return result
+    return val
 
 
 def validate_string_to_list(val):
