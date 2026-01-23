@@ -1798,9 +1798,19 @@
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>PROXY Protocol v2 Support</strong>: Extended PROXY protocol implementation to support
+<li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
+  Container Registry at <code>ghcr.io/benoitc/gunicorn</code>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3454">PR #3454</a>)</li>
+<li>Based on Python 3.12 slim image</li>
+<li>Uses recommended worker formula (2 × CPU + 1)</li>
+<li>
+<p>Configurable via environment variables</p>
+</li>
+<li>
+<p><strong>PROXY Protocol v2 Support</strong>: Extended PROXY protocol implementation to support
   the binary v2 format in addition to the existing text-based v1 format
-  (<a href="https://github.com/benoitc/gunicorn/pull/3451">PR #3451</a>)</li>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3451">PR #3451</a>)</p>
+</li>
 <li>New <code>--proxy-protocol</code> modes: <code>off</code>, <code>v1</code>, <code>v2</code>, <code>auto</code></li>
 <li><code>auto</code> mode (default when enabled) detects v1 or v2 automatically</li>
 <li>v2 binary format is more efficient and supports additional metadata</li>
