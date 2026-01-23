@@ -1,7 +1,7 @@
 <span id="news"></span>
 # Changelog
 
-## 24.0.0 - 2026-XX-XX
+## 24.0.0 - 2026-01-23
 
 ### New Features
 
