@@ -49,8 +49,10 @@ class Unreader:
         return data[:size]
 
     def unread(self, data):
-        self.buf.seek(0, os.SEEK_END)
+        rest = self.buf.getvalue()
+        self.buf = io.BytesIO()
         self.buf.write(data)
+        self.buf.write(rest)
 
 
 class SocketUnreader(Unreader):
