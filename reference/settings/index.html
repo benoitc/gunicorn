@@ -1445,6 +1445,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#enable_backlog_metric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        enable_backlog_metric
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3212,7 +3223,7 @@ environment variable <code>PYTHONUNBUFFERED</code> .</p>
 <p><strong>Command line:</strong> <code>--dogstatsd-tags DOGSTATSD_TAGS</code></p>
 <p><strong>Default:</strong> <code>''</code></p>
 <p>A comma-delimited list of datadog statsd (dogstatsd) tags to append to
-statsd metrics.</p>
+statsd metrics. e.g. <code>'tag1:value1,tag2:value2'</code></p>
 <div class="admonition info">
 <p class="admonition-title">Added in 20</p>
 </div>
@@ -3224,6 +3235,12 @@ if not provided).</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 19.2</p>
 </div>
+<h3 id="enable_backlog_metric"><code>enable_backlog_metric</code><a class="headerlink" href="#enable_backlog_metric" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--enable-backlog-metric</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Enable socket backlog metric (only supported on Linux).</p>
+<p>When enabled, gunicorn will emit a <code>gunicorn.backlog</code> histogram metric
+showing the number of connections waiting in the socket backlog.</p>
 <h2 id="process-naming">Process Naming<a class="headerlink" href="#process-naming" title="Permanent link">&para;</a></h2>
 <h3 id="proc_name"><code>proc_name</code><a class="headerlink" href="#proc_name" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>-n STRING</code>, <code>--name STRING</code></p>
@@ -3438,7 +3455,8 @@ the Request.</p>
 </code></pre></div>
 <p>Called after a worker processes the request.</p>
 <p>The callable needs to accept two instance variables for the Worker and
-the Request.</p>
+the Request. If a third parameter is defined it will be passed the
+environment. If a fourth parameter is defined it will be passed the Response.</p>
 <h3 id="child_exit"><code>child_exit</code><a class="headerlink" href="#child_exit" title="Permanent link">&para;</a></h3>
 <p><strong>Default:</strong></p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">child_exit</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
@@ -3632,8 +3650,10 @@ the headers defined here can not be passed directly from the client.</p>
 <h3 id="forwarded_allow_ips"><code>forwarded_allow_ips</code><a class="headerlink" href="#forwarded_allow_ips" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--forwarded-allow-ips STRING</code></p>
 <p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
-<p>Front-end's IPs from which allowed to handle set secure headers.
-(comma separated).</p>
+<p>Front-end's IP addresses or networks from which allowed to handle
+set secure headers. (comma separated).</p>
+<p>Supports both individual IP addresses (e.g., <code>192.168.1.1</code>) and
+CIDR networks (e.g., <code>192.168.0.0/16</code>).</p>
 <p>Set to <code>*</code> to disable checking of front-end IPs. This is useful for setups
 where you don't know in advance the IP address of front-end, but
 instead have ensured via other means that only your
@@ -3737,7 +3757,10 @@ key = /etc/ssl/certs/stunnel.key
 <h3 id="proxy_allow_ips"><code>proxy_allow_ips</code><a class="headerlink" href="#proxy_allow_ips" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--proxy-allow-from</code></p>
 <p><strong>Default:</strong> <code>'127.0.0.1,::1'</code></p>
-<p>Front-end's IPs from which allowed accept proxy requests (comma separated).</p>
+<p>Front-end's IP addresses or networks from which allowed accept
+proxy requests (comma separated).</p>
+<p>Supports both individual IP addresses (e.g., <code>192.168.1.1</code>) and
+CIDR networks (e.g., <code>192.168.0.0/16</code>).</p>
 <p>Set to <code>*</code> to disable checking of front-end IPs. This is useful for setups
 where you don't know in advance the IP address of front-end, but
 instead have ensured via other means that only your
