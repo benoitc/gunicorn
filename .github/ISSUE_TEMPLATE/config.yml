@@ -1,11 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Bug Report
-    url: https://github.com/benoitc/gunicorn/discussions/new?category=q-a
-    about: Report a bug or unexpected behavior (starts as a discussion for triage)
-  - name: Feature Request
-    url: https://github.com/benoitc/gunicorn/discussions/new?category=ideas
-    about: Suggest a new feature or improvement
+  - name: Bug Report / Feature Request
+    url: https://github.com/benoitc/gunicorn/discussions/new?category=issue-triage
+    about: Report a bug or request a feature (triaged before becoming an issue)
   - name: Question
     url: https://github.com/benoitc/gunicorn/discussions/new?category=q-a
     about: Ask a question about configuration, deployment, or usage
