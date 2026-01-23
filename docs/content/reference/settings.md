@@ -285,7 +285,14 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.jso
 
 **Command line:** `--log-syslog-to SYSLOG_ADDR`
 
-**Default:** `'unix:///var/run/syslog'`
+**Default:**
+
+Platform-specific:
+
+* macOS: ``'unix:///var/run/syslog'``
+* FreeBSD/DragonFly: ``'unix:///var/run/log'``
+* OpenBSD: ``'unix:///dev/log'``
+* Linux/other: ``'udp://localhost:514'``
 
 Address to send syslog messages.
 
@@ -1442,11 +1449,11 @@ libraries may be installed using setuptools' ``extras_require`` feature.
 A string referring to one of the following bundled classes:
 
 * ``sync``
-* ``eventlet`` - Requires eventlet >= 0.24.1 (or install it via
+* ``eventlet`` - Requires eventlet >= 0.40.3 (or install it via
   ``pip install gunicorn[eventlet]``)
-* ``gevent``   - Requires gevent >= 1.4 (or install it via
+* ``gevent``   - Requires gevent >= 24.10.1 (or install it via
   ``pip install gunicorn[gevent]``)
-* ``tornado``  - Requires tornado >= 0.2 (or install it via
+* ``tornado``  - Requires tornado >= 6.5.0 (or install it via
   ``pip install gunicorn[tornado]``)
 * ``gthread``  - Python 2 requires the futures package to be installed
   (or install it via ``pip install gunicorn[gthread]``)

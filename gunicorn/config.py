@@ -1568,6 +1568,15 @@ class SyslogTo(Setting):
     else:
         default = "udp://localhost:514"
 
+    default_doc = """\
+    Platform-specific:
+
+    * macOS: ``'unix:///var/run/syslog'``
+    * FreeBSD/DragonFly: ``'unix:///var/run/log'``
+    * OpenBSD: ``'unix:///dev/log'``
+    * Linux/other: ``'udp://localhost:514'``
+    """
+
     desc = """\
     Address to send syslog messages.
 
