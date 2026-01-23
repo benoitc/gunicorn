@@ -1224,10 +1224,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Breaking changes
+        Security
       
     </span>
   </a>
@@ -1252,7 +1252,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_1" class="md-nav__link">
+  <a href="#breaking-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking changes
@@ -1280,7 +1280,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_2" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking changes
@@ -1291,7 +1291,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
+  <a href="#security_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Security
@@ -1842,9 +1842,11 @@
 <p><strong>Documentation Migration</strong>: Migrated to MkDocs with Material theme</p>
 </li>
 </ul>
-<h3 id="breaking-changes">Breaking changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Minimum Python version is now 3.12</li>
+<li><strong>eventlet</strong>: Require eventlet &gt;= 0.40.3 (CVE-2021-21419, CVE-2025-58068)</li>
+<li><strong>gevent</strong>: Require gevent &gt;= 24.10.1 (CVE-2023-41419, CVE-2024-3219)</li>
+<li><strong>tornado</strong>: Require tornado &gt;= 6.5.0 (CVE-2025-47287)</li>
 </ul>
 <hr />
 <h2 id="2300-2024-08-10">23.0.0 - 2024-08-10<a class="headerlink" href="#2300-2024-08-10" title="Permanent link">&para;</a></h2>
@@ -1868,7 +1870,7 @@
 <li>Review your <a href="../reference/settings/#forwarder_headers">forwarder-headers</a> setting if you are missing headers after upgrading from a version prior to 22.0.0</li>
 </ul>
 </div>
-<h3 id="breaking-changes_1">Breaking changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="breaking-changes">Breaking changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>refuse requests where the uri field is empty (<a href="https://github.com/benoitc/gunicorn/pull/3255">PR #3255</a>)</li>
 <li>refuse requests with invalid CR/LR/NUL in heade field values (<a href="https://github.com/benoitc/gunicorn/pull/3253">PR #3253</a>)</li>
@@ -1886,7 +1888,7 @@
 <li>Trailer fields are no longer inspected for headers indicating secure scheme</li>
 <li>support Python 3.12</li>
 </ul>
-<h3 id="breaking-changes_2">Breaking changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">&para;</a></h3>
+<h3 id="breaking-changes_1">Breaking changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>minimum version is Python 3.7</li>
 <li>the limitations on valid characters in the HTTP method have been bounded to Internet Standards</li>
@@ -1900,7 +1902,7 @@
 <li>requests with both Transfer-Encoding and Content-Length are refused by default (such a message might indicate an attempt to perform request smuggling)</li>
 <li>empty transfer codings are no longer permitted (reportedly seen with really old &amp; broken proxies)</li>
 </ul>
-<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<h3 id="security_1">Security<a class="headerlink" href="#security_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>fix CVE-2024-1135</li>
 </ul>

@@ -1252,10 +1252,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes" class="md-nav__link">
+  <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Changes
+        Security
       
     </span>
   </a>
@@ -1263,10 +1263,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Breaking changes
+        Changes
       
     </span>
   </a>
@@ -1783,14 +1783,28 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3426">PR #3426</a>)</p>
 </li>
 </ul>
+<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>eventlet</strong>: Require eventlet &gt;= 0.40.3 to address CVE-2021-21419 (websocket
+  memory exhaustion) and CVE-2025-58068 (HTTP request smuggling)
+  (<a href="https://github.com/benoitc/gunicorn/pull/3445">PR #3445</a>)</p>
+</li>
+<li>
+<p><strong>gevent</strong>: Require gevent &gt;= 24.10.1 to address CVE-2023-41419 (HTTP request
+  smuggling) and CVE-2024-3219 (socket.socketpair vulnerability)
+  (<a href="https://github.com/benoitc/gunicorn/pull/3445">PR #3445</a>)</p>
+</li>
+<li>
+<p><strong>tornado</strong>: Require tornado &gt;= 6.5.0 to address CVE-2025-47287 (HTTP request
+  smuggling) and other security fixes
+  (<a href="https://github.com/benoitc/gunicorn/pull/3445">PR #3445</a>)</p>
+</li>
+</ul>
 <h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Minimum Python version is now 3.12</li>
 <li>Documentation now hosted at <a href="https://gunicorn.org">https://gunicorn.org</a></li>
-</ul>
-<h3 id="breaking-changes">Breaking changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Dropped support for Python versions before 3.12</li>
+<li>Updated license configuration to PEP 639 format for uv compatibility</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">ASGI Worker Beta</p>
