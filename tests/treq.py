@@ -39,6 +39,27 @@ def load_py(fname):
     return vars(mod)
 
 
+def decode_hex_escapes(data):
+    """Decode hex escape sequences like \\xAB in test data."""
+    import re
+    result = bytearray()
+    i = 0
+    while i < len(data):
+        # Check for \xHH hex escape
+        if i + 3 < len(data) and data[i:i+2] == b'\\x':
+            hex_chars = data[i+2:i+4]
+            try:
+                byte_val = int(hex_chars, 16)
+                result.append(byte_val)
+                i += 4
+                continue
+            except ValueError:
+                pass
+        result.append(data[i])
+        i += 1
+    return bytes(result)
+
+
 class request:
     def __init__(self, fname, expect):
         self.fname = fname
@@ -52,8 +73,10 @@ class request:
             self.data = handle.read()
         self.data = self.data.replace(b"\n", b"").replace(b"\\r\\n", b"\r\n")
         self.data = self.data.replace(b"\\0", b"\000").replace(b"\\n", b"\n").replace(b"\\t", b"\t")
+        # Handle hex escape sequences for binary data (e.g., \x0D for PROXY v2)
+        self.data = decode_hex_escapes(self.data)
         if b"\\" in self.data:
-            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL and CRLF")
+            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL, CRLF, and hex escapes")
 
     # Functions for sending data to the parser.
     # These functions mock out reading from a

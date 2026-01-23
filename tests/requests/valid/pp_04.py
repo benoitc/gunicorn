@@ -1,0 +1,15 @@
+from gunicorn.config import Config
+
+cfg = Config()
+cfg.set("proxy_protocol", True)
+
+request = {
+    "method": "GET",
+    "uri": uri("/proxy/v2/ipv4"),
+    "version": (1, 1),
+    "headers": [
+        ("HOST", "example.com"),
+        ("CONTENT-LENGTH", "0")
+    ],
+    "body": b""
+}
