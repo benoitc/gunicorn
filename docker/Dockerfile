@@ -9,8 +9,10 @@ RUN useradd --create-home --shell /bin/bash gunicorn
 
 WORKDIR /app
 
-# Install gunicorn
-RUN pip install --no-cache-dir gunicorn
+# Install gunicorn from source
+COPY pyproject.toml README.rst LICENSE ./
+COPY gunicorn/ ./gunicorn/
+RUN pip install --no-cache-dir .
 
 # Copy entrypoint script
 COPY docker/docker-entrypoint.sh /usr/local/bin/
