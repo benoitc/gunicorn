@@ -73,7 +73,7 @@ body:
     attributes:
       label: Gunicorn Version
       description: Output of `gunicorn --version`
-      placeholder: gunicorn 24.0.0
+      placeholder: gunicorn 24.1.0
     validations:
       required: true
 
