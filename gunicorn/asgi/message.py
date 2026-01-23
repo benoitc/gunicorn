@@ -9,16 +9,21 @@ Reuses the parsing logic from the sync version, adapted for async I/O.
 """
 
 import io
+import ipaddress
 import re
 import socket
+import struct
 
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
     UnsupportedTransferCoding, ObsoleteFolding,
-    InvalidProxyLine, ForbiddenProxyRequest,
+    InvalidProxyLine, InvalidProxyHeader, ForbiddenProxyRequest,
     InvalidSchemeHeaders,
+)
+from gunicorn.http.message import (
+    PP_V2_SIGNATURE, PPCommand, PPFamily, PPProtocol
 )
 from gunicorn.util import bytes_to_str, split_request_uri
 
@@ -32,6 +37,22 @@ TOKEN_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(RFC9110_5_6_2_TOKEN_SPECIAL
 METHOD_BADCHAR_RE = re.compile("[a-z#]")
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
+
+
+def _ip_in_allow_list(ip_str, allow_list):
+    """Check if IP address is in the allow list (which may contain networks)."""
+    if '*' in allow_list:
+        return True
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+    for network in allow_list:
+        if network == '*':
+            return True
+        if ip in network:
+            return True
+    return False
 
 
 class AsyncRequest:
@@ -111,33 +132,29 @@ class AsyncRequest:
 
     async def _parse(self):
         """Parse the request from the unreader."""
-        buf = io.BytesIO()
-        await self._get_data(buf, stop=True)
+        buf = bytearray()
+        await self._read_into(buf, stop=True)
+
+        # Handle proxy protocol if enabled and this is the first request
+        mode = self.cfg.proxy_protocol
+        if mode != "off" and self.req_number == 1:
+            buf = await self._handle_proxy_protocol(buf, mode)
 
         # Get request line
-        line, rbuf = await self._read_line(buf, self.limit_request_line)
-
-        # Proxy protocol
-        if self._proxy_protocol(bytes_to_str(line)):
-            # Get next request line
-            buf = io.BytesIO()
-            buf.write(rbuf)
-            line, rbuf = await self._read_line(buf, self.limit_request_line)
+        line, buf = await self._read_line(buf, self.limit_request_line)
 
         self._parse_request_line(line)
-        buf = io.BytesIO()
-        buf.write(rbuf)
 
         # Headers
-        data = buf.getvalue()
+        data = bytes(buf)
 
         while True:
             idx = data.find(b"\r\n\r\n")
             done = data[:2] == b"\r\n"
 
             if idx < 0 and not done:
-                await self._get_data(buf)
-                data = buf.getvalue()
+                await self._read_into(buf)
+                data = bytes(buf)
                 if len(data) > self.max_buffer_headers:
                     raise LimitRequestHeaders("max buffer headers")
             else:
@@ -151,18 +168,18 @@ class AsyncRequest:
 
         self._set_body_reader()
 
-    async def _get_data(self, buf, stop=False):
-        """Read data from unreader into buffer."""
+    async def _read_into(self, buf, stop=False):
+        """Read data from unreader and append to bytearray buffer."""
         data = await self.unreader.read()
         if not data:
             if stop:
                 raise StopIteration()
-            raise NoMoreData(buf.getvalue())
-        buf.write(data)
+            raise NoMoreData(bytes(buf))
+        buf.extend(data)
 
     async def _read_line(self, buf, limit=0):
-        """Read a line from the buffer/stream."""
-        data = buf.getvalue()
+        """Read a line from buffer, returning (line, remaining_buffer)."""
+        data = bytes(buf)
 
         while True:
             idx = data.find(b"\r\n")
@@ -172,36 +189,54 @@ class AsyncRequest:
                 break
             if len(data) - 2 > limit > 0:
                 raise LimitRequestLine(len(data), limit)
-            await self._get_data(buf)
-            data = buf.getvalue()
+            await self._read_into(buf)
+            data = bytes(buf)
 
-        return (data[:idx], data[idx + 2:])
+        return (data[:idx], bytearray(data[idx + 2:]))
 
-    def _proxy_protocol(self, line):
-        """Detect, check and parse proxy protocol."""
-        if not self.cfg.proxy_protocol:
-            return False
+    async def _handle_proxy_protocol(self, buf, mode):
+        """Handle PROXY protocol detection and parsing.
 
-        if self.req_number != 1:
-            return False
+        Returns the buffer with proxy protocol data consumed.
+        """
+        # Ensure we have enough data to detect v2 signature (12 bytes)
+        while len(buf) < 12:
+            await self._read_into(buf)
 
-        if not line.startswith("PROXY"):
-            return False
+        # Check for v2 signature first
+        if mode in ("v2", "auto") and buf[:12] == PP_V2_SIGNATURE:
+            self._proxy_protocol_access_check()
+            return await self._parse_proxy_protocol_v2(buf)
 
-        self._proxy_protocol_access_check()
-        self._parse_proxy_protocol(line)
+        # Check for v1 prefix
+        if mode in ("v1", "auto") and buf[:6] == b"PROXY ":
+            self._proxy_protocol_access_check()
+            return await self._parse_proxy_protocol_v1(buf)
 
-        return True
+        # Not proxy protocol - return buffer unchanged
+        return buf
 
     def _proxy_protocol_access_check(self):
         """Check if proxy protocol is allowed from this peer."""
-        if ("*" not in self.cfg.proxy_allow_ips and
-            isinstance(self.peer_addr, tuple) and
-                self.peer_addr[0] not in self.cfg.proxy_allow_ips):
+        if (isinstance(self.peer_addr, tuple) and
+                not _ip_in_allow_list(self.peer_addr[0], self.cfg.proxy_allow_ips)):
             raise ForbiddenProxyRequest(self.peer_addr[0])
 
-    def _parse_proxy_protocol(self, line):
-        """Parse proxy protocol header line."""
+    async def _parse_proxy_protocol_v1(self, buf):
+        """Parse PROXY protocol v1 (text format).
+
+        Returns buffer with v1 header consumed.
+        """
+        # Read until we find \r\n
+        data = bytes(buf)
+        while b"\r\n" not in data:
+            await self._read_into(buf)
+            data = bytes(buf)
+
+        idx = data.find(b"\r\n")
+        line = bytes_to_str(data[:idx])
+        remaining = bytearray(data[idx + 2:])
+
         bits = line.split(" ")
 
         if len(bits) != 6:
@@ -243,6 +278,101 @@ class AsyncRequest:
             "proxy_addr": d_addr,
             "proxy_port": d_port
         }
+
+        return remaining
+
+    async def _parse_proxy_protocol_v2(self, buf):
+        """Parse PROXY protocol v2 (binary format).
+
+        Returns buffer with v2 header consumed.
+        """
+        # We need at least 16 bytes for the header (12 signature + 4 header)
+        while len(buf) < 16:
+            await self._read_into(buf)
+
+        # Parse header fields (after 12-byte signature)
+        ver_cmd = buf[12]
+        fam_proto = buf[13]
+        length = struct.unpack(">H", bytes(buf[14:16]))[0]
+
+        # Validate version (high nibble must be 0x2)
+        version = (ver_cmd & 0xF0) >> 4
+        if version != 2:
+            raise InvalidProxyHeader("unsupported version %d" % version)
+
+        # Extract command (low nibble)
+        command = ver_cmd & 0x0F
+        if command not in (PPCommand.LOCAL, PPCommand.PROXY):
+            raise InvalidProxyHeader("unsupported command %d" % command)
+
+        # Ensure we have the complete header
+        total_header_size = 16 + length
+        while len(buf) < total_header_size:
+            await self._read_into(buf)
+
+        # For LOCAL command, no address info is provided
+        if command == PPCommand.LOCAL:
+            self.proxy_protocol_info = {
+                "proxy_protocol": "LOCAL",
+                "client_addr": None,
+                "client_port": None,
+                "proxy_addr": None,
+                "proxy_port": None
+            }
+            return bytearray(buf[total_header_size:])
+
+        # Extract address family and protocol
+        family = (fam_proto & 0xF0) >> 4
+        protocol = fam_proto & 0x0F
+
+        # We only support TCP (STREAM)
+        if protocol != PPProtocol.STREAM:
+            raise InvalidProxyHeader("only TCP protocol is supported")
+
+        addr_data = bytes(buf[16:16 + length])
+
+        if family == PPFamily.INET:  # IPv4
+            if length < 12:  # 4+4+2+2
+                raise InvalidProxyHeader("insufficient address data for IPv4")
+            s_addr = socket.inet_ntop(socket.AF_INET, addr_data[0:4])
+            d_addr = socket.inet_ntop(socket.AF_INET, addr_data[4:8])
+            s_port = struct.unpack(">H", addr_data[8:10])[0]
+            d_port = struct.unpack(">H", addr_data[10:12])[0]
+            proto = "TCP4"
+
+        elif family == PPFamily.INET6:  # IPv6
+            if length < 36:  # 16+16+2+2
+                raise InvalidProxyHeader("insufficient address data for IPv6")
+            s_addr = socket.inet_ntop(socket.AF_INET6, addr_data[0:16])
+            d_addr = socket.inet_ntop(socket.AF_INET6, addr_data[16:32])
+            s_port = struct.unpack(">H", addr_data[32:34])[0]
+            d_port = struct.unpack(">H", addr_data[34:36])[0]
+            proto = "TCP6"
+
+        elif family == PPFamily.UNSPEC:
+            # No address info provided with PROXY command
+            self.proxy_protocol_info = {
+                "proxy_protocol": "UNSPEC",
+                "client_addr": None,
+                "client_port": None,
+                "proxy_addr": None,
+                "proxy_port": None
+            }
+            return bytearray(buf[total_header_size:])
+
+        else:
+            raise InvalidProxyHeader("unsupported address family %d" % family)
+
+        # Set data
+        self.proxy_protocol_info = {
+            "proxy_protocol": proto,
+            "client_addr": s_addr,
+            "client_port": s_port,
+            "proxy_addr": d_addr,
+            "proxy_port": d_port
+        }
+
+        return bytearray(buf[total_header_size:])
 
     def _parse_request_line(self, line_bytes):
         """Parse the HTTP request line."""
@@ -299,9 +429,8 @@ class AsyncRequest:
         forwarder_headers = []
         if from_trailer:
             pass
-        elif ('*' in cfg.forwarded_allow_ips or
-              not isinstance(self.peer_addr, tuple)
-              or self.peer_addr[0] in cfg.forwarded_allow_ips):
+        elif (not isinstance(self.peer_addr, tuple)
+              or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips)):
             secure_scheme_headers = cfg.secure_scheme_headers
             forwarder_headers = cfg.forwarder_headers
 

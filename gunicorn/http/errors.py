@@ -131,6 +131,15 @@ class InvalidProxyLine(ParseException):
         return "Invalid PROXY line: %r" % self.line
 
 
+class InvalidProxyHeader(ParseException):
+    def __init__(self, msg):
+        self.msg = msg
+        self.code = 400
+
+    def __str__(self):
+        return "Invalid PROXY header: %s" % self.msg
+
+
 class ForbiddenProxyRequest(ParseException):
     def __init__(self, host):
         self.host = host

@@ -2082,20 +2082,57 @@ class NewSSLContext(Setting):
         """
 
 
+def validate_proxy_protocol(val):
+    """Validate proxy_protocol setting.
+
+    Accepts: off, false, v1, v2, auto, true
+    Returns normalized value: off, v1, v2, or auto
+    """
+    if val is None:
+        return "off"
+    if isinstance(val, bool):
+        return "auto" if val else "off"
+    if not isinstance(val, str):
+        raise TypeError("proxy_protocol must be string or bool")
+
+    val = val.lower().strip()
+    mapping = {
+        "false": "off", "off": "off", "0": "off", "none": "off",
+        "true": "auto", "auto": "auto", "1": "auto",
+        "v1": "v1", "v2": "v2",
+    }
+    if val not in mapping:
+        raise ValueError("proxy_protocol must be: off, v1, v2, or auto")
+    return mapping[val]
+
+
 class ProxyProtocol(Setting):
     name = "proxy_protocol"
     section = "Server Mechanics"
     cli = ["--proxy-protocol"]
-    validator = validate_bool
-    default = False
-    action = "store_true"
+    meta = "MODE"
+    validator = validate_proxy_protocol
+    default = "off"
+    nargs = "?"
+    const = "auto"
     desc = """\
-        Enable detect PROXY protocol (PROXY mode).
+        Enable PROXY protocol support.
 
-        Allow using HTTP and Proxy together. It may be useful for work with
-        stunnel as HTTPS frontend and Gunicorn as HTTP server.
+        Allow using HTTP and PROXY protocol together. It may be useful for work
+        with stunnel as HTTPS frontend and Gunicorn as HTTP server, or with
+        HAProxy.
 
-        PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+        Accepted values:
+
+        * ``off`` - Disabled (default)
+        * ``v1`` - PROXY protocol v1 only (text format)
+        * ``v2`` - PROXY protocol v2 only (binary format)
+        * ``auto`` - Auto-detect v1 or v2
+
+        Using ``--proxy-protocol`` without a value is equivalent to ``auto``.
+
+        PROXY protocol v1: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+        PROXY protocol v2: https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
 
         Example for stunnel config::
 
@@ -2105,6 +2142,9 @@ class ProxyProtocol(Setting):
             connect = 80
             cert = /etc/ssl/certs/stunnel.pem
             key = /etc/ssl/certs/stunnel.key
+
+        .. versionchanged:: 24.0.0
+           Extended to support version selection (v1, v2, auto).
         """
 
 

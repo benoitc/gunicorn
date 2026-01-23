@@ -1385,7 +1385,7 @@ class TestKeepaliveBlockingMode:
         conn.parser = mock_parser
 
         # Mock handle_request to invoke wsgi
-        original_handle_request = worker.handle_request
+        _ = worker.handle_request  # save reference before overwriting
 
         def mock_handle_request(req, conn):
             # Simplified version that just calls wsgi

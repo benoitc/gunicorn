@@ -1,0 +1,4 @@
+GET /no/proxy/header HTTP/1.1\r\n
+Host: example.com\r\n
+Content-Length: 0\r\n
+\r\n

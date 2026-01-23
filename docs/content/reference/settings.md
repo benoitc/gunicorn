@@ -1148,16 +1148,27 @@ command line arguments to control server configuration instead.
 
 ### `proxy_protocol`
 
-**Command line:** `--proxy-protocol`
+**Command line:** `--proxy-protocol MODE`
 
-**Default:** `False`
+**Default:** `'off'`
 
-Enable detect PROXY protocol (PROXY mode).
+Enable PROXY protocol support.
 
-Allow using HTTP and Proxy together. It may be useful for work with
-stunnel as HTTPS frontend and Gunicorn as HTTP server.
+Allow using HTTP and PROXY protocol together. It may be useful for work
+with stunnel as HTTPS frontend and Gunicorn as HTTP server, or with
+HAProxy.
 
-PROXY protocol: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+Accepted values:
+
+* ``off`` - Disabled (default)
+* ``v1`` - PROXY protocol v1 only (text format)
+* ``v2`` - PROXY protocol v2 only (binary format)
+* ``auto`` - Auto-detect v1 or v2
+
+Using ``--proxy-protocol`` without a value is equivalent to ``auto``.
+
+PROXY protocol v1: http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt
+PROXY protocol v2: https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
 
 Example for stunnel config::
 
@@ -1167,6 +1178,9 @@ Example for stunnel config::
     connect = 80
     cert = /etc/ssl/certs/stunnel.pem
     key = /etc/ssl/certs/stunnel.key
+
+!!! info "Changed in 24.0.0"
+    Extended to support version selection (v1, v2, auto).
 
 ### `proxy_allow_ips`
 

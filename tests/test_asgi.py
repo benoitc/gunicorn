@@ -8,6 +8,7 @@ Tests for ASGI worker components.
 
 import asyncio
 import io
+import ipaddress
 import pytest
 from unittest import mock
 
@@ -48,9 +49,9 @@ class MockConfig:
 
     def __init__(self):
         self.is_ssl = False
-        self.proxy_protocol = False
-        self.proxy_allow_ips = ["127.0.0.1"]
-        self.forwarded_allow_ips = ["127.0.0.1"]
+        self.proxy_protocol = "off"
+        self.proxy_allow_ips = [ipaddress.ip_network("127.0.0.1")]
+        self.forwarded_allow_ips = [ipaddress.ip_network("127.0.0.1")]
         self.secure_scheme_headers = {}
         self.forwarder_headers = []
         self.limit_request_line = 8190
