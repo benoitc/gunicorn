@@ -20,8 +20,8 @@
 === "Docker"
 
     ```bash
-    docker run -p 8000:8000 -v $(pwd):/app -w /app \
-        python:3.12-slim sh -c "pip install gunicorn && gunicorn app:app"
+    docker pull ghcr.io/benoitc/gunicorn:latest
+    docker run -p 8000:8000 -v $(pwd):/app ghcr.io/benoitc/gunicorn app:app
     ```
 
     See the [Docker guide](guides/docker.md) for production configurations.

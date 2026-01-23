@@ -4,6 +4,81 @@ Running Gunicorn in Docker containers is the most common deployment pattern
 for modern Python applications. This guide covers best practices for
 containerizing Gunicorn applications.
 
+## Official Docker Image
+
+Gunicorn provides an official Docker image on GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/benoitc/gunicorn:latest
+```
+
+### Quick Start
+
+Mount your application directory and run:
+
+```bash
+docker run -p 8000:8000 -v $(pwd):/app ghcr.io/benoitc/gunicorn app:app
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GUNICORN_BIND` | Full bind address | `[::]:8000` (IPv4+IPv6) |
+| `GUNICORN_HOST` | Bind host | `[::]` |
+| `GUNICORN_PORT` | Bind port | `8000` |
+| `GUNICORN_WORKERS` | Number of workers | Number of CPUs |
+| `GUNICORN_ARGS` | Additional arguments | (none) |
+
+### With Configuration
+
+```bash
+docker run -p 9000:9000 -v $(pwd):/app \
+  -e GUNICORN_PORT=9000 \
+  -e GUNICORN_WORKERS=4 \
+  -e GUNICORN_ARGS="--timeout 120 --access-logfile -" \
+  ghcr.io/benoitc/gunicorn app:app
+```
+
+### As Base Image (Recommended for Production)
+
+```dockerfile
+FROM ghcr.io/benoitc/gunicorn:24.1.0
+
+# Install app dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY --chown=gunicorn:gunicorn . .
+
+CMD ["myapp:app", "--workers", "4"]
+```
+
+### With Docker Compose
+
+```yaml
+services:
+  web:
+    image: ghcr.io/benoitc/gunicorn:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+    command: ["myapp:app", "--workers", "4"]
+```
+
+### Available Tags
+
+- `ghcr.io/benoitc/gunicorn:latest` - Latest release
+- `ghcr.io/benoitc/gunicorn:24.1.0` - Specific version
+- `ghcr.io/benoitc/gunicorn:24.1` - Minor version
+- `ghcr.io/benoitc/gunicorn:24` - Major version
+
+## Building Your Own Image
+
+For more control, build a custom image using the patterns below.
+
 ## Basic Dockerfile
 
 ```dockerfile
