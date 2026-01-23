@@ -62,6 +62,8 @@ class Config:
         return "\n".join(lines)
 
     def __getattr__(self, name):
+        if name == "settings":
+            raise AttributeError()
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         return self.settings[name].get()
