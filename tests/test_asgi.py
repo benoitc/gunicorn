@@ -50,8 +50,10 @@ class MockConfig:
     def __init__(self):
         self.is_ssl = False
         self.proxy_protocol = "off"
-        self.proxy_allow_ips = [ipaddress.ip_network("127.0.0.1")]
-        self.forwarded_allow_ips = [ipaddress.ip_network("127.0.0.1")]
+        self.proxy_allow_ips = ["127.0.0.1"]
+        self.forwarded_allow_ips = ["127.0.0.1"]
+        self._proxy_allow_networks = None
+        self._forwarded_allow_networks = None
         self.secure_scheme_headers = {}
         self.forwarder_headers = []
         self.limit_request_line = 8190
@@ -63,6 +65,24 @@ class MockConfig:
         self.casefold_http_method = False
         self.strip_header_spaces = False
         self.header_map = "refuse"
+
+    def forwarded_allow_networks(self):
+        if self._forwarded_allow_networks is None:
+            self._forwarded_allow_networks = [
+                ipaddress.ip_network(addr)
+                for addr in self.forwarded_allow_ips
+                if addr != "*"
+            ]
+        return self._forwarded_allow_networks
+
+    def proxy_allow_networks(self):
+        if self._proxy_allow_networks is None:
+            self._proxy_allow_networks = [
+                ipaddress.ip_network(addr)
+                for addr in self.proxy_allow_ips
+                if addr != "*"
+            ]
+        return self._proxy_allow_networks
 
 
 # AsyncUnreader Tests
