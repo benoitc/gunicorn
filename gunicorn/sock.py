@@ -15,7 +15,7 @@ from gunicorn import util
 PLATFORM = sys.platform
 
 
-if PLATFORM == "linux":
+if PLATFORM != "linux":
     def get_backlog(sock):
         return -1
 else:
