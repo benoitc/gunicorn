@@ -551,8 +551,11 @@ class Arbiter:
                         if sig == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
                             self.log.error(msg)
+                        elif sig == signal.SIGTERM:
+                            # SIGTERM is expected during graceful shutdown
+                            self.log.info(msg)
                         else:
-                            # SIGTERM/SIGQUIT are expected during shutdown
+                            # Other signals are unexpected
                             self.log.warning(msg)
 
                     if exitcode is not None and exitcode != 0:
