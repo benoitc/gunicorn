@@ -27,8 +27,8 @@ else:
         if sock.family not in (socket.AF_INET, socket.AF_INET6):
             return -1
         try:
-            tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
-                                                   socket.TCP_INFO, 104)
+            tcp_info_struct = sock.getsockopt(socket.IPPROTO_TCP,
+                                              socket.TCP_INFO, 104)
             return struct.unpack(_TCPI_FMT, tcp_info_struct)[_TCPI_INDEX_UNACKED]
         except (AttributeError, OSError):
             pass
@@ -124,7 +124,6 @@ def create_sockets(conf, log, fds=None):
     # no sockets is bound, first initialization of gunicorn in this env.
     old_umask = os.umask(conf.umask)
     try:
-        bind_list = [bind for bind in conf.address if not isinstance(bind, int)]
         for addr in laddr:
             sock = create_socket(conf, log, addr)
             set_socket_options(conf, sock)
