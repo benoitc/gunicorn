@@ -2225,7 +2225,7 @@ class KeyFile(Setting):
     section = "SSL"
     cli = ["--keyfile"]
     meta = "FILE"
-    validator = validate_file_exists
+    validator = validate_string
     default = None
     desc = """\
     SSL key file
@@ -2237,7 +2237,7 @@ class CertFile(Setting):
     section = "SSL"
     cli = ["--certfile"]
     meta = "FILE"
-    validator = validate_file_exists
+    validator = validate_string
     default = None
     desc = """\
     SSL certificate file
