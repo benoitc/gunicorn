@@ -370,7 +370,7 @@ Address is a string of the form:
 **Default:** `''`
 
 A comma-delimited list of datadog statsd (dogstatsd) tags to append to
-statsd metrics.
+statsd metrics. e.g. ``'tag1:value1,tag2:value2'``
 
 !!! info "Added in 20"
 
@@ -384,6 +384,17 @@ Prefix to use when emitting statsd metrics (a trailing ``.`` is added,
 if not provided).
 
 !!! info "Added in 19.2"
+
+### `enable_backlog_metric`
+
+**Command line:** `--enable-backlog-metric`
+
+**Default:** `False`
+
+Enable socket backlog metric (only supported on Linux).
+
+When enabled, gunicorn will emit a ``gunicorn.backlog`` histogram metric
+showing the number of connections waiting in the socket backlog.
 
 ## Process Naming
 
@@ -726,7 +737,8 @@ def post_request(worker, req, environ, resp):
 Called after a worker processes the request.
 
 The callable needs to accept two instance variables for the Worker and
-the Request.
+the Request. If a third parameter is defined it will be passed the
+environment. If a fourth parameter is defined it will be passed the Response.
 
 ### `child_exit`
 
@@ -1031,8 +1043,11 @@ the headers defined here can not be passed directly from the client.
 
 **Default:** `'127.0.0.1,::1'`
 
-Front-end's IPs from which allowed to handle set secure headers.
-(comma separated).
+Front-end's IP addresses or networks from which allowed to handle
+set secure headers. (comma separated).
+
+Supports both individual IP addresses (e.g., ``192.168.1.1``) and
+CIDR networks (e.g., ``192.168.0.0/16``).
 
 Set to ``*`` to disable checking of front-end IPs. This is useful for setups
 where you don't know in advance the IP address of front-end, but
@@ -1159,7 +1174,11 @@ Example for stunnel config::
 
 **Default:** `'127.0.0.1,::1'`
 
-Front-end's IPs from which allowed accept proxy requests (comma separated).
+Front-end's IP addresses or networks from which allowed accept
+proxy requests (comma separated).
+
+Supports both individual IP addresses (e.g., ``192.168.1.1``) and
+CIDR networks (e.g., ``192.168.0.0/16``).
 
 Set to ``*`` to disable checking of front-end IPs. This is useful for setups
 where you don't know in advance the IP address of front-end, but
