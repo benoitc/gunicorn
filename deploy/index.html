@@ -727,6 +727,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#proxy-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PROXY Protocol
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PROXY Protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haproxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HAProxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stunnel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stunnel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#awselb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS/ELB
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#using-virtual-environments" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1934,6 +1995,70 @@ proxy IP rather than the upstream client. To log the real client address, set
 <div class="highlight"><pre><span></span><code>%({x-forwarded-for}i)s %(l.md)s %(u.md)s %(t.md)s &quot;%(r.md)s&quot; %(s.md)s %(b.md)s &quot;%(f.md)s&quot; &quot;%(a.md)s&quot;
 </code></pre></div>
 <p>When binding Gunicorn to a UNIX socket <code>REMOTE_ADDR</code> will be empty.</p>
+<h2 id="proxy-protocol">PROXY Protocol<a class="headerlink" href="#proxy-protocol" title="Permanent link">&para;</a></h2>
+<p>The <a href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">PROXY protocol</a>
+allows load balancers and reverse proxies to pass original client connection
+information (IP address, port) to backend servers. This is especially useful
+when TLS termination happens at the proxy layer.</p>
+<p>Gunicorn supports both PROXY protocol v1 (text format) and v2 (binary format).</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>Enable PROXY protocol with the <code>--proxy-protocol</code> option:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Auto-detect v1 or v2 (recommended)</span>
+gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>auto<span class="w"> </span>app:app
+
+<span class="c1"># Force v1 only (text format)</span>
+gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>v1<span class="w"> </span>app:app
+
+<span class="c1"># Force v2 only (binary format, more efficient)</span>
+gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>v2<span class="w"> </span>app:app
+</code></pre></div>
+<p>Using <code>--proxy-protocol</code> without a value is equivalent to <code>auto</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Security</p>
+<p>Only enable PROXY protocol when Gunicorn is behind a trusted proxy that sends
+PROXY headers. Configure <a href="../reference/settings/#proxy_allow_ips"><code>--proxy-allow-from</code></a>
+to restrict which IPs can send PROXY protocol headers.</p>
+</div>
+<h3 id="haproxy">HAProxy<a class="headerlink" href="#haproxy" title="Permanent link">&para;</a></h3>
+<p>HAProxy can send PROXY protocol headers to backends. Example configuration:</p>
+<div class="highlight"><pre><span></span><code>frontend https_front
+    bind *:443 ssl crt /etc/ssl/certs/site.pem
+    default_backend gunicorn_back
+
+backend gunicorn_back
+    # Send PROXY protocol v2 (binary, more efficient)
+    server gunicorn 127.0.0.1:8000 send-proxy-v2
+
+    # Or use v1 (text format)
+    # server gunicorn 127.0.0.1:8000 send-proxy
+</code></pre></div>
+<p>Start Gunicorn to accept PROXY protocol:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-b<span class="w"> </span><span class="m">127</span>.0.0.1:8000<span class="w"> </span>--proxy-protocol<span class="w"> </span>v2<span class="w"> </span>--proxy-allow-from<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>app:app
+</code></pre></div>
+<h3 id="stunnel">stunnel<a class="headerlink" href="#stunnel" title="Permanent link">&para;</a></h3>
+<p><a href="https://www.stunnel.org/">stunnel</a> can terminate TLS and forward connections
+with PROXY protocol headers:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># /etc/stunnel/stunnel.conf</span>
+<span class="k">[https]</span>
+<span class="na">accept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">443</span>
+<span class="na">connect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">127.0.0.1:8000</span>
+<span class="na">cert</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/etc/ssl/certs/stunnel.pem</span>
+<span class="na">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/etc/ssl/certs/stunnel.key</span>
+<span class="na">protocol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">proxy</span>
+</code></pre></div>
+<p>The <code>protocol = proxy</code> directive tells stunnel to prepend PROXY protocol v1
+headers to forwarded connections.</p>
+<h3 id="awselb">AWS/ELB<a class="headerlink" href="#awselb" title="Permanent link">&para;</a></h3>
+<p>AWS Network Load Balancers (NLB) and Application Load Balancers (ALB) support
+PROXY protocol v2. Enable it in the target group settings, then configure
+Gunicorn:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>v2<span class="w"> </span>--proxy-allow-from<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="w"> </span>app:app
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using <code>--proxy-allow-from '*'</code> ensure Gunicorn is not directly
+accessible from the internet—only through the load balancer.</p>
+</div>
 <h2 id="using-virtual-environments">Using virtual environments<a class="headerlink" href="#using-virtual-environments" title="Permanent link">&para;</a></h2>
 <p>Install Gunicorn inside your project
 <a href="https://pypi.python.org/pypi/virtualenv">virtual environment</a> to keep versions

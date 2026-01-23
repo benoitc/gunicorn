@@ -1229,6 +1229,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2410-2026-01-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24.1.0 - 2026-01-23
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="24.1.0 - 2026-01-23">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2400-2026-01-23" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1241,7 +1280,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1756,8 +1795,76 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
-<h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
+<h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>PROXY Protocol v2 Support</strong>: Extended PROXY protocol implementation to support
+  the binary v2 format in addition to the existing text-based v1 format
+  (<a href="https://github.com/benoitc/gunicorn/pull/3451">PR #3451</a>)</li>
+<li>New <code>--proxy-protocol</code> modes: <code>off</code>, <code>v1</code>, <code>v2</code>, <code>auto</code></li>
+<li><code>auto</code> mode (default when enabled) detects v1 or v2 automatically</li>
+<li>v2 binary format is more efficient and supports additional metadata</li>
+<li>
+<p>Works with HAProxy, AWS NLB/ALB, and other PROXY protocol v2 sources</p>
+</li>
+<li>
+<p><strong>CIDR Network Support</strong>: <code>--forwarded-allow-ips</code> and <code>--proxy-allow-from</code> now
+  accept CIDR notation (e.g., <code>192.168.0.0/16</code>) for specifying trusted networks
+  (<a href="https://github.com/benoitc/gunicorn/pull/3449">PR #3449</a>)</p>
+</li>
+<li>
+<p><strong>Socket Backlog Metric</strong>: New <code>gunicorn.socket.backlog</code> gauge metric reports
+  the current socket backlog size on Linux systems
+  (<a href="https://github.com/benoitc/gunicorn/pull/3450">PR #3450</a>)</p>
+</li>
+<li>
+<p><strong>InotifyReloader Enhancement</strong>: The inotify-based reloader now watches newly
+  imported modules, not just those loaded at startup
+  (<a href="https://github.com/benoitc/gunicorn/pull/3447">PR #3447</a>)</p>
+</li>
+</ul>
+<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Fix socket blocking mode on keepalive connections preventing SSL handshake
+  failures with async workers
+  (<a href="https://github.com/benoitc/gunicorn/pull/3452">PR #3452</a>)</p>
+</li>
+<li>
+<p>Use smaller buffer size in <code>finish_body()</code> for faster timeout detection on
+  slow or abandoned connections
+  (<a href="https://github.com/benoitc/gunicorn/pull/3453">PR #3453</a>)</p>
+</li>
+<li>
+<p>Handle <code>SSLWantReadError</code> in <code>finish_body()</code> to prevent worker hangs during
+  SSL renegotiation
+  (<a href="https://github.com/benoitc/gunicorn/pull/3448">PR #3448</a>)</p>
+</li>
+<li>
+<p>Log SIGTERM as info level instead of warning to reduce noise in orchestrated
+  environments
+  (<a href="https://github.com/benoitc/gunicorn/pull/3446">PR #3446</a>)</p>
+</li>
+<li>
+<p>Print exception details to stderr when worker fails to boot
+  (<a href="https://github.com/benoitc/gunicorn/pull/3443">PR #3443</a>)</p>
+</li>
+<li>
+<p>Fix <code>unreader.unread()</code> to prepend data to buffer instead of appending
+  (<a href="https://github.com/benoitc/gunicorn/pull/3442">PR #3442</a>)</p>
+</li>
+<li>
+<p>Prevent <code>RecursionError</code> when pickling Config objects
+  (<a href="https://github.com/benoitc/gunicorn/pull/3441">PR #3441</a>)</p>
+</li>
+<li>
+<p>Use proper exception chaining with <code>raise from</code> in glogging.py
+  (<a href="https://github.com/benoitc/gunicorn/pull/3440">PR #3440</a>)</p>
+</li>
+</ul>
+<hr />
+<h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies
