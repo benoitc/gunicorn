@@ -158,7 +158,7 @@ class Arbiter:
             if not (self.cfg.reuse_port and hasattr(socket, 'SO_REUSEPORT')):
                 self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
-        listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
+        listeners_str = ",".join([sock.get_uri(lnr, self.cfg.is_ssl) for lnr in self.LISTENERS])
         self.log.debug("Arbiter booted")
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
@@ -459,7 +459,7 @@ class Arbiter:
                 lnr.close()
             # init new listeners
             self.LISTENERS = sock.create_sockets(self.cfg, self.log)
-            listeners_str = ",".join([str(lnr) for lnr in self.LISTENERS])
+            listeners_str = ",".join([sock.get_uri(lnr, self.cfg.is_ssl) for lnr in self.LISTENERS])
             self.log.info("Listening at: %s", listeners_str)
 
         # do some actions on reload
@@ -601,8 +601,8 @@ class Arbiter:
                                   "mtype": "gauge"})
 
         if self.cfg.enable_backlog_metric:
-            backlog = sum(sock.get_backlog() or 0
-                          for sock in self.LISTENERS)
+            backlog = sum(sock.get_backlog(lnr) or 0
+                          for lnr in self.LISTENERS)
 
             if backlog >= 0:
                 self.log.debug("socket backlog: {0}".format(backlog),

@@ -7,7 +7,6 @@ import os
 import socket
 import ssl
 import stat
-import struct
 import sys
 import time
 
@@ -16,150 +15,76 @@ from gunicorn import util
 PLATFORM = sys.platform
 
 
-class BaseSocket:
-
-    def __init__(self, address, conf, log, fd=None):
-        self.log = log
-        self.conf = conf
-
-        self.cfg_addr = address
-        if fd is None:
-            sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
-            bound = False
-        else:
-            sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
-            os.close(fd)
-            bound = True
-
-        self.sock = self.set_options(sock, bound=bound)
-
-    def __str__(self):
-        return "<socket %d>" % self.sock.fileno()
-
-    def __getattr__(self, name):
-        return getattr(self.sock, name)
-
-    def set_options(self, sock, bound=False):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if (self.conf.reuse_port
-                and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
-            try:
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            except OSError as err:
-                if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL):
-                    raise
-        if not bound:
-            self.bind(sock)
-        sock.setblocking(0)
-
-        # make sure that the socket can be inherited
-        if hasattr(sock, "set_inheritable"):
-            sock.set_inheritable(True)
-
-        sock.listen(self.conf.backlog)
-        return sock
-
-    def bind(self, sock):
-        sock.bind(self.cfg_addr)
-
-    def close(self):
-        if self.sock is None:
-            return
-
-        try:
-            self.sock.close()
-        except OSError as e:
-            self.log.info("Error while closing socket %s", str(e))
-
-        self.sock = None
-
-    def get_backlog(self):
+if PLATFORM == "linux":
+    def get_backlog(sock):
         return -1
-
-
-class TCPSocket(BaseSocket):
-
-    FAMILY = socket.AF_INET
-
-    def __str__(self):
-        if self.conf.is_ssl:
-            scheme = "https"
-        else:
-            scheme = "http"
-
-        addr = self.sock.getsockname()
-        return "%s://%s:%d" % (scheme, addr[0], addr[1])
-
-    def set_options(self, sock, bound=False):
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        return super().set_options(sock, bound=bound)
-
-    if PLATFORM == "linux":
-        def get_backlog(self):
-            if self.sock:
-                # tcp_info struct from include/uapi/linux/tcp.h
-                fmt = 'B' * 8 + 'I' * 24
-                try:
-                    tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
-                                                           socket.TCP_INFO, 104)
-                    # 12 is tcpi_unacked
-                    return struct.unpack(fmt, tcp_info_struct)[12]
-                except (AttributeError, OSError):
-                    pass
-            return 0
-    else:
-        def get_backlog(self):
+else:
+    import struct
+    # tcp_info struct from include/uapi/linux/tcp.h
+    _TCPI_FMT = 'B' * 8 + 'I' * 24
+    _TCPI_INDEX_UNACKED = 12
+    def get_backlog(sock):
+        if sock.family not in (socket.AF_INET, socket.AF_INET6):
             return -1
+        try:
+            tcp_info_struct = self.sock.getsockopt(socket.IPPROTO_TCP,
+                                                   socket.TCP_INFO, 104)
+            return struct.unpack(_TCPI_FMT, tcp_info_struct)[_TCPI_INDEX_UNACKED]
+        except (AttributeError, OSError):
+            pass
+        return 0
 
 
-class TCP6Socket(TCPSocket):
-
-    FAMILY = socket.AF_INET6
-
-    def __str__(self):
-        (host, port, _, _) = self.sock.getsockname()
-        return "http://[%s]:%d" % (host, port)
-
-
-class UnixSocket(BaseSocket):
-
-    FAMILY = socket.AF_UNIX
-
-    def __init__(self, addr, conf, log, fd=None):
-        if fd is None:
-            try:
-                st = os.stat(addr)
-            except OSError as e:
-                if e.args[0] != errno.ENOENT:
-                    raise
-            else:
-                if stat.S_ISSOCK(st.st_mode):
-                    os.remove(addr)
-                else:
-                    raise ValueError("%r is not a socket" % addr)
-        super().__init__(addr, conf, log, fd=fd)
-
-    def __str__(self):
-        return "unix:%s" % self.cfg_addr
-
-    def bind(self, sock):
-        old_umask = os.umask(self.conf.umask)
-        sock.bind(self.cfg_addr)
-        util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
-        os.umask(old_umask)
-
-
-def _sock_type(addr):
+def _get_socket_family(addr):
     if isinstance(addr, tuple):
         if util.is_ipv6(addr[0]):
-            sock_type = TCP6Socket
+            return socket.AF_INET6
         else:
-            sock_type = TCPSocket
-    elif isinstance(addr, (str, bytes)):
-        sock_type = UnixSocket
-    else:
-        raise TypeError("Unable to create socket from: %r" % addr)
-    return sock_type
+            return socket.AF_INET
+
+    if isinstance(addr, (str, bytes)):
+        return socket.AF_UNIX
+
+    raise TypeError("Unable to determine socket family for: %r" % addr)
+
+
+def create_socket(conf, log, addr):
+    family = _get_socket_family(addr)
+
+    if family is socket.AF_UNIX:
+        # remove any existing socket at the given path
+        try:
+            st = os.stat(addr)
+        except OSError as err:
+            if err.args[0] != errno.ENOENT:
+                raise
+        else:
+            if stat.S_ISSOCK(st.st_mode):
+                os.remove(addr)
+            else:
+                raise ValueError("%r already exists but is not a UNIX socket" % addr)
+
+    for i in range(5):
+        try:
+            sock = socket.socket(family)
+            sock.bind(addr)
+            sock.listen(conf.backlog)
+            if family is socket.AF_UNIX:
+                util.chown(addr, conf.uid, conf.gid)
+            return sock
+        except OSError as e:
+            if e.errno == errno.EADDRINUSE:
+                log.error("Connection in use: %s", str(addr))
+            if e.errno == errno.EADDRNOTAVAIL:
+                log.error("Invalid address: %s", str(addr))
+            msg = "connection to {addr} failed: {error}"
+            log.error(msg.format(addr=str(addr), error=str(e)))
+            if i < 5:
+                log.debug("Retrying in 1 second.")
+                time.sleep(1)
+
+    log.error("Can't connect to %s", str(addr))
+    sys.exit(1)
 
 
 def create_sockets(conf, log, fds=None):
@@ -190,49 +115,70 @@ def create_sockets(conf, log, fds=None):
     # sockets are already bound
     if fdaddr:
         for fd in fdaddr:
-            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            sock_name = sock.getsockname()
-            sock_type = _sock_type(sock_name)
-            listener = sock_type(sock_name, conf, log, fd=fd)
-            listeners.append(listener)
-
+            # no file descriptor duplication
+            sock = socket.socket(fileno=fd)
+            set_socket_options(conf, sock)
+            listeners.append(sock)
         return listeners
 
     # no sockets is bound, first initialization of gunicorn in this env.
-    for addr in laddr:
-        sock_type = _sock_type(addr)
-        sock = None
-        for i in range(5):
-            try:
-                sock = sock_type(addr, conf, log)
-            except OSError as e:
-                if e.args[0] == errno.EADDRINUSE:
-                    log.error("Connection in use: %s", str(addr))
-                if e.args[0] == errno.EADDRNOTAVAIL:
-                    log.error("Invalid address: %s", str(addr))
-                msg = "connection to {addr} failed: {error}"
-                log.error(msg.format(addr=str(addr), error=str(e)))
-                if i < 5:
-                    log.debug("Retrying in 1 second.")
-                    time.sleep(1)
-            else:
-                break
-
-        if sock is None:
-            log.error("Can't connect to %s", str(addr))
-            sys.exit(1)
-
-        listeners.append(sock)
+    old_umask = os.umask(conf.umask)
+    try:
+        bind_list = [bind for bind in conf.address if not isinstance(bind, int)]
+        for addr in laddr:
+            sock = create_socket(conf, log, addr)
+            set_socket_options(conf, sock)
+            listeners.append(sock)
+    finally:
+        os.umask(old_umask)
 
     return listeners
 
 
 def close_sockets(listeners, unlink=True):
     for sock in listeners:
-        sock_name = sock.getsockname()
-        sock.close()
-        if unlink and _sock_type(sock_name) is UnixSocket:
-            os.unlink(sock_name)
+        try:
+            if unlink and sock.family is socket.AF_UNIX:
+                sock_name = sock.getsockname()
+                os.unlink(sock_name)
+        finally:
+            sock.close()
+
+
+def get_uri(listener, is_ssl):
+    addr = listener.getsockname()
+    family = _get_socket_family(addr)
+    scheme = "https" if is_ssl else "http"
+
+    if family is socket.AF_INET:
+        (host, port) = listener.getsockname()
+        return f"{scheme}://{host}:{port}"
+
+    if family is socket.AF_INET6:
+        (host, port, _, _) = listener.getsockname()
+        return f"{scheme}://[{host}]:{port}"
+
+    if family is socket.AF_UNIX:
+        path = listener.getsockname()
+        return f"unix://{path}"
+
+
+def set_socket_options(conf, sock):
+    sock.setblocking(False)
+
+    # make sure that the socket can be inherited
+    if hasattr(sock, "set_inheritable"):
+        sock.set_inheritable(True)
+
+    if sock.family in (socket.AF_INET, socket.AF_INET6):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if (conf.reuse_port and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except OSError as err:
+                if err.errno not in (errno.ENOPROTOOPT, errno.EINVAL):
+                    raise
 
 
 def ssl_context(conf):
