@@ -21,7 +21,9 @@ if PLATFORM != "linux":
 else:
     import struct
     # tcp_info struct from include/uapi/linux/tcp.h
-    _TCPI_FMT = 'B' * 8 + 'I' * 24
+    _TCPI_FMT = '=' + 'B' * 8 + 'I' * 24
+    # getsockopt silently truncates to requested length
+    _TCPI_LEN = struct.calcsize(_TCPI_FMT)  # 104
     _TCPI_INDEX_UNACKED = 12
 
     def get_backlog(sock):
@@ -29,7 +31,7 @@ else:
             return -1
         try:
             tcp_info_struct = sock.getsockopt(socket.IPPROTO_TCP,
-                                              socket.TCP_INFO, 104)
+                                              socket.TCP_INFO, _TCPI_LEN)
             return struct.unpack(_TCPI_FMT, tcp_info_struct)[_TCPI_INDEX_UNACKED]
         except (AttributeError, OSError):
             pass
