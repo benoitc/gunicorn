@@ -237,7 +237,7 @@ class Logger:
                     ValueError,
                     TypeError
             ) as exc:
-                raise RuntimeError(str(exc))
+                raise RuntimeError(str(exc)) from exc
         elif cfg.logconfig_json:
             config = CONFIG_DEFAULTS.copy()
             if os.path.exists(cfg.logconfig_json):
@@ -252,7 +252,7 @@ class Logger:
                     ValueError,
                     TypeError
                 ) as exc:
-                    raise RuntimeError(str(exc))
+                    raise RuntimeError(str(exc)) from exc
         elif cfg.logconfig:
             if os.path.exists(cfg.logconfig):
                 defaults = CONFIG_DEFAULTS.copy()
@@ -442,8 +442,8 @@ class Logger:
         # syslog facility
         try:
             facility = SYSLOG_FACILITIES[cfg.syslog_facility.lower()]
-        except KeyError:
-            raise RuntimeError("unknown facility name")
+        except KeyError as exc:
+            raise RuntimeError("unknown facility name") from exc
 
         # parse syslog address
         socktype, addr = parse_syslog_address(cfg.syslog_addr)
