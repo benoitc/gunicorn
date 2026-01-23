@@ -767,6 +767,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#running-in-background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running in Background
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#environment-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1997,6 +2008,26 @@ containerizing Gunicorn applications.</p>
 <h3 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h3>
 <p>Mount your application directory and run:</p>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
+</code></pre></div>
+<h3 id="running-in-background">Running in Background<a class="headerlink" href="#running-in-background" title="Permanent link">&para;</a></h3>
+<p>Use <code>-d</code> (detached mode) to run the container in the background:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Start in background</span>
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>myapp<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
+
+<span class="c1"># View logs</span>
+docker<span class="w"> </span>logs<span class="w"> </span>myapp
+
+<span class="c1"># Follow logs in real-time</span>
+docker<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>myapp
+
+<span class="c1"># Stop the container</span>
+docker<span class="w"> </span>stop<span class="w"> </span>myapp
+
+<span class="c1"># Start it again</span>
+docker<span class="w"> </span>start<span class="w"> </span>myapp
+
+<span class="c1"># Remove the container</span>
+docker<span class="w"> </span>rm<span class="w"> </span>myapp
 </code></pre></div>
 <h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
 <table>
