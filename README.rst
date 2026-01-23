@@ -1,5 +1,5 @@
 Gunicorn
---------
+========
 
 .. image:: https://img.shields.io/pypi/v/gunicorn.svg?style=flat
     :alt: PyPI version
@@ -13,60 +13,58 @@ Gunicorn
     :alt: Build Status
     :target: https://github.com/benoitc/gunicorn/actions/workflows/tox.yml
 
-.. image:: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml/badge.svg
-    :alt: Lint Status
-    :target: https://github.com/benoitc/gunicorn/actions/workflows/lint.yml
-
 Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
 worker model ported from Ruby's Unicorn_ project. The Gunicorn server is broadly
 compatible with various web frameworks, simply implemented, light on server
 resource usage, and fairly speedy.
 
-Feel free to join us in `#gunicorn`_ on `Libera.chat`_.
+**New in v24**: Native ASGI support (beta) for async frameworks like FastAPI!
+
+Quick Start
+-----------
+
+.. code-block:: bash
+
+    pip install gunicorn
+    gunicorn myapp:app --workers 4
+
+For ASGI applications (FastAPI, Starlette):
+
+.. code-block:: bash
+
+    gunicorn myapp:app --worker-class asgi
+
+Features
+--------
+
+- WSGI support for Django, Flask, Pyramid, and any WSGI framework
+- **ASGI support** (beta) for FastAPI, Starlette, Quart
+- uWSGI binary protocol for nginx integration
+- Multiple worker types: sync, gthread, gevent, eventlet, asgi
+- Graceful worker process management
+- Compatible with Python 3.12+
 
 Documentation
 -------------
 
-The documentation is hosted at https://docs.gunicorn.org.
+Full documentation at https://gunicorn.org
 
-Installation
-------------
+- `Quickstart <https://gunicorn.org/quickstart/>`_
+- `Configuration <https://gunicorn.org/configure/>`_
+- `Deployment <https://gunicorn.org/deploy/>`_
+- `Settings Reference <https://gunicorn.org/reference/settings/>`_
 
-Gunicorn requires **Python 3.x >= 3.10**.
+Community
+---------
 
-Install from PyPI::
-
-    $ pip install gunicorn
-
-
-Usage
------
-
-Basic usage::
-
-    $ gunicorn [OPTIONS] APP_MODULE
-
-Where ``APP_MODULE`` is of the pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``. The
-module name can be a full dotted path. The variable name refers to a WSGI
-callable that should be found in the specified module.
-
-Example with test app::
-
-    $ cd examples
-    $ gunicorn --workers=2 test:app
-
-
-Contributing
-------------
-
-See `our complete contributor's guide <CONTRIBUTING.md>`_ for more details.
-
+- Report bugs on `GitHub Issues <https://github.com/benoitc/gunicorn/issues>`_
+- Chat in `#gunicorn`_ on `Libera.chat`_
+- See `CONTRIBUTING.md <CONTRIBUTING.md>`_ for contribution guidelines
 
 License
 -------
 
-Gunicorn is released under the MIT License. See the LICENSE_ file for more
-details.
+Gunicorn is released under the MIT License. See the LICENSE_ file for details.
 
 .. _Unicorn: https://bogomips.org/unicorn/
 .. _`#gunicorn`: https://web.libera.chat/?channels=#gunicorn

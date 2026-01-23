@@ -1,0 +1,131 @@
+site_name: Gunicorn
+site_url: https://gunicorn.org
+repo_url: https://github.com/benoitc/gunicorn
+repo_name: benoitc/gunicorn
+docs_dir: docs/content
+use_directory_urls: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quickstart: quickstart.md
+      - Install: install.md
+      - Run: run.md
+      - Configure: configure.md
+  - Guides:
+      - Deploy: deploy.md
+      - Docker: guides/docker.md
+      - ASGI Worker: asgi.md
+      - uWSGI Protocol: uwsgi.md
+      - Signals: signals.md
+      - Instrumentation: instrumentation.md
+      - Custom: custom.md
+      - Design: design.md
+  - Community:
+      - Overview: community.md
+      - FAQ: faq.md
+  - Reference:
+      - Settings: reference/settings.md
+  - News:
+      - Latest: news.md
+      - '2026': 2026-news.md
+      - '2024': 2024-news.md
+      - '2023': 2023-news.md
+      - '2021': 2021-news.md
+      - '2020': 2020-news.md
+      - '2019': 2019-news.md
+      - '2018': 2018-news.md
+      - '2017': 2017-news.md
+      - '2016': 2016-news.md
+      - '2015': 2015-news.md
+      - '2014': 2014-news.md
+      - '2013': 2013-news.md
+      - '2012': 2012-news.md
+      - '2011': 2011-news.md
+      - '2010': 2010-news.md
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  logo: assets/gunicorn.svg
+  favicon: assets/gunicorn.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.path
+    - search.highlight
+    - search.suggest
+    - search.share
+    - toc.follow
+    - toc.integrate
+    - header.autohide
+
+plugins:
+  - search
+  - macros
+  - gen-files:
+      scripts:
+        - scripts/build_settings_doc.py
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_css:
+  - styles/overrides.css
+  - assets/stylesheets/home.css
+
+extra_javascript:
+  - assets/javascripts/toc-collapse.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/benoitc/gunicorn
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/gunicorn/

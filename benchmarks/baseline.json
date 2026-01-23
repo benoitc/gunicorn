@@ -1,0 +1,8 @@
+{
+  "gthread": {
+    "simple": {},
+    "simple_high_concurrency": {},
+    "slow_io": {},
+    "large_response": {}
+  }
+}
