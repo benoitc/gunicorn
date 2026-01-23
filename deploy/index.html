@@ -2031,7 +2031,6 @@ socket and launch Gunicorn on demand.</p>
 <span class="na">NotifyAccess</span><span class="o">=</span><span class="s">main</span>
 <span class="na">User</span><span class="o">=</span><span class="s">someuser</span>
 <span class="na">Group</span><span class="o">=</span><span class="s">someuser</span>
-<span class="na">RuntimeDirectory</span><span class="o">=</span><span class="s">gunicorn</span>
 <span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/home/someuser/applicationroot</span>
 <span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/bin/gunicorn applicationname.wsgi</span>
 <span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -s HUP $MAINPID</span>
