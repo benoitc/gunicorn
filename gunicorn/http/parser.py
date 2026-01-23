@@ -36,9 +36,9 @@ class Parser:
         """
         if self.mesg:
             try:
-                data = self.mesg.body.read(8192)
+                data = self.mesg.body.read(1024)
                 while data:
-                    data = self.mesg.body.read(8192)
+                    data = self.mesg.body.read(1024)
             except ssl.SSLWantReadError:
                 # SSL socket has no more application data available
                 pass

@@ -1443,7 +1443,7 @@ class TestFinishBodySSL:
         parser.finish_body()  # Should not raise
 
         # Verify body.read was called
-        mock_body.read.assert_called_once_with(8192)
+        mock_body.read.assert_called_once_with(1024)
 
     def test_finish_body_reads_all_data_before_ssl_error(self):
         """Test that finish_body() reads all available data before SSLWantReadError."""
@@ -1513,4 +1513,4 @@ class TestFinishBodySSL:
         parser.finish_body()
 
         # Verify body.read was called once and returned empty
-        mock_body.read.assert_called_once_with(8192)
+        mock_body.read.assert_called_once_with(1024)
