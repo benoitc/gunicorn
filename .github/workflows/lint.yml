@@ -48,5 +48,6 @@ jobs:
           else
             echo "did you forget to run 'python scripts/build_settings_doc.py'?"
             echo "$unclean"
+            git diff
             exit 2
           fi
