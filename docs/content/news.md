@@ -1,6 +1,42 @@
 <span id="news"></span>
 # Changelog
 
+## 24.1.0 - 2026-01-23
+
+### New Features
+
+- **Official Docker Image**: Gunicorn now publishes official Docker images to GitHub
+  Container Registry at `ghcr.io/benoitc/gunicorn`
+  - Based on Python 3.12 slim image
+  - Uses recommended worker formula (2 × CPU + 1)
+  - Configurable via environment variables
+
+- **PROXY Protocol v2 Support**: Extended PROXY protocol implementation to support
+  the binary v2 format in addition to the existing text-based v1 format
+  - New `--proxy-protocol` modes: `off`, `v1`, `v2`, `auto`
+  - Works with HAProxy, AWS NLB/ALB, and other PROXY protocol v2 sources
+
+- **CIDR Network Support**: `--forwarded-allow-ips` and `--proxy-allow-from` now
+  accept CIDR notation (e.g., `192.168.0.0/16`) for specifying trusted networks
+
+- **Socket Backlog Metric**: New `gunicorn.socket.backlog` gauge metric reports
+  the current socket backlog size on Linux systems
+
+- **InotifyReloader Enhancement**: The inotify-based reloader now watches newly
+  imported modules, not just those loaded at startup
+
+### Bug Fixes
+
+- Fix signal handling regression where SIGCLD alias caused errors on Linux
+- Fix socket blocking mode on keepalive connections with async workers
+- Handle `SSLWantReadError` in `finish_body()` to prevent worker hangs
+- Log SIGTERM as info level instead of warning
+- Print exception details to stderr when worker fails to boot
+- Fix `unreader.unread()` to prepend data to buffer instead of appending
+- Prevent `RecursionError` when pickling Config objects
+
+---
+
 ## 24.0.0 - 2026-01-23
 
 ### New Features
