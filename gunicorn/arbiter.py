@@ -237,6 +237,10 @@ class Arbiter:
         """SIGCHLD handling - called from main loop, safe to log."""
         self.reap_workers()
 
+    # SIGCLD is an alias for SIGCHLD on Linux. The SIG_NAMES dict may map
+    # to either "chld" or "cld" depending on iteration order of dir(signal).
+    handle_cld = handle_chld
+
     def handle_hup(self):
         """\
         HUP handling.
