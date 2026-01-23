@@ -285,7 +285,14 @@ Format: https://docs.python.org/3/library/logging.config.html#logging.config.jso
 
 **Command line:** `--log-syslog-to SYSLOG_ADDR`
 
-**Default:** `'unix:///var/run/syslog'`
+**Default:**
+
+Platform-specific:
+
+* macOS: ``'unix:///var/run/syslog'``
+* FreeBSD/DragonFly: ``'unix:///var/run/log'``
+* OpenBSD: ``'unix:///dev/log'``
+* Linux/other: ``'udp://localhost:514'``
 
 Address to send syslog messages.
 
