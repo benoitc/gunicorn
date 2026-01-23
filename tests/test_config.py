@@ -200,6 +200,9 @@ def test_str_to_addr_list_validation():
     pytest.raises(ValueError, c.set, "forwarded_allow_ips", "127.0.0")
     # detect typos
     pytest.raises(ValueError, c.set, "forwarded_allow_ips", "::f:")
+    # dangerous typos such as accidently permitting half the internet
+    #  clearly recognizable - masked bits are not zero
+    pytest.raises(ValueError, c.set, "forwarded_allow_ips", "100.64.0.0/1")
 
 
 def test_str_to_list():

@@ -413,7 +413,7 @@ def validate_string_to_addr_list(val):
             result.append(addr)
             continue
         # Support both single IPs and CIDR networks
-        result.append(ipaddress.ip_network(addr, strict=False))
+        result.append(ipaddress.ip_network(addr))
 
     return result
 
