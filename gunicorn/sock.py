@@ -23,6 +23,7 @@ else:
     # tcp_info struct from include/uapi/linux/tcp.h
     _TCPI_FMT = 'B' * 8 + 'I' * 24
     _TCPI_INDEX_UNACKED = 12
+
     def get_backlog(sock):
         if sock.family not in (socket.AF_INET, socket.AF_INET6):
             return -1
