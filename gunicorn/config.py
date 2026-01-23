@@ -1710,6 +1710,21 @@ class StatsdPrefix(Setting):
     """
 
 
+class BacklogMetric(Setting):
+    name = "enable_backlog_metric"
+    section = "Logging"
+    cli = ["--enable-backlog-metric"]
+    validator = validate_bool
+    default = False
+    action = "store_true"
+    desc = """\
+    Enable socket backlog metric (only supported on Linux).
+
+    When enabled, gunicorn will emit a ``gunicorn.backlog`` histogram metric
+    showing the number of connections waiting in the socket backlog.
+    """
+
+
 class Procname(Setting):
     name = "proc_name"
     section = "Process Naming"
