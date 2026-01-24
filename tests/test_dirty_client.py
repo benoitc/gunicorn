@@ -4,7 +4,6 @@
 
 """Tests for dirty client module."""
 
-import asyncio
 import os
 import socket
 import tempfile
@@ -17,7 +16,6 @@ from gunicorn.dirty.client import (
     get_dirty_socket_path,
     set_dirty_socket_path,
     close_dirty_client,
-    _thread_local,
 )
 from gunicorn.dirty.errors import DirtyConnectionError, DirtyError
 from gunicorn.dirty.protocol import DirtyProtocol, make_response

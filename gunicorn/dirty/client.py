@@ -125,7 +125,7 @@ class DirtyClient:
         except socket.timeout:
             self._close_socket()
             raise DirtyTimeoutError(
-                f"Timeout waiting for dirty app response",
+                "Timeout waiting for dirty app response",
                 timeout=self.timeout
             )
         except Exception as e:
@@ -238,7 +238,7 @@ class DirtyClient:
         except asyncio.TimeoutError:
             await self._close_async()
             raise DirtyTimeoutError(
-                f"Timeout waiting for dirty app response",
+                "Timeout waiting for dirty app response",
                 timeout=self.timeout
             )
         except Exception as e:

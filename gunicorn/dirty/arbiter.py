@@ -16,7 +16,6 @@ import signal
 import sys
 import tempfile
 import time
-import traceback
 
 from gunicorn import util
 
@@ -357,7 +356,7 @@ class DirtyArbiter:
             sys.exit(0)
         except SystemExit:
             raise
-        except Exception as e:
+        except Exception:
             self.log.exception("Exception in dirty worker process")
             if not worker.booted:
                 sys.exit(self.WORKER_BOOT_ERROR)

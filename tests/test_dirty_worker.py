@@ -662,8 +662,6 @@ class TestDirtyWorkerRunAsync:
             reader.feed_data(encoded_request)
             reader.feed_eof()
 
-            responses = []
-
             class MockWriter:
                 def __init__(self):
                     self.closed = False

@@ -5,6 +5,7 @@
 """Tests for dirty arbiter protocol module."""
 
 import asyncio
+import os
 import socket
 import struct
 import pytest
@@ -183,7 +184,7 @@ class TestDirtyProtocolAsync:
         read_fd, write_fd = os.pipe()
         try:
             reader = asyncio.StreamReader()
-            protocol = asyncio.StreamReaderProtocol(reader)
+            _ = asyncio.StreamReaderProtocol(reader)
 
             # Write the message to the pipe
             encoded = DirtyProtocol.encode(message)
@@ -369,7 +370,3 @@ class TestDirtyErrors:
         assert error.action == "run"
         assert error.traceback == "Traceback..."
         assert "myapp:App" in str(error)
-
-
-# Add import needed for async tests
-import os

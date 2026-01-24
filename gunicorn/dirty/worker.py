@@ -12,7 +12,6 @@ from the DirtyArbiter.
 import asyncio
 import os
 import signal
-import sys
 import traceback
 import uuid
 
@@ -214,7 +213,6 @@ class DirtyWorker:
 
         Each connection can send multiple requests.
         """
-        addr = writer.get_extra_info('peername')
         self.log.debug("New connection from arbiter")
 
         try:

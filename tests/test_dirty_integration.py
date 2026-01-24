@@ -155,7 +155,6 @@ class TestDirtyExecutionTimeout:
         import tempfile
         from gunicorn.dirty.arbiter import DirtyArbiter
         from gunicorn.dirty.protocol import DirtyProtocol, make_request
-        from gunicorn.dirty.errors import DirtyTimeoutError
 
         class MockLog:
             def debug(self, *a, **kw): pass
