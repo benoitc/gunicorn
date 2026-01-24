@@ -151,19 +151,12 @@ class Worker:
 
             self.log.exception(e)
 
-            # fix from PR #1228
-            # storing the traceback into exc_tb will create a circular reference.
-            # per https://docs.python.org/2/library/sys.html#sys.exc_info warning,
-            # delete the traceback after use.
-            try:
-                _, exc_val, exc_tb = sys.exc_info()
-                self.reloader.add_extra_file(exc_val.filename)
+            if self.reloader is not None and e.filename is not None:
+                self.reloader.add_extra_file(e.filename)
 
-                tb_string = io.StringIO()
-                traceback.print_tb(exc_tb, file=tb_string)
+            with io.StringIO() as tb_string:
+                traceback.print_tb(e.__traceback__, file=tb_string)
                 self.wsgi = util.make_fail_app(tb_string.getvalue())
-            finally:
-                del exc_tb
 
     def init_signals(self):
         # reset signaling
