@@ -128,6 +128,7 @@ class Worker:
                 time.sleep(0.1)
                 sys.exit(0)
 
+            self.log.warning("Reloader is on. Use in development only!")
             reloader_cls = reloader_engines[self.cfg.reload_engine]
             self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
                                          callback=changed)
@@ -155,7 +156,7 @@ class Worker:
                 self.reloader.add_extra_file(e.filename)
 
             with io.StringIO() as tb_string:
-                traceback.print_tb(e.__traceback__, file=tb_string)
+                traceback.print_exception(e, file=tb_string)
                 self.wsgi = util.make_fail_app(tb_string.getvalue())
 
     def init_signals(self):
