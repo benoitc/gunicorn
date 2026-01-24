@@ -59,6 +59,7 @@ testing = [
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
+    "uvloop>=0.19.0",
 ]
 
 [project.scripts]
@@ -74,6 +75,11 @@ main = "gunicorn.app.pasterapp:serve"
 norecursedirs = ["examples", "lib", "local", "src", "tests/docker"]
 testpaths = ["tests/"]
 addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+filterwarnings = [
+    # Eventlet patches select module, which breaks asyncio event loop cleanup
+    # This is expected behavior when testing eventlet worker
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.setuptools]
 zip-safe = false

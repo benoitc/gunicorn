@@ -254,6 +254,8 @@ class TestDirtyArbiterPidfileWrite:
                 if os.path.exists(pidfile):
                     with open(pidfile) as f:
                         pid_written = int(f.read().strip())
+                # Close coroutine to avoid "never awaited" warning
+                coro.close()
 
             # Mock asyncio.run to check PID file before cleanup runs
             with mock.patch.object(asyncio, 'run', side_effect=mock_asyncio_run):
@@ -273,7 +275,11 @@ class TestDirtyArbiterPidfileWrite:
 
         arbiter = DirtyArbiter(cfg=cfg, log=log)
 
-        with mock.patch.object(asyncio, 'run'):
+        def mock_asyncio_run(coro):
+            # Close coroutine to avoid "never awaited" warning
+            coro.close()
+
+        with mock.patch.object(asyncio, 'run', side_effect=mock_asyncio_run):
             # Should not raise
             arbiter.run()
 
