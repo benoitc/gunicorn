@@ -196,6 +196,14 @@ class DirtyArbiter:
         """Periodically check worker health and manage pool."""
         while self.alive:
             await asyncio.sleep(1.0)
+
+            # Check if parent (main arbiter) died unexpectedly
+            if os.getppid() != self.ppid:
+                self.log.warning("Parent changed, shutting down dirty arbiter")
+                self.alive = False
+                self._shutdown()
+                return
+
             await self.murder_workers()
             await self.manage_workers()
 

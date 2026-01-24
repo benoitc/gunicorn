@@ -894,6 +894,7 @@ class TestDirtyArbiterWorkerMonitor:
 
         arbiter = DirtyArbiter(cfg=cfg, log=log)
         arbiter.pid = os.getpid()
+        arbiter.ppid = os.getppid()  # Match actual parent for ppid check
         arbiter.alive = True
 
         monitor_calls = 0
@@ -914,6 +915,38 @@ class TestDirtyArbiterWorkerMonitor:
         await arbiter._worker_monitor()
 
         assert monitor_calls >= 2
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_worker_monitor_detects_parent_death(self):
+        """Test worker monitor exits when parent dies."""
+        cfg = Config()
+        cfg.set("dirty_workers", 0)
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = os.getpid()
+        arbiter.ppid = 99999  # Fake parent PID that doesn't match os.getppid()
+        arbiter.alive = True
+
+        shutdown_called = []
+
+        def mock_shutdown():
+            shutdown_called.append(True)
+
+        arbiter._shutdown = mock_shutdown
+
+        # Run monitor - should detect parent change and exit
+        await arbiter._worker_monitor()
+
+        # Should have detected parent death
+        assert arbiter.alive is False
+        assert len(shutdown_called) == 1
+
+        # Check log message
+        log_messages = [msg for level, msg in log.messages if level == "warning"]
+        assert any("Parent changed" in msg for msg in log_messages)
 
         arbiter._cleanup_sync()
 
