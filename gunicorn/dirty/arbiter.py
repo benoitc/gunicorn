@@ -44,7 +44,7 @@ class DirtyArbiter:
     # Worker boot error code
     WORKER_BOOT_ERROR = 3
 
-    def __init__(self, cfg, log, socket_path=None):
+    def __init__(self, cfg, log, socket_path=None, pidfile=None):
         """
         Initialize the dirty arbiter.
 
@@ -52,11 +52,13 @@ class DirtyArbiter:
             cfg: Gunicorn config
             log: Logger
             socket_path: Path to the arbiter's Unix socket
+            pidfile: Well-known PID file location for orphan detection
         """
         self.cfg = cfg
         self.log = log
         self.pid = None
         self.ppid = os.getpid()
+        self.pidfile = pidfile  # Well-known location for orphan detection
 
         # Use a temp directory for sockets
         self.tmpdir = tempfile.mkdtemp(prefix="gunicorn-dirty-")
@@ -81,6 +83,14 @@ class DirtyArbiter:
         """Run the dirty arbiter (blocking call)."""
         self.pid = os.getpid()
         self.log.info("Dirty arbiter starting (pid: %s)", self.pid)
+
+        # Write PID to well-known location for orphan detection
+        if self.pidfile:
+            try:
+                with open(self.pidfile, 'w') as f:
+                    f.write(str(self.pid))
+            except IOError as e:
+                self.log.warning("Failed to write PID file: %s", e)
 
         # Call hook
         self.cfg.on_dirty_starting(self)
@@ -565,6 +575,13 @@ class DirtyArbiter:
 
     def _cleanup_sync(self):
         """Synchronous cleanup on exit."""
+        # Remove PID file
+        if self.pidfile and os.path.exists(self.pidfile):
+            try:
+                os.unlink(self.pidfile)
+            except OSError:
+                pass
+
         # Clean up socket
         if os.path.exists(self.socket_path):
             try:

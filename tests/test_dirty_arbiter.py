@@ -120,6 +120,32 @@ class TestDirtyArbiterInit:
             # Cleanup
             arbiter._cleanup_sync()
 
+    def test_init_with_pidfile(self):
+        """Test initialization with pidfile parameter."""
+        cfg = Config()
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pidfile = os.path.join(tmpdir, "dirty.pid")
+            arbiter = DirtyArbiter(cfg=cfg, log=log, pidfile=pidfile)
+
+            assert arbiter.pidfile == pidfile
+
+            # Cleanup
+            arbiter._cleanup_sync()
+
+    def test_init_without_pidfile(self):
+        """Test initialization without pidfile parameter defaults to None."""
+        cfg = Config()
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        assert arbiter.pidfile is None
+
+        # Cleanup
+        arbiter._cleanup_sync()
+
 
 class TestDirtyArbiterCleanup:
     """Tests for arbiter cleanup."""
@@ -156,6 +182,100 @@ class TestDirtyArbiterCleanup:
         arbiter._cleanup_sync()
 
         assert not os.path.exists(tmpdir)
+
+    def test_cleanup_removes_pidfile(self):
+        """Test that cleanup removes the PID file."""
+        cfg = Config()
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pidfile = os.path.join(tmpdir, "dirty.pid")
+            arbiter = DirtyArbiter(cfg=cfg, log=log, pidfile=pidfile)
+
+            # Create pidfile
+            with open(pidfile, 'w') as f:
+                f.write('12345')
+
+            assert os.path.exists(pidfile)
+
+            arbiter._cleanup_sync()
+
+            assert not os.path.exists(pidfile)
+
+    def test_cleanup_handles_missing_pidfile(self):
+        """Test that cleanup handles non-existent pidfile gracefully."""
+        cfg = Config()
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pidfile = os.path.join(tmpdir, "nonexistent.pid")
+            arbiter = DirtyArbiter(cfg=cfg, log=log, pidfile=pidfile)
+
+            # Don't create the file
+            assert not os.path.exists(pidfile)
+
+            # Should not raise
+            arbiter._cleanup_sync()
+
+    def test_cleanup_without_pidfile(self):
+        """Test that cleanup works when no pidfile configured."""
+        cfg = Config()
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        assert arbiter.pidfile is None
+
+        # Should not raise
+        arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterPidfileWrite:
+    """Tests for PID file writing during run()."""
+
+    def test_run_writes_pidfile(self):
+        """Test that run() writes the PID to the pidfile."""
+        from unittest import mock
+
+        cfg = Config()
+        cfg.set("dirty_workers", 0)
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pidfile = os.path.join(tmpdir, "dirty.pid")
+            arbiter = DirtyArbiter(cfg=cfg, log=log, pidfile=pidfile)
+
+            # Track if PID file was written correctly
+            pid_written = None
+
+            def mock_asyncio_run(coro):
+                nonlocal pid_written
+                # At this point, PID file should have been written
+                if os.path.exists(pidfile):
+                    with open(pidfile) as f:
+                        pid_written = int(f.read().strip())
+
+            # Mock asyncio.run to check PID file before cleanup runs
+            with mock.patch.object(asyncio, 'run', side_effect=mock_asyncio_run):
+                arbiter.run()
+
+            # Check PID was written correctly
+            assert pid_written == os.getpid()
+
+    def test_run_without_pidfile_does_not_fail(self):
+        """Test that run() works when no pidfile configured."""
+        from unittest import mock
+
+        cfg = Config()
+        cfg.set("dirty_workers", 0)
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        with mock.patch.object(asyncio, 'run'):
+            # Should not raise
+            arbiter.run()
 
 
 class TestDirtyArbiterRouteRequest:

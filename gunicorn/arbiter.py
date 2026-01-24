@@ -71,6 +71,7 @@ class Arbiter:
         # Dirty arbiter process
         self.dirty_arbiter_pid = 0
         self.dirty_arbiter = None
+        self.dirty_pidfile = None  # Well-known location for orphan detection
 
         cwd = util.getcwd()
 
@@ -735,6 +736,57 @@ class Arbiter:
     # Dirty Arbiter Management
     # =========================================================================
 
+    def _get_dirty_pidfile_path(self):
+        """Get the well-known PID file path for orphan detection.
+
+        Uses self.proc_name (not self.cfg.proc_name) so that during USR2
+        the new master gets a different PID file path ("myapp.2" vs "myapp").
+        This prevents the old dirty arbiter from removing the new one's PID file.
+        """
+        import tempfile
+        safe_name = self.proc_name.replace('/', '_').replace(' ', '_')
+        return os.path.join(tempfile.gettempdir(), f"gunicorn-dirty-{safe_name}.pid")
+
+    def _cleanup_orphaned_dirty_arbiter(self):
+        """Kill any orphaned dirty arbiter from a previous crash.
+
+        Only runs on fresh start (master_pid == 0), not during USR2.
+        """
+        # During USR2, master_pid is set - don't cleanup old dirty arbiter
+        if self.master_pid != 0:
+            return
+
+        pidfile = self._get_dirty_pidfile_path()
+        if not os.path.exists(pidfile):
+            return
+
+        try:
+            with open(pidfile) as f:
+                old_pid = int(f.read().strip())
+
+            # Check if process exists
+            os.kill(old_pid, 0)
+            # Process exists - kill orphan
+            self.log.warning("Killing orphaned dirty arbiter (pid: %s)", old_pid)
+            os.kill(old_pid, signal.SIGTERM)
+            # Wait briefly for graceful exit
+            for _ in range(10):
+                time.sleep(0.1)
+                try:
+                    os.kill(old_pid, 0)
+                except OSError:
+                    break
+            else:
+                os.kill(old_pid, signal.SIGKILL)
+        except (ValueError, IOError, OSError):
+            pass
+
+        # Remove stale PID file
+        try:
+            os.unlink(pidfile)
+        except OSError:
+            pass
+
     def spawn_dirty_arbiter(self):
         """\
         Spawn the dirty arbiter process.
@@ -745,7 +797,16 @@ class Arbiter:
         if self.dirty_arbiter_pid:
             return  # Already running
 
-        self.dirty_arbiter = DirtyArbiter(self.cfg, self.log)
+        # Cleanup any orphaned dirty arbiter from previous crash
+        self._cleanup_orphaned_dirty_arbiter()
+
+        # Get well-known PID file path
+        self.dirty_pidfile = self._get_dirty_pidfile_path()
+
+        self.dirty_arbiter = DirtyArbiter(
+            self.cfg, self.log,
+            pidfile=self.dirty_pidfile
+        )
         socket_path = self.dirty_arbiter.socket_path
 
         pid = os.fork()

@@ -552,3 +552,187 @@ class TestWorkerLifecycle:
             arbiter.murder_workers()
 
         mock_kill.assert_called_once_with(42, signal.SIGKILL)
+
+
+# ============================================================================
+# Dirty Arbiter Orphan Cleanup Tests
+# ============================================================================
+
+class TestDirtyArbiterOrphanCleanup:
+    """Tests for dirty arbiter orphan detection and cleanup."""
+
+    def test_get_dirty_pidfile_path(self):
+        """Verify pidfile path is generated correctly."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.proc_name = 'myapp'
+
+        path = arbiter._get_dirty_pidfile_path()
+
+        import tempfile
+        expected = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-myapp.pid')
+        assert path == expected
+
+    def test_get_dirty_pidfile_path_sanitizes_name(self):
+        """Verify special characters in proc_name are sanitized."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.proc_name = 'my/app name'
+
+        path = arbiter._get_dirty_pidfile_path()
+
+        import tempfile
+        expected = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-my_app_name.pid')
+        assert path == expected
+
+    def test_get_dirty_pidfile_path_uses_proc_name_not_cfg(self):
+        """Verify pidfile path uses self.proc_name for USR2 compatibility.
+
+        During USR2, self.proc_name becomes 'myapp.2' while self.cfg.proc_name
+        stays 'myapp'. Using self.proc_name ensures new and old dirty arbiters
+        have different PID file paths.
+        """
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('proc_name', 'myapp')
+        arbiter.proc_name = 'myapp.2'  # Simulates USR2 child
+
+        path = arbiter._get_dirty_pidfile_path()
+
+        import tempfile
+        # Should use self.proc_name, not self.cfg.proc_name
+        expected = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-myapp.2.pid')
+        assert path == expected
+
+    def test_cleanup_orphaned_skipped_during_usr2(self):
+        """Verify cleanup is skipped during USR2 upgrade (master_pid != 0)."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 12345  # Indicates USR2 upgrade in progress
+
+        with mock.patch.object(arbiter, '_get_dirty_pidfile_path') as mock_path:
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+        # Should not even check the pidfile path
+        mock_path.assert_not_called()
+
+    def test_cleanup_orphaned_no_pidfile(self):
+        """Verify cleanup handles missing pidfile gracefully."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 0
+
+        with mock.patch('os.path.exists', return_value=False):
+            # Should not raise any exception
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+    @mock.patch('os.unlink')
+    @mock.patch('os.kill')
+    def test_cleanup_orphaned_kills_existing_process(self, mock_kill, mock_unlink):
+        """Verify cleanup kills orphaned dirty arbiter process."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 0
+
+        # First kill(pid, 0) succeeds (process exists), then SIGTERM causes exit
+        mock_kill.side_effect = [None, None, OSError(3, "No such process")]
+
+        import tempfile
+        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
+
+        with mock.patch('os.path.exists', return_value=True), \
+             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
+             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+             mock.patch('time.sleep'):
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+        # Should have sent signal 0 (check), then SIGTERM
+        assert mock_kill.call_args_list[0] == mock.call(12345, 0)
+        assert mock_kill.call_args_list[1] == mock.call(12345, signal.SIGTERM)
+        # Should unlink the stale pidfile
+        mock_unlink.assert_called_with(pidfile)
+
+    @mock.patch('os.unlink')
+    @mock.patch('os.kill')
+    def test_cleanup_orphaned_sigkill_if_sigterm_fails(self, mock_kill, mock_unlink):
+        """Verify cleanup sends SIGKILL if SIGTERM doesn't work."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 0
+
+        # Process exists on all checks until SIGKILL
+        def kill_side_effect(pid, sig):
+            if sig == signal.SIGKILL:
+                return None
+            return None  # Process still running
+
+        mock_kill.side_effect = kill_side_effect
+
+        import tempfile
+        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
+
+        with mock.patch('os.path.exists', return_value=True), \
+             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
+             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+             mock.patch('time.sleep'):
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+        # Should end with SIGKILL
+        kill_calls = [c for c in mock_kill.call_args_list if c[0][1] == signal.SIGKILL]
+        assert len(kill_calls) == 1
+
+    @mock.patch('os.unlink')
+    def test_cleanup_orphaned_stale_pidfile_no_process(self, mock_unlink):
+        """Verify cleanup removes stale pidfile when process doesn't exist."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 0
+
+        import tempfile
+        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
+
+        with mock.patch('os.path.exists', return_value=True), \
+             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
+             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+             mock.patch('os.kill', side_effect=OSError(3, "No such process")):
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+        # Should still unlink the stale pidfile
+        mock_unlink.assert_called_with(pidfile)
+
+    @mock.patch('gunicorn.dirty.DirtyArbiter')
+    @mock.patch('os.fork')
+    def test_spawn_dirty_arbiter_calls_cleanup(self, mock_fork, mock_dirty_arbiter):
+        """Verify spawn_dirty_arbiter calls orphan cleanup before spawning."""
+        mock_fork.return_value = 12345  # Parent process
+        mock_arbiter_instance = mock.Mock()
+        mock_arbiter_instance.socket_path = '/tmp/test.sock'
+        mock_dirty_arbiter.return_value = mock_arbiter_instance
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('dirty_workers', 1)
+        arbiter.cfg.set('dirty_apps', ['test:app'])
+
+        with mock.patch.object(arbiter, '_cleanup_orphaned_dirty_arbiter') as mock_cleanup, \
+             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value='/tmp/test.pid'), \
+             mock.patch('gunicorn.dirty.set_dirty_socket_path'):
+            arbiter.spawn_dirty_arbiter()
+
+        mock_cleanup.assert_called_once()
+
+    @mock.patch('os.fork')
+    def test_spawn_dirty_arbiter_passes_pidfile(self, mock_fork):
+        """Verify spawn_dirty_arbiter passes pidfile to DirtyArbiter."""
+        mock_fork.return_value = 12345  # Parent process
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('dirty_workers', 1)
+        arbiter.cfg.set('dirty_apps', ['test:app'])
+
+        pidfile_path = '/tmp/gunicorn-dirty-test.pid'
+        with mock.patch.object(arbiter, '_cleanup_orphaned_dirty_arbiter'), \
+             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile_path), \
+             mock.patch('gunicorn.arbiter.DirtyArbiter') as mock_dirty_arbiter, \
+             mock.patch('gunicorn.arbiter.set_dirty_socket_path'):
+            mock_arbiter_instance = mock.Mock()
+            mock_arbiter_instance.socket_path = '/tmp/test.sock'
+            mock_dirty_arbiter.return_value = mock_arbiter_instance
+
+            arbiter.spawn_dirty_arbiter()
+
+            # Verify DirtyArbiter was called with pidfile parameter
+            mock_dirty_arbiter.assert_called_once()
+            call_kwargs = mock_dirty_arbiter.call_args[1]
+            assert call_kwargs.get('pidfile') == pidfile_path
