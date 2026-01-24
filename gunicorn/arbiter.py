@@ -224,6 +224,7 @@ class Arbiter:
 
                 self.murder_workers()
                 self.manage_workers()
+                self.manage_dirty_arbiter()
         except (StopIteration, KeyboardInterrupt):
             self.halt()
         except HaltServer as inst:
@@ -764,7 +765,7 @@ class Arbiter:
             sys.exit(0)
         except SystemExit:
             raise
-        except Exception as e:
+        except Exception:
             self.log.exception("Exception in dirty arbiter process")
             sys.exit(-1)
 
@@ -810,12 +811,18 @@ class Arbiter:
 
             self.dirty_arbiter_pid = 0
             self.dirty_arbiter = None
-
-            # Respawn if we're still running and dirty workers are configured
-            if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
-                self.log.info("Respawning dirty arbiter...")
-                self.spawn_dirty_arbiter()
         except OSError as e:
             if e.errno == errno.ECHILD:
                 self.dirty_arbiter_pid = 0
                 self.dirty_arbiter = None
+
+    def manage_dirty_arbiter(self):
+        """\
+        Maintain the dirty arbiter process by respawning if needed.
+        """
+        if self.dirty_arbiter_pid:
+            return  # Already running
+
+        if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
+            self.log.info("Spawning dirty arbiter...")
+            self.spawn_dirty_arbiter()

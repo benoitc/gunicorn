@@ -27,30 +27,19 @@ from .errors import (
     DirtyProtocolError,
 )
 
-from .protocol import (
-    DirtyProtocol,
-    make_request,
-    make_response,
-    make_error_response,
-)
+from .app import DirtyApp
 
-from .app import (
-    DirtyApp,
-    load_dirty_app,
-    load_dirty_apps,
-)
-
-from .worker import DirtyWorker
-from .arbiter import DirtyArbiter
 from .client import (
     DirtyClient,
     get_dirty_client,
     get_dirty_client_async,
     set_dirty_socket_path,
-    get_dirty_socket_path,
     close_dirty_client,
     close_dirty_client_async,
 )
+
+# Internal imports used by gunicorn core (not part of public API)
+from .arbiter import DirtyArbiter
 
 __all__ = [
     # Errors
@@ -61,25 +50,15 @@ __all__ = [
     "DirtyAppError",
     "DirtyAppNotFoundError",
     "DirtyProtocolError",
-    # Protocol
-    "DirtyProtocol",
-    "make_request",
-    "make_response",
-    "make_error_response",
-    # App
+    # App base class
     "DirtyApp",
-    "load_dirty_app",
-    "load_dirty_apps",
-    # Worker
-    "DirtyWorker",
-    # Arbiter
-    "DirtyArbiter",
     # Client
     "DirtyClient",
     "get_dirty_client",
     "get_dirty_client_async",
-    "set_dirty_socket_path",
-    "get_dirty_socket_path",
     "close_dirty_client",
     "close_dirty_client_async",
+    # Internal (used by gunicorn core)
+    "DirtyArbiter",
+    "set_dirty_socket_path",
 ]
