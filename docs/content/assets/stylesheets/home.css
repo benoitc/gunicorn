@@ -361,6 +361,62 @@
 }
 
 /* ============================================
+   Sponsors
+   ============================================ */
+.sponsors {
+  text-align: center;
+}
+
+.sponsors h2 {
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.sponsors p {
+  color: var(--text-muted);
+  margin: 0 0 2rem 0;
+}
+
+.sponsors__logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  min-height: 60px;
+}
+
+.sponsors__logos img {
+  max-height: 50px;
+  max-width: 150px;
+  filter: grayscale(100%);
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.sponsors__logos img:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+}
+
+[data-md-color-scheme="slate"] .sponsors__logos img {
+  filter: grayscale(100%) brightness(1.5);
+}
+
+[data-md-color-scheme="slate"] .sponsors__logos img:hover {
+  filter: grayscale(0%) brightness(1);
+}
+
+.sponsors__placeholder {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 1rem 2rem;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+}
+
+/* ============================================
    Footer CTA
    ============================================ */
 .home-footer {
