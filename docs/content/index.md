@@ -114,6 +114,18 @@ title: Gunicorn - Python WSGI HTTP Server
   </div>
 </section>
 
+<section class="sponsors">
+  <div class="container">
+    <h2>Sponsors</h2>
+    <p>Gunicorn is maintained thanks to our sponsors.</p>
+    <div class="sponsors__logos">
+      <!-- Sponsor logos will appear here -->
+      <span class="sponsors__placeholder">Your logo here</span>
+    </div>
+    <a class="btn btn--secondary" href="https://github.com/sponsors/benoitc">Become a Sponsor</a>
+  </div>
+</section>
+
 <section class="home-footer">
   <div class="container">
     <h2>Join the Community</h2>
