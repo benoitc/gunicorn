@@ -16,6 +16,7 @@ from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
+from gunicorn.dirty import DirtyArbiter, set_dirty_socket_path
 
 
 class Arbiter:
@@ -66,6 +67,10 @@ class Arbiter:
         self.reexec_pid = 0
         self.master_pid = 0
         self.master_name = "Master"
+
+        # Dirty arbiter process
+        self.dirty_arbiter_pid = 0
+        self.dirty_arbiter = None
 
         cwd = util.getcwd()
 
@@ -168,6 +173,10 @@ class Arbiter:
         if hasattr(self.worker_class, "check_config"):
             self.worker_class.check_config(self.cfg, self.log)
 
+        # Start dirty arbiter if configured
+        if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
+            self.spawn_dirty_arbiter()
+
         self.cfg.when_ready(self)
 
     def init_signals(self):
@@ -236,6 +245,7 @@ class Arbiter:
     def handle_chld(self):
         """SIGCHLD handling - called from main loop, safe to log."""
         self.reap_workers()
+        self.reap_dirty_arbiter()
 
     # SIGCLD is an alias for SIGCHLD on Linux. The SIG_NAMES dict may map
     # to either "chld" or "cld" depending on iteration order of dir(signal).
@@ -250,6 +260,9 @@ class Arbiter:
         """
         self.log.info("Hang up: %s", self.master_name)
         self.reload()
+        # Forward to dirty arbiter
+        if self.dirty_arbiter_pid:
+            self.kill_dirty_arbiter(signal.SIGHUP)
 
     def handle_term(self):
         "SIGTERM handling"
@@ -290,6 +303,9 @@ class Arbiter:
         """
         self.log.reopen_files()
         self.kill_workers(signal.SIGUSR1)
+        # Forward to dirty arbiter
+        if self.dirty_arbiter_pid:
+            self.kill_dirty_arbiter(signal.SIGUSR1)
 
     def handle_usr2(self):
         """\
@@ -388,16 +404,25 @@ class Arbiter:
         if not graceful:
             sig = signal.SIGQUIT
         limit = time.time() + self.cfg.graceful_timeout
+
+        # Stop dirty arbiter
+        if self.dirty_arbiter_pid:
+            self.kill_dirty_arbiter(sig)
+
         # instruct the workers to exit
         self.kill_workers(sig)
         # wait until the graceful timeout
-        while self.WORKERS and time.time() < limit:
+        while (self.WORKERS or self.dirty_arbiter_pid) and time.time() < limit:
             self.reap_workers()
+            self.reap_dirty_arbiter()
             time.sleep(0.1)
 
         self.kill_workers(signal.SIGKILL)
+        if self.dirty_arbiter_pid:
+            self.kill_dirty_arbiter(signal.SIGKILL)
         # Final reap to clean up any remaining zombies
         self.reap_workers()
+        self.reap_dirty_arbiter()
 
     def reexec(self):
         """\
@@ -704,3 +729,93 @@ class Arbiter:
                 except (KeyError, OSError):
                     return
             raise
+
+    # =========================================================================
+    # Dirty Arbiter Management
+    # =========================================================================
+
+    def spawn_dirty_arbiter(self):
+        """\
+        Spawn the dirty arbiter process.
+
+        The dirty arbiter manages a separate pool of workers for
+        long-running, blocking operations.
+        """
+        if self.dirty_arbiter_pid:
+            return  # Already running
+
+        self.dirty_arbiter = DirtyArbiter(self.cfg, self.log)
+        socket_path = self.dirty_arbiter.socket_path
+
+        pid = os.fork()
+        if pid != 0:
+            # Parent process
+            self.dirty_arbiter_pid = pid
+            # Set socket path for HTTP workers to use
+            set_dirty_socket_path(socket_path)
+            os.environ['GUNICORN_DIRTY_SOCKET'] = socket_path
+            self.log.info("Spawned dirty arbiter (pid: %s) at %s",
+                          pid, socket_path)
+            return pid
+
+        # Child process - run the dirty arbiter
+        try:
+            self.dirty_arbiter.run()
+            sys.exit(0)
+        except SystemExit:
+            raise
+        except Exception as e:
+            self.log.exception("Exception in dirty arbiter process")
+            sys.exit(-1)
+
+    def kill_dirty_arbiter(self, sig):
+        """\
+        Send a signal to the dirty arbiter.
+
+        :attr sig: `signal.SIG*` value
+        """
+        if not self.dirty_arbiter_pid:
+            return
+
+        try:
+            os.kill(self.dirty_arbiter_pid, sig)
+        except OSError as e:
+            if e.errno == errno.ESRCH:
+                self.dirty_arbiter_pid = 0
+                self.dirty_arbiter = None
+
+    def reap_dirty_arbiter(self):
+        """\
+        Reap the dirty arbiter process if it has exited.
+        """
+        if not self.dirty_arbiter_pid:
+            return
+
+        try:
+            wpid, status = os.waitpid(self.dirty_arbiter_pid, os.WNOHANG)
+            if not wpid:
+                return
+
+            if os.WIFEXITED(status):
+                exitcode = os.WEXITSTATUS(status)
+                if exitcode != 0:
+                    self.log.error("Dirty arbiter (pid:%s) exited with code %s",
+                                   wpid, exitcode)
+                else:
+                    self.log.info("Dirty arbiter (pid:%s) exited", wpid)
+            elif os.WIFSIGNALED(status):
+                sig = os.WTERMSIG(status)
+                self.log.warning("Dirty arbiter (pid:%s) killed by signal %s",
+                                 wpid, sig)
+
+            self.dirty_arbiter_pid = 0
+            self.dirty_arbiter = None
+
+            # Respawn if we're still running and dirty workers are configured
+            if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
+                self.log.info("Respawning dirty arbiter...")
+                self.spawn_dirty_arbiter()
+        except OSError as e:
+            if e.errno == errno.ECHILD:
+                self.dirty_arbiter_pid = 0
+                self.dirty_arbiter = None

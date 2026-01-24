@@ -2682,3 +2682,199 @@ class RootPath(Setting):
 
         .. versionadded:: 24.0.0
         """
+
+
+# =============================================================================
+# Dirty Arbiters - Separate process pool for long-running operations
+# =============================================================================
+
+class DirtyApps(Setting):
+    name = "dirty_apps"
+    section = "Dirty Arbiters"
+    cli = ["--dirty-app"]
+    action = "append"
+    meta = "STRING"
+    validator = validate_list_string
+    default = []
+    desc = """\
+        Dirty applications to load in the dirty worker pool.
+
+        A list of application paths in pattern ``$(MODULE_NAME):$(CLASS_NAME)``.
+        Each dirty app must be a class that inherits from ``DirtyApp`` base class
+        and implements the ``init()``, ``__call__()``, and ``close()`` methods.
+
+        Example::
+
+            dirty_apps = [
+                "myapp.ml:MLApp",
+                "myapp.images:ImageApp",
+            ]
+
+        Dirty apps are loaded once when the dirty worker starts and persist
+        in memory for the lifetime of the worker. This is ideal for loading
+        ML models, database connection pools, or other stateful resources
+        that are expensive to initialize.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyWorkers(Setting):
+    name = "dirty_workers"
+    section = "Dirty Arbiters"
+    cli = ["--dirty-workers"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        The number of dirty worker processes.
+
+        A positive integer. Set to 0 (default) to disable the dirty arbiter.
+        When set to a positive value, a dirty arbiter process will be spawned
+        to manage the dirty worker pool.
+
+        Dirty workers are separate from HTTP workers and are designed for
+        long-running, blocking operations like ML model inference or heavy
+        computation.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyTimeout(Setting):
+    name = "dirty_timeout"
+    section = "Dirty Arbiters"
+    cli = ["--dirty-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 300
+    desc = """\
+        Timeout for dirty task execution in seconds.
+
+        Workers silent for more than this many seconds are considered stuck
+        and will be killed. Set to a high value for operations like model
+        loading that may take a long time.
+
+        Value is a positive number. Setting it to 0 disables timeout checking.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyThreads(Setting):
+    name = "dirty_threads"
+    section = "Dirty Arbiters"
+    cli = ["--dirty-threads"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 1
+    desc = """\
+        The number of threads per dirty worker.
+
+        Each dirty worker can use threads to handle concurrent operations
+        within the same process, useful for async-safe applications.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyGracefulTimeout(Setting):
+    name = "dirty_graceful_timeout"
+    section = "Dirty Arbiters"
+    cli = ["--dirty-graceful-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 30
+    desc = """\
+        Timeout for graceful dirty worker shutdown in seconds.
+
+        After receiving a shutdown signal, dirty workers have this much time
+        to finish their current tasks. Workers still alive after the timeout
+        are force killed.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+# =============================================================================
+# Dirty Arbiter Hooks
+# =============================================================================
+
+class OnDirtyStarting(Setting):
+    name = "on_dirty_starting"
+    section = "Dirty Arbiter Hooks"
+    validator = validate_callable(1)
+    type = callable
+
+    def on_dirty_starting(arbiter):
+        pass
+    default = staticmethod(on_dirty_starting)
+    desc = """\
+        Called just before the dirty arbiter process is initialized.
+
+        The callable needs to accept a single instance variable for the
+        DirtyArbiter.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyPostFork(Setting):
+    name = "dirty_post_fork"
+    section = "Dirty Arbiter Hooks"
+    validator = validate_callable(2)
+    type = callable
+
+    def dirty_post_fork(arbiter, worker):
+        pass
+    default = staticmethod(dirty_post_fork)
+    desc = """\
+        Called just after a dirty worker has been forked.
+
+        The callable needs to accept two instance variables for the
+        DirtyArbiter and new DirtyWorker.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyWorkerInit(Setting):
+    name = "dirty_worker_init"
+    section = "Dirty Arbiter Hooks"
+    validator = validate_callable(1)
+    type = callable
+
+    def dirty_worker_init(worker):
+        pass
+    default = staticmethod(dirty_worker_init)
+    desc = """\
+        Called just after a dirty worker has initialized all applications.
+
+        The callable needs to accept one instance variable for the
+        DirtyWorker.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class DirtyWorkerExit(Setting):
+    name = "dirty_worker_exit"
+    section = "Dirty Arbiter Hooks"
+    validator = validate_callable(2)
+    type = callable
+
+    def dirty_worker_exit(arbiter, worker):
+        pass
+    default = staticmethod(dirty_worker_exit)
+    desc = """\
+        Called when a dirty worker has exited.
+
+        The callable needs to accept two instance variables for the
+        DirtyArbiter and the exiting DirtyWorker.
+
+        .. versionadded:: 25.0.0
+        """
