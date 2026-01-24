@@ -67,6 +67,8 @@ class DirtyArbiter:
         self.workers = {}  # pid -> DirtyWorker
         self.worker_sockets = {}  # pid -> socket_path
         self.worker_connections = {}  # pid -> (reader, writer)
+        self.worker_locks = {}  # pid -> asyncio.Lock (serialize requests per worker)
+        self._worker_rr_index = 0  # Round-robin index for worker selection
         self.worker_age = 0
         self.alive = True
 
@@ -224,6 +226,9 @@ class DirtyArbiter:
         """
         Route a request to an available dirty worker.
 
+        Requests to each worker are serialized using a per-worker lock
+        to ensure only one request is in flight at a time per worker.
+
         Args:
             request: Request message dict
 
@@ -240,43 +245,57 @@ class DirtyArbiter:
                 DirtyError("No dirty workers available")
             )
 
-        try:
-            # Get or establish connection to worker
-            reader, writer = await self._get_worker_connection(worker_pid)
+        # Get or create lock for this worker
+        if worker_pid not in self.worker_locks:
+            self.worker_locks[worker_pid] = asyncio.Lock()
+        worker_lock = self.worker_locks[worker_pid]
 
-            # Send request to worker
-            await DirtyProtocol.write_message_async(writer, request)
-
-            # Wait for response with timeout
+        # Serialize requests to this worker
+        async with worker_lock:
             try:
-                response = await asyncio.wait_for(
-                    DirtyProtocol.read_message_async(reader),
-                    timeout=self.cfg.dirty_timeout
-                )
-                return response
-            except asyncio.TimeoutError:
+                # Get or establish connection to worker
+                reader, writer = await self._get_worker_connection(worker_pid)
+
+                # Send request to worker
+                await DirtyProtocol.write_message_async(writer, request)
+
+                # Wait for response with timeout
+                try:
+                    response = await asyncio.wait_for(
+                        DirtyProtocol.read_message_async(reader),
+                        timeout=self.cfg.dirty_timeout
+                    )
+                    return response
+                except asyncio.TimeoutError:
+                    return make_error_response(
+                        request_id,
+                        DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
+                    )
+            except Exception as e:
+                self.log.error("Error routing request to worker %s: %s",
+                               worker_pid, e)
+                # Remove failed connection
+                self._close_worker_connection(worker_pid)
                 return make_error_response(
                     request_id,
-                    DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
+                    DirtyWorkerError(f"Worker communication failed: {e}",
+                                     worker_id=worker_pid)
                 )
-        except Exception as e:
-            self.log.error("Error routing request to worker %s: %s",
-                           worker_pid, e)
-            # Remove failed connection
-            self._close_worker_connection(worker_pid)
-            return make_error_response(
-                request_id,
-                DirtyWorkerError(f"Worker communication failed: {e}",
-                                 worker_id=worker_pid)
-            )
 
     async def _get_available_worker(self):
-        """Get an available worker PID."""
-        for pid in list(self.workers.keys()):
-            # For now, just return first worker
-            # Future: implement load balancing
-            return pid
-        return None
+        """
+        Get an available worker PID using round-robin selection.
+
+        Distributes requests across all available workers evenly to
+        maximize throughput when multiple workers are configured.
+        """
+        worker_pids = list(self.workers.keys())
+        if not worker_pids:
+            return None
+
+        # Round-robin selection
+        self._worker_rr_index = (self._worker_rr_index + 1) % len(worker_pids)
+        return worker_pids[self._worker_rr_index]
 
     async def _get_worker_connection(self, worker_pid):
         """Get or create connection to a worker."""
@@ -373,6 +392,7 @@ class DirtyArbiter:
     def _cleanup_worker(self, pid):
         """Clean up after a worker exits."""
         self._close_worker_connection(pid)
+        self.worker_locks.pop(pid, None)
         worker = self.workers.pop(pid, None)
         if worker:
             self.cfg.dirty_worker_exit(self, worker)
