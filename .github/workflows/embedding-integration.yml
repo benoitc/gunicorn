@@ -1,0 +1,42 @@
+name: Embedding Service Integration Tests
+
+on:
+  push:
+    paths:
+      - 'examples/embedding_service/**'
+      - 'gunicorn/dirty/**'
+  pull_request:
+    paths:
+      - 'examples/embedding_service/**'
+      - 'gunicorn/dirty/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start service
+        run: |
+          cd examples/embedding_service
+          docker compose up -d --build
+          docker compose logs -f &
+
+      - name: Wait for healthy
+        run: |
+          for i in {1..30}; do
+            curl -s http://127.0.0.1:8000/health && break
+            sleep 2
+          done
+
+      - name: Run tests
+        run: |
+          pip install requests numpy
+          python examples/embedding_service/test_embedding.py
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd examples/embedding_service
+          docker compose down
