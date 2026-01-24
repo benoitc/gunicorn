@@ -136,9 +136,26 @@ class MLApp(DirtyApp):
 
 | Method | Description |
 |--------|-------------|
-| `init()` | Called once when dirty worker starts. Load resources here. |
+| `init()` | Called once when dirty worker starts, after instantiation. Load resources here. |
 | `__call__(action, *args, **kwargs)` | Handle requests from HTTP workers. |
 | `close()` | Called when dirty worker shuts down. Cleanup resources. |
+
+### Initialization Sequence
+
+When a dirty worker starts, initialization happens in this order:
+
+1. **Fork** - Worker process is forked from dirty arbiter
+2. **`dirty_post_fork(arbiter, worker)`** - Hook called immediately after fork
+3. **App instantiation** - Each dirty app class is instantiated (`__init__`)
+4. **`app.init()`** - Called for each app after instantiation (load models, resources)
+5. **`dirty_worker_init(worker)`** - Hook called after ALL apps are initialized
+6. **Run loop** - Worker starts accepting requests from HTTP workers
+
+This means:
+
+- Use `__init__` for basic setup (initialize empty containers, store config)
+- Use `init()` for heavy loading (ML models, database connections, large files)
+- The `dirty_worker_init` hook fires only after all apps have completed their `init()` calls
 
 ## Using from HTTP Workers
 
