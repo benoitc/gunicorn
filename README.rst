@@ -61,6 +61,13 @@ Community
 - Chat in `#gunicorn`_ on `Libera.chat`_
 - See `CONTRIBUTING.md <CONTRIBUTING.md>`_ for contribution guidelines
 
+Sponsors
+--------
+
+Gunicorn is maintained thanks to our sponsors. `Become a sponsor <https://github.com/sponsors/benoitc>`_.
+
+.. Sponsor logos will appear here
+
 License
 -------
 
