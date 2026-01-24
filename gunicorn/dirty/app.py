@@ -23,38 +23,59 @@ class DirtyApp:
     persist in memory for the lifetime of the worker. They are designed
     for stateful resources like ML models, connection pools, etc.
 
+    Lifecycle
+    ---------
+    1. ``__init__()``: Called when the app is instantiated (once per worker)
+    2. ``init()``: Called after instantiation to initialize resources
+    3. ``__call__()``: Called for each request from HTTP workers
+    4. ``close()``: Called when the worker shuts down
+
+    State Persistence
+    -----------------
+    Instance variables persist across requests. This is the key feature
+    that enables loading heavy resources once and reusing them::
+
+        class MLApp(DirtyApp):
+            def init(self):
+                self.model = load_model()  # Loaded once, reused forever
+
+            def predict(self, data):
+                return self.model.predict(data)  # Same model for all requests
+
+    Thread Safety
+    -------------
+    With ``dirty_threads=1`` (default): Only one request runs at a time,
+    so no thread safety concerns.
+
+    With ``dirty_threads > 1``: Multiple requests may run concurrently
+    in the same worker. Your app MUST be thread-safe. Options:
+
+    - Use locks: ``threading.Lock()`` for shared state
+    - Use thread-local: ``threading.local()`` for per-thread state
+    - Use read-only state: Load models once in init(), never mutate
+
+    Example::
+
+        import threading
+
+        class ThreadSafeMLApp(DirtyApp):
+            def __init__(self):
+                self.models = {}
+                self._lock = threading.Lock()
+
+            def init(self):
+                self.models['default'] = load_model('base-model')
+
+            def load_model(self, name):
+                with self._lock:
+                    if name not in self.models:
+                        self.models[name] = load_model(name)
+                return {"loaded": True, "name": name}
+
     Subclasses should implement:
         - init(): Called once at worker startup to initialize resources
         - __call__(action, *args, **kwargs): Handle requests from HTTP workers
         - close(): Called at worker shutdown to cleanup resources
-
-    Example::
-
-        class MLApp(DirtyApp):
-            def __init__(self):
-                self.models = {}
-
-            def init(self):
-                # Load default models at startup
-                self.models['default'] = load_model('base-model')
-
-            def __call__(self, action, *args, **kwargs):
-                method = getattr(self, action, None)
-                if method is None:
-                    raise ValueError(f"Unknown action: {action}")
-                return method(*args, **kwargs)
-
-            def load_model(self, name):
-                if name not in self.models:
-                    self.models[name] = load_model(name)
-                return {"loaded": True, "name": name}
-
-            def inference(self, model_name, input_data):
-                return self.models[model_name].predict(input_data)
-
-            def close(self):
-                for model in self.models.values():
-                    del model
     """
 
     def init(self):

@@ -7,9 +7,68 @@ Dirty Worker Process
 
 Asyncio-based worker that loads dirty apps and handles requests
 from the DirtyArbiter.
+
+Threading Model
+---------------
+Each dirty worker runs an asyncio event loop in the main thread for:
+- Handling connections from the arbiter
+- Managing heartbeat updates
+- Coordinating task execution
+
+Actual app execution runs in a ThreadPoolExecutor (separate threads):
+- The number of threads is controlled by ``dirty_threads`` config (default: 1)
+- Each thread can execute one app action at a time
+- The asyncio event loop is NOT blocked by task execution
+
+State and Global Objects
+------------------------
+Apps can maintain persistent state because:
+
+1. Apps are loaded ONCE when the worker starts (in ``load_apps()``)
+2. The same app instances are reused for ALL requests
+3. App state (instance variables, loaded models, etc.) persists
+
+Example::
+
+    class MLApp(DirtyApp):
+        def init(self):
+            self.model = load_heavy_model()  # Loaded once, reused
+            self.cache = {}                   # Persistent cache
+
+        def predict(self, data):
+            return self.model.predict(data)  # Uses loaded model
+
+Thread Safety:
+- With ``dirty_threads=1`` (default): No concurrent access, thread-safe by design
+- With ``dirty_threads > 1``: Multiple threads share the same app instances,
+  apps MUST be thread-safe (use locks, thread-local storage, etc.)
+
+Heartbeat and Liveness
+----------------------
+The worker sends heartbeat updates to prove it's alive:
+
+1. A dedicated asyncio task (``_heartbeat_loop``) runs independently
+2. It updates the heartbeat file every ``dirty_timeout / 2`` seconds
+3. Since tasks run in executor threads, they do NOT block heartbeats
+4. The arbiter kills workers that miss heartbeat updates
+
+Timeout Control
+---------------
+Execution timeout is enforced at two levels:
+
+1. **Worker level**: Each task execution has a timeout (``dirty_timeout``).
+   If exceeded, the worker returns a timeout error but the thread may
+   continue running (Python threads cannot be cancelled).
+
+2. **Arbiter level**: The arbiter also enforces timeout when waiting
+   for worker response. Workers that don't respond are killed via SIGABRT.
+
+Note: Since Python threads cannot be forcibly cancelled, a truly stuck
+operation will continue until the worker is killed by the arbiter.
 """
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import os
 import signal
 import traceback
@@ -19,7 +78,12 @@ from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
 
 from .app import load_dirty_apps
-from .errors import DirtyAppError, DirtyAppNotFoundError, DirtyWorkerError
+from .errors import (
+    DirtyAppError,
+    DirtyAppNotFoundError,
+    DirtyTimeoutError,
+    DirtyWorkerError,
+)
 from .protocol import (
     DirtyProtocol,
     make_response,
@@ -64,6 +128,7 @@ class DirtyWorker:
         self.apps = {}
         self._server = None
         self._loop = None
+        self._executor = None
 
     def __str__(self):
         return f"<DirtyWorker {self.pid}>"
@@ -159,6 +224,14 @@ class DirtyWorker:
 
     def run(self):
         """Run the main asyncio event loop."""
+        # Create thread pool for executing app actions
+        num_threads = self.cfg.dirty_threads
+        self._executor = ThreadPoolExecutor(
+            max_workers=num_threads,
+            thread_name_prefix=f"dirty-worker-{self.pid}-"
+        )
+        self.log.debug("Created thread pool with %d threads", num_threads)
+
         try:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
@@ -281,6 +354,10 @@ class DirtyWorker:
         """
         Execute an action on a dirty app.
 
+        The action runs in a thread pool executor to avoid blocking the
+        asyncio event loop. Execution timeout is enforced using
+        ``dirty_timeout`` config.
+
         Args:
             app_path: Import path of the dirty app
             action: Action name to execute
@@ -292,24 +369,46 @@ class DirtyWorker:
 
         Raises:
             DirtyAppNotFoundError: If app is not loaded
+            DirtyTimeoutError: If execution exceeds timeout
             DirtyAppError: If execution fails
         """
         if app_path not in self.apps:
             raise DirtyAppNotFoundError(app_path)
 
         app = self.apps[app_path]
+        timeout = self.cfg.dirty_timeout if self.cfg.dirty_timeout > 0 else None
 
-        # Run the app call in a thread pool to avoid blocking
+        # Run the app call in the thread pool to avoid blocking
         # the event loop for CPU-bound operations
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: app(action, *args, **kwargs)
-        )
-        return result
+
+        try:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    self._executor,
+                    lambda: app(action, *args, **kwargs)
+                ),
+                timeout=timeout
+            )
+            return result
+        except asyncio.TimeoutError:
+            # Note: The thread continues running - we just stop waiting
+            self.log.warning(
+                "Execution timeout for %s.%s after %ds",
+                app_path, action, timeout
+            )
+            raise DirtyTimeoutError(
+                f"Execution of {app_path}.{action} timed out",
+                timeout=timeout
+            )
 
     def _cleanup(self):
         """Clean up resources on shutdown."""
+        # Shutdown thread pool executor
+        if self._executor:
+            self._executor.shutdown(wait=False, cancel_futures=True)
+            self._executor = None
+
         # Close all apps
         for path, app in self.apps.items():
             try:

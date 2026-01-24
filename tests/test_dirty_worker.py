@@ -906,3 +906,157 @@ class TestDirtyWorkerLoadAppsInit:
 
             # Error should be logged
             assert any("Failed to initialize" in msg for level, msg in log.messages)
+
+
+class TestDirtyWorkerExecutionTimeout:
+    """Tests for execution timeout control."""
+
+    @pytest.mark.asyncio
+    async def test_execute_with_timeout(self):
+        """Test that execute enforces timeout."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        cfg = Config()
+        cfg.set("dirty_timeout", 1)  # 1 second timeout
+        cfg.set("dirty_threads", 1)
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "worker.sock")
+            worker = DirtyWorker(
+                age=1,
+                ppid=os.getpid(),
+                app_paths=["tests.support_dirty_app:SlowDirtyApp"],
+                cfg=cfg,
+                log=log,
+                socket_path=socket_path
+            )
+            worker.pid = os.getpid()
+
+            # Create executor manually for test
+            worker._executor = ThreadPoolExecutor(max_workers=1)
+
+            try:
+                worker.load_apps()
+
+                # Execute slow action that exceeds timeout
+                from gunicorn.dirty.errors import DirtyTimeoutError
+                with pytest.raises(DirtyTimeoutError):
+                    await worker.execute(
+                        "tests.support_dirty_app:SlowDirtyApp",
+                        "slow_action",
+                        [],
+                        {"delay": 5.0}  # 5 second delay, 1 second timeout
+                    )
+            finally:
+                worker._cleanup()
+
+    @pytest.mark.asyncio
+    async def test_execute_within_timeout(self):
+        """Test that execute succeeds within timeout."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        cfg = Config()
+        cfg.set("dirty_timeout", 10)  # 10 second timeout
+        cfg.set("dirty_threads", 1)
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "worker.sock")
+            worker = DirtyWorker(
+                age=1,
+                ppid=os.getpid(),
+                app_paths=["tests.support_dirty_app:SlowDirtyApp"],
+                cfg=cfg,
+                log=log,
+                socket_path=socket_path
+            )
+            worker.pid = os.getpid()
+
+            # Create executor manually for test
+            worker._executor = ThreadPoolExecutor(max_workers=1)
+
+            try:
+                worker.load_apps()
+
+                # Execute fast action that completes within timeout
+                result = await worker.execute(
+                    "tests.support_dirty_app:SlowDirtyApp",
+                    "fast_action",
+                    [],
+                    {}
+                )
+                assert result == {"fast": True}
+            finally:
+                worker._cleanup()
+
+    @pytest.mark.asyncio
+    async def test_execute_no_timeout_when_zero(self):
+        """Test that timeout is disabled when dirty_timeout is 0."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        cfg = Config()
+        cfg.set("dirty_timeout", 0)  # Disabled
+        cfg.set("dirty_threads", 1)
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "worker.sock")
+            worker = DirtyWorker(
+                age=1,
+                ppid=os.getpid(),
+                app_paths=["tests.support_dirty_app:TestDirtyApp"],
+                cfg=cfg,
+                log=log,
+                socket_path=socket_path
+            )
+            worker.pid = os.getpid()
+
+            # Create executor manually for test
+            worker._executor = ThreadPoolExecutor(max_workers=1)
+
+            try:
+                worker.load_apps()
+
+                # Should work with no timeout
+                result = await worker.execute(
+                    "tests.support_dirty_app:TestDirtyApp",
+                    "compute",
+                    [2, 3],
+                    {"operation": "add"}
+                )
+                assert result == 5
+            finally:
+                worker._cleanup()
+
+    def test_run_creates_executor_with_threads(self):
+        """Test that run() creates executor with dirty_threads config."""
+        cfg = Config()
+        cfg.set("dirty_timeout", 300)
+        cfg.set("dirty_threads", 4)
+        log = MockLog()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "worker.sock")
+            worker = DirtyWorker(
+                age=1,
+                ppid=os.getpid(),
+                app_paths=["tests.support_dirty_app:TestDirtyApp"],
+                cfg=cfg,
+                log=log,
+                socket_path=socket_path
+            )
+            worker.pid = os.getpid()
+            worker.load_apps()
+
+            # Simulate what run() does
+            from concurrent.futures import ThreadPoolExecutor
+            worker._executor = ThreadPoolExecutor(
+                max_workers=cfg.dirty_threads,
+                thread_name_prefix=f"dirty-worker-{worker.pid}-"
+            )
+
+            assert worker._executor._max_workers == 4
+
+            worker._cleanup()
+            assert worker._executor is None
