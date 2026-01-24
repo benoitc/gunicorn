@@ -16,6 +16,9 @@ from gunicorn.dirty.protocol import DirtyProtocol, make_request
 from gunicorn.dirty.errors import DirtyAppNotFoundError
 
 
+import struct
+
+
 class MockLog:
     """Mock logger for testing."""
 
@@ -39,6 +42,42 @@ class MockLog:
 
     def reopen_files(self):
         pass
+
+
+class MockStreamWriter:
+    """Mock StreamWriter that captures written messages."""
+
+    def __init__(self):
+        self.messages = []
+        self._buffer = b""
+        self.closed = False
+
+    def write(self, data):
+        self._buffer += data
+
+    async def drain(self):
+        # Decode the buffer to extract messages
+        while len(self._buffer) >= DirtyProtocol.HEADER_SIZE:
+            length = struct.unpack(
+                DirtyProtocol.HEADER_FORMAT,
+                self._buffer[:DirtyProtocol.HEADER_SIZE]
+            )[0]
+            total_size = DirtyProtocol.HEADER_SIZE + length
+            if len(self._buffer) >= total_size:
+                msg_data = self._buffer[DirtyProtocol.HEADER_SIZE:total_size]
+                self._buffer = self._buffer[total_size:]
+                self.messages.append(DirtyProtocol.decode(msg_data))
+            else:
+                break
+
+    def close(self):
+        self.closed = True
+
+    async def wait_closed(self):
+        pass
+
+    def get_extra_info(self, name):
+        return None
 
 
 class TestDirtyWorkerInit:
@@ -214,8 +253,11 @@ class TestDirtyWorkerHandleRequest:
                 kwargs={"operation": "multiply"}
             )
 
-            response = await worker.handle_request(request)
+            writer = MockStreamWriter()
+            await worker.handle_request(request, writer)
 
+            assert len(writer.messages) == 1
+            response = writer.messages[0]
             assert response["type"] == DirtyProtocol.MSG_TYPE_RESPONSE
             assert response["id"] == "test-123"
             assert response["result"] == 6
@@ -247,8 +289,11 @@ class TestDirtyWorkerHandleRequest:
                 kwargs={"operation": "invalid"}
             )
 
-            response = await worker.handle_request(request)
+            writer = MockStreamWriter()
+            await worker.handle_request(request, writer)
 
+            assert len(writer.messages) == 1
+            response = writer.messages[0]
             assert response["type"] == DirtyProtocol.MSG_TYPE_ERROR
             assert response["id"] == "test-456"
             assert "Unknown operation" in response["error"]["message"]
@@ -271,8 +316,11 @@ class TestDirtyWorkerHandleRequest:
             )
 
             request = {"type": "unknown", "id": "test-789"}
-            response = await worker.handle_request(request)
+            writer = MockStreamWriter()
+            await worker.handle_request(request, writer)
 
+            assert len(writer.messages) == 1
+            response = writer.messages[0]
             assert response["type"] == DirtyProtocol.MSG_TYPE_ERROR
             assert "Unknown message type" in response["error"]["message"]
 
@@ -662,43 +710,21 @@ class TestDirtyWorkerRunAsync:
             reader.feed_data(encoded_request)
             reader.feed_eof()
 
-            class MockWriter:
-                def __init__(self):
-                    self.closed = False
-                    self.data = b""
-
-                def get_extra_info(self, name):
-                    return None
-
-                def write(self, data):
-                    self.data += data
-
-                async def drain(self):
-                    pass
-
-                def close(self):
-                    self.closed = True
-
-                async def wait_closed(self):
-                    pass
-
-            writer = MockWriter()
+            writer = MockStreamWriter()
 
             # Handle one message then exit
             worker.alive = True
             try:
                 message = await DirtyProtocol.read_message_async(reader)
-                response = await worker.handle_request(message)
-                await DirtyProtocol.write_message_async(writer, response)
+                await worker.handle_request(message, writer)
             except asyncio.IncompleteReadError:
                 pass
 
-            # Decode response from writer
-            if writer.data:
-                payload = writer.data[DirtyProtocol.HEADER_SIZE:]
-                response = DirtyProtocol.decode(payload)
-                assert response["type"] == DirtyProtocol.MSG_TYPE_RESPONSE
-                assert response["result"] == 8
+            # Check response from writer
+            assert len(writer.messages) == 1
+            response = writer.messages[0]
+            assert response["type"] == DirtyProtocol.MSG_TYPE_RESPONSE
+            assert response["result"] == 8
 
             worker._cleanup()
 

@@ -7,6 +7,7 @@
 import asyncio
 import os
 import signal
+import struct
 import tempfile
 import pytest
 
@@ -14,6 +15,41 @@ from gunicorn.config import Config
 from gunicorn.dirty.arbiter import DirtyArbiter
 from gunicorn.dirty.errors import DirtyError
 from gunicorn.dirty.protocol import DirtyProtocol, make_request
+
+
+class MockStreamWriter:
+    """Mock StreamWriter that captures written messages."""
+
+    def __init__(self):
+        self.messages = []
+        self._buffer = b""
+        self.closed = False
+
+    def write(self, data):
+        self._buffer += data
+
+    async def drain(self):
+        while len(self._buffer) >= DirtyProtocol.HEADER_SIZE:
+            length = struct.unpack(
+                DirtyProtocol.HEADER_FORMAT,
+                self._buffer[:DirtyProtocol.HEADER_SIZE]
+            )[0]
+            total_size = DirtyProtocol.HEADER_SIZE + length
+            if len(self._buffer) >= total_size:
+                msg_data = self._buffer[DirtyProtocol.HEADER_SIZE:total_size]
+                self._buffer = self._buffer[total_size:]
+                self.messages.append(DirtyProtocol.decode(msg_data))
+            else:
+                break
+
+    def close(self):
+        self.closed = True
+
+    async def wait_closed(self):
+        pass
+
+    def get_extra_info(self, name):
+        return None
 
 
 class MockLog:
@@ -141,8 +177,11 @@ class TestDirtyArbiterRouteRequest:
             action="test"
         )
 
-        response = await arbiter.route_request(request)
+        writer = MockStreamWriter()
+        await arbiter.route_request(request, writer)
 
+        assert len(writer.messages) == 1
+        response = writer.messages[0]
         assert response["type"] == DirtyProtocol.MSG_TYPE_ERROR
         assert "No dirty workers available" in response["error"]["message"]
 
@@ -430,8 +469,11 @@ class TestDirtyArbiterRouteTimeout:
         )
 
         # This should fail because socket doesn't exist
-        response = await arbiter.route_request(request)
+        writer = MockStreamWriter()
+        await arbiter.route_request(request, writer)
 
+        assert len(writer.messages) == 1
+        response = writer.messages[0]
         assert response["type"] == DirtyProtocol.MSG_TYPE_ERROR
         # Either "Worker communication failed" or "Worker socket not ready"
         assert "error" in response
@@ -893,7 +935,8 @@ class TestDirtyArbiterQueueBehavior:
         )
 
         # This will fail (no socket), but consumer should be started
-        await arbiter.route_request(request)
+        writer = MockStreamWriter()
+        await arbiter.route_request(request, writer)
 
         assert fake_pid in arbiter.worker_queues
         assert fake_pid in arbiter.worker_consumers

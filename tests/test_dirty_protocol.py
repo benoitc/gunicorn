@@ -15,6 +15,8 @@ from gunicorn.dirty.protocol import (
     make_request,
     make_response,
     make_error_response,
+    make_chunk_message,
+    make_end_message,
 )
 from gunicorn.dirty.errors import (
     DirtyError,
@@ -322,6 +324,51 @@ class TestMessageBuilders:
 
         assert response["error"]["error_type"] == "ValueError"
         assert response["error"]["message"] == "Invalid value"
+
+    def test_make_chunk_message(self):
+        """Test chunk message builder."""
+        chunk = make_chunk_message("req-123", "Hello, ")
+        assert chunk["type"] == DirtyProtocol.MSG_TYPE_CHUNK
+        assert chunk["id"] == "req-123"
+        assert chunk["data"] == "Hello, "
+
+    def test_make_chunk_message_with_complex_data(self):
+        """Test chunk message with complex data."""
+        data = {"token": "world", "score": 0.95, "index": 5}
+        chunk = make_chunk_message("req-456", data)
+        assert chunk["type"] == DirtyProtocol.MSG_TYPE_CHUNK
+        assert chunk["id"] == "req-456"
+        assert chunk["data"] == data
+
+    def test_make_chunk_message_with_list_data(self):
+        """Test chunk message with list data."""
+        data = [1, 2, 3, "token"]
+        chunk = make_chunk_message("req-789", data)
+        assert chunk["data"] == data
+
+    def test_make_end_message(self):
+        """Test end message builder."""
+        end = make_end_message("req-123")
+        assert end["type"] == DirtyProtocol.MSG_TYPE_END
+        assert end["id"] == "req-123"
+        assert "data" not in end
+
+    def test_chunk_and_end_encode_decode(self):
+        """Test that chunk and end messages can be encoded/decoded."""
+        chunk = make_chunk_message("req-123", {"token": "hello"})
+        end = make_end_message("req-123")
+
+        # Test chunk roundtrip
+        encoded_chunk = DirtyProtocol.encode(chunk)
+        payload = encoded_chunk[DirtyProtocol.HEADER_SIZE:]
+        decoded = DirtyProtocol.decode(payload)
+        assert decoded == chunk
+
+        # Test end roundtrip
+        encoded_end = DirtyProtocol.encode(end)
+        payload = encoded_end[DirtyProtocol.HEADER_SIZE:]
+        decoded = DirtyProtocol.decode(payload)
+        assert decoded == end
 
 
 class TestDirtyErrors:

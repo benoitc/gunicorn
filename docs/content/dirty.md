@@ -200,6 +200,160 @@ async def my_view(request):
     return result
 ```
 
+## Streaming
+
+Dirty Arbiters support streaming responses for use cases like LLM token generation, where data is produced incrementally. This enables real-time delivery of results without waiting for complete execution.
+
+### Streaming with Generators
+
+Any dirty app action that returns a generator (sync or async) automatically streams chunks to the client:
+
+```python
+# myapp/llm.py
+from gunicorn.dirty import DirtyApp
+
+class LLMApp(DirtyApp):
+    def init(self):
+        from transformers import pipeline
+        self.generator = pipeline("text-generation", model="gpt2")
+
+    def generate(self, prompt):
+        """Sync streaming - yields tokens."""
+        for token in self.generator(prompt, stream=True):
+            yield token["generated_text"]
+
+    async def generate_async(self, prompt):
+        """Async streaming - yields tokens."""
+        import openai
+        client = openai.AsyncOpenAI()
+        stream = await client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            stream=True
+        )
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    def close(self):
+        pass
+```
+
+### Client Streaming API
+
+Use `stream()` for sync workers and `stream_async()` for async workers:
+
+**Sync Workers (sync, gthread):**
+
+```python
+from gunicorn.dirty import get_dirty_client
+
+def generate_view(request):
+    client = get_dirty_client()
+
+    def generate_response():
+        for chunk in client.stream("myapp.llm:LLMApp", "generate", request.prompt):
+            yield chunk
+
+    return StreamingResponse(generate_response())
+```
+
+**Async Workers (ASGI):**
+
+```python
+from gunicorn.dirty import get_dirty_client_async
+
+async def generate_view(request):
+    client = await get_dirty_client_async()
+
+    async def generate_response():
+        async for chunk in client.stream_async("myapp.llm:LLMApp", "generate", request.prompt):
+            yield chunk
+
+    return StreamingResponse(generate_response())
+```
+
+### Streaming Protocol
+
+Streaming uses a simple protocol with three message types:
+
+1. **Chunk** (`type: "chunk"`) - Contains partial data
+2. **End** (`type: "end"`) - Signals stream completion
+3. **Error** (`type: "error"`) - Signals error during streaming
+
+Example message flow:
+```
+Client -> Arbiter -> Worker: request
+Worker -> Arbiter -> Client: chunk (data: "Hello")
+Worker -> Arbiter -> Client: chunk (data: " ")
+Worker -> Arbiter -> Client: chunk (data: "World")
+Worker -> Arbiter -> Client: end
+```
+
+### Error Handling in Streams
+
+Errors during streaming are delivered as error messages:
+
+```python
+def generate_view(request):
+    client = get_dirty_client()
+
+    try:
+        for chunk in client.stream("myapp.llm:LLMApp", "generate", prompt):
+            yield chunk
+    except DirtyError as e:
+        # Error occurred mid-stream
+        yield f"\n[Error: {e.message}]"
+```
+
+### Best Practices for Streaming
+
+1. **Use async generators for I/O-bound streaming** - e.g., API calls to external services
+2. **Use sync generators for CPU-bound streaming** - e.g., local model inference
+3. **Yield frequently** - Heartbeats are sent during streaming to keep workers alive
+4. **Keep chunks small** - Smaller chunks provide better perceived latency
+5. **Handle client disconnection** - Streams continue even if client disconnects; design accordingly
+
+### Flask Example
+
+```python
+from flask import Flask, Response
+from gunicorn.dirty import get_dirty_client
+
+app = Flask(__name__)
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    prompt = request.json.get("prompt")
+    client = get_dirty_client()
+
+    def stream():
+        for token in client.stream("myapp.llm:LLMApp", "generate", prompt):
+            yield f"data: {token}\n\n"
+
+    return Response(stream(), content_type="text/event-stream")
+```
+
+### FastAPI Example
+
+```python
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from gunicorn.dirty import get_dirty_client_async
+
+app = FastAPI()
+
+@app.post("/chat")
+async def chat(prompt: str):
+    client = await get_dirty_client_async()
+
+    async def stream():
+        async for token in client.stream_async("myapp.llm:LLMApp", "generate", prompt):
+            yield f"data: {token}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+```
+
 ## Lifecycle Hooks
 
 Dirty Arbiters provide hooks for customization:

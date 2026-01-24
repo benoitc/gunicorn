@@ -312,3 +312,37 @@ def make_error_response(request_id: str, error) -> dict:
         "id": request_id,
         "error": error_dict,
     }
+
+
+def make_chunk_message(request_id: str, data) -> dict:
+    """
+    Build a chunk message for streaming responses.
+
+    Args:
+        request_id: Request identifier this chunk belongs to
+        data: Chunk data (must be JSON-serializable)
+
+    Returns:
+        dict: Chunk message
+    """
+    return {
+        "type": DirtyProtocol.MSG_TYPE_CHUNK,
+        "id": request_id,
+        "data": data,
+    }
+
+
+def make_end_message(request_id: str) -> dict:
+    """
+    Build an end-of-stream message.
+
+    Args:
+        request_id: Request identifier this ends
+
+    Returns:
+        dict: End message
+    """
+    return {
+        "type": DirtyProtocol.MSG_TYPE_END,
+        "id": request_id,
+    }

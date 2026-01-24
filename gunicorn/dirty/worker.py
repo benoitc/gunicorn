@@ -69,6 +69,7 @@ operation will continue until the worker is killed by the arbiter.
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import inspect
 import os
 import signal
 import traceback
@@ -88,6 +89,8 @@ from .protocol import (
     DirtyProtocol,
     make_response,
     make_error_response,
+    make_chunk_message,
+    make_end_message,
 )
 
 
@@ -296,11 +299,8 @@ class DirtyWorker:
                     # Connection closed
                     break
 
-                # Handle the request
-                response = await self.handle_request(message)
-
-                # Send response
-                await DirtyProtocol.write_message_async(writer, response)
+                # Handle the request - pass writer for streaming support
+                await self.handle_request(message, writer)
         except Exception as e:
             self.log.error("Connection error: %s", e)
         finally:
@@ -310,24 +310,28 @@ class DirtyWorker:
             except Exception:
                 pass
 
-    async def handle_request(self, message):
+    async def handle_request(self, message, writer):
         """
         Handle a single request message.
 
+        Supports both regular (non-streaming) and streaming responses.
+        For streaming, detects if the result is a generator and sends
+        chunk messages followed by an end message.
+
         Args:
             message: Request dict from protocol
-
-        Returns:
-            Response dict to send back
+            writer: StreamWriter for sending responses
         """
         request_id = message.get("id", str(uuid.uuid4()))
         msg_type = message.get("type")
 
         if msg_type != DirtyProtocol.MSG_TYPE_REQUEST:
-            return make_error_response(
+            response = make_error_response(
                 request_id,
                 DirtyWorkerError(f"Unknown message type: {msg_type}")
             )
+            await DirtyProtocol.write_message_async(writer, response)
+            return
 
         app_path = message.get("app_path")
         action = message.get("action")
@@ -339,16 +343,107 @@ class DirtyWorker:
 
         try:
             result = await self.execute(app_path, action, args, kwargs)
-            return make_response(request_id, result)
+
+            # Check if result is a generator (streaming)
+            if inspect.isgenerator(result):
+                await self._stream_sync_generator(request_id, result, writer)
+            elif inspect.isasyncgen(result):
+                await self._stream_async_generator(request_id, result, writer)
+            else:
+                # Regular non-streaming response
+                response = make_response(request_id, result)
+                await DirtyProtocol.write_message_async(writer, response)
         except Exception as e:
             tb = traceback.format_exc()
             self.log.error("Error executing %s.%s: %s\n%s",
                            app_path, action, e, tb)
-            return make_error_response(
+            response = make_error_response(
                 request_id,
                 DirtyAppError(str(e), app_path=app_path, action=action,
                               traceback=tb)
             )
+            await DirtyProtocol.write_message_async(writer, response)
+
+    async def _stream_sync_generator(self, request_id, gen, writer):
+        """
+        Stream chunks from a synchronous generator.
+
+        Args:
+            request_id: Request ID for the messages
+            gen: Sync generator to iterate
+            writer: StreamWriter for sending messages
+        """
+        # Sentinel value to detect end of generator
+        # (StopIteration cannot be raised into a Future in Python 3.7+)
+        _EXHAUSTED = object()
+
+        def _get_next():
+            try:
+                return next(gen)
+            except StopIteration:
+                return _EXHAUSTED
+
+        try:
+            loop = asyncio.get_running_loop()
+            while True:
+                # Run next() in executor to avoid blocking event loop
+                chunk = await loop.run_in_executor(self._executor, _get_next)
+                if chunk is _EXHAUSTED:
+                    break
+                # Send chunk message
+                await DirtyProtocol.write_message_async(
+                    writer, make_chunk_message(request_id, chunk)
+                )
+                # Update heartbeat during long streams
+                self.notify()
+            # Send end message
+            await DirtyProtocol.write_message_async(
+                writer, make_end_message(request_id)
+            )
+        except Exception as e:
+            # Error during streaming - send error message
+            tb = traceback.format_exc()
+            self.log.error("Error during streaming: %s\n%s", e, tb)
+            response = make_error_response(
+                request_id,
+                DirtyAppError(str(e), traceback=tb)
+            )
+            await DirtyProtocol.write_message_async(writer, response)
+        finally:
+            gen.close()
+
+    async def _stream_async_generator(self, request_id, gen, writer):
+        """
+        Stream chunks from an asynchronous generator.
+
+        Args:
+            request_id: Request ID for the messages
+            gen: Async generator to iterate
+            writer: StreamWriter for sending messages
+        """
+        try:
+            async for chunk in gen:
+                # Send chunk message
+                await DirtyProtocol.write_message_async(
+                    writer, make_chunk_message(request_id, chunk)
+                )
+                # Update heartbeat during long streams
+                self.notify()
+            # Send end message
+            await DirtyProtocol.write_message_async(
+                writer, make_end_message(request_id)
+            )
+        except Exception as e:
+            # Error during streaming - send error message
+            tb = traceback.format_exc()
+            self.log.error("Error during streaming: %s\n%s", e, tb)
+            response = make_error_response(
+                request_id,
+                DirtyAppError(str(e), traceback=tb)
+            )
+            await DirtyProtocol.write_message_async(writer, response)
+        finally:
+            await gen.aclose()
 
     async def execute(self, app_path, action, args, kwargs):
         """

@@ -199,6 +199,7 @@ class DirtyArbiter:
         Handle a connection from an HTTP worker.
 
         Routes requests to available dirty workers and returns responses.
+        Supports both regular responses and streaming (chunk-based) responses.
         """
         self.log.debug("New client connection from HTTP worker")
 
@@ -209,11 +210,8 @@ class DirtyArbiter:
                 except asyncio.IncompleteReadError:
                     break
 
-                # Route request to a dirty worker
-                response = await self.route_request(message)
-
-                # Send response back to HTTP worker
-                await DirtyProtocol.write_message_async(writer, response)
+                # Route request to a dirty worker - pass writer for streaming
+                await self.route_request(message, writer)
         except Exception as e:
             self.log.error("Client connection error: %s", e)
         finally:
@@ -223,28 +221,31 @@ class DirtyArbiter:
             except Exception:
                 pass
 
-    async def route_request(self, request):
+    async def route_request(self, request, client_writer):
         """
         Route a request to an available dirty worker via queue.
 
         Each worker has a dedicated queue and consumer task. Requests are
         submitted to the queue and processed sequentially by the consumer.
 
+        For streaming responses, messages (chunks) are forwarded directly
+        to the client_writer as they arrive from the worker.
+
         Args:
             request: Request message dict
-
-        Returns:
-            Response message dict
+            client_writer: StreamWriter to send responses to client
         """
         request_id = request.get("id", "unknown")
 
         # Find an available worker
         worker_pid = await self._get_available_worker()
         if worker_pid is None:
-            return make_error_response(
+            response = make_error_response(
                 request_id,
                 DirtyError("No dirty workers available")
             )
+            await DirtyProtocol.write_message_async(client_writer, response)
+            return
 
         # Get queue (start consumer if needed)
         if worker_pid not in self.worker_queues:
@@ -253,17 +254,18 @@ class DirtyArbiter:
         queue = self.worker_queues[worker_pid]
         future = asyncio.get_running_loop().create_future()
 
-        # Submit request to queue
-        await queue.put((request, future))
+        # Submit request to queue with client writer for streaming support
+        await queue.put((request, client_writer, future))
 
-        # Wait for response
+        # Wait for completion (streaming messages forwarded by consumer)
         try:
-            return await future
+            await future
         except Exception as e:
-            return make_error_response(
+            response = make_error_response(
                 request_id,
                 DirtyWorkerError(f"Request failed: {e}", worker_id=worker_pid)
             )
+            await DirtyProtocol.write_message_async(client_writer, response)
 
     async def _start_worker_consumer(self, worker_pid):
         """Start a consumer task for a worker's request queue."""
@@ -273,11 +275,13 @@ class DirtyArbiter:
         async def consumer():
             while self.alive:
                 try:
-                    request, future = await queue.get()
+                    request, client_writer, future = await queue.get()
                     try:
-                        response = await self._execute_on_worker(worker_pid, request)
+                        await self._execute_on_worker(
+                            worker_pid, request, client_writer
+                        )
                         if not future.done():
-                            future.set_result(response)
+                            future.set_result(None)
                     except Exception as e:
                         if not future.done():
                             future.set_exception(e)
@@ -289,32 +293,65 @@ class DirtyArbiter:
         task = asyncio.create_task(consumer())
         self.worker_consumers[worker_pid] = task
 
-    async def _execute_on_worker(self, worker_pid, request):
-        """Execute request on a specific worker (called by consumer)."""
+    async def _execute_on_worker(self, worker_pid, request, client_writer):
+        """
+        Execute request on a specific worker (called by consumer).
+
+        Handles both regular responses and streaming (chunk-based) responses.
+        For streaming, chunk and end messages are forwarded directly to the
+        client_writer as they arrive from the worker.
+        """
         request_id = request.get("id", "unknown")
 
         try:
             reader, writer = await self._get_worker_connection(worker_pid)
             await DirtyProtocol.write_message_async(writer, request)
 
-            response = await asyncio.wait_for(
-                DirtyProtocol.read_message_async(reader),
-                timeout=self.cfg.dirty_timeout
-            )
-            return response
-        except asyncio.TimeoutError:
-            return make_error_response(
-                request_id,
-                DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
-            )
+            # Read messages until we get a response, end, or error
+            while True:
+                try:
+                    message = await asyncio.wait_for(
+                        DirtyProtocol.read_message_async(reader),
+                        timeout=self.cfg.dirty_timeout
+                    )
+                except asyncio.TimeoutError:
+                    response = make_error_response(
+                        request_id,
+                        DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
+                    )
+                    await DirtyProtocol.write_message_async(client_writer, response)
+                    return
+
+                msg_type = message.get("type")
+
+                # Forward chunk messages to client
+                if msg_type == DirtyProtocol.MSG_TYPE_CHUNK:
+                    await DirtyProtocol.write_message_async(client_writer, message)
+                    continue
+
+                # Forward end message and complete
+                if msg_type == DirtyProtocol.MSG_TYPE_END:
+                    await DirtyProtocol.write_message_async(client_writer, message)
+                    return
+
+                # Forward response or error and complete
+                if msg_type in (DirtyProtocol.MSG_TYPE_RESPONSE,
+                                DirtyProtocol.MSG_TYPE_ERROR):
+                    await DirtyProtocol.write_message_async(client_writer, message)
+                    return
+
+                # Unknown message type - log and continue
+                self.log.warning("Unknown message type from worker: %s", msg_type)
+
         except Exception as e:
             self.log.error("Error executing on worker %s: %s", worker_pid, e)
             self._close_worker_connection(worker_pid)
-            return make_error_response(
+            response = make_error_response(
                 request_id,
                 DirtyWorkerError(f"Worker communication failed: {e}",
                                  worker_id=worker_pid)
             )
+            await DirtyProtocol.write_message_async(client_writer, response)
 
     async def _get_available_worker(self):
         """
