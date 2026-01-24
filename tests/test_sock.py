@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import sys
 import socket
 from unittest import mock
 
@@ -9,11 +10,42 @@ import pytest
 
 from gunicorn import sock
 
+
 @pytest.fixture(scope='function')
 def addr(request, tmp_path):
     if isinstance(request.param, str):
         return str(tmp_path / request.param)
     return request.param
+
+
+def test_socket_backlog():
+    listener = mock.Mock(family=socket.AF_INET6)
+
+    def fake_getsockopt(prot, opt, length):
+        assert prot == socket.IPPROTO_TCP
+        assert opt == socket.TCP_INFO
+        assert length == 104
+        return b"\x01\x01\0\0" * (length // 4)
+    listener.getsockopt = fake_getsockopt
+    bl = sock.get_backlog(listener)
+    if sys.platform == "linux":
+        assert bl == (1 << 8) + 1
+    else:
+        assert bl == -1
+
+
+@mock.patch('socket.socket')
+@mock.patch('gunicorn.util.chown')
+def test_inherit_socket(chown, socket):
+    conf = mock.Mock(address=[], certfile=None, keyfile=None)
+    log = mock.Mock()
+    listeners = sock.create_sockets(conf, log, fds=[3])
+    assert len(listeners) == 1
+    listener = listeners[0]
+    assert listener == socket.return_value
+    socket.assert_called_with(fileno=3)
+    listener.listen.assert_not_called()
+    chown.assert_not_called()
 
 
 @pytest.mark.parametrize(
