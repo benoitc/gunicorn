@@ -1201,6 +1201,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2411-2026-01-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24.1.1 - 2026-01-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="24.1.1 - 2026-01-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2410-2026-01-23" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1224,7 +1252,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes" class="md-nav__link">
+  <a href="#bug-fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1862,6 +1890,16 @@
 
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fix <code>forwarded_allow_ips</code> and <code>proxy_allow_ips</code> to remain as strings for backward
+  compatibility with external tools like uvicorn. Network validation now uses strict
+  mode to detect invalid CIDR notation (e.g., <code>192.168.1.1/24</code> where host bits are set)
+  (<a href="https://github.com/benoitc/gunicorn/issues/3458">#3458</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3459">PR #3459</a>)</li>
+</ul>
+<hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1893,7 +1931,7 @@
   imported modules, not just those loaded at startup</p>
 </li>
 </ul>
-<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix signal handling regression where SIGCLD alias caused errors on Linux</li>
 <li>Fix socket blocking mode on keepalive connections with async workers</li>
