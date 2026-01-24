@@ -44,7 +44,7 @@ def test_inherit_socket(chown, socket):
     listener = listeners[0]
     assert listener == socket.return_value
     socket.assert_called_with(fileno=3)
-    listener.listen.assert_not_called()
+    listener.listen.assert_called_with(conf.backlog)
     chown.assert_not_called()
 
 

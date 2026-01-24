@@ -120,6 +120,7 @@ def create_sockets(conf, log, fds=None):
         for fd in fdaddr:
             # no file descriptor duplication
             sock = socket.socket(fileno=fd)
+            sock.listen(conf.backlog)
             set_socket_options(conf, sock)
             listeners.append(sock)
         return listeners
