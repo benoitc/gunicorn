@@ -67,7 +67,8 @@ class DirtyArbiter:
         self.workers = {}  # pid -> DirtyWorker
         self.worker_sockets = {}  # pid -> socket_path
         self.worker_connections = {}  # pid -> (reader, writer)
-        self.worker_locks = {}  # pid -> asyncio.Lock (serialize requests per worker)
+        self.worker_queues = {}  # pid -> asyncio.Queue
+        self.worker_consumers = {}  # pid -> asyncio.Task
         self._worker_rr_index = 0  # Round-robin index for worker selection
         self.worker_age = 0
         self.alive = True
@@ -224,10 +225,10 @@ class DirtyArbiter:
 
     async def route_request(self, request):
         """
-        Route a request to an available dirty worker.
+        Route a request to an available dirty worker via queue.
 
-        Requests to each worker are serialized using a per-worker lock
-        to ensure only one request is in flight at a time per worker.
+        Each worker has a dedicated queue and consumer task. Requests are
+        submitted to the queue and processed sequentially by the consumer.
 
         Args:
             request: Request message dict
@@ -245,42 +246,75 @@ class DirtyArbiter:
                 DirtyError("No dirty workers available")
             )
 
-        # Get or create lock for this worker
-        if worker_pid not in self.worker_locks:
-            self.worker_locks[worker_pid] = asyncio.Lock()
-        worker_lock = self.worker_locks[worker_pid]
+        # Get queue (start consumer if needed)
+        if worker_pid not in self.worker_queues:
+            await self._start_worker_consumer(worker_pid)
 
-        # Serialize requests to this worker
-        async with worker_lock:
-            try:
-                # Get or establish connection to worker
-                reader, writer = await self._get_worker_connection(worker_pid)
+        queue = self.worker_queues[worker_pid]
+        future = asyncio.get_running_loop().create_future()
 
-                # Send request to worker
-                await DirtyProtocol.write_message_async(writer, request)
+        # Submit request to queue
+        await queue.put((request, future))
 
-                # Wait for response with timeout
+        # Wait for response
+        try:
+            return await future
+        except Exception as e:
+            return make_error_response(
+                request_id,
+                DirtyWorkerError(f"Request failed: {e}", worker_id=worker_pid)
+            )
+
+    async def _start_worker_consumer(self, worker_pid):
+        """Start a consumer task for a worker's request queue."""
+        queue = asyncio.Queue()
+        self.worker_queues[worker_pid] = queue
+
+        async def consumer():
+            while self.alive:
                 try:
-                    response = await asyncio.wait_for(
-                        DirtyProtocol.read_message_async(reader),
-                        timeout=self.cfg.dirty_timeout
-                    )
-                    return response
-                except asyncio.TimeoutError:
-                    return make_error_response(
-                        request_id,
-                        DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
-                    )
-            except Exception as e:
-                self.log.error("Error routing request to worker %s: %s",
-                               worker_pid, e)
-                # Remove failed connection
-                self._close_worker_connection(worker_pid)
-                return make_error_response(
-                    request_id,
-                    DirtyWorkerError(f"Worker communication failed: {e}",
-                                     worker_id=worker_pid)
-                )
+                    request, future = await queue.get()
+                    try:
+                        response = await self._execute_on_worker(worker_pid, request)
+                        if not future.done():
+                            future.set_result(response)
+                    except Exception as e:
+                        if not future.done():
+                            future.set_exception(e)
+                    finally:
+                        queue.task_done()
+                except asyncio.CancelledError:
+                    break
+
+        task = asyncio.create_task(consumer())
+        self.worker_consumers[worker_pid] = task
+
+    async def _execute_on_worker(self, worker_pid, request):
+        """Execute request on a specific worker (called by consumer)."""
+        request_id = request.get("id", "unknown")
+
+        try:
+            reader, writer = await self._get_worker_connection(worker_pid)
+            await DirtyProtocol.write_message_async(writer, request)
+
+            response = await asyncio.wait_for(
+                DirtyProtocol.read_message_async(reader),
+                timeout=self.cfg.dirty_timeout
+            )
+            return response
+        except asyncio.TimeoutError:
+            return make_error_response(
+                request_id,
+                DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)
+            )
+        except Exception as e:
+            self.log.error("Error executing on worker %s: %s", worker_pid, e)
+            self._close_worker_connection(worker_pid)
+            return make_error_response(
+                request_id,
+                DirtyWorkerError(f"Worker communication failed: {e}",
+                                 worker_id=worker_pid)
+            )
 
     async def _get_available_worker(self):
         """
@@ -392,7 +426,15 @@ class DirtyArbiter:
     def _cleanup_worker(self, pid):
         """Clean up after a worker exits."""
         self._close_worker_connection(pid)
-        self.worker_locks.pop(pid, None)
+
+        # Cancel consumer task
+        if pid in self.worker_consumers:
+            self.worker_consumers[pid].cancel()
+            del self.worker_consumers[pid]
+
+        # Remove queue
+        self.worker_queues.pop(pid, None)
+
         worker = self.workers.pop(pid, None)
         if worker:
             self.cfg.dirty_worker_exit(self, worker)
@@ -463,6 +505,10 @@ class DirtyArbiter:
 
     async def stop(self, graceful=True):
         """Stop all workers."""
+        # Cancel all consumer tasks
+        for task in self.worker_consumers.values():
+            task.cancel()
+
         sig = signal.SIGTERM if graceful else signal.SIGQUIT
         limit = time.time() + self.cfg.dirty_graceful_timeout
 

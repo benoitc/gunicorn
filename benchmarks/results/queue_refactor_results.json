@@ -1,0 +1,168 @@
+{
+  "timestamp": "2026-01-24T10:56:33",
+  "results": [
+    {
+      "scenario": "baseline_10ms",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "sleep_task",
+        "task_args": [
+          10
+        ],
+        "concurrency": 1
+      },
+      "total_requests": 1000,
+      "successful": 1000,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 12.27,
+      "requests_per_sec": 81.5,
+      "latency_ms": {
+        "min": 10.432417009724304,
+        "max": 13.792542013106868,
+        "mean": 12.266892079642275,
+        "stddev": 0.871026700472873,
+        "p50": 12.80679099727422,
+        "p95": 13.078375020995736,
+        "p99": 13.141458010068163
+      }
+    },
+    {
+      "scenario": "throughput_10ms",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "sleep_task",
+        "task_args": [
+          10
+        ],
+        "concurrency": 100
+      },
+      "total_requests": 5000,
+      "successful": 5000,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 14.95,
+      "requests_per_sec": 334.4,
+      "latency_ms": {
+        "min": 11.470375000499189,
+        "max": 341.3927500077989,
+        "mean": 294.71728502821645,
+        "stddev": 34.9421432011074,
+        "p50": 305.2922079805285,
+        "p95": 326.4670000062324,
+        "p99": 334.32295799138956
+      }
+    },
+    {
+      "scenario": "cpu_bound_100ms",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "cpu_task",
+        "task_args": [
+          100
+        ],
+        "concurrency": 20
+      },
+      "total_requests": 500,
+      "successful": 500,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 12.55,
+      "requests_per_sec": 39.8,
+      "latency_ms": {
+        "min": 100.59350001392886,
+        "max": 502.4004160077311,
+        "mean": 493.9748328983551,
+        "stddev": 48.57073135808595,
+        "p50": 502.01483300770633,
+        "p95": 502.21283300197683,
+        "p99": 502.2801249870099
+      }
+    },
+    {
+      "scenario": "io_bound_500ms",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "sleep_task",
+        "task_args": [
+          500
+        ],
+        "concurrency": 50
+      },
+      "total_requests": 200,
+      "successful": 200,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 25.19,
+      "requests_per_sec": 7.9,
+      "latency_ms": {
+        "min": 501.3219590182416,
+        "max": 6563.243499986129,
+        "mean": 5566.4884116455505,
+        "stddev": 1566.1525736181566,
+        "p50": 6052.653749997262,
+        "p95": 6553.810708021047,
+        "p99": 6559.503666008823
+      }
+    },
+    {
+      "scenario": "mixed_50_50",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "mixed_task",
+        "task_args": [
+          50,
+          50
+        ],
+        "concurrency": 30
+      },
+      "total_requests": 500,
+      "successful": 500,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 12.98,
+      "requests_per_sec": 38.5,
+      "latency_ms": {
+        "min": 102.34933299943805,
+        "max": 839.0888340072706,
+        "mean": 756.4045974735054,
+        "stddev": 103.21897997316475,
+        "p50": 762.6495829899795,
+        "p95": 832.905125018442,
+        "p99": 836.0978330019861
+      }
+    },
+    {
+      "scenario": "overload_10ms",
+      "config": {
+        "dirty_workers": 4,
+        "dirty_threads": 1,
+        "task_action": "sleep_task",
+        "task_args": [
+          10
+        ],
+        "concurrency": 200
+      },
+      "total_requests": 2000,
+      "successful": 2000,
+      "failed": 0,
+      "errors": [],
+      "duration_sec": 5.99,
+      "requests_per_sec": 334.1,
+      "latency_ms": {
+        "min": 10.763874975964427,
+        "max": 625.4918330232613,
+        "mean": 565.1407622727129,
+        "stddev": 104.98938999734894,
+        "p50": 590.0453749927692,
+        "p95": 617.4105420068372,
+        "p99": 621.7636249784846
+      }
+    }
+  ]
+}

@@ -172,6 +172,42 @@ class TestDirtyArbiterWorkerManagement:
 
         arbiter._cleanup_sync()
 
+    @pytest.mark.asyncio
+    async def test_cleanup_worker_cancels_consumer(self):
+        """Test that worker cleanup cancels consumer task and removes queue."""
+        cfg = Config()
+        cfg.set("dirty_workers", 2)
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.alive = True
+
+        # Simulate a worker with queue and consumer
+        fake_pid = 99999
+        arbiter.workers[fake_pid] = "fake_worker"
+        arbiter.worker_sockets[fake_pid] = "/tmp/fake.sock"
+
+        # Create queue and mock consumer task
+        arbiter.worker_queues[fake_pid] = asyncio.Queue()
+
+        async def mock_consumer():
+            try:
+                while True:
+                    await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                pass
+
+        arbiter.worker_consumers[fake_pid] = asyncio.create_task(mock_consumer())
+
+        arbiter._cleanup_worker(fake_pid)
+
+        assert fake_pid not in arbiter.workers
+        assert fake_pid not in arbiter.worker_sockets
+        assert fake_pid not in arbiter.worker_queues
+        assert fake_pid not in arbiter.worker_consumers
+
+        arbiter._cleanup_sync()
+
     def test_reap_workers_no_children(self):
         """Test reap_workers when no children have exited."""
         cfg = Config()
@@ -798,4 +834,111 @@ class TestDirtyArbiterSighupHandler:
         assert len(tasks_scheduled) == 1
 
         loop.close()
+        arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterQueueBehavior:
+    """Tests for queue-based request routing."""
+
+    @pytest.mark.asyncio
+    async def test_start_worker_consumer_creates_queue_and_task(self):
+        """Test _start_worker_consumer creates queue and task."""
+        cfg = Config()
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.alive = True
+
+        fake_pid = 99999
+
+        await arbiter._start_worker_consumer(fake_pid)
+
+        assert fake_pid in arbiter.worker_queues
+        assert fake_pid in arbiter.worker_consumers
+        assert isinstance(arbiter.worker_queues[fake_pid], asyncio.Queue)
+        assert isinstance(arbiter.worker_consumers[fake_pid], asyncio.Task)
+
+        # Cancel task for cleanup
+        arbiter.worker_consumers[fake_pid].cancel()
+        try:
+            await arbiter.worker_consumers[fake_pid]
+        except asyncio.CancelledError:
+            pass
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_route_request_starts_consumer_on_demand(self):
+        """Test route_request starts consumer if not exists."""
+        cfg = Config()
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = os.getpid()
+        arbiter.alive = True
+
+        # Register fake worker
+        fake_pid = 99999
+        arbiter.workers[fake_pid] = "fake_worker"
+        arbiter.worker_sockets[fake_pid] = "/tmp/nonexistent.sock"
+
+        assert fake_pid not in arbiter.worker_queues
+        assert fake_pid not in arbiter.worker_consumers
+
+        # Make request - should start consumer
+        request = make_request(
+            request_id="test-123",
+            app_path="test:App",
+            action="test"
+        )
+
+        # This will fail (no socket), but consumer should be started
+        await arbiter.route_request(request)
+
+        assert fake_pid in arbiter.worker_queues
+        assert fake_pid in arbiter.worker_consumers
+
+        # Cleanup
+        arbiter.alive = False
+        arbiter.worker_consumers[fake_pid].cancel()
+        try:
+            await arbiter.worker_consumers[fake_pid]
+        except asyncio.CancelledError:
+            pass
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_all_consumers(self):
+        """Test stop() cancels all consumer tasks."""
+        cfg = Config()
+        cfg.set("dirty_graceful_timeout", 1)
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = os.getpid()
+        arbiter.alive = True
+
+        # Create mock consumers
+        async def mock_consumer():
+            try:
+                while True:
+                    await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                pass
+
+        task1 = asyncio.create_task(mock_consumer())
+        task2 = asyncio.create_task(mock_consumer())
+        arbiter.worker_consumers[1] = task1
+        arbiter.worker_consumers[2] = task2
+
+        await arbiter.stop(graceful=True)
+
+        # Allow cancelled tasks to complete
+        await asyncio.sleep(0)
+
+        # All consumers should be done (cancelled and caught)
+        assert task1.done()
+        assert task2.done()
+
         arbiter._cleanup_sync()
