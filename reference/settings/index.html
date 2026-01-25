@@ -3017,6 +3017,12 @@ because it consumes less system resources.</p>
 <p>In order to use the inotify reloader, you must have the <code>inotify</code>
 package installed.</p>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Enabling this will change what happens on failure to load the
+the application: While the reloader is active, any and all clients
+that can make requests can see the full exception and traceback!</p>
+</div>
 <h3 id="reload_engine"><code>reload_engine</code><a class="headerlink" href="#reload_engine" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--reload-engine STRING</code></p>
 <p><strong>Default:</strong> <code>'auto'</code></p>
