@@ -58,6 +58,9 @@ class UWSGIRequest:
         # Proxy protocol compatibility
         self.proxy_protocol_info = None
 
+        # 100-continue: not applicable for uWSGI as the frontend handles this
+        self._expected_100_continue = False
+
         # Check if the source IP is allowed
         self._check_allowed_ip()
 
