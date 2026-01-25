@@ -51,8 +51,36 @@ def get_h2_version():
     return _h2_version
 
 
+def get_http2_connection_class():
+    """Get the HTTP2ServerConnection class if h2 is available.
+
+    Returns:
+        HTTP2ServerConnection class, or raises HTTP2NotAvailable
+    """
+    if not is_http2_available():
+        from .errors import HTTP2NotAvailable
+        raise HTTP2NotAvailable()
+    from .connection import HTTP2ServerConnection
+    return HTTP2ServerConnection
+
+
+def get_async_http2_connection_class():
+    """Get the AsyncHTTP2Connection class if h2 is available.
+
+    Returns:
+        AsyncHTTP2Connection class, or raises HTTP2NotAvailable
+    """
+    if not is_http2_available():
+        from .errors import HTTP2NotAvailable
+        raise HTTP2NotAvailable()
+    from .async_connection import AsyncHTTP2Connection
+    return AsyncHTTP2Connection
+
+
 __all__ = [
     'is_http2_available',
     'get_h2_version',
+    'get_http2_connection_class',
+    'get_async_http2_connection_class',
     'H2_MIN_VERSION',
 ]

@@ -11,6 +11,7 @@ import sys
 from gunicorn import http
 from gunicorn.http import wsgi
 from gunicorn import util
+from gunicorn import sock as gunicorn_sock
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -32,6 +33,14 @@ class AsyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
+            # Check if HTTP/2 was negotiated (for SSL connections)
+            is_http2 = gunicorn_sock.is_http2_negotiated(client)
+
+            if is_http2:
+                # Handle HTTP/2 connection
+                self.handle_http2(listener, client, addr)
+                return
+
             parser = http.get_parser(self.cfg, client, addr)
             try:
                 listener_name = listener.getsockname()
@@ -85,6 +94,102 @@ class AsyncWorker(base.Worker):
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)
+
+    def handle_http2(self, listener, client, addr):
+        """Handle an HTTP/2 connection.
+
+        Processes multiplexed HTTP/2 streams until the connection closes.
+        """
+        listener_name = listener.getsockname()
+
+        try:
+            h2_conn = http.get_parser(self.cfg, client, addr, http2_connection=True)
+            h2_conn.initiate_connection()
+
+            while not h2_conn.is_closed and self.alive:
+                try:
+                    requests = h2_conn.receive_data()
+                except http.errors.NoMoreData:
+                    self.log.debug("HTTP/2 connection closed by client")
+                    break
+
+                for req in requests:
+                    try:
+                        self.handle_http2_request(listener_name, req, client, addr, h2_conn)
+                    except Exception as e:
+                        self.log.exception("Error handling HTTP/2 request")
+                        try:
+                            h2_conn.send_error(req.stream.stream_id, 500, str(e))
+                        except Exception:
+                            pass
+                    finally:
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+
+        except ssl.SSLError as e:
+            if e.args[0] == ssl.SSL_ERROR_EOF:
+                self.log.debug("HTTP/2 SSL connection closed")
+            else:
+                self.log.debug("HTTP/2 SSL error: %s", e)
+        except OSError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                self.log.exception("HTTP/2 socket error")
+        except Exception as e:
+            self.log.exception("HTTP/2 connection error: %s", e)
+
+    def handle_http2_request(self, listener_name, req, sock, addr, h2_conn):
+        """Handle a single HTTP/2 request."""
+        stream_id = req.stream.stream_id
+        request_start = datetime.now()
+        environ = {}
+        resp = None
+
+        try:
+            self.cfg.pre_request(self, req)
+            resp, environ = wsgi.create(req, sock, addr, listener_name, self.cfg)
+            environ["wsgi.multithread"] = True
+            environ["HTTP_VERSION"] = "2"
+
+            self.nr += 1
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
+
+            # Run WSGI app
+            respiter = self.wsgi(environ, resp.start_response)
+            if self.is_already_handled(respiter):
+                return
+
+            # Collect response body
+            response_body = b''
+            try:
+                if hasattr(respiter, '__iter__'):
+                    for item in respiter:
+                        if item:
+                            response_body += item
+            finally:
+                if hasattr(respiter, "close"):
+                    respiter.close()
+
+            # Send response via HTTP/2
+            h2_conn.send_response(
+                stream_id,
+                resp.status_code,
+                resp.headers,
+                response_body
+            )
+
+            request_time = datetime.now() - request_start
+            self.log.access(resp, req, environ, request_time)
+
+        except Exception:
+            self.log.exception("Error handling HTTP/2 request")
+            raise
+        finally:
+            try:
+                self.cfg.post_request(self, req, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
 
     def handle_request(self, listener_name, req, sock, addr):
         request_start = datetime.now()
