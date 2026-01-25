@@ -235,6 +235,35 @@ def close_sockets(listeners, unlink=True):
             os.unlink(sock_name)
 
 
+def _get_alpn_protocols(conf):
+    """Get ALPN protocol list from configuration.
+
+    Returns list of ALPN protocol identifiers based on http_protocols setting.
+    Returns empty list if HTTP/2 is not configured or available.
+    """
+    from gunicorn.config import ALPN_PROTOCOL_MAP
+
+    http_protocols = conf.http_protocols
+    if not http_protocols:
+        return []
+
+    # Only configure ALPN if h2 is in the protocol list
+    if "h2" not in http_protocols:
+        return []
+
+    # Check if h2 library is available
+    from gunicorn.http2 import is_http2_available
+    if not is_http2_available():
+        return []
+
+    # Map to ALPN identifiers, maintaining preference order
+    alpn_protocols = []
+    for proto in http_protocols:
+        if proto in ALPN_PROTOCOL_MAP:
+            alpn_protocols.append(ALPN_PROTOCOL_MAP[proto])
+    return alpn_protocols
+
+
 def ssl_context(conf):
     def default_ssl_context_factory():
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=conf.ca_certs)
@@ -242,6 +271,12 @@ def ssl_context(conf):
         context.verify_mode = conf.cert_reqs
         if conf.ciphers:
             context.set_ciphers(conf.ciphers)
+
+        # Configure ALPN for HTTP/2 if enabled
+        alpn_protocols = _get_alpn_protocols(conf)
+        if alpn_protocols:
+            context.set_alpn_protocols(alpn_protocols)
+
         return context
 
     return conf.ssl_context(conf, default_ssl_context_factory)
@@ -252,3 +287,29 @@ def ssl_wrap_socket(sock, conf):
                                          server_side=True,
                                          suppress_ragged_eofs=conf.suppress_ragged_eofs,
                                          do_handshake_on_connect=conf.do_handshake_on_connect)
+
+
+def get_negotiated_protocol(ssl_socket):
+    """Get the negotiated ALPN protocol from an SSL socket.
+
+    Returns:
+        str: The negotiated protocol name ('h2', 'http/1.1', etc.)
+             or None if no protocol was negotiated.
+    """
+    if not isinstance(ssl_socket, ssl.SSLSocket):
+        return None
+
+    try:
+        return ssl_socket.selected_alpn_protocol()
+    except (AttributeError, ssl.SSLError):
+        return None
+
+
+def is_http2_negotiated(ssl_socket):
+    """Check if HTTP/2 was negotiated on an SSL socket.
+
+    Returns:
+        bool: True if HTTP/2 was negotiated via ALPN.
+    """
+    protocol = get_negotiated_protocol(ssl_socket)
+    return protocol == "h2"

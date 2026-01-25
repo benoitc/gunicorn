@@ -52,9 +52,11 @@ eventlet = ["eventlet>=0.40.3"]
 tornado = ["tornado>=6.5.0"]
 gthread = []
 setproctitle = ["setproctitle"]
+http2 = ["h2>=4.1.0"]
 testing = [
     "gevent>=24.10.1",
     "eventlet>=0.40.3",
+    "h2>=4.1.0",
     "coverage",
     "pytest",
     "pytest-cov",
