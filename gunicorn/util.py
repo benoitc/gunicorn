@@ -46,14 +46,20 @@ hop_headers = set("""
     server date
     """.split())
 
-try:
-    from setproctitle import setproctitle
-
-    def _setproctitle(title):
-        setproctitle("gunicorn: %s" % title)
-except ImportError:
+# setproctitle causes segfaults on macOS due to fork() safety issues
+# https://github.com/benoitc/gunicorn/issues/3021
+if sys.platform == "darwin":
     def _setproctitle(title):
         pass
+else:
+    try:
+        from setproctitle import setproctitle
+
+        def _setproctitle(title):
+            setproctitle("gunicorn: %s" % title)
+    except ImportError:
+        def _setproctitle(title):
+            pass
 
 
 def load_entry_point(distribution, group, name):

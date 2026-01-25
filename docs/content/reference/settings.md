@@ -73,6 +73,11 @@ because it consumes less system resources.
     In order to use the inotify reloader, you must have the ``inotify``
     package installed.
 
+!!! warning
+    Enabling this will change what happens on failure to load the
+    the application: While the reloader is active, any and all clients
+    that can make requests can see the full exception and traceback!
+
 ### `reload_engine`
 
 **Command line:** `--reload-engine STRING`
