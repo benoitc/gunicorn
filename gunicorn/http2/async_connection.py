@@ -11,7 +11,6 @@ asyncio for non-blocking I/O.
 """
 
 import asyncio
-from io import BytesIO
 
 from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,

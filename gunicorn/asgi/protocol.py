@@ -10,7 +10,6 @@ and dispatch to ASGI applications.
 """
 
 import asyncio
-import ssl
 from datetime import datetime
 
 from gunicorn.asgi.unreader import AsyncUnreader

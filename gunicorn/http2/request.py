@@ -10,9 +10,7 @@ Provides a Request-compatible interface for HTTP/2 streams.
 """
 
 from io import BytesIO
-from urllib.parse import unquote, urlparse
 
-from gunicorn.http.body import Body, LengthReader
 from gunicorn.util import split_request_uri
 
 

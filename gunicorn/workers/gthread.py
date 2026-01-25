@@ -454,7 +454,7 @@ class ThreadWorker(base.Worker):
         except OSError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("HTTP/2 socket error")
-        except Exception as e:
+        except Exception:
             self.log.exception("HTTP/2 connection error")
 
         return False

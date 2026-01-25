@@ -12,7 +12,7 @@ Each HTTP/2 stream represents a single request/response exchange.
 from enum import Enum, auto
 from io import BytesIO
 
-from .errors import HTTP2StreamError, HTTP2StreamClosed
+from .errors import HTTP2StreamError
 
 
 class StreamState(Enum):
