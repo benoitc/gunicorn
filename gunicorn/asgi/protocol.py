@@ -14,7 +14,9 @@ from datetime import datetime
 
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.message import AsyncRequest
+from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
+from gunicorn.uwsgi.errors import UWSGIParseException
 
 
 class ASGIResponseInfo:
@@ -92,18 +94,30 @@ class ASGIProtocol(asyncio.Protocol):
                 self.req_count += 1
 
                 try:
-                    # Parse HTTP request
-                    request = await AsyncRequest.parse(
-                        self.cfg,
-                        unreader,
-                        peername,
-                        self.req_count
-                    )
+                    # Parse request based on protocol
+                    protocol = getattr(self.cfg, 'protocol', 'http')
+                    if protocol == 'uwsgi':
+                        request = await AsyncUWSGIRequest.parse(
+                            self.cfg,
+                            unreader,
+                            peername,
+                            self.req_count
+                        )
+                    else:
+                        request = await AsyncRequest.parse(
+                            self.cfg,
+                            unreader,
+                            peername,
+                            self.req_count
+                        )
                 except StopIteration:
                     # No more data, close connection
                     break
                 except NoMoreData:
                     # Client disconnected
+                    break
+                except UWSGIParseException as e:
+                    self.log.debug("uWSGI parse error: %s", e)
                     break
 
                 # Check for WebSocket upgrade
