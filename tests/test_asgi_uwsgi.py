@@ -6,7 +6,6 @@
 Tests for ASGI uWSGI protocol parser.
 """
 
-import asyncio
 import pytest
 
 from gunicorn.asgi.unreader import AsyncUnreader

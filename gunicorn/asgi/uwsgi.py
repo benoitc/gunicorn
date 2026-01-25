@@ -7,7 +7,7 @@
 Reuses the parsing logic from gunicorn/uwsgi/message.py, only async I/O differs.
 """
 
-from gunicorn.uwsgi.message import UWSGIRequest, MAX_UWSGI_VARS
+from gunicorn.uwsgi.message import UWSGIRequest
 from gunicorn.uwsgi.errors import (
     InvalidUWSGIHeader,
     UnsupportedModifier,
