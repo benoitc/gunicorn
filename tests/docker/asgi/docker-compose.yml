@@ -1,0 +1,14 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/asgi/Dockerfile
+    command: >
+      gunicorn
+      --worker-class asgi
+      --bind 0.0.0.0:8000
+      --workers 1
+      --log-level debug
+      app:app
+    ports:
+      - "8080:8000"
