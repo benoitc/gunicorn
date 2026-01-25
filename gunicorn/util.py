@@ -53,7 +53,12 @@ if sys.platform == "darwin":
         pass
 else:
     try:
-        from setproctitle import setproctitle
+        from setproctitle import setproctitle, getproctitle
+
+        # Force early initialization before any os.environ modifications
+        # (e.g. removing LISTEN_FDS in systemd socket activation)
+        # https://github.com/benoitc/gunicorn/issues/3430
+        getproctitle()
 
         def _setproctitle(title):
             setproctitle("gunicorn: %s" % title)
