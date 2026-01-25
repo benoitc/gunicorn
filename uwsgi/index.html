@@ -1924,6 +1924,7 @@
 <p>Gunicorn supports the uWSGI binary protocol, allowing it to receive requests from
 nginx using the <code>uwsgi_pass</code> directive. This provides efficient communication
 between nginx and Gunicorn without HTTP overhead.</p>
+<p>Both <strong>WSGI</strong> and <strong>ASGI</strong> workers support the uWSGI protocol.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This is the <strong>uWSGI binary protocol</strong>, not the uWSGI server. Gunicorn
@@ -1932,7 +1933,11 @@ the uWSGI server would.</p>
 </div>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <p>Enable uWSGI protocol support:</p>
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--bind<span class="w"> </span><span class="m">127</span>.0.0.1:8000
+<div class="highlight"><pre><span></span><code><span class="c1"># WSGI application</span>
+gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--bind<span class="w"> </span><span class="m">127</span>.0.0.1:8000
+
+<span class="c1"># ASGI application</span>
+gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--bind<span class="w"> </span><span class="m">127</span>.0.0.1:8000
 </code></pre></div>
 <p>Configure nginx to forward requests:</p>
 <div class="highlight"><pre><span></span><code><span class="k">upstream</span><span class="w"> </span><span class="s">gunicorn</span><span class="w"> </span><span class="p">{</span>

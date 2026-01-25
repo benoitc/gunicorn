@@ -889,10 +889,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#with-nginx" class="md-nav__link">
+  <a href="#with-nginx-http-proxy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        With Nginx
+        With Nginx (HTTP Proxy)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-nginx-uwsgi-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With Nginx (uWSGI Protocol)
       
     </span>
   </a>
@@ -1947,6 +1958,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 <li><strong>Lifespan protocol</strong> for startup/shutdown hooks</li>
 <li><strong>Optional uvloop</strong> for improved performance</li>
 <li><strong>SSL/TLS</strong> support</li>
+<li><strong>uWSGI protocol</strong> for nginx <code>uwsgi_pass</code> integration</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <h3 id="worker-class">Worker Class<a class="headerlink" href="#worker-class" title="Permanent link">&para;</a></h3>
@@ -2061,7 +2073,7 @@ configuration is required.</p>
 <span class="p">])</span>
 </code></pre></div>
 <h2 id="production-deployment">Production Deployment<a class="headerlink" href="#production-deployment" title="Permanent link">&para;</a></h2>
-<h3 id="with-nginx">With Nginx<a class="headerlink" href="#with-nginx" title="Permanent link">&para;</a></h3>
+<h3 id="with-nginx-http-proxy">With Nginx (HTTP Proxy)<a class="headerlink" href="#with-nginx-http-proxy" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">upstream</span><span class="w"> </span><span class="s">gunicorn</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kn">server</span><span class="w"> </span><span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">8000</span><span class="p">;</span>
 <span class="p">}</span>
@@ -2088,6 +2100,30 @@ configuration is required.</p>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<h3 id="with-nginx-uwsgi-protocol">With Nginx (uWSGI Protocol)<a class="headerlink" href="#with-nginx-uwsgi-protocol" title="Permanent link">&para;</a></h3>
+<p>For better performance, you can use nginx's native uWSGI protocol support:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--bind<span class="w"> </span><span class="m">127</span>.0.0.1:8000
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="k">upstream</span><span class="w"> </span><span class="s">gunicorn</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kn">server</span><span class="w"> </span><span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">8000</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">server</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">server_name</span><span class="w"> </span><span class="s">example.com</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kn">uwsgi_pass</span><span class="w"> </span><span class="s">gunicorn</span><span class="p">;</span>
+<span class="w">        </span><span class="kn">include</span><span class="w"> </span><span class="s">uwsgi_params</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WebSocket connections are not supported when using the uWSGI protocol.
+Use HTTP proxy for WebSocket endpoints.</p>
+</div>
+<p>See <a href="../uwsgi/">uWSGI Protocol</a> for more details on uWSGI protocol configuration.</p>
 <h3 id="recommended-settings">Recommended Settings<a class="headerlink" href="#recommended-settings" title="Permanent link">&para;</a></h3>
 <p>For production ASGI deployments:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
