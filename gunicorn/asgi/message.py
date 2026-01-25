@@ -15,6 +15,7 @@ import socket
 import struct
 
 from gunicorn.http.errors import (
+    ExpectationFailed,
     InvalidHeader, InvalidHeaderName, NoMoreData,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
