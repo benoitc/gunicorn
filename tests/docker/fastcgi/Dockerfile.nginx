@@ -1,0 +1,14 @@
+FROM nginx:alpine
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Remove default config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom config
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 8081
+
+CMD ["nginx", "-g", "daemon off;"]
