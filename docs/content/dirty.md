@@ -21,30 +21,86 @@ Dirty Arbiters solve this by providing:
 - **Explicit API** - Clear `execute()` calls (no hidden IPC)
 - **Asyncio-based** - Enables future streaming support and clean concurrent handling
 
+## Design Philosophy
+
+Dirty Arbiters follow several key design principles:
+
+### Separate Process Hierarchy
+
+Unlike threads or in-process pools, Dirty Arbiters use a fully separate process tree:
+
+- **Isolation** - A crash or memory leak in a dirty worker cannot affect HTTP workers
+- **Independent lifecycle** - Dirty workers can be killed/restarted without affecting request handling
+- **Resource accounting** - OS-level memory limits can be applied per-process
+- **Clean shutdown** - Each process tree can be signaled and terminated independently
+
+### Erlang Inspiration
+
+The name and concept come from Erlang's "dirty schedulers" - special schedulers that handle operations that would block normal schedulers. In Erlang, dirty schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly, Gunicorn's Dirty Arbiters handle Python operations that would block HTTP workers.
+
+### Why Asyncio
+
+The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's select-based approach:
+
+- **Non-blocking IPC** - Can handle many concurrent client connections efficiently
+- **Concurrent request routing** - Multiple requests can be dispatched to workers simultaneously
+- **Future streaming** - Native support for async generators and streaming responses
+- **Clean signal handling** - Signals integrate cleanly via `loop.add_signal_handler()`
+
+### Stateful Applications
+
+Traditional WSGI apps are request-scoped - they're invoked per-request and don't maintain state between requests. Dirty apps are different:
+
+- **Long-lived** - Apps persist in worker memory for the worker's lifetime
+- **Pre-loaded resources** - Models, connections, and caches stay loaded
+- **Explicit state management** - Apps control their own lifecycle via `init()` and `close()`
+
+This makes dirty apps ideal for ML inference, where loading a model once and reusing it for many requests is essential.
+
 ## Architecture
 
 ```
-                    +-------------------+
-                    |   Main Arbiter    |
-                    +--------+----------+
-                             |
-          +------------------+------------------+
-          |                                     |
-    +-----v-----+                        +------v------+
-    | HTTP      |                        | Dirty       |
-    | Workers   |<-- Unix Socket IPC --> | Arbiter     |
-    +-----------+                        +------+------+
-                                                |
-                                    +-----------+-----------+
-                                    |           |           |
-                              +-----v---+ +-----v---+ +-----v---+
-                              | Dirty   | | Dirty   | | Dirty   |
-                              | Worker  | | Worker  | | Worker  |
-                              +---------+ +---------+ +---------+
-                                 ^             ^            ^
-                                 |    All workers load all dirty apps
-                                 +----[MLApp, ImageApp, ...]-----+
+                         +-------------------+
+                         |   Main Arbiter    |
+                         | (manages both)    |
+                         +--------+----------+
+                                  |
+                    SIGTERM/SIGHUP/SIGUSR1 (forwarded)
+                                  |
+           +----------------------+----------------------+
+           |                                             |
+     +-----v-----+                                +------v------+
+     | HTTP      |                                | Dirty       |
+     | Workers   |                                | Arbiter     |
+     +-----------+                                +------+------+
+           |                                             |
+           |    Unix Socket IPC                   SIGTERM/SIGHUP
+           |    /tmp/gunicorn_dirty_<pid>.sock          |
+           +------------------>---------------------->---+
+                                             +-----------+-----------+
+                                             |           |           |
+                                       +-----v---+ +-----v---+ +-----v---+
+                                       | Dirty   | | Dirty   | | Dirty   |
+                                       | Worker  | | Worker  | | Worker  |
+                                       +---------+ +---------+ +---------+
+                                          ^   |        ^   |       ^   |
+                                          |   |        |   |       |   |
+                                    Heartbeat (mtime every dirty_timeout/2)
+                                          |   |        |   |       |   |
+                                          +---+--------+---+-------+---+
+                                                       |
+                                     All workers load all dirty apps
+                                          [MLApp, ImageApp, ...]
 ```
+
+### Process Relationships
+
+| Component | Parent | Communication |
+|-----------|--------|---------------|
+| Main Arbiter | init/systemd | Signals from OS |
+| HTTP Workers | Main Arbiter | Pipes, signals |
+| Dirty Arbiter | Main Arbiter | Signals, exit status |
+| Dirty Workers | Dirty Arbiter | Unix socket, signals, WorkerTmp |
 
 ## Configuration
 
@@ -385,14 +441,163 @@ dirty_worker_exit = dirty_worker_exit
 
 ## Signal Handling
 
-Dirty Arbiters respond to the following signals:
+Dirty Arbiters integrate with the main arbiter's signal handling. Signals are forwarded from the main arbiter to the dirty arbiter, which then propagates them to workers.
 
-| Signal | Action |
-|--------|--------|
-| `SIGTERM` | Graceful shutdown |
-| `SIGQUIT` | Immediate shutdown |
-| `SIGHUP` | Reload workers |
-| `SIGUSR1` | Reopen log files |
+### Signal Flow
+
+```
+  Main Arbiter                    Dirty Arbiter                 Dirty Workers
+       |                                |                             |
+  SIGTERM/SIGHUP/SIGUSR1 ------>  signal_handler()                    |
+       |                                |                             |
+       |                          call_soon_threadsafe()              |
+       |                                |                             |
+       |                          handle_signal()                     |
+       |                                |                             |
+       |                                +------> os.kill(worker, sig) |
+       |                                                              |
+```
+
+### Signal Reference
+
+| Signal | At Dirty Arbiter | At Dirty Workers | Notes |
+|--------|-----------------|------------------|-------|
+| `SIGTERM` | Sets `self.alive = False`, waits for graceful shutdown | Exits after completing current request | Graceful shutdown with timeout |
+| `SIGQUIT` | Immediate exit via `sys.exit(0)` | Killed immediately | Fast shutdown, no cleanup |
+| `SIGHUP` | Kills all workers, spawns new ones | Exits immediately | Hot reload of workers |
+| `SIGUSR1` | Reopens log files, forwards to workers | Reopens log files | Log rotation support |
+| `SIGCHLD` | Handled by event loop, triggers reap | N/A | Worker death detection |
+| `SIGINT` | Same as SIGTERM | Same as SIGTERM | Ctrl-C handling |
+
+### Forwarded Signals
+
+The main arbiter forwards these signals to the dirty arbiter process:
+
+- **SIGTERM** - Graceful shutdown of entire process tree
+- **SIGHUP** - Worker reload (main arbiter reloads HTTP workers, dirty arbiter reloads dirty workers)
+- **SIGUSR1** - Log rotation across all processes
+
+### Async Signal Handling
+
+The dirty arbiter uses asyncio's signal integration for safe handling in the event loop:
+
+```python
+# Signals are registered with the event loop
+loop.add_signal_handler(signal.SIGTERM, self.signal_handler, signal.SIGTERM)
+
+def signal_handler(self, sig):
+    # Use call_soon_threadsafe for thread-safe event loop integration
+    self.loop.call_soon_threadsafe(self.handle_signal, sig)
+```
+
+This pattern ensures signals don't interrupt asyncio operations mid-execution, preventing race conditions and partial state updates.
+
+## Liveness and Health Monitoring
+
+Dirty Arbiters implement multiple layers of health monitoring to ensure workers remain responsive and orphaned processes are cleaned up.
+
+### Heartbeat Mechanism
+
+Each dirty worker maintains a "worker tmp" file whose mtime serves as a heartbeat:
+
+```
+Worker Lifecycle:
+  1. Worker spawns, creates WorkerTmp file
+  2. Worker touches file every (dirty_timeout / 2) seconds
+  3. Arbiter checks all worker mtimes every 1 second
+  4. If mtime > dirty_timeout seconds old, worker is killed
+```
+
+This file-based heartbeat has several advantages:
+
+- **OS-level tracking** - No IPC required, works even if worker is stuck in C code
+- **Crash detection** - Arbiter notices immediately when worker stops updating
+- **Graceful recovery** - Worker killed with SIGKILL, arbiter spawns replacement
+
+### Timeout Detection
+
+The arbiter's monitoring loop checks worker health every second:
+
+```python
+# Pseudocode for worker monitoring
+for worker in self.workers:
+    mtime = worker.tmp.last_update()
+    if time.time() - mtime > self.dirty_timeout:
+        log.warning(f"Worker {worker.pid} timed out, killing")
+        os.kill(worker.pid, signal.SIGKILL)
+```
+
+When a worker is killed:
+
+1. `SIGCHLD` is delivered to the arbiter
+2. Arbiter reaps the worker process
+3. `dirty_worker_exit` hook is called
+4. A new worker is spawned to maintain `dirty_workers` count
+
+### Parent Death Detection
+
+Dirty arbiters monitor their parent process (the main arbiter) to detect orphaning:
+
+```python
+# In the dirty arbiter's main loop
+if os.getppid() != self.parent_pid:
+    log.info("Parent died, shutting down")
+    self.alive = False
+```
+
+This check runs every iteration of the event loop (typically sub-millisecond). When parent death is detected:
+
+1. Arbiter sets `self.alive = False`
+2. All workers are sent SIGTERM
+3. Arbiter waits for graceful shutdown (up to `dirty_graceful_timeout`)
+4. Remaining workers are sent SIGKILL
+5. Arbiter exits
+
+### Orphan Cleanup
+
+To handle edge cases where the dirty arbiter itself crashes, a well-known PID file is used:
+
+**PID file location**: `/tmp/gunicorn_dirty_<main_arbiter_pid>.pid`
+
+On startup, the dirty arbiter:
+
+1. Checks if PID file exists
+2. If yes, reads the old PID and attempts to kill it (`SIGTERM`)
+3. Waits briefly for cleanup
+4. Writes its own PID to the file
+5. On exit, removes the PID file
+
+This ensures that if a dirty arbiter crashes and the main arbiter restarts it, the old orphaned process is terminated.
+
+### Respawn Behavior
+
+| Component | Respawn Trigger | Respawn Behavior |
+|-----------|-----------------|------------------|
+| Dirty Worker | Exit, timeout, or crash | Immediate respawn to maintain `dirty_workers` count |
+| Dirty Arbiter | Exit or crash | Main arbiter respawns if not shutting down |
+
+The dirty arbiter maintains a target worker count and continuously spawns workers until the target is reached:
+
+```python
+while len(self.workers) < self.num_workers:
+    self.spawn_worker()
+```
+
+### Monitoring Recommendations
+
+For production deployments, consider:
+
+1. **Log monitoring** - Watch for "Worker timed out" messages indicating hung workers
+2. **Process monitoring** - Use systemd or supervisord to monitor the main arbiter
+3. **Metrics** - Track respawn frequency to detect unstable workers
+
+```bash
+# Check for recent worker timeouts
+grep "Worker.*timed out" /var/log/gunicorn.log | tail -20
+
+# Monitor process tree
+watch -n 1 'pstree -p $(cat gunicorn.pid)'
+```
 
 ## Error Handling
 
@@ -495,3 +700,7 @@ def upload_image(request):
 
     return save_thumbnail(thumbnail)
 ```
+
+## Complete Examples
+
+For a full working example with Docker deployment, see the [Embedding Service Example](https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service) - a FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.
