@@ -1,0 +1,13 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/dirty_arbiter/Dockerfile
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    stop_grace_period: 10s

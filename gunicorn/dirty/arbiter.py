@@ -210,7 +210,9 @@ class DirtyArbiter:
     async def _handle_sigchld(self):
         """Handle SIGCHLD - reap dead workers."""
         self.reap_workers()
-        await self.manage_workers()
+        # Only spawn new workers if we're still alive
+        if self.alive:
+            await self.manage_workers()
 
     async def handle_client(self, reader, writer):
         """
@@ -415,10 +417,13 @@ class DirtyArbiter:
 
     async def manage_workers(self):
         """Maintain the number of dirty workers."""
+        if not self.alive:
+            return
+
         num_workers = self.cfg.dirty_workers
 
         # Spawn workers if needed
-        while len(self.workers) < num_workers:
+        while self.alive and len(self.workers) < num_workers:
             self.spawn_worker()
             await asyncio.sleep(0.1)
 
