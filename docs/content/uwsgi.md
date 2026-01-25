@@ -4,6 +4,8 @@ Gunicorn supports the uWSGI binary protocol, allowing it to receive requests fro
 nginx using the `uwsgi_pass` directive. This provides efficient communication
 between nginx and Gunicorn without HTTP overhead.
 
+Both **WSGI** and **ASGI** workers support the uWSGI protocol.
+
 !!! note
     This is the **uWSGI binary protocol**, not the uWSGI server. Gunicorn
     implements the protocol to receive requests from nginx, similar to how
@@ -14,7 +16,11 @@ between nginx and Gunicorn without HTTP overhead.
 Enable uWSGI protocol support:
 
 ```bash
+# WSGI application
 gunicorn myapp:app --protocol uwsgi --bind 127.0.0.1:8000
+
+# ASGI application
+gunicorn myapp:app --worker-class asgi --protocol uwsgi --bind 127.0.0.1:8000
 ```
 
 Configure nginx to forward requests:
