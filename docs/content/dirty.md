@@ -703,4 +703,7 @@ def upload_image(request):
 
 ## Complete Examples
 
-For a full working example with Docker deployment, see the [Embedding Service Example](https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service) - a FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.
+For full working examples with Docker deployment, see:
+
+- [Embedding Service Example](https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service) - FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.
+- [Streaming Chat Example](https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat) - Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty worker generators and real-time response delivery.
