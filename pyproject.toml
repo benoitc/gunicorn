@@ -62,6 +62,7 @@ testing = [
     "pytest-cov",
     "pytest-asyncio",
     "uvloop>=0.19.0",
+    "httpx[http2]",
 ]
 
 [project.scripts]

@@ -1,0 +1,27 @@
+FROM python:3.12-slim
+
+# Install build dependencies for h2 and other packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the gunicorn source code and install it
+COPY . /gunicorn-src/
+RUN pip install --no-cache-dir /gunicorn-src/[http2]
+
+# Copy the test application
+COPY tests/docker/http2/app.py /app/app.py
+
+EXPOSE 8443
+
+CMD ["gunicorn", "app:app", \
+     "--bind", "0.0.0.0:8443", \
+     "--worker-class", "gthread", \
+     "--threads", "4", \
+     "--http-protocols", "h2,h1", \
+     "--certfile", "/certs/server.crt", \
+     "--keyfile", "/certs/server.key", \
+     "--workers", "2", \
+     "--log-level", "debug"]
