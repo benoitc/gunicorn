@@ -30,7 +30,7 @@ _h2_settings = None
 
 def _import_h2():
     """Lazily import h2 library components."""
-    global _h2, _h2_config, _h2_events, _h2_exceptions, _h2_settings
+    global _h2, _h2_config, _h2_events, _h2_exceptions, _h2_settings  # pylint: disable=global-statement
 
     if _h2 is not None:
         return
@@ -215,7 +215,6 @@ class AsyncHTTP2Connection:
 
         # Process headers
         stream.receive_headers(headers, end_stream=False)
-        return None
 
     def _handle_data_received(self, event):
         """Handle DataReceived event."""

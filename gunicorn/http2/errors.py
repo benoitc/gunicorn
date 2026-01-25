@@ -114,13 +114,9 @@ class HTTP2StreamError(HTTP2Error):
 class HTTP2ConnectionError(HTTP2Error):
     """Error affecting the entire connection."""
 
-    pass
-
 
 class HTTP2ConfigurationError(HTTP2Error):
     """Invalid HTTP/2 configuration."""
-
-    pass
 
 
 class HTTP2NotAvailable(HTTP2Error):

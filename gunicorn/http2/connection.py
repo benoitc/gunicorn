@@ -29,7 +29,7 @@ _h2_settings = None
 
 def _import_h2():
     """Lazily import h2 library components."""
-    global _h2, _h2_config, _h2_events, _h2_exceptions, _h2_settings
+    global _h2, _h2_config, _h2_events, _h2_exceptions, _h2_settings  # pylint: disable=global-statement
 
     if _h2 is not None:
         return
@@ -203,9 +203,6 @@ class HTTP2ServerConnection:
 
         Args:
             event: RequestReceived event with headers
-
-        Returns:
-            HTTP2Request if stream ended with headers, None otherwise
         """
         stream_id = event.stream_id
         headers = event.headers
@@ -215,11 +212,8 @@ class HTTP2ServerConnection:
         self.streams[stream_id] = stream
 
         # Process headers
+        # The StreamEnded event will come separately for GET/HEAD with no body
         stream.receive_headers(headers, end_stream=False)
-
-        # Check if this was a GET/HEAD with no body
-        # The StreamEnded event will come separately
-        return None
 
     def _handle_data_received(self, event):
         """Handle DataReceived event.

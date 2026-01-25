@@ -22,7 +22,7 @@ def is_http2_available():
     Returns:
         bool: True if the h2 library is installed with minimum required version.
     """
-    global _h2_available, _h2_version
+    global _h2_available, _h2_version  # pylint: disable=global-statement
 
     if _h2_available is not None:
         return _h2_available
