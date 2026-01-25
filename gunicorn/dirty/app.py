@@ -89,7 +89,6 @@ class DirtyApp:
         This method is called in the child process after fork, so it's
         safe to initialize non-fork-safe resources here.
         """
-        pass
 
     def __call__(self, action, *args, **kwargs):
         """
@@ -119,7 +118,6 @@ class DirtyApp:
         Called when the dirty worker is shutting down. Use this to
         release resources like database connections, unload models, etc.
         """
-        pass
 
 
 def load_dirty_app(import_path):

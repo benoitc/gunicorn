@@ -447,13 +447,12 @@ class DirtyStreamIterator:
                         "Stream exceeded total timeout",
                         timeout=self.client.timeout
                     )
-                else:
-                    idle_duration = now - self._last_chunk_time
-                    self._exhausted = True
-                    raise DirtyTimeoutError(
-                        f"Timeout waiting for next chunk (idle {idle_duration:.1f}s)",
-                        timeout=self._idle_timeout
-                    )
+                idle_duration = now - self._last_chunk_time
+                self._exhausted = True
+                raise DirtyTimeoutError(
+                    f"Timeout waiting for next chunk (idle {idle_duration:.1f}s)",
+                    timeout=self._idle_timeout
+                )
             except Exception as e:
                 self._exhausted = True
                 self.client._close_socket()
@@ -599,12 +598,11 @@ class DirtyAsyncStreamIterator:
                     "Stream exceeded total timeout",
                     timeout=self.client.timeout
                 )
-            else:
-                idle_duration = now - self._last_chunk_time
-                raise DirtyTimeoutError(
-                    f"Timeout waiting for next chunk (idle {idle_duration:.1f}s)",
-                    timeout=self._idle_timeout
-                )
+            idle_duration = now - self._last_chunk_time
+            raise DirtyTimeoutError(
+                f"Timeout waiting for next chunk (idle {idle_duration:.1f}s)",
+                timeout=self._idle_timeout
+            )
         except Exception as e:
             self._exhausted = True
             await self.client._close_async()
@@ -658,7 +656,7 @@ _dirty_socket_path = None
 
 def set_dirty_socket_path(path):
     """Set the global dirty socket path (called during initialization)."""
-    global _dirty_socket_path
+    global _dirty_socket_path  # pylint: disable=global-statement
     _dirty_socket_path = path
 
 

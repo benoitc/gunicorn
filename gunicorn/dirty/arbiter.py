@@ -412,7 +412,7 @@ class DirtyArbiter:
     def _close_worker_connection(self, worker_pid):
         """Close connection to a worker."""
         if worker_pid in self.worker_connections:
-            reader, writer = self.worker_connections.pop(worker_pid)
+            _reader, writer = self.worker_connections.pop(worker_pid)
             writer.close()
 
     async def manage_workers(self):
