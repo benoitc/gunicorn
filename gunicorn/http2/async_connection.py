@@ -272,6 +272,38 @@ class AsyncHTTP2Connection:
         stream.receive_trailers(event.headers)
         return HTTP2Request(stream, self.cfg, self.client_addr)
 
+    async def send_informational(self, stream_id, status, headers):
+        """Send an informational response (1xx) on a stream.
+
+        This is used for 103 Early Hints and other 1xx responses.
+        Informational responses are sent before the final response
+        and do not end the stream.
+
+        Args:
+            stream_id: The stream ID
+            status: HTTP status code (100-199)
+            headers: List of (name, value) header tuples
+
+        Raises:
+            HTTP2Error: If status is not in 1xx range
+        """
+        if status < 100 or status >= 200:
+            raise HTTP2Error(f"Invalid informational status: {status}")
+
+        stream = self.streams.get(stream_id)
+        if stream is None:
+            raise HTTP2Error(f"Stream {stream_id} not found")
+
+        # Build headers with :status pseudo-header
+        response_headers = [(':status', str(status))]
+        for name, value in headers:
+            # HTTP/2 headers must be lowercase
+            response_headers.append((name.lower(), str(value)))
+
+        # Send headers with end_stream=False (informational, more to follow)
+        self.h2_conn.send_headers(stream_id, response_headers, end_stream=False)
+        await self._send_pending_data()
+
     async def send_response(self, stream_id, status, headers, body=None):
         """Send a response on a stream.
 

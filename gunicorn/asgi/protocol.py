@@ -235,6 +235,13 @@ class ASGIProtocol(asyncio.Protocol):
 
             msg_type = message["type"]
 
+            if msg_type == "http.response.informational":
+                # Handle informational responses (1xx) like 103 Early Hints
+                info_status = message.get("status")
+                info_headers = message.get("headers", [])
+                await self._send_informational(info_status, info_headers, request)
+                return
+
             if msg_type == "http.response.start":
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
@@ -409,6 +416,34 @@ class ASGIProtocol(asyncio.Protocol):
 
         return scope
 
+    async def _send_informational(self, status, headers, request):
+        """Send an informational response (1xx) such as 103 Early Hints.
+
+        Args:
+            status: HTTP status code (100-199)
+            headers: List of (name, value) header tuples
+            request: The parsed request object
+
+        Note: Informational responses are only sent for HTTP/1.1 or later.
+        HTTP/1.0 clients do not support 1xx responses.
+        """
+        # Don't send informational responses to HTTP/1.0 clients
+        if request.version < (1, 1):
+            return
+
+        reason = self._get_reason_phrase(status)
+        response = f"HTTP/{request.version[0]}.{request.version[1]} {status} {reason}\r\n"
+
+        for name, value in headers:
+            if isinstance(name, bytes):
+                name = name.decode("latin-1")
+            if isinstance(value, bytes):
+                value = value.decode("latin-1")
+            response += f"{name}: {value}\r\n"
+
+        response += "\r\n"
+        self.transport.write(response.encode("latin-1"))
+
     async def _send_response_start(self, status, headers, request):
         """Send HTTP response status and headers."""
         # Build status line
@@ -454,6 +489,7 @@ class ASGIProtocol(asyncio.Protocol):
         reasons = {
             100: "Continue",
             101: "Switching Protocols",
+            103: "Early Hints",
             200: "OK",
             201: "Created",
             202: "Accepted",
@@ -595,6 +631,21 @@ class ASGIProtocol(asyncio.Protocol):
             nonlocal response_status, response_headers, response_body
 
             msg_type = message["type"]
+
+            if msg_type == "http.response.informational":
+                # Handle informational responses (1xx) like 103 Early Hints over HTTP/2
+                info_status = message.get("status")
+                info_headers = message.get("headers", [])
+                # Convert headers to list of string tuples
+                headers = []
+                for name, value in info_headers:
+                    if isinstance(name, bytes):
+                        name = name.decode("latin-1")
+                    if isinstance(value, bytes):
+                        value = value.decode("latin-1")
+                    headers.append((name, value))
+                await h2_conn.send_informational(stream_id, info_status, headers)
+                return
 
             if msg_type == "http.response.start":
                 if response_started:

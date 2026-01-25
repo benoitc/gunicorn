@@ -348,3 +348,41 @@ class TestHTTP2Performance:
             response = h2_client.get(f"{gunicorn_url}/")
             assert response.status_code == 200
             assert response.http_version == "HTTP/2"
+
+
+class TestHTTP2EarlyHints:
+    """Test HTTP 103 Early Hints support."""
+
+    def test_early_hints_endpoint(self, h2_client, gunicorn_url):
+        """Test that early hints endpoint returns 200."""
+        response = h2_client.get(f"{gunicorn_url}/early-hints")
+        assert response.status_code == 200
+        assert response.text == "Early hints sent!"
+
+    def test_early_hints_multiple_endpoint(self, h2_client, gunicorn_url):
+        """Test multiple early hints endpoint returns 200."""
+        response = h2_client.get(f"{gunicorn_url}/early-hints-multiple")
+        assert response.status_code == 200
+        assert response.text == "Multiple early hints sent!"
+
+    def test_early_hints_via_proxy(self, h2_client, nginx_url):
+        """Test early hints through nginx proxy."""
+        response = h2_client.get(f"{nginx_url}/early-hints")
+        assert response.status_code == 200
+        assert response.text == "Early hints sent!"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_early_hints(self, async_h2_client, gunicorn_url):
+        """Test concurrent requests to early hints endpoint."""
+        httpx = pytest.importorskip("httpx")
+
+        async with httpx.AsyncClient(http2=True, verify=False, timeout=30.0) as client:
+            tasks = [
+                client.get(f"{gunicorn_url}/early-hints")
+                for _ in range(10)
+            ]
+            responses = await asyncio.gather(*tasks)
+
+        assert len(responses) == 10
+        assert all(r.status_code == 200 for r in responses)
+        assert all(r.text == "Early hints sent!" for r in responses)

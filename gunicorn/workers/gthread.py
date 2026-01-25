@@ -475,6 +475,13 @@ class ThreadWorker(base.Worker):
             environ["wsgi.multithread"] = True
             environ["HTTP_VERSION"] = "2"  # Indicate HTTP/2
 
+            # Replace wsgi.early_hints with HTTP/2-specific version
+            def send_early_hints_h2(headers):
+                """Send 103 Early Hints over HTTP/2."""
+                h2_conn.send_informational(stream_id, 103, headers)
+
+            environ["wsgi.early_hints"] = send_early_hints_h2
+
             self.nr += 1
             if self.nr >= self.max_requests:
                 if self.alive:

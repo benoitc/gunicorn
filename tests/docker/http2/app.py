@@ -104,6 +104,33 @@ def app(environ, start_response):
         status = '200 OK'
         content_type = 'text/plain'
 
+    elif path == '/early-hints':
+        # Test endpoint for 103 Early Hints
+        # Send early hints if the callback is available
+        if 'wsgi.early_hints' in environ:
+            environ['wsgi.early_hints']([
+                ('Link', '</style.css>; rel=preload; as=style'),
+                ('Link', '</app.js>; rel=preload; as=script'),
+            ])
+        body = b'Early hints sent!'
+        status = '200 OK'
+        content_type = 'text/plain'
+
+    elif path == '/early-hints-multiple':
+        # Test endpoint for multiple 103 Early Hints responses
+        if 'wsgi.early_hints' in environ:
+            # First early hints
+            environ['wsgi.early_hints']([
+                ('Link', '</critical.css>; rel=preload; as=style'),
+            ])
+            # Second early hints
+            environ['wsgi.early_hints']([
+                ('Link', '</deferred.js>; rel=preload; as=script'),
+            ])
+        body = b'Multiple early hints sent!'
+        status = '200 OK'
+        content_type = 'text/plain'
+
     else:
         body = b'Not Found'
         status = '404 Not Found'
