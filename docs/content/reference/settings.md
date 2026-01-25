@@ -1218,6 +1218,7 @@ The protocol for incoming connections.
 
 * ``http`` - Standard HTTP/1.x (default)
 * ``uwsgi`` - uWSGI binary protocol (for nginx uwsgi_pass)
+* ``fastcgi`` - FastCGI binary protocol (for nginx fastcgi_pass)
 
 When using the uWSGI protocol, Gunicorn can receive requests from
 nginx using the uwsgi_pass directive::
@@ -1230,6 +1231,17 @@ nginx using the uwsgi_pass directive::
         include uwsgi_params;
     }
 
+When using the FastCGI protocol, Gunicorn can receive requests from
+nginx using the fastcgi_pass directive::
+
+    upstream gunicorn {
+        server 127.0.0.1:8000;
+    }
+    location / {
+        fastcgi_pass gunicorn;
+        include fastcgi_params;
+    }
+
 ### `uwsgi_allow_ips`
 
 **Command line:** `--uwsgi-allow-from`
@@ -1237,6 +1249,23 @@ nginx using the uwsgi_pass directive::
 **Default:** `'127.0.0.1,::1'`
 
 IPs allowed to send uWSGI protocol requests (comma separated).
+
+Set to ``*`` to allow all IPs. This is useful for setups where you
+don't know in advance the IP address of front-end, but instead have
+ensured via other means that only your authorized front-ends can
+access Gunicorn.
+
+!!! note
+    This option does not affect UNIX socket connections. Connections not associated with
+    an IP address are treated as allowed, unconditionally.
+
+### `fastcgi_allow_ips`
+
+**Command line:** `--fastcgi-allow-from`
+
+**Default:** `'127.0.0.1,::1'`
+
+IPs allowed to send FastCGI protocol requests (comma separated).
 
 Set to ``*`` to allow all IPs. This is useful for setups where you
 don't know in advance the IP address of front-end, but instead have
