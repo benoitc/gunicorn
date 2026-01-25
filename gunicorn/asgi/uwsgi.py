@@ -25,6 +25,7 @@ class AsyncUWSGIRequest(UWSGIRequest):
     - should_close() - simple logic
     """
 
+    # pylint: disable=super-init-not-called
     def __init__(self, cfg, unreader, peer_addr, req_number=1):
         # Don't call super().__init__ - it does sync parsing
         # Just initialize attributes
@@ -56,6 +57,10 @@ class AsyncUWSGIRequest(UWSGIRequest):
         self.chunked = False
         self._body_remaining = 0
 
+    # Async factory method - intentionally differs from sync parent:
+    # - async instead of sync (invalid-overridden-method)
+    # - different signature for async I/O (arguments-differ)
+    # pylint: disable=arguments-differ,invalid-overridden-method
     @classmethod
     async def parse(cls, cfg, unreader, peer_addr, req_number=1):
         """Parse a uWSGI request asynchronously.
