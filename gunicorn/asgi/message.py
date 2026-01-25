@@ -16,6 +16,7 @@ import struct
 
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, NoMoreData,
+    ChunkMissingTerminator, InvalidChunkSize,
     InvalidRequestLine, InvalidRequestMethod, InvalidHTTPVersion,
     LimitRequestLine, LimitRequestHeaders,
     UnsupportedTransferCoding, ObsoleteFolding,
@@ -177,7 +178,7 @@ class AsyncRequest:
         data = await self.unreader.read()
         if not data:
             if stop:
-                raise StopIteration()
+                raise StopAsyncIteration
             raise NoMoreData(bytes(buf))
         buf.extend(data)
 
@@ -628,9 +629,9 @@ class AsyncRequest:
                 chunk_size = chunk_size.rstrip(b" \t")
 
             if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
-                raise InvalidHeader("Invalid chunk size")
+                raise InvalidChunkSize(chunk_size)
             if len(chunk_size) == 0:
-                raise InvalidHeader("Invalid chunk size")
+                raise InvalidChunkSize(chunk_size)
 
             chunk_size = int(chunk_size, 16)
 
@@ -658,7 +659,7 @@ class AsyncRequest:
                         break
                     crlf += more
                 if crlf != b"\r\n":
-                    raise InvalidHeader("Missing chunk terminator")
+                    raise ChunkMissingTerminator(crlf)
 
     async def _read_chunk_size_line(self):
         """Read a chunk size line."""
