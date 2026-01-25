@@ -1,0 +1,24 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/test_asgi_uwsgi/Dockerfile
+    command: >
+      gunicorn
+      --worker-class asgi
+      --protocol uwsgi
+      --uwsgi-allow-from '*'
+      --bind 0.0.0.0:8000
+      --workers 1
+      --log-level debug
+      app:app
+    working_dir: /app
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - gunicorn

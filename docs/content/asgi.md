@@ -33,6 +33,7 @@ The ASGI worker provides:
 - **Lifespan protocol** for startup/shutdown hooks
 - **Optional uvloop** for improved performance
 - **SSL/TLS** support
+- **uWSGI protocol** for nginx `uwsgi_pass` integration
 
 ## Configuration
 
@@ -151,7 +152,7 @@ app = Starlette(routes=[
 
 ## Production Deployment
 
-### With Nginx
+### With Nginx (HTTP Proxy)
 
 ```nginx
 upstream gunicorn {
@@ -180,6 +181,36 @@ server {
     }
 }
 ```
+
+### With Nginx (uWSGI Protocol)
+
+For better performance, you can use nginx's native uWSGI protocol support:
+
+```bash
+gunicorn myapp:app --worker-class asgi --protocol uwsgi --bind 127.0.0.1:8000
+```
+
+```nginx
+upstream gunicorn {
+    server 127.0.0.1:8000;
+}
+
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        uwsgi_pass gunicorn;
+        include uwsgi_params;
+    }
+}
+```
+
+!!! note
+    WebSocket connections are not supported when using the uWSGI protocol.
+    Use HTTP proxy for WebSocket endpoints.
+
+See [uWSGI Protocol](uwsgi.md) for more details on uWSGI protocol configuration.
 
 ### Recommended Settings
 
