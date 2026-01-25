@@ -18,8 +18,8 @@ import time
 import pytest
 
 
-# Timeout for CI environments (VMs can be slow)
-CI_TIMEOUT = 30
+# Timeout for CI environments (VMs can be slow, PyPy needs more time)
+CI_TIMEOUT = 60
 
 
 # Simple WSGI app inline
