@@ -107,7 +107,96 @@ def proxy_environ(req):
     }
 
 
+def create_fastcgi(req, sock, client, server, cfg):
+    """Create response and environ for FastCGI requests.
+
+    FastCGI requests already have CGI variables parsed, so we build
+    the WSGI environ directly from fcgi_vars.
+    """
+    from gunicorn.fastcgi.response import FastCGIResponse
+
+    resp = FastCGIResponse(req, sock, cfg)
+
+    # Start with base environ
+    env = base_environ(cfg)
+    env.update({
+        "wsgi.input": req.body,
+        "gunicorn.socket": sock,
+    })
+
+    # Copy all FastCGI/CGI variables to environ
+    # These include REQUEST_METHOD, PATH_INFO, QUERY_STRING, CONTENT_TYPE,
+    # CONTENT_LENGTH, SERVER_NAME, SERVER_PORT, HTTP_* headers, etc.
+    for key, value in req.fcgi_vars.items():
+        env[key] = value
+
+    # Ensure required WSGI keys are present
+    if 'REQUEST_METHOD' not in env:
+        env['REQUEST_METHOD'] = req.method
+    if 'QUERY_STRING' not in env:
+        env['QUERY_STRING'] = req.query or ''
+    if 'RAW_URI' not in env:
+        env['RAW_URI'] = req.uri
+    if 'SERVER_PROTOCOL' not in env:
+        env['SERVER_PROTOCOL'] = "HTTP/%s" % ".".join([str(v) for v in req.version])
+
+    # Set url scheme
+    env['wsgi.url_scheme'] = req.scheme
+
+    # Handle REMOTE_ADDR/REMOTE_PORT if not set by FastCGI vars
+    if 'REMOTE_ADDR' not in env:
+        if isinstance(client, str):
+            env['REMOTE_ADDR'] = client
+        elif isinstance(client, bytes):
+            env['REMOTE_ADDR'] = client.decode()
+        elif client:
+            env['REMOTE_ADDR'] = client[0]
+            if 'REMOTE_PORT' not in env:
+                env['REMOTE_PORT'] = str(client[1])
+
+    # Handle SERVER_NAME/SERVER_PORT if not set by FastCGI vars
+    if 'SERVER_NAME' not in env or 'SERVER_PORT' not in env:
+        if isinstance(server, str):
+            server_parts = server.split(":")
+            if len(server_parts) == 1:
+                host = env.get('HTTP_HOST', '')
+                if host:
+                    server_parts = host.split(':')
+                    if len(server_parts) == 1:
+                        if req.scheme == "http":
+                            server_parts.append(80)
+                        elif req.scheme == "https":
+                            server_parts.append(443)
+                        else:
+                            server_parts.append('')
+                else:
+                    server_parts.append('')
+        else:
+            server_parts = server
+        if 'SERVER_NAME' not in env:
+            env['SERVER_NAME'] = server_parts[0]
+        if 'SERVER_PORT' not in env:
+            env['SERVER_PORT'] = str(server_parts[1]) if len(server_parts) > 1 else ''
+
+    # Handle PATH_INFO - may need URL decoding
+    if 'PATH_INFO' in env:
+        env['PATH_INFO'] = util.unquote_to_wsgi_str(env['PATH_INFO'])
+
+    # Ensure SCRIPT_NAME is set
+    if 'SCRIPT_NAME' not in env:
+        env['SCRIPT_NAME'] = os.environ.get("SCRIPT_NAME", "")
+
+    # Override with proxy protocol info if present
+    env.update(proxy_environ(req))
+
+    return resp, env
+
+
 def create(req, sock, client, server, cfg):
+    # Check if this is a FastCGI protocol request
+    if getattr(cfg, 'protocol', 'http') == 'fastcgi':
+        return create_fastcgi(req, sock, client, server, cfg)
+
     resp = Response(req, sock, cfg)
 
     # set initial environ

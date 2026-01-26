@@ -22,6 +22,12 @@ from gunicorn.http.errors import (
     UnsupportedTransferCoding, ExpectationFailed,
     ConfigurationProblem, ObsoleteFolding,
 )
+from gunicorn.fastcgi.errors import (
+    FastCGIParseException,
+    InvalidFastCGIRecord,
+    UnsupportedRole,
+    ForbiddenFastCGIRequest,
+)
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
 from gunicorn.workers.workertmp import WorkerTmp
@@ -208,6 +214,7 @@ class Worker:
             InvalidSchemeHeaders, UnsupportedTransferCoding,
             ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
             SSLError,
+            InvalidFastCGIRecord, UnsupportedRole, ForbiddenFastCGIRequest,
         )):
 
             status_int = 400
@@ -252,6 +259,16 @@ class Worker:
             elif isinstance(exc, SSLError):
                 reason = "Forbidden"
                 mesg = "'%s'" % str(exc)
+                status_int = 403
+            elif isinstance(exc, InvalidFastCGIRecord):
+                mesg = "%s" % str(exc)
+            elif isinstance(exc, UnsupportedRole):
+                reason = "Not Implemented"
+                mesg = "%s" % str(exc)
+                status_int = 501
+            elif isinstance(exc, ForbiddenFastCGIRequest):
+                reason = "Forbidden"
+                mesg = "Request forbidden"
                 status_int = 403
 
             msg = "Invalid request from ip={ip}: {error}"

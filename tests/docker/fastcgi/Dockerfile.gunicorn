@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy gunicorn source
+COPY . /app/gunicorn-src/
+
+# Install gunicorn from source
+RUN pip install --no-cache-dir /app/gunicorn-src/
+
+# Copy test application
+COPY tests/docker/fastcgi/app.py /app/
+
+EXPOSE 9000
+
+CMD ["gunicorn", "--protocol", "fastcgi", "--fastcgi-allow-from", "*", "--bind", "0.0.0.0:9000", "--workers", "2", "--log-level", "debug", "app:application"]

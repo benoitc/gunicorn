@@ -1,0 +1,29 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/fastcgi/Dockerfile.gunicorn
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 9000)); s.close()"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "8081:8081"
+    depends_on:
+      gunicorn:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s

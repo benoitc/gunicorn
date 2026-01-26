@@ -15,12 +15,15 @@ def get_parser(cfg, source, source_addr):
         source_addr: Source address tuple or None
 
     Returns:
-        Parser instance (RequestParser or UWSGIParser)
+        Parser instance (RequestParser, UWSGIParser, or FastCGIParser)
     """
     protocol = getattr(cfg, 'protocol', 'http')
     if protocol == 'uwsgi':
         from gunicorn.uwsgi.parser import UWSGIParser
         return UWSGIParser(cfg, source, source_addr)
+    elif protocol == 'fastcgi':
+        from gunicorn.fastcgi.parser import FastCGIParser
+        return FastCGIParser(cfg, source, source_addr)
     return RequestParser(cfg, source, source_addr)
 
 
