@@ -225,7 +225,7 @@ server {
 
 !!! note
     For nginx to forward 103 Early Hints from upstream, you need nginx 1.29+
-    and the `early_hints` directive.
+    and the [`early_hints`](https://nginx.org/en/docs/http/ngx_http_core_module.html#early_hints) directive.
 
 ### Direct TLS Termination
 
@@ -312,10 +312,10 @@ http2_max_concurrent_streams = 200  # Increase from default 100
 
 ```bash
 # Check HTTP/2 support
-curl -v --http2 https://localhost:8443/
+curl -v --http2 https://localhost:443/
 
 # Force HTTP/2
-curl --http2-prior-knowledge https://localhost:8443/
+curl --http2-prior-knowledge https://localhost:443/
 ```
 
 ### Using Python

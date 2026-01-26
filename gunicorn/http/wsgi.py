@@ -107,7 +107,7 @@ def proxy_environ(req):
     }
 
 
-def _make_early_hints_callback(req, sock):
+def _make_early_hints_callback(req, sock, resp):
     """Create a wsgi.early_hints callback for sending 103 Early Hints.
 
     This allows WSGI applications to send 103 Early Hints responses
@@ -116,6 +116,7 @@ def _make_early_hints_callback(req, sock):
     Args:
         req: The request object
         sock: The socket to write to
+        resp: The Response object to check if headers have been sent
 
     Returns:
         A callback function that accepts a list of (name, value) header tuples
@@ -125,6 +126,7 @@ def _make_early_hints_callback(req, sock):
         - Early hints are only sent for HTTP/1.1 or later clients
         - HTTP/1.0 clients will silently ignore the callback
         - Multiple calls are allowed (sending multiple 103 responses)
+        - Calls after response has started are silently ignored
     """
     def send_early_hints(headers):
         """Send 103 Early Hints response.
@@ -133,6 +135,10 @@ def _make_early_hints_callback(req, sock):
             headers: List of (name, value) header tuples, typically Link headers
                      Example: [('Link', '</style.css>; rel=preload; as=style')]
         """
+        # Don't send after response has started - would break framing
+        if resp.headers_sent:
+            return
+
         # Don't send to HTTP/1.0 clients - they don't support 1xx responses
         if req.version < (1, 1):
             return
@@ -242,7 +248,7 @@ def create(req, sock, client, server, cfg):
     environ.update(proxy_environ(req))
 
     # Add wsgi.early_hints callback for sending 103 Early Hints
-    environ['wsgi.early_hints'] = _make_early_hints_callback(req, sock)
+    environ['wsgi.early_hints'] = _make_early_hints_callback(req, sock, resp)
 
     return resp, environ
 

@@ -133,8 +133,10 @@ class HTTP2Request:
             # Convert to uppercase for WSGI compatibility
             self.headers.append((name.upper(), value))
 
-        # Add Host header if not present (from :authority)
-        if authority and not any(h[0] == 'HOST' for h in self.headers):
+        # Set Host header from :authority (RFC 9113 section 8.3.1)
+        # :authority MUST take precedence over Host header
+        if authority:
+            self.headers = [(n, v) for n, v in self.headers if n != 'HOST']
             self.headers.append(('HOST', authority))
 
         # Trailers (if any)
