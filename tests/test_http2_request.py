@@ -259,8 +259,8 @@ class TestHTTP2Request:
         host = req.get_header('HOST')
         assert host == 'test.example.com:8080'
 
-    def test_existing_host_header_not_duplicated(self):
-        """If Host header exists, don't add from :authority."""
+    def test_authority_overrides_host_header(self):
+        """:authority MUST override Host header per RFC 9113 section 8.3.1."""
         stream = self._make_stream([
             (':method', 'GET'),
             (':path', '/'),
@@ -271,10 +271,10 @@ class TestHTTP2Request:
         cfg = MockConfig()
         req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
 
-        # Count HOST headers
+        # Count HOST headers - should be exactly one, from :authority
         host_headers = [h for h in req.headers if h[0] == 'HOST']
         assert len(host_headers) == 1
-        assert host_headers[0][1] == 'explicit.example.com'
+        assert host_headers[0][1] == 'authority.example.com'
 
     def test_get_header_case_insensitive(self):
         stream = self._make_stream([
