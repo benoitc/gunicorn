@@ -19,7 +19,7 @@ Dirty Arbiters solve this by providing:
 - **Stateful workers** - Loaded resources persist in dirty worker memory
 - **Message-passing IPC** - Communication via Unix sockets with JSON serialization
 - **Explicit API** - Clear `execute()` calls (no hidden IPC)
-- **Asyncio-based** - Enables future streaming support and clean concurrent handling
+- **Asyncio-based** - Clean concurrent handling with streaming support
 
 ## Design Philosophy
 
@@ -44,7 +44,7 @@ The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's 
 
 - **Non-blocking IPC** - Can handle many concurrent client connections efficiently
 - **Concurrent request routing** - Multiple requests can be dispatched to workers simultaneously
-- **Future streaming** - Native support for async generators and streaming responses
+- **Streaming support** - Native async generators for streaming responses
 - **Clean signal handling** - Signals integrate cleanly via `loop.add_signal_handler()`
 
 ### Stateful Applications
