@@ -2479,7 +2479,7 @@ class HTTPProtocols(Setting):
            HTTP/2 cleartext (h2c) is not supported due to security concerns
            and lack of browser support.
 
-        .. versionadded:: 24.0.0
+        .. versionadded:: 25.0.0
         """
 
 
@@ -2501,7 +2501,7 @@ class HTTP2MaxConcurrentStreams(Setting):
         Default is 100, which matches common server configurations.
         The HTTP/2 specification allows up to 2^31-1.
 
-        .. versionadded:: 24.0.0
+        .. versionadded:: 25.0.0
         """
 
 
@@ -2523,7 +2523,7 @@ class HTTP2InitialWindowSize(Setting):
         Default is 65535 (64KB - 1), the HTTP/2 specification default.
         Maximum is 2^31-1 (2147483647).
 
-        .. versionadded:: 24.0.0
+        .. versionadded:: 25.0.0
         """
 
 
@@ -2545,7 +2545,7 @@ class HTTP2MaxFrameSize(Setting):
         Default is 16384 (16KB), the HTTP/2 specification minimum.
         Range is 16384 to 16777215 (16MB - 1).
 
-        .. versionadded:: 24.0.0
+        .. versionadded:: 25.0.0
         """
 
 
@@ -2565,7 +2565,7 @@ class HTTP2MaxHeaderListSize(Setting):
 
         Default is 65536 (64KB). Set to 0 for unlimited (not recommended).
 
-        .. versionadded:: 24.0.0
+        .. versionadded:: 25.0.0
         """
 
 
