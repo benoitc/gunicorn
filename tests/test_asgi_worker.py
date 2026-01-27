@@ -641,3 +641,108 @@ class TestASGIConfig:
         cfg = Config()
         cfg.set('root_path', '/api/v1')
         assert cfg.root_path == '/api/v1'
+
+
+# ============================================================================
+# HTTP/2 Priority Tests
+# ============================================================================
+
+class TestASGIHTTP2Priority:
+    """Test HTTP/2 priority in ASGI scope."""
+
+    def test_http2_priority_in_scope(self):
+        """Test that HTTP/2 priority is added to ASGI scope extensions."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+
+        # Create mock HTTP/2 request with priority
+        request = mock.Mock()
+        request.method = "GET"
+        request.path = "/test"
+        request.query = ""
+        request.version = (2, 0)
+        request.scheme = "https"
+        request.headers = [("HOST", "localhost")]
+        request.priority_weight = 128
+        request.priority_depends_on = 3
+
+        scope = protocol._build_http_scope(
+            request,
+            ("127.0.0.1", 8443),
+            ("127.0.0.1", 12345),
+        )
+
+        assert "extensions" in scope
+        assert "http.response.priority" in scope["extensions"]
+        assert scope["extensions"]["http.response.priority"]["weight"] == 128
+        assert scope["extensions"]["http.response.priority"]["depends_on"] == 3
+
+    def test_http2_priority_in_http2_scope(self):
+        """Test that HTTP/2 priority is in _build_http2_scope."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+
+        # Create mock HTTP/2 request with priority
+        request = mock.Mock()
+        request.method = "POST"
+        request.path = "/api/data"
+        request.query = "id=1"
+        request.uri = "/api/data?id=1"
+        request.scheme = "https"
+        request.headers = [("HOST", "localhost"), ("CONTENT-TYPE", "application/json")]
+        request.priority_weight = 256
+        request.priority_depends_on = 1
+
+        scope = protocol._build_http2_scope(
+            request,
+            ("127.0.0.1", 8443),
+            ("127.0.0.1", 12345),
+        )
+
+        assert scope["http_version"] == "2"
+        assert "extensions" in scope
+        assert "http.response.priority" in scope["extensions"]
+        assert scope["extensions"]["http.response.priority"]["weight"] == 256
+        assert scope["extensions"]["http.response.priority"]["depends_on"] == 1
+
+    def test_no_priority_for_http1_requests(self):
+        """Test that HTTP/1.1 requests don't have priority extensions."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+
+        # Create mock HTTP/1.1 request (no priority attributes)
+        request = mock.Mock(spec=['method', 'path', 'query', 'version',
+                                   'scheme', 'headers'])
+        request.method = "GET"
+        request.path = "/test"
+        request.query = ""
+        request.version = (1, 1)
+        request.scheme = "http"
+        request.headers = [("HOST", "localhost")]
+
+        scope = protocol._build_http_scope(
+            request,
+            ("127.0.0.1", 8000),
+            ("127.0.0.1", 12345),
+        )
+
+        # HTTP/1.1 requests should not have extensions with priority
+        assert "extensions" not in scope or "http.response.priority" not in scope.get("extensions", {})

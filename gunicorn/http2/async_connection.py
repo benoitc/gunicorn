@@ -191,7 +191,7 @@ class AsyncHTTP2Connection:
             pass  # Flow control update, handled by h2
 
         elif isinstance(event, _h2_events.PriorityUpdated):
-            pass  # Priority update, could be used for scheduling
+            self._handle_priority_updated(event)
 
         elif isinstance(event, _h2_events.SettingsAcknowledged):
             pass  # Settings ACK received
@@ -269,6 +269,20 @@ class AsyncHTTP2Connection:
 
         stream.receive_trailers(event.headers)
         return HTTP2Request(stream, self.cfg, self.client_addr)
+
+    def _handle_priority_updated(self, event):
+        """Handle PriorityUpdated event (PRIORITY frame).
+
+        Args:
+            event: PriorityUpdated event with priority info
+        """
+        stream = self.streams.get(event.stream_id)
+        if stream is not None:
+            stream.update_priority(
+                weight=event.weight,
+                depends_on=event.depends_on,
+                exclusive=event.exclusive
+            )
 
     async def send_informational(self, stream_id, status, headers):
         """Send an informational response (1xx) on a stream.

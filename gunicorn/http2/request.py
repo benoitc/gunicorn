@@ -161,6 +161,10 @@ class HTTP2Request:
         # HTTP/2 does not use proxy protocol through the data stream
         self.proxy_protocol_info = None
 
+        # Stream priority (RFC 7540 Section 5.3)
+        self.priority_weight = stream.priority_weight
+        self.priority_depends_on = stream.priority_depends_on
+
     def force_close(self):
         """Force the connection to close after this request."""
         self.must_close = True

@@ -250,6 +250,11 @@ def create(req, sock, client, server, cfg):
     # Add wsgi.early_hints callback for sending 103 Early Hints
     environ['wsgi.early_hints'] = _make_early_hints_callback(req, sock, resp)
 
+    # Add HTTP/2 stream priority if available
+    if hasattr(req, 'priority_weight'):
+        environ['gunicorn.http2.priority_weight'] = req.priority_weight
+        environ['gunicorn.http2.priority_depends_on'] = req.priority_depends_on
+
     return resp, environ
 
 

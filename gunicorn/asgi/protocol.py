@@ -360,6 +360,15 @@ class ASGIProtocol(asyncio.Protocol):
         if hasattr(self.worker, 'state'):
             scope["state"] = self.worker.state
 
+        # Add HTTP/2 priority extension if available
+        if hasattr(request, 'priority_weight'):
+            scope["extensions"] = {
+                "http.response.priority": {
+                    "weight": request.priority_weight,
+                    "depends_on": request.priority_depends_on,
+                }
+            }
+
         return scope
 
     def _build_environ(self, request, sockname, peername):
@@ -742,6 +751,15 @@ class ASGIProtocol(asyncio.Protocol):
 
         if hasattr(self.worker, 'state'):
             scope["state"] = self.worker.state
+
+        # Add HTTP/2 priority extension
+        if hasattr(request, 'priority_weight'):
+            scope["extensions"] = {
+                "http.response.priority": {
+                    "weight": request.priority_weight,
+                    "depends_on": request.priority_depends_on,
+                }
+            }
 
         return scope
 

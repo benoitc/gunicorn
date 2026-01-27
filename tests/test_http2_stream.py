@@ -626,3 +626,93 @@ class TestFullStreamLifecycle:
         assert stream.state == StreamState.CLOSED
         assert stream.request_complete is True
         assert stream.response_complete is True
+
+
+class TestStreamPriority:
+    """Test stream priority support (RFC 7540 Section 5.3)."""
+
+    def test_default_priority_values(self):
+        """Test default priority values."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        assert stream.priority_weight == 16
+        assert stream.priority_depends_on == 0
+        assert stream.priority_exclusive is False
+
+    def test_update_priority_weight(self):
+        """Test updating priority weight."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        stream.update_priority(weight=256)
+        assert stream.priority_weight == 256
+
+        stream.update_priority(weight=1)
+        assert stream.priority_weight == 1
+
+    def test_update_priority_depends_on(self):
+        """Test updating priority dependency."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=3, connection=conn)
+
+        stream.update_priority(depends_on=1)
+        assert stream.priority_depends_on == 1
+
+    def test_update_priority_exclusive(self):
+        """Test updating exclusive flag."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=3, connection=conn)
+
+        stream.update_priority(exclusive=True)
+        assert stream.priority_exclusive is True
+
+        stream.update_priority(exclusive=False)
+        assert stream.priority_exclusive is False
+
+    def test_update_priority_all_fields(self):
+        """Test updating all priority fields at once."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=5, connection=conn)
+
+        stream.update_priority(weight=128, depends_on=1, exclusive=True)
+
+        assert stream.priority_weight == 128
+        assert stream.priority_depends_on == 1
+        assert stream.priority_exclusive is True
+
+    def test_update_priority_partial(self):
+        """Test that partial updates don't affect other fields."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        # Set initial values
+        stream.update_priority(weight=200, depends_on=3, exclusive=True)
+
+        # Update only weight
+        stream.update_priority(weight=100)
+        assert stream.priority_weight == 100
+        assert stream.priority_depends_on == 3  # unchanged
+        assert stream.priority_exclusive is True  # unchanged
+
+    def test_weight_clamped_to_min(self):
+        """Test that weight is clamped to minimum of 1."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        stream.update_priority(weight=0)
+        assert stream.priority_weight == 1
+
+        stream.update_priority(weight=-10)
+        assert stream.priority_weight == 1
+
+    def test_weight_clamped_to_max(self):
+        """Test that weight is clamped to maximum of 256."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        stream.update_priority(weight=300)
+        assert stream.priority_weight == 256
+
+        stream.update_priority(weight=1000)
+        assert stream.priority_weight == 256

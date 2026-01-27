@@ -559,3 +559,82 @@ class TestAsyncHTTP2ConnectionSocketErrors:
 
         with pytest.raises(HTTP2ConnectionError):
             await conn.initiate_connection()
+
+
+class TestAsyncHTTP2ConnectionPriority:
+    """Test async HTTP/2 priority handling."""
+
+    @pytest.mark.asyncio
+    async def test_handle_priority_updated_existing_stream(self):
+        """Test handling priority update for existing stream."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create a client connection to generate frames
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+
+        # Set up reader with client preface
+        reader.set_data(client_data)
+
+        await conn.initiate_connection()
+        await conn.receive_data()
+        writer.clear()
+
+        # Send a request to create a stream
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ])
+        request_data = client_conn.data_to_send()
+        reader.set_data(request_data)
+        await conn.receive_data()
+
+        # Verify stream was created
+        assert 1 in conn.streams
+        stream = conn.streams[1]
+
+        # Default priority values
+        assert stream.priority_weight == 16
+        assert stream.priority_depends_on == 0
+
+        # Send a PRIORITY frame
+        client_conn.prioritize(1, weight=128, depends_on=0, exclusive=False)
+        priority_data = client_conn.data_to_send()
+        reader.set_data(priority_data)
+        await conn.receive_data()
+
+        # Verify priority was updated
+        assert stream.priority_weight == 128
+
+    @pytest.mark.asyncio
+    async def test_handle_priority_updated_nonexistent_stream(self):
+        """Test that priority update for nonexistent stream is ignored."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create a client connection
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+
+        reader.set_data(client_data)
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a PRIORITY frame for a stream that doesn't exist
+        client_conn.prioritize(99, weight=64, depends_on=0, exclusive=False)
+        priority_data = client_conn.data_to_send()
+        reader.set_data(priority_data)
+
+        # Should not raise
+        await conn.receive_data()

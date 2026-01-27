@@ -186,6 +186,73 @@ async def app(scope, receive, send):
     Early hints are only sent to HTTP/1.1+ clients. HTTP/1.0 clients silently
     ignore the callback since they don't support 1xx responses.
 
+## Stream Priority
+
+HTTP/2 allows clients to indicate the relative priority of streams using PRIORITY frames
+(RFC 7540 Section 5.3). Gunicorn tracks stream priorities and exposes them to both
+WSGI and ASGI applications.
+
+### Accessing Priority in WSGI
+
+Priority information is available in the WSGI environ for HTTP/2 requests:
+
+```python
+def app(environ, start_response):
+    # Access stream priority (HTTP/2 only)
+    weight = environ.get('gunicorn.http2.priority_weight')
+    depends_on = environ.get('gunicorn.http2.priority_depends_on')
+
+    if weight is not None:
+        # This is an HTTP/2 request with priority info
+        # Higher weight = client considers this more important
+        print(f"Request priority: weight={weight}, depends_on={depends_on}")
+
+    start_response('200 OK', [('Content-Type', 'text/plain')])
+    return [b'OK']
+```
+
+| Environ Key | Range | Default | Description |
+|-------------|-------|---------|-------------|
+| `gunicorn.http2.priority_weight` | 1-256 | 16 | Higher weight = more resources |
+| `gunicorn.http2.priority_depends_on` | Stream ID | 0 | Parent stream (0 = root) |
+
+### Accessing Priority in ASGI
+
+For ASGI applications, priority is available in the scope's `extensions` dict:
+
+```python
+async def app(scope, receive, send):
+    if scope["type"] == "http":
+        # Check for HTTP/2 priority extension
+        extensions = scope.get("extensions", {})
+        priority = extensions.get("http.response.priority")
+
+        if priority:
+            weight = priority["weight"]        # 1-256
+            depends_on = priority["depends_on"]  # Parent stream ID
+            print(f"Request priority: weight={weight}, depends_on={depends_on}")
+
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", b"text/plain")],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": b"OK",
+        })
+```
+
+| Extension Key | Field | Range | Default | Description |
+|---------------|-------|-------|---------|-------------|
+| `http.response.priority` | `weight` | 1-256 | 16 | Higher weight = more resources |
+| `http.response.priority` | `depends_on` | Stream ID | 0 | Parent stream (0 = root) |
+
+!!! note
+    Stream priority is advisory. Applications can use it for scheduling decisions,
+    but Gunicorn does not enforce priority-based request ordering. Priority
+    information is only present for HTTP/2 requests.
+
 ## Production Deployment
 
 ### With Nginx

@@ -63,6 +63,11 @@ class HTTP2Stream:
         # Trailers
         self.trailers = None
 
+        # Stream priority (RFC 7540 Section 5.3)
+        self.priority_weight = 16
+        self.priority_depends_on = 0
+        self.priority_exclusive = False
+
     @property
     def is_client_stream(self):
         """Check if this is a client-initiated stream (odd stream ID)."""
@@ -209,6 +214,21 @@ class HTTP2Stream:
         self.state = StreamState.CLOSED
         self.response_complete = True
         self.request_complete = True
+
+    def update_priority(self, weight=None, depends_on=None, exclusive=None):
+        """Update stream priority from PRIORITY frame.
+
+        Args:
+            weight: Priority weight (1-256), higher = more resources
+            depends_on: Stream ID this stream depends on
+            exclusive: Whether this is an exclusive dependency
+        """
+        if weight is not None:
+            self.priority_weight = max(1, min(256, weight))
+        if depends_on is not None:
+            self.priority_depends_on = depends_on
+        if exclusive is not None:
+            self.priority_exclusive = exclusive
 
     def _half_close_local(self):
         """Transition to half-closed (local) state."""

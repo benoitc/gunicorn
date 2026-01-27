@@ -572,3 +572,150 @@ class TestHTTP2RequestDefaults:
 
         assert req.uri == '/'
         assert req.path == '/'
+
+
+class TestHTTP2RequestPriority:
+    """Test HTTP2Request priority attributes."""
+
+    def test_default_priority_values(self):
+        """Test that request inherits default stream priority."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.receive_headers([
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'example.com'),
+        ], end_stream=True)
+
+        cfg = MockConfig()
+        req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
+
+        assert req.priority_weight == 16
+        assert req.priority_depends_on == 0
+
+    def test_custom_priority_values(self):
+        """Test that request inherits custom stream priority."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=3, connection=conn)
+
+        # Update priority before creating request
+        stream.update_priority(weight=200, depends_on=1)
+
+        stream.receive_headers([
+            (':method', 'POST'),
+            (':path', '/api/data'),
+            (':scheme', 'https'),
+            (':authority', 'example.com'),
+        ], end_stream=False)
+        stream.receive_data(b'{"data": "test"}', end_stream=True)
+
+        cfg = MockConfig()
+        req = HTTP2Request(stream, cfg, ('192.168.1.100', 54321))
+
+        assert req.priority_weight == 200
+        assert req.priority_depends_on == 1
+
+    def test_priority_reflects_stream_at_request_creation(self):
+        """Test that priority reflects stream state when request is created."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.receive_headers([
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'example.com'),
+        ], end_stream=True)
+
+        cfg = MockConfig()
+
+        # Create request with default priority
+        req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
+        assert req.priority_weight == 16
+
+        # Update stream priority after request was created
+        stream.update_priority(weight=256)
+
+        # Request should still have old value (captured at creation time)
+        assert req.priority_weight == 16
+
+        # Stream has new value
+        assert stream.priority_weight == 256
+
+
+class MockWSGIConfig:
+    """Mock gunicorn configuration with WSGI-required attributes."""
+
+    def __init__(self):
+        self.errorlog = '-'
+        self.workers = 1
+
+
+class TestHTTP2RequestWSGIEnviron:
+    """Test HTTP/2 priority in WSGI environ."""
+
+    def test_priority_in_wsgi_environ(self):
+        """Test that HTTP/2 priority is added to WSGI environ."""
+        from unittest import mock
+        from gunicorn.http.wsgi import create
+
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.update_priority(weight=128, depends_on=3)
+        stream.receive_headers([
+            (':method', 'GET'),
+            (':path', '/test'),
+            (':scheme', 'https'),
+            (':authority', 'example.com'),
+        ], end_stream=True)
+
+        cfg = MockConfig()
+        req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
+
+        # Create a mock socket
+        mock_sock = mock.Mock()
+        mock_sock.getsockname.return_value = ('127.0.0.1', 8443)
+
+        # Use WSGI config for environ creation
+        wsgi_cfg = MockWSGIConfig()
+
+        # Create WSGI environ
+        resp, environ = create(req, mock_sock, ('127.0.0.1', 12345), ('127.0.0.1', 8443), wsgi_cfg)
+
+        # Verify priority is in environ
+        assert environ.get('gunicorn.http2.priority_weight') == 128
+        assert environ.get('gunicorn.http2.priority_depends_on') == 3
+
+    def test_priority_not_in_environ_for_http1(self):
+        """Test that HTTP/1 requests don't have priority keys."""
+        from unittest import mock
+        from gunicorn.http.wsgi import create
+
+        # Create a mock HTTP/1 request (no priority attributes)
+        mock_req = mock.Mock()
+        mock_req.headers = [('HOST', 'example.com')]
+        mock_req.scheme = 'https'
+        mock_req.path = '/test'
+        mock_req.query = ''
+        mock_req.fragment = ''
+        mock_req.method = 'GET'
+        mock_req.uri = '/test'
+        mock_req.version = (1, 1)
+        mock_req._expected_100_continue = False
+        mock_req.proxy_protocol_info = None
+        mock_req.body = mock.Mock()
+
+        # Remove priority attributes to simulate HTTP/1 request
+        del mock_req.priority_weight
+        del mock_req.priority_depends_on
+
+        wsgi_cfg = MockWSGIConfig()
+
+        mock_sock = mock.Mock()
+        mock_sock.getsockname.return_value = ('127.0.0.1', 8443)
+
+        resp, environ = create(mock_req, mock_sock, ('127.0.0.1', 12345), ('127.0.0.1', 8443), wsgi_cfg)
+
+        # HTTP/1 requests should not have priority keys
+        assert 'gunicorn.http2.priority_weight' not in environ
+        assert 'gunicorn.http2.priority_depends_on' not in environ

@@ -568,6 +568,77 @@ class TestHTTP2ServerConnectionRepr:
         assert "closed=" in repr_str
 
 
+class TestHTTP2ServerConnectionPriority:
+    """Test HTTP/2 priority handling."""
+
+    def test_handle_priority_updated_existing_stream(self):
+        """Test handling priority update for existing stream."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create a client connection to generate frames
+        client_conn = create_client_connection()
+
+        # Get client preface
+        client_data = client_conn.data_to_send()
+
+        # Feed client preface to server
+        conn.receive_data(client_data)
+        sock._sent = bytearray()
+
+        # Send a request to create a stream
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ])
+        request_data = client_conn.data_to_send()
+        conn.receive_data(request_data)
+
+        # Verify stream was created
+        assert 1 in conn.streams
+        stream = conn.streams[1]
+
+        # Default priority values
+        assert stream.priority_weight == 16
+        assert stream.priority_depends_on == 0
+
+        # Send a PRIORITY frame
+        client_conn.prioritize(1, weight=128, depends_on=0, exclusive=False)
+        priority_data = client_conn.data_to_send()
+        conn.receive_data(priority_data)
+
+        # Verify priority was updated
+        assert stream.priority_weight == 128
+
+    def test_handle_priority_updated_nonexistent_stream(self):
+        """Test that priority update for nonexistent stream is ignored."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create a client connection
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+        conn.receive_data(client_data)
+
+        # Send a PRIORITY frame for a stream that doesn't exist
+        # This should not raise an error
+        client_conn.prioritize(99, weight=64, depends_on=0, exclusive=False)
+        priority_data = client_conn.data_to_send()
+
+        # Should not raise
+        conn.receive_data(priority_data)
+
+
 class TestHTTP2NotAvailable:
     """Test behavior when h2 is not available."""
 
