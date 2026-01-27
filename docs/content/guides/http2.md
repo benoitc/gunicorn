@@ -454,6 +454,192 @@ If clients report stream limit errors:
 http2_max_concurrent_streams = 200  # Increase from default 100
 ```
 
+## Performance Tuning
+
+HTTP/2 performance depends on proper tuning of both Gunicorn and system settings.
+This section covers different tuning profiles and their trade-offs.
+
+### Tuning Profiles
+
+#### Conservative (Default)
+
+Best for: Low to moderate traffic, memory-constrained environments.
+
+```python
+# gunicorn.conf.py - Conservative profile
+workers = 2
+worker_class = "gthread"
+threads = 4
+
+http2_max_concurrent_streams = 100
+http2_initial_window_size = 65535      # 64KB
+http2_max_frame_size = 16384           # 16KB
+```
+
+| Pros | Cons |
+|------|------|
+| Low memory footprint | Limited throughput at high concurrency |
+| Safe defaults per RFC | More round-trips for large transfers |
+| Works on constrained systems | May bottleneck at ~10K req/s |
+
+#### Balanced
+
+Best for: Moderate traffic, general production use.
+
+```python
+# gunicorn.conf.py - Balanced profile
+workers = 4
+worker_class = "gthread"
+threads = 4
+backlog = 2048
+
+http2_max_concurrent_streams = 128
+http2_initial_window_size = 262144     # 256KB
+http2_max_frame_size = 16384           # 16KB
+```
+
+| Pros | Cons |
+|------|------|
+| Good throughput (15K+ req/s) | More memory per connection |
+| Handles traffic spikes | Requires more CPU |
+| Good balance of resources | |
+
+#### High Concurrency
+
+Best for: High traffic APIs, microservices, load testing.
+
+```python
+# gunicorn.conf.py - High concurrency profile
+workers = 4
+worker_class = "gthread"
+threads = 8
+backlog = 2048
+worker_connections = 10000
+
+http2_max_concurrent_streams = 256
+http2_initial_window_size = 1048576    # 1MB
+http2_max_frame_size = 32768           # 32KB
+```
+
+| Pros | Cons |
+|------|------|
+| High throughput (20K+ req/s) | Higher memory usage (~4x conservative) |
+| Handles 1000s of clients | Requires system tuning |
+| Better large transfer performance | May overwhelm downstream services |
+
+### Setting Trade-offs
+
+#### `http2_max_concurrent_streams`
+
+Controls how many simultaneous streams a client can open per connection.
+
+| Value | Memory | Throughput | Use Case |
+|-------|--------|------------|----------|
+| 50-100 | Low | Moderate | APIs with small payloads |
+| 128-256 | Medium | High | General web applications |
+| 500+ | High | Very High | Streaming, real-time apps |
+
+!!! warning
+    Very high values (500+) can lead to resource exhaustion under attack.
+    Use with rate limiting.
+
+#### `http2_initial_window_size`
+
+Flow control window size determines how much data can be sent before waiting for acknowledgment.
+
+| Value | Memory | Latency | Use Case |
+|-------|--------|---------|----------|
+| 65535 (64KB) | Low | Higher for large transfers | Default, memory-constrained |
+| 262144 (256KB) | Medium | Balanced | General use |
+| 1048576 (1MB) | High | Lower for large transfers | Large file transfers, streaming |
+
+!!! note
+    Larger windows improve throughput for large responses but increase memory
+    usage per stream. Calculate: `max_streams × window_size × connections`.
+
+#### `http2_max_frame_size`
+
+Maximum size of individual HTTP/2 frames.
+
+| Value | Memory | Efficiency | Use Case |
+|-------|--------|------------|----------|
+| 16384 (16KB) | Low | More frames for large data | Default, RFC minimum |
+| 32768 (32KB) | Medium | Balanced | General use |
+| 65536 (64KB) | Higher | Fewer frames | Large payloads |
+
+### System Tuning (Linux)
+
+For high concurrency (1000+ clients), tune these kernel parameters:
+
+```bash
+# /etc/sysctl.conf or /etc/sysctl.d/99-gunicorn.conf
+
+# Increase socket backlog for burst connections
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_syn_backlog = 65535
+
+# Increase network queue size
+net.core.netdev_max_backlog = 65535
+
+# Expand ephemeral port range
+net.ipv4.ip_local_port_range = 1024 65535
+
+# Allow reuse of TIME_WAIT sockets
+net.ipv4.tcp_tw_reuse = 1
+
+# Increase max open files system-wide
+fs.file-max = 2097152
+```
+
+Apply with: `sudo sysctl -p`
+
+Also increase file descriptor limits:
+
+```bash
+# /etc/security/limits.conf
+* soft nofile 65535
+* hard nofile 65535
+```
+
+### Docker Tuning
+
+For Docker deployments, add these to your container or compose file:
+
+```yaml
+# docker-compose.yml
+services:
+  gunicorn:
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    sysctls:
+      net.core.somaxconn: 65535
+```
+
+Or in Dockerfile:
+
+```dockerfile
+# Increase file descriptor limit
+RUN ulimit -n 65535
+```
+
+### Benchmark Results
+
+Reference benchmarks using h2load with 4 Gunicorn workers in Docker (Apple M4 Pro):
+
+| Profile | Clients | Streams | Requests/sec | Latency (mean) |
+|---------|---------|---------|--------------|----------------|
+| Conservative | 100 | 10 | 11,700 | 69ms |
+| Conservative | 1000 | 10 | 12,750 | 441ms |
+| High Concurrency | 100 | 10 | 15,000+ | 50ms |
+| High Concurrency | 1000 | 10 | 21,700 | 253ms |
+| High Concurrency | 2000 | 10 | 12,300 | 243ms |
+
+!!! note
+    Actual performance varies based on hardware, network, and application complexity.
+    Always benchmark your specific workload.
+
 ## Testing HTTP/2
 
 ### Using curl
