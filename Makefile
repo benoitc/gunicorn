@@ -3,12 +3,6 @@ build:
 	venv/bin/pip install -e .
 	venv/bin/pip install -r requirements_dev.txt
 
-test:
-	venv/bin/python setup.py test
-
-coverage:
-	venv/bin/python setup.py test --cov
-
 docs:
 	mkdocs build
 
@@ -20,4 +14,4 @@ clean:
 	@find . -type f -name "*.py[co]" -delete
 	@find . -type d -name "__pycache__" -delete
 
-.PHONY: build clean coverage docs docs-serve test
+.PHONY: build clean docs docs-serve
