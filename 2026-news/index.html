@@ -735,6 +735,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../dirty/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dirty Arbiters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../uwsgi/" class="md-nav__link">
         
   
@@ -1229,6 +1257,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2500-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.0.0 - unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="25.0.0 - unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2411-2026-01-24" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1269,7 +1325,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1308,7 +1364,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1823,6 +1879,21 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
+<h2 id="2500-unreleased">25.0.0 - unreleased<a class="headerlink" href="#2500-unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Dirty Arbiters</strong>: Separate process pool for executing long-running, blocking
+  operations (AI model loading, heavy computation) without blocking HTTP workers
+  (<a href="https://github.com/benoitc/gunicorn/pull/3460">PR #3460</a>)</li>
+<li>Inspired by Erlang's dirty schedulers</li>
+<li>Asyncio-based with Unix socket IPC</li>
+<li>Stateful workers that persist loaded resources</li>
+<li>New settings: <code>--dirty-app</code>, <code>--dirty-workers</code>, <code>--dirty-timeout</code>,
+    <code>--dirty-threads</code>, <code>--dirty-graceful-timeout</code></li>
+<li>Lifecycle hooks: <code>on_dirty_starting</code>, <code>dirty_post_fork</code>,
+    <code>dirty_worker_init</code>, <code>dirty_worker_exit</code></li>
+</ul>
+<hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1834,7 +1905,7 @@
 </ul>
 <hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
   Container Registry at <code>ghcr.io/benoitc/gunicorn</code></li>
@@ -1916,7 +1987,7 @@
 </ul>
 <hr />
 <h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies

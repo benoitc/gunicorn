@@ -735,6 +735,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../dirty/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dirty Arbiters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../uwsgi/" class="md-nav__link">
         
   
@@ -1224,6 +1252,139 @@
     <span class="md-ellipsis">
       
         print_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dirty-arbiter-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty Arbiter Hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dirty Arbiter Hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on_dirty_starting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_dirty_starting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_post_fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_post_fork
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_worker_init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_worker_init
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_worker_exit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_worker_exit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dirty-arbiters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty Arbiters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dirty Arbiters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dirty_apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_apps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty_graceful_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dirty_graceful_timeout
       
     </span>
   </a>
@@ -3058,6 +3219,115 @@ configuration is correct, and 1 if the configuration is incorrect.</p>
 <p><strong>Command line:</strong> <code>--print-config</code></p>
 <p><strong>Default:</strong> <code>False</code></p>
 <p>Print the configuration settings as fully resolved. Implies <a href="#check_config">check-config</a>.</p>
+<h2 id="dirty-arbiter-hooks">Dirty Arbiter Hooks<a class="headerlink" href="#dirty-arbiter-hooks" title="Permanent link">&para;</a></h2>
+<h3 id="on_dirty_starting"><code>on_dirty_starting</code><a class="headerlink" href="#on_dirty_starting" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_dirty_starting</span><span class="p">(</span><span class="n">arbiter</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just before the dirty arbiter process is initialized.</p>
+<p>The callable needs to accept a single instance variable for the
+DirtyArbiter.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_post_fork"><code>dirty_post_fork</code><a class="headerlink" href="#dirty_post_fork" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">dirty_post_fork</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a dirty worker has been forked.</p>
+<p>The callable needs to accept two instance variables for the
+DirtyArbiter and new DirtyWorker.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_worker_init"><code>dirty_worker_init</code><a class="headerlink" href="#dirty_worker_init" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_init</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called just after a dirty worker has initialized all applications.</p>
+<p>The callable needs to accept one instance variable for the
+DirtyWorker.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_worker_exit"><code>dirty_worker_exit</code><a class="headerlink" href="#dirty_worker_exit" title="Permanent link">&para;</a></h3>
+<p><strong>Default:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_exit</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<p>Called when a dirty worker has exited.</p>
+<p>The callable needs to accept two instance variables for the
+DirtyArbiter and the exiting DirtyWorker.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h2 id="dirty-arbiters">Dirty Arbiters<a class="headerlink" href="#dirty-arbiters" title="Permanent link">&para;</a></h2>
+<h3 id="dirty_apps"><code>dirty_apps</code><a class="headerlink" href="#dirty_apps" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dirty-app STRING</code></p>
+<p><strong>Default:</strong> <code>[]</code></p>
+<p>Dirty applications to load in the dirty worker pool.</p>
+<p>A list of application paths in pattern <code>$(MODULE_NAME):$(CLASS_NAME)</code>.
+Each dirty app must be a class that inherits from <code>DirtyApp</code> base class
+and implements the <code>init()</code>, <code>__call__()</code>, and <code>close()</code> methods.</p>
+<p>Example::</p>
+<div class="highlight"><pre><span></span><code>dirty_apps = [
+    &quot;myapp.ml:MLApp&quot;,
+    &quot;myapp.images:ImageApp&quot;,
+]
+</code></pre></div>
+<p>Dirty apps are loaded once when the dirty worker starts and persist
+in memory for the lifetime of the worker. This is ideal for loading
+ML models, database connection pools, or other stateful resources
+that are expensive to initialize.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_workers"><code>dirty_workers</code><a class="headerlink" href="#dirty_workers" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dirty-workers INT</code></p>
+<p><strong>Default:</strong> <code>0</code></p>
+<p>The number of dirty worker processes.</p>
+<p>A positive integer. Set to 0 (default) to disable the dirty arbiter.
+When set to a positive value, a dirty arbiter process will be spawned
+to manage the dirty worker pool.</p>
+<p>Dirty workers are separate from HTTP workers and are designed for
+long-running, blocking operations like ML model inference or heavy
+computation.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_timeout"><code>dirty_timeout</code><a class="headerlink" href="#dirty_timeout" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dirty-timeout INT</code></p>
+<p><strong>Default:</strong> <code>300</code></p>
+<p>Timeout for dirty task execution in seconds.</p>
+<p>Workers silent for more than this many seconds are considered stuck
+and will be killed. Set to a high value for operations like model
+loading that may take a long time.</p>
+<p>Value is a positive number. Setting it to 0 disables timeout checking.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_threads"><code>dirty_threads</code><a class="headerlink" href="#dirty_threads" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dirty-threads INT</code></p>
+<p><strong>Default:</strong> <code>1</code></p>
+<p>The number of threads per dirty worker.</p>
+<p>Each dirty worker can use threads to handle concurrent operations
+within the same process, useful for async-safe applications.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="dirty_graceful_timeout"><code>dirty_graceful_timeout</code><a class="headerlink" href="#dirty_graceful_timeout" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--dirty-graceful-timeout INT</code></p>
+<p><strong>Default:</strong> <code>30</code></p>
+<p>Timeout for graceful dirty worker shutdown in seconds.</p>
+<p>After receiving a shutdown signal, dirty workers have this much time
+to finish their current tasks. Workers still alive after the timeout
+are force killed.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <h3 id="accesslog"><code>accesslog</code><a class="headerlink" href="#accesslog" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--access-logfile FILE</code></p>

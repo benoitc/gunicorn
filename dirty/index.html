@@ -1,0 +1,3047 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gunicorn.org/dirty/">
+      
+      
+        <link rel="prev" href="../asgi/">
+      
+      
+        <link rel="next" href="../uwsgi/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/gunicorn.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Dirty Arbiters - Gunicorn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../styles/overrides.css">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/home.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dirty-arbiters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Gunicorn" class="md-header__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+      
+  <img src="../assets/gunicorn.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gunicorn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Dirty Arbiters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/benoitc/gunicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    benoitc/gunicorn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../deploy/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/" class="md-tabs__link">
+          
+  
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/settings/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../news/" class="md-tabs__link">
+          
+  
+  
+  News
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Gunicorn" class="md-nav__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+      
+  <img src="../assets/gunicorn.svg" alt="logo">
+
+    </a>
+    Gunicorn
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/benoitc/gunicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    benoitc/gunicorn
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asgi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ASGI Worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dirty Arbiters
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dirty Arbiters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Philosophy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design Philosophy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#separate-process-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Separate Process Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#erlang-inspiration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Erlang Inspiration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-asyncio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Asyncio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stateful-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stateful Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#process-relationships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Relationships
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-dirty-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a Dirty App
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a Dirty App">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dirtyapp-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DirtyApp Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#initialization-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Initialization Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-from-http-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using from HTTP Workers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using from HTTP Workers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sync-workers-sync-gthread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sync Workers (sync, gthread)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async-workers-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Async Workers (ASGI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Streaming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#streaming-with-generators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming with Generators
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-streaming-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client Streaming API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streaming-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling-in-streams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling in Streams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices-for-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices for Streaming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flask-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flask Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastapi-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FastAPI Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle Hooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signal-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Signal Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#signal-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forwarded-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Forwarded Signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async-signal-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Async Signal Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#liveness-and-health-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Liveness and Health Monitoring
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Liveness and Health Monitoring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heartbeat-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heartbeat Mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeout Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-death-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Death Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orphan-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orphan Cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#respawn-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Respawn Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitoring-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring Recommendations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-image-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Image Processing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uwsgi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uWSGI Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instrumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instrumentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    News
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    News
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2026-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2024-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2024
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2023-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2023
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2021-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2021
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2020-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2020
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2019-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2019
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2018-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2018
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2017-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2017
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2016-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2016
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2015-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2015
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2014-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2014
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2013-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2013
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2012-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2012
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2011-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2011
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../2010-news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2010
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../deploy/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Guides
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="dirty-arbiters">Dirty Arbiters<a class="headerlink" href="#dirty-arbiters" title="Permanent link">&para;</a></h1>
+<p>Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Traditional Gunicorn workers are designed to handle HTTP requests quickly. Long-running operations like loading ML models or performing heavy computation can block these workers, reducing the server's ability to handle concurrent requests.</p>
+<p>Dirty Arbiters solve this by providing:</p>
+<ul>
+<li><strong>Separate worker pool</strong> - Completely separate from HTTP workers, can be killed/restarted independently</li>
+<li><strong>Stateful workers</strong> - Loaded resources persist in dirty worker memory</li>
+<li><strong>Message-passing IPC</strong> - Communication via Unix sockets with JSON serialization</li>
+<li><strong>Explicit API</strong> - Clear <code>execute()</code> calls (no hidden IPC)</li>
+<li><strong>Asyncio-based</strong> - Clean concurrent handling with streaming support</li>
+</ul>
+<h2 id="design-philosophy">Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permanent link">&para;</a></h2>
+<p>Dirty Arbiters follow several key design principles:</p>
+<h3 id="separate-process-hierarchy">Separate Process Hierarchy<a class="headerlink" href="#separate-process-hierarchy" title="Permanent link">&para;</a></h3>
+<p>Unlike threads or in-process pools, Dirty Arbiters use a fully separate process tree:</p>
+<ul>
+<li><strong>Isolation</strong> - A crash or memory leak in a dirty worker cannot affect HTTP workers</li>
+<li><strong>Independent lifecycle</strong> - Dirty workers can be killed/restarted without affecting request handling</li>
+<li><strong>Resource accounting</strong> - OS-level memory limits can be applied per-process</li>
+<li><strong>Clean shutdown</strong> - Each process tree can be signaled and terminated independently</li>
+</ul>
+<h3 id="erlang-inspiration">Erlang Inspiration<a class="headerlink" href="#erlang-inspiration" title="Permanent link">&para;</a></h3>
+<p>The name and concept come from Erlang's "dirty schedulers" - special schedulers that handle operations that would block normal schedulers. In Erlang, dirty schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly, Gunicorn's Dirty Arbiters handle Python operations that would block HTTP workers.</p>
+<h3 id="why-asyncio">Why Asyncio<a class="headerlink" href="#why-asyncio" title="Permanent link">&para;</a></h3>
+<p>The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's select-based approach:</p>
+<ul>
+<li><strong>Non-blocking IPC</strong> - Can handle many concurrent client connections efficiently</li>
+<li><strong>Concurrent request routing</strong> - Multiple requests can be dispatched to workers simultaneously</li>
+<li><strong>Streaming support</strong> - Native async generators for streaming responses</li>
+<li><strong>Clean signal handling</strong> - Signals integrate cleanly via <code>loop.add_signal_handler()</code></li>
+</ul>
+<h3 id="stateful-applications">Stateful Applications<a class="headerlink" href="#stateful-applications" title="Permanent link">&para;</a></h3>
+<p>Traditional WSGI apps are request-scoped - they're invoked per-request and don't maintain state between requests. Dirty apps are different:</p>
+<ul>
+<li><strong>Long-lived</strong> - Apps persist in worker memory for the worker's lifetime</li>
+<li><strong>Pre-loaded resources</strong> - Models, connections, and caches stay loaded</li>
+<li><strong>Explicit state management</strong> - Apps control their own lifecycle via <code>init()</code> and <code>close()</code></li>
+</ul>
+<p>This makes dirty apps ideal for ML inference, where loading a model once and reusing it for many requests is essential.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>                         +-------------------+
+                         |   Main Arbiter    |
+                         | (manages both)    |
+                         +--------+----------+
+                                  |
+                    SIGTERM/SIGHUP/SIGUSR1 (forwarded)
+                                  |
+           +----------------------+----------------------+
+           |                                             |
+     +-----v-----+                                +------v------+
+     | HTTP      |                                | Dirty       |
+     | Workers   |                                | Arbiter     |
+     +-----------+                                +------+------+
+           |                                             |
+           |    Unix Socket IPC                   SIGTERM/SIGHUP
+           |    /tmp/gunicorn_dirty_&lt;pid&gt;.sock          |
+           +------------------&gt;----------------------&gt;---+
+                                             +-----------+-----------+
+                                             |           |           |
+                                       +-----v---+ +-----v---+ +-----v---+
+                                       | Dirty   | | Dirty   | | Dirty   |
+                                       | Worker  | | Worker  | | Worker  |
+                                       +---------+ +---------+ +---------+
+                                          ^   |        ^   |       ^   |
+                                          |   |        |   |       |   |
+                                    Heartbeat (mtime every dirty_timeout/2)
+                                          |   |        |   |       |   |
+                                          +---+--------+---+-------+---+
+                                                       |
+                                     All workers load all dirty apps
+                                          [MLApp, ImageApp, ...]
+</code></pre></div>
+<h3 id="process-relationships">Process Relationships<a class="headerlink" href="#process-relationships" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Parent</th>
+<th>Communication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main Arbiter</td>
+<td>init/systemd</td>
+<td>Signals from OS</td>
+</tr>
+<tr>
+<td>HTTP Workers</td>
+<td>Main Arbiter</td>
+<td>Pipes, signals</td>
+</tr>
+<tr>
+<td>Dirty Arbiter</td>
+<td>Main Arbiter</td>
+<td>Signals, exit status</td>
+</tr>
+<tr>
+<td>Dirty Workers</td>
+<td>Dirty Arbiter</td>
+<td>Unix socket, signals, WorkerTmp</td>
+</tr>
+</tbody>
+</table>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Add these settings to your Gunicorn configuration file or command line:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
+<span class="n">dirty_apps</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">dirty_workers</span> <span class="o">=</span> <span class="mi">2</span>          <span class="c1"># Number of dirty workers</span>
+<span class="n">dirty_timeout</span> <span class="o">=</span> <span class="mi">300</span>        <span class="c1"># Task timeout in seconds</span>
+<span class="n">dirty_threads</span> <span class="o">=</span> <span class="mi">1</span>          <span class="c1"># Threads per worker</span>
+<span class="n">dirty_graceful_timeout</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># Shutdown timeout</span>
+</code></pre></div>
+<p>Or via command line:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dirty-app<span class="w"> </span>myapp.ml:MLApp<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dirty-app<span class="w"> </span>myapp.images:ImageApp<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dirty-workers<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dirty-timeout<span class="w"> </span><span class="m">300</span>
+</code></pre></div>
+<h3 id="configuration-options">Configuration Options<a class="headerlink" href="#configuration-options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dirty_apps</code></td>
+<td><code>[]</code></td>
+<td>List of dirty app import paths</td>
+</tr>
+<tr>
+<td><code>dirty_workers</code></td>
+<td><code>0</code></td>
+<td>Number of dirty workers (0 = disabled)</td>
+</tr>
+<tr>
+<td><code>dirty_timeout</code></td>
+<td><code>300</code></td>
+<td>Task timeout in seconds</td>
+</tr>
+<tr>
+<td><code>dirty_threads</code></td>
+<td><code>1</code></td>
+<td>Threads per dirty worker</td>
+</tr>
+<tr>
+<td><code>dirty_graceful_timeout</code></td>
+<td><code>30</code></td>
+<td>Graceful shutdown timeout</td>
+</tr>
+</tbody>
+</table>
+<h2 id="creating-a-dirty-app">Creating a Dirty App<a class="headerlink" href="#creating-a-dirty-app" title="Permanent link">&para;</a></h2>
+<p>Dirty apps inherit from <code>DirtyApp</code> and implement three methods:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># myapp/dirty.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MLApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dirty application for ML workloads.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Called once at dirty worker startup.&quot;&quot;&quot;</span>
+        <span class="c1"># Pre-load commonly used models</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="s1">&#39;base-model&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch to action methods.&quot;&quot;&quot;</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown action: </span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a model into memory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;loaded&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">input_text</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run inference on loaded model.&quot;&quot;&quot;</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model not loaded: </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">input_text</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;models/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.pt&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleanup on shutdown.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">del</span> <span class="n">model</span>
+</code></pre></div>
+<h3 id="dirtyapp-interface">DirtyApp Interface<a class="headerlink" href="#dirtyapp-interface" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>init()</code></td>
+<td>Called once when dirty worker starts, after instantiation. Load resources here.</td>
+</tr>
+<tr>
+<td><code>__call__(action, *args, **kwargs)</code></td>
+<td>Handle requests from HTTP workers.</td>
+</tr>
+<tr>
+<td><code>close()</code></td>
+<td>Called when dirty worker shuts down. Cleanup resources.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="initialization-sequence">Initialization Sequence<a class="headerlink" href="#initialization-sequence" title="Permanent link">&para;</a></h3>
+<p>When a dirty worker starts, initialization happens in this order:</p>
+<ol>
+<li><strong>Fork</strong> - Worker process is forked from dirty arbiter</li>
+<li><strong><code>dirty_post_fork(arbiter, worker)</code></strong> - Hook called immediately after fork</li>
+<li><strong>App instantiation</strong> - Each dirty app class is instantiated (<code>__init__</code>)</li>
+<li><strong><code>app.init()</code></strong> - Called for each app after instantiation (load models, resources)</li>
+<li><strong><code>dirty_worker_init(worker)</code></strong> - Hook called after ALL apps are initialized</li>
+<li><strong>Run loop</strong> - Worker starts accepting requests from HTTP workers</li>
+</ol>
+<p>This means:</p>
+<ul>
+<li>Use <code>__init__</code> for basic setup (initialize empty containers, store config)</li>
+<li>Use <code>init()</code> for heavy loading (ML models, database connections, large files)</li>
+<li>The <code>dirty_worker_init</code> hook fires only after all apps have completed their <code>init()</code> calls</li>
+</ul>
+<h2 id="using-from-http-workers">Using from HTTP Workers<a class="headerlink" href="#using-from-http-workers" title="Permanent link">&para;</a></h2>
+<h3 id="sync-workers-sync-gthread">Sync Workers (sync, gthread)<a class="headerlink" href="#sync-workers-sync-gthread" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">my_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+    <span class="c1"># Load a model</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;load_model&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt-4&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Run inference</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;inference&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
+        <span class="n">input_text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">data</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div>
+<h3 id="async-workers-asgi">Async Workers (ASGI)<a class="headerlink" href="#async-workers-asgi" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client_async</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
+
+    <span class="c1"># Non-blocking execution</span>
+    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">execute_async</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;load_model&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt-4&quot;</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">execute_async</span><span class="p">(</span>
+        <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;inference&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
+        <span class="n">input_text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">data</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div>
+<h2 id="streaming">Streaming<a class="headerlink" href="#streaming" title="Permanent link">&para;</a></h2>
+<p>Dirty Arbiters support streaming responses for use cases like LLM token generation, where data is produced incrementally. This enables real-time delivery of results without waiting for complete execution.</p>
+<h3 id="streaming-with-generators">Streaming with Generators<a class="headerlink" href="#streaming-with-generators" title="Permanent link">&para;</a></h3>
+<p>Any dirty app action that returns a generator (sync or async) automatically streams chunks to the client:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># myapp/llm.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LLMApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">&quot;text-generation&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt2&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sync streaming - yields tokens.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">token</span><span class="p">[</span><span class="s2">&quot;generated_text&quot;</span><span class="p">]</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Async streaming - yields tokens.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">openai</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">AsyncOpenAI</span><span class="p">()</span>
+        <span class="n">stream</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+</code></pre></div>
+<h3 id="client-streaming-api">Client Streaming API<a class="headerlink" href="#client-streaming-api" title="Permanent link">&para;</a></h3>
+<p>Use <code>stream()</code> for sync workers and <code>stream_async()</code> for async workers:</p>
+<p><strong>Sync Workers (sync, gthread):</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_response</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">chunk</span>
+
+    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">generate_response</span><span class="p">())</span>
+</code></pre></div>
+<p><strong>Async Workers (ASGI):</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client_async</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_response</span><span class="p">():</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">chunk</span>
+
+    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">generate_response</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="streaming-protocol">Streaming Protocol<a class="headerlink" href="#streaming-protocol" title="Permanent link">&para;</a></h3>
+<p>Streaming uses a simple protocol with three message types:</p>
+<ol>
+<li><strong>Chunk</strong> (<code>type: "chunk"</code>) - Contains partial data</li>
+<li><strong>End</strong> (<code>type: "end"</code>) - Signals stream completion</li>
+<li><strong>Error</strong> (<code>type: "error"</code>) - Signals error during streaming</li>
+</ol>
+<p>Example message flow:
+<div class="highlight"><pre><span></span><code>Client -&gt; Arbiter -&gt; Worker: request
+Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot;Hello&quot;)
+Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot; &quot;)
+Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot;World&quot;)
+Worker -&gt; Arbiter -&gt; Client: end
+</code></pre></div></p>
+<h3 id="error-handling-in-streams">Error Handling in Streams<a class="headerlink" href="#error-handling-in-streams" title="Permanent link">&para;</a></h3>
+<p>Errors during streaming are delivered as error messages:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">chunk</span>
+    <span class="k">except</span> <span class="n">DirtyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># Error occurred mid-stream</span>
+        <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">]&quot;</span>
+</code></pre></div>
+<h3 id="best-practices-for-streaming">Best Practices for Streaming<a class="headerlink" href="#best-practices-for-streaming" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Use async generators for I/O-bound streaming</strong> - e.g., API calls to external services</li>
+<li><strong>Use sync generators for CPU-bound streaming</strong> - e.g., local model inference</li>
+<li><strong>Yield frequently</strong> - Heartbeats are sent during streaming to keep workers alive</li>
+<li><strong>Keep chunks small</strong> - Smaller chunks provide better perceived latency</li>
+<li><strong>Handle client disconnection</strong> - Streams continue even if client disconnects; design accordingly</li>
+</ol>
+<h3 id="flask-example">Flask Example<a class="headerlink" href="#flask-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">Response</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/chat&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chat</span><span class="p">():</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prompt&quot;</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;text/event-stream&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="fastapi-example">FastAPI Example<a class="headerlink" href="#fastapi-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamingResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client_async</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/chat&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">chat</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">():</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;text/event-stream&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="lifecycle-hooks">Lifecycle Hooks<a class="headerlink" href="#lifecycle-hooks" title="Permanent link">&para;</a></h2>
+<p>Dirty Arbiters provide hooks for customization:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_dirty_starting</span><span class="p">(</span><span class="n">arbiter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called just before the dirty arbiter starts.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dirty arbiter starting...&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dirty_post_fork</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called just after a dirty worker is forked.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> forked&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_init</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called after a dirty worker initializes all apps.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> initialized&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_exit</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called when a dirty worker exits.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> exiting&quot;</span><span class="p">)</span>
+
+<span class="n">on_dirty_starting</span> <span class="o">=</span> <span class="n">on_dirty_starting</span>
+<span class="n">dirty_post_fork</span> <span class="o">=</span> <span class="n">dirty_post_fork</span>
+<span class="n">dirty_worker_init</span> <span class="o">=</span> <span class="n">dirty_worker_init</span>
+<span class="n">dirty_worker_exit</span> <span class="o">=</span> <span class="n">dirty_worker_exit</span>
+</code></pre></div>
+<h2 id="signal-handling">Signal Handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h2>
+<p>Dirty Arbiters integrate with the main arbiter's signal handling. Signals are forwarded from the main arbiter to the dirty arbiter, which then propagates them to workers.</p>
+<h3 id="signal-flow">Signal Flow<a class="headerlink" href="#signal-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>  Main Arbiter                    Dirty Arbiter                 Dirty Workers
+       |                                |                             |
+  SIGTERM/SIGHUP/SIGUSR1 ------&gt;  signal_handler()                    |
+       |                                |                             |
+       |                          call_soon_threadsafe()              |
+       |                                |                             |
+       |                          handle_signal()                     |
+       |                                |                             |
+       |                                +------&gt; os.kill(worker, sig) |
+       |                                                              |
+</code></pre></div>
+<h3 id="signal-reference">Signal Reference<a class="headerlink" href="#signal-reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>At Dirty Arbiter</th>
+<th>At Dirty Workers</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SIGTERM</code></td>
+<td>Sets <code>self.alive = False</code>, waits for graceful shutdown</td>
+<td>Exits after completing current request</td>
+<td>Graceful shutdown with timeout</td>
+</tr>
+<tr>
+<td><code>SIGQUIT</code></td>
+<td>Immediate exit via <code>sys.exit(0)</code></td>
+<td>Killed immediately</td>
+<td>Fast shutdown, no cleanup</td>
+</tr>
+<tr>
+<td><code>SIGHUP</code></td>
+<td>Kills all workers, spawns new ones</td>
+<td>Exits immediately</td>
+<td>Hot reload of workers</td>
+</tr>
+<tr>
+<td><code>SIGUSR1</code></td>
+<td>Reopens log files, forwards to workers</td>
+<td>Reopens log files</td>
+<td>Log rotation support</td>
+</tr>
+<tr>
+<td><code>SIGCHLD</code></td>
+<td>Handled by event loop, triggers reap</td>
+<td>N/A</td>
+<td>Worker death detection</td>
+</tr>
+<tr>
+<td><code>SIGINT</code></td>
+<td>Same as SIGTERM</td>
+<td>Same as SIGTERM</td>
+<td>Ctrl-C handling</td>
+</tr>
+</tbody>
+</table>
+<h3 id="forwarded-signals">Forwarded Signals<a class="headerlink" href="#forwarded-signals" title="Permanent link">&para;</a></h3>
+<p>The main arbiter forwards these signals to the dirty arbiter process:</p>
+<ul>
+<li><strong>SIGTERM</strong> - Graceful shutdown of entire process tree</li>
+<li><strong>SIGHUP</strong> - Worker reload (main arbiter reloads HTTP workers, dirty arbiter reloads dirty workers)</li>
+<li><strong>SIGUSR1</strong> - Log rotation across all processes</li>
+</ul>
+<h3 id="async-signal-handling">Async Signal Handling<a class="headerlink" href="#async-signal-handling" title="Permanent link">&para;</a></h3>
+<p>The dirty arbiter uses asyncio's signal integration for safe handling in the event loop:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Signals are registered with the event loop</span>
+<span class="n">loop</span><span class="o">.</span><span class="n">add_signal_handler</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_handler</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+    <span class="c1"># Use call_soon_threadsafe for thread-safe event loop integration</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">call_soon_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_signal</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+</code></pre></div>
+<p>This pattern ensures signals don't interrupt asyncio operations mid-execution, preventing race conditions and partial state updates.</p>
+<h2 id="liveness-and-health-monitoring">Liveness and Health Monitoring<a class="headerlink" href="#liveness-and-health-monitoring" title="Permanent link">&para;</a></h2>
+<p>Dirty Arbiters implement multiple layers of health monitoring to ensure workers remain responsive and orphaned processes are cleaned up.</p>
+<h3 id="heartbeat-mechanism">Heartbeat Mechanism<a class="headerlink" href="#heartbeat-mechanism" title="Permanent link">&para;</a></h3>
+<p>Each dirty worker maintains a "worker tmp" file whose mtime serves as a heartbeat:</p>
+<div class="highlight"><pre><span></span><code>Worker Lifecycle:
+  1. Worker spawns, creates WorkerTmp file
+  2. Worker touches file every (dirty_timeout / 2) seconds
+  3. Arbiter checks all worker mtimes every 1 second
+  4. If mtime &gt; dirty_timeout seconds old, worker is killed
+</code></pre></div>
+<p>This file-based heartbeat has several advantages:</p>
+<ul>
+<li><strong>OS-level tracking</strong> - No IPC required, works even if worker is stuck in C code</li>
+<li><strong>Crash detection</strong> - Arbiter notices immediately when worker stops updating</li>
+<li><strong>Graceful recovery</strong> - Worker killed with SIGKILL, arbiter spawns replacement</li>
+</ul>
+<h3 id="timeout-detection">Timeout Detection<a class="headerlink" href="#timeout-detection" title="Permanent link">&para;</a></h3>
+<p>The arbiter's monitoring loop checks worker health every second:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Pseudocode for worker monitoring</span>
+<span class="k">for</span> <span class="n">worker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">:</span>
+    <span class="n">mtime</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">tmp</span><span class="o">.</span><span class="n">last_update</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">mtime</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">dirty_timeout</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> timed out, killing&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+</code></pre></div>
+<p>When a worker is killed:</p>
+<ol>
+<li><code>SIGCHLD</code> is delivered to the arbiter</li>
+<li>Arbiter reaps the worker process</li>
+<li><code>dirty_worker_exit</code> hook is called</li>
+<li>A new worker is spawned to maintain <code>dirty_workers</code> count</li>
+</ol>
+<h3 id="parent-death-detection">Parent Death Detection<a class="headerlink" href="#parent-death-detection" title="Permanent link">&para;</a></h3>
+<p>Dirty arbiters monitor their parent process (the main arbiter) to detect orphaning:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In the dirty arbiter&#39;s main loop</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_pid</span><span class="p">:</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parent died, shutting down&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">False</span>
+</code></pre></div>
+<p>This check runs every iteration of the event loop (typically sub-millisecond). When parent death is detected:</p>
+<ol>
+<li>Arbiter sets <code>self.alive = False</code></li>
+<li>All workers are sent SIGTERM</li>
+<li>Arbiter waits for graceful shutdown (up to <code>dirty_graceful_timeout</code>)</li>
+<li>Remaining workers are sent SIGKILL</li>
+<li>Arbiter exits</li>
+</ol>
+<h3 id="orphan-cleanup">Orphan Cleanup<a class="headerlink" href="#orphan-cleanup" title="Permanent link">&para;</a></h3>
+<p>To handle edge cases where the dirty arbiter itself crashes, a well-known PID file is used:</p>
+<p><strong>PID file location</strong>: <code>/tmp/gunicorn_dirty_&lt;main_arbiter_pid&gt;.pid</code></p>
+<p>On startup, the dirty arbiter:</p>
+<ol>
+<li>Checks if PID file exists</li>
+<li>If yes, reads the old PID and attempts to kill it (<code>SIGTERM</code>)</li>
+<li>Waits briefly for cleanup</li>
+<li>Writes its own PID to the file</li>
+<li>On exit, removes the PID file</li>
+</ol>
+<p>This ensures that if a dirty arbiter crashes and the main arbiter restarts it, the old orphaned process is terminated.</p>
+<h3 id="respawn-behavior">Respawn Behavior<a class="headerlink" href="#respawn-behavior" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Respawn Trigger</th>
+<th>Respawn Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dirty Worker</td>
+<td>Exit, timeout, or crash</td>
+<td>Immediate respawn to maintain <code>dirty_workers</code> count</td>
+</tr>
+<tr>
+<td>Dirty Arbiter</td>
+<td>Exit or crash</td>
+<td>Main arbiter respawns if not shutting down</td>
+</tr>
+</tbody>
+</table>
+<p>The dirty arbiter maintains a target worker count and continuously spawns workers until the target is reached:</p>
+<div class="highlight"><pre><span></span><code><span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_workers</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">spawn_worker</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="monitoring-recommendations">Monitoring Recommendations<a class="headerlink" href="#monitoring-recommendations" title="Permanent link">&para;</a></h3>
+<p>For production deployments, consider:</p>
+<ol>
+<li><strong>Log monitoring</strong> - Watch for "Worker timed out" messages indicating hung workers</li>
+<li><strong>Process monitoring</strong> - Use systemd or supervisord to monitor the main arbiter</li>
+<li><strong>Metrics</strong> - Track respawn frequency to detect unstable workers</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check for recent worker timeouts</span>
+grep<span class="w"> </span><span class="s2">&quot;Worker.*timed out&quot;</span><span class="w"> </span>/var/log/gunicorn.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+
+<span class="c1"># Monitor process tree</span>
+watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s1">&#39;pstree -p $(cat gunicorn.pid)&#39;</span>
+</code></pre></div>
+<h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<p>The dirty client raises specific exceptions:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DirtyError</span><span class="p">,</span>
+    <span class="n">DirtyTimeoutError</span><span class="p">,</span>
+    <span class="n">DirtyConnectionError</span><span class="p">,</span>
+    <span class="n">DirtyAppError</span><span class="p">,</span>
+    <span class="n">DirtyAppNotFoundError</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;inference&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">DirtyTimeoutError</span><span class="p">:</span>
+    <span class="c1"># Operation timed out</span>
+    <span class="k">pass</span>
+<span class="k">except</span> <span class="n">DirtyAppNotFoundError</span><span class="p">:</span>
+    <span class="c1"># App not loaded in dirty workers</span>
+    <span class="k">pass</span>
+<span class="k">except</span> <span class="n">DirtyAppError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="c1"># Error during app execution</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;App error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">, traceback: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">traceback</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">DirtyConnectionError</span><span class="p">:</span>
+    <span class="c1"># Connection to dirty arbiter failed</span>
+    <span class="k">pass</span>
+</code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Pre-load commonly used resources</strong> in <code>init()</code> to avoid cold starts</li>
+<li><strong>Set appropriate timeouts</strong> based on your workload</li>
+<li><strong>Handle errors gracefully</strong> - dirty workers may restart</li>
+<li><strong>Use meaningful action names</strong> for easier debugging</li>
+<li><strong>Keep responses JSON-serializable</strong> - results are passed via IPC</li>
+</ol>
+<h2 id="monitoring">Monitoring<a class="headerlink" href="#monitoring" title="Permanent link">&para;</a></h2>
+<p>Monitor dirty workers using standard process monitoring:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check dirty arbiter and workers</span>
+ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;dirty&quot;</span>
+
+<span class="c1"># View logs</span>
+tail<span class="w"> </span>-f<span class="w"> </span>gunicorn.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>dirty
+</code></pre></div>
+<h2 id="example-image-processing">Example: Image Processing<a class="headerlink" href="#example-image-processing" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># myapp/images.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Pre-import heavy libraries</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cv2</span> <span class="o">=</span> <span class="n">cv2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resize an image.&quot;&quot;&quot;</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
+        <span class="n">resized</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+        <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PNG&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">thumbnail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a thumbnail.&quot;&quot;&quot;</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
+        <span class="n">img</span><span class="o">.</span><span class="n">thumbnail</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
+        <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;JPEG&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+</code></pre></div>
+<p>Usage:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">upload_image</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+    <span class="c1"># Create thumbnail in dirty worker</span>
+    <span class="n">thumbnail</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">256</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">save_thumbnail</span><span class="p">(</span><span class="n">thumbnail</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="complete-examples">Complete Examples<a class="headerlink" href="#complete-examples" title="Permanent link">&para;</a></h2>
+<p>For full working examples with Docker deployment, see:</p>
+<ul>
+<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service">Embedding Service Example</a> - FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.</li>
+<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat">Streaming Chat Example</a> - Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty worker generators and real-time response delivery.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/benoitc/gunicorn" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/gunicorn/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.path", "search.highlight", "search.suggest", "search.share", "toc.follow", "toc.integrate", "header.autohide"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../assets/javascripts/toc-collapse.js"></script>
+      
+    
+  </body>
+</html>
