@@ -501,6 +501,160 @@ The example demonstrates:
 2. **Response trailers**: Sending `http.response.trailers` messages
 3. **Combined features**: Using both priority and trailers in one response
 
+## RFC Compliance
+
+Gunicorn's HTTP/2 implementation is built on the [h2 library](https://github.com/python-hyper/h2)
+and complies with the following specifications:
+
+| Feature | RFC | Status | Notes |
+|---------|-----|--------|-------|
+| HTTP/2 Protocol | [RFC 7540](https://tools.ietf.org/html/rfc7540) | Compliant | Core protocol support |
+| HTTP/2 Semantics | [RFC 9113](https://tools.ietf.org/html/rfc9113) | Compliant | Updated HTTP/2 spec |
+| HPACK Compression | [RFC 7541](https://tools.ietf.org/html/rfc7541) | Compliant | Via h2 library |
+| Stream State Machine | RFC 7540 Section 5.1 | Compliant | Full state transitions |
+| Flow Control | RFC 7540 Section 6.9 | Compliant | Stream and connection level |
+| Stream Priority | RFC 7540 Section 5.3 | Compliant | Weight and dependency tracking |
+| Frame Size Limits | RFC 7540 Section 6.2 | Compliant | Validated 16384-16777215 bytes |
+| Pseudo-Headers | RFC 9113 Section 8.3 | Compliant | All required headers supported |
+| `:authority` Handling | RFC 9113 Section 8.3.1 | Compliant | Takes precedence over Host |
+| Response Trailers | RFC 9110 Section 6.5 | Compliant | Pseudo-headers forbidden |
+| GOAWAY Handling | RFC 7540 Section 6.8 | Compliant | Graceful shutdown |
+| RST_STREAM Handling | RFC 7540 Section 6.4 | Compliant | Stream reset |
+| Early Hints | [RFC 8297](https://tools.ietf.org/html/rfc8297) | Compliant | 103 informational responses |
+| Server Push | RFC 7540 Section 6.6 | Not Implemented | Optional feature, rarely used |
+
+!!! note
+    Server Push (PUSH_PROMISE) is not implemented. This is an optional HTTP/2 feature that is
+    being deprecated in HTTP/3 and is rarely used in practice.
+
+## Security Considerations
+
+HTTP/2 introduces new attack vectors compared to HTTP/1.1. Gunicorn includes several
+protections against known vulnerabilities.
+
+### Built-in Protections
+
+| Attack | Protection | Setting |
+|--------|------------|---------|
+| Stream Multiplexing Abuse | Limit concurrent streams | `http2_max_concurrent_streams` (default: 100) |
+| HPACK Bomb | Header size limits | `http2_max_header_list_size` (default: 65536) |
+| Large Frame Attack | Frame size limits | `http2_max_frame_size` (validated: 16384-16777215) |
+| Resource Exhaustion | Flow control windows | `http2_initial_window_size` (default: 65535) |
+| Slow Read (Slowloris) | Connection timeouts | `timeout` and `keepalive` settings |
+
+### Recommended Security Settings
+
+```python
+# gunicorn.conf.py - Security-hardened HTTP/2 configuration
+
+# Limit concurrent streams to prevent resource exhaustion
+http2_max_concurrent_streams = 100
+
+# Limit header size to prevent HPACK bomb attacks
+http2_max_header_list_size = 65536  # 64KB
+
+# Standard frame size (RFC minimum)
+http2_max_frame_size = 16384
+
+# Reasonable flow control window
+http2_initial_window_size = 65535  # 64KB
+
+# Connection timeouts to prevent slow attacks
+timeout = 30
+keepalive = 120
+graceful_timeout = 30
+
+# Limit request sizes
+limit_request_line = 4094
+limit_request_fields = 100
+limit_request_field_size = 8190
+```
+
+### Additional Recommendations
+
+1. **Use a reverse proxy**: Deploy behind nginx, HAProxy, or a cloud load balancer
+   for additional DDoS protection and rate limiting.
+
+2. **Enable rate limiting**: Use your reverse proxy to limit requests per client.
+
+3. **Monitor connections**: Watch for clients opening many streams or holding
+   connections open without sending data.
+
+4. **Keep dependencies updated**: Regularly update the `h2` library for security fixes.
+
+For more information on HTTP/2 security vulnerabilities, see:
+
+- [Imperva HTTP/2 Vulnerability Report](https://www.imperva.com/docs/Imperva_HII_HTTP2.pdf)
+- [NGINX HTTP/2 Security Advisory](https://www.nginx.com/blog/the-imperva-http2-vulnerability-report-and-nginx/)
+
+## Compliance Testing
+
+### h2spec
+
+[h2spec](https://github.com/summerwind/h2spec) is the standard conformance testing tool
+for HTTP/2 implementations. It tests compliance with RFC 7540 and RFC 7541.
+
+```bash
+# Install h2spec
+# macOS
+brew install h2spec
+
+# Linux (download from releases)
+curl -L https://github.com/summerwind/h2spec/releases/download/v2.6.0/h2spec_linux_amd64.tar.gz | tar xz
+
+# Run against your server
+h2spec -h localhost -p 8443 -t -k
+
+# Options:
+#   -t    Use TLS
+#   -k    Skip certificate verification
+#   -S    Strict mode (test SHOULD requirements)
+#   -v    Verbose output
+#   -j    Generate JUnit report
+```
+
+Example output:
+```
+Generic tests for HTTP/2 server
+  1. Starting HTTP/2
+    ✓ Sends a client connection preface
+    ...
+
+Hypertext Transfer Protocol Version 2 (HTTP/2)
+  3. Starting HTTP/2
+    3.5. HTTP/2 Connection Preface
+      ✓ Sends invalid connection preface
+      ...
+
+94 tests, 94 passed, 0 skipped, 0 failed
+```
+
+### nghttp2 Tools
+
+[nghttp2](https://nghttp2.org/) provides useful debugging tools:
+
+```bash
+# Install nghttp2
+# macOS
+brew install nghttp2
+
+# Linux
+apt-get install nghttp2-client
+
+# Test HTTP/2 connection
+nghttp -v https://localhost:8443/
+
+# Benchmark with h2load
+h2load -n 1000 -c 10 https://localhost:8443/
+```
+
+### Online Testing
+
+For public servers, you can use online tools:
+
+- [KeyCDN HTTP/2 Test](https://tools.keycdn.com/http2-test)
+- [HTTP/2 Check](https://http.dev/2/test)
+
 ## See Also
 
 - [Settings Reference](reference/settings.md#http2_max_concurrent_streams) - All HTTP/2 settings
