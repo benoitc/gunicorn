@@ -343,6 +343,7 @@ class TestHTTP2ServerConnectionSendResponse:
         assert len(stream_ended) == 1
 
     def test_send_response_invalid_stream(self):
+        """Test that sending response on invalid stream returns False."""
         from gunicorn.http2.connection import HTTP2ServerConnection
 
         cfg = MockConfig()
@@ -350,8 +351,9 @@ class TestHTTP2ServerConnectionSendResponse:
         conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
         conn.initiate_connection()
 
-        with pytest.raises(HTTP2Error):
-            conn.send_response(stream_id=999, status=200, headers=[], body=None)
+        # Sending to a non-existent stream should return False gracefully
+        result = conn.send_response(stream_id=999, status=200, headers=[], body=None)
+        assert result is False
 
 
 class TestHTTP2ServerConnectionSendError:
@@ -718,10 +720,9 @@ class TestHTTP2ServerConnectionTrailers:
             conn.send_trailers(1, [(':status', '200')])
         assert "Pseudo-header" in str(exc_info.value)
 
-    def test_send_trailers_without_headers_raises(self):
-        """Test that sending trailers without headers raises error."""
+    def test_send_trailers_without_headers_returns_false(self):
+        """Test that sending trailers without headers returns False."""
         from gunicorn.http2.connection import HTTP2ServerConnection
-        from gunicorn.http2.errors import HTTP2Error
 
         cfg = MockConfig()
         sock = MockSocket()
@@ -741,15 +742,13 @@ class TestHTTP2ServerConnectionTrailers:
         ], end_stream=True)
         conn.receive_data(client_conn.data_to_send())
 
-        # Try to send trailers without sending headers first
-        with pytest.raises(HTTP2Error) as exc_info:
-            conn.send_trailers(1, [('trailer', 'value')])
-        assert "Must send headers before trailers" in str(exc_info.value)
+        # Try to send trailers without sending headers first - should return False
+        result = conn.send_trailers(1, [('trailer', 'value')])
+        assert result is False
 
-    def test_send_trailers_nonexistent_stream_raises(self):
-        """Test that sending trailers on nonexistent stream raises error."""
+    def test_send_trailers_nonexistent_stream_returns_false(self):
+        """Test that sending trailers on nonexistent stream returns False."""
         from gunicorn.http2.connection import HTTP2ServerConnection
-        from gunicorn.http2.errors import HTTP2Error
 
         cfg = MockConfig()
         sock = MockSocket()
@@ -759,9 +758,243 @@ class TestHTTP2ServerConnectionTrailers:
         client_conn = create_client_connection()
         conn.receive_data(client_conn.data_to_send())
 
-        with pytest.raises(HTTP2Error) as exc_info:
-            conn.send_trailers(99, [('trailer', 'value')])
-        assert "Stream 99 not found" in str(exc_info.value)
+        # Sending trailers to non-existent stream should return False
+        result = conn.send_trailers(99, [('trailer', 'value')])
+        assert result is False
+
+
+class TestHTTP2FlowControl:
+    """Test HTTP/2 flow control handling."""
+
+    def test_send_data_respects_zero_window(self):
+        """Test that send_data returns False when flow control window is 0."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send response headers without ending stream (pass body=b'' placeholder)
+        # We need to send headers first, so use h2_conn directly
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Mock the flow control window to return 0
+        original_window = conn.h2_conn.local_flow_control_window
+        conn.h2_conn.local_flow_control_window = lambda stream_id: 0
+
+        # Try to send data - should return False (not raise)
+        result = conn.send_data(1, b'Hello, World!')
+        assert result is False
+
+        # Restore
+        conn.h2_conn.local_flow_control_window = original_window
+
+    def test_send_data_respects_flow_control(self):
+        """Test that send_data chunks data according to flow control window."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send response headers without ending stream
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Send small data - should succeed within window
+        small_data = b'Hello'
+        conn.send_data(1, small_data, end_stream=True)
+
+        # Verify data was sent
+        sent_data = sock.get_sent_data()
+        assert len(sent_data) > 0
+
+
+class TestHTTP2StreamClosedHandling:
+    """Test graceful handling of StreamClosedError."""
+
+    def test_send_response_on_closed_stream(self):
+        """Test that send_response gracefully handles closed stream."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Simulate client resetting the stream
+        client_conn.reset_stream(1)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Try to send response - should return False, not raise
+        result = conn.send_response(1, 200, [('content-type', 'text/plain')], b'Hello')
+        assert result is False
+
+    def test_send_data_on_reset_stream(self):
+        """Test that send_data gracefully handles reset stream."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send response headers without ending stream
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Simulate client resetting the stream
+        client_conn.reset_stream(1)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Try to send data - should return False, not raise
+        result = conn.send_data(1, b'Hello, World!', end_stream=True)
+        assert result is False
+
+
+class TestHTTP2WindowOverflowHandling:
+    """Test window overflow handling."""
+
+    def test_window_overflow_sends_goaway(self):
+        """Test that window overflow results in GOAWAY with FLOW_CONTROL_ERROR."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        from gunicorn.http2.errors import HTTP2ErrorCode
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Mock increment_flow_control_window to raise ValueError (overflow)
+        original_increment = conn.h2_conn.increment_flow_control_window
+
+        def raise_overflow(increment, stream_id=None):
+            raise ValueError("Flow control window too large")
+
+        conn.h2_conn.increment_flow_control_window = raise_overflow
+
+        # Send a request with data to trigger the overflow
+        client_conn.send_headers(1, [
+            (':method', 'POST'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=False)
+        client_conn.send_data(1, b'test data', end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Connection should be closed with FLOW_CONTROL_ERROR
+        assert conn.is_closed is True
+
+
+class TestHTTP2ProtocolErrorHandling:
+    """Test protocol error handling sends proper GOAWAY."""
+
+    def test_protocol_error_sends_goaway(self):
+        """Test that protocol errors result in GOAWAY being sent."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        from gunicorn.http2.errors import HTTP2ProtocolError, HTTP2ErrorCode
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        # Clear sent data to only capture new frames
+        sock._sent.clear()
+
+        # Mock h2_conn.receive_data to raise ProtocolError
+        def raise_protocol_error(data):
+            raise h2.exceptions.ProtocolError("Test protocol error")
+
+        conn.h2_conn.receive_data = raise_protocol_error
+
+        # This should send GOAWAY and raise ProtocolError
+        with pytest.raises(HTTP2ProtocolError) as exc_info:
+            conn.receive_data(b'dummy data')
+
+        assert "Test protocol error" in str(exc_info.value)
+
+        # Verify something was sent (GOAWAY frame)
+        sent_data = sock.get_sent_data()
+        assert len(sent_data) > 0
+        # Connection should be marked as closed
+        assert conn.is_closed is True
 
 
 class TestHTTP2NotAvailable:

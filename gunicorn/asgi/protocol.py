@@ -66,7 +66,9 @@ class ASGIProtocol(asyncio.Protocol):
         if ssl_object and hasattr(ssl_object, 'selected_alpn_protocol'):
             alpn = ssl_object.selected_alpn_protocol()
             if alpn == 'h2':
-                # HTTP/2 connection - switch to HTTP/2 handler
+                # HTTP/2 connection - create reader immediately to avoid race condition
+                # data_received may be called before _handle_http2_connection starts
+                self.reader = asyncio.StreamReader()
                 self._task = self.worker.loop.create_task(
                     self._handle_http2_connection(transport, ssl_object)
                 )
@@ -548,8 +550,9 @@ class ASGIProtocol(asyncio.Protocol):
             peername = transport.get_extra_info('peername')
             sockname = transport.get_extra_info('sockname')
 
-            # Create async reader/writer from transport
-            reader = asyncio.StreamReader()
+            # Use the reader created in connection_made
+            # (data_received feeds data to self.reader)
+            reader = self.reader
             protocol = asyncio.StreamReaderProtocol(reader)
             writer = asyncio.StreamWriter(
                 transport, protocol, reader, self.worker.loop
@@ -561,8 +564,6 @@ class ASGIProtocol(asyncio.Protocol):
             )
             await h2_conn.initiate_connection()
 
-            # Store for data_received
-            self.reader = reader
             self._h2_conn = h2_conn
 
             # Main loop - receive and handle requests

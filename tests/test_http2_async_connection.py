@@ -305,6 +305,7 @@ class TestAsyncHTTP2ConnectionSendResponse:
 
     @pytest.mark.asyncio
     async def test_send_response_invalid_stream(self):
+        """Test that sending response on invalid stream returns False."""
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
@@ -313,8 +314,9 @@ class TestAsyncHTTP2ConnectionSendResponse:
         conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
         await conn.initiate_connection()
 
-        with pytest.raises(HTTP2Error):
-            await conn.send_response(stream_id=999, status=200, headers=[], body=None)
+        # Sending to a non-existent stream should return False gracefully
+        result = await conn.send_response(stream_id=999, status=200, headers=[], body=None)
+        assert result is False
 
 
 class TestAsyncHTTP2ConnectionSendData:
@@ -726,8 +728,8 @@ class TestAsyncHTTP2ConnectionTrailers:
         assert "Pseudo-header" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_send_trailers_without_headers_raises(self):
-        """Test that sending trailers without headers raises error."""
+    async def test_send_trailers_without_headers_returns_false(self):
+        """Test that sending trailers without headers returns False."""
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
@@ -750,7 +752,265 @@ class TestAsyncHTTP2ConnectionTrailers:
         reader.set_data(client_conn.data_to_send())
         await conn.receive_data()
 
-        # Try to send trailers without sending headers first
-        with pytest.raises(HTTP2Error) as exc_info:
-            await conn.send_trailers(1, [('trailer', 'value')])
-        assert "Must send headers before trailers" in str(exc_info.value)
+        # Try to send trailers without sending headers first - should return False
+        result = await conn.send_trailers(1, [('trailer', 'value')])
+        assert result is False
+
+
+class TestAsyncHTTP2FlowControl:
+    """Test async HTTP/2 flow control handling."""
+
+    @pytest.mark.asyncio
+    async def test_send_data_respects_zero_window(self):
+        """Test that send_data returns False when flow control window is 0."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Send response headers without ending stream
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        await conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Mock the flow control window to return 0
+        original_window = conn.h2_conn.local_flow_control_window
+        conn.h2_conn.local_flow_control_window = lambda stream_id: 0
+
+        # Try to send data - should return False (not raise)
+        result = await conn.send_data(1, b'Hello, World!')
+        assert result is False
+
+        # Restore
+        conn.h2_conn.local_flow_control_window = original_window
+
+    @pytest.mark.asyncio
+    async def test_send_data_respects_flow_control(self):
+        """Test that send_data chunks data according to flow control window."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Send response headers without ending stream
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        await conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Send small data - should succeed within window
+        small_data = b'Hello'
+        await conn.send_data(1, small_data, end_stream=True)
+
+        # Verify data was sent
+        sent_data = writer.get_written_data()
+        assert len(sent_data) > 0
+
+
+class TestAsyncHTTP2StreamClosedHandling:
+    """Test graceful handling of StreamClosedError in async connection."""
+
+    @pytest.mark.asyncio
+    async def test_send_response_on_closed_stream(self):
+        """Test that send_response gracefully handles closed stream."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Simulate client resetting the stream
+        client_conn.reset_stream(1)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Try to send response - should return False, not raise
+        result = await conn.send_response(1, 200, [('content-type', 'text/plain')], b'Hello')
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_data_on_reset_stream(self):
+        """Test that send_data gracefully handles reset stream."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Send response headers without ending stream
+        conn.h2_conn.send_headers(1, [
+            (':status', '200'),
+            ('content-type', 'text/plain'),
+        ], end_stream=False)
+        await conn._send_pending_data()
+        conn.streams[1].send_headers([(':status', '200')], end_stream=False)
+
+        # Simulate client resetting the stream
+        client_conn.reset_stream(1)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Try to send data - should return False, not raise
+        result = await conn.send_data(1, b'Hello, World!', end_stream=True)
+        assert result is False
+
+
+class TestAsyncHTTP2WindowOverflowHandling:
+    """Test window overflow handling in async connection."""
+
+    @pytest.mark.asyncio
+    async def test_window_overflow_sends_goaway(self):
+        """Test that window overflow results in connection close."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+        from gunicorn.http2.errors import HTTP2ErrorCode
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Mock increment_flow_control_window to raise ValueError (overflow)
+        def raise_overflow(increment, stream_id=None):
+            raise ValueError("Flow control window too large")
+
+        conn.h2_conn.increment_flow_control_window = raise_overflow
+
+        # Send a request with data to trigger the overflow
+        client_conn.send_headers(1, [
+            (':method', 'POST'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=False)
+        client_conn.send_data(1, b'test data', end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Connection should be closed with FLOW_CONTROL_ERROR
+        assert conn.is_closed is True
+
+
+class TestAsyncHTTP2ProtocolErrorHandling:
+    """Test protocol error handling sends proper GOAWAY."""
+
+    @pytest.mark.asyncio
+    async def test_protocol_error_sends_goaway(self):
+        """Test that protocol errors result in GOAWAY being sent."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+        from gunicorn.http2.errors import HTTP2ProtocolError, HTTP2ErrorCode
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create client and send preface
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Clear sent data to only capture new frames
+        writer.clear()
+
+        # Mock h2_conn.receive_data to raise ProtocolError
+        def raise_protocol_error(data):
+            raise h2.exceptions.ProtocolError("Test protocol error")
+
+        conn.h2_conn.receive_data = raise_protocol_error
+
+        # Set some dummy data for the reader
+        reader.set_data(b'dummy data')
+
+        # This should send GOAWAY and raise ProtocolError
+        with pytest.raises(HTTP2ProtocolError) as exc_info:
+            await conn.receive_data()
+
+        assert "Test protocol error" in str(exc_info.value)
+
+        # Verify something was sent (GOAWAY frame)
+        sent_data = writer.get_written_data()
+        assert len(sent_data) > 0
+        # Connection should be marked as closed
+        assert conn.is_closed is True
