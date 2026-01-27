@@ -1,7 +1,5 @@
 """Pytest fixtures for HTTP/2 Docker integration tests."""
 
-import os
-import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -62,7 +60,7 @@ def wait_for_service(url: str, timeout: int = 60) -> bool:
             ctx.verify_mode = ssl.CERT_NONE
 
             with socket.create_connection((host, port), timeout=5) as sock:
-                with ctx.wrap_socket(sock, server_hostname=host) as ssock:
+                with ctx.wrap_socket(sock, server_hostname=host):
                     return True
         except (socket.error, ssl.SSLError, OSError):
             time.sleep(1)

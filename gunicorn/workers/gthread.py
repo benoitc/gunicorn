@@ -216,12 +216,12 @@ class ThreadWorker(base.Worker):
         if enabled == self._accepting:
             return
 
-        for sock in self.sockets:
+        for listener in self.sockets:
             if enabled:
-                sock.setblocking(False)
-                self.poller.register(sock, selectors.EVENT_READ, self.accept)
+                listener.setblocking(False)
+                self.poller.register(listener, selectors.EVENT_READ, self.accept)
             else:
-                self.poller.unregister(sock)
+                self.poller.unregister(listener)
 
         self._accepting = enabled
 

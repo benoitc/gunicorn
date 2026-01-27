@@ -20,7 +20,7 @@ except ImportError:
     H2_AVAILABLE = False
 
 from gunicorn.http2.errors import (
-    HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError
+    HTTP2Error, HTTP2ConnectionError
 )
 
 

@@ -6,7 +6,6 @@
 """Tests for HTTP/2 request and body classes."""
 
 import pytest
-from unittest import mock
 
 from gunicorn.http2.request import HTTP2Request, HTTP2Body
 from gunicorn.http2.stream import HTTP2Stream

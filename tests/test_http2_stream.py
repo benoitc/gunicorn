@@ -6,7 +6,6 @@
 """Tests for HTTP/2 stream state management."""
 
 import pytest
-from unittest import mock
 
 from gunicorn.http2.stream import HTTP2Stream, StreamState
 from gunicorn.http2.errors import HTTP2StreamError

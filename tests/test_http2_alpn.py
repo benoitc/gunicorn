@@ -10,7 +10,6 @@ import pytest
 from unittest import mock
 
 from gunicorn import sock
-from gunicorn.config import Config
 
 
 def create_mock_ssl_socket(alpn_protocol=None):
