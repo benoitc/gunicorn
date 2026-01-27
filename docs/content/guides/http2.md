@@ -476,6 +476,31 @@ with httpx.Client(http2=True, verify=False) as client:
     print(f"HTTP Version: {response.http_version}")
 ```
 
+## Complete Example
+
+A complete HTTP/2 example demonstrating priority and trailers is available in the
+`examples/http2_features/` directory. This includes:
+
+- **http2_app.py**: ASGI application showing priority access and trailer sending
+- **test_http2.py**: Test script verifying HTTP/2 features
+- **Dockerfile** and **docker-compose.yml**: Docker setup for testing
+
+To run the example:
+
+```bash
+cd examples/http2_features
+docker compose up --build
+
+# In another terminal:
+docker compose exec http2-features python /app/http2_features/test_http2.py
+```
+
+The example demonstrates:
+
+1. **Priority access**: Reading `http.response.priority` extension in ASGI scope
+2. **Response trailers**: Sending `http.response.trailers` messages
+3. **Combined features**: Using both priority and trailers in one response
+
 ## See Also
 
 - [Settings Reference](reference/settings.md#http2_max_concurrent_streams) - All HTTP/2 settings

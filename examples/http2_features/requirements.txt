@@ -1,0 +1,2 @@
+# Requirements for testing HTTP/2 features
+httpx>=0.24.0

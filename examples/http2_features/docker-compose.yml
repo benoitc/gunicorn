@@ -1,0 +1,13 @@
+services:
+  http2-features:
+    build:
+      context: ../..
+      dockerfile: examples/http2_features/Dockerfile
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('https://127.0.0.1:8443/health', verify=False)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
