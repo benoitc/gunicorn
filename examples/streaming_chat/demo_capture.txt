@@ -1,0 +1,213 @@
+================================================================================
+                        STREAMING CHAT DEMO CAPTURE
+                     Gunicorn Dirty Workers + FastAPI SSE
+================================================================================
+
+$ curl -s http://127.0.0.1:8000/health
+{"status":"ok"}
+
+================================================================================
+                           TEST 1: Hello Prompt
+================================================================================
+
+$ curl -N http://127.0.0.1:8000/chat -d '{"prompt": "hello"}'
+
+data: {"token": "Hello! "}
+
+data: {"token": "I'm "}
+
+data: {"token": "a "}
+
+data: {"token": "simulated "}
+
+data: {"token": "AI "}
+
+data: {"token": "assistant "}
+
+data: {"token": "running "}
+
+data: {"token": "on "}
+
+data: {"token": "Gunicorn's "}
+
+data: {"token": "dirty "}
+
+data: {"token": "workers. "}
+
+data: {"token": "I "}
+
+data: {"token": "can "}
+
+data: {"token": "demonstrate "}
+
+data: {"token": "streaming "}
+
+data: {"token": "responses "}
+
+data: {"token": "just "}
+
+data: {"token": "like "}
+
+data: {"token": "a "}
+
+data: {"token": "real "}
+
+data: {"token": "LLM, "}
+
+data: {"token": "but "}
+
+data: {"token": "without "}
+
+data: {"token": "the "}
+
+data: {"token": "heavy "}
+
+data: {"token": "ML "}
+
+data: {"token": "dependencies. "}
+
+data: {"token": "How "}
+
+data: {"token": "can "}
+
+data: {"token": "I "}
+
+data: {"token": "help "}
+
+data: {"token": "you "}
+
+data: {"token": "today?"}
+
+data: [DONE]
+
+================================================================================
+                        TEST 2: Explain Dirty Workers
+================================================================================
+
+$ curl -N http://127.0.0.1:8000/chat -d '{"prompt": "explain dirty workers"}'
+
+data: {"token": "Dirty "}
+
+data: {"token": "workers "}
+
+data: {"token": "are "}
+
+data: {"token": "separate "}
+
+data: {"token": "processes "}
+
+data: {"token": "that "}
+
+data: {"token": "handle "}
+
+data: {"token": "long-running "}
+
+data: {"token": "tasks "}
+
+data: {"token": "like "}
+
+data: {"token": "ML "}
+
+data: {"token": "inference. "}
+
+data: {"token": "They "}
+
+data: {"token": "keep "}
+
+data: {"token": "models "}
+
+data: {"token": "loaded "}
+
+data: {"token": "in "}
+
+data: {"token": "memory "}
+
+data: {"token": "across "}
+
+data: {"token": "requests, "}
+
+data: {"token": "avoiding "}
+
+data: {"token": "expensive "}
+
+data: {"token": "reload "}
+
+data: {"token": "times. "}
+
+data: {"token": "HTTP "}
+
+data: {"token": "workers "}
+
+data: {"token": "remain "}
+
+data: {"token": "lightweight "}
+
+data: {"token": "and "}
+
+data: {"token": "responsive "}
+
+data: {"token": "while "}
+
+data: {"token": "dirty "}
+
+data: {"token": "workers "}
+
+data: {"token": "handle "}
+
+data: {"token": "the "}
+
+data: {"token": "heavy "}
+
+data: {"token": "computation. "}
+
+data: {"token": "This "}
+
+data: {"token": "architecture "}
+
+data: {"token": "is "}
+
+data: {"token": "inspired "}
+
+data: {"token": "by "}
+
+data: {"token": "Erlang's "}
+
+data: {"token": "dirty "}
+
+data: {"token": "schedulers."}
+
+data: [DONE]
+
+================================================================================
+                         TEST 3: Sync Endpoint
+================================================================================
+
+$ curl -s http://127.0.0.1:8000/chat/sync -d '{"prompt": "hello"}'
+
+{"response":"Hello! I'm a simulated AI assistant running on Gunicorn's dirty workers. I can demonstrate streaming responses just like a real LLM, but without the heavy ML dependencies. How can I help you today?"}
+
+================================================================================
+                         DEMO COMPLETE
+================================================================================
+
+Browser UI available at: http://localhost:8000/
+
+Features demonstrated:
+  - Token-by-token SSE streaming
+  - Async generators via dirty workers
+  - Different responses based on keywords
+  - Sync endpoint for comparison
+  - Health check endpoint
+
+Server Logs:
+[INFO] Starting gunicorn 24.1.0
+[INFO] Listening at: http://0.0.0.0:8000 (1)
+[INFO] Using worker: asgi
+[INFO] Spawned dirty arbiter (pid: 7)
+[INFO] Dirty arbiter starting (pid: 7)
+[INFO] Booting worker with pid: 8
+[INFO] Dirty arbiter listening on /tmp/gunicorn-dirty-.../arbiter.sock
+[INFO] Spawned dirty worker (pid: 9)
+[INFO] Initialized dirty app: streaming_chat.chat_app:ChatApp
+[INFO] Dirty worker 9 listening on /tmp/gunicorn-dirty-.../worker-1.sock
+[INFO] ASGI server listening on http://0.0.0.0:8000

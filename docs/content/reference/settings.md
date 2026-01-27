@@ -132,6 +132,161 @@ configuration is correct, and 1 if the configuration is incorrect.
 
 Print the configuration settings as fully resolved. Implies [check-config](#check_config).
 
+## Dirty Arbiter Hooks
+
+### `on_dirty_starting`
+
+**Default:**
+
+```python
+def on_dirty_starting(arbiter):
+    pass
+```
+
+Called just before the dirty arbiter process is initialized.
+
+The callable needs to accept a single instance variable for the
+DirtyArbiter.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_post_fork`
+
+**Default:**
+
+```python
+def dirty_post_fork(arbiter, worker):
+    pass
+```
+
+Called just after a dirty worker has been forked.
+
+The callable needs to accept two instance variables for the
+DirtyArbiter and new DirtyWorker.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_worker_init`
+
+**Default:**
+
+```python
+def dirty_worker_init(worker):
+    pass
+```
+
+Called just after a dirty worker has initialized all applications.
+
+The callable needs to accept one instance variable for the
+DirtyWorker.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_worker_exit`
+
+**Default:**
+
+```python
+def dirty_worker_exit(arbiter, worker):
+    pass
+```
+
+Called when a dirty worker has exited.
+
+The callable needs to accept two instance variables for the
+DirtyArbiter and the exiting DirtyWorker.
+
+!!! info "Added in 25.0.0"
+
+## Dirty Arbiters
+
+### `dirty_apps`
+
+**Command line:** `--dirty-app STRING`
+
+**Default:** `[]`
+
+Dirty applications to load in the dirty worker pool.
+
+A list of application paths in pattern ``$(MODULE_NAME):$(CLASS_NAME)``.
+Each dirty app must be a class that inherits from ``DirtyApp`` base class
+and implements the ``init()``, ``__call__()``, and ``close()`` methods.
+
+Example::
+
+    dirty_apps = [
+        "myapp.ml:MLApp",
+        "myapp.images:ImageApp",
+    ]
+
+Dirty apps are loaded once when the dirty worker starts and persist
+in memory for the lifetime of the worker. This is ideal for loading
+ML models, database connection pools, or other stateful resources
+that are expensive to initialize.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_workers`
+
+**Command line:** `--dirty-workers INT`
+
+**Default:** `0`
+
+The number of dirty worker processes.
+
+A positive integer. Set to 0 (default) to disable the dirty arbiter.
+When set to a positive value, a dirty arbiter process will be spawned
+to manage the dirty worker pool.
+
+Dirty workers are separate from HTTP workers and are designed for
+long-running, blocking operations like ML model inference or heavy
+computation.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_timeout`
+
+**Command line:** `--dirty-timeout INT`
+
+**Default:** `300`
+
+Timeout for dirty task execution in seconds.
+
+Workers silent for more than this many seconds are considered stuck
+and will be killed. Set to a high value for operations like model
+loading that may take a long time.
+
+Value is a positive number. Setting it to 0 disables timeout checking.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_threads`
+
+**Command line:** `--dirty-threads INT`
+
+**Default:** `1`
+
+The number of threads per dirty worker.
+
+Each dirty worker can use threads to handle concurrent operations
+within the same process, useful for async-safe applications.
+
+!!! info "Added in 25.0.0"
+
+### `dirty_graceful_timeout`
+
+**Command line:** `--dirty-graceful-timeout INT`
+
+**Default:** `30`
+
+Timeout for graceful dirty worker shutdown in seconds.
+
+After receiving a shutdown signal, dirty workers have this much time
+to finish their current tasks. Workers still alive after the timeout
+are force killed.
+
+!!! info "Added in 25.0.0"
+
 ## Logging
 
 ### `accesslog`

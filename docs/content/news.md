@@ -1,6 +1,15 @@
 <span id="news"></span>
 # Changelog
 
+## 25.0.0 - unreleased
+
+### New Features
+
+- **Dirty Arbiters**: Separate process pool for long-running blocking operations
+  (ML model loading, heavy computation) - inspired by Erlang dirty schedulers
+
+---
+
 ## 24.1.1 - 2026-01-24
 
 ### Bug Fixes
@@ -101,7 +110,7 @@
 
 ## 22.0.0 - 2024-04-17
 
-- use `utime` to notify workers liveness 
+- use `utime` to notify workers liveness
 - migrate setup to pyproject.toml
 - fix numerous security vulnerabilities in HTTP parser (closing some request smuggling vectors)
 - parsing additional requests is no longer attempted past unsupported request framing
