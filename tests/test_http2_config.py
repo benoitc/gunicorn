@@ -159,6 +159,38 @@ class TestHttp2MaxFrameSize:
         c.set("http2_max_frame_size", "65536")
         assert c.http2_max_frame_size == 65536
 
+    def test_valid_min_value(self):
+        """RFC 7540 minimum is 16384 (2^14)."""
+        c = Config()
+        c.set("http2_max_frame_size", 16384)
+        assert c.http2_max_frame_size == 16384
+
+    def test_valid_max_value(self):
+        """RFC 7540 maximum is 16777215 (2^24 - 1)."""
+        c = Config()
+        c.set("http2_max_frame_size", 16777215)
+        assert c.http2_max_frame_size == 16777215
+
+    def test_valid_mid_range_value(self):
+        """Test a value in the middle of the valid range."""
+        c = Config()
+        c.set("http2_max_frame_size", 1048576)  # 1MB
+        assert c.http2_max_frame_size == 1048576
+
+    def test_below_min_raises(self):
+        """Values below 16384 should raise ValueError per RFC 7540."""
+        c = Config()
+        with pytest.raises(ValueError) as exc_info:
+            c.set("http2_max_frame_size", 16383)
+        assert "must be between 16384 and 16777215" in str(exc_info.value)
+
+    def test_above_max_raises(self):
+        """Values above 16777215 should raise ValueError per RFC 7540."""
+        c = Config()
+        with pytest.raises(ValueError) as exc_info:
+            c.set("http2_max_frame_size", 16777216)
+        assert "must be between 16384 and 16777215" in str(exc_info.value)
+
     def test_negative_value_raises(self):
         c = Config()
         with pytest.raises(ValueError):
@@ -258,3 +290,54 @@ class TestValidateHttpProtocols:
     def test_validate_type_error(self):
         with pytest.raises(TypeError):
             config.validate_http_protocols(42)
+
+
+class TestValidateHttp2FrameSize:
+    """Test the validate_http2_frame_size function directly."""
+
+    def test_validate_min_value(self):
+        """RFC 7540 minimum is 16384 (2^14)."""
+        result = config.validate_http2_frame_size(16384)
+        assert result == 16384
+
+    def test_validate_max_value(self):
+        """RFC 7540 maximum is 16777215 (2^24 - 1)."""
+        result = config.validate_http2_frame_size(16777215)
+        assert result == 16777215
+
+    def test_validate_mid_range(self):
+        """Test a value in the middle of the valid range."""
+        result = config.validate_http2_frame_size(1000000)
+        assert result == 1000000
+
+    def test_validate_from_string(self):
+        """Test that string values are converted properly."""
+        result = config.validate_http2_frame_size("32768")
+        assert result == 32768
+
+    def test_validate_hex_string(self):
+        """Test hex string conversion."""
+        result = config.validate_http2_frame_size("0x10000")  # 65536
+        assert result == 65536
+
+    def test_validate_below_min_raises(self):
+        """Values below 16384 should raise ValueError."""
+        with pytest.raises(ValueError) as exc_info:
+            config.validate_http2_frame_size(16383)
+        assert "must be between 16384 and 16777215" in str(exc_info.value)
+
+    def test_validate_above_max_raises(self):
+        """Values above 16777215 should raise ValueError."""
+        with pytest.raises(ValueError) as exc_info:
+            config.validate_http2_frame_size(16777216)
+        assert "must be between 16384 and 16777215" in str(exc_info.value)
+
+    def test_validate_zero_raises(self):
+        """Zero is below minimum and should raise ValueError."""
+        with pytest.raises(ValueError):
+            config.validate_http2_frame_size(0)
+
+    def test_validate_negative_raises(self):
+        """Negative values should raise ValueError."""
+        with pytest.raises(ValueError):
+            config.validate_http2_frame_size(-1)

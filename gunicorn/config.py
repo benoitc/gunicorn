@@ -389,6 +389,19 @@ def validate_pos_int(val):
     return val
 
 
+def validate_http2_frame_size(val):
+    """Validate HTTP/2 max frame size per RFC 7540."""
+    if not isinstance(val, int):
+        val = int(val, 0)
+    else:
+        val = int(val)
+    if val < 16384 or val > 16777215:
+        raise ValueError(
+            f"http2_max_frame_size must be between 16384 and 16777215, got {val}"
+        )
+    return val
+
+
 def validate_ssl_version(val):
     if val != SSLVersion.default:
         sys.stderr.write("Warning: option `ssl_version` is deprecated and it is ignored. Use ssl_context instead.\n")
@@ -2532,7 +2545,7 @@ class HTTP2MaxFrameSize(Setting):
     section = "HTTP/2"
     cli = ["--http2-max-frame-size"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_frame_size
     type = int
     default = 16384
     desc = """\
