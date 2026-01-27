@@ -624,6 +624,7 @@ class ASGIProtocol(asyncio.Protocol):
         response_status = 500
         response_headers = []
         response_body = b''
+        response_trailers = []
 
         async def receive():
             # For HTTP/2, the body is already buffered in the stream
@@ -680,6 +681,21 @@ class ASGIProtocol(asyncio.Protocol):
                 if not more_body:
                     response_complete = True
 
+            elif msg_type == "http.response.trailers":
+                if not response_complete:
+                    exc_to_raise = RuntimeError("Cannot send trailers before body complete")
+                    return
+                trailer_headers = message.get("headers", [])
+                # Convert to list of tuples with string values
+                trailers = []
+                for name, value in trailer_headers:
+                    if isinstance(name, bytes):
+                        name = name.decode("latin-1")
+                    if isinstance(value, bytes):
+                        value = value.decode("latin-1")
+                    trailers.append((name, value))
+                response_trailers.extend(trailers)
+
         # Build environ for logging
         environ = self._build_http2_environ(request, sockname, peername)
         request_start = datetime.now()
@@ -702,9 +718,30 @@ class ASGIProtocol(asyncio.Protocol):
                         value = value.decode("latin-1")
                     headers.append((name, value))
 
-                await h2_conn.send_response(
-                    stream_id, response_status, headers, response_body
-                )
+                if response_trailers:
+                    # Send headers, body, then trailers separately
+                    response_hdrs = [(':status', str(response_status))]
+                    for name, value in headers:
+                        response_hdrs.append((name.lower(), str(value)))
+
+                    # Send headers without ending stream
+                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=False)
+                    stream = h2_conn.streams[stream_id]
+                    stream.send_headers(response_hdrs, end_stream=False)
+                    await h2_conn._send_pending_data()
+
+                    # Send body without ending stream
+                    if response_body:
+                        h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
+                        stream.send_data(response_body, end_stream=False)
+                        await h2_conn._send_pending_data()
+
+                    # Send trailers (ends stream)
+                    await h2_conn.send_trailers(stream_id, response_trailers)
+                else:
+                    await h2_conn.send_response(
+                        stream_id, response_status, headers, response_body
+                    )
             else:
                 await h2_conn.send_error(stream_id, 500, "Internal Server Error")
                 response_status = 500
@@ -752,14 +789,16 @@ class ASGIProtocol(asyncio.Protocol):
         if hasattr(self.worker, 'state'):
             scope["state"] = self.worker.state
 
-        # Add HTTP/2 priority extension
+        # Add HTTP/2 extensions
+        extensions = {}
         if hasattr(request, 'priority_weight'):
-            scope["extensions"] = {
-                "http.response.priority": {
-                    "weight": request.priority_weight,
-                    "depends_on": request.priority_depends_on,
-                }
+            extensions["http.response.priority"] = {
+                "weight": request.priority_weight,
+                "depends_on": request.priority_depends_on,
             }
+        # Add trailer support extension for HTTP/2
+        extensions["http.response.trailers"] = {}
+        scope["extensions"] = extensions
 
         return scope
 

@@ -60,8 +60,11 @@ class HTTP2Stream:
         # Flow control
         self.window_size = connection.initial_window_size
 
-        # Trailers
+        # Request trailers
         self.trailers = None
+
+        # Response trailers
+        self.response_trailers = None
 
         # Stream priority (RFC 7540 Section 5.3)
         self.priority_weight = 16
@@ -198,6 +201,24 @@ class HTTP2Stream:
         if end_stream:
             self._half_close_local()
             self.response_complete = True
+
+    def send_trailers(self, trailers):
+        """Mark trailers as sent and close the stream.
+
+        Args:
+            trailers: List of (name, value) trailer tuples
+
+        Raises:
+            HTTP2StreamError: If trailers cannot be sent in current state
+        """
+        if not self.can_send:
+            raise HTTP2StreamError(
+                self.stream_id,
+                f"Cannot send trailers in state {self.state.name}"
+            )
+        self.response_trailers = trailers
+        self._half_close_local()
+        self.response_complete = True
 
     def reset(self, error_code=0x8):
         """Reset this stream with RST_STREAM.

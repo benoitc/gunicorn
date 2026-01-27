@@ -482,6 +482,15 @@ class ThreadWorker(base.Worker):
 
             environ["wsgi.early_hints"] = send_early_hints_h2
 
+            # Add HTTP/2 trailer support
+            pending_trailers = []
+
+            def send_trailers_h2(trailers):
+                """Queue trailers to be sent after response body."""
+                pending_trailers.extend(trailers)
+
+            environ["gunicorn.http2.send_trailers"] = send_trailers_h2
+
             self.nr += 1
             if self.nr >= self.max_requests:
                 if self.alive:
@@ -503,12 +512,35 @@ class ThreadWorker(base.Worker):
                     respiter.close()
 
             # Send response via HTTP/2
-            h2_conn.send_response(
-                stream_id,
-                resp.status_code,
-                resp.headers,
-                response_body
-            )
+            if pending_trailers:
+                # Send headers, body, then trailers separately
+                # Build response headers with :status pseudo-header
+                response_headers = [(':status', str(resp.status_code))]
+                for name, value in resp.headers:
+                    response_headers.append((name.lower(), str(value)))
+
+                # Send headers without ending stream
+                h2_conn.h2_conn.send_headers(stream_id, response_headers, end_stream=False)
+                stream = h2_conn.streams[stream_id]
+                stream.send_headers(response_headers, end_stream=False)
+                h2_conn._send_pending_data()
+
+                # Send body without ending stream
+                if response_body:
+                    h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
+                    stream.send_data(response_body, end_stream=False)
+                    h2_conn._send_pending_data()
+
+                # Send trailers (ends stream)
+                h2_conn.send_trailers(stream_id, pending_trailers)
+            else:
+                # No trailers, use standard response
+                h2_conn.send_response(
+                    stream_id,
+                    resp.status_code,
+                    resp.headers,
+                    response_body
+                )
 
             request_time = datetime.now() - request_start
             self.log.access(resp, req, environ, request_time)

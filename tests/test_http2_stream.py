@@ -716,3 +716,77 @@ class TestStreamPriority:
 
         stream.update_priority(weight=1000)
         assert stream.priority_weight == 256
+
+
+class TestStreamResponseTrailers:
+    """Test response trailer support."""
+
+    def test_response_trailers_default_none(self):
+        """Test that response_trailers defaults to None."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        assert stream.response_trailers is None
+
+    def test_send_trailers_in_open_state(self):
+        """Test sending trailers in OPEN state."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        # Open the stream
+        stream.receive_headers([(':method', 'GET'), (':path', '/')], end_stream=True)
+        assert stream.state == StreamState.HALF_CLOSED_REMOTE
+
+        # Send response headers
+        stream.send_headers([(':status', '200')], end_stream=False)
+
+        # Send trailers
+        trailers = [('grpc-status', '0'), ('grpc-message', 'OK')]
+        stream.send_trailers(trailers)
+
+        assert stream.response_trailers == trailers
+        assert stream.state == StreamState.CLOSED
+        assert stream.response_complete is True
+
+    def test_send_trailers_after_body(self):
+        """Test sending trailers after response body."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        # Open the stream
+        stream.receive_headers([(':method', 'POST'), (':path', '/api')], end_stream=False)
+        stream.receive_data(b'request body', end_stream=True)
+
+        # Send response
+        stream.send_headers([(':status', '200')], end_stream=False)
+        stream.send_data(b'response body', end_stream=False)
+
+        # Send trailers
+        trailers = [('content-md5', 'abc123')]
+        stream.send_trailers(trailers)
+
+        assert stream.response_trailers == trailers
+        assert stream.state == StreamState.CLOSED
+
+    def test_send_trailers_closes_stream(self):
+        """Test that trailers close the stream."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        stream.receive_headers([(':method', 'GET'), (':path', '/')], end_stream=True)
+        stream.send_headers([(':status', '200')], end_stream=False)
+
+        assert stream.can_send is True
+
+        stream.send_trailers([('trailer', 'value')])
+
+        assert stream.can_send is False
+        assert stream.response_complete is True
+
+    def test_send_trailers_invalid_state_raises(self):
+        """Test that sending trailers in invalid state raises error."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+
+        # Stream is IDLE, cannot send trailers
+        with pytest.raises(HTTP2StreamError):
+            stream.send_trailers([('trailer', 'value')])

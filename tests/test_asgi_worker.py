@@ -746,3 +746,75 @@ class TestASGIHTTP2Priority:
 
         # HTTP/1.1 requests should not have extensions with priority
         assert "extensions" not in scope or "http.response.priority" not in scope.get("extensions", {})
+
+
+# ============================================================================
+# HTTP/2 Trailers Tests
+# ============================================================================
+
+class TestASGIHTTP2Trailers:
+    """Test HTTP/2 response trailer support in ASGI."""
+
+    def test_http2_trailers_extension_in_scope(self):
+        """Test that HTTP/2 scope includes http.response.trailers extension."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+
+        # Create mock HTTP/2 request
+        request = mock.Mock()
+        request.method = "GET"
+        request.path = "/api"
+        request.query = ""
+        request.uri = "/api"
+        request.scheme = "https"
+        request.headers = [("HOST", "localhost")]
+        request.priority_weight = 16
+        request.priority_depends_on = 0
+
+        scope = protocol._build_http2_scope(
+            request,
+            ("127.0.0.1", 8443),
+            ("127.0.0.1", 12345),
+        )
+
+        # HTTP/2 scope should have trailers extension
+        assert "extensions" in scope
+        assert "http.response.trailers" in scope["extensions"]
+
+    def test_http2_scope_has_both_priority_and_trailers(self):
+        """Test that HTTP/2 scope includes both priority and trailers extensions."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+
+        request = mock.Mock()
+        request.method = "POST"
+        request.path = "/grpc"
+        request.query = ""
+        request.uri = "/grpc"
+        request.scheme = "https"
+        request.headers = [("HOST", "localhost"), ("CONTENT-TYPE", "application/grpc")]
+        request.priority_weight = 128
+        request.priority_depends_on = 1
+
+        scope = protocol._build_http2_scope(
+            request,
+            ("127.0.0.1", 8443),
+            ("127.0.0.1", 54321),
+        )
+
+        extensions = scope.get("extensions", {})
+        assert "http.response.priority" in extensions
+        assert "http.response.trailers" in extensions
+        assert extensions["http.response.priority"]["weight"] == 128

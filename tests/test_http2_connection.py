@@ -639,6 +639,131 @@ class TestHTTP2ServerConnectionPriority:
         conn.receive_data(priority_data)
 
 
+class TestHTTP2ServerConnectionTrailers:
+    """Test HTTP/2 response trailer support."""
+
+    def test_send_trailers_after_headers_and_body(self):
+        """Test sending trailers after response headers and body."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        # Create a client connection
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+        conn.receive_data(client_data)
+        sock._sent = bytearray()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        request_data = client_conn.data_to_send()
+        conn.receive_data(request_data)
+
+        # Manually send headers without ending stream (for trailer support)
+        stream = conn.streams[1]
+        response_headers = [(':status', '200'), ('content-type', 'text/plain')]
+        conn.h2_conn.send_headers(1, response_headers, end_stream=False)
+        stream.send_headers(response_headers, end_stream=False)
+        conn._send_pending_data()
+
+        # Send body without ending stream
+        conn.h2_conn.send_data(1, b'Hello World', end_stream=False)
+        stream.send_data(b'Hello World', end_stream=False)
+        conn._send_pending_data()
+
+        # Send trailers
+        trailers = [('grpc-status', '0'), ('grpc-message', 'OK')]
+        conn.send_trailers(1, trailers)
+
+        # Verify stream is closed
+        assert stream.response_complete is True
+        assert stream.response_trailers == [('grpc-status', '0'), ('grpc-message', 'OK')]
+
+    def test_send_trailers_pseudo_header_raises(self):
+        """Test that pseudo-headers in trailers raise error."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        from gunicorn.http2.errors import HTTP2Error
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+        conn.receive_data(client_data)
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Send response
+        conn.send_response(1, 200, [('content-type', 'text/plain')], None)
+
+        # Try to send trailers with pseudo-header
+        with pytest.raises(HTTP2Error) as exc_info:
+            conn.send_trailers(1, [(':status', '200')])
+        assert "Pseudo-header" in str(exc_info.value)
+
+    def test_send_trailers_without_headers_raises(self):
+        """Test that sending trailers without headers raises error."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        from gunicorn.http2.errors import HTTP2Error
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+        conn.receive_data(client_data)
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client_conn.data_to_send())
+
+        # Try to send trailers without sending headers first
+        with pytest.raises(HTTP2Error) as exc_info:
+            conn.send_trailers(1, [('trailer', 'value')])
+        assert "Must send headers before trailers" in str(exc_info.value)
+
+    def test_send_trailers_nonexistent_stream_raises(self):
+        """Test that sending trailers on nonexistent stream raises error."""
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        from gunicorn.http2.errors import HTTP2Error
+
+        cfg = MockConfig()
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        client_conn = create_client_connection()
+        conn.receive_data(client_conn.data_to_send())
+
+        with pytest.raises(HTTP2Error) as exc_info:
+            conn.send_trailers(99, [('trailer', 'value')])
+        assert "Stream 99 not found" in str(exc_info.value)
+
+
 class TestHTTP2NotAvailable:
     """Test behavior when h2 is not available."""
 

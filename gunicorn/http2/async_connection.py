@@ -385,6 +385,38 @@ class AsyncHTTP2Connection:
 
         stream.send_data(data, end_stream=end_stream)
 
+    async def send_trailers(self, stream_id, trailers):
+        """Send trailing headers on a stream.
+
+        Trailers are headers sent after the response body, commonly used
+        for gRPC status codes, checksums, and timing information.
+
+        Args:
+            stream_id: The stream ID
+            trailers: List of (name, value) trailer tuples
+
+        Raises:
+            HTTP2Error: If stream not found, headers not sent, or pseudo-headers used
+        """
+        stream = self.streams.get(stream_id)
+        if stream is None:
+            raise HTTP2Error(f"Stream {stream_id} not found")
+        if not stream.response_headers_sent:
+            raise HTTP2Error("Must send headers before trailers")
+
+        # Validate and normalize trailer headers
+        trailer_headers = []
+        for name, value in trailers:
+            lname = name.lower()
+            if lname.startswith(':'):
+                raise HTTP2Error(f"Pseudo-header '{name}' not allowed in trailers")
+            trailer_headers.append((lname, str(value)))
+
+        # Send trailers with end_stream=True
+        self.h2_conn.send_headers(stream_id, trailer_headers, end_stream=True)
+        stream.send_trailers(trailer_headers)
+        await self._send_pending_data()
+
     async def send_error(self, stream_id, status_code, message=None):
         """Send an error response on a stream."""
         body = message.encode() if message else b''

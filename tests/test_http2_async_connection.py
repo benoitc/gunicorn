@@ -638,3 +638,119 @@ class TestAsyncHTTP2ConnectionPriority:
 
         # Should not raise
         await conn.receive_data()
+
+
+class TestAsyncHTTP2ConnectionTrailers:
+    """Test async HTTP/2 response trailer support."""
+
+    @pytest.mark.asyncio
+    async def test_send_trailers_after_headers_and_body(self):
+        """Test sending trailers after response headers and body."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        # Create a client connection
+        client_conn = create_client_connection()
+        client_data = client_conn.data_to_send()
+        reader.set_data(client_data)
+
+        await conn.initiate_connection()
+        await conn.receive_data()
+        writer.clear()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Manually send headers without ending stream (for trailer support)
+        stream = conn.streams[1]
+        response_headers = [(':status', '200'), ('content-type', 'text/plain')]
+        conn.h2_conn.send_headers(1, response_headers, end_stream=False)
+        stream.send_headers(response_headers, end_stream=False)
+        await conn._send_pending_data()
+
+        # Send body without ending stream
+        conn.h2_conn.send_data(1, b'Hello World', end_stream=False)
+        stream.send_data(b'Hello World', end_stream=False)
+        await conn._send_pending_data()
+
+        # Send trailers
+        trailers = [('grpc-status', '0'), ('grpc-message', 'OK')]
+        await conn.send_trailers(1, trailers)
+
+        # Verify stream is closed
+        assert stream.response_complete is True
+        assert stream.response_trailers == [('grpc-status', '0'), ('grpc-message', 'OK')]
+
+    @pytest.mark.asyncio
+    async def test_send_trailers_pseudo_header_raises(self):
+        """Test that pseudo-headers in trailers raise error."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Send response
+        await conn.send_response(1, 200, [('content-type', 'text/plain')], None)
+
+        # Try to send trailers with pseudo-header
+        with pytest.raises(HTTP2Error) as exc_info:
+            await conn.send_trailers(1, [(':status', '200')])
+        assert "Pseudo-header" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_trailers_without_headers_raises(self):
+        """Test that sending trailers without headers raises error."""
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+
+        client_conn = create_client_connection()
+        reader.set_data(client_conn.data_to_send())
+        await conn.initiate_connection()
+        await conn.receive_data()
+
+        # Send a request
+        client_conn.send_headers(1, [
+            (':method', 'GET'),
+            (':path', '/'),
+            (':scheme', 'https'),
+            (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client_conn.data_to_send())
+        await conn.receive_data()
+
+        # Try to send trailers without sending headers first
+        with pytest.raises(HTTP2Error) as exc_info:
+            await conn.send_trailers(1, [('trailer', 'value')])
+        assert "Must send headers before trailers" in str(exc_info.value)

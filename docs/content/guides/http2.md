@@ -253,6 +253,87 @@ async def app(scope, receive, send):
     but Gunicorn does not enforce priority-based request ordering. Priority
     information is only present for HTTP/2 requests.
 
+## Response Trailers
+
+HTTP/2 supports trailing headers (trailers) sent after the response body.
+This is commonly used for gRPC status codes, checksums, and timing information.
+
+### WSGI Applications
+
+For WSGI applications, use the `gunicorn.http2.send_trailers` callback in the environ:
+
+```python
+def app(environ, start_response):
+    # Get trailer callback (HTTP/2 only)
+    send_trailers = environ.get('gunicorn.http2.send_trailers')
+
+    # Announce trailers in response headers
+    headers = [
+        ('Content-Type', 'application/grpc'),
+        ('Trailer', 'grpc-status, grpc-message'),
+    ]
+    start_response('200 OK', headers)
+
+    # Yield response body
+    yield b'response data'
+
+    # Send trailers after body (if available)
+    if send_trailers:
+        send_trailers([
+            ('grpc-status', '0'),
+            ('grpc-message', 'OK'),
+        ])
+```
+
+### ASGI Applications
+
+For ASGI applications, use the `http.response.trailers` extension:
+
+```python
+async def app(scope, receive, send):
+    # Send response with trailers flag
+    await send({
+        "type": "http.response.start",
+        "status": 200,
+        "headers": [
+            (b"content-type", b"application/grpc"),
+            (b"trailer", b"grpc-status, grpc-message"),
+        ],
+    })
+
+    # Send body
+    await send({
+        "type": "http.response.body",
+        "body": b"response data",
+        "more_body": False,
+    })
+
+    # Send trailers (HTTP/2 only)
+    if "http.response.trailers" in scope.get("extensions", {}):
+        await send({
+            "type": "http.response.trailers",
+            "headers": [
+                (b"grpc-status", b"0"),
+                (b"grpc-message", b"OK"),
+            ],
+        })
+```
+
+### Trailer Rules (RFC 7540)
+
+- Trailers MUST NOT include pseudo-headers (`:status`, `:path`, etc.)
+- Announce trailers using the `Trailer` response header
+- Trailers are only available in HTTP/2 (HTTP/1.1 chunked encoding not supported)
+
+### Common Use Cases
+
+| Use Case | Trailer Headers |
+|----------|-----------------|
+| gRPC | `grpc-status`, `grpc-message` |
+| Checksums | `Content-MD5`, `Digest` |
+| Timing | `Server-Timing` |
+| Signatures | `Signature` |
+
 ## Production Deployment
 
 ### With Nginx
