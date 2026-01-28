@@ -95,7 +95,12 @@ Choose a worker type based on your application's needs.
     gunicorn myapp:app -k gevent --worker-connections 1000
     ```
 
-=== "Eventlet"
+=== "Eventlet (Deprecated)"
+
+    !!! warning "Deprecated"
+        The eventlet worker is **deprecated** and will be removed in Gunicorn 26.0.
+        Eventlet itself is [no longer actively maintained](https://eventlet.readthedocs.io/en/latest/asyncio/migration.html).
+        Please migrate to `gevent`, `gthread`, or another supported worker type.
 
     **Greenlet-based** async worker using [Eventlet](http://eventlet.net/).
 
@@ -127,14 +132,14 @@ Choose a worker type based on your application's needs.
 | `gthread` | Thread pool | ✅ | Mixed workloads, moderate concurrency |
 | ASGI workers | AsyncIO | ✅ | Modern async frameworks (FastAPI, etc.) |
 | `gevent` | Greenlets | ✅ | I/O-bound, WebSockets, streaming |
-| `eventlet` | Greenlets | ✅ | I/O-bound, long-polling |
+| `eventlet` | Greenlets | ✅ | **Deprecated** - use `gevent` instead |
 | `tornado` | Tornado IOLoop | ✅ | Native Tornado applications |
 
 !!! tip "Quick Decision Guide"
 
     - **Simple app behind nginx?** → `sync` (default)
     - **Need keep-alive or moderate concurrency?** → `gthread`
-    - **WebSockets, streaming, long-polling?** → `gevent` or `eventlet`
+    - **WebSockets, streaming, long-polling?** → `gevent` or ASGI worker
     - **FastAPI, Starlette, or async framework?** → ASGI worker
 
 ## When to Use Async Workers
@@ -199,9 +204,6 @@ gunicorn myapp:app -k gthread --workers 4 --threads 4
 
 # Gevent - high concurrency for I/O-bound apps
 gunicorn myapp:app -k gevent --workers 4 --worker-connections 1000
-
-# Eventlet - alternative async worker
-gunicorn myapp:app -k eventlet --workers 4 --worker-connections 1000
 
 # ASGI - FastAPI/Starlette with Uvicorn worker
 gunicorn myapp:app -k uvicorn.workers.UvicornWorker --workers 4

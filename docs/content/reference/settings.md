@@ -1747,8 +1747,7 @@ libraries may be installed using setuptools' ``extras_require`` feature.
 A string referring to one of the following bundled classes:
 
 * ``sync``
-* ``eventlet`` - Requires eventlet >= 0.40.3 (or install it via
-  ``pip install gunicorn[eventlet]``)
+* ``eventlet`` - **DEPRECATED: will be removed in 26.0**. Requires eventlet >= 0.40.3
 * ``gevent``   - Requires gevent >= 24.10.1 (or install it via
   ``pip install gunicorn[gevent]``)
 * ``tornado``  - Requires tornado >= 6.5.0 (or install it via

@@ -33,6 +33,11 @@ class AsyncWorker(base.Worker):
     def handle(self, listener, client, addr):
         req = None
         try:
+            # Complete the handshake to ensure ALPN negotiation is done
+            # (needed if do_handshake_on_connect is False)
+            if isinstance(client, ssl.SSLSocket) and not self.cfg.do_handshake_on_connect:
+                client.do_handshake()
+
             # Check if HTTP/2 was negotiated (for SSL connections)
             is_http2 = gunicorn_sock.is_http2_negotiated(client)
 

@@ -31,7 +31,7 @@ HTTP/2 support requires:
 - **SSL/TLS**: HTTP/2 uses ALPN (Application-Layer Protocol Negotiation) which
   requires an encrypted connection
 - **h2 library**: Install with `pip install gunicorn[http2]` or `pip install h2`
-- **Compatible worker**: gthread, gevent, eventlet, or ASGI workers
+- **Compatible worker**: gthread, gevent, or ASGI workers
 
 ## Configuration
 
@@ -109,7 +109,7 @@ Not all workers support HTTP/2:
 | `sync` | No | Single-threaded, cannot multiplex streams |
 | `gthread` | Yes | Recommended for HTTP/2 |
 | `gevent` | Yes | Requires gevent |
-| `eventlet` | Yes | Requires eventlet |
+| `eventlet` | Yes | **Deprecated** - will be removed in 26.0 |
 | `asgi` | Yes | For async frameworks |
 | `tornado` | No | Tornado handles its own protocol |
 

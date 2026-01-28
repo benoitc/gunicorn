@@ -138,8 +138,8 @@ class WebSocket:
     """
     def __init__(self, sock, environ, version=76):
         """
-        :param socket: The eventlet socket
-        :type socket: :class:`eventlet.greenio.GreenSocket`
+        :param socket: The gevent socket
+        :type socket: :class:`gevent.socket.socket`
         :param environ: The wsgi environment
         :param version: The WebSocket spec version to follow (default is 76)
         """

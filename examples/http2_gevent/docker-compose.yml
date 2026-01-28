@@ -1,0 +1,46 @@
+# HTTP/2 with Gevent Docker Compose
+#
+# Usage:
+#   # Generate certificates first (or use your own)
+#   ./generate_certs.sh
+#
+#   # Start services
+#   docker compose up -d
+#
+#   # Test with curl (requires curl with HTTP/2 support)
+#   curl -k --http2 https://localhost:8443/
+#
+#   # View logs
+#   docker compose logs -f
+#
+#   # Stop services
+#   docker compose down
+
+services:
+  gunicorn:
+    build:
+      context: ../..
+      dockerfile: examples/http2_gevent/Dockerfile
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
+    environment:
+      - GUNICORN_WORKERS=4
+      - GUNICORN_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl,socket; s=socket.socket(); s.settimeout(2); ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE; ss=ctx.wrap_socket(s,server_hostname='localhost'); ss.connect(('localhost',8443)); ss.close()"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+
+networks:
+  default:
+    driver: bridge

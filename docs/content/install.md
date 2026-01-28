@@ -91,10 +91,10 @@ pip install gunicorn[gevent,setproctitle]
 
 | Extra | Description |
 |-------|-------------|
-| `gunicorn[eventlet]` | Eventlet-based greenlet workers |
 | `gunicorn[gevent]` | Gevent-based greenlet workers |
 | `gunicorn[gthread]` | Threaded workers |
 | `gunicorn[tornado]` | Tornado-based workers (not recommended) |
+| `gunicorn[eventlet]` | **Deprecated** - will be removed in 26.0 |
 
 See the [design docs](design.md) for guidance on choosing worker types.
 
@@ -122,17 +122,6 @@ library:
     Run with:
     ```bash
     gunicorn app:app --worker-class gevent
-    ```
-
-=== "Eventlet"
-
-    ```bash
-    pip install gunicorn[eventlet]
-    ```
-
-    Run with:
-    ```bash
-    gunicorn app:app --worker-class eventlet
     ```
 
 === "ASGI (asyncio)"

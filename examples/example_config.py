@@ -43,7 +43,7 @@ backlog = 2048
 #       can be seen at
 #       https://gunicorn.org/reference/settings/#worker_class
 #
-#   worker_connections - For the eventlet and gevent worker classes
+#   worker_connections - For the gevent and gthread worker classes
 #       this limits the maximum number of simultaneous clients that
 #       a single process can handle.
 #

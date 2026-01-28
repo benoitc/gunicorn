@@ -72,7 +72,7 @@ configuration files or environment variables for anything beyond quick tests.
 - `-w WORKERS`, `--workers WORKERS` &mdash; number of worker processes, typically
   two to four per CPU core. See the [FAQ](faq.md) for tuning tips.
 - `-k WORKERCLASS`, `--worker-class WORKERCLASS` &mdash; worker type (`sync`,
-  `eventlet`, `gevent`, `tornado`, `gthread`). Read the
+  `gevent`, `tornado`, `gthread`). Read the
   [settings entry](reference/settings.md#worker_class) before switching classes.
 - `-n APP_NAME`, `--name APP_NAME` &mdash; set the process name (requires
   [`setproctitle`](https://pypi.python.org/pypi/setproctitle)).

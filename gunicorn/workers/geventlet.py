@@ -2,6 +2,21 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+# DEPRECATION NOTICE: The eventlet worker is deprecated and will be removed
+# in Gunicorn 26.0. Eventlet itself is deprecated and no longer maintained.
+# Please migrate to gevent, gthread, or another supported worker type.
+# See: https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
+
+import warnings
+
+warnings.warn(
+    "The eventlet worker is deprecated and will be removed in Gunicorn 26.0. "
+    "Please migrate to gevent, gthread, or another supported worker type. "
+    "See: https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 # NOTE: eventlet import and monkey_patch() must happen before any other imports
 # to ensure all standard library modules are properly patched.
 try:
@@ -150,6 +165,10 @@ class EventletWorker(AsyncWorker):
         return super().is_already_handled(respiter)
 
     def init_process(self):
+        self.log.warning(
+            "The eventlet worker is DEPRECATED and will be removed in Gunicorn 26.0. "
+            "Please migrate to gevent, gthread, or another supported worker type."
+        )
         self.patch()
         super().init_process()
 
