@@ -1397,6 +1397,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#http2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HTTP/2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http_protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http_protocols
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_max_concurrent_streams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_max_concurrent_streams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_initial_window_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_initial_window_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_max_frame_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_max_frame_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_max_header_list_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_max_header_list_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#logging" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3325,6 +3397,87 @@ within the same process, useful for async-safe applications.</p>
 <p>After receiving a shutdown signal, dirty workers have this much time
 to finish their current tasks. Workers still alive after the timeout
 are force killed.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h2 id="http2">HTTP/2<a class="headerlink" href="#http2" title="Permanent link">&para;</a></h2>
+<h3 id="http_protocols"><code>http_protocols</code><a class="headerlink" href="#http_protocols" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http-protocols STRING</code></p>
+<p><strong>Default:</strong> <code>'h1'</code></p>
+<p>HTTP protocol versions to support (comma-separated, order = preference).</p>
+<p>Valid protocols:</p>
+<ul>
+<li><code>h1</code> - HTTP/1.1 (default)</li>
+<li><code>h2</code> - HTTP/2 (requires TLS with ALPN)</li>
+<li><code>h3</code> - HTTP/3 (future, not yet implemented)</li>
+</ul>
+<p>Examples::</p>
+<div class="highlight"><pre><span></span><code># HTTP/1.1 only (default, backward compatible)
+--http-protocols=h1
+
+# Prefer HTTP/2, fallback to HTTP/1.1
+--http-protocols=h2,h1
+
+# HTTP/2 only (reject HTTP/1.1 clients)
+--http-protocols=h2
+</code></pre></div>
+<p>HTTP/2 requires:</p>
+<ul>
+<li>TLS (--certfile and --keyfile)</li>
+<li>The h2 library: <code>pip install gunicorn[http2]</code></li>
+<li>ALPN-capable TLS client</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>HTTP/2 cleartext (h2c) is not supported due to security concerns
+and lack of browser support.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http2_max_concurrent_streams"><code>http2_max_concurrent_streams</code><a class="headerlink" href="#http2_max_concurrent_streams" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http2-max-concurrent-streams INT</code></p>
+<p><strong>Default:</strong> <code>100</code></p>
+<p>Maximum number of concurrent HTTP/2 streams per connection.</p>
+<p>This limits how many requests can be processed simultaneously on a
+single HTTP/2 connection. Higher values allow more parallelism but
+use more memory.</p>
+<p>Default is 100, which matches common server configurations.
+The HTTP/2 specification allows up to 2^31-1.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http2_initial_window_size"><code>http2_initial_window_size</code><a class="headerlink" href="#http2_initial_window_size" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http2-initial-window-size INT</code></p>
+<p><strong>Default:</strong> <code>65535</code></p>
+<p>Initial HTTP/2 flow control window size in bytes.</p>
+<p>This controls how much data can be in-flight before the receiver
+sends WINDOW_UPDATE frames. Larger values can improve throughput
+for large transfers but use more memory.</p>
+<p>Default is 65535 (64KB - 1), the HTTP/2 specification default.
+Maximum is 2^31-1 (2147483647).</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http2_max_frame_size"><code>http2_max_frame_size</code><a class="headerlink" href="#http2_max_frame_size" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http2-max-frame-size INT</code></p>
+<p><strong>Default:</strong> <code>16384</code></p>
+<p>Maximum HTTP/2 frame payload size in bytes.</p>
+<p>This is the largest frame payload the server will accept.
+Larger frames reduce framing overhead but may increase latency
+for small messages.</p>
+<p>Default is 16384 (16KB), the HTTP/2 specification minimum.
+Range is 16384 to 16777215 (16MB - 1).</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http2_max_header_list_size"><code>http2_max_header_list_size</code><a class="headerlink" href="#http2_max_header_list_size" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http2-max-header-list-size INT</code></p>
+<p><strong>Default:</strong> <code>65536</code></p>
+<p>Maximum size of HTTP/2 header list in bytes (HPACK protection).</p>
+<p>This limits the total size of headers after HPACK decompression.
+Protects against compression bombs and excessive memory use.</p>
+<p>Default is 65536 (64KB). Set to 0 for unlimited (not recommended).</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
 </div>

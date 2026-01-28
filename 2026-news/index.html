@@ -1890,8 +1890,32 @@
 <li>Stateful workers that persist loaded resources</li>
 <li>New settings: <code>--dirty-app</code>, <code>--dirty-workers</code>, <code>--dirty-timeout</code>,
     <code>--dirty-threads</code>, <code>--dirty-graceful-timeout</code></li>
-<li>Lifecycle hooks: <code>on_dirty_starting</code>, <code>dirty_post_fork</code>,
-    <code>dirty_worker_init</code>, <code>dirty_worker_exit</code></li>
+<li>
+<p>Lifecycle hooks: <code>on_dirty_starting</code>, <code>dirty_post_fork</code>,
+    <code>dirty_worker_init</code>, <code>dirty_worker_exit</code></p>
+</li>
+<li>
+<p><strong>HTTP/2 Support (Beta)</strong>: Native HTTP/2 (RFC 7540) support for improved performance
+  with modern clients (<a href="https://github.com/benoitc/gunicorn/pull/3462">PR #3462</a>)</p>
+</li>
+<li>Multiplexed streams over a single connection</li>
+<li>Header compression (HPACK)</li>
+<li>Flow control and stream prioritization</li>
+<li>Works with gthread, gevent, eventlet, and ASGI workers</li>
+<li>New settings: <code>--http-protocols</code>, <code>--http2-max-concurrent-streams</code>,
+    <code>--http2-initial-window-size</code>, <code>--http2-max-frame-size</code>, <code>--http2-max-header-list-size</code></li>
+<li>Requires SSL/TLS and h2 library: <code>pip install gunicorn[http2]</code></li>
+<li>
+<p>See <a href="../guides/http2/">HTTP/2 Guide</a> for details</p>
+</li>
+<li>
+<p><strong>HTTP 103 Early Hints</strong>: Support for RFC 8297 Early Hints to enable browsers to
+  preload resources before the final response
+  (<a href="https://github.com/benoitc/gunicorn/pull/3462">PR #3462</a>)</p>
+</li>
+<li>WSGI: <code>environ['wsgi.early_hints'](headers)</code> callback</li>
+<li>ASGI: <code>http.response.informational</code> message type</li>
+<li>Works with both HTTP/1.1 and HTTP/2</li>
 </ul>
 <hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
