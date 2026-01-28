@@ -77,6 +77,14 @@ class TornadoWorker(Worker):
         self.alive = True
         self.server_alive = False
 
+        # Warn if HTTP/2 is requested - tornado worker doesn't support it
+        if 'h2' in self.cfg.http_protocols:
+            self.log.warning(
+                "HTTP/2 is not supported by the tornado worker. "
+                "Use gthread, gevent, eventlet, or asgi workers for HTTP/2 support. "
+                "Falling back to HTTP/1.1 only."
+            )
+
         self.callbacks = []
         self.callbacks.append(PeriodicCallback(self.watchdog, 1000))
         self.callbacks.append(PeriodicCallback(self.heartbeat, 1000))

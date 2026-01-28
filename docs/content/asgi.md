@@ -235,10 +235,13 @@ asgi_lifespan = "auto"  # Auto-detect lifespan support
 | Feature | Gunicorn ASGI | Uvicorn | Hypercorn |
 |---------|---------------|---------|-----------|
 | Process management | Built-in | External | Built-in |
-| HTTP/2 | No | No | Yes |
+| HTTP/2 | Yes | No | Yes |
 | WebSocket | Yes | Yes | Yes |
 | Lifespan | Yes | Yes | Yes |
 | uvloop support | Yes | Yes | Yes |
+
+!!! note
+    HTTP/2 requires SSL/TLS and the h2 library. See [HTTP/2 Support](http2.md) for details.
 
 Gunicorn's ASGI worker provides the same process management, logging, and
 configuration capabilities you're familiar with from WSGI deployments.

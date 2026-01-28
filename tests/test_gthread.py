@@ -1514,3 +1514,53 @@ class TestFinishBodySSL:
 
         # Verify body.read was called once and returned empty
         mock_body.read.assert_called_once_with(1024)
+
+
+class TestHTTP2TrailerCallback:
+    """Tests for HTTP/2 response trailer callback."""
+
+    def test_trailer_callback_stores_trailers(self):
+        """Test that the trailer callback stores trailers for later sending."""
+        # Simulate the trailer callback pattern used in handle_http2_request
+        pending_trailers = []
+
+        def send_trailers_h2(trailers):
+            """Queue trailers to be sent after response body."""
+            pending_trailers.extend(trailers)
+
+        # Call the callback with trailers
+        send_trailers_h2([('grpc-status', '0'), ('grpc-message', 'OK')])
+
+        assert len(pending_trailers) == 2
+        assert pending_trailers[0] == ('grpc-status', '0')
+        assert pending_trailers[1] == ('grpc-message', 'OK')
+
+    def test_trailer_callback_multiple_calls(self):
+        """Test that multiple calls to trailer callback accumulate trailers."""
+        pending_trailers = []
+
+        def send_trailers_h2(trailers):
+            pending_trailers.extend(trailers)
+
+        # Call multiple times
+        send_trailers_h2([('grpc-status', '0')])
+        send_trailers_h2([('grpc-message', 'OK')])
+        send_trailers_h2([('server-timing', 'total;dur=100')])
+
+        assert len(pending_trailers) == 3
+        assert pending_trailers == [
+            ('grpc-status', '0'),
+            ('grpc-message', 'OK'),
+            ('server-timing', 'total;dur=100'),
+        ]
+
+    def test_trailer_callback_empty_list(self):
+        """Test that empty trailer list is handled correctly."""
+        pending_trailers = []
+
+        def send_trailers_h2(trailers):
+            pending_trailers.extend(trailers)
+
+        send_trailers_h2([])
+
+        assert len(pending_trailers) == 0

@@ -5,8 +5,8 @@
 """
 ASGI protocol handler for gunicorn.
 
-Implements asyncio.Protocol to handle HTTP/1.x connections and dispatch
-to ASGI applications.
+Implements asyncio.Protocol to handle HTTP/1.x and HTTP/2 connections
+and dispatch to ASGI applications.
 """
 
 import asyncio
@@ -61,6 +61,20 @@ class ASGIProtocol(asyncio.Protocol):
         self.transport = transport
         self.worker.nr_conns += 1
 
+        # Check if HTTP/2 was negotiated via ALPN
+        ssl_object = transport.get_extra_info('ssl_object')
+        if ssl_object and hasattr(ssl_object, 'selected_alpn_protocol'):
+            alpn = ssl_object.selected_alpn_protocol()
+            if alpn == 'h2':
+                # HTTP/2 connection - create reader immediately to avoid race condition
+                # data_received may be called before _handle_http2_connection starts
+                self.reader = asyncio.StreamReader()
+                self._task = self.worker.loop.create_task(
+                    self._handle_http2_connection(transport, ssl_object)
+                )
+                return
+
+        # HTTP/1.x connection
         # Create stream reader/writer
         self.reader = asyncio.StreamReader()
         self.writer = transport
@@ -222,6 +236,13 @@ class ASGIProtocol(asyncio.Protocol):
 
             msg_type = message["type"]
 
+            if msg_type == "http.response.informational":
+                # Handle informational responses (1xx) like 103 Early Hints
+                info_status = message.get("status")
+                info_headers = message.get("headers", [])
+                await self._send_informational(info_status, info_headers, request)
+                return
+
             if msg_type == "http.response.start":
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
@@ -341,6 +362,15 @@ class ASGIProtocol(asyncio.Protocol):
         if hasattr(self.worker, 'state'):
             scope["state"] = self.worker.state
 
+        # Add HTTP/2 priority extension if available
+        if hasattr(request, 'priority_weight'):
+            scope["extensions"] = {
+                "http.response.priority": {
+                    "weight": request.priority_weight,
+                    "depends_on": request.priority_depends_on,
+                }
+            }
+
         return scope
 
     def _build_environ(self, request, sockname, peername):
@@ -396,6 +426,34 @@ class ASGIProtocol(asyncio.Protocol):
 
         return scope
 
+    async def _send_informational(self, status, headers, request):
+        """Send an informational response (1xx) such as 103 Early Hints.
+
+        Args:
+            status: HTTP status code (100-199)
+            headers: List of (name, value) header tuples
+            request: The parsed request object
+
+        Note: Informational responses are only sent for HTTP/1.1 or later.
+        HTTP/1.0 clients do not support 1xx responses.
+        """
+        # Don't send informational responses to HTTP/1.0 clients
+        if request.version < (1, 1):
+            return
+
+        reason = self._get_reason_phrase(status)
+        response = f"HTTP/{request.version[0]}.{request.version[1]} {status} {reason}\r\n"
+
+        for name, value in headers:
+            if isinstance(name, bytes):
+                name = name.decode("latin-1")
+            if isinstance(value, bytes):
+                value = value.decode("latin-1")
+            response += f"{name}: {value}\r\n"
+
+        response += "\r\n"
+        self.transport.write(response.encode("latin-1"))
+
     async def _send_response_start(self, status, headers, request):
         """Send HTTP response status and headers."""
         # Build status line
@@ -441,6 +499,7 @@ class ASGIProtocol(asyncio.Protocol):
         reasons = {
             100: "Continue",
             101: "Switching Protocols",
+            103: "Early Hints",
             200: "OK",
             201: "Created",
             202: "Accepted",
@@ -482,3 +541,281 @@ class ASGIProtocol(asyncio.Protocol):
             except Exception:
                 pass
             self._closed = True
+
+    async def _handle_http2_connection(self, transport, ssl_object):
+        """Handle an HTTP/2 connection."""
+        try:
+            from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+            peername = transport.get_extra_info('peername')
+            sockname = transport.get_extra_info('sockname')
+
+            # Use the reader created in connection_made
+            # (data_received feeds data to self.reader)
+            reader = self.reader
+            protocol = asyncio.StreamReaderProtocol(reader)
+            writer = asyncio.StreamWriter(
+                transport, protocol, reader, self.worker.loop
+            )
+
+            # Create HTTP/2 connection handler
+            h2_conn = AsyncHTTP2Connection(
+                self.cfg, reader, writer, peername
+            )
+            await h2_conn.initiate_connection()
+
+            self._h2_conn = h2_conn
+
+            # Main loop - receive and handle requests
+            while not h2_conn.is_closed and self.worker.alive:
+                try:
+                    requests = await h2_conn.receive_data(timeout=1.0)
+                except asyncio.TimeoutError:
+                    continue
+                except Exception as e:
+                    self.log.debug("HTTP/2 receive error: %s", e)
+                    break
+
+                for req in requests:
+                    try:
+                        await self._handle_http2_request(
+                            req, h2_conn, sockname, peername
+                        )
+                    except Exception as e:
+                        self.log.exception("Error handling HTTP/2 request")
+                        try:
+                            await h2_conn.send_error(
+                                req.stream.stream_id, 500, str(e)
+                            )
+                        except Exception:
+                            pass
+                    finally:
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+
+                # Increment worker request count
+                self.worker.nr += len(requests)
+
+                # Check max_requests
+                if self.worker.nr >= self.worker.max_requests:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.worker.alive = False
+                    break
+
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            self.log.exception("HTTP/2 connection error: %s", e)
+        finally:
+            if hasattr(self, '_h2_conn'):
+                try:
+                    await self._h2_conn.close()
+                except Exception:
+                    pass
+            self._close_transport()
+
+    async def _handle_http2_request(self, request, h2_conn, sockname, peername):
+        """Handle a single HTTP/2 request."""
+        stream_id = request.stream.stream_id
+        scope = self._build_http2_scope(request, sockname, peername)
+
+        response_started = False
+        response_complete = False
+        exc_to_raise = None
+
+        response_status = 500
+        response_headers = []
+        response_body = b''
+        response_trailers = []
+
+        async def receive():
+            # For HTTP/2, the body is already buffered in the stream
+            body = request.body.read()
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+
+        async def send(message):
+            nonlocal response_started, response_complete, exc_to_raise
+            nonlocal response_status, response_headers, response_body
+
+            msg_type = message["type"]
+
+            if msg_type == "http.response.informational":
+                # Handle informational responses (1xx) like 103 Early Hints over HTTP/2
+                info_status = message.get("status")
+                info_headers = message.get("headers", [])
+                # Convert headers to list of string tuples
+                headers = []
+                for name, value in info_headers:
+                    if isinstance(name, bytes):
+                        name = name.decode("latin-1")
+                    if isinstance(value, bytes):
+                        value = value.decode("latin-1")
+                    headers.append((name, value))
+                await h2_conn.send_informational(stream_id, info_status, headers)
+                return
+
+            if msg_type == "http.response.start":
+                if response_started:
+                    exc_to_raise = RuntimeError("Response already started")
+                    return
+                response_started = True
+                response_status = message["status"]
+                response_headers = message.get("headers", [])
+
+            elif msg_type == "http.response.body":
+                if not response_started:
+                    exc_to_raise = RuntimeError("Response not started")
+                    return
+                if response_complete:
+                    exc_to_raise = RuntimeError("Response already complete")
+                    return
+
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
+
+                if body:
+                    response_body += body
+
+                if not more_body:
+                    response_complete = True
+
+            elif msg_type == "http.response.trailers":
+                if not response_complete:
+                    exc_to_raise = RuntimeError("Cannot send trailers before body complete")
+                    return
+                trailer_headers = message.get("headers", [])
+                # Convert to list of tuples with string values
+                trailers = []
+                for name, value in trailer_headers:
+                    if isinstance(name, bytes):
+                        name = name.decode("latin-1")
+                    if isinstance(value, bytes):
+                        value = value.decode("latin-1")
+                    trailers.append((name, value))
+                response_trailers.extend(trailers)
+
+        # Build environ for logging
+        environ = self._build_http2_environ(request, sockname, peername)
+        request_start = datetime.now()
+
+        try:
+            self.cfg.pre_request(self.worker, request)
+            await self.app(scope, receive, send)
+
+            if exc_to_raise is not None:
+                raise exc_to_raise
+
+            # Send response via HTTP/2
+            if response_started:
+                # Convert headers to list of tuples
+                headers = []
+                for name, value in response_headers:
+                    if isinstance(name, bytes):
+                        name = name.decode("latin-1")
+                    if isinstance(value, bytes):
+                        value = value.decode("latin-1")
+                    headers.append((name, value))
+
+                if response_trailers:
+                    # Send headers, body, then trailers separately
+                    response_hdrs = [(':status', str(response_status))]
+                    for name, value in headers:
+                        response_hdrs.append((name.lower(), str(value)))
+
+                    # Send headers without ending stream
+                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=False)
+                    stream = h2_conn.streams[stream_id]
+                    stream.send_headers(response_hdrs, end_stream=False)
+                    await h2_conn._send_pending_data()
+
+                    # Send body without ending stream
+                    if response_body:
+                        h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
+                        stream.send_data(response_body, end_stream=False)
+                        await h2_conn._send_pending_data()
+
+                    # Send trailers (ends stream)
+                    await h2_conn.send_trailers(stream_id, response_trailers)
+                else:
+                    await h2_conn.send_response(
+                        stream_id, response_status, headers, response_body
+                    )
+            else:
+                await h2_conn.send_error(stream_id, 500, "Internal Server Error")
+                response_status = 500
+
+        except Exception:
+            self.log.exception("Error in ASGI application")
+            if not response_started:
+                await h2_conn.send_error(stream_id, 500, "Internal Server Error")
+                response_status = 500
+        finally:
+            try:
+                request_time = datetime.now() - request_start
+                resp = ASGIResponseInfo(
+                    response_status, response_headers, len(response_body)
+                )
+                self.log.access(resp, request, environ, request_time)
+                self.cfg.post_request(self.worker, request, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
+
+    def _build_http2_scope(self, request, sockname, peername):
+        """Build ASGI HTTP scope from HTTP/2 request."""
+        headers = []
+        for name, value in request.headers:
+            headers.append((
+                name.lower().encode("latin-1"),
+                value.encode("latin-1")
+            ))
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.4"},
+            "http_version": "2",
+            "method": request.method,
+            "scheme": request.scheme,
+            "path": request.path,
+            "raw_path": request.path.encode("latin-1") if request.path else b"",
+            "query_string": request.query.encode("latin-1") if request.query else b"",
+            "root_path": self.cfg.root_path or "",
+            "headers": headers,
+            "server": sockname if sockname else None,
+            "client": peername if peername else None,
+        }
+
+        if hasattr(self.worker, 'state'):
+            scope["state"] = self.worker.state
+
+        # Add HTTP/2 extensions
+        extensions = {}
+        if hasattr(request, 'priority_weight'):
+            extensions["http.response.priority"] = {
+                "weight": request.priority_weight,
+                "depends_on": request.priority_depends_on,
+            }
+        # Add trailer support extension for HTTP/2
+        extensions["http.response.trailers"] = {}
+        scope["extensions"] = extensions
+
+        return scope
+
+    def _build_http2_environ(self, request, sockname, peername):
+        """Build minimal environ dict for access logging."""
+        environ = {
+            "REQUEST_METHOD": request.method,
+            "RAW_URI": request.uri,
+            "PATH_INFO": request.path,
+            "QUERY_STRING": request.query or "",
+            "SERVER_PROTOCOL": "HTTP/2",
+            "REMOTE_ADDR": peername[0] if peername else "-",
+        }
+
+        for name, value in request.headers:
+            key = "HTTP_" + name.replace("-", "_")
+            environ[key] = value
+
+        return environ

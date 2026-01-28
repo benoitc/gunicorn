@@ -287,6 +287,111 @@ are force killed.
 
 !!! info "Added in 25.0.0"
 
+## HTTP/2
+
+### `http_protocols`
+
+**Command line:** `--http-protocols STRING`
+
+**Default:** `'h1'`
+
+HTTP protocol versions to support (comma-separated, order = preference).
+
+Valid protocols:
+
+* ``h1`` - HTTP/1.1 (default)
+* ``h2`` - HTTP/2 (requires TLS with ALPN)
+* ``h3`` - HTTP/3 (future, not yet implemented)
+
+Examples::
+
+    # HTTP/1.1 only (default, backward compatible)
+    --http-protocols=h1
+
+    # Prefer HTTP/2, fallback to HTTP/1.1
+    --http-protocols=h2,h1
+
+    # HTTP/2 only (reject HTTP/1.1 clients)
+    --http-protocols=h2
+
+HTTP/2 requires:
+
+* TLS (--certfile and --keyfile)
+* The h2 library: ``pip install gunicorn[http2]``
+* ALPN-capable TLS client
+
+!!! note
+    HTTP/2 cleartext (h2c) is not supported due to security concerns
+    and lack of browser support.
+
+!!! info "Added in 25.0.0"
+
+### `http2_max_concurrent_streams`
+
+**Command line:** `--http2-max-concurrent-streams INT`
+
+**Default:** `100`
+
+Maximum number of concurrent HTTP/2 streams per connection.
+
+This limits how many requests can be processed simultaneously on a
+single HTTP/2 connection. Higher values allow more parallelism but
+use more memory.
+
+Default is 100, which matches common server configurations.
+The HTTP/2 specification allows up to 2^31-1.
+
+!!! info "Added in 25.0.0"
+
+### `http2_initial_window_size`
+
+**Command line:** `--http2-initial-window-size INT`
+
+**Default:** `65535`
+
+Initial HTTP/2 flow control window size in bytes.
+
+This controls how much data can be in-flight before the receiver
+sends WINDOW_UPDATE frames. Larger values can improve throughput
+for large transfers but use more memory.
+
+Default is 65535 (64KB - 1), the HTTP/2 specification default.
+Maximum is 2^31-1 (2147483647).
+
+!!! info "Added in 25.0.0"
+
+### `http2_max_frame_size`
+
+**Command line:** `--http2-max-frame-size INT`
+
+**Default:** `16384`
+
+Maximum HTTP/2 frame payload size in bytes.
+
+This is the largest frame payload the server will accept.
+Larger frames reduce framing overhead but may increase latency
+for small messages.
+
+Default is 16384 (16KB), the HTTP/2 specification minimum.
+Range is 16384 to 16777215 (16MB - 1).
+
+!!! info "Added in 25.0.0"
+
+### `http2_max_header_list_size`
+
+**Command line:** `--http2-max-header-list-size INT`
+
+**Default:** `65536`
+
+Maximum size of HTTP/2 header list in bytes (HPACK protection).
+
+This limits the total size of headers after HPACK decompression.
+Protects against compression bombs and excessive memory use.
+
+Default is 65536 (64KB). Set to 0 for unlimited (not recommended).
+
+!!! info "Added in 25.0.0"
+
 ## Logging
 
 ### `accesslog`

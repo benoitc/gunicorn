@@ -1,0 +1,42 @@
+services:
+  gunicorn-h2:
+    build:
+      context: ../../../
+      dockerfile: tests/docker/http2/Dockerfile.gunicorn
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
+      - ./app.py:/app/app.py:ro
+    environment:
+      - GUNICORN_CERTFILE=/certs/server.crt
+      - GUNICORN_KEYFILE=/certs/server.key
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl,socket; s=socket.socket(); s.settimeout(1); ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE; ss=ctx.wrap_socket(s,server_hostname='localhost'); ss.connect(('localhost',8443)); ss.close()"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  nginx-h2:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "8444:8444"
+    volumes:
+      - ./certs:/certs:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gunicorn-h2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:8444/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+networks:
+  default:
+    driver: bridge

@@ -41,6 +41,7 @@ class TConn:
         self.timeout = None
         self.parser = None
         self.initialized = False
+        self.is_http2 = False
 
         # set the socket to non blocking
         self.sock.setblocking(False)
@@ -57,7 +58,21 @@ class TConn:
             if self.cfg.is_ssl:
                 self.sock = sock.ssl_wrap_socket(self.sock, self.cfg)
 
-            # initialize the parser
+                # Complete the handshake to ensure ALPN negotiation is done
+                # (needed if do_handshake_on_connect is False)
+                if not self.cfg.do_handshake_on_connect:
+                    self.sock.do_handshake()
+
+                # Check if HTTP/2 was negotiated via ALPN
+                if sock.is_http2_negotiated(self.sock):
+                    self.is_http2 = True
+                    self.parser = http.get_parser(
+                        self.cfg, self.sock, self.client, http2_connection=True
+                    )
+                    self.parser.initiate_connection()
+                    return
+
+            # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)
 
     def set_timeout(self):
@@ -201,12 +216,12 @@ class ThreadWorker(base.Worker):
         if enabled == self._accepting:
             return
 
-        for sock in self.sockets:
+        for listener in self.sockets:
             if enabled:
-                sock.setblocking(False)
-                self.poller.register(sock, selectors.EVENT_READ, self.accept)
+                listener.setblocking(False)
+                self.poller.register(listener, selectors.EVENT_READ, self.accept)
             else:
-                self.poller.unregister(sock)
+                self.poller.unregister(listener)
 
         self._accepting = enabled
 
@@ -354,6 +369,10 @@ class ThreadWorker(base.Worker):
             # (ENOTCONN from ssl_wrap_socket would crash main thread otherwise)
             conn.init()
 
+            # HTTP/2 connections require special handling
+            if conn.is_http2:
+                return self.handle_http2(conn)
+
             req = next(conn.parser)
             if not req:
                 return False
@@ -390,6 +409,147 @@ class ThreadWorker(base.Worker):
             self.handle_error(req, conn.sock, conn.client, e)
 
         return False
+
+    def handle_http2(self, conn):
+        """Handle an HTTP/2 connection. Runs in a worker thread.
+
+        HTTP/2 connections are persistent and multiplex multiple streams.
+        We handle all streams until the connection is closed.
+
+        Returns:
+            False (HTTP/2 connections don't use keepalive polling)
+        """
+        h2_conn = conn.parser  # HTTP2ServerConnection
+
+        try:
+            while not h2_conn.is_closed and self.alive:
+                # Receive data and get completed requests
+                requests = h2_conn.receive_data()
+
+                for req in requests:
+                    try:
+                        self.handle_http2_request(req, conn, h2_conn)
+                    except Exception as e:
+                        self.log.exception("Error handling HTTP/2 request")
+                        try:
+                            h2_conn.send_error(req.stream.stream_id, 500, str(e))
+                        except Exception:
+                            pass
+                    finally:
+                        # Cleanup stream after processing
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+
+                # Check if we need to close
+                if not self.alive:
+                    h2_conn.close()
+                    break
+
+        except http.errors.NoMoreData:
+            self.log.debug("HTTP/2 connection closed by client")
+        except ssl.SSLError as e:
+            if e.args[0] == ssl.SSL_ERROR_EOF:
+                self.log.debug("HTTP/2 SSL connection closed")
+            else:
+                self.log.debug("HTTP/2 SSL error: %s", e)
+        except OSError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                self.log.exception("HTTP/2 socket error")
+        except Exception:
+            self.log.exception("HTTP/2 connection error")
+
+        return False
+
+    def handle_http2_request(self, req, conn, h2_conn):
+        """Handle a single HTTP/2 request/stream."""
+        environ = {}
+        resp = None
+        stream_id = req.stream.stream_id
+
+        try:
+            self.cfg.pre_request(self, req)
+            request_start = datetime.now()
+
+            # Create WSGI environ
+            resp, environ = wsgi.create(req, conn.sock, conn.client,
+                                        conn.server, self.cfg)
+            environ["wsgi.multithread"] = True
+            environ["HTTP_VERSION"] = "2"  # Indicate HTTP/2
+
+            # Replace wsgi.early_hints with HTTP/2-specific version
+            def send_early_hints_h2(headers):
+                """Send 103 Early Hints over HTTP/2."""
+                h2_conn.send_informational(stream_id, 103, headers)
+
+            environ["wsgi.early_hints"] = send_early_hints_h2
+
+            # Add HTTP/2 trailer support
+            pending_trailers = []
+
+            def send_trailers_h2(trailers):
+                """Queue trailers to be sent after response body."""
+                pending_trailers.extend(trailers)
+
+            environ["gunicorn.http2.send_trailers"] = send_trailers_h2
+
+            self.nr += 1
+            if self.nr >= self.max_requests:
+                if self.alive:
+                    self.log.info("Autorestarting worker after current request.")
+                    self.alive = False
+
+            # Run WSGI app
+            respiter = self.wsgi(environ, resp.start_response)
+
+            # Collect response body
+            response_body = b''
+            try:
+                if hasattr(respiter, '__iter__'):
+                    for item in respiter:
+                        if item:
+                            response_body += item
+            finally:
+                if hasattr(respiter, "close"):
+                    respiter.close()
+
+            # Send response via HTTP/2
+            if pending_trailers:
+                # Send headers, body, then trailers separately
+                # Build response headers with :status pseudo-header
+                response_headers = [(':status', str(resp.status_code))]
+                for name, value in resp.headers:
+                    response_headers.append((name.lower(), str(value)))
+
+                # Send headers without ending stream
+                h2_conn.h2_conn.send_headers(stream_id, response_headers, end_stream=False)
+                stream = h2_conn.streams[stream_id]
+                stream.send_headers(response_headers, end_stream=False)
+                h2_conn._send_pending_data()
+
+                # Send body without ending stream
+                if response_body:
+                    h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
+                    stream.send_data(response_body, end_stream=False)
+                    h2_conn._send_pending_data()
+
+                # Send trailers (ends stream)
+                h2_conn.send_trailers(stream_id, pending_trailers)
+            else:
+                # No trailers, use standard response
+                h2_conn.send_response(
+                    stream_id,
+                    resp.status_code,
+                    resp.headers,
+                    response_body
+                )
+
+            request_time = datetime.now() - request_start
+            self.log.access(resp, req, environ, request_time)
+
+        finally:
+            try:
+                self.cfg.post_request(self, req, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
 
     def handle_request(self, req, conn):
         environ = {}
