@@ -1894,7 +1894,7 @@ workers. <code>HUP</code> reloads configuration. See <a href="../signals/">Signa
 </div>
 <h2 id="worker-types">Worker Types<a class="headerlink" href="#worker-types" title="Permanent link">&para;</a></h2>
 <p>Choose a worker type based on your application's needs.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:6"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Gthread</label><label for="__tabbed_1_3">ASGI</label><label for="__tabbed_1_4">Gevent</label><label for="__tabbed_1_5">Eventlet</label><label for="__tabbed_1_6">Tornado</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:6"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Gthread</label><label for="__tabbed_1_3">ASGI</label><label for="__tabbed_1_4">Gevent</label><label for="__tabbed_1_5">Eventlet (Deprecated)</label><label for="__tabbed_1_6">Tornado</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>The <strong>default</strong> worker. Handles one request at a time per worker.</p>
@@ -1940,6 +1940,12 @@ workers. <code>HUP</code> reloads configuration. See <a href="../signals/">Signa
 </code></pre></div>
 </div>
 <div class="tabbed-block">
+<div class="admonition warning">
+<p class="admonition-title">Deprecated</p>
+<p>The eventlet worker is <strong>deprecated</strong> and will be removed in Gunicorn 26.0.
+Eventlet itself is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>.
+Please migrate to <code>gevent</code>, <code>gthread</code>, or another supported worker type.</p>
+</div>
 <p><strong>Greenlet-based</strong> async worker using <a href="http://eventlet.net/">Eventlet</a>.</p>
 <ul>
 <li>Similar capabilities to Gevent</li>
@@ -2000,7 +2006,7 @@ workers. <code>HUP</code> reloads configuration. See <a href="../signals/">Signa
 <td><code>eventlet</code></td>
 <td>Greenlets</td>
 <td>✅</td>
-<td>I/O-bound, long-polling</td>
+<td><strong>Deprecated</strong> - use <code>gevent</code> instead</td>
 </tr>
 <tr>
 <td><code>tornado</code></td>
@@ -2015,7 +2021,7 @@ workers. <code>HUP</code> reloads configuration. See <a href="../signals/">Signa
 <ul>
 <li><strong>Simple app behind nginx?</strong> → <code>sync</code> (default)</li>
 <li><strong>Need keep-alive or moderate concurrency?</strong> → <code>gthread</code></li>
-<li><strong>WebSockets, streaming, long-polling?</strong> → <code>gevent</code> or <code>eventlet</code></li>
+<li><strong>WebSockets, streaming, long-polling?</strong> → <code>gevent</code> or ASGI worker</li>
 <li><strong>FastAPI, Starlette, or async framework?</strong> → ASGI worker</li>
 </ul>
 </div>
@@ -2069,9 +2075,6 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="
 
 <span class="c1"># Gevent - high concurrency for I/O-bound apps</span>
 gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="w"> </span>gevent<span class="w"> </span>--workers<span class="w"> </span><span class="m">4</span><span class="w"> </span>--worker-connections<span class="w"> </span><span class="m">1000</span>
-
-<span class="c1"># Eventlet - alternative async worker</span>
-gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="w"> </span>eventlet<span class="w"> </span>--workers<span class="w"> </span><span class="m">4</span><span class="w"> </span>--worker-connections<span class="w"> </span><span class="m">1000</span>
 
 <span class="c1"># ASGI - FastAPI/Starlette with Uvicorn worker</span>
 gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="w"> </span>uvicorn.workers.UvicornWorker<span class="w"> </span>--workers<span class="w"> </span><span class="m">4</span>

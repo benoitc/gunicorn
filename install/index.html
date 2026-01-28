@@ -1912,10 +1912,6 @@ Install them with pip's bracket syntax:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>gunicorn[eventlet]</code></td>
-<td>Eventlet-based greenlet workers</td>
-</tr>
-<tr>
 <td><code>gunicorn[gevent]</code></td>
 <td>Gevent-based greenlet workers</td>
 </tr>
@@ -1926,6 +1922,10 @@ Install them with pip's bracket syntax:</p>
 <tr>
 <td><code>gunicorn[tornado]</code></td>
 <td>Tornado-based workers (not recommended)</td>
+</tr>
+<tr>
+<td><code>gunicorn[eventlet]</code></td>
+<td><strong>Deprecated</strong> - will be removed in 26.0</td>
 </tr>
 </tbody>
 </table>
@@ -1953,20 +1953,13 @@ Install them with pip's bracket syntax:</p>
 <h2 id="async-workers">Async Workers<a class="headerlink" href="#async-workers" title="Permanent link">&para;</a></h2>
 <p>For applications using async I/O patterns, install the appropriate greenlet
 library:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Gevent</label><label for="__tabbed_2_2">Eventlet</label><label for="__tabbed_2_3">ASGI (asyncio)</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Gevent</label><label for="__tabbed_2_2">ASGI (asyncio)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>gunicorn<span class="o">[</span>gevent<span class="o">]</span>
 </code></pre></div>
 <p>Run with:
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>app:app<span class="w"> </span>--worker-class<span class="w"> </span>gevent
-</code></pre></div></p>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>gunicorn<span class="o">[</span>eventlet<span class="o">]</span>
-</code></pre></div>
-<p>Run with:
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>app:app<span class="w"> </span>--worker-class<span class="w"> </span>eventlet
 </code></pre></div></p>
 </div>
 <div class="tabbed-block">

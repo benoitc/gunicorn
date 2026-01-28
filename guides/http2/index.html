@@ -1662,7 +1662,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <li><strong>SSL/TLS</strong>: HTTP/2 uses ALPN (Application-Layer Protocol Negotiation) which
   requires an encrypted connection</li>
 <li><strong>h2 library</strong>: Install with <code>pip install gunicorn[http2]</code> or <code>pip install h2</code></li>
-<li><strong>Compatible worker</strong>: gthread, gevent, eventlet, or ASGI workers</li>
+<li><strong>Compatible worker</strong>: gthread, gevent, or ASGI workers</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <h3 id="enable-http2">Enable HTTP/2<a class="headerlink" href="#enable-http2" title="Permanent link">&para;</a></h3>
@@ -1777,7 +1777,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <tr>
 <td><code>eventlet</code></td>
 <td>Yes</td>
-<td>Requires eventlet</td>
+<td><strong>Deprecated</strong> - will be removed in 26.0</td>
 </tr>
 <tr>
 <td><code>asgi</code></td>
