@@ -138,6 +138,9 @@ def test_bool_validation():
     assert c.preload_app is False
     pytest.raises(ValueError, c.set, "preload_app", "zilch")
     pytest.raises(TypeError, c.set, "preload_app", 4)
+    pytest.raises(TypeError, c.set, "preload_app", [])
+    pytest.raises(TypeError, c.set, "preload_app", lambda x: True)
+    pytest.raises(TypeError, c.set, "preload_app", tuple())
 
 
 def test_pos_int_validation():
@@ -203,6 +206,17 @@ def test_str_to_list():
     assert c.forwarder_headers == []
 
 
+def test_dict_validation():
+    c = config.Config()
+    c.set("secure_scheme_headers", {"X-FORWARDED_PROTO": "ssl"})
+    assert c.secure_scheme_headers
+    pytest.raises(TypeError, c.set, "secure_scheme_headers", set())
+    pytest.raises(TypeError, c.set, "secure_scheme_headers", lambda x: True)
+    pytest.raises(TypeError, c.set, "secure_scheme_headers", [])
+    pytest.raises(TypeError, c.set, "secure_scheme_headers", tuple())
+    pytest.raises(TypeError, c.set, "secure_scheme_headers", (1,2,3))
+
+
 def test_callable_validation():
     c = config.Config()
     def func(a, b):
@@ -211,6 +225,9 @@ def test_callable_validation():
     assert c.pre_fork == func
     pytest.raises(TypeError, c.set, "pre_fork", 1)
     pytest.raises(TypeError, c.set, "pre_fork", lambda x: True)
+    pytest.raises(TypeError, c.set, "pre_fork", [])
+    pytest.raises(TypeError, c.set, "pre_fork", tuple())
+    pytest.raises(TypeError, c.set, "pre_fork", (1,2,3))
 
 
 def test_reload_engine_validation():
@@ -222,6 +239,10 @@ def test_reload_engine_validation():
     assert c.reload_engine == 'poll'
 
     pytest.raises(ConfigError, c.set, "reload_engine", "invalid")
+    pytest.raises(TypeError, c.set, "reload_engine", tuple())
+    pytest.raises(TypeError, c.set, "reload_engine", (1,2,3))
+    pytest.raises(TypeError, c.set, "reload_engine", [])
+    pytest.raises(TypeError, c.set, "reload_engine", 0)
 
 
 def test_callable_validation_for_string():
