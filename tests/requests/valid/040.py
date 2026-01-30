@@ -1,3 +1,7 @@
+from gunicorn.config import Config
+cfg = Config()
+cfg.set("header_map", "drop")
+
 request = {
     "method": "GET",
     "uri": uri("/keep/same/as?invalid/040"),
