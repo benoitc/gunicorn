@@ -11,6 +11,10 @@
         <link rel="canonical" href="https://gunicorn.org/guides/http2/">
       
       
+        <link rel="prev" href="../docker/">
+      
+      
+        <link rel="next" href="../../asgi/">
       
       
         
@@ -21,7 +25,7 @@
     
     
       
-        <title>HTTP/2 Support - Gunicorn</title>
+        <title>HTTP/2 - Gunicorn</title>
       
     
     
@@ -111,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              HTTP/2 Support
+              HTTP/2
             
           </span>
         </div>
@@ -260,10 +264,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../../deploy/" class="md-tabs__link">
           
   
@@ -590,26 +596,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -627,7 +638,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -689,6 +700,753 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP/2
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP/2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-http2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable HTTP/2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssltls-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSL/TLS Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/2 Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Compatibility
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Compatibility">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-gthread-worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended: gthread Worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http-103-early-hints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP 103 Early Hints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HTTP 103 Early Hints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wsgi-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSGI Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asgi-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ASGI Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stream-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Priority
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stream Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#accessing-priority-in-wsgi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessing Priority in WSGI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-priority-in-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessing Priority in ASGI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#response-trailers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response Trailers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Response Trailers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wsgi-applications_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSGI Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asgi-applications_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ASGI Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trailer-rules-rfc-7540" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trailer Rules (RFC 7540)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Use Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Deployment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Production Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#with-nginx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With Nginx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-tls-termination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct TLS Termination
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recommended-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http2-not-negotiated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/2 not negotiated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-doesnt-support-http2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker doesn't support HTTP/2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-errors-with-large-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection errors with large requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#too-many-concurrent-streams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Too many concurrent streams
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Tuning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Tuning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tuning-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuning Profiles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tuning Profiles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conservative-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conservative (Default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#balanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Balanced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#high-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High Concurrency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setting-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting Trade-offs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setting Trade-offs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http2_max_concurrent_streams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_max_concurrent_streams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_initial_window_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_initial_window_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2_max_frame_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_max_frame_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-tuning-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Tuning (Linux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Tuning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benchmark-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmark Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-http2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing HTTP/2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing HTTP/2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-curl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using curl
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rfc-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RFC Compliance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#built-in-protections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Protections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recommended-security-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Security Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional Recommendations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compliance-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compliance Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compliance Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#h2spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        h2spec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nghttp2-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nghttp2 Tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#online-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Online Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1623,6 +2381,46 @@
 
   
 
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../deploy/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Guides
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
@@ -2727,10 +3525,9 @@ h2load<span class="w"> </span>-n<span class="w"> </span><span class="m">1000</sp
 </ul>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="reference/settings.md#http2_max_concurrent_streams">Settings Reference</a> - All HTTP/2 settings</li>
-<li><a href="asgi.md">ASGI Worker</a> - ASGI worker with HTTP/2 support</li>
-<li><a href="deploy.md">Deploy</a> - General deployment guidance</li>
-<li><a href="deploy.md#using-ssl">SSL Configuration</a> - SSL/TLS setup</li>
+<li><a href="../../reference/settings/#http2_max_concurrent_streams">Settings Reference</a> - All HTTP/2 settings</li>
+<li><a href="../../asgi/">ASGI Worker</a> - ASGI worker with HTTP/2 support</li>
+<li><a href="../../deploy/">Deploy</a> - General deployment guidance</li>
 </ul>
 
 
