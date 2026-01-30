@@ -241,7 +241,7 @@ asgi_lifespan = "auto"  # Auto-detect lifespan support
 | uvloop support | Yes | Yes | Yes |
 
 !!! note
-    HTTP/2 requires SSL/TLS and the h2 library. See [HTTP/2 Support](http2.md) for details.
+    HTTP/2 requires SSL/TLS and the h2 library. See [HTTP/2 Support](guides/http2.md) for details.
 
 Gunicorn's ASGI worker provides the same process management, logging, and
 configuration capabilities you're familiar with from WSGI deployments.

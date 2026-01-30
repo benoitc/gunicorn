@@ -11,13 +11,22 @@
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" href="{{ 'assets/stylesheets/home.css' | url }}">
+<style>
+  /* Hide sidebar on desktop, keep drawer for mobile/tablet */
+  @media screen and (min-width: 76.25em) {
+    .md-sidebar--primary { display: none; }
+  }
+  .md-sidebar--secondary { display: none; }
+</style>
 {% endblock %}
 
 {% block hero %}{% endblock %}
 
 {% block content %}{% endblock %}
 
-{% block site_nav %}{% endblock %}
+{% block site_nav %}
+  {{ super() }}
+{% endblock %}
 
 {% block container %}
 <main class="home">

@@ -843,7 +843,6 @@ For public servers, you can use online tools:
 
 ## See Also
 
-- [Settings Reference](reference/settings.md#http2_max_concurrent_streams) - All HTTP/2 settings
-- [ASGI Worker](asgi.md) - ASGI worker with HTTP/2 support
-- [Deploy](deploy.md) - General deployment guidance
-- [SSL Configuration](deploy.md#using-ssl) - SSL/TLS setup
+- [Settings Reference](../reference/settings.md#http2_max_concurrent_streams) - All HTTP/2 settings
+- [ASGI Worker](../asgi.md) - ASGI worker with HTTP/2 support
+- [Deploy](../deploy.md) - General deployment guidance

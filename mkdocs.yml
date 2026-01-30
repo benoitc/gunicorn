@@ -15,6 +15,7 @@ nav:
   - Guides:
       - Deploy: deploy.md
       - Docker: guides/docker.md
+      - HTTP/2: guides/http2.md
       - ASGI Worker: asgi.md
       - Dirty Arbiters: dirty.md
       - uWSGI Protocol: uwsgi.md
