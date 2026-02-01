@@ -9,7 +9,7 @@ authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
 license = "MIT"
 license-files = ["LICENSE"]
 description = "WSGI HTTP Server for UNIX"
-readme = "README.rst"
+readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Other Environment",
