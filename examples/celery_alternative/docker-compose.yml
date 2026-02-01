@@ -1,0 +1,79 @@
+# Docker Compose for Celery Replacement Example
+#
+# Notice: Only ONE service needed!
+# Compare with typical Celery deployment which requires:
+# - web (gunicorn/uvicorn)
+# - celery_worker
+# - celery_beat (for scheduled tasks)
+# - redis or rabbitmq
+#
+# With dirty arbiters, everything runs in a single container.
+
+services:
+  app:
+    build:
+      context: ../..  # Gunicorn repo root
+      dockerfile: examples/celery_alternative/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GUNICORN_WORKERS=4
+      - GUNICORN_THREADS=4
+      - DIRTY_WORKERS=9
+      - DIRTY_TIMEOUT=300
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # Test runner service
+  tests:
+    build:
+      context: ../..
+      dockerfile: examples/celery_alternative/Dockerfile
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - APP_URL=http://app:8000
+    command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
+    profiles:
+      - test
+
+# For comparison, here's what a Celery deployment would look like:
+#
+# services:
+#   web:
+#     build: .
+#     command: gunicorn app:app -b 0.0.0.0:8000
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       - redis
+#
+#   celery_worker:
+#     build: .
+#     command: celery -A tasks worker -l info
+#     depends_on:
+#       - redis
+#
+#   celery_beat:
+#     build: .
+#     command: celery -A tasks beat -l info
+#     depends_on:
+#       - redis
+#
+#   redis:
+#     image: redis:alpine
+#     ports:
+#       - "6379:6379"
