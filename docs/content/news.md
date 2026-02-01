@@ -1,12 +1,85 @@
 <span id="news"></span>
 # Changelog
 
-## 25.0.0 - unreleased
+## 25.0.0 - 2026-02-01
 
 ### New Features
 
-- **Dirty Arbiters**: Separate process pool for long-running blocking operations
-  (ML model loading, heavy computation) - inspired by Erlang dirty schedulers
+- **Dirty Arbiters**: Separate process pool for executing long-running, blocking
+  operations (AI model loading, heavy computation) without blocking HTTP workers
+  ([PR #3460](https://github.com/benoitc/gunicorn/pull/3460))
+  - Inspired by Erlang's dirty schedulers
+  - Asyncio-based with Unix socket IPC
+  - Stateful workers that persist loaded resources
+  - New settings: `--dirty-app`, `--dirty-workers`, `--dirty-timeout`,
+    `--dirty-threads`, `--dirty-graceful-timeout`
+  - Lifecycle hooks: `on_dirty_starting`, `dirty_post_fork`,
+    `dirty_worker_init`, `dirty_worker_exit`
+
+- **Per-App Worker Allocation for Dirty Arbiters**: Control how many dirty workers
+  load each app for memory optimization with heavy models
+  ([PR #3473](https://github.com/benoitc/gunicorn/pull/3473))
+  - Set `workers` class attribute on DirtyApp (e.g., `workers = 2`)
+  - Or use config format `module:class:N` (e.g., `myapp:HeavyModel:2`)
+  - Requests automatically routed to workers with the target app
+  - New exception `DirtyNoWorkersAvailableError` for graceful error handling
+  - Example: 8 workers × 10GB model = 80GB → with `workers=2`: 20GB (75% savings)
+
+- **HTTP/2 Support (Beta)**: Native HTTP/2 (RFC 7540) support for improved performance
+  with modern clients ([PR #3468](https://github.com/benoitc/gunicorn/pull/3468))
+  - Multiplexed streams over a single connection
+  - Header compression (HPACK)
+  - Flow control and stream prioritization
+  - Works with gthread, gevent, and ASGI workers
+  - New settings: `--http-protocols`, `--http2-max-concurrent-streams`,
+    `--http2-initial-window-size`, `--http2-max-frame-size`, `--http2-max-header-list-size`
+  - Requires SSL/TLS and h2 library: `pip install gunicorn[http2]`
+  - See [HTTP/2 Guide](guides/http2.md) for details
+  - New example: `examples/http2_gevent/` with Docker and tests
+
+- **HTTP 103 Early Hints**: Support for RFC 8297 Early Hints to enable browsers to
+  preload resources before the final response
+  ([PR #3468](https://github.com/benoitc/gunicorn/pull/3468))
+  - WSGI: `environ['wsgi.early_hints'](headers)` callback
+  - ASGI: `http.response.informational` message type
+  - Works with both HTTP/1.1 and HTTP/2
+
+- **uWSGI Protocol for ASGI Worker**: The ASGI worker now supports receiving requests
+  via the uWSGI binary protocol from nginx
+  ([PR #3467](https://github.com/benoitc/gunicorn/pull/3467))
+
+### Bug Fixes
+
+- Fix HTTP/2 ALPN negotiation for gevent and eventlet workers when
+  `do_handshake_on_connect` is False (the default). The TLS handshake is now
+  explicitly performed before checking `selected_alpn_protocol()`.
+
+- Fix setproctitle initialization with systemd socket activation
+  ([#3465](https://github.com/benoitc/gunicorn/issues/3465))
+
+- Fix `Expect: 100-continue` handling: ignore the header for HTTP/1.0 requests
+  since 100-continue is only valid for HTTP/1.1+
+  ([PR #3463](https://github.com/benoitc/gunicorn/pull/3463))
+
+- Fix missing `_expected_100_continue` attribute in UWSGIRequest
+
+- Disable setproctitle on macOS to prevent segfaults during process title updates
+
+- Publish full exception traceback when the application fails to load
+  ([#3462](https://github.com/benoitc/gunicorn/issues/3462))
+
+- Fix ASGI: quick shutdown on SIGINT/SIGQUIT, graceful on SIGTERM
+
+### Deprecations
+
+- **Eventlet Worker**: The `eventlet` worker is deprecated and will be removed in
+  Gunicorn 26.0. Eventlet itself is [no longer actively maintained](https://eventlet.readthedocs.io/en/latest/asyncio/migration.html).
+  Please migrate to `gevent`, `gthread`, or another supported worker type.
+
+### Changes
+
+- Remove obsolete Makefile targets
+  ([PR #3471](https://github.com/benoitc/gunicorn/pull/3471))
 
 ---
 
