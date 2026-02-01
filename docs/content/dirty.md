@@ -89,8 +89,10 @@ This makes dirty apps ideal for ML inference, where loading a model once and reu
                                           |   |        |   |       |   |
                                           +---+--------+---+-------+---+
                                                        |
-                                     All workers load all dirty apps
-                                          [MLApp, ImageApp, ...]
+                                     Workers load apps based on allocation
+                                     Worker 1: [MLApp, ImageApp, HeavyApp]
+                                     Worker 2: [MLApp, ImageApp, HeavyApp]
+                                     Worker 3: [MLApp, ImageApp]  (HeavyApp workers=2)
 ```
 
 ### Process Relationships
@@ -137,6 +139,133 @@ gunicorn myapp:app \
 | `dirty_timeout` | `300` | Task timeout in seconds |
 | `dirty_threads` | `1` | Threads per dirty worker |
 | `dirty_graceful_timeout` | `30` | Graceful shutdown timeout |
+
+## Per-App Worker Allocation
+
+By default, all dirty workers load all configured apps. For apps that consume significant memory (like large ML models), you can limit how many workers load a specific app.
+
+### Why Per-App Allocation?
+
+Consider a scenario with a 10GB ML model and 8 dirty workers:
+
+- **Default behavior**: 8 workers × 10GB = 80GB RAM
+- **With `workers=2`**: 2 workers × 10GB = 20GB RAM (75% savings)
+
+Requests for the limited app are routed only to workers that have it loaded.
+
+### Configuration Methods
+
+**Method 1: Class Attribute**
+
+Set the `workers` attribute on your DirtyApp class:
+
+```python
+from gunicorn.dirty import DirtyApp
+
+class HeavyModelApp(DirtyApp):
+    workers = 2  # Only 2 workers will load this app
+
+    def init(self):
+        self.model = load_10gb_model()
+
+    def predict(self, data):
+        return self.model.predict(data)
+
+    def close(self):
+        pass
+```
+
+**Method 2: Config Override**
+
+Use the `module:class:N` format in your config:
+
+```python
+# gunicorn.conf.py
+dirty_apps = [
+    "myapp.light:LightApp",           # All workers (default)
+    "myapp.heavy:HeavyModelApp:2",    # Only 2 workers
+    "myapp.single:SingletonApp:1",    # Only 1 worker
+]
+dirty_workers = 4
+```
+
+Config overrides take precedence over class attributes.
+
+### Worker Distribution
+
+When workers spawn, apps are assigned based on their limits:
+
+```
+Example with dirty_workers=4:
+  - LightApp (workers=None):  Loaded on workers 1, 2, 3, 4
+  - HeavyModelApp (workers=2): Loaded on workers 1, 2
+  - SingletonApp (workers=1):  Loaded on worker 1
+
+Worker 1: [LightApp, HeavyModelApp, SingletonApp]
+Worker 2: [LightApp, HeavyModelApp]
+Worker 3: [LightApp]
+Worker 4: [LightApp]
+```
+
+### Request Routing
+
+Requests are automatically routed to workers that have the target app:
+
+```python
+client = get_dirty_client()
+
+# Goes to any of 4 workers (round-robin)
+client.execute("myapp.light:LightApp", "action")
+
+# Goes to worker 1 or 2 only (round-robin between those)
+client.execute("myapp.heavy:HeavyModelApp", "predict", data)
+
+# Always goes to worker 1
+client.execute("myapp.single:SingletonApp", "process")
+```
+
+### Error Handling
+
+If no workers have the requested app loaded, a `DirtyNoWorkersAvailableError` is raised:
+
+```python
+from gunicorn.dirty import get_dirty_client
+from gunicorn.dirty.errors import DirtyNoWorkersAvailableError
+
+def my_view(request):
+    client = get_dirty_client()
+    try:
+        result = client.execute("myapp.heavy:HeavyModelApp", "predict", data)
+    except DirtyNoWorkersAvailableError as e:
+        # All workers with this app are down or app not configured
+        return {"error": "Service temporarily unavailable", "app": e.app_path}
+```
+
+### Worker Crash Recovery
+
+When a worker crashes, its replacement gets the **same apps** as the dead worker:
+
+```
+Timeline:
+  t=0: Worker 1 crashes (had HeavyModelApp)
+  t=1: Arbiter detects crash, queues respawn
+  t=2: New Worker 5 spawns with same apps as Worker 1
+  t=3: HeavyModelApp still available on Worker 2 during gap
+```
+
+This ensures:
+
+- No memory redistribution on existing workers
+- Predictable replacement behavior
+- The heavy model is only loaded on the new worker
+
+### Best Practices
+
+1. **Set realistic limits** - Don't set `workers=1` unless truly necessary (single point of failure)
+2. **Monitor memory** - Track per-worker memory to tune allocation
+3. **Handle unavailability** - Catch `DirtyNoWorkersAvailableError` gracefully
+4. **Use class attributes for app-specific limits** - Makes the limit part of the app definition
+5. **Use config for deployment-specific overrides** - Different limits for dev vs prod
 
 ## Creating a Dirty App
 
@@ -190,8 +319,9 @@ class MLApp(DirtyApp):
 
 ### DirtyApp Interface
 
-| Method | Description |
-|--------|-------------|
+| Method/Attribute | Description |
+|------------------|-------------|
+| `workers` | Class attribute. Number of workers to load this app (`None` = all workers). |
 | `init()` | Called once when dirty worker starts, after instantiation. Load resources here. |
 | `__call__(action, *args, **kwargs)` | Handle requests from HTTP workers. |
 | `close()` | Called when dirty worker shuts down. Cleanup resources. |
@@ -604,12 +734,13 @@ watch -n 1 'pstree -p $(cat gunicorn.pid)'
 The dirty client raises specific exceptions:
 
 ```python
-from gunicorn.dirty import (
+from gunicorn.dirty.errors import (
     DirtyError,
     DirtyTimeoutError,
     DirtyConnectionError,
     DirtyAppError,
     DirtyAppNotFoundError,
+    DirtyNoWorkersAvailableError,
 )
 
 try:
@@ -620,6 +751,9 @@ except DirtyTimeoutError:
 except DirtyAppNotFoundError:
     # App not loaded in dirty workers
     pass
+except DirtyNoWorkersAvailableError as e:
+    # No workers have this app (all crashed or app limited to 0 workers)
+    print(f"No workers for app: {e.app_path}")
 except DirtyAppError as e:
     # Error during app execution
     print(f"App error: {e.message}, traceback: {e.traceback}")

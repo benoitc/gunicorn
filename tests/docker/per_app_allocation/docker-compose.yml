@@ -1,0 +1,13 @@
+services:
+  gunicorn:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/per_app_allocation/Dockerfile
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    stop_grace_period: 10s

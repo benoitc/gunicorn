@@ -6,7 +6,12 @@
 
 import pytest
 
-from gunicorn.dirty.app import DirtyApp, load_dirty_app, load_dirty_apps
+from gunicorn.dirty.app import (
+    DirtyApp,
+    load_dirty_app,
+    load_dirty_apps,
+    parse_dirty_app_spec,
+)
 from gunicorn.dirty.errors import DirtyAppError, DirtyAppNotFoundError
 
 
@@ -185,3 +190,158 @@ class TestDirtyAppStateful:
         with pytest.raises(ValueError) as exc_info:
             app("compute", 1, 2, operation="invalid")
         assert "Unknown operation" in str(exc_info.value)
+
+
+class TestDirtyAppWorkersAttribute:
+    """Tests for DirtyApp workers class attribute."""
+
+    def test_default_workers_is_none(self):
+        """Base DirtyApp has workers=None (all workers)."""
+        assert DirtyApp.workers is None
+
+    def test_subclass_can_set_workers(self):
+        """Subclass can override workers=2."""
+
+        class LimitedApp(DirtyApp):
+            workers = 2
+
+        assert LimitedApp.workers == 2
+
+    def test_workers_inherited_by_default(self):
+        """Subclass without workers attr inherits None."""
+
+        class InheritedApp(DirtyApp):
+            pass
+
+        assert InheritedApp.workers is None
+
+    def test_instance_has_workers_attribute(self):
+        """Instance should have access to workers attribute."""
+        app = DirtyApp()
+        assert app.workers is None
+
+        class LimitedApp(DirtyApp):
+            workers = 3
+
+        limited = LimitedApp()
+        assert limited.workers == 3
+
+
+class TestParseDirtyAppSpec:
+    """Tests for parse_dirty_app_spec function."""
+
+    def test_standard_format(self):
+        """'mod:Class' returns ('mod:Class', None)."""
+        import_path, count = parse_dirty_app_spec("mod:Class")
+        assert import_path == "mod:Class"
+        assert count is None
+
+    def test_standard_format_with_dots(self):
+        """'mod.sub.pkg:Class' returns ('mod.sub.pkg:Class', None)."""
+        import_path, count = parse_dirty_app_spec("mod.sub.pkg:Class")
+        assert import_path == "mod.sub.pkg:Class"
+        assert count is None
+
+    def test_with_worker_count(self):
+        """'mod:Class:2' returns ('mod:Class', 2)."""
+        import_path, count = parse_dirty_app_spec("mod:Class:2")
+        assert import_path == "mod:Class"
+        assert count == 2
+
+    def test_worker_count_one(self):
+        """'mod:Class:1' returns ('mod:Class', 1)."""
+        import_path, count = parse_dirty_app_spec("mod:Class:1")
+        assert import_path == "mod:Class"
+        assert count == 1
+
+    def test_worker_count_large(self):
+        """'mod:Class:100' returns ('mod:Class', 100)."""
+        import_path, count = parse_dirty_app_spec("mod:Class:100")
+        assert import_path == "mod:Class"
+        assert count == 100
+
+    def test_worker_count_zero_raises(self):
+        """'mod:Class:0' raises DirtyAppError."""
+        with pytest.raises(DirtyAppError) as exc_info:
+            parse_dirty_app_spec("mod:Class:0")
+        assert "must be >= 1" in str(exc_info.value)
+
+    def test_worker_count_negative_raises(self):
+        """'mod:Class:-1' raises DirtyAppError."""
+        with pytest.raises(DirtyAppError) as exc_info:
+            parse_dirty_app_spec("mod:Class:-1")
+        assert "must be >= 1" in str(exc_info.value)
+
+    def test_non_numeric_raises(self):
+        """'mod:Class:abc' raises DirtyAppError."""
+        with pytest.raises(DirtyAppError) as exc_info:
+            parse_dirty_app_spec("mod:Class:abc")
+        assert "Expected integer" in str(exc_info.value)
+
+    def test_no_colon_raises(self):
+        """'mod.Class' (no colon) raises DirtyAppError."""
+        with pytest.raises(DirtyAppError) as exc_info:
+            parse_dirty_app_spec("mod.Class")
+        assert "Invalid import path format" in str(exc_info.value)
+
+    def test_too_many_colons_raises(self):
+        """'mod:Class:2:extra' raises DirtyAppError."""
+        with pytest.raises(DirtyAppError) as exc_info:
+            parse_dirty_app_spec("mod:Class:2:extra")
+        assert "Invalid import path format" in str(exc_info.value)
+
+    def test_dotted_module_with_count(self):
+        """'mod.sub:Class:2' handles dots correctly."""
+        import_path, count = parse_dirty_app_spec("mod.sub:Class:2")
+        assert import_path == "mod.sub:Class"
+        assert count == 2
+
+
+class TestGetAppWorkersAttribute:
+    """Tests for get_app_workers_attribute function."""
+
+    def test_get_workers_none_for_base_class(self):
+        """Base DirtyApp returns workers=None."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("gunicorn.dirty.app:DirtyApp")
+        assert workers is None
+
+    def test_get_workers_from_class_attribute(self):
+        """App with workers=2 class attribute returns 2."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("tests.support_dirty_app:HeavyModelApp")
+        assert workers == 2
+
+    def test_get_workers_none_for_inherited(self):
+        """App without explicit workers attribute returns None."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("tests.support_dirty_app:TestDirtyApp")
+        assert workers is None
+
+    def test_get_workers_not_found_module(self):
+        """Non-existent module raises DirtyAppNotFoundError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppNotFoundError
+
+        with pytest.raises(DirtyAppNotFoundError):
+            get_app_workers_attribute("nonexistent.module:App")
+
+    def test_get_workers_not_found_class(self):
+        """Non-existent class raises DirtyAppNotFoundError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppNotFoundError
+
+        with pytest.raises(DirtyAppNotFoundError):
+            get_app_workers_attribute("tests.support_dirty_app:NonExistentApp")
+
+    def test_get_workers_invalid_format(self):
+        """Invalid format raises DirtyAppError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppError
+
+        with pytest.raises(DirtyAppError) as exc_info:
+            get_app_workers_attribute("invalid.format.no.colon")
+        assert "Invalid import path format" in str(exc_info.value)

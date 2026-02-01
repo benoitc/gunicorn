@@ -1144,3 +1144,275 @@ class TestDirtyArbiterQueueBehavior:
         assert task2.done()
 
         arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterAppTracking:
+    """Tests for per-app worker tracking."""
+
+    def test_parse_app_specs_standard_format(self):
+        """All standard format apps have worker_count=None."""
+        cfg = Config()
+        cfg.set("dirty_apps", [
+            "tests.support_dirty_app:TestDirtyApp",
+            "tests.support_dirty_app:SlowDirtyApp",
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        assert len(arbiter.app_specs) == 2
+        assert arbiter.app_specs["tests.support_dirty_app:TestDirtyApp"]["worker_count"] is None
+        assert arbiter.app_specs["tests.support_dirty_app:SlowDirtyApp"]["worker_count"] is None
+
+        arbiter._cleanup_sync()
+
+    def test_parse_app_specs_with_worker_count(self):
+        """Apps with :N have correct worker_count."""
+        cfg = Config()
+        cfg.set("dirty_apps", [
+            "tests.support_dirty_app:TestDirtyApp",
+            "tests.support_dirty_app:SlowDirtyApp:2",
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        assert arbiter.app_specs["tests.support_dirty_app:TestDirtyApp"]["worker_count"] is None
+        assert arbiter.app_specs["tests.support_dirty_app:SlowDirtyApp"]["worker_count"] == 2
+
+        arbiter._cleanup_sync()
+
+    def test_get_apps_for_new_worker_all_standard(self):
+        """All apps returned when all have workers=None."""
+        cfg = Config()
+        cfg.set("dirty_apps", [
+            "tests.support_dirty_app:TestDirtyApp",
+            "tests.support_dirty_app:SlowDirtyApp",
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        apps = arbiter._get_apps_for_new_worker()
+        assert len(apps) == 2
+        assert "tests.support_dirty_app:TestDirtyApp" in apps
+        assert "tests.support_dirty_app:SlowDirtyApp" in apps
+
+        arbiter._cleanup_sync()
+
+    def test_get_apps_for_new_worker_respects_limit(self):
+        """App with workers=2 stops assigning after 2 workers."""
+        cfg = Config()
+        cfg.set("dirty_apps", [
+            "tests.support_dirty_app:TestDirtyApp",      # unlimited
+            "tests.support_dirty_app:SlowDirtyApp:2",    # limited to 2
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        # First worker should get both apps
+        apps1 = arbiter._get_apps_for_new_worker()
+        assert len(apps1) == 2
+        arbiter._register_worker_apps(1001, apps1)
+
+        # Second worker should get both apps
+        apps2 = arbiter._get_apps_for_new_worker()
+        assert len(apps2) == 2
+        arbiter._register_worker_apps(1002, apps2)
+
+        # Third worker should only get unlimited app
+        apps3 = arbiter._get_apps_for_new_worker()
+        assert len(apps3) == 1
+        assert "tests.support_dirty_app:TestDirtyApp" in apps3
+        assert "tests.support_dirty_app:SlowDirtyApp" not in apps3
+
+        arbiter._cleanup_sync()
+
+    def test_register_worker_apps_updates_both_maps(self):
+        """Both app_worker_map and worker_app_map updated."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        app_path = "tests.support_dirty_app:TestDirtyApp"
+        arbiter._register_worker_apps(1001, [app_path])
+
+        # Check app_worker_map
+        assert 1001 in arbiter.app_worker_map[app_path]
+
+        # Check worker_app_map
+        assert app_path in arbiter.worker_app_map[1001]
+
+        arbiter._cleanup_sync()
+
+    def test_unregister_worker_cleans_both_maps(self):
+        """Worker removal updates both maps correctly."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        app_path = "tests.support_dirty_app:TestDirtyApp"
+        arbiter._register_worker_apps(1001, [app_path])
+
+        # Verify registered
+        assert 1001 in arbiter.app_worker_map[app_path]
+        assert 1001 in arbiter.worker_app_map
+
+        # Unregister
+        arbiter._unregister_worker(1001)
+
+        # Verify cleaned up
+        assert 1001 not in arbiter.app_worker_map[app_path]
+        assert 1001 not in arbiter.worker_app_map
+
+        arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterSpawnWorkerPerApp:
+    """Tests for spawn_worker with per-app allocation."""
+
+    def test_cleanup_worker_queues_apps_for_respawn(self):
+        """Dead worker's apps added to _pending_respawns."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = 12345
+
+        # Simulate worker registration
+        app_path = "tests.support_dirty_app:TestDirtyApp"
+        arbiter.workers[1001] = "fake_worker"
+        arbiter.worker_sockets[1001] = "/tmp/fake.sock"
+        arbiter._register_worker_apps(1001, [app_path])
+
+        # Cleanup should queue apps for respawn
+        assert len(arbiter._pending_respawns) == 0
+        arbiter._cleanup_worker(1001)
+        assert len(arbiter._pending_respawns) == 1
+        assert app_path in arbiter._pending_respawns[0]
+
+        arbiter._cleanup_sync()
+
+    def test_pending_respawns_cleared_after_spawn(self):
+        """Pending respawns consumed when spawning new worker."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = 12345
+
+        # Add pending respawn
+        app_path = "tests.support_dirty_app:TestDirtyApp"
+        arbiter._pending_respawns.append([app_path])
+
+        # Get apps for new worker should use pending first
+        # But since spawn_worker forks, we test the logic directly
+        assert len(arbiter._pending_respawns) == 1
+
+        # When spawn_worker pops from pending_respawns
+        apps = arbiter._pending_respawns.pop(0)
+        assert apps == [app_path]
+        assert len(arbiter._pending_respawns) == 0
+
+        arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterRoutingPerApp:
+    """Tests for app-aware routing."""
+
+    @pytest.mark.asyncio
+    async def test_get_available_worker_no_filter(self):
+        """Without app_path, returns any worker round-robin."""
+        cfg = Config()
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.workers[1001] = "worker1"
+        arbiter.workers[1002] = "worker2"
+
+        # Should return workers in round-robin
+        w1 = await arbiter._get_available_worker()
+        w2 = await arbiter._get_available_worker()
+
+        assert w1 in [1001, 1002]
+        assert w2 in [1001, 1002]
+        # They should be different (round-robin)
+        if len(arbiter.workers) >= 2:
+            assert w1 != w2 or len(arbiter.workers) == 1
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_get_available_worker_with_app_filter(self):
+        """With app_path, returns only workers that have it."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.workers[1001] = "worker1"
+        arbiter.workers[1002] = "worker2"
+
+        # Only register 1001 for the app
+        app_path = "tests.support_dirty_app:TestDirtyApp"
+        arbiter._register_worker_apps(1001, [app_path])
+
+        # Should only return 1001
+        worker = await arbiter._get_available_worker(app_path)
+        assert worker == 1001
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_get_available_worker_app_no_workers_returns_none(self):
+        """Returns None if no workers have the app."""
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.workers[1001] = "worker1"
+
+        # Worker 1001 has no apps registered - request for unknown app returns None
+        worker = await arbiter._get_available_worker("unknown:App")
+        assert worker is None
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_route_request_app_not_loaded_error(self):
+        """Error response when no worker has the app."""
+        from gunicorn.dirty.protocol import DirtyProtocol
+
+        cfg = Config()
+        cfg.set("dirty_apps", ["tests.support_dirty_app:TestDirtyApp"])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        arbiter.pid = 12345
+        arbiter.workers[1001] = "worker1"
+        # No apps registered for this worker (worker exists but has no apps)
+
+        request = make_request(
+            request_id="test-123",
+            app_path="unknown:App",
+            action="test"
+        )
+
+        writer = MockStreamWriter()
+        await arbiter.route_request(request, writer)
+
+        assert len(writer.messages) == 1
+        response = writer.messages[0]
+        assert response["type"] == DirtyProtocol.MSG_TYPE_ERROR
+        assert "No workers available for app" in response["error"]["message"]
+        assert response["error"]["error_type"] == "DirtyNoWorkersAvailableError"
+
+        arbiter._cleanup_sync()
