@@ -3,8 +3,6 @@ environment:
   matrix:
     - TOXENV: lint
       PYTHON: "C:\\Python312-x64"
-    - TOXENV: docs-lint
-      PYTHON: "C:\\Python312-x64"
     - TOXENV: pycodestyle
       PYTHON: "C:\\Python312-x64"
     # Windows cannot even import the module when they unconditionally import, see below.

@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toxenv: [lint, docs-lint, pycodestyle]
+        toxenv: [lint, pycodestyle]
         python-version: [ "3.12" ]
         include:
           # for actions that want git env, not tox env

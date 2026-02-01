@@ -10,7 +10,7 @@ RUN useradd --create-home --shell /bin/bash gunicorn
 WORKDIR /app
 
 # Install gunicorn from source
-COPY pyproject.toml README.rst LICENSE ./
+COPY pyproject.toml README.md LICENSE ./
 COPY gunicorn/ ./gunicorn/
 RUN pip install --no-cache-dir .
 
