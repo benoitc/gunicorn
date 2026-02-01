@@ -6,6 +6,7 @@ title: Gunicorn - Python WSGI HTTP Server
 <section class="hero">
   <div class="container">
     <img class="hero__logo" src="assets/gunicorn.svg" alt="Gunicorn" style="width: 350px;" />
+    <p class="hero__version">Version {{ version }}</p>
     <h1>The Python WSGI Server</h1>
     <p class="hero__tagline">
       Battle-tested. Production-ready. One command to serve your Python apps.
