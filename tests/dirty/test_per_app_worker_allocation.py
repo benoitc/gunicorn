@@ -271,3 +271,54 @@ class TestPerAppWorkerAllocation:
         assert arbiter.app_specs[app_path]["worker_count"] == 2
 
         arbiter._cleanup_sync()
+
+    def test_class_attribute_workers_detected(self):
+        """App with workers=2 class attribute is detected by arbiter."""
+        cfg = Config()
+        cfg.set("dirty_workers", 4)
+        cfg.set("dirty_apps", [
+            "tests.support_dirty_app:HeavyModelApp",  # Has workers=2 class attr
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        # Check parsed spec - should read workers=2 from class
+        app_path = "tests.support_dirty_app:HeavyModelApp"
+        assert arbiter.app_specs[app_path]["worker_count"] == 2
+
+        # Simulate spawning 4 workers
+        for i in range(4):
+            apps = arbiter._get_apps_for_new_worker()
+            arbiter._register_worker_apps(1000 + i, apps)
+
+        # HeavyModelApp should only be on 2 workers
+        assert len(arbiter.app_worker_map[app_path]) == 2
+
+        arbiter._cleanup_sync()
+
+    def test_config_override_takes_precedence_over_class_attribute(self):
+        """Config :N takes precedence over class workers attribute."""
+        cfg = Config()
+        cfg.set("dirty_workers", 4)
+        cfg.set("dirty_apps", [
+            # HeavyModelApp has workers=2, but config says 1
+            "tests.support_dirty_app:HeavyModelApp:1",
+        ])
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+
+        # Config override (1) should take precedence
+        app_path = "tests.support_dirty_app:HeavyModelApp"
+        assert arbiter.app_specs[app_path]["worker_count"] == 1
+
+        # Simulate spawning 4 workers
+        for i in range(4):
+            apps = arbiter._get_apps_for_new_worker()
+            arbiter._register_worker_apps(1000 + i, apps)
+
+        # Should only be on 1 worker (config override)
+        assert len(arbiter.app_worker_map[app_path]) == 1
+
+        arbiter._cleanup_sync()

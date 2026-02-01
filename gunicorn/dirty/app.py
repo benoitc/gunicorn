@@ -295,3 +295,56 @@ def load_dirty_apps(import_paths):
     for import_path in import_paths:
         apps[import_path] = load_dirty_app(import_path)
     return apps
+
+
+def get_app_workers_attribute(import_path):
+    """
+    Get the workers class attribute from a dirty app without instantiating it.
+
+    This is used by the arbiter to determine how many workers should load
+    an app based on the class attribute, without needing to actually load
+    the app.
+
+    Args:
+        import_path: String in format 'module.path:ClassName'
+
+    Returns:
+        The workers class attribute value (int or None)
+
+    Raises:
+        DirtyAppNotFoundError: If the module or class cannot be found
+        DirtyAppError: If the import path format is invalid
+    """
+    if ':' not in import_path:
+        raise DirtyAppError(
+            f"Invalid import path format: {import_path}. "
+            f"Expected 'module.path:ClassName'",
+            app_path=import_path
+        )
+
+    module_path, class_name = import_path.rsplit(':', 1)
+
+    try:
+        # Import the module
+        if module_path in sys.modules:
+            module = sys.modules[module_path]
+        else:
+            module = importlib.import_module(module_path)
+    except ImportError as e:
+        raise DirtyAppNotFoundError(import_path) from e
+
+    # Get the class from the module
+    try:
+        app_class = getattr(module, class_name)
+    except AttributeError:
+        raise DirtyAppNotFoundError(import_path) from None
+
+    # Validate it's a class
+    if not isinstance(app_class, type):
+        raise DirtyAppError(
+            f"{import_path} is not a class",
+            app_path=import_path
+        )
+
+    # Return the workers attribute (defaults to None if not set)
+    return getattr(app_class, 'workers', None)

@@ -295,3 +295,53 @@ class TestParseDirtyAppSpec:
         import_path, count = parse_dirty_app_spec("mod.sub:Class:2")
         assert import_path == "mod.sub:Class"
         assert count == 2
+
+
+class TestGetAppWorkersAttribute:
+    """Tests for get_app_workers_attribute function."""
+
+    def test_get_workers_none_for_base_class(self):
+        """Base DirtyApp returns workers=None."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("gunicorn.dirty.app:DirtyApp")
+        assert workers is None
+
+    def test_get_workers_from_class_attribute(self):
+        """App with workers=2 class attribute returns 2."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("tests.support_dirty_app:HeavyModelApp")
+        assert workers == 2
+
+    def test_get_workers_none_for_inherited(self):
+        """App without explicit workers attribute returns None."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+
+        workers = get_app_workers_attribute("tests.support_dirty_app:TestDirtyApp")
+        assert workers is None
+
+    def test_get_workers_not_found_module(self):
+        """Non-existent module raises DirtyAppNotFoundError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppNotFoundError
+
+        with pytest.raises(DirtyAppNotFoundError):
+            get_app_workers_attribute("nonexistent.module:App")
+
+    def test_get_workers_not_found_class(self):
+        """Non-existent class raises DirtyAppNotFoundError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppNotFoundError
+
+        with pytest.raises(DirtyAppNotFoundError):
+            get_app_workers_attribute("tests.support_dirty_app:NonExistentApp")
+
+    def test_get_workers_invalid_format(self):
+        """Invalid format raises DirtyAppError."""
+        from gunicorn.dirty.app import get_app_workers_attribute
+        from gunicorn.dirty.errors import DirtyAppError
+
+        with pytest.raises(DirtyAppError) as exc_info:
+            get_app_workers_attribute("invalid.format.no.colon")
+        assert "Invalid import path format" in str(exc_info.value)

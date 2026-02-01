@@ -19,7 +19,7 @@ import time
 
 from gunicorn import util
 
-from .app import parse_dirty_app_spec
+from .app import get_app_workers_attribute, parse_dirty_app_spec
 from .errors import (
     DirtyError,
     DirtyNoWorkersAvailableError,
@@ -106,9 +106,26 @@ class DirtyArbiter:
 
         Populates self.app_specs with parsed information about each app,
         including the import path and worker count limits.
+
+        Worker count priority:
+        1. Config override (e.g., "module:Class:2") - highest priority
+        2. Class attribute (e.g., workers = 2 on the class)
+        3. None (all workers) - default
         """
         for spec in self.cfg.dirty_apps:
             import_path, worker_count = parse_dirty_app_spec(spec)
+
+            # If no config override, check class attribute
+            if worker_count is None:
+                try:
+                    worker_count = get_app_workers_attribute(import_path)
+                except Exception as e:
+                    # Log but don't fail - we'll discover the error when loading
+                    self.log.warning(
+                        "Could not read workers attribute from %s: %s",
+                        import_path, e
+                    )
+
             self.app_specs[import_path] = {
                 'import_path': import_path,
                 'worker_count': worker_count,
