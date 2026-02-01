@@ -41,7 +41,7 @@ jobs:
         run: mkdocs build
 
       - name: Upload site artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gunicorn-site
           path: site
