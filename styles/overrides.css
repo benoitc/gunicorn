@@ -37,6 +37,24 @@
   height: 2rem;
 }
 
+/* Version badge in header */
+.md-header__version {
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gunicorn-green-dark);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.md-header__version:hover {
+  background: #ffffff;
+  color: var(--gunicorn-green);
+}
+
 /* Navigation styling */
 .md-nav__link:hover {
   color: var(--gunicorn-green);
