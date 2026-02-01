@@ -72,11 +72,28 @@ class DirtyApp:
                         self.models[name] = load_model(name)
                 return {"loaded": True, "name": name}
 
+    Worker Allocation
+    -----------------
+    By default, all dirty workers load all apps. For apps that consume
+    significant memory (like large ML models), you can limit how many
+    workers load the app by setting the ``workers`` class attribute::
+
+        class HeavyModelApp(DirtyApp):
+            workers = 2  # Only 2 workers will load this app
+
+            def init(self):
+                self.model = load_10gb_model()
+
     Subclasses should implement:
         - init(): Called once at worker startup to initialize resources
         - __call__(action, *args, **kwargs): Handle requests from HTTP workers
         - close(): Called at worker shutdown to cleanup resources
     """
+
+    # Number of workers that should load this app.
+    # None means all workers (default, backward compatible).
+    # Set to an integer to limit how many workers load this app.
+    workers = None
 
     def init(self):
         """
@@ -118,6 +135,81 @@ class DirtyApp:
         Called when the dirty worker is shutting down. Use this to
         release resources like database connections, unload models, etc.
         """
+
+
+def parse_dirty_app_spec(spec):
+    """
+    Parse a dirty app specification.
+
+    Supports two formats:
+    - ``"module:Class"`` - standard format, all workers load the app
+    - ``"module:Class:N"`` - worker-limited format, only N workers load the app
+
+    Args:
+        spec: The app specification string
+
+    Returns:
+        tuple: (import_path, worker_count)
+            - import_path: The "module:Class" part for importing
+            - worker_count: Integer limit or None for all workers
+
+    Raises:
+        DirtyAppError: If the spec format is invalid or worker_count is < 1
+
+    Examples::
+
+        >>> parse_dirty_app_spec("myapp:App")
+        ("myapp:App", None)
+
+        >>> parse_dirty_app_spec("myapp:App:2")
+        ("myapp:App", 2)
+
+        >>> parse_dirty_app_spec("myapp.sub:App:1")
+        ("myapp.sub:App", 1)
+    """
+    if ':' not in spec:
+        raise DirtyAppError(
+            f"Invalid import path format: {spec}. "
+            f"Expected 'module.path:ClassName' or 'module.path:ClassName:N'",
+            app_path=spec
+        )
+
+    parts = spec.split(':')
+
+    # Standard format: "module:Class" or "module.sub:Class"
+    if len(parts) == 2:
+        return (spec, None)
+
+    # Worker-limited format: "module:Class:N"
+    if len(parts) == 3:
+        module_path, class_name, count_str = parts
+        import_path = f"{module_path}:{class_name}"
+
+        # Validate the worker count
+        try:
+            worker_count = int(count_str)
+        except ValueError:
+            raise DirtyAppError(
+                f"Invalid worker count in spec: {spec}. "
+                f"Expected integer, got '{count_str}'",
+                app_path=spec
+            )
+
+        if worker_count < 1:
+            raise DirtyAppError(
+                f"Invalid worker count in spec: {spec}. "
+                f"Worker count must be >= 1, got {worker_count}",
+                app_path=spec
+            )
+
+        return (import_path, worker_count)
+
+    # Too many colons
+    raise DirtyAppError(
+        f"Invalid import path format: {spec}. "
+        f"Expected 'module.path:ClassName' or 'module.path:ClassName:N'",
+        app_path=spec
+    )
 
 
 def load_dirty_app(import_path):

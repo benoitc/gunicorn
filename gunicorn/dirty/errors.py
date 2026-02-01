@@ -46,6 +46,7 @@ class DirtyError(Exception):
             "DirtyWorkerError": DirtyWorkerError,
             "DirtyAppError": DirtyAppError,
             "DirtyAppNotFoundError": DirtyAppNotFoundError,
+            "DirtyNoWorkersAvailableError": DirtyNoWorkersAvailableError,
             "DirtyProtocolError": DirtyProtocolError,
         }
         error_type = data.get("error_type", "DirtyError")
@@ -70,6 +71,8 @@ class DirtyError(Exception):
             error.app_path = error.details.get("app_path")
             error.action = error.details.get("action")
             error.traceback = error.details.get("traceback")
+        elif error_class == DirtyNoWorkersAvailableError:
+            error.app_path = error.details.get("app_path")
 
         return error
 
@@ -128,6 +131,40 @@ class DirtyAppNotFoundError(DirtyAppError):
 
     def __init__(self, app_path):
         super().__init__(f"Dirty app not found: {app_path}", app_path=app_path)
+
+
+class DirtyNoWorkersAvailableError(DirtyError):
+    """
+    Raised when no workers are available for the requested app.
+
+    This exception is raised when a request targets an app that has
+    worker limits configured, and no workers with that app are currently
+    available (e.g., all workers for that app crashed and haven't been
+    respawned yet).
+
+    Web applications can catch this exception to provide graceful
+    degradation, such as queuing requests for retry or showing a
+    maintenance page.
+
+    Example::
+
+        from gunicorn.dirty import get_dirty_client
+        from gunicorn.dirty.errors import DirtyNoWorkersAvailableError
+
+        def my_view(request):
+            client = get_dirty_client()
+            try:
+                result = client.execute("myapp.ml:HeavyModel", "predict", data)
+            except DirtyNoWorkersAvailableError as e:
+                return {"error": "Service temporarily unavailable",
+                        "app": e.app_path}
+    """
+
+    def __init__(self, app_path, message=None):
+        if message is None:
+            message = f"No workers available for app: {app_path}"
+        super().__init__(message, details={"app_path": app_path})
+        self.app_path = app_path
 
 
 class DirtyProtocolError(DirtyError):

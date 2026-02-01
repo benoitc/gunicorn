@@ -2885,16 +2885,37 @@ class DirtyApps(Setting):
     desc = """\
         Dirty applications to load in the dirty worker pool.
 
-        A list of application paths in pattern ``$(MODULE_NAME):$(CLASS_NAME)``.
+        A list of application paths in one of these formats:
+
+        - ``$(MODULE_NAME):$(CLASS_NAME)`` - all workers load this app
+        - ``$(MODULE_NAME):$(CLASS_NAME):$(N)`` - only N workers load this app
+
         Each dirty app must be a class that inherits from ``DirtyApp`` base class
         and implements the ``init()``, ``__call__()``, and ``close()`` methods.
 
         Example::
 
             dirty_apps = [
-                "myapp.ml:MLApp",
-                "myapp.images:ImageApp",
+                "myapp.ml:MLApp",           # All workers load this
+                "myapp.images:ImageApp",    # All workers load this
+                "myapp.heavy:HugeModel:2",  # Only 2 workers load this
             ]
+
+        The per-app worker limit is useful for memory-intensive applications
+        like large ML models. Instead of all 8 workers loading a 10GB model
+        (80GB total), you can limit it to 2 workers (20GB total).
+
+        Alternatively, you can set the ``workers`` class attribute on your
+        DirtyApp subclass::
+
+            class HugeModelApp(DirtyApp):
+                workers = 2  # Only 2 workers load this app
+
+                def init(self):
+                    self.model = load_10gb_model()
+
+        Note: The config format (``module:Class:N``) takes precedence over
+        the class attribute if both are specified.
 
         Dirty apps are loaded once when the dirty worker starts and persist
         in memory for the lifetime of the worker. This is ideal for loading
@@ -2902,6 +2923,9 @@ class DirtyApps(Setting):
         that are expensive to initialize.
 
         .. versionadded:: 25.0.0
+
+        .. versionchanged:: 25.1.0
+           Added per-app worker allocation via ``:N`` format suffix.
         """
 
 

@@ -19,7 +19,13 @@ import time
 
 from gunicorn import util
 
-from .errors import DirtyError, DirtyTimeoutError, DirtyWorkerError
+from .app import parse_dirty_app_spec
+from .errors import (
+    DirtyError,
+    DirtyNoWorkersAvailableError,
+    DirtyTimeoutError,
+    DirtyWorkerError,
+)
 from .protocol import (
     DirtyProtocol,
     make_error_response,
@@ -78,6 +84,100 @@ class DirtyArbiter:
         self._server = None
         self._loop = None
         self._pending_requests = {}  # request_id -> Future
+
+        # Per-app worker allocation tracking
+        # Maps import_path -> {import_path, worker_count, original_spec}
+        self.app_specs = {}
+        # Maps import_path -> set of worker PIDs that have loaded the app
+        self.app_worker_map = {}
+        # Maps worker_pid -> list of import_paths loaded by this worker
+        self.worker_app_map = {}
+        # Per-app round-robin indices for routing
+        self._app_rr_indices = {}
+        # Queue of app lists from dead workers to respawn with same apps
+        self._pending_respawns = []
+
+        # Parse app specs on init
+        self._parse_app_specs()
+
+    def _parse_app_specs(self):
+        """
+        Parse all app specifications from config.
+
+        Populates self.app_specs with parsed information about each app,
+        including the import path and worker count limits.
+        """
+        for spec in self.cfg.dirty_apps:
+            import_path, worker_count = parse_dirty_app_spec(spec)
+            self.app_specs[import_path] = {
+                'import_path': import_path,
+                'worker_count': worker_count,
+                'original_spec': spec,
+            }
+            # Initialize the app_worker_map for this app
+            self.app_worker_map[import_path] = set()
+
+    def _get_apps_for_new_worker(self):
+        """
+        Determine which apps a new worker should load.
+
+        Returns a list of import paths for apps that need more workers.
+        Apps with workers=None (all workers) are always included.
+        Apps with worker limits are included only if they haven't
+        reached their limit yet.
+
+        Returns:
+            List of import paths to load, or empty list if no apps need workers
+        """
+        app_paths = []
+
+        for import_path, spec in self.app_specs.items():
+            worker_count = spec['worker_count']
+            current_workers = len(self.app_worker_map.get(import_path, set()))
+
+            # None means all workers should load this app
+            if worker_count is None:
+                app_paths.append(import_path)
+            # Otherwise check if we've reached the limit
+            elif current_workers < worker_count:
+                app_paths.append(import_path)
+
+        return app_paths
+
+    def _register_worker_apps(self, worker_pid, app_paths):
+        """
+        Register which apps a worker has loaded.
+
+        Updates both app_worker_map and worker_app_map to track the
+        bidirectional relationship between workers and apps.
+
+        Args:
+            worker_pid: The PID of the worker
+            app_paths: List of app import paths loaded by this worker
+        """
+        self.worker_app_map[worker_pid] = list(app_paths)
+
+        for app_path in app_paths:
+            if app_path not in self.app_worker_map:
+                self.app_worker_map[app_path] = set()
+            self.app_worker_map[app_path].add(worker_pid)
+
+    def _unregister_worker(self, worker_pid):
+        """
+        Unregister a worker's apps when it exits.
+
+        Removes the worker from all tracking maps.
+
+        Args:
+            worker_pid: The PID of the worker to unregister
+        """
+        # Get the apps this worker had
+        app_paths = self.worker_app_map.pop(worker_pid, [])
+
+        # Remove worker from each app's worker set
+        for app_path in app_paths:
+            if app_path in self.app_worker_map:
+                self.app_worker_map[app_path].discard(worker_pid)
 
     def run(self):
         """Run the dirty arbiter (blocking call)."""
@@ -256,14 +356,20 @@ class DirtyArbiter:
             client_writer: StreamWriter to send responses to client
         """
         request_id = request.get("id", "unknown")
+        app_path = request.get("app_path")
 
-        # Find an available worker
-        worker_pid = await self._get_available_worker()
+        # Find an available worker (filtered by app if specified)
+        worker_pid = await self._get_available_worker(app_path)
         if worker_pid is None:
-            response = make_error_response(
-                request_id,
-                DirtyError("No dirty workers available")
-            )
+            # Distinguish between no workers at all vs. no workers for this app
+            if not self.workers:
+                error = DirtyError("No dirty workers available")
+            elif app_path and self.app_specs:
+                # Per-app allocation is configured and no workers have this app
+                error = DirtyNoWorkersAvailableError(app_path)
+            else:
+                error = DirtyError("No dirty workers available")
+            response = make_error_response(request_id, error)
             await DirtyProtocol.write_message_async(client_writer, response)
             return
 
@@ -373,20 +479,47 @@ class DirtyArbiter:
             )
             await DirtyProtocol.write_message_async(client_writer, response)
 
-    async def _get_available_worker(self):
+    async def _get_available_worker(self, app_path=None):
         """
         Get an available worker PID using round-robin selection.
 
-        Distributes requests across all available workers evenly to
-        maximize throughput when multiple workers are configured.
+        If app_path is provided, only returns workers that have loaded
+        that specific app. Uses per-app round-robin to ensure fair
+        distribution among eligible workers.
+
+        Args:
+            app_path: Optional import path of the target app. If None,
+                     returns any worker using global round-robin.
+
+        Returns:
+            Worker PID or None if no eligible workers are available.
         """
-        worker_pids = list(self.workers.keys())
-        if not worker_pids:
+        # Determine eligible workers
+        if app_path and self.app_specs:
+            # Per-app allocation is configured - must return a worker
+            # that has this specific app
+            if app_path in self.app_worker_map:
+                eligible_pids = list(self.app_worker_map[app_path])
+            else:
+                # App not known or no workers have it
+                return None
+        else:
+            # No specific app requested, or no app specs configured
+            # (backward compatible) - any worker will do
+            eligible_pids = list(self.workers.keys())
+
+        if not eligible_pids:
             return None
 
-        # Round-robin selection
-        self._worker_rr_index = (self._worker_rr_index + 1) % len(worker_pids)
-        return worker_pids[self._worker_rr_index]
+        # Per-app round-robin for fairness
+        if app_path and self.app_specs:
+            idx = self._app_rr_indices.get(app_path, 0)
+            self._app_rr_indices[app_path] = (idx + 1) % len(eligible_pids)
+        else:
+            idx = self._worker_rr_index
+            self._worker_rr_index = (idx + 1) % len(eligible_pids)
+
+        return eligible_pids[idx % len(eligible_pids)]
 
     async def _get_worker_connection(self, worker_pid):
         """Get or create connection to a worker."""
@@ -424,7 +557,10 @@ class DirtyArbiter:
 
         # Spawn workers if needed
         while self.alive and len(self.workers) < num_workers:
-            self.spawn_worker()
+            result = self.spawn_worker()
+            if result is None:
+                # No apps need more workers - stop spawning
+                break
             await asyncio.sleep(0.1)
 
         # Kill excess workers
@@ -436,7 +572,27 @@ class DirtyArbiter:
             await asyncio.sleep(0.1)
 
     def spawn_worker(self):
-        """Spawn a new dirty worker."""
+        """
+        Spawn a new dirty worker.
+
+        Worker app assignment follows these priorities:
+        1. If there are pending respawns (from dead workers), use those apps
+        2. Otherwise, determine apps for a new worker based on allocation
+
+        Returns:
+            Worker PID in parent process, or None if no apps need workers
+        """
+        # Priority 1: Respawn dead worker with same apps
+        if self._pending_respawns:
+            app_paths = self._pending_respawns.pop(0)
+        else:
+            # Priority 2: New worker for initial pool
+            app_paths = self._get_apps_for_new_worker()
+
+        if not app_paths:
+            self.log.warning("No apps need more workers, skipping spawn")
+            return None
+
         self.worker_age += 1
         socket_path = os.path.join(
             self.tmpdir, f"worker-{self.worker_age}.sock"
@@ -445,7 +601,7 @@ class DirtyArbiter:
         worker = DirtyWorker(
             age=self.worker_age,
             ppid=self.pid,
-            app_paths=self.cfg.dirty_apps,
+            app_paths=app_paths,  # Only assigned apps, not all apps
             cfg=self.cfg,
             log=self.log,
             socket_path=socket_path
@@ -457,8 +613,13 @@ class DirtyArbiter:
             worker.pid = pid
             self.workers[pid] = worker
             self.worker_sockets[pid] = socket_path
+
+            # Register which apps this worker has
+            self._register_worker_apps(pid, app_paths)
+
             self.cfg.dirty_post_fork(self, worker)
-            self.log.info("Spawned dirty worker (pid: %s)", pid)
+            self.log.info("Spawned dirty worker (pid: %s) with apps: %s",
+                          pid, app_paths)
             return pid
 
         # Child process
@@ -484,7 +645,12 @@ class DirtyArbiter:
                 self._cleanup_worker(pid)
 
     def _cleanup_worker(self, pid):
-        """Clean up after a worker exits."""
+        """
+        Clean up after a worker exits.
+
+        Saves the dead worker's app list to pending respawns so the
+        replacement worker gets the same apps.
+        """
         self._close_worker_connection(pid)
 
         # Cancel consumer task
@@ -494,6 +660,15 @@ class DirtyArbiter:
 
         # Remove queue
         self.worker_queues.pop(pid, None)
+
+        # Save dead worker's apps for respawn BEFORE unregistering
+        if pid in self.worker_app_map:
+            dead_apps = list(self.worker_app_map[pid])
+            if dead_apps:
+                self._pending_respawns.append(dead_apps)
+
+        # Now safe to unregister the worker's apps
+        self._unregister_worker(pid)
 
         worker = self.workers.pop(pid, None)
         if worker:
