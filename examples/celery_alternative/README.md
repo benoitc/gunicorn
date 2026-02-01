@@ -1,4 +1,4 @@
-# Celery Replacement Example
+# Celery Alternative Example
 
 This example demonstrates how to replace Celery with Gunicorn's **dirty arbiters** for background task processing.
 
