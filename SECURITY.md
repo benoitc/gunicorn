@@ -10,18 +10,16 @@ If you believe you are found a problem in Gunicorn software, examples or documen
 
 ## Supported Releases
 
-At this time, **only the latest release** receives any security attention whatsoever.
-
 Please target reports against :white_check_mark: or current master. Please understand that :x: will
  not receive further security attention.
 
-| Version | Status          |
+| Version | Status             |
 | ------- | ------------------ |
-| 23.0.0  | :white_check_mark: |
-| 22.0.0  | :x: |
-| 21.2.0  | :x: |
-| 20.0.0  | :x: |
-| < 20.0  | :x: |
+| 25.0.0  | :white_check_mark: |
+| 24.1.1  | :white_check_mark: |
+| 23.0.0  | :x:                |
+| 22.0.0  | :x:                |
+| < 22.0  | :x:                |
 
 ## Python Versions
 
