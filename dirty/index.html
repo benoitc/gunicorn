@@ -956,6 +956,100 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-app-worker-allocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-App Worker Allocation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-App Worker Allocation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-per-app-allocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Per-App Allocation?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Distribution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#request-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-crash-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Crash Recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#creating-a-dirty-app" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1283,7 +1377,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#error-handling" class="md-nav__link">
+  <a href="#error-handling_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Error Handling
@@ -1294,7 +1388,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
+  <a href="#best-practices_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Best Practices
@@ -2340,8 +2434,10 @@
                                           |   |        |   |       |   |
                                           +---+--------+---+-------+---+
                                                        |
-                                     All workers load all dirty apps
-                                          [MLApp, ImageApp, ...]
+                                     Workers load apps based on allocation
+                                     Worker 1: [MLApp, ImageApp, HeavyApp]
+                                     Worker 2: [MLApp, ImageApp, HeavyApp]
+                                     Worker 3: [MLApp, ImageApp]  (HeavyApp workers=2)
 </code></pre></div>
 <h3 id="process-relationships">Process Relationships<a class="headerlink" href="#process-relationships" title="Permanent link">&para;</a></h3>
 <table>
@@ -2431,6 +2527,103 @@
 </tr>
 </tbody>
 </table>
+<h2 id="per-app-worker-allocation">Per-App Worker Allocation<a class="headerlink" href="#per-app-worker-allocation" title="Permanent link">&para;</a></h2>
+<p>By default, all dirty workers load all configured apps. For apps that consume significant memory (like large ML models), you can limit how many workers load a specific app.</p>
+<h3 id="why-per-app-allocation">Why Per-App Allocation?<a class="headerlink" href="#why-per-app-allocation" title="Permanent link">&para;</a></h3>
+<p>Consider a scenario with a 10GB ML model and 8 dirty workers:</p>
+<ul>
+<li><strong>Default behavior</strong>: 8 workers × 10GB = 80GB RAM</li>
+<li><strong>With <code>workers=2</code></strong>: 2 workers × 10GB = 20GB RAM (75% savings)</li>
+</ul>
+<p>Requests for the limited app are routed only to workers that have it loaded.</p>
+<h3 id="configuration-methods">Configuration Methods<a class="headerlink" href="#configuration-methods" title="Permanent link">&para;</a></h3>
+<p><strong>Method 1: Class Attribute</strong></p>
+<p>Set the <code>workers</code> attribute on your DirtyApp class:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">HeavyModelApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
+    <span class="n">workers</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># Only 2 workers will load this app</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_10gb_model</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+</code></pre></div>
+<p><strong>Method 2: Config Override</strong></p>
+<p>Use the <code>module:class:N</code> format in your config:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
+<span class="n">dirty_apps</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;myapp.light:LightApp&quot;</span><span class="p">,</span>           <span class="c1"># All workers (default)</span>
+    <span class="s2">&quot;myapp.heavy:HeavyModelApp:2&quot;</span><span class="p">,</span>    <span class="c1"># Only 2 workers</span>
+    <span class="s2">&quot;myapp.single:SingletonApp:1&quot;</span><span class="p">,</span>    <span class="c1"># Only 1 worker</span>
+<span class="p">]</span>
+<span class="n">dirty_workers</span> <span class="o">=</span> <span class="mi">4</span>
+</code></pre></div>
+<p>Config overrides take precedence over class attributes.</p>
+<h3 id="worker-distribution">Worker Distribution<a class="headerlink" href="#worker-distribution" title="Permanent link">&para;</a></h3>
+<p>When workers spawn, apps are assigned based on their limits:</p>
+<div class="highlight"><pre><span></span><code>Example with dirty_workers=4:
+  - LightApp (workers=None):  Loaded on workers 1, 2, 3, 4
+  - HeavyModelApp (workers=2): Loaded on workers 1, 2
+  - SingletonApp (workers=1):  Loaded on worker 1
+
+Worker 1: [LightApp, HeavyModelApp, SingletonApp]
+Worker 2: [LightApp, HeavyModelApp]
+Worker 3: [LightApp]
+Worker 4: [LightApp]
+</code></pre></div>
+<h3 id="request-routing">Request Routing<a class="headerlink" href="#request-routing" title="Permanent link">&para;</a></h3>
+<p>Requests are automatically routed to workers that have the target app:</p>
+<div class="highlight"><pre><span></span><code><span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+
+<span class="c1"># Goes to any of 4 workers (round-robin)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.light:LightApp&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">)</span>
+
+<span class="c1"># Goes to worker 1 or 2 only (round-robin between those)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.heavy:HeavyModelApp&quot;</span><span class="p">,</span> <span class="s2">&quot;predict&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+<span class="c1"># Always goes to worker 1</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.single:SingletonApp&quot;</span><span class="p">,</span> <span class="s2">&quot;process&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
+<p>If no workers have the requested app loaded, a <code>DirtyNoWorkersAvailableError</code> is raised:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyNoWorkersAvailableError</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">my_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.heavy:HeavyModelApp&quot;</span><span class="p">,</span> <span class="s2">&quot;predict&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">DirtyNoWorkersAvailableError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># All workers with this app are down or app not configured</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Service temporarily unavailable&quot;</span><span class="p">,</span> <span class="s2">&quot;app&quot;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="p">}</span>
+</code></pre></div>
+<h3 id="worker-crash-recovery">Worker Crash Recovery<a class="headerlink" href="#worker-crash-recovery" title="Permanent link">&para;</a></h3>
+<p>When a worker crashes, its replacement gets the <strong>same apps</strong> as the dead worker:</p>
+<div class="highlight"><pre><span></span><code>Timeline:
+  t=0: Worker 1 crashes (had HeavyModelApp)
+  t=1: Arbiter detects crash, queues respawn
+  t=2: New Worker 5 spawns with same apps as Worker 1
+  t=3: HeavyModelApp still available on Worker 2 during gap
+</code></pre></div>
+<p>This ensures:</p>
+<ul>
+<li>No memory redistribution on existing workers</li>
+<li>Predictable replacement behavior</li>
+<li>The heavy model is only loaded on the new worker</li>
+</ul>
+<h3 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Set realistic limits</strong> - Don't set <code>workers=1</code> unless truly necessary (single point of failure)</li>
+<li><strong>Monitor memory</strong> - Track per-worker memory to tune allocation</li>
+<li><strong>Handle unavailability</strong> - Catch <code>DirtyNoWorkersAvailableError</code> gracefully</li>
+<li><strong>Use class attributes for app-specific limits</strong> - Makes the limit part of the app definition</li>
+<li><strong>Use config for deployment-specific overrides</strong> - Different limits for dev vs prod</li>
+</ol>
 <h2 id="creating-a-dirty-app">Creating a Dirty App<a class="headerlink" href="#creating-a-dirty-app" title="Permanent link">&para;</a></h2>
 <p>Dirty apps inherit from <code>DirtyApp</code> and implement three methods:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># myapp/dirty.py</span>
@@ -2481,11 +2674,15 @@
 <table>
 <thead>
 <tr>
-<th>Method</th>
+<th>Method/Attribute</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>workers</code></td>
+<td>Class attribute. Number of workers to load this app (<code>None</code> = all workers).</td>
+</tr>
 <tr>
 <td><code>init()</code></td>
 <td>Called once when dirty worker starts, after instantiation. Load resources here.</td>
@@ -2882,14 +3079,15 @@ grep<span class="w"> </span><span class="s2">&quot;Worker.*timed out&quot;</span
 <span class="c1"># Monitor process tree</span>
 watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s1">&#39;pstree -p $(cat gunicorn.pid)&#39;</span>
 </code></pre></div>
-<h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<h2 id="error-handling_1">Error Handling<a class="headerlink" href="#error-handling_1" title="Permanent link">&para;</a></h2>
 <p>The dirty client raises specific exceptions:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty.errors</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DirtyError</span><span class="p">,</span>
     <span class="n">DirtyTimeoutError</span><span class="p">,</span>
     <span class="n">DirtyConnectionError</span><span class="p">,</span>
     <span class="n">DirtyAppError</span><span class="p">,</span>
     <span class="n">DirtyAppNotFoundError</span><span class="p">,</span>
+    <span class="n">DirtyNoWorkersAvailableError</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -2900,6 +3098,9 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
 <span class="k">except</span> <span class="n">DirtyAppNotFoundError</span><span class="p">:</span>
     <span class="c1"># App not loaded in dirty workers</span>
     <span class="k">pass</span>
+<span class="k">except</span> <span class="n">DirtyNoWorkersAvailableError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="c1"># No workers have this app (all crashed or app limited to 0 workers)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No workers for app: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="k">except</span> <span class="n">DirtyAppError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
     <span class="c1"># Error during app execution</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;App error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">, traceback: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">traceback</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -2907,7 +3108,7 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
     <span class="c1"># Connection to dirty arbiter failed</span>
     <span class="k">pass</span>
 </code></pre></div>
-<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<h2 id="best-practices_1">Best Practices<a class="headerlink" href="#best-practices_1" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Pre-load commonly used resources</strong> in <code>init()</code> to avoid cold starts</li>
 <li><strong>Set appropriate timeouts</strong> based on your workload</li>

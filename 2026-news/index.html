@@ -1956,6 +1956,18 @@
     <code>dirty_worker_init</code>, <code>dirty_worker_exit</code></p>
 </li>
 <li>
+<p><strong>Per-App Worker Allocation for Dirty Arbiters</strong>: Control how many dirty workers
+  load each app for memory optimization with heavy models
+  (<a href="https://github.com/benoitc/gunicorn/pull/3473">PR #3473</a>)</p>
+</li>
+<li>Set <code>workers</code> class attribute on DirtyApp (e.g., <code>workers = 2</code>)</li>
+<li>Or use config format <code>module:class:N</code> (e.g., <code>myapp:HeavyModel:2</code>)</li>
+<li>Requests automatically routed to workers with the target app</li>
+<li>New exception <code>DirtyNoWorkersAvailableError</code> for graceful error handling</li>
+<li>
+<p>Example: 8 workers × 10GB model = 80GB → with <code>workers=2</code>: 20GB (75% savings)</p>
+</li>
+<li>
 <p><strong>HTTP/2 Support (Beta)</strong>: Native HTTP/2 (RFC 7540) support for improved performance
   with modern clients (<a href="https://github.com/benoitc/gunicorn/pull/3468">PR #3468</a>)</p>
 </li>

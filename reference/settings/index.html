@@ -3369,21 +3369,43 @@ DirtyArbiter and the exiting DirtyWorker.</p>
 <p><strong>Command line:</strong> <code>--dirty-app STRING</code></p>
 <p><strong>Default:</strong> <code>[]</code></p>
 <p>Dirty applications to load in the dirty worker pool.</p>
-<p>A list of application paths in pattern <code>$(MODULE_NAME):$(CLASS_NAME)</code>.
-Each dirty app must be a class that inherits from <code>DirtyApp</code> base class
+<p>A list of application paths in one of these formats:</p>
+<ul>
+<li><code>$(MODULE_NAME):$(CLASS_NAME)</code> - all workers load this app</li>
+<li><code>$(MODULE_NAME):$(CLASS_NAME):$(N)</code> - only N workers load this app</li>
+</ul>
+<p>Each dirty app must be a class that inherits from <code>DirtyApp</code> base class
 and implements the <code>init()</code>, <code>__call__()</code>, and <code>close()</code> methods.</p>
 <p>Example::</p>
 <div class="highlight"><pre><span></span><code>dirty_apps = [
-    &quot;myapp.ml:MLApp&quot;,
-    &quot;myapp.images:ImageApp&quot;,
+    &quot;myapp.ml:MLApp&quot;,           # All workers load this
+    &quot;myapp.images:ImageApp&quot;,    # All workers load this
+    &quot;myapp.heavy:HugeModel:2&quot;,  # Only 2 workers load this
 ]
 </code></pre></div>
+<p>The per-app worker limit is useful for memory-intensive applications
+like large ML models. Instead of all 8 workers loading a 10GB model
+(80GB total), you can limit it to 2 workers (20GB total).</p>
+<p>Alternatively, you can set the <code>workers</code> class attribute on your
+DirtyApp subclass::</p>
+<div class="highlight"><pre><span></span><code>class HugeModelApp(DirtyApp):
+    workers = 2  # Only 2 workers load this app
+
+    def init(self):
+        self.model = load_10gb_model()
+</code></pre></div>
+<p>Note: The config format (<code>module:Class:N</code>) takes precedence over
+the class attribute if both are specified.</p>
 <p>Dirty apps are loaded once when the dirty worker starts and persist
 in memory for the lifetime of the worker. This is ideal for loading
 ML models, database connection pools, or other stateful resources
 that are expensive to initialize.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Changed in 25.1.0</p>
+<p>Added per-app worker allocation via <code>:N</code> format suffix.</p>
 </div>
 <h3 id="dirty_workers"><code>dirty_workers</code><a class="headerlink" href="#dirty_workers" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--dirty-workers INT</code></p>
