@@ -414,7 +414,22 @@ class Arbiter:
         # instruct the workers to exit
         self.kill_workers(sig)
         # wait until the graceful timeout
+        quick_shutdown = not graceful
         while (self.WORKERS or self.dirty_arbiter_pid) and time.time() < limit:
+            # Check for SIGINT/SIGQUIT to trigger quick shutdown
+            if not quick_shutdown:
+                try:
+                    pending_sig = self.SIG_QUEUE.get_nowait()
+                    if pending_sig in (signal.SIGINT, signal.SIGQUIT):
+                        self.log.info("Quick shutdown requested")
+                        quick_shutdown = True
+                        self.kill_workers(signal.SIGQUIT)
+                        if self.dirty_arbiter_pid:
+                            self.kill_dirty_arbiter(signal.SIGQUIT)
+                        # Give workers a short time to exit cleanly
+                        limit = time.time() + 2.0
+                except Exception:
+                    pass
             self.reap_workers()
             self.reap_dirty_arbiter()
             time.sleep(0.1)

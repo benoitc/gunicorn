@@ -36,6 +36,7 @@ class ASGIWorker(base.Worker):
         self.nr_conns = 0
         self.lifespan = None
         self.state = {}  # Shared state for lifespan
+        self._quick_shutdown = False  # True for SIGINT/SIGQUIT (immediate), False for SIGTERM (graceful)
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -122,7 +123,11 @@ class ASGIWorker(base.Worker):
         self.loop.add_signal_handler(signal.SIGABRT, self.handle_abort_signal)
 
     def handle_quit_signal(self):
-        """Handle SIGQUIT - immediate shutdown."""
+        """Handle SIGQUIT/SIGINT - immediate shutdown."""
+        self._quick_shutdown = True
+        if not self.alive:
+            # Already shutting down (SIGTERM was sent) - wake up the loop
+            return
         self.alive = False
         self.cfg.worker_int(self)
 
@@ -221,23 +226,32 @@ class ASGIWorker(base.Worker):
         for server in self.servers:
             server.close()
 
-        # Wait for servers to close
-        for server in self.servers:
-            await server.wait_closed()
+        # Wait for servers to close (skip on quick shutdown)
+        if not self._quick_shutdown:
+            for server in self.servers:
+                if self._quick_shutdown:
+                    break
+                try:
+                    await asyncio.wait_for(server.wait_closed(), timeout=0.5)
+                except asyncio.TimeoutError:
+                    pass  # Check _quick_shutdown on next iteration
 
-        # Wait for in-flight connections (with timeout)
-        graceful_timeout = self.cfg.graceful_timeout
-        if self.nr_conns > 0:
+        # Wait for in-flight connections (skip on quick shutdown)
+        if self.nr_conns > 0 and not self._quick_shutdown:
+            graceful_timeout = self.cfg.graceful_timeout
             self.log.info("Waiting for %d connections to finish...", self.nr_conns)
             deadline = self.loop.time() + graceful_timeout
             while self.nr_conns > 0 and self.loop.time() < deadline:
+                if self._quick_shutdown:
+                    self.log.info("Quick shutdown requested")
+                    break
                 await asyncio.sleep(0.1)
 
             if self.nr_conns > 0:
-                self.log.warning("Closing %d connections after timeout", self.nr_conns)
+                self.log.warning("Forcing close of %d connections", self.nr_conns)
 
-        # Run lifespan shutdown
-        if self.lifespan:
+        # Run lifespan shutdown (skip on quick shutdown)
+        if self.lifespan and not self._quick_shutdown:
             try:
                 await self.lifespan.shutdown()
             except Exception as e:
@@ -263,11 +277,19 @@ class ASGIWorker(base.Worker):
             for task in pending:
                 task.cancel()
 
-            # Run loop until all tasks are cancelled
+            # Run loop until all tasks are cancelled (with timeout on quick exit)
             if pending:
-                self.loop.run_until_complete(
-                    asyncio.gather(*pending, return_exceptions=True)
-                )
+                gather = asyncio.gather(*pending, return_exceptions=True)
+                if self._quick_shutdown:
+                    # Quick exit - don't wait long for tasks to cancel
+                    try:
+                        self.loop.run_until_complete(
+                            asyncio.wait_for(gather, timeout=1.0)
+                        )
+                    except asyncio.TimeoutError:
+                        self.log.debug("Timeout waiting for tasks to cancel")
+                else:
+                    self.loop.run_until_complete(gather)
 
             self.loop.close()
         except Exception as e:
