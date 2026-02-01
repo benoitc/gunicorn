@@ -86,7 +86,8 @@ theme:
     - search.share
     - toc.follow
     - toc.integrate
-    - header.autohide
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
   - search
