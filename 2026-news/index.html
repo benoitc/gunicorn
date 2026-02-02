@@ -1285,6 +1285,56 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2501-2026-02-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.0.1 - 2026-02-02
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="25.0.1 - 2026-02-02">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2500-2026-02-01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1308,7 +1358,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes" class="md-nav__link">
+  <a href="#bug-fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1330,7 +1380,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes" class="md-nav__link">
+  <a href="#changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1358,7 +1408,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_1" class="md-nav__link">
+  <a href="#bug-fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1397,7 +1447,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_2" class="md-nav__link">
+  <a href="#bug-fixes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1447,7 +1497,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_1" class="md-nav__link">
+  <a href="#changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1940,6 +1990,25 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
+<h2 id="2501-2026-02-02">25.0.1 - 2026-02-02<a class="headerlink" href="#2501-2026-02-02" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fix ASGI streaming responses (SSE) hanging: add chunked transfer encoding for
+  HTTP/1.1 responses without Content-Length header. Without chunked encoding,
+  clients wait for connection close to determine end-of-response.</li>
+</ul>
+<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Update celery_alternative example to use FastAPI with native ASGI worker and
+  uvloop for async task execution</li>
+</ul>
+<h3 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add ASGI compliance test suite with Docker-based integration tests covering HTTP,
+  WebSocket, streaming, lifespan, framework integration (Starlette, FastAPI),
+  HTTP/2, and concurrency scenarios</li>
+</ul>
+<hr />
 <h2 id="2500-2026-02-01">25.0.0 - 2026-02-01<a class="headerlink" href="#2500-2026-02-01" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1998,7 +2067,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3467">PR #3467</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix HTTP/2 ALPN negotiation for gevent and eventlet workers when
@@ -2031,14 +2100,14 @@
   Gunicorn 26.0. Eventlet itself is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>.
   Please migrate to <code>gevent</code>, <code>gthread</code>, or another supported worker type.</li>
 </ul>
-<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Remove obsolete Makefile targets
   (<a href="https://github.com/benoitc/gunicorn/pull/3471">PR #3471</a>)</li>
 </ul>
 <hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix <code>forwarded_allow_ips</code> and <code>proxy_allow_ips</code> to remain as strings for backward
   compatibility with external tools like uvicorn. Network validation now uses strict
@@ -2084,7 +2153,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3447">PR #3447</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix signal handling regression where SIGCLD alias caused "Unhandled signal: cld"
@@ -2174,7 +2243,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3445">PR #3445</a>)</p>
 </li>
 </ul>
-<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Documentation now hosted at <a href="https://gunicorn.org">https://gunicorn.org</a></li>
 <li>Updated license configuration to PEP 639 format for uv compatibility</li>
