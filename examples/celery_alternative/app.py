@@ -1,22 +1,28 @@
 """
-Web Application - Flask app demonstrating Celery replacement.
+Web Application - FastAPI app demonstrating Celery replacement.
 
-This shows how to call dirty arbiter tasks from your web application,
-replacing Celery's task.delay() and task.apply_async() patterns.
+This shows how to call dirty arbiter tasks from your web application
+using the async API, which doesn't block the event loop.
+
+Key difference from sync (Flask/gthread):
+- `await client.execute_async()` is non-blocking
+- A single worker can handle many concurrent requests
+- True async I/O - other requests proceed while waiting for task results
 """
 
 import json
-import os
-from flask import Flask, request, jsonify, Response, stream_with_context
+from contextlib import asynccontextmanager
 
-from gunicorn.dirty import get_dirty_client
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from gunicorn.dirty import get_dirty_client_async
 from gunicorn.dirty.errors import (
     DirtyError,
     DirtyTimeoutError,
-    DirtyAppNotFoundError,
 )
 
-app = Flask(__name__)
 
 # Task worker import paths (like Celery task names)
 EMAIL_WORKER = "examples.celery_alternative.tasks:EmailWorker"
@@ -25,48 +31,115 @@ DATA_WORKER = "examples.celery_alternative.tasks:DataWorker"
 SCHEDULED_WORKER = "examples.celery_alternative.tasks:ScheduledWorker"
 
 
-def get_client():
-    """Get the dirty client for calling task workers."""
-    return get_dirty_client()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan - startup and shutdown."""
+    yield
+
+
+app = FastAPI(
+    title="Celery Replacement Demo",
+    description="Demonstrating Gunicorn dirty arbiters as Celery replacement with async ASGI",
+    lifespan=lifespan,
+)
+
+
+# ============================================================================
+# Request/Response Models
+# ============================================================================
+
+class EmailRequest(BaseModel):
+    to: str
+    subject: str
+    body: str
+    html: bool = False
+
+
+class BulkEmailRequest(BaseModel):
+    recipients: list[str]
+    subject: str
+    body: str
+
+
+class ImageResizeRequest(BaseModel):
+    image_data: str = ""
+    width: int = 800
+    height: int = 600
+
+
+class ThumbnailRequest(BaseModel):
+    image_data: str = ""
+    size: int = 150
+
+
+class ImageBatchRequest(BaseModel):
+    images: list[dict]
+    operation: str = "resize"
+    width: int = 800
+    height: int = 600
+    size: int = 150
+
+
+class AggregateRequest(BaseModel):
+    data: list[dict]
+    group_by: str
+    agg_field: str
+    agg_func: str = "sum"
+
+
+class ETLRequest(BaseModel):
+    source_data: list[dict]
+    transformations: list[dict] = []
+
+
+class QueryRequest(BaseModel):
+    query_key: str
+    ttl: int = 300
+
+
+class CleanupRequest(BaseModel):
+    directory: str = "/tmp"
+    max_age_days: int = 7
+
+
+class SyncRequest(BaseModel):
+    source: str = "default"
 
 
 # ============================================================================
 # Email Tasks - Like Celery email tasks
 # ============================================================================
 
-@app.route("/api/email/send", methods=["POST"])
-def send_email():
+@app.post("/api/email/send")
+async def send_email(data: EmailRequest):
     """
     Send a single email.
 
     Celery equivalent:
         send_email.delay(to, subject, body)
 
-    Request:
-        POST /api/email/send
-        {"to": "user@example.com", "subject": "Hello", "body": "World"}
+    With async dirty client, this doesn't block the event loop!
+    Other requests can be handled while waiting for the task.
     """
-    data = request.get_json()
-
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             EMAIL_WORKER,
             "send_email",
-            to=data["to"],
-            subject=data["subject"],
-            body=data["body"],
-            html=data.get("html", False),
+            to=data.to,
+            subject=data.subject,
+            body=data.body,
+            html=data.html,
         )
-        return jsonify(result)
+        return result
     except DirtyTimeoutError:
-        return jsonify({"error": "Task timed out"}), 504
+        raise HTTPException(status_code=504, detail="Task timed out")
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/email/send-bulk", methods=["POST"])
-def send_bulk_emails():
+@app.post("/api/email/send-bulk")
+async def send_bulk_emails(data: BulkEmailRequest):
     """
     Send bulk emails with streaming progress.
 
@@ -76,30 +149,24 @@ def send_bulk_emails():
             print(result.info)  # Progress polling
 
     With dirty arbiters, progress is streamed in real-time!
-
-    Request:
-        POST /api/email/send-bulk
-        {"recipients": ["a@x.com", "b@x.com"], "subject": "Hi", "body": "Hello"}
     """
-    data = request.get_json()
-
-    def generate():
+    async def generate():
         try:
-            client = get_client()
-            for progress in client.stream(
+            client = await get_dirty_client_async()
+            async for progress in client.stream_async(
                 EMAIL_WORKER,
                 "send_bulk_emails",
-                recipients=data["recipients"],
-                subject=data["subject"],
-                body=data["body"],
+                recipients=data.recipients,
+                subject=data.subject,
+                body=data.body,
             ):
                 yield f"data: {json.dumps(progress)}\n\n"
         except DirtyError as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
@@ -107,315 +174,246 @@ def send_bulk_emails():
     )
 
 
-@app.route("/api/email/stats")
-def email_stats():
+@app.get("/api/email/stats")
+async def email_stats():
     """Get email worker statistics."""
     try:
-        client = get_client()
-        result = client.execute(EMAIL_WORKER, "stats")
-        return jsonify(result)
+        client = await get_dirty_client_async()
+        result = await client.execute_async(EMAIL_WORKER, "stats")
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
 # Image Tasks - Like Celery image processing tasks
 # ============================================================================
 
-@app.route("/api/image/resize", methods=["POST"])
-def resize_image():
+@app.post("/api/image/resize")
+async def resize_image(data: ImageResizeRequest):
     """
     Resize an image.
 
     Celery equivalent:
         resize_image.delay(image_data, width, height)
-
-    Request:
-        POST /api/image/resize
-        {"image_data": "base64...", "width": 800, "height": 600}
     """
-    data = request.get_json()
-
-    # Keep image_data as string (base64 encoded) for JSON serialization
-    image_data = data.get("image_data", "")
-
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             IMAGE_WORKER,
             "resize",
-            image_data=image_data,
-            width=data.get("width", 800),
-            height=data.get("height", 600),
+            image_data=data.image_data,
+            width=data.width,
+            height=data.height,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/image/thumbnail", methods=["POST"])
-def generate_thumbnail():
+@app.post("/api/image/thumbnail")
+async def generate_thumbnail(data: ThumbnailRequest):
     """Generate a thumbnail."""
-    data = request.get_json()
-    image_data = data.get("image_data", "")
-
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             IMAGE_WORKER,
             "generate_thumbnail",
-            image_data=image_data,
-            size=data.get("size", 150),
+            image_data=data.image_data,
+            size=data.size,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/image/process-batch", methods=["POST"])
-def process_image_batch():
+@app.post("/api/image/process-batch")
+async def process_image_batch(data: ImageBatchRequest):
     """
     Process multiple images with progress streaming.
-
-    Request:
-        POST /api/image/process-batch
-        {
-            "images": [{"id": "img1", "data": "..."}, ...],
-            "operation": "resize",
-            "width": 800,
-            "height": 600
-        }
     """
-    data = request.get_json()
-
-    def generate():
+    async def generate():
         try:
-            client = get_client()
-            for progress in client.stream(
+            client = await get_dirty_client_async()
+            async for progress in client.stream_async(
                 IMAGE_WORKER,
                 "process_batch",
-                images=data["images"],
-                operation=data.get("operation", "resize"),
-                width=data.get("width", 800),
-                height=data.get("height", 600),
-                size=data.get("size", 150),
+                images=data.images,
+                operation=data.operation,
+                width=data.width,
+                height=data.height,
+                size=data.size,
             ):
                 yield f"data: {json.dumps(progress)}\n\n"
         except DirtyError as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
     )
 
 
-@app.route("/api/image/stats")
-def image_stats():
+@app.get("/api/image/stats")
+async def image_stats():
     """Get image worker statistics."""
     try:
-        client = get_client()
-        result = client.execute(IMAGE_WORKER, "stats")
-        return jsonify(result)
+        client = await get_dirty_client_async()
+        result = await client.execute_async(IMAGE_WORKER, "stats")
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
 # Data Tasks - Like Celery data processing tasks
 # ============================================================================
 
-@app.route("/api/data/aggregate", methods=["POST"])
-def aggregate_data():
+@app.post("/api/data/aggregate")
+async def aggregate_data(data: AggregateRequest):
     """
     Aggregate data.
 
     Celery equivalent:
         aggregate_data.delay(data, group_by, agg_field, agg_func)
-
-    Request:
-        POST /api/data/aggregate
-        {
-            "data": [{"category": "A", "value": 10}, ...],
-            "group_by": "category",
-            "agg_field": "value",
-            "agg_func": "sum"
-        }
     """
-    data = request.get_json()
-
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             DATA_WORKER,
             "aggregate",
-            data=data["data"],
-            group_by=data["group_by"],
-            agg_field=data["agg_field"],
-            agg_func=data.get("agg_func", "sum"),
+            data=data.data,
+            group_by=data.group_by,
+            agg_field=data.agg_field,
+            agg_func=data.agg_func,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/data/etl", methods=["POST"])
-def run_etl():
+@app.post("/api/data/etl")
+async def run_etl(data: ETLRequest):
     """
     Run ETL pipeline with streaming progress.
 
     Celery equivalent:
         chain(extract.s(), transform.s(), load.s()).apply_async()
-
-    Request:
-        POST /api/data/etl
-        {
-            "source_data": [...],
-            "transformations": [
-                {"name": "filter_active", "type": "filter", "field": "status", "value": "active"},
-                {"name": "uppercase_name", "type": "map", "field": "name", "func": "upper"}
-            ]
-        }
     """
-    data = request.get_json()
-
-    def generate():
+    async def generate():
         try:
-            client = get_client()
-            for progress in client.stream(
+            client = await get_dirty_client_async()
+            async for progress in client.stream_async(
                 DATA_WORKER,
                 "etl_pipeline",
-                source_data=data["source_data"],
-                transformations=data.get("transformations", []),
+                source_data=data.source_data,
+                transformations=data.transformations,
             ):
                 yield f"data: {json.dumps(progress)}\n\n"
         except DirtyError as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
     )
 
 
-@app.route("/api/data/query", methods=["POST"])
-def cached_query():
-    """
-    Execute a cached query.
-
-    Request:
-        POST /api/data/query
-        {"query_key": "sales_2024", "ttl": 300}
-    """
-    data = request.get_json()
-
+@app.post("/api/data/query")
+async def cached_query(data: QueryRequest):
+    """Execute a cached query."""
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             DATA_WORKER,
             "cached_query",
-            query_key=data["query_key"],
-            ttl=data.get("ttl", 300),
+            query_key=data.query_key,
+            ttl=data.ttl,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/data/stats")
-def data_stats():
+@app.get("/api/data/stats")
+async def data_stats():
     """Get data worker statistics."""
     try:
-        client = get_client()
-        result = client.execute(DATA_WORKER, "stats")
-        return jsonify(result)
+        client = await get_dirty_client_async()
+        result = await client.execute_async(DATA_WORKER, "stats")
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
 # Scheduled Tasks - Like Celery Beat tasks
 # ============================================================================
 
-@app.route("/api/scheduled/cleanup", methods=["POST"])
-def run_cleanup():
-    """
-    Run cleanup task (normally triggered by cron).
-
-    Request:
-        POST /api/scheduled/cleanup
-        {"directory": "/tmp/uploads", "max_age_days": 7}
-    """
-    data = request.get_json() or {}
-
+@app.post("/api/scheduled/cleanup")
+async def run_cleanup(data: CleanupRequest = CleanupRequest()):
+    """Run cleanup task (normally triggered by cron)."""
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             SCHEDULED_WORKER,
             "cleanup_old_files",
-            directory=data.get("directory", "/tmp"),
-            max_age_days=data.get("max_age_days", 7),
+            directory=data.directory,
+            max_age_days=data.max_age_days,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/scheduled/daily-report", methods=["POST"])
-def run_daily_report():
+@app.post("/api/scheduled/daily-report")
+async def run_daily_report():
     """Generate daily report."""
     try:
-        client = get_client()
-        result = client.execute(SCHEDULED_WORKER, "generate_daily_report")
-        return jsonify(result)
+        client = await get_dirty_client_async()
+        result = await client.execute_async(SCHEDULED_WORKER, "generate_daily_report")
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/scheduled/sync", methods=["POST"])
-def run_sync():
-    """
-    Sync external data.
-
-    Request:
-        POST /api/scheduled/sync
-        {"source": "external_api"}
-    """
-    data = request.get_json() or {}
-
+@app.post("/api/scheduled/sync")
+async def run_sync(data: SyncRequest = SyncRequest()):
+    """Sync external data."""
     try:
-        client = get_client()
-        result = client.execute(
+        client = await get_dirty_client_async()
+        result = await client.execute_async(
             SCHEDULED_WORKER,
             "sync_external_data",
-            source=data.get("source", "default"),
+            source=data.source,
         )
-        return jsonify(result)
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.route("/api/scheduled/stats")
-def scheduled_stats():
+@app.get("/api/scheduled/stats")
+async def scheduled_stats():
     """Get scheduled worker statistics."""
     try:
-        client = get_client()
-        result = client.execute(SCHEDULED_WORKER, "stats")
-        return jsonify(result)
+        client = await get_dirty_client_async()
+        result = await client.execute_async(SCHEDULED_WORKER, "stats")
+        return result
     except DirtyError as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
 # Health & Info Endpoints
 # ============================================================================
 
-@app.route("/")
-def index():
+@app.get("/")
+async def index():
     """API documentation."""
-    return jsonify({
+    return {
         "name": "Celery Replacement Demo",
-        "description": "Demonstrating Gunicorn dirty arbiters as Celery replacement",
+        "description": "Demonstrating Gunicorn dirty arbiters as Celery replacement (async ASGI)",
+        "docs": "/docs",
         "endpoints": {
             "email": {
                 "POST /api/email/send": "Send single email",
@@ -441,20 +439,19 @@ def index():
                 "GET /api/scheduled/stats": "Scheduled worker stats",
             },
         },
-    })
+    }
 
 
-@app.route("/health")
-def health():
+@app.get("/health")
+async def health():
     """Health check endpoint."""
     try:
-        client = get_client()
+        client = await get_dirty_client_async()
         # Quick ping to verify workers are running
-        client.execute(EMAIL_WORKER, "stats")
-        return jsonify({"status": "healthy", "workers": "connected"})
+        await client.execute_async(EMAIL_WORKER, "stats")
+        return {"status": "healthy", "workers": "connected"}
     except DirtyError:
-        return jsonify({"status": "degraded", "workers": "unavailable"}), 503
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=8000)
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "degraded", "workers": "unavailable"}
+        )

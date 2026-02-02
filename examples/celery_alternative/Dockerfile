@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir /gunicorn-src
 
 # Copy example application
 COPY examples/celery_alternative /app
-RUN pip install --no-cache-dir flask
+RUN pip install --no-cache-dir fastapi uvloop requests pytest
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
@@ -31,7 +31,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/gunicorn-src
 ENV GUNICORN_BIND=0.0.0.0:8000
 ENV GUNICORN_WORKERS=4
-ENV GUNICORN_THREADS=4
 ENV DIRTY_WORKERS=9
 ENV DIRTY_TIMEOUT=300
 ENV LOG_LEVEL=info
