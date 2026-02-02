@@ -1,0 +1,53 @@
+FROM python:3.12-slim
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the gunicorn source code and install it with all extras
+COPY . /gunicorn-src/
+RUN pip install --no-cache-dir /gunicorn-src/[http2,testing]
+
+# Install additional ASGI frameworks for testing
+RUN pip install --no-cache-dir \
+    starlette>=0.35.0 \
+    fastapi>=0.109.0 \
+    websockets>=12.0
+
+# Copy the test applications
+COPY tests/docker/asgi_compliance/apps /app/apps
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+if [ "$USE_SSL" = "1" ]; then\n\
+    exec gunicorn "apps.main_app:app" \\\n\
+        --bind "0.0.0.0:8443" \\\n\
+        --worker-class "asgi" \\\n\
+        --workers 2 \\\n\
+        --worker-connections 1000 \\\n\
+        --certfile "/certs/server.crt" \\\n\
+        --keyfile "/certs/server.key" \\\n\
+        --log-level "debug" \\\n\
+        --access-logfile "-" \\\n\
+        --error-logfile "-"\n\
+else\n\
+    exec gunicorn "apps.main_app:app" \\\n\
+        --bind "0.0.0.0:8000" \\\n\
+        --worker-class "asgi" \\\n\
+        --workers 2 \\\n\
+        --worker-connections 1000 \\\n\
+        --log-level "debug" \\\n\
+        --access-logfile "-" \\\n\
+        --error-logfile "-"\n\
+fi\n\
+' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+EXPOSE 8000 8443
+
+CMD ["/app/entrypoint.sh"]

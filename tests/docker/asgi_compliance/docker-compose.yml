@@ -1,0 +1,64 @@
+services:
+  gunicorn-asgi:
+    build:
+      context: ../../../
+      dockerfile: tests/docker/asgi_compliance/Dockerfile.gunicorn
+    ports:
+      - "8000:8000"   # HTTP
+      - "8443:8443"   # HTTPS
+    volumes:
+      - ./certs:/certs:ro
+      - ./apps:/app/apps:ro
+    environment:
+      - GUNICORN_CERTFILE=/certs/server.crt
+      - GUNICORN_KEYFILE=/certs/server.key
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',8000)); s.close()"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  gunicorn-asgi-ssl:
+    build:
+      context: ../../../
+      dockerfile: tests/docker/asgi_compliance/Dockerfile.gunicorn
+    ports:
+      - "8445:8443"
+    volumes:
+      - ./certs:/certs:ro
+      - ./apps:/app/apps:ro
+    environment:
+      - GUNICORN_CERTFILE=/certs/server.crt
+      - GUNICORN_KEYFILE=/certs/server.key
+      - USE_SSL=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl,socket; s=socket.socket(); s.settimeout(2); ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE; ss=ctx.wrap_socket(s,server_hostname='localhost'); ss.connect(('localhost',8443)); ss.close()"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  nginx-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "8080:8080"   # HTTP proxy
+      - "8444:8444"   # HTTPS proxy
+    volumes:
+      - ./certs:/certs:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gunicorn-asgi:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+networks:
+  default:
+    driver: bridge
