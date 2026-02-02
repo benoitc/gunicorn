@@ -2,12 +2,16 @@
 Gunicorn Configuration - Celery Replacement Example
 
 This configuration sets up:
-1. HTTP workers (gthread) to handle web requests
+1. ASGI workers to handle web requests with async I/O (using uvloop)
 2. Dirty workers to handle background tasks (replacing Celery workers)
 
+Why ASGI + Dirty Arbiters?
+- ASGI: Non-blocking HTTP handling - one worker handles many concurrent requests
+- Dirty: Stateful background workers - keep models/connections loaded in memory
+
 Comparison with Celery deployment:
-- Celery: gunicorn app:app + celery -A tasks worker
-- Dirty: gunicorn -c gunicorn_conf.py app:app (single command!)
+- Celery: gunicorn app:app + celery -A tasks worker + redis-server
+- Dirty: gunicorn -c gunicorn_conf.py app:app (single command, no broker!)
 """
 
 import multiprocessing
@@ -21,14 +25,18 @@ import os
 bind = os.environ.get("GUNICORN_BIND", "0.0.0.0:8000")
 
 # HTTP workers - handle incoming web requests
-# Rule of thumb: 2-4 x CPU cores for I/O bound apps
-workers = int(os.environ.get("GUNICORN_WORKERS", multiprocessing.cpu_count() * 2 + 1))
+# With ASGI, fewer workers needed since each handles many concurrent requests
+workers = int(os.environ.get("GUNICORN_WORKERS", min(4, multiprocessing.cpu_count() + 1)))
 
-# Use gthread worker for better concurrency
-worker_class = "gthread"
+# Use gunicorn's native ASGI worker for async support
+# This enables: await client.execute_async() without blocking
+worker_class = "asgi"
 
-# Threads per worker - good for I/O bound operations
-threads = int(os.environ.get("GUNICORN_THREADS", 4))
+# Use uvloop for better async performance
+asgi_loop = "uvloop"
+
+# Maximum concurrent connections per worker
+worker_connections = 1000
 
 # =============================================================================
 # Dirty Arbiter Settings (Celery Worker Replacement)
@@ -96,6 +104,7 @@ def on_starting(server):
     """Called just before the master process is initialized."""
     print("=" * 60)
     print("Starting Gunicorn with Dirty Arbiters (Celery Replacement)")
+    print("Using ASGI workers with uvloop for non-blocking HTTP handling")
     print("=" * 60)
 
 

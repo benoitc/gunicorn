@@ -207,6 +207,7 @@ class ASGIProtocol(asyncio.Protocol):
         response_started = False
         response_complete = False
         exc_to_raise = None
+        use_chunked = False
 
         # Response tracking for access logging
         response_status = 500
@@ -232,7 +233,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
-            nonlocal response_status, response_headers, response_sent
+            nonlocal response_status, response_headers, response_sent, use_chunked
 
             msg_type = message["type"]
 
@@ -250,6 +251,19 @@ class ASGIProtocol(asyncio.Protocol):
                 response_started = True
                 response_status = message["status"]
                 response_headers = message.get("headers", [])
+
+                # Check if Content-Length is present
+                has_content_length = any(
+                    (name.lower() if isinstance(name, str) else name.lower()) == b"content-length"
+                    or (name.lower() if isinstance(name, str) else name.lower()) == "content-length"
+                    for name, _ in response_headers
+                )
+
+                # Use chunked encoding for HTTP/1.1 streaming responses without Content-Length
+                if not has_content_length and request.version >= (1, 1):
+                    use_chunked = True
+                    response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
+
                 await self._send_response_start(response_status, response_headers, request)
 
             elif msg_type == "http.response.body":
@@ -264,10 +278,13 @@ class ASGIProtocol(asyncio.Protocol):
                 more_body = message.get("more_body", False)
 
                 if body:
-                    await self._send_body(body)
+                    await self._send_body(body, chunked=use_chunked)
                     response_sent += len(body)
 
                 if not more_body:
+                    if use_chunked:
+                        # Send terminal chunk
+                        self.transport.write(b"0\r\n\r\n")
                     response_complete = True
 
         # Build environ for logging
@@ -476,10 +493,15 @@ class ASGIProtocol(asyncio.Protocol):
         response = status_line + "".join(header_lines) + "\r\n"
         self.transport.write(response.encode("latin-1"))
 
-    async def _send_body(self, body):
+    async def _send_body(self, body, chunked=False):
         """Send response body chunk."""
         if body:
-            self.transport.write(body)
+            if chunked:
+                # Chunked encoding: size in hex + CRLF + data + CRLF
+                chunk = f"{len(body):x}\r\n".encode("latin-1") + body + b"\r\n"
+                self.transport.write(chunk)
+            else:
+                self.transport.write(body)
 
     async def _send_error_response(self, status, message):
         """Send an error response."""

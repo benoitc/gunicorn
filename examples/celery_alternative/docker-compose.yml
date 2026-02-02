@@ -18,7 +18,6 @@ services:
       - "8000:8000"
     environment:
       - GUNICORN_WORKERS=4
-      - GUNICORN_THREADS=4
       - DIRTY_WORKERS=9
       - DIRTY_TIMEOUT=300
       - LOG_LEVEL=info
