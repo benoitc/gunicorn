@@ -602,6 +602,12 @@ class Request(Message):
                 raise InvalidRequestMethod(self.method)
             if not 3 <= len(bits[0]) <= 20:
                 raise InvalidRequestMethod(self.method)
+            # this restriction mitigates the failure to validate authority-form below
+            # ! do not remove simply because cfg.permit_unconventional_http_method is removed
+            if self.method == "CONNECT":
+                # BUG: method is not necessarily invalid, merely unsupported
+                # TODO: improve once Worker.handle_error is refactored
+                raise InvalidRequestMethod(self.method)
         # standard restriction: RFC9110 token
         if not TOKEN_RE.fullmatch(self.method):
             raise InvalidRequestMethod(self.method)
