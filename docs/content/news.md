@@ -14,6 +14,12 @@
 - Update celery_alternative example to use FastAPI with native ASGI worker and
   uvloop for async task execution
 
+### Testing
+
+- Add ASGI compliance test suite with Docker-based integration tests covering HTTP,
+  WebSocket, streaming, lifespan, framework integration (Starlette, FastAPI),
+  HTTP/2, and concurrency scenarios
+
 ---
 
 ## 25.0.0 - 2026-02-01
