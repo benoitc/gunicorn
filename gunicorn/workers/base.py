@@ -193,8 +193,9 @@ class Worker:
         sys.exit(0)
 
     def handle_abort(self, sig, frame):
-        self.alive = False
         self.cfg.worker_abort(self)
+        time.sleep(0.1)
+        self.alive = False
         sys.exit(1)
 
     def handle_error(self, req, client, addr, exc):
