@@ -722,10 +722,12 @@ class TestDirtyArbiterOrphanCleanup:
         arbiter.cfg.set('dirty_apps', ['test:app'])
 
         pidfile_path = '/tmp/gunicorn-dirty-test.pid'
+        # Note: DirtyArbiter is now lazily imported in spawn_dirty_arbiter(),
+        # so we mock it in gunicorn.dirty where it's defined
         with mock.patch.object(arbiter, '_cleanup_orphaned_dirty_arbiter'), \
              mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile_path), \
-             mock.patch('gunicorn.arbiter.DirtyArbiter') as mock_dirty_arbiter, \
-             mock.patch('gunicorn.arbiter.set_dirty_socket_path'):
+             mock.patch('gunicorn.dirty.DirtyArbiter') as mock_dirty_arbiter, \
+             mock.patch('gunicorn.dirty.set_dirty_socket_path'):
             mock_arbiter_instance = mock.Mock()
             mock_arbiter_instance.socket_path = '/tmp/test.sock'
             mock_dirty_arbiter.return_value = mock_arbiter_instance
