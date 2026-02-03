@@ -68,7 +68,6 @@ operation will continue until the worker is killed by the arbiter.
 """
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import inspect
 import os
 import signal
@@ -227,6 +226,9 @@ class DirtyWorker:
 
     def run(self):
         """Run the main asyncio event loop."""
+        # Lazy import for gevent compatibility (see #3482)
+        from concurrent.futures import ThreadPoolExecutor
+
         # Create thread pool for executing app actions
         num_threads = self.cfg.dirty_threads
         self._executor = ThreadPoolExecutor(

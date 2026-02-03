@@ -16,7 +16,8 @@ from gunicorn.pidfile import Pidfile
 from gunicorn import sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
-from gunicorn.dirty import DirtyArbiter, set_dirty_socket_path
+
+# gunicorn.dirty is imported lazily in spawn_dirty_arbiter() for gevent compatibility
 
 
 class Arbiter:
@@ -809,6 +810,9 @@ class Arbiter:
         The dirty arbiter manages a separate pool of workers for
         long-running, blocking operations.
         """
+        # Lazy import for gevent compatibility (see #3482)
+        from gunicorn.dirty import DirtyArbiter, set_dirty_socket_path
+
         if self.dirty_arbiter_pid:
             return  # Already running
 
