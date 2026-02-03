@@ -2849,6 +2849,31 @@ class ASGILifespan(Setting):
         """
 
 
+class ASGIDisconnectGracePeriod(Setting):
+    name = "asgi_disconnect_grace_period"
+    section = "Worker Processes"
+    cli = ["--asgi-disconnect-grace-period"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 3
+    desc = """\
+        Grace period (seconds) for ASGI apps to handle client disconnects.
+
+        When a client disconnects, the ASGI app receives an http.disconnect
+        message and has this many seconds to clean up resources (like database
+        connections) before the request task is cancelled.
+
+        Set to 0 to cancel immediately (not recommended for apps with async
+        database connections). Apps with long-running database operations may
+        need to increase this value.
+
+        This setting only affects the ``asgi`` worker type.
+
+        .. versionadded:: 25.0.0
+        """
+
+
 class RootPath(Setting):
     name = "root_path"
     section = "Server Mechanics"

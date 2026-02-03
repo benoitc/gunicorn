@@ -55,6 +55,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         # Connection state
         self._closed = False
+        self._receive_queue = None  # Set per-request for disconnect signaling
 
     def connection_made(self, transport):
         """Called when a connection is established."""
@@ -88,11 +89,42 @@ class ASGIProtocol(asyncio.Protocol):
             self.reader.feed_data(data)
 
     def connection_lost(self, exc):
-        """Called when the connection is lost or closed."""
+        """Called when the connection is lost or closed.
+
+        Instead of immediately cancelling the task, we signal a disconnect
+        event and send an http.disconnect message to the receive queue.
+        This allows the ASGI app to clean up resources (like database
+        connections) gracefully before the task is cancelled.
+
+        See: https://github.com/benoitc/gunicorn/issues/3484
+        """
+        # Guard against multiple calls (idempotent)
+        if self._closed:
+            return
+
         self._closed = True
         self.worker.nr_conns -= 1
         if self.reader:
             self.reader.feed_eof()
+
+        # Signal disconnect to the app via the receive queue
+        if self._receive_queue is not None:
+            self._receive_queue.put_nowait({"type": "http.disconnect"})
+
+        # Schedule task cancellation after grace period if task doesn't complete
+        if self._task and not self._task.done():
+            grace_period = getattr(self.cfg, 'asgi_disconnect_grace_period', 3)
+            if grace_period > 0:
+                self.worker.loop.call_later(
+                    grace_period,
+                    self._cancel_task_if_pending
+                )
+            else:
+                # Grace period of 0 means cancel immediately
+                self._task.cancel()
+
+    def _cancel_task_if_pending(self):
+        """Cancel the task if it's still pending after grace period."""
         if self._task and not self._task.done():
             self._task.cancel()
 
@@ -214,8 +246,10 @@ class ASGIProtocol(asyncio.Protocol):
         response_headers = []
         response_sent = 0
 
-        # Receive queue for body
+        # Receive queue for body - stored on self for disconnect signaling
         receive_queue = asyncio.Queue()
+        self._receive_queue = receive_queue
+        body_complete = False
 
         # Pre-populate with initial body state
         if request.content_length == 0 and not request.chunked:
@@ -224,16 +258,33 @@ class ASGIProtocol(asyncio.Protocol):
                 "body": b"",
                 "more_body": False,
             })
+            body_complete = True
         else:
             # Start body reading task
             asyncio.create_task(self._read_body_to_queue(request, receive_queue))
 
         async def receive():
-            return await receive_queue.get()
+            nonlocal body_complete
+            # Check if already disconnected before waiting
+            if self._closed and body_complete:
+                return {"type": "http.disconnect"}
+
+            msg = await receive_queue.get()
+
+            # Track when body is complete
+            if msg.get("type") == "http.request" and not msg.get("more_body", True):
+                body_complete = True
+
+            return msg
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked
+
+            # If client disconnected, silently ignore send attempts
+            # This allows apps to finish cleanup without errors
+            if self._closed:
+                return
 
             msg_type = message["type"]
 
@@ -305,6 +356,10 @@ class ASGIProtocol(asyncio.Protocol):
                 await self._send_error_response(500, "Internal Server Error")
                 response_status = 500
 
+        except asyncio.CancelledError:
+            # Client disconnected - don't log as error, this is normal
+            self.log.debug("Request cancelled (client disconnected)")
+            return False
         except Exception:
             self.log.exception("Error in ASGI application")
             if not response_started:
@@ -312,6 +367,9 @@ class ASGIProtocol(asyncio.Protocol):
                 response_status = 500
             return False
         finally:
+            # Clear the receive queue reference
+            self._receive_queue = None
+
             try:
                 request_time = datetime.now() - request_start
                 # Create response info for logging

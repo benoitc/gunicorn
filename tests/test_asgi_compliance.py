@@ -9,9 +9,8 @@ Tests that gunicorn's ASGI implementation conforms to the ASGI 3.0 spec:
 https://asgi.readthedocs.io/en/latest/specs/main.html
 """
 
+import asyncio
 from unittest import mock
-
-import pytest
 
 from gunicorn.config import Config
 
@@ -698,3 +697,109 @@ class TestStateSharing:
         scope = protocol._build_http_scope(request, None, None)
 
         assert "state" not in scope
+
+
+# ============================================================================
+# HTTP Disconnect Event Tests (ASGI Spec Compliance)
+# https://asgi.readthedocs.io/en/latest/specs/www.html#disconnect-receive-event
+# ============================================================================
+
+class TestHTTPDisconnectEvent:
+    """Test http.disconnect event compliance with ASGI spec.
+
+    Per the ASGI HTTP Connection Scope spec:
+    - Disconnect event is sent when client closes connection
+    - Event type MUST be "http.disconnect"
+    - Apps should receive this event and clean up gracefully
+    """
+
+    def _create_protocol(self):
+        """Create an ASGIProtocol instance for testing."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+        worker.nr_conns = 1
+        worker.loop = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        protocol.reader = mock.Mock()
+
+        return protocol
+
+    def test_disconnect_event_type(self):
+        """Test that disconnect event has correct type per ASGI spec."""
+        protocol = self._create_protocol()
+        protocol._receive_queue = asyncio.Queue()
+
+        # Simulate client disconnect
+        protocol.connection_lost(None)
+
+        # Get the message from queue
+        msg = protocol._receive_queue.get_nowait()
+
+        # Per ASGI spec: type MUST be "http.disconnect"
+        assert msg["type"] == "http.disconnect"
+
+    def test_disconnect_event_sent_on_connection_lost(self):
+        """Test that http.disconnect is sent when connection is lost."""
+        protocol = self._create_protocol()
+        protocol._receive_queue = asyncio.Queue()
+
+        assert protocol._receive_queue.empty()
+
+        # Simulate client disconnect
+        protocol.connection_lost(None)
+
+        # Queue should have disconnect message
+        assert not protocol._receive_queue.empty()
+
+    def test_disconnect_sets_closed_flag(self):
+        """Test that connection_lost sets the closed flag."""
+        protocol = self._create_protocol()
+
+        assert protocol._closed is False
+
+        protocol.connection_lost(None)
+
+        assert protocol._closed is True
+
+    def test_disconnect_allows_graceful_cleanup(self):
+        """Test that disconnect doesn't immediately cancel task.
+
+        Per ASGI spec, apps should have opportunity to clean up
+        when they receive http.disconnect.
+        """
+        protocol = self._create_protocol()
+
+        # Create a mock task
+        mock_task = mock.Mock()
+        mock_task.done.return_value = False
+        protocol._task = mock_task
+
+        # Simulate disconnect
+        protocol.connection_lost(None)
+
+        # Task should NOT be cancelled immediately
+        mock_task.cancel.assert_not_called()
+
+        # Cancellation should be scheduled after grace period
+        protocol.worker.loop.call_later.assert_called_once()
+
+    def test_disconnect_message_format(self):
+        """Test http.disconnect message format per ASGI spec.
+
+        The disconnect message should only contain 'type' key.
+        """
+        protocol = self._create_protocol()
+        protocol._receive_queue = asyncio.Queue()
+
+        protocol.connection_lost(None)
+
+        msg = protocol._receive_queue.get_nowait()
+
+        # Per ASGI spec, disconnect message only has 'type'
+        assert msg == {"type": "http.disconnect"}
+        assert len(msg) == 1
