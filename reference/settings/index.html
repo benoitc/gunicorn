@@ -2628,6 +2628,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#asgi_disconnect_grace_period" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        asgi_disconnect_grace_period
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4571,6 +4582,20 @@ or other resources.</p>
 <p>This setting only affects the <code>asgi</code> worker type.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 24.0.0</p>
+</div>
+<h3 id="asgi_disconnect_grace_period"><code>asgi_disconnect_grace_period</code><a class="headerlink" href="#asgi_disconnect_grace_period" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--asgi-disconnect-grace-period INT</code></p>
+<p><strong>Default:</strong> <code>3</code></p>
+<p>Grace period (seconds) for ASGI apps to handle client disconnects.</p>
+<p>When a client disconnects, the ASGI app receives an http.disconnect
+message and has this many seconds to clean up resources (like database
+connections) before the request task is cancelled.</p>
+<p>Set to 0 to cancel immediately (not recommended for apps with async
+database connections). Apps with long-running database operations may
+need to increase this value.</p>
+<p>This setting only affects the <code>asgi</code> worker type.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
 </div>
 
 
