@@ -478,6 +478,8 @@ class Arbiter:
 
     def reload(self):
         old_address = self.cfg.address
+        old_ssl_options = self.cfg.ssl_options
+        old_certificate_mtimes = self.cfg.certificate_mtimes
 
         # reset old environment
         for k in self.cfg.env:
@@ -500,7 +502,11 @@ class Arbiter:
         self.log.reopen_files()
 
         # do we need to change listener ?
-        if old_address != self.cfg.address:
+        if (
+            old_address != self.cfg.address
+            or old_ssl_options != self.cfg.ssl_options
+            or old_certificate_mtimes != self.cfg.certificate_mtimes
+        ):
             # close all listeners
             for lnr in self.LISTENERS:
                 lnr.close()
