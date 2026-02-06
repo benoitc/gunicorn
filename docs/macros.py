@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 from importlib import import_module
 
 def define_env(env):

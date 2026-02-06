@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 """Pytest fixtures for ASGI compliance Docker integration tests."""
 
 import subprocess

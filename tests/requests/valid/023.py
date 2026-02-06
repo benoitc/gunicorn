@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 req1 = {
     "method": "POST",
     "uri": uri("/two_chunks_mult_zero_end"),

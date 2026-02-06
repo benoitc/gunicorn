@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 request = {
     "method": "POST",
     "uri": uri("/test-form"),

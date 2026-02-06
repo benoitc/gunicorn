@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 #!/usr/bin/env python
 # Usage: git log --format="%an <%ae>" | python update_thanks.py
 # You will get a result.txt file, you can work with the file (update, remove, ...)

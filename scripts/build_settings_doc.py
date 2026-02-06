@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 """Generate the Markdown settings reference for MkDocs."""
 from __future__ import annotations
 

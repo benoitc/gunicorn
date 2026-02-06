@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from gunicorn.dirty.client import get_dirty_client

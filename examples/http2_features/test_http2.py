@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 #!/usr/bin/env python
 """
 Test script for HTTP/2 features example.

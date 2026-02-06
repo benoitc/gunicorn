@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 # Gunicorn configuration for HTTP/2 features example
 
 bind = "0.0.0.0:8443"

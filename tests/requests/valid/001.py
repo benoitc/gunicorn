@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 request = {
     "method": "PUT",
     "uri": uri("/stuff/here?foo=bar"),

@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 from pyramid.config import Configurator
 from pyramid.response import Response
 

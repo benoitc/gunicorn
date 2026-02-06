@@ -1,4 +1,8 @@
 #
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
+#
 # An example of how to pass information from the command line to
 # a WSGI app. Only applies to the native WSGI workers used by
 # Gunicorn sync (default) workers.

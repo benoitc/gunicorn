@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 """Test WSGI application for HTTP/2 Docker integration tests."""
 
 import json

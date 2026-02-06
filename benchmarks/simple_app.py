@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 # Simple WSGI app for benchmarking
 
 def application(environ, start_response):

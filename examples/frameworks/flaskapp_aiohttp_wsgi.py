@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 # Example command to run the example:
 #
 #   $ gunicorn flaskapp_aiohttp_wsgi:aioapp -k aiohttp.worker.GunicornWebWorker

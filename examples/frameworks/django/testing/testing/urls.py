@@ -1,3 +1,7 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
 from django.conf.urls import include, url
 
 # Uncomment the next two lines to enable the admin:
