@@ -26,6 +26,7 @@ nav:
   - Community:
       - Overview: community.md
       - FAQ: faq.md
+      - Support Us: sponsor.md
   - Reference:
       - Settings: reference/settings.md
   - News:
@@ -132,3 +133,5 @@ extra:
       link: https://github.com/benoitc/gunicorn
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/gunicorn/
+    - icon: fontawesome/solid/heart
+      link: https://github.com/sponsors/benoitc
