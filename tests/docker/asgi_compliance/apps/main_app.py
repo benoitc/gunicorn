@@ -158,8 +158,7 @@ async def handle_root(scope, receive, send):
         ],
         "lifespan_endpoints": [
             "/lifespan/state", "/lifespan/lifespan-info",
-            "/lifespan/counter", "/lifespan/set-state",
-            "/lifespan/get-state",
+            "/lifespan/counter", "/lifespan/health",
         ],
         "framework_endpoints": [
             "/framework/starlette/*", "/framework/fastapi/*",

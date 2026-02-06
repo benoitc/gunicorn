@@ -27,21 +27,23 @@ set -e\n\
 \n\
 if [ "$USE_SSL" = "1" ]; then\n\
     exec gunicorn "apps.main_app:app" \\\n\
-        --bind "0.0.0.0:8443" \\\n\
+        --bind "[::]:8443" \\\n\
         --worker-class "asgi" \\\n\
         --workers 2 \\\n\
         --worker-connections 1000 \\\n\
         --certfile "/certs/server.crt" \\\n\
         --keyfile "/certs/server.key" \\\n\
+        --asgi-disconnect-grace-period 0 \\\n\
         --log-level "debug" \\\n\
         --access-logfile "-" \\\n\
         --error-logfile "-"\n\
 else\n\
     exec gunicorn "apps.main_app:app" \\\n\
-        --bind "0.0.0.0:8000" \\\n\
+        --bind "[::]:8000" \\\n\
         --worker-class "asgi" \\\n\
         --workers 2 \\\n\
         --worker-connections 1000 \\\n\
+        --asgi-disconnect-grace-period 0 \\\n\
         --log-level "debug" \\\n\
         --access-logfile "-" \\\n\
         --error-logfile "-"\n\

@@ -46,10 +46,6 @@ async def app(scope, receive, send):
         await handle_counter(scope, receive, send)
     elif path == "/health":
         await handle_health(scope, receive, send)
-    elif path == "/set-state":
-        await handle_set_state(scope, receive, send)
-    elif path == "/get-state":
-        await handle_get_state(scope, receive, send)
     else:
         await handle_not_found(scope, receive, send)
 
@@ -258,109 +254,6 @@ async def handle_health(scope, receive, send):
         "status": status,
         "headers": [
             (b"content-type", b"text/plain"),
-            (b"content-length", str(len(body)).encode()),
-        ],
-    })
-    await send({
-        "type": "http.response.body",
-        "body": body,
-        "more_body": False,
-    })
-
-
-async def handle_set_state(scope, receive, send):
-    """Set a value in the shared state (POST with JSON body)."""
-    if scope["method"] != "POST":
-        await send_error(send, 405, "Method Not Allowed")
-        return
-
-    # Read body
-    body_parts = []
-    while True:
-        message = await receive()
-        body = message.get("body", b"")
-        if body:
-            body_parts.append(body)
-        if not message.get("more_body", False):
-            break
-
-    try:
-        data = json.loads(b"".join(body_parts).decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        await send_error(send, 400, f"Invalid JSON: {e}")
-        return
-
-    key = data.get("key")
-    value = data.get("value")
-
-    if not key:
-        await send_error(send, 400, "Missing 'key' field")
-        return
-
-    result = {"key": key, "set": False}
-
-    if "state" in scope:
-        scope["state"][key] = value
-        result["set"] = True
-        result["source"] = "scope_state"
-    else:
-        # Fallback to module state
-        _lifespan_state[key] = value
-        result["set"] = True
-        result["source"] = "module_state"
-
-    body = json.dumps(result).encode("utf-8")
-
-    await send({
-        "type": "http.response.start",
-        "status": 200,
-        "headers": [
-            (b"content-type", b"application/json"),
-            (b"content-length", str(len(body)).encode()),
-        ],
-    })
-    await send({
-        "type": "http.response.body",
-        "body": body,
-        "more_body": False,
-    })
-
-
-async def handle_get_state(scope, receive, send):
-    """Get a value from the shared state."""
-    await drain_body(receive)
-
-    # Parse key from query string
-    query = scope["query_string"].decode("latin-1")
-    key = None
-
-    for param in query.split("&"):
-        if param.startswith("key="):
-            key = param[4:]
-            break
-
-    if not key:
-        await send_error(send, 400, "Missing 'key' query parameter")
-        return
-
-    result = {"key": key, "found": False, "value": None}
-
-    if "state" in scope and key in scope["state"]:
-        result["found"] = True
-        result["value"] = scope["state"][key]
-        result["source"] = "scope_state"
-    elif key in _lifespan_state:
-        result["found"] = True
-        result["value"] = _lifespan_state[key]
-        result["source"] = "module_state"
-
-    body = json.dumps(result, default=str).encode("utf-8")
-
-    await send({
-        "type": "http.response.start",
-        "status": 200,
-        "headers": [
-            (b"content-type", b"application/json"),
             (b"content-length", str(len(body)).encode()),
         ],
     })

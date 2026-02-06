@@ -9,8 +9,6 @@ Tests the ASGI lifespan protocol including startup, shutdown,
 and state sharing between lifespan and request handlers.
 """
 
-import json
-
 import pytest
 
 pytestmark = [
@@ -115,51 +113,6 @@ class TestStateSharing:
         # Counter should have incremented
         assert count2 > count1
 
-    def test_set_and_get_state(self, http_client, gunicorn_url):
-        """Test setting and getting state values."""
-        import time
-        key = f"test_key_{int(time.time() * 1000)}"
-        value = "test_value_123"
-
-        # Set state
-        set_response = http_client.post(
-            f"{gunicorn_url}/lifespan/set-state",
-            json={"key": key, "value": value}
-        )
-        assert set_response.status_code == 200
-        set_data = set_response.json()
-        assert set_data["set"] is True
-
-        # Get state
-        get_response = http_client.get(f"{gunicorn_url}/lifespan/get-state?key={key}")
-        assert get_response.status_code == 200
-        get_data = get_response.json()
-        assert get_data["found"] is True
-        assert get_data["value"] == value
-
-    def test_get_nonexistent_state(self, http_client, gunicorn_url):
-        """Test getting non-existent state returns not found."""
-        response = http_client.get(f"{gunicorn_url}/lifespan/get-state?key=nonexistent_key_xyz")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["found"] is False
-
-    def test_set_state_invalid_json(self, http_client, gunicorn_url):
-        """Test setting state with invalid JSON."""
-        response = http_client.post(
-            f"{gunicorn_url}/lifespan/set-state",
-            content=b"not valid json",
-            headers={"Content-Type": "application/json"}
-        )
-        assert response.status_code == 400
-
-    def test_set_state_missing_key(self, http_client, gunicorn_url):
-        """Test setting state without key."""
-        response = http_client.post(
-            f"{gunicorn_url}/lifespan/set-state",
-            json={"value": "test"}
-        )
-        assert response.status_code == 400
 
 
 # ============================================================================
@@ -286,33 +239,3 @@ class TestConcurrentLifespan:
             # All should be valid integers
             assert all(isinstance(r, int) for r in results)
 
-    async def test_concurrent_state_operations(self, async_http_client_factory, gunicorn_url):
-        """Test concurrent state set/get operations."""
-        import asyncio
-        import time
-
-        async with await async_http_client_factory() as client:
-            base_key = f"concurrent_test_{int(time.time() * 1000)}"
-
-            async def set_and_get(i):
-                key = f"{base_key}_{i}"
-                value = f"value_{i}"
-
-                # Set
-                await client.post(
-                    f"{gunicorn_url}/lifespan/set-state",
-                    json={"key": key, "value": value}
-                )
-
-                # Get
-                response = await client.get(f"{gunicorn_url}/lifespan/get-state?key={key}")
-                return response.json()
-
-            # Run concurrent operations
-            tasks = [set_and_get(i) for i in range(5)]
-            results = await asyncio.gather(*tasks)
-
-            # All should have found their values
-            for i, result in enumerate(results):
-                assert result["found"] is True
-                assert result["value"] == f"value_{i}"

@@ -10,6 +10,7 @@ and dispatch to ASGI applications.
 """
 
 import asyncio
+import errno
 from datetime import datetime
 
 from gunicorn.asgi.unreader import AsyncUnreader
@@ -127,6 +128,25 @@ class ASGIProtocol(asyncio.Protocol):
         """Cancel the task if it's still pending after grace period."""
         if self._task and not self._task.done():
             self._task.cancel()
+
+    def _safe_write(self, data):
+        """Write data to transport, handling connection errors gracefully.
+
+        Catches exceptions that occur when the client has disconnected:
+        - OSError with errno EPIPE, ECONNRESET, ENOTCONN
+        - RuntimeError when transport is closing/closed
+        - AttributeError when transport is None
+
+        These are silently ignored since the client is already gone.
+        """
+        try:
+            self.transport.write(data)
+        except OSError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                self.log.exception("Socket error writing response.")
+        except (RuntimeError, AttributeError):
+            # Transport is closing/closed or None
+            pass
 
     async def _handle_connection(self):
         """Main request handling loop for this connection."""
@@ -335,7 +355,7 @@ class ASGIProtocol(asyncio.Protocol):
                 if not more_body:
                     if use_chunked:
                         # Send terminal chunk
-                        self.transport.write(b"0\r\n\r\n")
+                        self._safe_write(b"0\r\n\r\n")
                     response_complete = True
 
         # Build environ for logging
@@ -418,6 +438,12 @@ class ASGIProtocol(asyncio.Protocol):
         for name, value in request.headers:
             headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
 
+        # ASGI spec requires server/client to be (host, port) tuples
+        # IPv6 sockname/peername can be 4-tuples (host, port, flowinfo, scope_id)
+        # so we extract just the first two elements
+        server = tuple(sockname[:2]) if sockname else None
+        client = tuple(peername[:2]) if peername else None
+
         scope = {
             "type": "http",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
@@ -429,8 +455,8 @@ class ASGIProtocol(asyncio.Protocol):
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
-            "server": sockname if sockname else None,
-            "client": peername if peername else None,
+            "server": server,
+            "client": client,
         }
 
         # Add state dict for lifespan sharing
@@ -480,6 +506,10 @@ class ASGIProtocol(asyncio.Protocol):
                 subprotocols = [s.strip() for s in value.split(",")]
                 break
 
+        # ASGI spec requires server/client to be (host, port) tuples
+        server = tuple(sockname[:2]) if sockname else None
+        client = tuple(peername[:2]) if peername else None
+
         scope = {
             "type": "websocket",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
@@ -490,8 +520,8 @@ class ASGIProtocol(asyncio.Protocol):
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
-            "server": sockname if sockname else None,
-            "client": peername if peername else None,
+            "server": server,
+            "client": client,
             "subprotocols": subprotocols,
         }
 
@@ -527,7 +557,7 @@ class ASGIProtocol(asyncio.Protocol):
             response += f"{name}: {value}\r\n"
 
         response += "\r\n"
-        self.transport.write(response.encode("latin-1"))
+        self._safe_write(response.encode("latin-1"))
 
     async def _send_response_start(self, status, headers, request):
         """Send HTTP response status and headers."""
@@ -549,7 +579,7 @@ class ASGIProtocol(asyncio.Protocol):
         header_lines.append("Server: gunicorn/asgi\r\n")
 
         response = status_line + "".join(header_lines) + "\r\n"
-        self.transport.write(response.encode("latin-1"))
+        self._safe_write(response.encode("latin-1"))
 
     async def _send_body(self, body, chunked=False):
         """Send response body chunk."""
@@ -557,9 +587,9 @@ class ASGIProtocol(asyncio.Protocol):
             if chunked:
                 # Chunked encoding: size in hex + CRLF + data + CRLF
                 chunk = f"{len(body):x}\r\n".encode("latin-1") + body + b"\r\n"
-                self.transport.write(chunk)
+                self._safe_write(chunk)
             else:
-                self.transport.write(body)
+                self._safe_write(body)
 
     async def _send_error_response(self, status, message):
         """Send an error response."""
@@ -571,8 +601,8 @@ class ASGIProtocol(asyncio.Protocol):
             f"Connection: close\r\n"
             f"\r\n"
         )
-        self.transport.write(response.encode("latin-1"))
-        self.transport.write(body)
+        self._safe_write(response.encode("latin-1"))
+        self._safe_write(body)
 
     def _get_reason_phrase(self, status):
         """Get HTTP reason phrase for status code."""
@@ -614,9 +644,16 @@ class ASGIProtocol(asyncio.Protocol):
         return reasons.get(status, "Unknown")
 
     def _close_transport(self):
-        """Close the transport safely."""
+        """Close the transport safely.
+
+        Calls write_eof() first if supported to signal end of writing,
+        which helps ensure buffered data is flushed before closing.
+        """
         if self.transport and not self._closed:
             try:
+                # Signal end of writing to help flush buffers
+                if self.transport.can_write_eof():
+                    self.transport.write_eof()
                 self.transport.close()
             except Exception:
                 pass
@@ -852,6 +889,10 @@ class ASGIProtocol(asyncio.Protocol):
                 value.encode("latin-1")
             ))
 
+        # ASGI spec requires server/client to be (host, port) tuples
+        server = tuple(sockname[:2]) if sockname else None
+        client = tuple(peername[:2]) if peername else None
+
         scope = {
             "type": "http",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
@@ -863,8 +904,8 @@ class ASGIProtocol(asyncio.Protocol):
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
-            "server": sockname if sockname else None,
-            "client": peername if peername else None,
+            "server": server,
+            "client": client,
         }
 
         if hasattr(self.worker, 'state'):
