@@ -50,9 +50,8 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
         os.close(fd)
         return
 
-    sock = socket.fromfd(fd, family, socket.SOCK_STREAM)
+    sock = socket.socket(family, socket.SOCK_STREAM, fileno=fd)
     try:
-        os.close(fd)
         sock.settimeout(cfg_dict.get('timeout', 30))
 
         cfg = types.SimpleNamespace(**cfg_dict)
