@@ -20,6 +20,16 @@ from gunicorn.http.errors import NoMoreData
 from gunicorn.uwsgi.errors import UWSGIParseException
 
 
+def _normalize_sockaddr(sockaddr):
+    """Normalize socket address to ASGI-compatible (host, port) tuple.
+
+    ASGI spec requires server/client to be (host, port) tuples.
+    IPv6 sockets return 4-tuples (host, port, flowinfo, scope_id),
+    so we extract just the first two elements.
+    """
+    return tuple(sockaddr[:2]) if sockaddr else None
+
+
 class ASGIResponseInfo:
     """Simple container for ASGI response info for access logging."""
 
@@ -438,11 +448,8 @@ class ASGIProtocol(asyncio.Protocol):
         for name, value in request.headers:
             headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
 
-        # ASGI spec requires server/client to be (host, port) tuples
-        # IPv6 sockname/peername can be 4-tuples (host, port, flowinfo, scope_id)
-        # so we extract just the first two elements
-        server = tuple(sockname[:2]) if sockname else None
-        client = tuple(peername[:2]) if peername else None
+        server = _normalize_sockaddr(sockname)
+        client = _normalize_sockaddr(peername)
 
         scope = {
             "type": "http",
@@ -506,9 +513,8 @@ class ASGIProtocol(asyncio.Protocol):
                 subprotocols = [s.strip() for s in value.split(",")]
                 break
 
-        # ASGI spec requires server/client to be (host, port) tuples
-        server = tuple(sockname[:2]) if sockname else None
-        client = tuple(peername[:2]) if peername else None
+        server = _normalize_sockaddr(sockname)
+        client = _normalize_sockaddr(peername)
 
         scope = {
             "type": "websocket",
@@ -889,9 +895,8 @@ class ASGIProtocol(asyncio.Protocol):
                 value.encode("latin-1")
             ))
 
-        # ASGI spec requires server/client to be (host, port) tuples
-        server = tuple(sockname[:2]) if sockname else None
-        client = tuple(peername[:2]) if peername else None
+        server = _normalize_sockaddr(sockname)
+        client = _normalize_sockaddr(peername)
 
         scope = {
             "type": "http",
