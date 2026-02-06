@@ -248,7 +248,7 @@ class Config:
         for e in raw_global_conf:
             s = util.bytes_to_str(e)
             try:
-                k, v = re.split(r'(?<!\\)=', s, 1)
+                k, v = re.split(r'(?<!\\)=', s, maxsplit=1)
             except ValueError:
                 raise RuntimeError("environment setting %r invalid" % s)
             k = k.replace('\\=', '=')
