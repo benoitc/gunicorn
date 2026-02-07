@@ -15,7 +15,7 @@ from . import base
 def _check_interpreter_pool_available():
     """Check if InterpreterPoolExecutor is available (Python 3.14+)."""
     try:
-        from concurrent.futures import InterpreterPoolExecutor  # noqa: F401
+        from concurrent.futures import InterpreterPoolExecutor  # noqa: F401  # pylint: disable=unused-import
         return True
     except ImportError:
         return False
@@ -54,7 +54,7 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     try:
         sock.settimeout(cfg_dict.get('timeout', 30))
 
-        cfg = types.SimpleNamespace(**cfg_dict)
+        cfg = types.SimpleNamespace(**cfg_dict)  # pylint: disable=not-a-mapping
         cfg.forwarded_allow_networks = lambda: []
         cfg.proxy_allow_networks = lambda: []
 
@@ -102,7 +102,7 @@ class InterpreterWorker(base.Worker):
                 f"Current version: {sys.version_info.major}.{sys.version_info.minor}"
             )
 
-        from concurrent.futures import InterpreterPoolExecutor
+        from concurrent.futures import InterpreterPoolExecutor  # pylint: disable=no-name-in-module
 
         self.cfg_dict = self._extract_config()
 
