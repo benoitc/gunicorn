@@ -1331,6 +1331,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2503-2026-02-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.0.3 - 2026-02-07
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="25.0.3 - 2026-02-07">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2502-2026-02-06" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1343,7 +1371,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes" class="md-nav__link">
+  <a href="#bug-fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1382,7 +1410,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_1" class="md-nav__link">
+  <a href="#bug-fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1443,7 +1471,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_2" class="md-nav__link">
+  <a href="#bug-fixes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1493,7 +1521,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_3" class="md-nav__link">
+  <a href="#bug-fixes_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1532,7 +1560,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_4" class="md-nav__link">
+  <a href="#bug-fixes_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -2170,8 +2198,21 @@
 
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="2502-2026-02-06">25.0.2 - 2026-02-06<a class="headerlink" href="#2502-2026-02-06" title="Permanent link">&para;</a></h2>
+<h2 id="2503-2026-02-07">25.0.3 - 2026-02-07<a class="headerlink" href="#2503-2026-02-07" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Fix RuntimeError when StopIteration is raised inside ASGI response body
+  coroutine (PEP 479 compliance)</p>
+</li>
+<li>
+<p>Fix deprecation warning for passing maxsplit as positional argument in
+  <code>re.split()</code> (Python 3.13+)</p>
+</li>
+</ul>
+<hr />
+<h2 id="2502-2026-02-06">25.0.2 - 2026-02-06<a class="headerlink" href="#2502-2026-02-06" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix ASGI concurrent request failures through nginx proxy by normalizing
@@ -2204,7 +2245,7 @@
 </ul>
 <hr />
 <h2 id="2501-2026-02-02">25.0.1 - 2026-02-02<a class="headerlink" href="#2501-2026-02-02" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix ASGI streaming responses (SSE) hanging: add chunked transfer encoding for
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
@@ -2280,7 +2321,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3467">PR #3467</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix HTTP/2 ALPN negotiation for gevent and eventlet workers when
@@ -2323,7 +2364,7 @@
 </ul>
 <hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix <code>forwarded_allow_ips</code> and <code>proxy_allow_ips</code> to remain as strings for backward
   compatibility with external tools like uvicorn. Network validation now uses strict
@@ -2363,7 +2404,7 @@
   imported modules, not just those loaded at startup</p>
 </li>
 </ul>
-<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix signal handling regression where SIGCLD alias caused errors on Linux</li>
 <li>Fix socket blocking mode on keepalive connections with async workers</li>
