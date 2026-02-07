@@ -117,10 +117,8 @@ title: Gunicorn - Python WSGI HTTP Server
 <section class="sponsors">
   <div class="container">
     <h2>Support</h2>
-    <p>gunicorn has been serving Python web applications since 2010. If it's running in your production stack and saving your team time and money, please consider supporting its continued development.</p>
-    <p>Your sponsorship helps cover security updates, compatibility with new Python versions, bug fixes, and documentation maintenance.</p>
-    <p><strong>Corporate sponsors:</strong> If gunicorn is part of your infrastructure, <a href="mailto:benoitc@enki-multimedia.eu">reach out</a> for sponsored support options.</p>
-    <a class="btn btn--secondary" href="https://github.com/sponsors/benoitc">Become a Sponsor</a>
+    <p>Powering Python apps since 2010. Support continued development.</p>
+    <a class="btn btn--secondary" href="sponsor/">Become a Sponsor</a>
   </div>
 </section>
 
