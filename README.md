@@ -59,17 +59,9 @@ Full documentation at https://gunicorn.org
 
 ## Support
 
-gunicorn has been serving Python web applications since 2010. If it's running in your production stack and saving your team time and money, please consider supporting its continued development:
+Powering Python apps since 2010. Support continued development.
 
-[![Sponsor](https://img.shields.io/badge/sponsor-❤-ff69b4)](https://github.com/sponsors/benoitc)
-
-Your sponsorship helps cover:
-- Security updates and vulnerability responses
-- Compatibility with new Python versions
-- Bug fixes and performance improvements
-- Documentation maintenance
-
-**Corporate sponsors:** If gunicorn is part of your infrastructure, [reach out](mailto:benoitc@enki-multimedia.eu) for sponsored support options.
+[![Become a Sponsor](https://img.shields.io/badge/Become_a_Sponsor-❤-ff69b4)](https://gunicorn.org/sponsor/)
 
 ## License
 
