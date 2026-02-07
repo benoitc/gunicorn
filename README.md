@@ -1,5 +1,12 @@
 # Gunicorn
 
+<p align="center">
+  <strong>Gunicorn is maintained by volunteers. If it powers your production, please consider supporting us:</strong><br>
+  <a href="https://github.com/sponsors/benoitc"><img src="https://img.shields.io/badge/GitHub_Sponsors-❤-ea4aaa?style=for-the-badge&logo=github" alt="GitHub Sponsors"></a>
+  <a href="https://opencollective.com/gunicorn"><img src="https://img.shields.io/badge/Open_Collective-Support-7FADF2?style=for-the-badge&logo=opencollective" alt="Open Collective"></a>
+  <a href="https://checkout.revolut.com/pay/c934e028-3a71-44eb-b99c-491342df2044"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
+</p>
+
 [![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.python.org/pypi/gunicorn)
 [![Build Status](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml)
