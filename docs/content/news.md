@@ -1,6 +1,18 @@
 <span id="news"></span>
 # Changelog
 
+## 25.0.3 - 2026-02-07
+
+### Bug Fixes
+
+- Fix RuntimeError when StopIteration is raised inside ASGI response body
+  coroutine (PEP 479 compliance)
+
+- Fix deprecation warning for passing maxsplit as positional argument in
+  `re.split()` (Python 3.13+)
+
+---
+
 ## 25.0.2 - 2026-02-06
 
 ### Bug Fixes
