@@ -7,6 +7,7 @@
 import errno
 import os
 import select
+import time
 import sys
 
 from . import base
@@ -196,7 +197,18 @@ class InterpreterWorker(base.Worker):
                 if e.errno != errno.EINTR:
                     raise
 
-        self.executor.shutdown(wait=True)
+        for listener in self.sockets:
+            listener.close()
+
+        graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
+        while self.nr_conns > 0:
+            self.notify()
+            time_remaining = graceful_timeout - time.monotonic()
+            if time_remaining <= 0:
+                break
+            time.sleep(min(time_remaining, 1.0))
+
+        self.executor.shutdown(wait=False)
 
     def handle_quit(self, sig, frame):
         self.executor.shutdown(wait=False)
