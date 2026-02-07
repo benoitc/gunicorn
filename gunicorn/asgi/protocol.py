@@ -186,9 +186,6 @@ class ASGIProtocol(asyncio.Protocol):
                             peername,
                             self.req_count
                         )
-                except StopIteration:
-                    # No more data, close connection
-                    break
                 except NoMoreData:
                     # Client disconnected
                     break

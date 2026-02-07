@@ -139,7 +139,7 @@ class AsyncRequest:
     async def _parse(self):
         """Parse the request from the unreader."""
         buf = bytearray()
-        await self._read_into(buf, stop=True)
+        await self._read_into(buf)
 
         # Handle proxy protocol if enabled and this is the first request
         mode = self.cfg.proxy_protocol
@@ -174,12 +174,10 @@ class AsyncRequest:
 
         self._set_body_reader()
 
-    async def _read_into(self, buf, stop=False):
+    async def _read_into(self, buf):
         """Read data from unreader and append to bytearray buffer."""
         data = await self.unreader.read()
         if not data:
-            if stop:
-                raise StopIteration()
             raise NoMoreData(bytes(buf))
         buf.extend(data)
 
