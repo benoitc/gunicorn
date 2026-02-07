@@ -10,6 +10,7 @@ import select
 import time
 import sys
 
+from gunicorn.config import NewSSLContext
 from . import base
 
 
@@ -25,6 +26,7 @@ def _check_interpreter_pool_available():
 _interpreter_state = {
     'wsgi_app': None,
     'cfg_dict': None,
+    'ssl_context': None,
 }
 
 
@@ -35,10 +37,24 @@ def _init_interpreter(cfg_dict, app_uri):
     _interpreter_state['cfg_dict'] = cfg_dict
     _interpreter_state['wsgi_app'] = import_app(app_uri)
 
+    if cfg_dict.get('is_ssl'):
+        import ssl
+        context = ssl.create_default_context(
+            ssl.Purpose.CLIENT_AUTH, cafile=cfg_dict.get('ca_certs')
+        )
+        context.load_cert_chain(
+            certfile=cfg_dict['certfile'], keyfile=cfg_dict.get('keyfile')
+        )
+        context.verify_mode = cfg_dict.get('cert_reqs', ssl.CERT_NONE)
+        if cfg_dict.get('ciphers'):
+            context.set_ciphers(cfg_dict['ciphers'])
+        _interpreter_state['ssl_context'] = context
+
 
 def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     """Handle a single HTTP request in a sub-interpreter."""
     import socket
+    import ssl
     import types
 
     from gunicorn.http.parser import RequestParser
@@ -53,6 +69,17 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
 
     sock = socket.socket(family, socket.SOCK_STREAM, fileno=fd)
     try:
+        ssl_context = _interpreter_state['ssl_context']
+        if ssl_context is not None:
+            sock = ssl_context.wrap_socket(
+                sock,
+                server_side=True,
+                suppress_ragged_eofs=cfg_dict.get('suppress_ragged_eofs', True),
+                do_handshake_on_connect=cfg_dict.get('do_handshake_on_connect', True),
+            )
+            if not cfg_dict.get('do_handshake_on_connect', True):
+                sock.do_handshake()
+
         sock.settimeout(cfg_dict.get('timeout', 30))
 
         cfg = types.SimpleNamespace(**cfg_dict)  # pylint: disable=not-a-mapping
@@ -83,6 +110,9 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
 
     except socket.timeout:
         pass
+    except ssl.SSLError as e:
+        if e.args[0] != ssl.SSL_ERROR_EOF:
+            raise
     except OSError as e:
         if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
             raise
@@ -109,6 +139,13 @@ class InterpreterWorker(base.Worker):
             )
 
         from concurrent.futures import InterpreterPoolExecutor  # pylint: disable=no-name-in-module
+
+        if self.cfg.is_ssl and self.cfg.ssl_context is not NewSSLContext.ssl_context:
+            self.log.warning(
+                "ssl_context hook is not supported with ginterpreter worker "
+                "because callables cannot be shared across sub-interpreters. "
+                "The hook will be ignored; SSL context is created from config values only."
+            )
 
         self.cfg_dict = self._extract_config()
 
@@ -145,6 +182,13 @@ class InterpreterWorker(base.Worker):
             'proxy_protocol': cfg.proxy_protocol,
             'proxy_allow_ips': list(cfg.proxy_allow_ips),
             'is_ssl': cfg.is_ssl,
+            'certfile': cfg.certfile,
+            'keyfile': cfg.keyfile,
+            'ca_certs': cfg.ca_certs,
+            'cert_reqs': cfg.cert_reqs,
+            'ciphers': cfg.ciphers,
+            'suppress_ragged_eofs': cfg.suppress_ragged_eofs,
+            'do_handshake_on_connect': cfg.do_handshake_on_connect,
             'sendfile': cfg.sendfile,
             'workers': cfg.workers,
             'errorlog': cfg.errorlog,
