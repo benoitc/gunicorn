@@ -95,6 +95,11 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
 class InterpreterWorker(base.Worker):
     """Worker using InterpreterPoolExecutor for true parallelism."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.nr_conns = 0
+        self.pending_futures = set()
+
     def init_process(self):
         if not _check_interpreter_pool_available():
             raise RuntimeError(
@@ -150,11 +155,22 @@ class InterpreterWorker(base.Worker):
         fd = client.fileno()
         family = client.family
         server = listener.getsockname()
-        self.executor.submit(
+        self.nr_conns += 1
+        future = self.executor.submit(
             _handle_request_in_interpreter,
             fd, addr, server, family,
         )
+        future.add_done_callback(self._on_request_complete)
+        self.pending_futures.add(future)
         client.detach()
+
+    def _on_request_complete(self, future):
+        self.pending_futures.discard(future)
+        self.nr_conns -= 1
+        try:
+            future.result()
+        except Exception as e:
+            self.log.exception("Request failed in sub-interpreter")
 
     def run(self):
         for listener in self.sockets:
