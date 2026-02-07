@@ -253,12 +253,6 @@
   box-shadow: none;
 }
 
-.md-typeset .hero__version {
-  font-weight: 700;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
 .md-typeset .hero__logo {
   height: 72px;
   margin-bottom: 1.5rem;
