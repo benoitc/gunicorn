@@ -32,6 +32,9 @@ _interpreter_state = {
 
 def _init_interpreter(cfg_dict, app_uri):
     """Initialize the interpreter with WSGI app and config."""
+    import types
+
+    from gunicorn.glogging import Logger
     from gunicorn.util import import_app
 
     _interpreter_state['cfg_dict'] = cfg_dict
@@ -50,22 +53,31 @@ def _init_interpreter(cfg_dict, app_uri):
             context.set_ciphers(cfg_dict['ciphers'])
         _interpreter_state['ssl_context'] = context
 
+    cfg_ns = types.SimpleNamespace(**cfg_dict)
+    _interpreter_state['log'] = Logger(cfg_ns)
+
 
 def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     """Handle a single HTTP request in a sub-interpreter."""
     import socket
     import ssl
     import types
+    from datetime import datetime
 
     from gunicorn.http.parser import RequestParser
     from gunicorn.http.wsgi import create
 
     cfg_dict = _interpreter_state['cfg_dict']
     wsgi_app = _interpreter_state['wsgi_app']
+    log = _interpreter_state['log']
 
     if cfg_dict is None or wsgi_app is None:
         os.close(fd)
         return
+
+    request_start = datetime.now()
+    resp = None
+    environ = None
 
     sock = socket.socket(family, socket.SOCK_STREAM, fileno=fd)
     try:
@@ -117,6 +129,12 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
         if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
             raise
     finally:
+        try:
+            if resp is not None and environ is not None:
+                request_time = datetime.now() - request_start
+                log.access(resp, req, environ, request_time)
+        except Exception:
+            pass
         try:
             sock.close()
         except Exception:
@@ -191,8 +209,24 @@ class InterpreterWorker(base.Worker):
             'do_handshake_on_connect': cfg.do_handshake_on_connect,
             'sendfile': cfg.sendfile,
             'workers': cfg.workers,
-            'errorlog': cfg.errorlog,
             'timeout': cfg.timeout,
+            # logging
+            'accesslog': cfg.accesslog,
+            'access_log_format': cfg.access_log_format,
+            'errorlog': cfg.errorlog,
+            'loglevel': cfg.loglevel,
+            'capture_output': False,
+            'syslog': cfg.syslog,
+            'syslog_addr': cfg.syslog_addr,
+            'syslog_prefix': cfg.syslog_prefix,
+            'syslog_facility': cfg.syslog_facility,
+            'disable_redirect_access_to_syslog': cfg.disable_redirect_access_to_syslog,
+            'logconfig': cfg.logconfig,
+            'logconfig_dict': cfg.logconfig_dict,
+            'logconfig_json': cfg.logconfig_json,
+            'user': cfg.user,
+            'group': cfg.group,
+            'proc_name': cfg.proc_name,
         }
 
     def accept(self, listener):
