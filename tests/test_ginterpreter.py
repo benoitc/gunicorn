@@ -5,6 +5,7 @@
 """Tests for the ginterpreter worker."""
 
 import os
+import ssl
 from unittest import mock
 
 import pytest
@@ -46,7 +47,7 @@ class TestInterpreterWorker:
         worker.executor.shutdown.assert_called_once_with(wait=False)
 
 
-class TestAccept:
+class TestHandleRequest:
 
     def test_submit_to_executor(self):
         worker = _create_worker()
@@ -66,3 +67,80 @@ class TestAccept:
             7, ('127.0.0.1', 8000), ('0.0.0.0', 9000), 2,
         )
         mock_client.detach.assert_called_once()
+
+
+    @mock.patch('gunicorn.http.wsgi.create')
+    @mock.patch('gunicorn.http.parser.RequestParser')
+    @mock.patch('socket.socket')
+    def test_handle_request(self, mock_socket_cls, mock_parser_cls, mock_create):
+        mock_sock = mock.Mock()
+        mock_socket_cls.return_value = mock_sock
+
+        mock_req = mock.Mock()
+        mock_parser_cls.return_value = iter([mock_req])
+
+        mock_resp = mock.Mock()
+        mock_environ = {'wsgi.multithread': False, 'wsgi.multiprocess': False}
+        mock_create.return_value = (mock_resp, mock_environ)
+
+        mock_wsgi_app = mock.Mock(return_value=[b'response'])
+
+        cfg = ginterpreter._config_from_dict({
+            'timeout': 30,
+            'forwarded_allow_ips': [],
+            'proxy_allow_ips': [],
+        })
+        ginterpreter._interpreter_state = ginterpreter.InterpreterState(
+            cfg=cfg,
+            ssl_context=None,
+            wsgi_app=mock_wsgi_app,
+            log=mock.Mock(),
+        )
+
+        ginterpreter._handle_request_in_interpreter(
+            7, ('127.0.0.1', 8000), ('0.0.0.0', 9000), 2
+        )
+
+        mock_socket_cls.assert_called_once_with(2, mock.ANY, fileno=7)
+        mock_sock.settimeout.assert_called_once_with(30)
+        mock_wsgi_app.assert_called_once()
+
+
+class TestSSL:
+
+    @mock.patch('socket.socket')
+    def test_handle_request_wraps_socket_with_ssl(self, mock_socket_cls):
+        mock_sock = mock.Mock()
+        mock_socket_cls.return_value = mock_sock
+
+        mock_ssl_ctx = mock.Mock()
+        mock_wrapped = mock.Mock()
+        mock_ssl_ctx.wrap_socket.return_value = mock_wrapped
+        mock_wrapped.settimeout = mock.Mock()
+
+        cfg = ginterpreter._config_from_dict({
+            'suppress_ragged_eofs': True,
+            'do_handshake_on_connect': True,
+            'timeout': 30,
+            'forwarded_allow_ips': [],
+            'proxy_allow_ips': [],
+        })
+        ginterpreter._interpreter_state = ginterpreter.InterpreterState(
+            cfg=cfg,
+            ssl_context=mock_ssl_ctx,
+            wsgi_app=mock.Mock(),
+            log=mock.Mock(),
+        )
+
+        with mock.patch('gunicorn.http.parser.RequestParser') as mock_parser:
+            mock_parser.return_value = iter([])
+            ginterpreter._handle_request_in_interpreter(
+                7, ('127.0.0.1', 8000), ('0.0.0.0', 9000), 2
+            )
+
+        mock_ssl_ctx.wrap_socket.assert_called_once_with(
+            mock_sock,
+            server_side=True,
+            suppress_ragged_eofs=True,
+            do_handshake_on_connect=True,
+        )

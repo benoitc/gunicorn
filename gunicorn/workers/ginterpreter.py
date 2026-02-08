@@ -81,9 +81,9 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     from gunicorn.http.parser import RequestParser
     from gunicorn.http.wsgi import create
 
-    cfg = _interpreter_state['cfg']
-    wsgi_app = _interpreter_state['wsgi_app']
-    log = _interpreter_state['log']
+    cfg = _interpreter_state.cfg
+    wsgi_app = _interpreter_state.wsgi_app
+    log = _interpreter_state.log
 
     if cfg is None or wsgi_app is None:
         os.close(fd)
@@ -95,7 +95,7 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
 
     sock = socket.socket(family, socket.SOCK_STREAM, fileno=fd)
     try:
-        ssl_context = _interpreter_state.get('ssl_context')
+        ssl_context = _interpreter_state.ssl_context
         if ssl_context is not None:
             sock = ssl_context.wrap_socket(
                 sock,
