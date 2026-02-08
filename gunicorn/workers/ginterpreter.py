@@ -10,7 +10,7 @@ import select
 import time
 import sys
 
-from gunicorn.config import NewSSLContext
+from gunicorn.config import NewSSLContext, PreRequest, PostRequest
 from . import base
 
 
@@ -159,10 +159,21 @@ class InterpreterWorker(base.Worker):
         from concurrent.futures import InterpreterPoolExecutor  # pylint: disable=no-name-in-module
 
         if self.cfg.is_ssl and self.cfg.ssl_context is not NewSSLContext.ssl_context:
-            self.log.warning(
+            raise NotImplementedError(
                 "ssl_context hook is not supported with ginterpreter worker "
-                "because callables cannot be shared across sub-interpreters. "
-                "The hook will be ignored; SSL context is created from config values only."
+                "because callables cannot be shared across sub-interpreters."
+            )
+
+        if self.cfg.pre_request is not PreRequest.pre_request:
+            raise NotImplementedError(
+                "pre_request hook is not supported with ginterpreter worker "
+                "because callables cannot be shared across sub-interpreters."
+            )
+
+        if self.cfg.post_request is not PostRequest.post_request:
+            raise NotImplementedError(
+                "post_request hook is not supported with ginterpreter worker "
+                "because callables cannot be shared across sub-interpreters."
             )
 
         self.cfg_dict = self._extract_config()
