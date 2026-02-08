@@ -265,6 +265,7 @@ class Response:
         self.sock = sock
         self.version = SERVER
         self.status = None
+        self.status_code = None
         self.chunked = False
         self.must_close = False
         self.headers = []
@@ -278,15 +279,20 @@ class Response:
         self.must_close = True
 
     def should_close(self):
-        if self.must_close or self.req.should_close():
+        if self.must_close:
+            # example: worker shutting down
             return True
-        if self.response_length is not None or self.chunked:
-            return False
-        if self.req.method == 'HEAD':
-            return False
-        if self.status_code < 200 or self.status_code in (204, 304):
-            return False
-        return True
+        if self.req.should_close():
+            # example: connection close or upgrade header
+            return True
+        if self.upgrade:
+            # close after the new protocol terminates
+            return True
+        if self.response_length is None and not self.chunked:
+            # close if there is a response body of unknown length
+            # the client cannot otherwise know when the response ends
+            return self.req.method != 'HEAD' and self.status_code not in (204, 304)
+        return False
 
     def start_response(self, status, headers, exc_info=None):
         if exc_info:
