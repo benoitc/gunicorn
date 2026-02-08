@@ -7,11 +7,14 @@
 import errno
 import os
 import select
-import time
+import ssl
 import sys
+import time
+from dataclasses import dataclass
 
-from gunicorn.config import NewSSLContext, PreRequest, PostRequest
-from . import base
+from gunicorn.config import Config, NewSSLContext, PreRequest, PostRequest
+from gunicorn.glogging import Logger
+from gunicorn.workers.base import Worker
 
 
 def _check_interpreter_pool_available():
@@ -20,58 +23,69 @@ def _check_interpreter_pool_available():
         from concurrent.futures import InterpreterPoolExecutor  # noqa: F401  # pylint: disable=unused-import
         return True
     except ImportError:
-        return False
+        raise RuntimeError(
+            "InterpreterPoolExecutor requires Python 3.14+. "
+            f"Current version: {sys.version_info.major}.{sys.version_info.minor}"
+        )
 
 
-_interpreter_state = {
-    'wsgi_app': None,
-    'cfg_dict': None,
-    'ssl_context': None,
-}
+@dataclass
+class InterpreterState:
+    cfg: Config | None = None
+    log: Logger | None = None
+    ssl_context: ssl.SSLContext | None = None
+    wsgi_app: object = None
 
 
-def _init_interpreter(cfg_dict, app_uri):
+_interpreter_state = InterpreterState()
+
+
+def _config_from_dict(cfg_dict: dict) -> Config:
+    cfg = Config()
+    for key, value in cfg_dict.items():
+        if key in cfg.settings:
+            cfg.settings[key].value = value
+    return cfg
+
+
+def _init_interpreter(cfg_dict, app_uri) -> None:
     """Initialize the interpreter with WSGI app and config."""
-    import types
-
-    from gunicorn.glogging import Logger
     from gunicorn.util import import_app
 
-    _interpreter_state['cfg_dict'] = cfg_dict
-    _interpreter_state['wsgi_app'] = import_app(app_uri)
+    cfg = _config_from_dict(cfg_dict)
+    _interpreter_state.cfg = cfg
+    _interpreter_state.wsgi_app = import_app(app_uri)
 
-    if cfg_dict.get('is_ssl'):
+    if cfg.is_ssl:
         import ssl
         context = ssl.create_default_context(
-            ssl.Purpose.CLIENT_AUTH, cafile=cfg_dict.get('ca_certs')
+            ssl.Purpose.CLIENT_AUTH, cafile=cfg.ca_certs
         )
         context.load_cert_chain(
-            certfile=cfg_dict['certfile'], keyfile=cfg_dict.get('keyfile')
+            certfile=cfg.certfile, keyfile=cfg.keyfile
         )
-        context.verify_mode = cfg_dict.get('cert_reqs', ssl.CERT_NONE)
-        if cfg_dict.get('ciphers'):
-            context.set_ciphers(cfg_dict['ciphers'])
-        _interpreter_state['ssl_context'] = context
+        context.verify_mode = cfg.cert_reqs
+        if cfg.ciphers:
+            context.set_ciphers(cfg.ciphers)
+        _interpreter_state.ssl_context = context
 
-    cfg_ns = types.SimpleNamespace(**cfg_dict)
-    _interpreter_state['log'] = Logger(cfg_ns)
+    _interpreter_state.log = Logger(cfg)
 
 
 def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     """Handle a single HTTP request in a sub-interpreter."""
     import socket
     import ssl
-    import types
     from datetime import datetime
 
     from gunicorn.http.parser import RequestParser
     from gunicorn.http.wsgi import create
 
-    cfg_dict = _interpreter_state['cfg_dict']
+    cfg = _interpreter_state['cfg']
     wsgi_app = _interpreter_state['wsgi_app']
     log = _interpreter_state['log']
 
-    if cfg_dict is None or wsgi_app is None:
+    if cfg is None or wsgi_app is None:
         os.close(fd)
         return
 
@@ -81,22 +95,18 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
 
     sock = socket.socket(family, socket.SOCK_STREAM, fileno=fd)
     try:
-        ssl_context = _interpreter_state['ssl_context']
+        ssl_context = _interpreter_state.get('ssl_context')
         if ssl_context is not None:
             sock = ssl_context.wrap_socket(
                 sock,
                 server_side=True,
-                suppress_ragged_eofs=cfg_dict.get('suppress_ragged_eofs', True),
-                do_handshake_on_connect=cfg_dict.get('do_handshake_on_connect', True),
+                suppress_ragged_eofs=cfg.suppress_ragged_eofs,
+                do_handshake_on_connect=cfg.do_handshake_on_connect,
             )
-            if not cfg_dict.get('do_handshake_on_connect', True):
+            if not cfg.do_handshake_on_connect:
                 sock.do_handshake()
 
-        sock.settimeout(cfg_dict.get('timeout', 30))
-
-        cfg = types.SimpleNamespace(**cfg_dict)  # pylint: disable=not-a-mapping
-        cfg.forwarded_allow_networks = lambda: []
-        cfg.proxy_allow_networks = lambda: []
+        sock.settimeout(cfg.timeout)
 
         parser = RequestParser(cfg, sock, client_addr)
         try:
@@ -141,7 +151,7 @@ def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
             pass
 
 
-class InterpreterWorker(base.Worker):
+class InterpreterWorker(Worker):
     """Worker using InterpreterPoolExecutor for true parallelism."""
 
     def __init__(self, *args, **kwargs):
@@ -150,11 +160,7 @@ class InterpreterWorker(base.Worker):
         self.pending_futures = set()
 
     def init_process(self):
-        if not _check_interpreter_pool_available():
-            raise RuntimeError(
-                "InterpreterPoolExecutor requires Python 3.14+. "
-                f"Current version: {sys.version_info.major}.{sys.version_info.minor}"
-            )
+        _check_interpreter_pool_available()
 
         from concurrent.futures import InterpreterPoolExecutor  # pylint: disable=no-name-in-module
 
@@ -193,7 +199,7 @@ class InterpreterWorker(base.Worker):
 
         super().init_process()
 
-    def _extract_config(self):
+    def _extract_config(self) -> dict:
         cfg = self.cfg
         return {
             'limit_request_line': cfg.limit_request_line,
@@ -210,7 +216,6 @@ class InterpreterWorker(base.Worker):
             'secure_scheme_headers': dict(cfg.secure_scheme_headers),
             'proxy_protocol': cfg.proxy_protocol,
             'proxy_allow_ips': list(cfg.proxy_allow_ips),
-            'is_ssl': cfg.is_ssl,
             'certfile': cfg.certfile,
             'keyfile': cfg.keyfile,
             'ca_certs': cfg.ca_certs,
@@ -218,7 +223,7 @@ class InterpreterWorker(base.Worker):
             'ciphers': cfg.ciphers,
             'suppress_ragged_eofs': cfg.suppress_ragged_eofs,
             'do_handshake_on_connect': cfg.do_handshake_on_connect,
-            'sendfile': cfg.sendfile,
+            'sendfile': cfg.settings['sendfile'].value,
             'workers': cfg.workers,
             'timeout': cfg.timeout,
             # logging
@@ -259,7 +264,7 @@ class InterpreterWorker(base.Worker):
         self.nr_conns -= 1
         try:
             future.result()
-        except Exception as e:
+        except Exception:
             self.log.exception("Request failed in sub-interpreter")
 
     def run(self):

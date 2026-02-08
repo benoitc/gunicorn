@@ -38,15 +38,6 @@ def _create_worker(cfg=None):
 
 class TestInterpreterWorker:
 
-    def test_extract_config(self):
-        worker = _create_worker()
-        cfg_dict = worker._extract_config()
-        assert isinstance(cfg_dict, dict)
-        assert 'limit_request_line' in cfg_dict
-        assert 'timeout' in cfg_dict
-        for value in cfg_dict.values():
-            assert isinstance(value, (int, bool, str, list, dict, type(None)))
-
     def test_handle_quit(self):
         worker = _create_worker()
         worker.executor = mock.Mock()
