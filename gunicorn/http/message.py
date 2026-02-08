@@ -255,11 +255,6 @@ class Message:
                         # safe option: nuke it, its never needed
                         if chunked:
                             raise InvalidHeader("TRANSFER-ENCODING", req=self)
-                    elif val.lower() in ('compress', 'deflate', 'gzip'):
-                        # chunked should be the last one
-                        if chunked:
-                            raise InvalidHeader("TRANSFER-ENCODING", req=self)
-                        self.force_close()
                     else:
                         raise UnsupportedTransferCoding(value)
 
