@@ -50,7 +50,7 @@ class TLVEncoder:
     """
 
     @staticmethod
-    def encode(value) -> bytes:
+    def encode(value) -> bytes:  # pylint: disable=too-many-return-statements
         """
         Encode a Python value to TLV binary format.
 
@@ -125,7 +125,7 @@ class TLVEncoder:
         )
 
     @staticmethod
-    def decode(data: bytes, offset: int = 0) -> tuple:
+    def decode(data: bytes, offset: int = 0) -> tuple:  # pylint: disable=too-many-return-statements
         """
         Decode a TLV-encoded value from binary data.
 
