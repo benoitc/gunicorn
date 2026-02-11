@@ -113,11 +113,9 @@ class TLVEncoder:
                 )
             parts = [bytes([TYPE_DICT]), struct.pack(">I", len(value))]
             for k, v in value.items():
-                # Keys must be strings
+                # Convert keys to strings (like JSON)
                 if not isinstance(k, str):
-                    raise DirtyProtocolError(
-                        f"Dict keys must be strings, got {type(k).__name__}"
-                    )
+                    k = str(k)
                 parts.append(TLVEncoder.encode(k))
                 parts.append(TLVEncoder.encode(v))
             return b"".join(parts)

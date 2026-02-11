@@ -307,12 +307,13 @@ class TestTLVEncoderDict:
         value, offset = TLVEncoder.decode(encoded, 0)
         assert value == data
 
-    def test_encode_dict_non_string_key(self):
-        """Test that non-string keys raise error."""
-        data = {1: "value"}
-        with pytest.raises(DirtyProtocolError) as exc_info:
-            TLVEncoder.encode(data)
-        assert "keys must be strings" in str(exc_info.value).lower()
+    def test_encode_dict_non_string_key_converted(self):
+        """Test that non-string keys are converted to strings (like JSON)."""
+        data = {1: "value", 2: "other"}
+        encoded = TLVEncoder.encode(data)
+        decoded, _ = TLVEncoder.decode(encoded, 0)
+        # Keys should be converted to strings
+        assert decoded == {"1": "value", "2": "other"}
 
 
 class TestTLVEncoderComplexStructures:
