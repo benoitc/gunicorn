@@ -1364,12 +1364,24 @@ variable. If it is not defined, the default is ``"127.0.0.1,::1"``.
     }
     ```
 
-    | forwarded-allow-ips | Secure Request Headers                             | Result                          | Explanation                                                                   |
-    | ------------------- | -------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
-    | `"127.0.0.1"`       | `X-Forwarded-Proto: https`                         | `wsgi.url_scheme = "http"`      | IP address was not allowed                                                    |
-    | `"*"`               | `<none>`                                           | `wsgi.url_scheme = "http"`      | IP address allowed, but no secure headers provided                            |
-    | `"*"`               | `X-Forwarded-Proto: https`                         | `wsgi.url_scheme = "https"`     | IP address allowed, one request header matched                                |
-    | `"134.213.44.18"`   | `X-Forwarded-Ssl: on`<br>`X-Forwarded-Proto: http` | `InvalidSchemeHeaders()` raised | IP address allowed, but the two secure headers disagreed on if HTTPS was used |
+    +---------------------+----------------------------+-----------------------------+-------------------------+
+    | forwarded-allow-ips | Secure Request Headers     | Result                      | Explanation             |
+    +=====================+============================+=============================+=========================+
+    | `"127.0.0.1"`       | `X-Forwarded-Proto: https` | `wsgi.url_scheme = "http"`  | IP address was not      |
+    |                     |                            |                             | allowed                 |
+    +---------------------+----------------------------+-----------------------------+-------------------------+
+    |                     |                            |                             | IP address allowed, but |
+    | `"*"`               | `<none>`                   | `wsgi.url_scheme = "http"`  | no secure headers       |
+    |                     |                            |                             | provided                |
+    +---------------------+----------------------------+-----------------------------+-------------------------+
+    | `"*"`               | `X-Forwarded-Proto: https` | `wsgi.url_scheme = "https"` | IP address allowed, one |
+    |                     |                            |                             | request header matched  |
+    +---------------------+----------------------------+-----------------------------+-------------------------+
+    |                     |                            |                             | IP address allowed, but |
+    | `"134.213.44.18"`   | `X-Forwarded-Ssl: on`      | `InvalidSchemeHeaders()`    | the two secure headers  |
+    |                     | `X-Forwarded-Proto: http`  | raised                      | disagreed on if HTTPS   |
+    |                     |                            |                             | was used                |
+    +---------------------+----------------------------+-----------------------------+-------------------------+
 
 ### `pythonpath`
 

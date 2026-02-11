@@ -105,6 +105,8 @@ markdown_extensions:
   - footnotes
   - md_in_html
   - tables
+  - markdown_grid_tables:
+      hard_linebreaks: false
   - toc:
       permalink: true
   - pymdownx.details
