@@ -12,9 +12,11 @@ import pytest
 
 from gunicorn.dirty.protocol import (
     DirtyProtocol,
+    BinaryProtocol,
     make_request,
     make_chunk_message,
     make_end_message,
+    HEADER_SIZE,
 )
 from gunicorn.dirty.worker import DirtyWorker
 
@@ -30,17 +32,22 @@ class FakeStreamWriter:
         self._buffer += data
 
     async def drain(self):
-        # Decode the buffer to extract messages
-        while len(self._buffer) >= DirtyProtocol.HEADER_SIZE:
-            length = struct.unpack(
-                DirtyProtocol.HEADER_FORMAT,
-                self._buffer[:DirtyProtocol.HEADER_SIZE]
-            )[0]
-            total_size = DirtyProtocol.HEADER_SIZE + length
+        # Decode the buffer to extract messages using binary protocol
+        while len(self._buffer) >= HEADER_SIZE:
+            # Decode header to get payload length
+            _, _, length = BinaryProtocol.decode_header(
+                self._buffer[:HEADER_SIZE]
+            )
+            total_size = HEADER_SIZE + length
             if len(self._buffer) >= total_size:
-                msg_data = self._buffer[DirtyProtocol.HEADER_SIZE:total_size]
+                msg_data = self._buffer[:total_size]
                 self._buffer = self._buffer[total_size:]
-                self.messages.append(DirtyProtocol.decode(msg_data))
+                # decode_message returns (msg_type_str, request_id, payload_dict)
+                msg_type_str, request_id, payload_dict = BinaryProtocol.decode_message(msg_data)
+                # Reconstruct the dict format for backwards compatibility
+                result = {"type": msg_type_str, "id": request_id}
+                result.update(payload_dict)
+                self.messages.append(result)
             else:
                 break
 
@@ -101,7 +108,7 @@ class TestWorkerSyncGeneratorStreaming:
             return generate_tokens()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 3 chunks + 1 end message
@@ -109,7 +116,7 @@ class TestWorkerSyncGeneratorStreaming:
 
         # Check chunk messages
         assert writer.messages[0]["type"] == "chunk"
-        assert writer.messages[0]["id"] == "req-123"
+        assert writer.messages[0]["id"] == 123
         assert writer.messages[0]["data"] == "Hello"
 
         assert writer.messages[1]["type"] == "chunk"
@@ -120,7 +127,7 @@ class TestWorkerSyncGeneratorStreaming:
 
         # Check end message
         assert writer.messages[3]["type"] == "end"
-        assert writer.messages[3]["id"] == "req-123"
+        assert writer.messages[3]["id"] == 123
 
     @pytest.mark.asyncio
     async def test_sync_generator_error_mid_stream(self):
@@ -136,7 +143,7 @@ class TestWorkerSyncGeneratorStreaming:
             return generate_with_error()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 1 chunk + 1 error message
@@ -167,7 +174,7 @@ class TestWorkerAsyncGeneratorStreaming:
             return async_generate_tokens()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 3 chunks + 1 end message
@@ -175,7 +182,7 @@ class TestWorkerAsyncGeneratorStreaming:
 
         # Check chunk messages
         assert writer.messages[0]["type"] == "chunk"
-        assert writer.messages[0]["id"] == "req-123"
+        assert writer.messages[0]["id"] == 123
         assert writer.messages[0]["data"] == "Hello"
 
         assert writer.messages[1]["type"] == "chunk"
@@ -186,7 +193,7 @@ class TestWorkerAsyncGeneratorStreaming:
 
         # Check end message
         assert writer.messages[3]["type"] == "end"
-        assert writer.messages[3]["id"] == "req-123"
+        assert writer.messages[3]["id"] == 123
 
     @pytest.mark.asyncio
     async def test_async_generator_error_mid_stream(self):
@@ -202,7 +209,7 @@ class TestWorkerAsyncGeneratorStreaming:
             return async_generate_with_error()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 1 chunk + 1 error message
@@ -228,13 +235,13 @@ class TestWorkerNonStreamingBackwardCompat:
             return args[0] + args[1]
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "compute", args=(2, 3))
+            request = make_request(123, "test:App", "compute", args=(2, 3))
             await worker.handle_request(request, writer)
 
         # Should have 1 response message
         assert len(writer.messages) == 1
         assert writer.messages[0]["type"] == "response"
-        assert writer.messages[0]["id"] == "req-123"
+        assert writer.messages[0]["id"] == 123
         assert writer.messages[0]["result"] == 5
 
     @pytest.mark.asyncio
@@ -247,7 +254,7 @@ class TestWorkerNonStreamingBackwardCompat:
             return [1, 2, 3, 4, 5]
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "get_list")
+            request = make_request(123, "test:App", "get_list")
             await worker.handle_request(request, writer)
 
         # Should have 1 response message (not 5 chunks)
@@ -265,7 +272,7 @@ class TestWorkerNonStreamingBackwardCompat:
             raise RuntimeError("Failed!")
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "fail")
+            request = make_request(123, "test:App", "fail")
             await worker.handle_request(request, writer)
 
         # Should have 1 error message
@@ -283,7 +290,7 @@ class TestWorkerNonStreamingBackwardCompat:
             return None
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "void")
+            request = make_request(123, "test:App", "void")
             await worker.handle_request(request, writer)
 
         # Should have 1 response message
@@ -309,7 +316,7 @@ class TestWorkerStreamingComplexData:
             return generate_tokens()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         assert len(writer.messages) == 3  # 2 chunks + 1 end
@@ -332,7 +339,7 @@ class TestWorkerStreamingComplexData:
             return empty_generate()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have just 1 end message
@@ -353,7 +360,7 @@ class TestWorkerStreamingComplexData:
             return generate_many()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 100 chunks + 1 end message
@@ -390,7 +397,7 @@ class TestWorkerStreamingHeartbeat:
             return generate_tokens()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have been notified at least once per chunk + initial
@@ -407,7 +414,7 @@ class TestWorkerMessageTypeValidation:
         writer = FakeStreamWriter()
 
         # Send a message with unknown type
-        message = {"type": "unknown", "id": "req-123"}
+        message = {"type": "unknown", "id": 123}
         await worker.handle_request(message, writer)
 
         assert len(writer.messages) == 1

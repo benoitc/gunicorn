@@ -12,11 +12,13 @@ import pytest
 
 from gunicorn.dirty.protocol import (
     DirtyProtocol,
+    BinaryProtocol,
     make_request,
     make_response,
     make_chunk_message,
     make_end_message,
     make_error_response,
+    HEADER_SIZE,
 )
 from gunicorn.dirty.arbiter import DirtyArbiter
 from gunicorn.dirty.errors import DirtyError
@@ -34,16 +36,22 @@ class MockStreamWriter:
         self._buffer += data
 
     async def drain(self):
-        while len(self._buffer) >= DirtyProtocol.HEADER_SIZE:
-            length = struct.unpack(
-                DirtyProtocol.HEADER_FORMAT,
-                self._buffer[:DirtyProtocol.HEADER_SIZE]
-            )[0]
-            total_size = DirtyProtocol.HEADER_SIZE + length
+        # Decode the buffer to extract messages using binary protocol
+        while len(self._buffer) >= HEADER_SIZE:
+            # Decode header to get payload length
+            _, _, length = BinaryProtocol.decode_header(
+                self._buffer[:HEADER_SIZE]
+            )
+            total_size = HEADER_SIZE + length
             if len(self._buffer) >= total_size:
-                msg_data = self._buffer[DirtyProtocol.HEADER_SIZE:total_size]
+                msg_data = self._buffer[:total_size]
                 self._buffer = self._buffer[total_size:]
-                self.messages.append(DirtyProtocol.decode(msg_data))
+                # decode_message returns (msg_type_str, request_id, payload_dict)
+                msg_type_str, request_id, payload_dict = BinaryProtocol.decode_message(msg_data)
+                # Reconstruct the dict format for backwards compatibility
+                result = {"type": msg_type_str, "id": request_id}
+                result.update(payload_dict)
+                self.messages.append(result)
             else:
                 break
 
@@ -63,7 +71,7 @@ class MockStreamReader:
     def __init__(self, messages):
         self._data = b''
         for msg in messages:
-            self._data += DirtyProtocol.encode(msg)
+            self._data += BinaryProtocol._encode_from_dict(msg)
         self._pos = 0
 
     async def readexactly(self, n):
@@ -107,9 +115,9 @@ class TestArbiterStreamingForwarding:
         client_writer = MockStreamWriter()
 
         # Mock worker connection that returns chunks
-        chunk1 = make_chunk_message("req-123", "Hello")
-        chunk2 = make_chunk_message("req-123", " World")
-        end = make_end_message("req-123")
+        chunk1 = make_chunk_message(123, "Hello")
+        chunk2 = make_chunk_message(123, " World")
+        end = make_end_message(123)
 
         mock_reader = MockStreamReader([chunk1, chunk2, end])
 
@@ -118,7 +126,7 @@ class TestArbiterStreamingForwarding:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         # Should have forwarded all messages
@@ -135,7 +143,7 @@ class TestArbiterStreamingForwarding:
         arbiter = create_arbiter()
         client_writer = MockStreamWriter()
 
-        response = make_response("req-123", {"result": 42})
+        response = make_response(123, {"result": 42})
         mock_reader = MockStreamReader([response])
 
         async def mock_get_connection(pid):
@@ -143,7 +151,7 @@ class TestArbiterStreamingForwarding:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "compute")
+        request = make_request(123, "test:App", "compute")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 1
@@ -156,8 +164,8 @@ class TestArbiterStreamingForwarding:
         arbiter = create_arbiter()
         client_writer = MockStreamWriter()
 
-        chunk = make_chunk_message("req-123", "First")
-        error = make_error_response("req-123", DirtyError("Something broke"))
+        chunk = make_chunk_message(123, "First")
+        error = make_error_response(123, DirtyError("Something broke"))
 
         mock_reader = MockStreamReader([chunk, error])
 
@@ -166,7 +174,7 @@ class TestArbiterStreamingForwarding:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 2
@@ -190,7 +198,7 @@ class TestArbiterStreamingForwarding:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 1
@@ -208,7 +216,7 @@ class TestArbiterRouteRequestStreaming:
         arbiter.workers = {}  # No workers
         client_writer = MockStreamWriter()
 
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter.route_request(request, client_writer)
 
         assert len(client_writer.messages) == 1
@@ -222,13 +230,13 @@ class TestArbiterRouteRequestStreaming:
 
         # Mock _execute_on_worker to complete immediately
         async def mock_execute(pid, request, client_writer):
-            response = make_response("req-123", "result")
+            response = make_response(123, "result")
             await DirtyProtocol.write_message_async(client_writer, response)
 
         arbiter._execute_on_worker = mock_execute
 
         client_writer = MockStreamWriter()
-        request = make_request("req-123", "test:App", "compute")
+        request = make_request(123, "test:App", "compute")
 
         # Worker queue should be created
         assert 1234 not in arbiter.worker_queues
@@ -255,8 +263,8 @@ class TestArbiterStreamingManyChunks:
         # Generate 50 chunks + end
         messages = []
         for i in range(50):
-            messages.append(make_chunk_message("req-123", f"chunk-{i}"))
-        messages.append(make_end_message("req-123"))
+            messages.append(make_chunk_message(123, f"chunk-{i}"))
+        messages.append(make_end_message(123))
 
         mock_reader = MockStreamReader(messages)
 
@@ -265,7 +273,7 @@ class TestArbiterStreamingManyChunks:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 51
@@ -283,7 +291,7 @@ class TestArbiterBackwardCompatibility:
         arbiter = create_arbiter()
         client_writer = MockStreamWriter()
 
-        response = make_response("req-123", [1, 2, 3, 4, 5])
+        response = make_response(123, [1, 2, 3, 4, 5])
         mock_reader = MockStreamReader([response])
 
         async def mock_get_connection(pid):
@@ -291,7 +299,7 @@ class TestArbiterBackwardCompatibility:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "get_list")
+        request = make_request(123, "test:App", "get_list")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 1
@@ -304,7 +312,7 @@ class TestArbiterBackwardCompatibility:
         arbiter = create_arbiter()
         client_writer = MockStreamWriter()
 
-        error = make_error_response("req-123", DirtyError("Something failed"))
+        error = make_error_response(123, DirtyError("Something failed"))
         mock_reader = MockStreamReader([error])
 
         async def mock_get_connection(pid):
@@ -312,7 +320,7 @@ class TestArbiterBackwardCompatibility:
 
         arbiter._get_worker_connection = mock_get_connection
 
-        request = make_request("req-123", "test:App", "fail")
+        request = make_request(123, "test:App", "fail")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 1
