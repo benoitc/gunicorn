@@ -15,7 +15,7 @@ services:
       context: ../..  # Gunicorn repo root
       dockerfile: examples/celery_alternative/Dockerfile
     ports:
-      - "8000:8000"
+      - "8003:8000"
     environment:
       - GUNICORN_WORKERS=4
       - DIRTY_WORKERS=9
