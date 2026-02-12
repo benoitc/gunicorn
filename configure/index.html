@@ -648,6 +648,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#command-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command line
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuration-file" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1888,23 +1899,18 @@ only the file specified on the command line is used.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Print the fully resolved configuration:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--print-config<span class="w"> </span>APP_MODULE
+</code></pre></div>
+<p>Validate configuration and exit:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--check-config<span class="w"> </span>APP_MODULE
+</code></pre></div>
+<p>This is also a quick way to confirm that your application can start.</p>
 </div>
-<p>bash
-gunicorn --print-config APP_MODULE
-<div class="highlight"><pre><span></span><code>Validate configuration and exit:
-
-```bash
-gunicorn --check-config APP_MODULE
-</code></pre></div></p>
-<p>This is also a quick way to confirm that your application can start.
-<div class="highlight"><pre><span></span><code>## Command line
-
-Options set on the command line override framework settings and values from the
-configuration file. Not every setting has a command-line flag; run
-
-```bash
-gunicorn -h
-</code></pre></div></p>
+<h2 id="command-line">Command line<a class="headerlink" href="#command-line" title="Permanent link">&para;</a></h2>
+<p>Options set on the command line override framework settings and values from the
+configuration file. Not every setting has a command-line flag; run</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-h
+</code></pre></div>
 <p>for the complete list. The CLI also exposes <code>--version</code>, which is not part of
 the main <a href="../reference/settings/">settings reference</a>.</p>
 <p><span id="configuration_file"></span></p>
