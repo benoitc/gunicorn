@@ -1263,6 +1263,155 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stash-shared-state-via-message-passing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stash (Shared State via Message Passing)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stash (Shared State via Message Passing)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dict-like-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dict-like Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-stash-in-dirtyapp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Stash in DirtyApp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patterns-and-use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patterns and Use Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#flask-example" class="md-nav__link">
     <span class="md-ellipsis">
@@ -1446,7 +1595,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#error-handling_1" class="md-nav__link">
+  <a href="#error-handling_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Error Handling
@@ -1457,7 +1606,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#best-practices_1" class="md-nav__link">
+  <a href="#best-practices_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Best Practices
@@ -3054,6 +3203,265 @@ Worker -&gt; Arbiter -&gt; Client: end
 <li><strong>Keep chunks small</strong> - Smaller chunks provide better perceived latency</li>
 <li><strong>Handle client disconnection</strong> - Streams continue even if client disconnects; design accordingly</li>
 </ol>
+<h2 id="stash-shared-state-via-message-passing">Stash (Shared State via Message Passing)<a class="headerlink" href="#stash-shared-state-via-message-passing" title="Permanent link">&para;</a></h2>
+<p>Stash provides shared state between dirty workers, similar to Erlang's ETS (Erlang Term Storage). Workers remain fully isolated - all state access goes through message passing to the arbiter.</p>
+<h3 id="architecture_1">Architecture<a class="headerlink" href="#architecture_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>                    +------------------+
+                    |   Dirty Arbiter  |
+                    |                  |
+                    |  stash_tables:   |
+                    |    sessions: {}  |
+                    |    cache: {}     |
+                    +--------+---------+
+                             |
+              Unix Socket IPC (message passing)
+                             |
+         +-------------------+-------------------+
+         |                   |                   |
+   +-----v-----+       +-----v-----+       +-----v-----+
+   |  Worker 1 |       |  Worker 2 |       |  Worker 3 |
+   |           |       |           |       |           |
+   | (isolated)|       | (isolated)|       | (isolated)|
+   +-----------+       +-----------+       +-----------+
+
+   Workers have NO shared memory.
+   All stash operations are IPC messages to arbiter.
+</code></pre></div>
+<h3 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Worker calls <code>stash.put("sessions", "user:1", data)</code></li>
+<li>Worker sends message to arbiter via Unix socket</li>
+<li>Arbiter stores data in its memory (<code>self.stash_tables</code>)</li>
+<li>Arbiter sends response back to worker</li>
+<li>Worker receives confirmation</li>
+</ol>
+<p>This is <strong>not</strong> shared memory - workers remain fully isolated. The arbiter acts as a centralized store that workers communicate with via message passing. This matches Erlang's model where ETS tables are owned by a process.</p>
+<h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
+
+<span class="c1"># Store a value (table auto-created)</span>
+<span class="c1"># This sends a message to arbiter, which stores it</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span><span class="p">})</span>
+
+<span class="c1"># Retrieve a value</span>
+<span class="c1"># This sends a request to arbiter, which returns the value</span>
+<span class="n">user</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">)</span>
+
+<span class="c1"># Delete a key</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">)</span>
+
+<span class="c1"># Check existence</span>
+<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Session exists&quot;</span><span class="p">)</span>
+
+<span class="c1"># List keys with pattern matching</span>
+<span class="n">keys</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;user:*&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="dict-like-interface">Dict-like Interface<a class="headerlink" href="#dict-like-interface" title="Permanent link">&para;</a></h3>
+<p>For more Pythonic access, use the table interface:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
+
+<span class="c1"># Get a table reference</span>
+<span class="n">sessions</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+
+<span class="c1"># Dict-like operations (each is an IPC message)</span>
+<span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span><span class="p">}</span>
+<span class="n">user</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span>
+<span class="k">del</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span>
+
+<span class="c1"># Iteration</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">sessions</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+<span class="c1"># Length</span>
+<span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sessions</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="table-management">Table Management<a class="headerlink" href="#table-management" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
+
+<span class="c1"># Explicit table creation (idempotent)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">ensure</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">)</span>
+
+<span class="c1"># Get table info</span>
+<span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table has </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> entries&quot;</span><span class="p">)</span>
+
+<span class="c1"># Clear all entries in a table</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+
+<span class="c1"># Delete entire table</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">delete_table</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+
+<span class="c1"># List all tables</span>
+<span class="n">tables</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">tables</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="using-stash-in-dirtyapp">Using Stash in DirtyApp<a class="headerlink" href="#using-stash-in-dirtyapp" title="Permanent link">&para;</a></h3>
+<p>Declare tables your app uses with the <code>stashes</code> class attribute:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span><span class="p">,</span> <span class="n">stash</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
+    <span class="c1"># Tables declared here are auto-created on startup</span>
+    <span class="n">stashes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;counters&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Initialize counter if needed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">):</span>
+            <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">user_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store session - any worker can read it via arbiter.&quot;&quot;&quot;</span>
+        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">user_data</span><span class="p">,</span>
+            <span class="s2">&quot;logged_in_at&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+        <span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_increment_counter</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get session - request goes to arbiter.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_increment_counter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Increment global counter via arbiter.&quot;&quot;&quot;</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+</code></pre></div>
+<h3 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stash.put(table, key, value)</code></td>
+<td>Store a value (table auto-created)</td>
+</tr>
+<tr>
+<td><code>stash.get(table, key, default=None)</code></td>
+<td>Retrieve a value</td>
+</tr>
+<tr>
+<td><code>stash.delete(table, key)</code></td>
+<td>Delete a key, returns True if deleted</td>
+</tr>
+<tr>
+<td><code>stash.exists(table, key=None)</code></td>
+<td>Check if table/key exists</td>
+</tr>
+<tr>
+<td><code>stash.keys(table, pattern=None)</code></td>
+<td>List keys, optional glob pattern</td>
+</tr>
+<tr>
+<td><code>stash.clear(table)</code></td>
+<td>Delete all entries in table</td>
+</tr>
+<tr>
+<td><code>stash.info(table)</code></td>
+<td>Get table info (size, etc.)</td>
+</tr>
+<tr>
+<td><code>stash.ensure(table)</code></td>
+<td>Create table if not exists</td>
+</tr>
+<tr>
+<td><code>stash.delete_table(table)</code></td>
+<td>Delete entire table</td>
+</tr>
+<tr>
+<td><code>stash.tables()</code></td>
+<td>List all table names</td>
+</tr>
+<tr>
+<td><code>stash.table(name)</code></td>
+<td>Get dict-like interface</td>
+</tr>
+</tbody>
+</table>
+<h3 id="patterns-and-use-cases">Patterns and Use Cases<a class="headerlink" href="#patterns-and-use-cases" title="Permanent link">&para;</a></h3>
+<p><strong>Session Storage:</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Store session on login (worker 1)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span>
+
+<span class="c1"># Check session on request (may be worker 2)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">AuthError</span><span class="p">(</span><span class="s2">&quot;Not logged in&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p><strong>Shared Cache:</strong>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_expensive_result</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+    <span class="c1"># Check cache first (via arbiter)</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cached</span>
+
+    <span class="c1"># Compute and cache</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">expensive_computation</span><span class="p">()</span>
+    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div></p>
+<p><strong>Global Counters:</strong>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">increment_counter</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="c1"># Note: not atomic - two workers could read same value</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span>
+</code></pre></div></p>
+<p><strong>Feature Flags:</strong>
+<div class="highlight"><pre><span></span><code><span class="c1"># Set flag (from admin endpoint)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="s2">&quot;new_feature&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Check flag (from any worker)</span>
+<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="s2">&quot;new_feature&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="n">enable_new_feature</span><span class="p">()</span>
+</code></pre></div></p>
+<h3 id="error-handling_1">Error Handling<a class="headerlink" href="#error-handling_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty.stash</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">StashError</span><span class="p">,</span>
+    <span class="n">StashTableNotFoundError</span><span class="p">,</span>
+    <span class="n">StashKeyNotFoundError</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nonexistent&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">StashTableNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table not found: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Using get() with default avoids KeyNotFoundError</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;table&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;fallback&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="best-practices_1">Best Practices<a class="headerlink" href="#best-practices_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Use descriptive table names</strong> - <code>user_sessions</code>, <code>ml_cache</code>, not <code>data</code></li>
+<li><strong>Use key prefixes</strong> - <code>user:123</code>, <code>cache:model:v1</code> for organization</li>
+<li><strong>Handle missing data</strong> - Always provide defaults or check existence</li>
+<li><strong>Don't store large data</strong> - Each access is an IPC round-trip</li>
+<li><strong>Remember it's ephemeral</strong> - Data is lost on arbiter restart</li>
+</ol>
+<h3 id="advantages">Advantages<a class="headerlink" href="#advantages" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Worker isolation</strong> - Workers remain fully isolated; no shared memory bugs</li>
+<li><strong>Simple API</strong> - Dict-like interface, no locking required</li>
+<li><strong>Binary support</strong> - Efficiently stores bytes (images, model weights)</li>
+<li><strong>Pattern matching</strong> - <code>keys(pattern="user:*")</code> for querying</li>
+<li><strong>Zero setup</strong> - Works automatically with dirty workers</li>
+<li><strong>Table-based</strong> - Organize data into logical namespaces</li>
+</ul>
+<h3 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>No persistence</strong> - Data lives only in arbiter memory</li>
+<li><strong>No transactions</strong> - No atomic read-modify-write operations</li>
+<li><strong>No TTL</strong> - Entries don't expire automatically</li>
+<li><strong>IPC overhead</strong> - Each operation is a network round-trip</li>
+<li><strong>Single arbiter</strong> - Not distributed across multiple machines</li>
+</ul>
+<p>For persistent or distributed state, use Redis, PostgreSQL, or similar external systems.</p>
 <h3 id="flask-example">Flask Example<a class="headerlink" href="#flask-example" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">Response</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
@@ -3291,7 +3699,7 @@ grep<span class="w"> </span><span class="s2">&quot;Worker.*timed out&quot;</span
 <span class="c1"># Monitor process tree</span>
 watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s1">&#39;pstree -p $(cat gunicorn.pid)&#39;</span>
 </code></pre></div>
-<h2 id="error-handling_1">Error Handling<a class="headerlink" href="#error-handling_1" title="Permanent link">&para;</a></h2>
+<h2 id="error-handling_2">Error Handling<a class="headerlink" href="#error-handling_2" title="Permanent link">&para;</a></h2>
 <p>The dirty client raises specific exceptions:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty.errors</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DirtyError</span><span class="p">,</span>
@@ -3320,7 +3728,7 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
     <span class="c1"># Connection to dirty arbiter failed</span>
     <span class="k">pass</span>
 </code></pre></div>
-<h2 id="best-practices_1">Best Practices<a class="headerlink" href="#best-practices_1" title="Permanent link">&para;</a></h2>
+<h2 id="best-practices_2">Best Practices<a class="headerlink" href="#best-practices_2" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Pre-load commonly used resources</strong> in <code>init()</code> to avoid cold starts</li>
 <li><strong>Set appropriate timeouts</strong> based on your workload</li>
