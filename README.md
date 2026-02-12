@@ -34,9 +34,9 @@ gunicorn myapp:app --worker-class asgi
 ## Features
 
 - WSGI support for Django, Flask, Pyramid, and any WSGI framework
-- **ASGI support** (beta) for FastAPI, Starlette, Quart
+- **ASGI support** for FastAPI, Starlette, Quart
 - **HTTP/2 support** (beta) with multiplexed streams
-- **Dirty Arbiters** for heavy workloads (ML models, long-running tasks)
+- **Dirty Arbiters** (beta) for heavy workloads (ML models, long-running tasks)
 - uWSGI binary protocol for nginx integration
 - Multiple worker types: sync, gthread, gevent, eventlet, asgi
 - Graceful worker process management

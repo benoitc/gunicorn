@@ -1,10 +1,5 @@
 # ASGI Worker
 
-!!! warning "Beta Feature"
-    The ASGI worker is a beta feature introduced in Gunicorn 24.0.0. While it has been tested,
-    the API and behavior may change in future releases. Please report any issues on
-    [GitHub](https://github.com/benoitc/gunicorn/issues).
-
 Gunicorn includes a native ASGI worker that enables running async Python web frameworks
 like FastAPI, Starlette, and Quart without external dependencies like Uvicorn.
 

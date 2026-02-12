@@ -7,6 +7,11 @@ menu:
 
 # Dirty Arbiters
 
+!!! warning "Beta Feature"
+    Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it has been tested,
+    the API and behavior may change in future releases. Please report any issues on
+    [GitHub](https://github.com/benoitc/gunicorn/issues).
+
 Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.
 
 ## Overview
@@ -907,8 +912,39 @@ Dirty Arbiters integrate with the main arbiter's signal handling. Signals are fo
 | `SIGQUIT` | Immediate exit via `sys.exit(0)` | Killed immediately | Fast shutdown, no cleanup |
 | `SIGHUP` | Kills all workers, spawns new ones | Exits immediately | Hot reload of workers |
 | `SIGUSR1` | Reopens log files, forwards to workers | Reopens log files | Log rotation support |
+| `SIGTTIN` | Increases worker count by 1 | N/A | Dynamic scaling up |
+| `SIGTTOU` | Decreases worker count by 1 | N/A | Dynamic scaling down |
 | `SIGCHLD` | Handled by event loop, triggers reap | N/A | Worker death detection |
 | `SIGINT` | Same as SIGTERM | Same as SIGTERM | Ctrl-C handling |
+
+### Dynamic Scaling with TTIN/TTOU
+
+You can dynamically scale the number of dirty workers at runtime using signals, without restarting gunicorn:
+
+```bash
+# Find the dirty arbiter process
+ps aux | grep dirty-arbiter
+# Or use the PID file (location depends on your app name)
+cat /tmp/gunicorn-dirty-myapp.pid
+
+# Increase dirty workers by 1
+kill -TTIN <dirty-arbiter-pid>
+
+# Decrease dirty workers by 1
+kill -TTOU <dirty-arbiter-pid>
+```
+
+**Minimum Worker Constraint:** The dirty arbiter will not decrease below the minimum number of workers required by your app configurations. For example, if you have an app with `workers = 3`, you cannot scale below 3 dirty workers. When this limit is reached, a warning is logged:
+
+```
+WARNING: SIGTTOU: Cannot decrease below 3 workers (required by app specs)
+```
+
+**Use Cases:**
+
+- **Burst handling** - Scale up when you anticipate heavy load
+- **Cost optimization** - Scale down during low-traffic periods
+- **Recovery** - Scale up if workers are busy with long-running tasks
 
 ### Forwarded Signals
 

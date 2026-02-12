@@ -57,7 +57,7 @@ class DirtyArbiter:
     """
 
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in
-               "HUP QUIT INT TERM USR1 USR2 CHLD".split()]
+               "HUP QUIT INT TERM TTIN TTOU USR1 USR2 CHLD".split()]
 
     # Worker boot error code
     WORKER_BOOT_ERROR = 3
@@ -92,6 +92,7 @@ class DirtyArbiter:
         self._worker_rr_index = 0  # Round-robin index for worker selection
         self.worker_age = 0
         self.alive = True
+        self.num_workers = self.cfg.dirty_workers  # Dynamic count for TTIN/TTOU
 
         self._server = None
         self._loop = None
@@ -149,6 +150,23 @@ class DirtyArbiter:
             }
             # Initialize the app_worker_map for this app
             self.app_worker_map[import_path] = set()
+
+    def _get_minimum_workers(self):
+        """
+        Calculate minimum number of workers required by app specs.
+
+        Returns the maximum worker_count across all apps that have limits.
+        Apps with worker_count=None don't impose a minimum.
+
+        Returns:
+            int: Minimum workers required (at least 1)
+        """
+        min_required = 1
+        for spec in self.app_specs.values():
+            worker_count = spec['worker_count']
+            if worker_count is not None:
+                min_required = max(min_required, worker_count)
+        return min_required
 
     def _get_apps_for_new_worker(self):
         """
@@ -255,6 +273,8 @@ class DirtyArbiter:
         signal.signal(signal.SIGHUP, self._signal_handler)
         signal.signal(signal.SIGUSR1, self._signal_handler)
         signal.signal(signal.SIGCHLD, self._signal_handler)
+        signal.signal(signal.SIGTTIN, self._signal_handler)
+        signal.signal(signal.SIGTTOU, self._signal_handler)
 
     def _signal_handler(self, sig, frame):
         """Handle signals."""
@@ -276,6 +296,36 @@ class DirtyArbiter:
             if self._loop:
                 self._loop.call_soon_threadsafe(
                     lambda: asyncio.create_task(self.reload())
+                )
+            return
+
+        if sig == signal.SIGTTIN:
+            # Increase number of workers
+            self.num_workers += 1
+            self.log.info("SIGTTIN: Increasing dirty workers to %s",
+                          self.num_workers)
+            if self._loop:
+                self._loop.call_soon_threadsafe(
+                    lambda: asyncio.create_task(self.manage_workers())
+                )
+            return
+
+        if sig == signal.SIGTTOU:
+            # Decrease number of workers (respecting minimum)
+            min_workers = self._get_minimum_workers()
+            if self.num_workers <= min_workers:
+                self.log.warning(
+                    "SIGTTOU: Cannot decrease below %s workers "
+                    "(required by app specs)",
+                    min_workers
+                )
+                return
+            self.num_workers -= 1
+            self.log.info("SIGTTOU: Decreasing dirty workers to %s",
+                          self.num_workers)
+            if self._loop:
+                self._loop.call_soon_threadsafe(
+                    lambda: asyncio.create_task(self.manage_workers())
                 )
             return
 
@@ -717,7 +767,7 @@ class DirtyArbiter:
         if not self.alive:
             return
 
-        num_workers = self.cfg.dirty_workers
+        num_workers = self.num_workers
 
         # Spawn workers if needed
         while self.alive and len(self.workers) < num_workers:
