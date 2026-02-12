@@ -1191,6 +1191,56 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binary-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary Protocol
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Binary Protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header-format-16-bytes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header Format (16 bytes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tlv-payload-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLV Payload Encoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binary-data-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary Data Benefits
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#error-handling-in-streams" class="md-nav__link">
     <span class="md-ellipsis">
@@ -2446,7 +2496,7 @@
 <ul>
 <li><strong>Separate worker pool</strong> - Completely separate from HTTP workers, can be killed/restarted independently</li>
 <li><strong>Stateful workers</strong> - Loaded resources persist in dirty worker memory</li>
-<li><strong>Message-passing IPC</strong> - Communication via Unix sockets with JSON serialization</li>
+<li><strong>Message-passing IPC</strong> - Communication via Unix sockets with binary TLV protocol</li>
 <li><strong>Explicit API</strong> - Clear <code>execute()</code> calls (no hidden IPC)</li>
 <li><strong>Asyncio-based</strong> - Clean concurrent handling with streaming support</li>
 </ul>
@@ -2896,6 +2946,94 @@ Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot; &quot;)
 Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot;World&quot;)
 Worker -&gt; Arbiter -&gt; Client: end
 </code></pre></div></p>
+<h2 id="binary-protocol">Binary Protocol<a class="headerlink" href="#binary-protocol" title="Permanent link">&para;</a></h2>
+<p>The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd for efficient data transfer. This eliminates base64 encoding overhead for binary data like images, audio, or model weights.</p>
+<h3 id="header-format-16-bytes">Header Format (16 bytes)<a class="headerlink" href="#header-format-16-bytes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>+--------+--------+--------+--------+--------+--------+--------+--------+
+|  Magic (2B)     | Ver(1) | MType  |        Payload Length (4B)        |
++--------+--------+--------+--------+--------+--------+--------+--------+
+|                       Request ID (8 bytes)                            |
++--------+--------+--------+--------+--------+--------+--------+--------+
+</code></pre></div>
+<ul>
+<li><strong>Magic</strong>: <code>0x47 0x44</code> ("GD" for Gunicorn Dirty)</li>
+<li><strong>Version</strong>: <code>0x01</code></li>
+<li><strong>MType</strong>: Message type (<code>0x01</code>=REQUEST, <code>0x02</code>=RESPONSE, <code>0x03</code>=ERROR, <code>0x04</code>=CHUNK, <code>0x05</code>=END)</li>
+<li><strong>Length</strong>: Payload size (big-endian uint32, max 64MB)</li>
+<li><strong>Request ID</strong>: uint64 identifier</li>
+</ul>
+<h3 id="tlv-payload-encoding">TLV Payload Encoding<a class="headerlink" href="#tlv-payload-encoding" title="Permanent link">&para;</a></h3>
+<p>Payloads use Type-Length-Value encoding:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>None</td>
+<td><code>0x00</code></td>
+<td>No value bytes</td>
+</tr>
+<tr>
+<td>Bool</td>
+<td><code>0x01</code></td>
+<td>1 byte (0x00/0x01)</td>
+</tr>
+<tr>
+<td>Int64</td>
+<td><code>0x05</code></td>
+<td>8 bytes big-endian signed</td>
+</tr>
+<tr>
+<td>Float64</td>
+<td><code>0x06</code></td>
+<td>8 bytes IEEE 754</td>
+</tr>
+<tr>
+<td>Bytes</td>
+<td><code>0x10</code></td>
+<td>4-byte length + raw bytes</td>
+</tr>
+<tr>
+<td>String</td>
+<td><code>0x11</code></td>
+<td>4-byte length + UTF-8</td>
+</tr>
+<tr>
+<td>List</td>
+<td><code>0x20</code></td>
+<td>4-byte count + elements</td>
+</tr>
+<tr>
+<td>Dict</td>
+<td><code>0x21</code></td>
+<td>4-byte count + key-value pairs</td>
+</tr>
+</tbody>
+</table>
+<h3 id="binary-data-benefits">Binary Data Benefits<a class="headerlink" href="#binary-data-benefits" title="Permanent link">&para;</a></h3>
+<p>The binary protocol allows passing raw bytes directly without encoding:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Image processing with binary data</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resize an image - image_data is raw bytes.&quot;&quot;&quot;</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
+    <span class="n">resized</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+    <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+    <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PNG&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>  <span class="c1"># Returns raw bytes</span>
+
+<span class="c1"># Called from HTTP worker</span>
+<span class="n">thumbnail</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+    <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
+    <span class="n">raw_image_bytes</span><span class="p">,</span>  <span class="c1"># No base64 encoding needed</span>
+    <span class="n">size</span><span class="o">=</span><span class="mi">256</span>
+<span class="p">)</span>
+</code></pre></div>
 <h3 id="error-handling-in-streams">Error Handling in Streams<a class="headerlink" href="#error-handling-in-streams" title="Permanent link">&para;</a></h3>
 <p>Errors during streaming are delivered as error messages:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
@@ -3188,7 +3326,7 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
 <li><strong>Set appropriate timeouts</strong> based on your workload</li>
 <li><strong>Handle errors gracefully</strong> - dirty workers may restart</li>
 <li><strong>Use meaningful action names</strong> for easier debugging</li>
-<li><strong>Keep responses JSON-serializable</strong> - results are passed via IPC</li>
+<li><strong>Keep responses serializable</strong> - results are passed via binary IPC (supports bytes directly)</li>
 </ol>
 <h2 id="monitoring">Monitoring<a class="headerlink" href="#monitoring" title="Permanent link">&para;</a></h2>
 <p>Monitor dirty workers using standard process monitoring:</p>
