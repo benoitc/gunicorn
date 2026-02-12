@@ -1331,6 +1331,56 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2510-2026-02-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.1.0 - 2026-02-12
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="25.1.0 - 2026-02-12">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2503-2026-02-07" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1382,7 +1432,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes" class="md-nav__link">
+  <a href="#changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1421,7 +1471,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_1" class="md-nav__link">
+  <a href="#changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1460,7 +1510,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1493,7 +1543,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_2" class="md-nav__link">
+  <a href="#changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1549,7 +1599,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1588,7 +1638,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -2198,6 +2248,44 @@
 
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="2510-2026-02-12">25.1.0 - 2026-02-12<a class="headerlink" href="#2510-2026-02-12" title="Permanent link">&para;</a></h2>
+<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Dirty Stash</strong>: Add global shared state between workers via <code>dirty.stash</code>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3503">PR #3503</a>)</li>
+<li>In-memory key-value store accessible by all workers</li>
+<li>Supports get, set, delete, clear, keys, and has operations</li>
+<li>
+<p>Useful for sharing state like feature flags, rate limits, or cached data</p>
+</li>
+<li>
+<p><strong>Dirty Binary Protocol</strong>: Implement efficient binary protocol for dirty arbiter IPC
+  using TLV (Type-Length-Value) encoding
+  (<a href="https://github.com/benoitc/gunicorn/pull/3500">PR #3500</a>)</p>
+</li>
+<li>More efficient than JSON for binary data</li>
+<li>Supports all Python types: str, bytes, int, float, bool, None, list, dict</li>
+<li>
+<p>Better performance for large payloads</p>
+</li>
+<li>
+<p><strong>Dirty TTIN/TTOU Signals</strong>: Add dynamic worker scaling for dirty arbiters
+  (<a href="https://github.com/benoitc/gunicorn/pull/3504">PR #3504</a>)</p>
+</li>
+<li>Send SIGTTIN to increase dirty workers</li>
+<li>Send SIGTTOU to decrease dirty workers</li>
+<li>Respects minimum worker constraints from app configurations</li>
+</ul>
+<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ASGI Worker</strong>: Promoted from beta to stable</li>
+<li><strong>Dirty Arbiters</strong>: Now marked as beta feature</li>
+</ul>
+<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fix Markdown formatting in /configure documentation</li>
+</ul>
+<hr />
 <h2 id="2503-2026-02-07">25.0.3 - 2026-02-07<a class="headerlink" href="#2503-2026-02-07" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2230,7 +2318,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3483">PR #3483</a>)</p>
 </li>
 </ul>
-<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Refactor: Extract <code>_normalize_sockaddr</code> utility function for consistent
@@ -2251,7 +2339,7 @@
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
   clients wait for connection close to determine end-of-response.</li>
 </ul>
-<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Update celery_alternative example to use FastAPI with native ASGI worker and
   uvloop for async task execution</li>
@@ -2264,7 +2352,7 @@
 </ul>
 <hr />
 <h2 id="2500-2026-02-01">25.0.0 - 2026-02-01<a class="headerlink" href="#2500-2026-02-01" title="Permanent link">&para;</a></h2>
-<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Dirty Arbiters</strong>: Separate process pool for executing long-running, blocking
   operations (AI model loading, heavy computation) without blocking HTTP workers
@@ -2357,7 +2445,7 @@
   Gunicorn 26.0. Eventlet itself is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>.
   Please migrate to <code>gevent</code>, <code>gthread</code>, or another supported worker type.</li>
 </ul>
-<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
+<h3 id="changes_3">Changes<a class="headerlink" href="#changes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Remove obsolete Makefile targets
   (<a href="https://github.com/benoitc/gunicorn/pull/3471">PR #3471</a>)</li>
@@ -2374,7 +2462,7 @@
 </ul>
 <hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
   Container Registry at <code>ghcr.io/benoitc/gunicorn</code></li>
@@ -2416,7 +2504,7 @@
 </ul>
 <hr />
 <h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies</li>

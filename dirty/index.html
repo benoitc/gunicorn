@@ -1485,6 +1485,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#dynamic-scaling-with-ttinttou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dynamic Scaling with TTIN/TTOU
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#forwarded-signals" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2638,6 +2649,12 @@
 
 
 <h1 id="dirty-arbiters">Dirty Arbiters<a class="headerlink" href="#dirty-arbiters" title="Permanent link">&para;</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Beta Feature</p>
+<p>Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it has been tested,
+the API and behavior may change in future releases. Please report any issues on
+<a href="https://github.com/benoitc/gunicorn/issues">GitHub</a>.</p>
+</div>
 <p>Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>Traditional Gunicorn workers are designed to handle HTTP requests quickly. Long-running operations like loading ML models or performing heavy computation can block these workers, reducing the server's ability to handle concurrent requests.</p>
@@ -3571,6 +3588,18 @@ Worker -&gt; Arbiter -&gt; Client: end
 <td>Log rotation support</td>
 </tr>
 <tr>
+<td><code>SIGTTIN</code></td>
+<td>Increases worker count by 1</td>
+<td>N/A</td>
+<td>Dynamic scaling up</td>
+</tr>
+<tr>
+<td><code>SIGTTOU</code></td>
+<td>Decreases worker count by 1</td>
+<td>N/A</td>
+<td>Dynamic scaling down</td>
+</tr>
+<tr>
 <td><code>SIGCHLD</code></td>
 <td>Handled by event loop, triggers reap</td>
 <td>N/A</td>
@@ -3584,6 +3613,28 @@ Worker -&gt; Arbiter -&gt; Client: end
 </tr>
 </tbody>
 </table>
+<h3 id="dynamic-scaling-with-ttinttou">Dynamic Scaling with TTIN/TTOU<a class="headerlink" href="#dynamic-scaling-with-ttinttou" title="Permanent link">&para;</a></h3>
+<p>You can dynamically scale the number of dirty workers at runtime using signals, without restarting gunicorn:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Find the dirty arbiter process</span>
+ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>dirty-arbiter
+<span class="c1"># Or use the PID file (location depends on your app name)</span>
+cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
+
+<span class="c1"># Increase dirty workers by 1</span>
+<span class="nb">kill</span><span class="w"> </span>-TTIN<span class="w"> </span>&lt;dirty-arbiter-pid&gt;
+
+<span class="c1"># Decrease dirty workers by 1</span>
+<span class="nb">kill</span><span class="w"> </span>-TTOU<span class="w"> </span>&lt;dirty-arbiter-pid&gt;
+</code></pre></div>
+<p><strong>Minimum Worker Constraint:</strong> The dirty arbiter will not decrease below the minimum number of workers required by your app configurations. For example, if you have an app with <code>workers = 3</code>, you cannot scale below 3 dirty workers. When this limit is reached, a warning is logged:</p>
+<div class="highlight"><pre><span></span><code>WARNING: SIGTTOU: Cannot decrease below 3 workers (required by app specs)
+</code></pre></div>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li><strong>Burst handling</strong> - Scale up when you anticipate heavy load</li>
+<li><strong>Cost optimization</strong> - Scale down during low-traffic periods</li>
+<li><strong>Recovery</strong> - Scale up if workers are busy with long-running tasks</li>
+</ul>
 <h3 id="forwarded-signals">Forwarded Signals<a class="headerlink" href="#forwarded-signals" title="Permanent link">&para;</a></h3>
 <p>The main arbiter forwards these signals to the dirty arbiter process:</p>
 <ul>
