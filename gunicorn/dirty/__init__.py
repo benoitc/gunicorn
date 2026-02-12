@@ -38,6 +38,16 @@ from .client import (
     close_dirty_client_async,
 )
 
+# Stash (shared state between workers)
+from . import stash
+from .stash import (
+    StashClient,
+    StashTable,
+    StashError,
+    StashTableNotFoundError,
+    StashKeyNotFoundError,
+)
+
 # Internal imports used by gunicorn core (not part of public API)
 from .arbiter import DirtyArbiter
 
@@ -58,6 +68,13 @@ __all__ = [
     "get_dirty_client_async",
     "close_dirty_client",
     "close_dirty_client_async",
+    # Stash (shared state)
+    "stash",
+    "StashClient",
+    "StashTable",
+    "StashError",
+    "StashTableNotFoundError",
+    "StashKeyNotFoundError",
     # Internal (used by gunicorn core)
     "DirtyArbiter",
     "set_dirty_socket_path",

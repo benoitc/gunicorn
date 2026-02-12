@@ -659,6 +659,10 @@ def set_dirty_socket_path(path):
     global _dirty_socket_path  # pylint: disable=global-statement
     _dirty_socket_path = path
 
+    # Also set the stash socket path (uses same arbiter socket)
+    from .stash import set_stash_socket_path
+    set_stash_socket_path(path)
+
 
 def get_dirty_socket_path():
     """Get the dirty socket path."""

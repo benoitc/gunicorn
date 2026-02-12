@@ -42,6 +42,7 @@ MSG_TYPE_RESPONSE = 0x02
 MSG_TYPE_ERROR = 0x03
 MSG_TYPE_CHUNK = 0x04
 MSG_TYPE_END = 0x05
+MSG_TYPE_STASH = 0x10  # Stash operations (shared state between workers)
 
 # Message type names (for backwards compatibility with old API)
 MSG_TYPE_REQUEST_STR = "request"
@@ -49,6 +50,7 @@ MSG_TYPE_RESPONSE_STR = "response"
 MSG_TYPE_ERROR_STR = "error"
 MSG_TYPE_CHUNK_STR = "chunk"
 MSG_TYPE_END_STR = "end"
+MSG_TYPE_STASH_STR = "stash"
 
 # Map int types to string names
 MSG_TYPE_TO_STR = {
@@ -57,10 +59,23 @@ MSG_TYPE_TO_STR = {
     MSG_TYPE_ERROR: MSG_TYPE_ERROR_STR,
     MSG_TYPE_CHUNK: MSG_TYPE_CHUNK_STR,
     MSG_TYPE_END: MSG_TYPE_END_STR,
+    MSG_TYPE_STASH: MSG_TYPE_STASH_STR,
 }
 
 # Map string names to int types
 MSG_TYPE_FROM_STR = {v: k for k, v in MSG_TYPE_TO_STR.items()}
+
+# Stash operation codes
+STASH_OP_PUT = 1
+STASH_OP_GET = 2
+STASH_OP_DELETE = 3
+STASH_OP_KEYS = 4
+STASH_OP_CLEAR = 5
+STASH_OP_INFO = 6
+STASH_OP_ENSURE = 7
+STASH_OP_DELETE_TABLE = 8
+STASH_OP_TABLES = 9
+STASH_OP_EXISTS = 10
 
 # Header format: Magic (2) + Version (1) + Type (1) + Length (4) + RequestID (8) = 16
 HEADER_FORMAT = ">2sBBIQ"
@@ -82,6 +97,7 @@ class BinaryProtocol:
     MSG_TYPE_ERROR = MSG_TYPE_ERROR_STR
     MSG_TYPE_CHUNK = MSG_TYPE_CHUNK_STR
     MSG_TYPE_END = MSG_TYPE_END_STR
+    MSG_TYPE_STASH = MSG_TYPE_STASH_STR
 
     @staticmethod
     def encode_header(msg_type: int, request_id: int, payload_length: int) -> bytes:
@@ -256,6 +272,39 @@ class BinaryProtocol:
         # End message has empty payload
         header = BinaryProtocol.encode_header(MSG_TYPE_END, request_id, 0)
         return header
+
+    @staticmethod
+    def encode_stash(request_id: int, op: int, table: str,
+                     key=None, value=None, pattern=None) -> bytes:
+        """
+        Encode a stash operation message.
+
+        Args:
+            request_id: Unique request identifier (uint64)
+            op: Stash operation code (STASH_OP_*)
+            table: Table name
+            key: Optional key for put/get/delete operations
+            value: Optional value for put operation
+            pattern: Optional pattern for keys operation
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        payload_dict = {
+            "op": op,
+            "table": table,
+        }
+        if key is not None:
+            payload_dict["key"] = key
+        if value is not None:
+            payload_dict["value"] = value
+        if pattern is not None:
+            payload_dict["pattern"] = pattern
+
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_STASH, request_id,
+                                              len(payload))
+        return header + payload
 
     @staticmethod
     def decode_message(data: bytes) -> tuple:
@@ -524,6 +573,15 @@ class BinaryProtocol:
             )
         elif msg_type == MSG_TYPE_END:
             return BinaryProtocol.encode_end(request_id)
+        elif msg_type == MSG_TYPE_STASH:
+            return BinaryProtocol.encode_stash(
+                request_id,
+                message.get("op"),
+                message.get("table", ""),
+                message.get("key"),
+                message.get("value"),
+                message.get("pattern")
+            )
         else:
             raise DirtyProtocolError(f"Unhandled message type: {msg_type}")
 
@@ -642,3 +700,34 @@ def make_end_message(request_id) -> dict:
         "type": DirtyProtocol.MSG_TYPE_END,
         "id": request_id,
     }
+
+
+def make_stash_message(request_id, op: int, table: str,
+                       key=None, value=None, pattern=None) -> dict:
+    """
+    Build a stash operation message dict.
+
+    Args:
+        request_id: Unique request identifier (int or str)
+        op: Stash operation code (STASH_OP_*)
+        table: Table name
+        key: Optional key for put/get/delete operations
+        value: Optional value for put operation
+        pattern: Optional pattern for keys operation
+
+    Returns:
+        dict: Stash message dict
+    """
+    msg = {
+        "type": DirtyProtocol.MSG_TYPE_STASH,
+        "id": request_id,
+        "op": op,
+        "table": table,
+    }
+    if key is not None:
+        msg["key"] = key
+    if value is not None:
+        msg["value"] = value
+    if pattern is not None:
+        msg["pattern"] = pattern
+    return msg
