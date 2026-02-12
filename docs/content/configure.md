@@ -15,18 +15,17 @@ only the file specified on the command line is used.
 !!! note
     Print the fully resolved configuration:
 
-bash
-gunicorn --print-config APP_MODULE
-```
+    ```bash
+    gunicorn --print-config APP_MODULE
+    ```
 
-Validate configuration and exit:
+    Validate configuration and exit:
 
-```bash
-gunicorn --check-config APP_MODULE
-```
+    ```bash
+    gunicorn --check-config APP_MODULE
+    ```
 
-This is also a quick way to confirm that your application can start.
-```
+    This is also a quick way to confirm that your application can start.
 
 ## Command line
 
