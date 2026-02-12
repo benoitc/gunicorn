@@ -18,6 +18,12 @@
   - Supports all Python types: str, bytes, int, float, bool, None, list, dict
   - Better performance for large payloads
 
+- **Dirty TTIN/TTOU Signals**: Add dynamic worker scaling for dirty arbiters
+  ([PR #3504](https://github.com/benoitc/gunicorn/pull/3504))
+  - Send SIGTTIN to increase dirty workers
+  - Send SIGTTOU to decrease dirty workers
+  - Respects minimum worker constraints from app configurations
+
 ### Changes
 
 - **ASGI Worker**: Promoted from beta to stable
