@@ -1,0 +1,54 @@
+#
+# This file is part of gunicorn released under the MIT license.
+# See the NOTICE for more information.
+
+services:
+  # Run the example tests (protocol, dirty app, worker integration)
+  tests:
+    build:
+      context: ../..
+      dockerfile: examples/dirty_example/Dockerfile
+    command: >
+      bash -c "
+        echo '=== Running Protocol Tests ===' &&
+        python examples/dirty_example/test_protocol.py &&
+        echo '' &&
+        echo '=== Running Dirty App Tests ===' &&
+        python examples/dirty_example/test_dirty_app.py &&
+        echo '' &&
+        echo '=== Running Worker Integration Tests ===' &&
+        python examples/dirty_example/test_worker_integration.py &&
+        echo '' &&
+        echo '=== All tests passed! ==='
+      "
+
+  # Run the full gunicorn server with dirty workers
+  server:
+    build:
+      context: ../..
+      dockerfile: examples/dirty_example/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - GUNICORN_BIND=0.0.0.0:8000
+    command: >
+      gunicorn examples.dirty_example.wsgi_app:app
+      -c examples/dirty_example/gunicorn_conf.py
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Run integration test against the server
+  integration-test:
+    build:
+      context: ../..
+      dockerfile: examples/dirty_example/Dockerfile
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      - TEST_BASE_URL=http://server:8000
+    command: python examples/dirty_example/test_integration.py

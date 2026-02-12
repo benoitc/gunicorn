@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from gunicorn.config import Config
 from gunicorn.dirty.worker import DirtyWorker
-from gunicorn.dirty.protocol import DirtyProtocol, make_request
+from gunicorn.dirty.protocol import DirtyProtocol, BinaryProtocol, make_request, HEADER_SIZE
 
 
 class MockLog:
@@ -33,6 +33,36 @@ class MockLog:
     def error(self, msg, *args): print(f"[ERROR] {msg % args if args else msg}")
     def close_on_exec(self): pass
     def reopen_files(self): pass
+
+
+class MockWriter:
+    """Mock StreamWriter that captures written responses."""
+
+    def __init__(self):
+        self.messages = []
+        self._buffer = b""
+
+    def write(self, data):
+        self._buffer += data
+
+    async def drain(self):
+        # Decode messages from buffer using binary protocol
+        while len(self._buffer) >= HEADER_SIZE:
+            _, _, length = BinaryProtocol.decode_header(self._buffer[:HEADER_SIZE])
+            total_size = HEADER_SIZE + length
+            if len(self._buffer) >= total_size:
+                msg_data = self._buffer[:total_size]
+                self._buffer = self._buffer[total_size:]
+                msg_type_str, request_id, payload_dict = BinaryProtocol.decode_message(msg_data)
+                result = {"type": msg_type_str, "id": request_id}
+                result.update(payload_dict)
+                self.messages.append(result)
+            else:
+                break
+
+    def get_last_response(self):
+        """Get the last response message."""
+        return self.messages[-1] if self.messages else None
 
 
 async def test_worker_request_handling():
@@ -75,52 +105,60 @@ async def test_worker_request_handling():
         # Test handle_request with a proper request message
         print("\n3. Testing handle_request() - load_model...")
         request = make_request(
-            request_id="test-001",
+            request_id=1001,
             app_path="examples.dirty_example.dirty_app:MLApp",
             action="load_model",
             args=("gpt-4",),
             kwargs={}
         )
-        response = await worker.handle_request(request)
+        writer = MockWriter()
+        await worker.handle_request(request, writer)
+        response = writer.get_last_response()
         print(f"   Response type: {response['type']}")
         print(f"   Result: {response.get('result', response.get('error'))}")
 
         # Test inference
         print("\n4. Testing handle_request() - inference...")
         request = make_request(
-            request_id="test-002",
+            request_id=1002,
             app_path="examples.dirty_example.dirty_app:MLApp",
             action="inference",
             args=("default", "Hello AI!"),
             kwargs={}
         )
-        response = await worker.handle_request(request)
+        writer = MockWriter()
+        await worker.handle_request(request, writer)
+        response = writer.get_last_response()
         print(f"   Response type: {response['type']}")
         print(f"   Result: {response.get('result', response.get('error'))}")
 
         # Test error handling
         print("\n5. Testing error handling - unknown action...")
         request = make_request(
-            request_id="test-003",
+            request_id=1003,
             app_path="examples.dirty_example.dirty_app:MLApp",
             action="nonexistent_action",
             args=(),
             kwargs={}
         )
-        response = await worker.handle_request(request)
+        writer = MockWriter()
+        await worker.handle_request(request, writer)
+        response = writer.get_last_response()
         print(f"   Response type: {response['type']}")
         print(f"   Error: {response.get('error', {}).get('message')}")
 
         # Test app not found
         print("\n6. Testing error handling - app not found...")
         request = make_request(
-            request_id="test-004",
+            request_id=1004,
             app_path="nonexistent:App",
             action="test",
             args=(),
             kwargs={}
         )
-        response = await worker.handle_request(request)
+        writer = MockWriter()
+        await worker.handle_request(request, writer)
+        response = writer.get_last_response()
         print(f"   Response type: {response['type']}")
         print(f"   Error type: {response.get('error', {}).get('error_type')}")
 

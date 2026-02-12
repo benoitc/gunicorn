@@ -10,9 +10,11 @@ import pytest
 
 from gunicorn.dirty.protocol import (
     DirtyProtocol,
+    BinaryProtocol,
     make_chunk_message,
     make_end_message,
     make_error_response,
+    HEADER_SIZE,
 )
 from gunicorn.dirty.client import DirtyClient, DirtyAsyncStreamIterator
 from gunicorn.dirty.errors import DirtyError, DirtyTimeoutError
@@ -24,7 +26,7 @@ class MockAsyncReader:
     def __init__(self, messages):
         self._data = b''
         for msg in messages:
-            self._data += DirtyProtocol.encode(msg)
+            self._data += BinaryProtocol._encode_from_dict(msg)
         self._pos = 0
 
     async def readexactly(self, n):
@@ -76,10 +78,10 @@ class TestDirtyAsyncStreamIterator:
     async def test_async_stream_yields_chunks(self):
         """Test that async stream iterator yields chunks correctly."""
         messages = [
-            make_chunk_message("req-123", "Hello"),
-            make_chunk_message("req-123", " "),
-            make_chunk_message("req-123", "World"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "Hello"),
+            make_chunk_message(123, " "),
+            make_chunk_message(123, "World"),
+            make_end_message(123),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -93,9 +95,9 @@ class TestDirtyAsyncStreamIterator:
     async def test_async_stream_yields_complex_chunks(self):
         """Test that async stream iterator yields complex data types."""
         messages = [
-            make_chunk_message("req-123", {"token": "Hello", "score": 0.9}),
-            make_chunk_message("req-123", {"token": "World", "score": 0.8}),
-            make_end_message("req-123"),
+            make_chunk_message(123, {"token": "Hello", "score": 0.9}),
+            make_chunk_message(123, {"token": "World", "score": 0.8}),
+            make_end_message(123),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -111,8 +113,8 @@ class TestDirtyAsyncStreamIterator:
     async def test_async_stream_handles_error(self):
         """Test that async stream iterator raises on error message."""
         messages = [
-            make_chunk_message("req-123", "First"),
-            make_error_response("req-123", DirtyError("Something broke")),
+            make_chunk_message(123, "First"),
+            make_error_response(123, DirtyError("Something broke")),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -130,7 +132,7 @@ class TestDirtyAsyncStreamIterator:
     @pytest.mark.asyncio
     async def test_async_stream_empty_stream(self):
         """Test that empty stream (just end) works."""
-        messages = [make_end_message("req-123")]
+        messages = [make_end_message(123)]
         client = create_async_client_with_mocks(messages)
 
         chunks = []
@@ -143,8 +145,8 @@ class TestDirtyAsyncStreamIterator:
     async def test_async_stream_stops_after_exhausted(self):
         """Test that async iterator stays exhausted after StopAsyncIteration."""
         messages = [
-            make_chunk_message("req-123", "Only"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "Only"),
+            make_end_message(123),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -166,8 +168,8 @@ class TestDirtyAsyncStreamIterator:
     async def test_async_stream_sends_request_on_first_iteration(self):
         """Test that request is sent on first async iteration."""
         messages = [
-            make_chunk_message("req-123", "data"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "data"),
+            make_end_message(123),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -182,18 +184,15 @@ class TestDirtyAsyncStreamIterator:
 
         # Decode sent request
         sent_data = client._writer._sent[0]
-        length = struct.unpack(
-            DirtyProtocol.HEADER_FORMAT,
-            sent_data[:DirtyProtocol.HEADER_SIZE]
-        )[0]
-        request = DirtyProtocol.decode(
-            sent_data[DirtyProtocol.HEADER_SIZE:DirtyProtocol.HEADER_SIZE + length]
+        _, _, length = BinaryProtocol.decode_header(sent_data[:HEADER_SIZE])
+        msg_type_str, request_id, payload = BinaryProtocol.decode_message(
+            sent_data[:HEADER_SIZE + length]
         )
 
-        assert request["type"] == "request"
-        assert request["app_path"] == "test:App"
-        assert request["action"] == "generate"
-        assert request["args"] == ["prompt_arg"]
+        assert msg_type_str == "request"
+        assert payload["app_path"] == "test:App"
+        assert payload["action"] == "generate"
+        assert payload["args"] == ["prompt_arg"]
 
 
 class TestDirtyAsyncStreamIteratorEdgeCases:
@@ -204,8 +203,8 @@ class TestDirtyAsyncStreamIteratorEdgeCases:
         """Test async streaming with many chunks."""
         messages = []
         for i in range(100):
-            messages.append(make_chunk_message("req-123", f"chunk-{i}"))
-        messages.append(make_end_message("req-123"))
+            messages.append(make_chunk_message(123, f"chunk-{i}"))
+        messages.append(make_end_message(123))
 
         client = create_async_client_with_mocks(messages)
 
@@ -221,8 +220,8 @@ class TestDirtyAsyncStreamIteratorEdgeCases:
     async def test_async_stream_with_kwargs(self):
         """Test async streaming with keyword arguments."""
         messages = [
-            make_chunk_message("req-123", "data"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "data"),
+            make_end_message(123),
         ]
         client = create_async_client_with_mocks(messages)
 
@@ -233,16 +232,13 @@ class TestDirtyAsyncStreamIteratorEdgeCases:
 
         # Check the sent request includes kwargs
         sent_data = client._writer._sent[0]
-        length = struct.unpack(
-            DirtyProtocol.HEADER_FORMAT,
-            sent_data[:DirtyProtocol.HEADER_SIZE]
-        )[0]
-        request = DirtyProtocol.decode(
-            sent_data[DirtyProtocol.HEADER_SIZE:DirtyProtocol.HEADER_SIZE + length]
+        _, _, length = BinaryProtocol.decode_header(sent_data[:HEADER_SIZE])
+        msg_type_str, request_id, payload = BinaryProtocol.decode_message(
+            sent_data[:HEADER_SIZE + length]
         )
 
-        assert request["args"] == ["arg1"]
-        assert request["kwargs"] == {"key": "value"}
+        assert payload["args"] == ["arg1"]
+        assert payload["kwargs"] == {"key": "value"}
 
 
 class TestDirtyAsyncStreamTimeout:

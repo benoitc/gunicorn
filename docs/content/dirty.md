@@ -17,7 +17,7 @@ Dirty Arbiters solve this by providing:
 
 - **Separate worker pool** - Completely separate from HTTP workers, can be killed/restarted independently
 - **Stateful workers** - Loaded resources persist in dirty worker memory
-- **Message-passing IPC** - Communication via Unix sockets with JSON serialization
+- **Message-passing IPC** - Communication via Unix sockets with binary TLV protocol
 - **Explicit API** - Clear `execute()` calls (no hidden IPC)
 - **Asyncio-based** - Clean concurrent handling with streaming support
 
@@ -476,6 +476,64 @@ Worker -> Arbiter -> Client: chunk (data: "World")
 Worker -> Arbiter -> Client: end
 ```
 
+## Binary Protocol
+
+The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd for efficient data transfer. This eliminates base64 encoding overhead for binary data like images, audio, or model weights.
+
+### Header Format (16 bytes)
+
+```
++--------+--------+--------+--------+--------+--------+--------+--------+
+|  Magic (2B)     | Ver(1) | MType  |        Payload Length (4B)        |
++--------+--------+--------+--------+--------+--------+--------+--------+
+|                       Request ID (8 bytes)                            |
++--------+--------+--------+--------+--------+--------+--------+--------+
+```
+
+- **Magic**: `0x47 0x44` ("GD" for Gunicorn Dirty)
+- **Version**: `0x01`
+- **MType**: Message type (`0x01`=REQUEST, `0x02`=RESPONSE, `0x03`=ERROR, `0x04`=CHUNK, `0x05`=END)
+- **Length**: Payload size (big-endian uint32, max 64MB)
+- **Request ID**: uint64 identifier
+
+### TLV Payload Encoding
+
+Payloads use Type-Length-Value encoding:
+
+| Type | Code | Description |
+|------|------|-------------|
+| None | `0x00` | No value bytes |
+| Bool | `0x01` | 1 byte (0x00/0x01) |
+| Int64 | `0x05` | 8 bytes big-endian signed |
+| Float64 | `0x06` | 8 bytes IEEE 754 |
+| Bytes | `0x10` | 4-byte length + raw bytes |
+| String | `0x11` | 4-byte length + UTF-8 |
+| List | `0x20` | 4-byte count + elements |
+| Dict | `0x21` | 4-byte count + key-value pairs |
+
+### Binary Data Benefits
+
+The binary protocol allows passing raw bytes directly without encoding:
+
+```python
+# Image processing with binary data
+def resize(self, image_data, width, height):
+    """Resize an image - image_data is raw bytes."""
+    img = Image.open(io.BytesIO(image_data))
+    resized = img.resize((width, height))
+    buffer = io.BytesIO()
+    resized.save(buffer, format='PNG')
+    return buffer.getvalue()  # Returns raw bytes
+
+# Called from HTTP worker
+thumbnail = client.execute(
+    "myapp.images:ImageApp",
+    "thumbnail",
+    raw_image_bytes,  # No base64 encoding needed
+    size=256
+)
+```
+
 ### Error Handling in Streams
 
 Errors during streaming are delivered as error messages:
@@ -768,7 +826,7 @@ except DirtyConnectionError:
 2. **Set appropriate timeouts** based on your workload
 3. **Handle errors gracefully** - dirty workers may restart
 4. **Use meaningful action names** for easier debugging
-5. **Keep responses JSON-serializable** - results are passed via IPC
+5. **Keep responses serializable** - results are passed via binary IPC (supports bytes directly)
 
 ## Monitoring
 

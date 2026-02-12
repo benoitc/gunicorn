@@ -11,7 +11,9 @@ Run with:
 """
 
 # Basic settings
-bind = "127.0.0.1:8000"
+# Use 0.0.0.0 for Docker, override with GUNICORN_BIND env var if needed
+import os
+bind = os.environ.get("GUNICORN_BIND", "127.0.0.1:8000")
 workers = 2
 worker_class = "sync"
 timeout = 30

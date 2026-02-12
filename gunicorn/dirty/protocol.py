@@ -3,89 +3,304 @@
 # See the NOTICE for more information.
 
 """
-Dirty Arbiters Protocol
+Dirty Worker Binary Protocol
 
-Length-prefixed JSON message framing over Unix sockets.
-Provides both async (primary) and sync (for HTTP workers) APIs.
+Binary message framing over Unix sockets, inspired by OpenBSD msgctl/msgsnd.
+Replaces JSON protocol for efficient binary data transfer.
 
-Message Format:
-+----------------+------------------+
-| 4-byte length  | JSON payload     |
-+----------------+------------------+
+Header Format (16 bytes):
++--------+--------+--------+--------+--------+--------+--------+--------+
+|  Magic (2B)     | Ver(1) | MType  |        Payload Length (4B)        |
++--------+--------+--------+--------+--------+--------+--------+--------+
+|                       Request ID (8 bytes)                            |
++--------+--------+--------+--------+--------+--------+--------+--------+
 
-The length field is a 4-byte unsigned integer in network byte order (big-endian).
+- Magic: 0x47 0x44 ("GD" for Gunicorn Dirty)
+- Version: 0x01
+- MType: Message type (REQUEST, RESPONSE, ERROR, CHUNK, END)
+- Length: Payload size (big-endian uint32, max 64MB)
+- Request ID: uint64 (replaces UUID string)
+
+Payload is TLV-encoded (see tlv.py).
 """
 
 import asyncio
-import json
-import struct
 import socket
+import struct
 
 from .errors import DirtyProtocolError
+from .tlv import TLVEncoder
 
 
-class DirtyProtocol:
-    """Length-prefixed JSON messages over Unix sockets."""
+# Protocol constants
+MAGIC = b"GD"  # 0x47 0x44
+VERSION = 0x01
 
-    # 4-byte unsigned int, network byte order (big-endian)
-    HEADER_FORMAT = "!I"
-    HEADER_SIZE = struct.calcsize(HEADER_FORMAT)
+# Message types (1 byte)
+MSG_TYPE_REQUEST = 0x01
+MSG_TYPE_RESPONSE = 0x02
+MSG_TYPE_ERROR = 0x03
+MSG_TYPE_CHUNK = 0x04
+MSG_TYPE_END = 0x05
 
-    # Maximum message size (64 MB)
-    MAX_MESSAGE_SIZE = 64 * 1024 * 1024
+# Message type names (for backwards compatibility with old API)
+MSG_TYPE_REQUEST_STR = "request"
+MSG_TYPE_RESPONSE_STR = "response"
+MSG_TYPE_ERROR_STR = "error"
+MSG_TYPE_CHUNK_STR = "chunk"
+MSG_TYPE_END_STR = "end"
 
-    # Message types for future streaming support
-    MSG_TYPE_REQUEST = "request"
-    MSG_TYPE_RESPONSE = "response"
-    MSG_TYPE_ERROR = "error"
-    MSG_TYPE_CHUNK = "chunk"
-    MSG_TYPE_END = "end"
+# Map int types to string names
+MSG_TYPE_TO_STR = {
+    MSG_TYPE_REQUEST: MSG_TYPE_REQUEST_STR,
+    MSG_TYPE_RESPONSE: MSG_TYPE_RESPONSE_STR,
+    MSG_TYPE_ERROR: MSG_TYPE_ERROR_STR,
+    MSG_TYPE_CHUNK: MSG_TYPE_CHUNK_STR,
+    MSG_TYPE_END: MSG_TYPE_END_STR,
+}
+
+# Map string names to int types
+MSG_TYPE_FROM_STR = {v: k for k, v in MSG_TYPE_TO_STR.items()}
+
+# Header format: Magic (2) + Version (1) + Type (1) + Length (4) + RequestID (8) = 16
+HEADER_FORMAT = ">2sBBIQ"
+HEADER_SIZE = struct.calcsize(HEADER_FORMAT)
+
+# Maximum message size (64 MB)
+MAX_MESSAGE_SIZE = 64 * 1024 * 1024
+
+
+class BinaryProtocol:
+    """Binary message protocol for dirty worker IPC."""
+
+    # Export constants for external use
+    HEADER_SIZE = HEADER_SIZE
+    MAX_MESSAGE_SIZE = MAX_MESSAGE_SIZE
+
+    MSG_TYPE_REQUEST = MSG_TYPE_REQUEST_STR
+    MSG_TYPE_RESPONSE = MSG_TYPE_RESPONSE_STR
+    MSG_TYPE_ERROR = MSG_TYPE_ERROR_STR
+    MSG_TYPE_CHUNK = MSG_TYPE_CHUNK_STR
+    MSG_TYPE_END = MSG_TYPE_END_STR
 
     @staticmethod
-    def encode(message: dict) -> bytes:
+    def encode_header(msg_type: int, request_id: int, payload_length: int) -> bytes:
         """
-        Encode a message dict to length-prefixed bytes.
+        Encode the 16-byte message header.
 
         Args:
-            message: Dictionary to encode as JSON
+            msg_type: Message type (MSG_TYPE_REQUEST, etc.)
+            request_id: Unique request identifier (uint64)
+            payload_length: Length of the TLV-encoded payload
 
         Returns:
-            bytes: Length-prefixed encoded message
+            bytes: 16-byte header
+        """
+        return struct.pack(HEADER_FORMAT, MAGIC, VERSION, msg_type,
+                           payload_length, request_id)
+
+    @staticmethod
+    def decode_header(data: bytes) -> tuple:
+        """
+        Decode the 16-byte message header.
+
+        Args:
+            data: 16 bytes of header data
+
+        Returns:
+            tuple: (msg_type, request_id, payload_length)
 
         Raises:
-            DirtyProtocolError: If encoding fails
+            DirtyProtocolError: If header is invalid
         """
-        try:
-            payload = json.dumps(message).encode("utf-8")
-            if len(payload) > DirtyProtocol.MAX_MESSAGE_SIZE:
+        if len(data) < HEADER_SIZE:
+            raise DirtyProtocolError(
+                f"Header too short: {len(data)} bytes, expected {HEADER_SIZE}",
+                raw_data=data
+            )
+
+        magic, version, msg_type, length, request_id = struct.unpack(
+            HEADER_FORMAT, data[:HEADER_SIZE]
+        )
+
+        if magic != MAGIC:
+            raise DirtyProtocolError(
+                f"Invalid magic: {magic!r}, expected {MAGIC!r}",
+                raw_data=data[:20]
+            )
+
+        if version != VERSION:
+            raise DirtyProtocolError(
+                f"Unsupported protocol version: {version}, expected {VERSION}",
+                raw_data=data[:20]
+            )
+
+        if msg_type not in MSG_TYPE_TO_STR:
+            raise DirtyProtocolError(
+                f"Unknown message type: 0x{msg_type:02x}",
+                raw_data=data[:20]
+            )
+
+        if length > MAX_MESSAGE_SIZE:
+            raise DirtyProtocolError(
+                f"Message too large: {length} bytes (max: {MAX_MESSAGE_SIZE})"
+            )
+
+        return msg_type, request_id, length
+
+    @staticmethod
+    def encode_request(request_id: int, app_path: str, action: str,
+                       args: tuple = None, kwargs: dict = None) -> bytes:
+        """
+        Encode a request message.
+
+        Args:
+            request_id: Unique request identifier (uint64)
+            app_path: Import path of the dirty app
+            action: Action to call on the app
+            args: Positional arguments
+            kwargs: Keyword arguments
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        payload_dict = {
+            "app_path": app_path,
+            "action": action,
+            "args": list(args) if args else [],
+            "kwargs": kwargs or {},
+        }
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_REQUEST, request_id,
+                                              len(payload))
+        return header + payload
+
+    @staticmethod
+    def encode_response(request_id: int, result) -> bytes:
+        """
+        Encode a success response message.
+
+        Args:
+            request_id: Request identifier this responds to
+            result: Result value (must be TLV-serializable)
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        payload_dict = {"result": result}
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_RESPONSE, request_id,
+                                              len(payload))
+        return header + payload
+
+    @staticmethod
+    def encode_error(request_id: int, error) -> bytes:
+        """
+        Encode an error response message.
+
+        Args:
+            request_id: Request identifier this responds to
+            error: DirtyError instance, dict, or Exception
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        from .errors import DirtyError
+
+        if isinstance(error, DirtyError):
+            error_dict = error.to_dict()
+        elif isinstance(error, dict):
+            error_dict = error
+        else:
+            error_dict = {
+                "error_type": type(error).__name__,
+                "message": str(error),
+                "details": {},
+            }
+
+        payload_dict = {"error": error_dict}
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_ERROR, request_id,
+                                              len(payload))
+        return header + payload
+
+    @staticmethod
+    def encode_chunk(request_id: int, data) -> bytes:
+        """
+        Encode a chunk message for streaming responses.
+
+        Args:
+            request_id: Request identifier this chunk belongs to
+            data: Chunk data (must be TLV-serializable)
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        payload_dict = {"data": data}
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_CHUNK, request_id,
+                                              len(payload))
+        return header + payload
+
+    @staticmethod
+    def encode_end(request_id: int) -> bytes:
+        """
+        Encode an end-of-stream message.
+
+        Args:
+            request_id: Request identifier this ends
+
+        Returns:
+            bytes: Complete message (header + empty payload)
+        """
+        # End message has empty payload
+        header = BinaryProtocol.encode_header(MSG_TYPE_END, request_id, 0)
+        return header
+
+    @staticmethod
+    def decode_message(data: bytes) -> tuple:
+        """
+        Decode a complete message (header + payload).
+
+        Args:
+            data: Complete message bytes
+
+        Returns:
+            tuple: (msg_type_str, request_id, payload_dict)
+                   msg_type_str is the string name (e.g., "request")
+                   payload_dict is the decoded TLV payload as a dict
+
+        Raises:
+            DirtyProtocolError: If message is malformed
+        """
+        msg_type, request_id, length = BinaryProtocol.decode_header(data)
+
+        if len(data) < HEADER_SIZE + length:
+            raise DirtyProtocolError(
+                f"Incomplete message: expected {HEADER_SIZE + length} bytes, "
+                f"got {len(data)}",
+                raw_data=data[:50]
+            )
+
+        if length == 0:
+            # End message has empty payload
+            payload_dict = {}
+        else:
+            payload_data = data[HEADER_SIZE:HEADER_SIZE + length]
+            try:
+                payload_dict = TLVEncoder.decode_full(payload_data)
+            except DirtyProtocolError:
+                raise
+            except Exception as e:
                 raise DirtyProtocolError(
-                    f"Message too large: {len(payload)} bytes "
-                    f"(max: {DirtyProtocol.MAX_MESSAGE_SIZE})"
+                    f"Failed to decode TLV payload: {e}",
+                    raw_data=payload_data[:50]
                 )
-            length = struct.pack(DirtyProtocol.HEADER_FORMAT, len(payload))
-            return length + payload
-        except (TypeError, ValueError) as e:
-            raise DirtyProtocolError(f"Failed to encode message: {e}")
 
-    @staticmethod
-    def decode(data: bytes) -> dict:
-        """
-        Decode bytes (without length prefix) to message dict.
+        # Convert to dict format similar to old JSON protocol
+        msg_type_str = MSG_TYPE_TO_STR[msg_type]
 
-        Args:
-            data: JSON bytes to decode
-
-        Returns:
-            dict: Decoded message
-
-        Raises:
-            DirtyProtocolError: If decoding fails
-        """
-        try:
-            return json.loads(data.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            raise DirtyProtocolError(f"Failed to decode message: {e}",
-                                     raw_data=data)
+        return msg_type_str, request_id, payload_dict
 
     # -------------------------------------------------------------------------
     # Async API (primary - for DirtyArbiter and DirtyWorker)
@@ -94,53 +309,62 @@ class DirtyProtocol:
     @staticmethod
     async def read_message_async(reader: asyncio.StreamReader) -> dict:
         """
-        Read a complete message from async stream.
+        Read a complete binary message from async stream.
 
         Args:
             reader: asyncio StreamReader
 
         Returns:
-            dict: Decoded message
+            dict: Message dict with 'type', 'id', and payload fields
 
         Raises:
             DirtyProtocolError: If read fails or message is malformed
             asyncio.IncompleteReadError: If connection closed mid-read
         """
-        # Read length header
+        # Read header
         try:
-            header = await reader.readexactly(DirtyProtocol.HEADER_SIZE)
+            header = await reader.readexactly(HEADER_SIZE)
         except asyncio.IncompleteReadError as e:
             if len(e.partial) == 0:
                 # Clean close - no data was read
                 raise
             raise DirtyProtocolError(
                 f"Incomplete header: got {len(e.partial)} bytes, "
-                f"expected {DirtyProtocol.HEADER_SIZE}",
+                f"expected {HEADER_SIZE}",
                 raw_data=e.partial
             )
 
-        length = struct.unpack(DirtyProtocol.HEADER_FORMAT, header)[0]
-
-        if length > DirtyProtocol.MAX_MESSAGE_SIZE:
-            raise DirtyProtocolError(
-                f"Message too large: {length} bytes "
-                f"(max: {DirtyProtocol.MAX_MESSAGE_SIZE})"
-            )
-
-        if length == 0:
-            raise DirtyProtocolError("Empty message received")
+        msg_type, request_id, length = BinaryProtocol.decode_header(header)
 
         # Read payload
-        try:
-            payload = await reader.readexactly(length)
-        except asyncio.IncompleteReadError as e:
-            raise DirtyProtocolError(
-                f"Incomplete message: got {len(e.partial)} bytes, "
-                f"expected {length}",
-                raw_data=e.partial
-            )
+        if length > 0:
+            try:
+                payload_data = await reader.readexactly(length)
+            except asyncio.IncompleteReadError as e:
+                raise DirtyProtocolError(
+                    f"Incomplete payload: got {len(e.partial)} bytes, "
+                    f"expected {length}",
+                    raw_data=e.partial
+                )
 
-        return DirtyProtocol.decode(payload)
+            try:
+                payload_dict = TLVEncoder.decode_full(payload_data)
+            except DirtyProtocolError:
+                raise
+            except Exception as e:
+                raise DirtyProtocolError(
+                    f"Failed to decode TLV payload: {e}",
+                    raw_data=payload_data[:50]
+                )
+        else:
+            payload_dict = {}
+
+        # Build response dict
+        msg_type_str = MSG_TYPE_TO_STR[msg_type]
+        result = {"type": msg_type_str, "id": request_id}
+        result.update(payload_dict)
+
+        return result
 
     @staticmethod
     async def write_message_async(writer: asyncio.StreamWriter,
@@ -148,15 +372,17 @@ class DirtyProtocol:
         """
         Write a message to async stream.
 
+        Accepts dict format for backwards compatibility.
+
         Args:
             writer: asyncio StreamWriter
-            message: Dictionary to send
+            message: Message dict with 'type', 'id', and payload fields
 
         Raises:
             DirtyProtocolError: If encoding fails
             ConnectionError: If write fails
         """
-        data = DirtyProtocol.encode(message)
+        data = BinaryProtocol._encode_from_dict(message)
         writer.write(data)
         await writer.drain()
 
@@ -201,27 +427,36 @@ class DirtyProtocol:
             sock: Socket to read from
 
         Returns:
-            dict: Decoded message
+            dict: Message dict with 'type', 'id', and payload fields
 
         Raises:
             DirtyProtocolError: If read fails or message is malformed
         """
-        # Read length header
-        header = DirtyProtocol._recv_exactly(sock, DirtyProtocol.HEADER_SIZE)
-        length = struct.unpack(DirtyProtocol.HEADER_FORMAT, header)[0]
-
-        if length > DirtyProtocol.MAX_MESSAGE_SIZE:
-            raise DirtyProtocolError(
-                f"Message too large: {length} bytes "
-                f"(max: {DirtyProtocol.MAX_MESSAGE_SIZE})"
-            )
-
-        if length == 0:
-            raise DirtyProtocolError("Empty message received")
+        # Read header
+        header = BinaryProtocol._recv_exactly(sock, HEADER_SIZE)
+        msg_type, request_id, length = BinaryProtocol.decode_header(header)
 
         # Read payload
-        payload = DirtyProtocol._recv_exactly(sock, length)
-        return DirtyProtocol.decode(payload)
+        if length > 0:
+            payload_data = BinaryProtocol._recv_exactly(sock, length)
+            try:
+                payload_dict = TLVEncoder.decode_full(payload_data)
+            except DirtyProtocolError:
+                raise
+            except Exception as e:
+                raise DirtyProtocolError(
+                    f"Failed to decode TLV payload: {e}",
+                    raw_data=payload_data[:50]
+                )
+        else:
+            payload_dict = {}
+
+        # Build response dict
+        msg_type_str = MSG_TYPE_TO_STR[msg_type]
+        result = {"type": msg_type_str, "id": request_id}
+        result.update(payload_dict)
+
+        return result
 
     @staticmethod
     def write_message(sock: socket.socket, message: dict) -> None:
@@ -230,31 +465,92 @@ class DirtyProtocol:
 
         Args:
             sock: Socket to write to
-            message: Dictionary to send
+            message: Message dict with 'type', 'id', and payload fields
 
         Raises:
             DirtyProtocolError: If encoding fails
             OSError: If write fails
         """
-        data = DirtyProtocol.encode(message)
+        data = BinaryProtocol._encode_from_dict(message)
         sock.sendall(data)
 
+    @staticmethod
+    def _encode_from_dict(message: dict) -> bytes:
+        """
+        Encode a message dict to binary format.
 
-# Message builder helpers
-def make_request(request_id: str, app_path: str, action: str,
+        Supports the old dict-based API for backwards compatibility.
+
+        Args:
+            message: Message dict with 'type', 'id', and payload fields
+
+        Returns:
+            bytes: Complete encoded message
+        """
+        msg_type_str = message.get("type")
+        request_id = message.get("id", 0)
+
+        # Handle string or int request IDs
+        if isinstance(request_id, str):
+            # For backwards compat with UUID strings, hash to int
+            request_id = hash(request_id) & 0xFFFFFFFFFFFFFFFF
+
+        msg_type = MSG_TYPE_FROM_STR.get(msg_type_str)
+        if msg_type is None:
+            raise DirtyProtocolError(f"Unknown message type: {msg_type_str}")
+
+        if msg_type == MSG_TYPE_REQUEST:
+            return BinaryProtocol.encode_request(
+                request_id,
+                message.get("app_path", ""),
+                message.get("action", ""),
+                message.get("args"),
+                message.get("kwargs")
+            )
+        elif msg_type == MSG_TYPE_RESPONSE:
+            return BinaryProtocol.encode_response(
+                request_id,
+                message.get("result")
+            )
+        elif msg_type == MSG_TYPE_ERROR:
+            return BinaryProtocol.encode_error(
+                request_id,
+                message.get("error", {})
+            )
+        elif msg_type == MSG_TYPE_CHUNK:
+            return BinaryProtocol.encode_chunk(
+                request_id,
+                message.get("data")
+            )
+        elif msg_type == MSG_TYPE_END:
+            return BinaryProtocol.encode_end(request_id)
+        else:
+            raise DirtyProtocolError(f"Unhandled message type: {msg_type}")
+
+
+# =============================================================================
+# Backwards Compatibility Aliases
+# =============================================================================
+
+# Alias BinaryProtocol as DirtyProtocol for drop-in replacement
+DirtyProtocol = BinaryProtocol
+
+
+# Message builder helpers (backwards compatible with old API)
+def make_request(request_id, app_path: str, action: str,
                  args: tuple = None, kwargs: dict = None) -> dict:
     """
-    Build a request message.
+    Build a request message dict.
 
     Args:
-        request_id: Unique request identifier
+        request_id: Unique request identifier (int or str)
         app_path: Import path of the dirty app (e.g., 'myapp.ml:MLApp')
         action: Action to call on the app
         args: Positional arguments
         kwargs: Keyword arguments
 
     Returns:
-        dict: Request message
+        dict: Request message dict
     """
     return {
         "type": DirtyProtocol.MSG_TYPE_REQUEST,
@@ -266,16 +562,16 @@ def make_request(request_id: str, app_path: str, action: str,
     }
 
 
-def make_response(request_id: str, result) -> dict:
+def make_response(request_id, result) -> dict:
     """
-    Build a success response message.
+    Build a success response message dict.
 
     Args:
         request_id: Request identifier this responds to
-        result: Result value (must be JSON-serializable)
+        result: Result value
 
     Returns:
-        dict: Response message
+        dict: Response message dict
     """
     return {
         "type": DirtyProtocol.MSG_TYPE_RESPONSE,
@@ -284,16 +580,16 @@ def make_response(request_id: str, result) -> dict:
     }
 
 
-def make_error_response(request_id: str, error) -> dict:
+def make_error_response(request_id, error) -> dict:
     """
-    Build an error response message.
+    Build an error response message dict.
 
     Args:
         request_id: Request identifier this responds to
         error: DirtyError instance or dict with error info
 
     Returns:
-        dict: Error response message
+        dict: Error response message dict
     """
     from .errors import DirtyError
     if isinstance(error, DirtyError):
@@ -314,16 +610,16 @@ def make_error_response(request_id: str, error) -> dict:
     }
 
 
-def make_chunk_message(request_id: str, data) -> dict:
+def make_chunk_message(request_id, data) -> dict:
     """
-    Build a chunk message for streaming responses.
+    Build a chunk message dict for streaming responses.
 
     Args:
         request_id: Request identifier this chunk belongs to
-        data: Chunk data (must be JSON-serializable)
+        data: Chunk data
 
     Returns:
-        dict: Chunk message
+        dict: Chunk message dict
     """
     return {
         "type": DirtyProtocol.MSG_TYPE_CHUNK,
@@ -332,15 +628,15 @@ def make_chunk_message(request_id: str, data) -> dict:
     }
 
 
-def make_end_message(request_id: str) -> dict:
+def make_end_message(request_id) -> dict:
     """
-    Build an end-of-stream message.
+    Build an end-of-stream message dict.
 
     Args:
         request_id: Request identifier this ends
 
     Returns:
-        dict: End message
+        dict: End message dict
     """
     return {
         "type": DirtyProtocol.MSG_TYPE_END,

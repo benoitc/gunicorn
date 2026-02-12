@@ -18,11 +18,13 @@ from unittest import mock
 from gunicorn.config import Config
 from gunicorn.dirty.protocol import (
     DirtyProtocol,
+    BinaryProtocol,
     make_request,
     make_chunk_message,
     make_end_message,
     make_response,
     make_error_response,
+    HEADER_SIZE,
 )
 from gunicorn.dirty.worker import DirtyWorker
 from gunicorn.dirty.arbiter import DirtyArbiter
@@ -67,16 +69,22 @@ class MockStreamWriter:
         self._buffer += data
 
     async def drain(self):
-        while len(self._buffer) >= DirtyProtocol.HEADER_SIZE:
-            length = struct.unpack(
-                DirtyProtocol.HEADER_FORMAT,
-                self._buffer[:DirtyProtocol.HEADER_SIZE]
-            )[0]
-            total_size = DirtyProtocol.HEADER_SIZE + length
+        # Decode the buffer to extract messages using binary protocol
+        while len(self._buffer) >= HEADER_SIZE:
+            # Decode header to get payload length
+            _, _, length = BinaryProtocol.decode_header(
+                self._buffer[:HEADER_SIZE]
+            )
+            total_size = HEADER_SIZE + length
             if len(self._buffer) >= total_size:
-                msg_data = self._buffer[DirtyProtocol.HEADER_SIZE:total_size]
+                msg_data = self._buffer[:total_size]
                 self._buffer = self._buffer[total_size:]
-                self.messages.append(DirtyProtocol.decode(msg_data))
+                # decode_message returns (msg_type_str, request_id, payload_dict)
+                msg_type_str, request_id, payload_dict = BinaryProtocol.decode_message(msg_data)
+                # Reconstruct the dict format for backwards compatibility
+                result = {"type": msg_type_str, "id": request_id}
+                result.update(payload_dict)
+                self.messages.append(result)
             else:
                 break
 
@@ -96,7 +104,7 @@ class MockStreamReader:
     def __init__(self, messages):
         self._data = b''
         for msg in messages:
-            self._data += DirtyProtocol.encode(msg)
+            self._data += BinaryProtocol._encode_from_dict(msg)
         self._pos = 0
 
     async def readexactly(self, n):
@@ -115,10 +123,10 @@ class TestStreamingEndToEnd:
         """Test complete flow: sync generator -> worker -> arbiter -> client."""
         # Simulate what a worker would produce for a sync generator
         worker_messages = [
-            make_chunk_message("req-123", "Hello"),
-            make_chunk_message("req-123", " "),
-            make_chunk_message("req-123", "World"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "Hello"),
+            make_chunk_message(123, " "),
+            make_chunk_message(123, "World"),
+            make_end_message(123),
         ]
 
         # Create an arbiter with mocked worker connection
@@ -141,7 +149,7 @@ class TestStreamingEndToEnd:
         client_writer = MockStreamWriter()
 
         # Execute request through arbiter
-        request = make_request("req-123", "test:App", "generate")
+        request = make_request(123, "test:App", "generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         # Verify all messages were forwarded
@@ -158,10 +166,10 @@ class TestStreamingEndToEnd:
     async def test_async_generator_end_to_end(self):
         """Test complete flow: async generator -> worker -> arbiter -> client."""
         worker_messages = [
-            make_chunk_message("req-456", "Async"),
-            make_chunk_message("req-456", " "),
-            make_chunk_message("req-456", "Stream"),
-            make_end_message("req-456"),
+            make_chunk_message(456, "Async"),
+            make_chunk_message(456, " "),
+            make_chunk_message(456, "Stream"),
+            make_end_message(456),
         ]
 
         cfg = Config()
@@ -180,7 +188,7 @@ class TestStreamingEndToEnd:
 
         client_writer = MockStreamWriter()
 
-        request = make_request("req-456", "test:App", "async_generate")
+        request = make_request(456, "test:App", "async_generate")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         assert len(client_writer.messages) == 4
@@ -197,9 +205,9 @@ class TestStreamingErrorHandling:
     async def test_error_mid_stream(self):
         """Test that errors during streaming are properly forwarded."""
         worker_messages = [
-            make_chunk_message("req-789", "First"),
-            make_chunk_message("req-789", "Second"),
-            make_error_response("req-789", DirtyError("Stream failed")),
+            make_chunk_message(789, "First"),
+            make_chunk_message(789, "Second"),
+            make_error_response(789, DirtyError("Stream failed")),
         ]
 
         cfg = Config()
@@ -218,7 +226,7 @@ class TestStreamingErrorHandling:
 
         client_writer = MockStreamWriter()
 
-        request = make_request("req-789", "test:App", "generate_with_error")
+        request = make_request(789, "test:App", "generate_with_error")
         await arbiter._execute_on_worker(1234, request, client_writer)
 
         # Should have 2 chunks + 1 error
@@ -335,7 +343,7 @@ class TestStreamingWorkerIntegration:
             return sync_gen()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-123", "test:App", "generate")
+            request = make_request(123, "test:App", "generate")
             await worker.handle_request(request, writer)
 
         # Should have 3 chunks + 1 end
@@ -377,7 +385,7 @@ class TestStreamingWorkerIntegration:
             return async_gen()
 
         with mock.patch.object(worker, 'execute', side_effect=mock_execute):
-            request = make_request("req-456", "test:App", "async_generate")
+            request = make_request(456, "test:App", "async_generate")
             await worker.handle_request(request, writer)
 
         # Should have 2 chunks + 1 end

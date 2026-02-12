@@ -11,10 +11,12 @@ from unittest import mock
 
 from gunicorn.dirty.protocol import (
     DirtyProtocol,
+    BinaryProtocol,
     make_chunk_message,
     make_end_message,
     make_response,
     make_error_response,
+    HEADER_SIZE,
 )
 from gunicorn.dirty.client import DirtyClient, DirtyStreamIterator
 from gunicorn.dirty.errors import DirtyError, DirtyConnectionError
@@ -26,7 +28,7 @@ class MockSocket:
     def __init__(self, messages):
         self._data = b''
         for msg in messages:
-            self._data += DirtyProtocol.encode(msg)
+            self._data += BinaryProtocol._encode_from_dict(msg)
         self._pos = 0
         self._sent = []
         self.closed = False
@@ -69,10 +71,10 @@ class TestDirtyStreamIterator:
     def test_stream_iterator_yields_chunks(self):
         """Test that stream iterator yields chunks correctly."""
         messages = [
-            make_chunk_message("req-123", "Hello"),
-            make_chunk_message("req-123", " "),
-            make_chunk_message("req-123", "World"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "Hello"),
+            make_chunk_message(123, " "),
+            make_chunk_message(123, "World"),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -83,9 +85,9 @@ class TestDirtyStreamIterator:
     def test_stream_iterator_yields_complex_chunks(self):
         """Test that stream iterator yields complex data types."""
         messages = [
-            make_chunk_message("req-123", {"token": "Hello", "score": 0.9}),
-            make_chunk_message("req-123", {"token": "World", "score": 0.8}),
-            make_end_message("req-123"),
+            make_chunk_message(123, {"token": "Hello", "score": 0.9}),
+            make_chunk_message(123, {"token": "World", "score": 0.8}),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -98,8 +100,8 @@ class TestDirtyStreamIterator:
     def test_stream_iterator_handles_error(self):
         """Test that stream iterator raises on error message."""
         messages = [
-            make_chunk_message("req-123", "First"),
-            make_error_response("req-123", DirtyError("Something broke")),
+            make_chunk_message(123, "First"),
+            make_error_response(123, DirtyError("Something broke")),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -116,7 +118,7 @@ class TestDirtyStreamIterator:
 
     def test_stream_iterator_empty_stream(self):
         """Test that empty stream (just end) works."""
-        messages = [make_end_message("req-123")]
+        messages = [make_end_message(123)]
         client = create_client_with_mock_socket(messages)
 
         chunks = list(client.stream("test:App", "generate"))
@@ -125,8 +127,8 @@ class TestDirtyStreamIterator:
     def test_stream_iterator_stops_after_exhausted(self):
         """Test that iterator stays exhausted after StopIteration."""
         messages = [
-            make_chunk_message("req-123", "Only"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "Only"),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -147,10 +149,10 @@ class TestDirtyStreamIterator:
     def test_stream_iterator_with_for_loop(self):
         """Test stream iterator works in for loop."""
         messages = [
-            make_chunk_message("req-123", "a"),
-            make_chunk_message("req-123", "b"),
-            make_chunk_message("req-123", "c"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "a"),
+            make_chunk_message(123, "b"),
+            make_chunk_message(123, "c"),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -163,8 +165,8 @@ class TestDirtyStreamIterator:
     def test_stream_sends_request_on_first_iteration(self):
         """Test that request is sent on first next() call."""
         messages = [
-            make_chunk_message("req-123", "data"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "data"),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -179,18 +181,15 @@ class TestDirtyStreamIterator:
 
         # Decode sent request
         sent_data = client._sock._sent[0]
-        length = struct.unpack(
-            DirtyProtocol.HEADER_FORMAT,
-            sent_data[:DirtyProtocol.HEADER_SIZE]
-        )[0]
-        request = DirtyProtocol.decode(
-            sent_data[DirtyProtocol.HEADER_SIZE:DirtyProtocol.HEADER_SIZE + length]
+        _, _, length = BinaryProtocol.decode_header(sent_data[:HEADER_SIZE])
+        msg_type_str, request_id, payload = BinaryProtocol.decode_message(
+            sent_data[:HEADER_SIZE + length]
         )
 
-        assert request["type"] == "request"
-        assert request["app_path"] == "test:App"
-        assert request["action"] == "generate"
-        assert request["args"] == ["prompt_arg"]
+        assert msg_type_str == "request"
+        assert payload["app_path"] == "test:App"
+        assert payload["action"] == "generate"
+        assert payload["args"] == ["prompt_arg"]
 
 
 class TestDirtyStreamIteratorEdgeCases:
@@ -200,8 +199,8 @@ class TestDirtyStreamIteratorEdgeCases:
         """Test streaming with many chunks."""
         messages = []
         for i in range(100):
-            messages.append(make_chunk_message("req-123", f"chunk-{i}"))
-        messages.append(make_end_message("req-123"))
+            messages.append(make_chunk_message(123, f"chunk-{i}"))
+        messages.append(make_end_message(123))
 
         client = create_client_with_mock_socket(messages)
 
@@ -214,8 +213,8 @@ class TestDirtyStreamIteratorEdgeCases:
     def test_stream_with_kwargs(self):
         """Test streaming with keyword arguments."""
         messages = [
-            make_chunk_message("req-123", "data"),
-            make_end_message("req-123"),
+            make_chunk_message(123, "data"),
+            make_end_message(123),
         ]
         client = create_client_with_mock_socket(messages)
 
@@ -224,13 +223,10 @@ class TestDirtyStreamIteratorEdgeCases:
 
         # Check the sent request includes kwargs
         sent_data = client._sock._sent[0]
-        length = struct.unpack(
-            DirtyProtocol.HEADER_FORMAT,
-            sent_data[:DirtyProtocol.HEADER_SIZE]
-        )[0]
-        request = DirtyProtocol.decode(
-            sent_data[DirtyProtocol.HEADER_SIZE:DirtyProtocol.HEADER_SIZE + length]
+        _, _, length = BinaryProtocol.decode_header(sent_data[:HEADER_SIZE])
+        msg_type_str, request_id, payload = BinaryProtocol.decode_message(
+            sent_data[:HEADER_SIZE + length]
         )
 
-        assert request["args"] == ["arg1"]
-        assert request["kwargs"] == {"key": "value"}
+        assert payload["args"] == ["arg1"]
+        assert payload["kwargs"] == {"key": "value"}
