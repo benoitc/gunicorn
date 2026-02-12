@@ -22,6 +22,7 @@ timeout = 30
 dirty_apps = [
     "examples.dirty_example.dirty_app:MLApp",
     "examples.dirty_example.dirty_app:ComputeApp",
+    "examples.dirty_example.dirty_app:SessionApp",
 ]
 dirty_workers = 2
 dirty_timeout = 300

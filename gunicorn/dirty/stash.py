@@ -68,7 +68,6 @@ from .protocol import (
 
 class StashError(DirtyError):
     """Base exception for stash operations."""
-    pass
 
 
 class StashTableNotFoundError(StashError):
@@ -173,10 +172,9 @@ class StashClient:
 
                     if error_type == "StashTableNotFoundError":
                         raise StashTableNotFoundError(table)
-                    elif error_type == "StashKeyNotFoundError":
+                    if error_type == "StashKeyNotFoundError":
                         raise StashKeyNotFoundError(table, key)
-                    else:
-                        raise StashError(error_msg)
+                    raise StashError(error_msg)
                 else:
                     raise StashError(f"Unexpected response type: {msg_type}")
 

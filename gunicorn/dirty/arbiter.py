@@ -11,6 +11,7 @@ requests from HTTP workers to available dirty workers.
 
 import asyncio
 import errno
+import fnmatch
 import os
 import signal
 import sys
@@ -223,6 +224,9 @@ class DirtyArbiter:
                     f.write(str(self.pid))
             except IOError as e:
                 self.log.warning("Failed to write PID file: %s", e)
+
+        # Set socket path env var for dirty workers (enables stash access)
+        os.environ['GUNICORN_DIRTY_SOCKET'] = self.socket_path
 
         # Call hook
         self.cfg.on_dirty_starting(self)
@@ -602,9 +606,6 @@ class DirtyArbiter:
             message: Stash operation message
             client_writer: StreamWriter to send response to client
         """
-        import fnmatch
-        import time
-
         request_id = message.get("id", "unknown")
         op = message.get("op")
         table = message.get("table", "")

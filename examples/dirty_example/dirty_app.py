@@ -11,9 +11,11 @@ This demonstrates how to create a DirtyApp that:
 3. Cleans up on shutdown (close)
 """
 
+import os
 import time
 import hashlib
 from gunicorn.dirty.app import DirtyApp
+from gunicorn.dirty import stash
 
 
 class MLApp(DirtyApp):
@@ -171,3 +173,96 @@ class ComputeApp(DirtyApp):
 
     def close(self):
         print(f"[ComputeApp] Shutting down. Total computations: {self.computation_count}")
+
+
+class SessionApp(DirtyApp):
+    """
+    Example dirty application demonstrating stash (shared state).
+
+    This shows how multiple dirty workers can share state through
+    the arbiter's stash tables. All workers see the same data.
+    """
+
+    # Declare stash tables used by this app (auto-created on startup)
+    stashes = ["sessions", "counters"]
+
+    def __init__(self):
+        self.worker_pid = None
+
+    def init(self):
+        self.worker_pid = os.getpid()
+        print(f"[SessionApp] Initialized on worker {self.worker_pid}")
+        # Initialize a global counter if it doesn't exist
+        if not stash.exists("counters", "requests"):
+            stash.put("counters", "requests", 0)
+
+    def __call__(self, action, *args, **kwargs):
+        method = getattr(self, action, None)
+        if method is None or action.startswith('_'):
+            raise ValueError(f"Unknown action: {action}")
+        return method(*args, **kwargs)
+
+    def login(self, user_id, user_data):
+        """Store user session in shared stash."""
+        session = {
+            "user_id": user_id,
+            "data": user_data,
+            "logged_in_at": time.time(),
+            "worker_pid": self.worker_pid,
+        }
+        stash.put("sessions", f"user:{user_id}", session)
+        self._increment_counter()
+        return {"status": "ok", "session": session}
+
+    def logout(self, user_id):
+        """Remove user session."""
+        key = f"user:{user_id}"
+        if stash.exists("sessions", key):
+            stash.delete("sessions", key)
+            self._increment_counter()
+            return {"status": "logged_out", "user_id": user_id}
+        return {"status": "not_found", "user_id": user_id}
+
+    def get_session(self, user_id):
+        """Get user session - visible from any worker."""
+        session = stash.get("sessions", f"user:{user_id}")
+        self._increment_counter()
+        return {
+            "session": session,
+            "served_by_worker": self.worker_pid,
+        }
+
+    def list_sessions(self):
+        """List all active sessions."""
+        keys = stash.keys("sessions", pattern="user:*")
+        sessions = []
+        for key in keys:
+            sessions.append(stash.get("sessions", key))
+        self._increment_counter()
+        return {
+            "sessions": sessions,
+            "count": len(sessions),
+            "served_by_worker": self.worker_pid,
+        }
+
+    def get_stats(self):
+        """Get global request counter (shared across all workers)."""
+        count = stash.get("counters", "requests", 0)
+        return {
+            "total_requests": count,
+            "served_by_worker": self.worker_pid,
+        }
+
+    def _increment_counter(self):
+        """Increment global request counter."""
+        current = stash.get("counters", "requests", 0)
+        stash.put("counters", "requests", current + 1)
+
+    def clear_all(self):
+        """Clear all sessions (for testing)."""
+        stash.clear("sessions")
+        stash.put("counters", "requests", 0)
+        return {"status": "cleared"}
+
+    def close(self):
+        print(f"[SessionApp] Shutting down worker {self.worker_pid}")
