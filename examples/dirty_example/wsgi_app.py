@@ -52,6 +52,11 @@ def app(environ, start_response):
                     "/fibonacci?n=NUMBER": "Compute fibonacci",
                     "/prime?n=NUMBER": "Check if prime",
                     "/stats": "Get dirty worker stats",
+                    "/session/login?user_id=ID&name=NAME": "Login user (stash demo)",
+                    "/session/get?user_id=ID": "Get session (stash demo)",
+                    "/session/list": "List all sessions (stash demo)",
+                    "/session/logout?user_id=ID": "Logout user (stash demo)",
+                    "/session/stats": "Get stash stats (stash demo)",
                 }
             }
 
@@ -138,6 +143,71 @@ def app(environ, start_response):
                     "compute_app": compute_stats,
                     "http_worker_pid": os.getpid(),
                 }
+
+        # =====================================================================
+        # Session endpoints (stash demo)
+        # =====================================================================
+        elif path == '/session/login':
+            user_id = query.get('user_id', ['1'])[0]
+            name = query.get('name', ['Anonymous'])[0]
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "login",
+                    user_id=user_id,
+                    user_data={"name": name}
+                )
+
+        elif path == '/session/get':
+            user_id = query.get('user_id', ['1'])[0]
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "get_session",
+                    user_id=user_id
+                )
+
+        elif path == '/session/list':
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "list_sessions"
+                )
+
+        elif path == '/session/logout':
+            user_id = query.get('user_id', ['1'])[0]
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "logout",
+                    user_id=user_id
+                )
+
+        elif path == '/session/stats':
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "get_stats"
+                )
+
+        elif path == '/session/clear':
+            if client is None:
+                result = {"error": "Dirty workers not enabled"}
+            else:
+                result = client.execute(
+                    "examples.dirty_example.dirty_app:SessionApp",
+                    "clear_all"
+                )
 
         else:
             start_response('404 Not Found', [('Content-Type', 'application/json')])

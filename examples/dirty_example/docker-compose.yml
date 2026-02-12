@@ -52,3 +52,15 @@ services:
     environment:
       - TEST_BASE_URL=http://server:8000
     command: python examples/dirty_example/test_integration.py
+
+  # Run stash integration test against the server
+  stash-test:
+    build:
+      context: ../..
+      dockerfile: examples/dirty_example/Dockerfile
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      - TEST_BASE_URL=http://server:8000
+    command: python examples/dirty_example/test_stash_integration.py

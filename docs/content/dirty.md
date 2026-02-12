@@ -558,6 +558,259 @@ def generate_view(request):
 4. **Keep chunks small** - Smaller chunks provide better perceived latency
 5. **Handle client disconnection** - Streams continue even if client disconnects; design accordingly
 
+## Stash (Shared State via Message Passing)
+
+Stash provides shared state between dirty workers, similar to Erlang's ETS (Erlang Term Storage). Workers remain fully isolated - all state access goes through message passing to the arbiter.
+
+### Architecture
+
+```
+                    +------------------+
+                    |   Dirty Arbiter  |
+                    |                  |
+                    |  stash_tables:   |
+                    |    sessions: {}  |
+                    |    cache: {}     |
+                    +--------+---------+
+                             |
+              Unix Socket IPC (message passing)
+                             |
+         +-------------------+-------------------+
+         |                   |                   |
+   +-----v-----+       +-----v-----+       +-----v-----+
+   |  Worker 1 |       |  Worker 2 |       |  Worker 3 |
+   |           |       |           |       |           |
+   | (isolated)|       | (isolated)|       | (isolated)|
+   +-----------+       +-----------+       +-----------+
+
+   Workers have NO shared memory.
+   All stash operations are IPC messages to arbiter.
+```
+
+### How It Works
+
+1. Worker calls `stash.put("sessions", "user:1", data)`
+2. Worker sends message to arbiter via Unix socket
+3. Arbiter stores data in its memory (`self.stash_tables`)
+4. Arbiter sends response back to worker
+5. Worker receives confirmation
+
+This is **not** shared memory - workers remain fully isolated. The arbiter acts as a centralized store that workers communicate with via message passing. This matches Erlang's model where ETS tables are owned by a process.
+
+### Basic Usage
+
+```python
+from gunicorn.dirty import stash
+
+# Store a value (table auto-created)
+# This sends a message to arbiter, which stores it
+stash.put("sessions", "user:123", {"name": "Alice", "role": "admin"})
+
+# Retrieve a value
+# This sends a request to arbiter, which returns the value
+user = stash.get("sessions", "user:123")
+
+# Delete a key
+stash.delete("sessions", "user:123")
+
+# Check existence
+if stash.exists("sessions", "user:123"):
+    print("Session exists")
+
+# List keys with pattern matching
+keys = stash.keys("sessions", pattern="user:*")
+```
+
+### Dict-like Interface
+
+For more Pythonic access, use the table interface:
+
+```python
+from gunicorn.dirty import stash
+
+# Get a table reference
+sessions = stash.table("sessions")
+
+# Dict-like operations (each is an IPC message)
+sessions["user:123"] = {"name": "Alice"}
+user = sessions["user:123"]
+del sessions["user:123"]
+
+# Iteration
+for key in sessions:
+    print(key, sessions[key])
+
+# Length
+count = len(sessions)
+```
+
+### Table Management
+
+```python
+from gunicorn.dirty import stash
+
+# Explicit table creation (idempotent)
+stash.ensure("cache")
+
+# Get table info
+info = stash.info("sessions")
+print(f"Table has {info['size']} entries")
+
+# Clear all entries in a table
+stash.clear("sessions")
+
+# Delete entire table
+stash.delete_table("sessions")
+
+# List all tables
+tables = stash.tables()
+```
+
+### Using Stash in DirtyApp
+
+Declare tables your app uses with the `stashes` class attribute:
+
+```python
+from gunicorn.dirty import DirtyApp, stash
+
+class SessionApp(DirtyApp):
+    # Tables declared here are auto-created on startup
+    stashes = ["sessions", "counters"]
+
+    def init(self):
+        # Initialize counter if needed
+        if not stash.exists("counters", "requests"):
+            stash.put("counters", "requests", 0)
+
+    def login(self, user_id, user_data):
+        """Store session - any worker can read it via arbiter."""
+        stash.put("sessions", f"user:{user_id}", {
+            "data": user_data,
+            "logged_in_at": time.time(),
+        })
+        self._increment_counter()
+        return {"status": "ok"}
+
+    def get_session(self, user_id):
+        """Get session - request goes to arbiter."""
+        return stash.get("sessions", f"user:{user_id}")
+
+    def _increment_counter(self):
+        """Increment global counter via arbiter."""
+        current = stash.get("counters", "requests", 0)
+        stash.put("counters", "requests", current + 1)
+
+    def close(self):
+        pass
+```
+
+### API Reference
+
+| Function | Description |
+|----------|-------------|
+| `stash.put(table, key, value)` | Store a value (table auto-created) |
+| `stash.get(table, key, default=None)` | Retrieve a value |
+| `stash.delete(table, key)` | Delete a key, returns True if deleted |
+| `stash.exists(table, key=None)` | Check if table/key exists |
+| `stash.keys(table, pattern=None)` | List keys, optional glob pattern |
+| `stash.clear(table)` | Delete all entries in table |
+| `stash.info(table)` | Get table info (size, etc.) |
+| `stash.ensure(table)` | Create table if not exists |
+| `stash.delete_table(table)` | Delete entire table |
+| `stash.tables()` | List all table names |
+| `stash.table(name)` | Get dict-like interface |
+
+### Patterns and Use Cases
+
+**Session Storage:**
+```python
+# Store session on login (worker 1)
+stash.put("sessions", f"user:{user_id}", session_data)
+
+# Check session on request (may be worker 2)
+session = stash.get("sessions", f"user:{user_id}")
+if session is None:
+    raise AuthError("Not logged in")
+```
+
+**Shared Cache:**
+```python
+def get_expensive_result(key):
+    # Check cache first (via arbiter)
+    cached = stash.get("cache", key)
+    if cached is not None:
+        return cached
+
+    # Compute and cache
+    result = expensive_computation()
+    stash.put("cache", key, result)
+    return result
+```
+
+**Global Counters:**
+```python
+def increment_counter(name):
+    # Note: not atomic - two workers could read same value
+    current = stash.get("counters", name, 0)
+    stash.put("counters", name, current + 1)
+    return current + 1
+```
+
+**Feature Flags:**
+```python
+# Set flag (from admin endpoint)
+stash.put("flags", "new_feature", True)
+
+# Check flag (from any worker)
+if stash.get("flags", "new_feature", False):
+    enable_new_feature()
+```
+
+### Error Handling
+
+```python
+from gunicorn.dirty.stash import (
+    StashError,
+    StashTableNotFoundError,
+    StashKeyNotFoundError,
+)
+
+try:
+    info = stash.info("nonexistent")
+except StashTableNotFoundError as e:
+    print(f"Table not found: {e.table_name}")
+
+# Using get() with default avoids KeyNotFoundError
+value = stash.get("table", "key", default="fallback")
+```
+
+### Best Practices
+
+1. **Use descriptive table names** - `user_sessions`, `ml_cache`, not `data`
+2. **Use key prefixes** - `user:123`, `cache:model:v1` for organization
+3. **Handle missing data** - Always provide defaults or check existence
+4. **Don't store large data** - Each access is an IPC round-trip
+5. **Remember it's ephemeral** - Data is lost on arbiter restart
+
+### Advantages
+
+- **Worker isolation** - Workers remain fully isolated; no shared memory bugs
+- **Simple API** - Dict-like interface, no locking required
+- **Binary support** - Efficiently stores bytes (images, model weights)
+- **Pattern matching** - `keys(pattern="user:*")` for querying
+- **Zero setup** - Works automatically with dirty workers
+- **Table-based** - Organize data into logical namespaces
+
+### Limitations
+
+- **No persistence** - Data lives only in arbiter memory
+- **No transactions** - No atomic read-modify-write operations
+- **No TTL** - Entries don't expire automatically
+- **IPC overhead** - Each operation is a network round-trip
+- **Single arbiter** - Not distributed across multiple machines
+
+For persistent or distributed state, use Redis, PostgreSQL, or similar external systems.
+
 ### Flask Example
 
 ```python

@@ -11,6 +11,7 @@ requests from HTTP workers to available dirty workers.
 
 import asyncio
 import errno
+import fnmatch
 import os
 import signal
 import sys
@@ -29,6 +30,17 @@ from .errors import (
 from .protocol import (
     DirtyProtocol,
     make_error_response,
+    make_response,
+    STASH_OP_PUT,
+    STASH_OP_GET,
+    STASH_OP_DELETE,
+    STASH_OP_KEYS,
+    STASH_OP_CLEAR,
+    STASH_OP_INFO,
+    STASH_OP_ENSURE,
+    STASH_OP_DELETE_TABLE,
+    STASH_OP_TABLES,
+    STASH_OP_EXISTS,
 )
 from .worker import DirtyWorker
 
@@ -96,6 +108,10 @@ class DirtyArbiter:
         self._app_rr_indices = {}
         # Queue of app lists from dead workers to respawn with same apps
         self._pending_respawns = []
+
+        # Stash (shared state) - global tables stored in arbiter
+        # Maps table_name -> dict of data
+        self.stash_tables = {}
 
         # Parse app specs on init
         self._parse_app_specs()
@@ -208,6 +224,9 @@ class DirtyArbiter:
                     f.write(str(self.pid))
             except IOError as e:
                 self.log.warning("Failed to write PID file: %s", e)
+
+        # Set socket path env var for dirty workers (enables stash access)
+        os.environ['GUNICORN_DIRTY_SOCKET'] = self.socket_path
 
         # Call hook
         self.cfg.on_dirty_starting(self)
@@ -337,6 +356,7 @@ class DirtyArbiter:
 
         Routes requests to available dirty workers and returns responses.
         Supports both regular responses and streaming (chunk-based) responses.
+        Also handles stash (shared state) operations.
         """
         self.log.debug("New client connection from HTTP worker")
 
@@ -347,8 +367,14 @@ class DirtyArbiter:
                 except asyncio.IncompleteReadError:
                     break
 
-                # Route request to a dirty worker - pass writer for streaming
-                await self.route_request(message, writer)
+                msg_type = message.get("type")
+
+                # Handle stash operations
+                if msg_type == DirtyProtocol.MSG_TYPE_STASH:
+                    await self.handle_stash_request(message, writer)
+                else:
+                    # Route request to a dirty worker - pass writer for streaming
+                    await self.route_request(message, writer)
         except Exception as e:
             self.log.error("Client connection error: %s", e)
         finally:
@@ -564,6 +590,127 @@ class DirtyArbiter:
         if worker_pid in self.worker_connections:
             _reader, writer = self.worker_connections.pop(worker_pid)
             writer.close()
+
+    # -------------------------------------------------------------------------
+    # Stash (shared state) operations - handled directly in arbiter
+    # -------------------------------------------------------------------------
+
+    async def handle_stash_request(self, message, client_writer):
+        """
+        Handle a stash operation directly in the arbiter.
+
+        All stash tables are stored in arbiter memory for simplicity
+        and fast access.
+
+        Args:
+            message: Stash operation message
+            client_writer: StreamWriter to send response to client
+        """
+        request_id = message.get("id", "unknown")
+        op = message.get("op")
+        table = message.get("table", "")
+        key = message.get("key")
+        value = message.get("value")
+        pattern = message.get("pattern")
+
+        try:
+            result = None
+
+            if op == STASH_OP_PUT:
+                # Auto-create table if needed
+                if table not in self.stash_tables:
+                    self.stash_tables[table] = {}
+                self.stash_tables[table][key] = value
+                result = True
+
+            elif op == STASH_OP_GET:
+                if table not in self.stash_tables:
+                    result = {"error": "key_not_found"}
+                elif key not in self.stash_tables[table]:
+                    result = {"error": "key_not_found"}
+                else:
+                    result = self.stash_tables[table][key]
+
+            elif op == STASH_OP_DELETE:
+                if table in self.stash_tables and key in self.stash_tables[table]:
+                    del self.stash_tables[table][key]
+                    result = True
+                else:
+                    result = False
+
+            elif op == STASH_OP_KEYS:
+                if table not in self.stash_tables:
+                    result = []
+                else:
+                    all_keys = list(self.stash_tables[table].keys())
+                    if pattern:
+                        all_keys = [k for k in all_keys
+                                    if fnmatch.fnmatch(str(k), pattern)]
+                    result = all_keys
+
+            elif op == STASH_OP_CLEAR:
+                if table in self.stash_tables:
+                    self.stash_tables[table].clear()
+                result = True
+
+            elif op == STASH_OP_INFO:
+                if table not in self.stash_tables:
+                    result = {"error": "table_not_found"}
+                else:
+                    result = {
+                        "size": len(self.stash_tables[table]),
+                        "table": table,
+                    }
+
+            elif op == STASH_OP_ENSURE:
+                if table not in self.stash_tables:
+                    self.stash_tables[table] = {}
+                result = True
+
+            elif op == STASH_OP_DELETE_TABLE:
+                if table in self.stash_tables:
+                    del self.stash_tables[table]
+                    result = True
+                else:
+                    result = False
+
+            elif op == STASH_OP_TABLES:
+                result = list(self.stash_tables.keys())
+
+            elif op == STASH_OP_EXISTS:
+                if table not in self.stash_tables:
+                    result = False
+                elif key is None:
+                    result = True
+                else:
+                    result = key in self.stash_tables[table]
+
+            else:
+                error = DirtyError(f"Unknown stash operation: {op}")
+                response = make_error_response(request_id, error)
+                await DirtyProtocol.write_message_async(client_writer, response)
+                return
+
+            # Handle error results
+            if isinstance(result, dict) and "error" in result:
+                error_type = result["error"]
+                if error_type == "table_not_found":
+                    error = DirtyError(f"Table not found: {table}")
+                elif error_type == "key_not_found":
+                    error = DirtyError(f"Key not found: {key}")
+                else:
+                    error = DirtyError(str(result))
+                error.error_type = f"Stash{error_type.title().replace('_', '')}Error"
+                response = make_error_response(request_id, error)
+            else:
+                response = make_response(request_id, result)
+
+            await DirtyProtocol.write_message_async(client_writer, response)
+
+        except Exception as e:
+            self.log.error("Stash operation error: %s", e)
+            response = make_error_response(request_id, DirtyError(str(e)))
+            await DirtyProtocol.write_message_async(client_writer, response)
 
     async def manage_workers(self):
         """Maintain the number of dirty workers."""

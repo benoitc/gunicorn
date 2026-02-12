@@ -168,10 +168,10 @@ class DirtyWorker:
         self.load_apps()
 
         # Call hook
+        self.pid = os.getpid()
         self.cfg.dirty_worker_init(self)
 
         # Enter main run loop
-        self.pid = os.getpid()
         self.booted = True
         self.run()
 
