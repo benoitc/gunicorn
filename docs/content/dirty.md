@@ -7,6 +7,11 @@ menu:
 
 # Dirty Arbiters
 
+!!! warning "Beta Feature"
+    Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it has been tested,
+    the API and behavior may change in future releases. Please report any issues on
+    [GitHub](https://github.com/benoitc/gunicorn/issues).
+
 Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.
 
 ## Overview

@@ -18,6 +18,11 @@
   - Supports all Python types: str, bytes, int, float, bool, None, list, dict
   - Better performance for large payloads
 
+### Changes
+
+- **ASGI Worker**: Promoted from beta to stable
+- **Dirty Arbiters**: Now marked as beta feature
+
 ### Documentation
 
 - Fix Markdown formatting in /configure documentation

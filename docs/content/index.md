@@ -83,7 +83,7 @@ title: Gunicorn - Python WSGI HTTP Server
         <p>Multiple threads per worker. Balance concurrency and simplicity.</p>
       </a>
       <a class="worker" href="asgi/">
-        <h3>ASGI <span class="badge">Beta</span></h3>
+        <h3>ASGI</h3>
         <p>Native asyncio for FastAPI, Starlette, and async frameworks.</p>
       </a>
     </div>
