@@ -503,13 +503,11 @@ class CommandHandlers:
             sock.close()
 
             if response.get("type") == DirtyProtocol.MSG_TYPE_RESPONSE:
-                data = response.get("data", {})
-                return data.get("workers", [])
+                result = response.get("result", {})
+                return result.get("workers", [])
 
-        except Exception as e:
-            # Log error for debugging
-            if hasattr(self.arbiter, 'log') and self.arbiter.log:
-                self.arbiter.log.debug("Failed to query dirty workers: %s", e)
+        except Exception:
+            pass
 
         return []
 
