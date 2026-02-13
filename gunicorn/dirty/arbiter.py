@@ -805,7 +805,7 @@ class DirtyArbiter:
             app_paths = self._get_apps_for_new_worker()
 
         if not app_paths:
-            self.log.warning("No apps need more workers, skipping spawn")
+            self.log.debug("No apps need more workers, skipping spawn")
             return None
 
         self.worker_age += 1
