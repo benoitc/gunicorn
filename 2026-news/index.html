@@ -1387,34 +1387,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#2520-2026-02-13" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        25.2.0 - 2026-02-13
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="25.2.0 - 2026-02-13">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New Features
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#2510-2026-02-13" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1427,7 +1399,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1594,7 +1566,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1683,7 +1655,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_3" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1722,7 +1694,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_4" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -2237,11 +2209,12 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
-<h2 id="2520-2026-02-13">25.2.0 - 2026-02-13<a class="headerlink" href="#2520-2026-02-13" title="Permanent link">&para;</a></h2>
+<h2 id="2510-2026-02-13">25.1.0 - 2026-02-13<a class="headerlink" href="#2510-2026-02-13" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Control Interface (gunicornc)</strong>: Add interactive control interface for managing
-  running Gunicorn instances, similar to birdc for BIRD routing daemon</li>
+  running Gunicorn instances, similar to birdc for BIRD routing daemon
+  (<a href="https://github.com/benoitc/gunicorn/pull/3505">PR #3505</a>)</li>
 <li>Unix socket-based communication with JSON protocol</li>
 <li>Interactive mode with readline support and command history</li>
 <li>Commands: <code>show all/workers/dirty/config/stats/listeners</code></li>
@@ -2249,14 +2222,13 @@
 <li>Server control: <code>reload</code>, <code>reopen</code>, <code>shutdown</code></li>
 <li>New settings: <code>--control-socket</code>, <code>--control-socket-mode</code>, <code>--no-control-socket</code></li>
 <li>New CLI tool: <code>gunicornc</code> for connecting to control socket</li>
-<li>See <a href="../guides/gunicornc/">Control Interface Guide</a> for details</li>
-</ul>
-<hr />
-<h2 id="2510-2026-02-13">25.1.0 - 2026-02-13<a class="headerlink" href="#2510-2026-02-13" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Dirty Stash</strong>: Add global shared state between workers via <code>dirty.stash</code>
-  (<a href="https://github.com/benoitc/gunicorn/pull/3503">PR #3503</a>)</li>
+<li>
+<p>See <a href="../guides/gunicornc/">Control Interface Guide</a> for details</p>
+</li>
+<li>
+<p><strong>Dirty Stash</strong>: Add global shared state between workers via <code>dirty.stash</code>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3503">PR #3503</a>)</p>
+</li>
 <li>In-memory key-value store accessible by all workers</li>
 <li>Supports get, set, delete, clear, keys, and has operations</li>
 <li>
@@ -2356,7 +2328,7 @@
 </ul>
 <hr />
 <h2 id="2500-2026-02-01">25.0.0 - 2026-02-01<a class="headerlink" href="#2500-2026-02-01" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Dirty Arbiters</strong>: Separate process pool for executing long-running, blocking
   operations (AI model loading, heavy computation) without blocking HTTP workers
@@ -2463,7 +2435,7 @@
 </ul>
 <hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
   Container Registry at <code>ghcr.io/benoitc/gunicorn</code></li>
@@ -2545,7 +2517,7 @@
 </ul>
 <hr />
 <h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_4">New Features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies
