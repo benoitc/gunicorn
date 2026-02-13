@@ -168,6 +168,64 @@ def format_help(data: dict) -> str:
     return "\n".join(lines)
 
 
+def format_all(data: dict) -> str:
+    """Format show all output for display."""
+    lines = []
+
+    # Arbiter
+    arbiter = data.get("arbiter", {})
+    lines.append("ARBITER (master)")
+    lines.append(f"  PID: {arbiter.get('pid', '?')}")
+    lines.append("")
+
+    # Web workers
+    web_workers = data.get("web_workers", [])
+    lines.append(f"WEB WORKERS ({data.get('web_worker_count', 0)})")
+    if web_workers:
+        lines.append(f"  {'PID':<10} {'AGE':<6} {'BOOTED':<8} {'LAST_BEAT'}")
+        lines.append(f"  {'-' * 38}")
+        for w in web_workers:
+            pid = w.get("pid", "?")
+            age = w.get("age", "?")
+            booted = "yes" if w.get("booted") else "no"
+            hb = w.get("last_heartbeat")
+            hb_str = f"{hb}s ago" if hb is not None else "n/a"
+            lines.append(f"  {pid:<10} {age:<6} {booted:<8} {hb_str}")
+    else:
+        lines.append("  (none)")
+    lines.append("")
+
+    # Dirty arbiter
+    dirty_arbiter = data.get("dirty_arbiter")
+    if dirty_arbiter:
+        lines.append("DIRTY ARBITER")
+        lines.append(f"  PID: {dirty_arbiter.get('pid', '?')}")
+        lines.append("")
+
+        # Dirty workers
+        dirty_workers = data.get("dirty_workers", [])
+        lines.append(f"DIRTY WORKERS ({data.get('dirty_worker_count', 0)})")
+        if dirty_workers:
+            lines.append(f"  {'PID':<10} {'AGE':<6} {'APPS':<30} {'LAST_BEAT'}")
+            lines.append(f"  {'-' * 58}")
+            for w in dirty_workers:
+                pid = w.get("pid", "?")
+                age = w.get("age", "?")
+                apps = ", ".join(w.get("apps", []))
+                if len(apps) > 28:
+                    apps = apps[:25] + "..."
+                hb = w.get("last_heartbeat")
+                hb_str = f"{hb}s ago" if hb is not None else "n/a"
+                lines.append(f"  {pid:<10} {age:<6} {apps:<30} {hb_str}")
+        else:
+            lines.append("  (none)")
+    else:
+        lines.append("DIRTY ARBITER")
+        lines.append("  (not running)")
+
+    return "\n".join(lines)
+
+
 def format_response(command: str, data: dict) -> str:
     """
     Format response data based on command.
@@ -182,7 +240,9 @@ def format_response(command: str, data: dict) -> str:
     cmd_lower = command.lower().strip()
 
     # Route to specific formatters
-    if cmd_lower == "show workers":
+    if cmd_lower == "show all":
+        return format_all(data)
+    elif cmd_lower == "show workers":
         return format_workers(data)
     elif cmd_lower == "show dirty":
         return format_dirty(data)

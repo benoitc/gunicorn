@@ -242,11 +242,13 @@ class ControlSocketServer:
     def _handle_show(self, args: list) -> dict:
         """Handle 'show' commands."""
         if not args:
-            raise ValueError("Missing show target (workers|dirty|config|stats|listeners)")
+            raise ValueError("Missing show target (all|workers|dirty|config|stats|listeners)")
 
         target = args[0].lower()
 
-        if target == "workers":
+        if target == "all":
+            return self.handlers.show_all()
+        elif target == "workers":
             return self.handlers.show_workers()
         elif target == "dirty":
             return self.handlers.show_dirty()

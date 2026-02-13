@@ -405,6 +405,83 @@ class CommandHandlers:
 
         return {"status": "shutting_down", "mode": mode}
 
+    def show_all(self) -> dict:
+        """
+        Return overview of all processes (arbiter, web workers, dirty arbiter, dirty workers).
+
+        Returns:
+            Dictionary with complete process hierarchy
+        """
+        now = time.monotonic()
+
+        # Arbiter info
+        arbiter_info = {
+            "pid": self.arbiter.pid,
+            "type": "arbiter",
+            "role": "master",
+        }
+
+        # Web workers (HTTP workers)
+        web_workers = []
+        for pid, worker in self.arbiter.WORKERS.items():
+            try:
+                last_update = worker.tmp.last_update()
+                last_heartbeat = round(now - last_update, 2)
+            except (OSError, ValueError):
+                last_heartbeat = None
+
+            web_workers.append({
+                "pid": pid,
+                "type": "web",
+                "age": worker.age,
+                "booted": worker.booted,
+                "last_heartbeat": last_heartbeat,
+            })
+
+        # Sort by age
+        web_workers.sort(key=lambda w: w["age"])
+
+        # Dirty arbiter and workers
+        dirty_arbiter_info = None
+        dirty_workers = []
+
+        if self.arbiter.dirty_arbiter_pid:
+            dirty_arbiter_info = {
+                "pid": self.arbiter.dirty_arbiter_pid,
+                "type": "dirty_arbiter",
+                "role": "dirty master",
+            }
+
+            # Get dirty workers if we have access
+            dirty_arbiter = getattr(self.arbiter, 'dirty_arbiter', None)
+            if dirty_arbiter and hasattr(dirty_arbiter, 'workers'):
+                for pid, worker in dirty_arbiter.workers.items():
+                    try:
+                        last_update = worker.tmp.last_update()
+                        last_heartbeat = round(now - last_update, 2)
+                    except (OSError, ValueError, AttributeError):
+                        last_heartbeat = None
+
+                    dirty_workers.append({
+                        "pid": pid,
+                        "type": "dirty",
+                        "age": worker.age,
+                        "apps": getattr(worker, 'app_paths', []),
+                        "booted": getattr(worker, 'booted', False),
+                        "last_heartbeat": last_heartbeat,
+                    })
+
+                dirty_workers.sort(key=lambda w: w["age"])
+
+        return {
+            "arbiter": arbiter_info,
+            "web_workers": web_workers,
+            "web_worker_count": len(web_workers),
+            "dirty_arbiter": dirty_arbiter_info,
+            "dirty_workers": dirty_workers,
+            "dirty_worker_count": len(dirty_workers),
+        }
+
     def help(self) -> dict:
         """
         Return list of available commands.
@@ -413,6 +490,7 @@ class CommandHandlers:
             Dictionary with commands and descriptions
         """
         commands = {
+            "show all": "Show all processes (arbiter, web workers, dirty workers)",
             "show workers": "List HTTP workers with their status",
             "show dirty": "List dirty workers and apps",
             "show config": "Show current effective configuration",

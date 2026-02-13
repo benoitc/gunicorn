@@ -356,6 +356,47 @@ class TestShutdown:
         mock_kill.assert_called_once_with(12345, signal.SIGINT)
 
 
+class TestShowAll:
+    """Tests for show all command."""
+
+    def test_show_all_basic(self):
+        """Test show all command."""
+        arbiter = MockArbiter()
+        arbiter.WORKERS = {
+            1001: MockWorker(1001, 1),
+            1002: MockWorker(1002, 2),
+        }
+        handlers = CommandHandlers(arbiter)
+
+        result = handlers.show_all()
+
+        assert "arbiter" in result
+        assert result["arbiter"]["pid"] == 12345
+        assert result["arbiter"]["type"] == "arbiter"
+
+        assert "web_workers" in result
+        assert result["web_worker_count"] == 2
+        assert len(result["web_workers"]) == 2
+
+        assert "dirty_arbiter" in result
+        assert result["dirty_arbiter"] is None
+
+        assert "dirty_workers" in result
+        assert result["dirty_worker_count"] == 0
+
+    def test_show_all_with_dirty(self):
+        """Test show all with dirty arbiter running."""
+        arbiter = MockArbiter()
+        arbiter.dirty_arbiter_pid = 2000
+        handlers = CommandHandlers(arbiter)
+
+        result = handlers.show_all()
+
+        assert result["dirty_arbiter"] is not None
+        assert result["dirty_arbiter"]["pid"] == 2000
+        assert result["dirty_arbiter"]["type"] == "dirty_arbiter"
+
+
 class TestHelp:
     """Tests for help command."""
 
@@ -368,6 +409,7 @@ class TestHelp:
 
         assert "commands" in result
         commands = result["commands"]
+        assert "show all" in commands
         assert "show workers" in commands
         assert "worker add [N]" in commands
         assert "reload" in commands
