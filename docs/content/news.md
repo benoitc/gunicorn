@@ -1,6 +1,23 @@
 <span id="news"></span>
 # Changelog
 
+## 25.2.0 - 2026-02-13
+
+### New Features
+
+- **Control Interface (gunicornc)**: Add interactive control interface for managing
+  running Gunicorn instances, similar to birdc for BIRD routing daemon
+  - Unix socket-based communication with JSON protocol
+  - Interactive mode with readline support and command history
+  - Commands: `show all/workers/dirty/config/stats/listeners`
+  - Worker management: `worker add/remove/kill`, `dirty add/remove`
+  - Server control: `reload`, `reopen`, `shutdown`
+  - New settings: `--control-socket`, `--control-socket-mode`, `--no-control-socket`
+  - New CLI tool: `gunicornc` for connecting to control socket
+  - See [Control Interface Guide](guides/gunicornc.md) for details
+
+---
+
 ## 25.1.0 - 2026-02-12
 
 ### New Features

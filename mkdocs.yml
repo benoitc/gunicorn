@@ -18,6 +18,7 @@ nav:
       - HTTP/2: guides/http2.md
       - ASGI Worker: asgi.md
       - Dirty Arbiters: dirty.md
+      - Control Interface: guides/gunicornc.md
       - uWSGI Protocol: uwsgi.md
       - Signals: signals.md
       - Instrumentation: instrumentation.md
