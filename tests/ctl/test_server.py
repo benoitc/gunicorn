@@ -123,10 +123,11 @@ class TestControlSocketServerLifecycle:
             server.start()
 
             # Wait for server to start
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             assert os.path.exists(socket_path)
 
@@ -181,10 +182,11 @@ class TestControlSocketServerIntegration:
             server.start()
 
             # Wait for server to start
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
@@ -205,10 +207,11 @@ class TestControlSocketServerIntegration:
 
             server.start()
 
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
@@ -229,10 +232,11 @@ class TestControlSocketServerIntegration:
 
             server.start()
 
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
@@ -254,10 +258,11 @@ class TestControlSocketServerIntegration:
 
             server.start()
 
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
@@ -280,14 +285,11 @@ class TestControlSocketServerIntegration:
 
             server.start()
 
-            # Wait for socket to exist and server to be ready
             for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
-
-            # Extra wait for server to be fully ready
-            time.sleep(0.2)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
@@ -309,10 +311,11 @@ class TestControlSocketServerIntegration:
 
             server.start()
 
-            for _ in range(20):
+            for _ in range(50):
                 if os.path.exists(socket_path):
                     break
                 time.sleep(0.1)
+            time.sleep(0.2)  # Extra wait for server to be fully ready
 
             try:
                 with ControlClient(socket_path, timeout=5.0) as client:
