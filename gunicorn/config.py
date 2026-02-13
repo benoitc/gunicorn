@@ -3113,3 +3113,63 @@ class DirtyWorkerExit(Setting):
 
         .. versionadded:: 25.0.0
         """
+
+
+# Control Socket Settings
+
+class ControlSocket(Setting):
+    name = "control_socket"
+    section = "Control"
+    cli = ["--control-socket"]
+    meta = "PATH"
+    validator = validate_string
+    default = "gunicorn.ctl"
+    desc = """\
+        Unix socket path for control interface.
+
+        The control socket allows runtime management of Gunicorn via the
+        ``gunicornc`` command-line tool. Commands include viewing worker
+        status, adjusting worker count, and graceful reload/shutdown.
+
+        By default, creates ``gunicorn.ctl`` in the working directory.
+        Set an absolute path for a fixed location (e.g., ``/var/run/gunicorn.ctl``).
+
+        Use ``--no-control-socket`` to disable.
+
+        .. versionadded:: 25.1.0
+        """
+
+
+class ControlSocketMode(Setting):
+    name = "control_socket_mode"
+    section = "Control"
+    cli = ["--control-socket-mode"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = auto_int
+    default = 0o600
+    desc = """\
+        Permission mode for control socket.
+
+        Restricts who can connect to the control socket. Default ``0600``
+        allows only the socket owner. Set to ``0660`` to allow group access.
+
+        .. versionadded:: 25.1.0
+        """
+
+
+class ControlSocketDisable(Setting):
+    name = "control_socket_disable"
+    section = "Control"
+    cli = ["--no-control-socket"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Disable control socket.
+
+        When set, no control socket is created and ``gunicornc`` cannot
+        connect to this Gunicorn instance.
+
+        .. versionadded:: 25.1.0
+        """

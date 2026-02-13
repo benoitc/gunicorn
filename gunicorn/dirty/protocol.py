@@ -43,6 +43,8 @@ MSG_TYPE_ERROR = 0x03
 MSG_TYPE_CHUNK = 0x04
 MSG_TYPE_END = 0x05
 MSG_TYPE_STASH = 0x10  # Stash operations (shared state between workers)
+MSG_TYPE_STATUS = 0x11  # Status query for arbiter/workers
+MSG_TYPE_MANAGE = 0x12  # Worker management (add/remove workers)
 
 # Message type names (for backwards compatibility with old API)
 MSG_TYPE_REQUEST_STR = "request"
@@ -51,6 +53,8 @@ MSG_TYPE_ERROR_STR = "error"
 MSG_TYPE_CHUNK_STR = "chunk"
 MSG_TYPE_END_STR = "end"
 MSG_TYPE_STASH_STR = "stash"
+MSG_TYPE_STATUS_STR = "status"
+MSG_TYPE_MANAGE_STR = "manage"
 
 # Map int types to string names
 MSG_TYPE_TO_STR = {
@@ -60,6 +64,8 @@ MSG_TYPE_TO_STR = {
     MSG_TYPE_CHUNK: MSG_TYPE_CHUNK_STR,
     MSG_TYPE_END: MSG_TYPE_END_STR,
     MSG_TYPE_STASH: MSG_TYPE_STASH_STR,
+    MSG_TYPE_STATUS: MSG_TYPE_STATUS_STR,
+    MSG_TYPE_MANAGE: MSG_TYPE_MANAGE_STR,
 }
 
 # Map string names to int types
@@ -76,6 +82,10 @@ STASH_OP_ENSURE = 7
 STASH_OP_DELETE_TABLE = 8
 STASH_OP_TABLES = 9
 STASH_OP_EXISTS = 10
+
+# Manage operation codes
+MANAGE_OP_ADD = 1      # Add/spawn workers
+MANAGE_OP_REMOVE = 2   # Remove/kill workers
 
 # Header format: Magic (2) + Version (1) + Type (1) + Length (4) + RequestID (8) = 16
 HEADER_FORMAT = ">2sBBIQ"
@@ -98,6 +108,8 @@ class BinaryProtocol:
     MSG_TYPE_CHUNK = MSG_TYPE_CHUNK_STR
     MSG_TYPE_END = MSG_TYPE_END_STR
     MSG_TYPE_STASH = MSG_TYPE_STASH_STR
+    MSG_TYPE_STATUS = MSG_TYPE_STATUS_STR
+    MSG_TYPE_MANAGE = MSG_TYPE_MANAGE_STR
 
     @staticmethod
     def encode_header(msg_type: int, request_id: int, payload_length: int) -> bytes:
@@ -272,6 +284,43 @@ class BinaryProtocol:
         # End message has empty payload
         header = BinaryProtocol.encode_header(MSG_TYPE_END, request_id, 0)
         return header
+
+    @staticmethod
+    def encode_status(request_id: int) -> bytes:
+        """
+        Encode a status query message.
+
+        Args:
+            request_id: Request identifier
+
+        Returns:
+            bytes: Complete message (header + empty payload)
+        """
+        # Status query has empty payload
+        header = BinaryProtocol.encode_header(MSG_TYPE_STATUS, request_id, 0)
+        return header
+
+    @staticmethod
+    def encode_manage(request_id: int, op: int, count: int = 1) -> bytes:
+        """
+        Encode a worker management message.
+
+        Args:
+            request_id: Request identifier
+            op: Management operation (MANAGE_OP_ADD or MANAGE_OP_REMOVE)
+            count: Number of workers to add/remove
+
+        Returns:
+            bytes: Complete message (header + payload)
+        """
+        payload_dict = {
+            "op": op,
+            "count": count,
+        }
+        payload = TLVEncoder.encode(payload_dict)
+        header = BinaryProtocol.encode_header(MSG_TYPE_MANAGE, request_id,
+                                              len(payload))
+        return header + payload
 
     @staticmethod
     def encode_stash(request_id: int, op: int, table: str,
@@ -524,7 +573,7 @@ class BinaryProtocol:
         sock.sendall(data)
 
     @staticmethod
-    def _encode_from_dict(message: dict) -> bytes:
+    def _encode_from_dict(message: dict) -> bytes:  # pylint: disable=too-many-return-statements
         """
         Encode a message dict to binary format.
 
@@ -581,6 +630,14 @@ class BinaryProtocol:
                 message.get("key"),
                 message.get("value"),
                 message.get("pattern")
+            )
+        elif msg_type == MSG_TYPE_STATUS:
+            return BinaryProtocol.encode_status(request_id)
+        elif msg_type == MSG_TYPE_MANAGE:
+            return BinaryProtocol.encode_manage(
+                request_id,
+                message.get("op"),
+                message.get("count", 1)
             )
         else:
             raise DirtyProtocolError(f"Unhandled message type: {msg_type}")
@@ -731,3 +788,23 @@ def make_stash_message(request_id, op: int, table: str,
     if pattern is not None:
         msg["pattern"] = pattern
     return msg
+
+
+def make_manage_message(request_id, op: int, count: int = 1) -> dict:
+    """
+    Build a worker management message dict.
+
+    Args:
+        request_id: Unique request identifier (int or str)
+        op: Management operation (MANAGE_OP_ADD or MANAGE_OP_REMOVE)
+        count: Number of workers to add/remove
+
+    Returns:
+        dict: Manage message dict
+    """
+    return {
+        "type": DirtyProtocol.MSG_TYPE_MANAGE,
+        "id": request_id,
+        "op": op,
+        "count": count,
+    }

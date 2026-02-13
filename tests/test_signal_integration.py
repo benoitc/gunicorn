@@ -93,15 +93,19 @@ def gunicorn_server(app_module):
         '--access-logfile', '-',
         '--error-logfile', '-',
         '--log-level', 'info',
+        '--timeout', '30',
+        '--graceful-timeout', '30',
         app_name
     ]
 
+    # Use setsid to create new process group for proper signal handling
     proc = subprocess.Popen(
         cmd,
         cwd=app_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env={**os.environ, 'PYTHONPATH': app_dir}
+        env={**os.environ, 'PYTHONPATH': app_dir},
+        preexec_fn=os.setsid
     )
 
     # Wait for server to start
@@ -113,13 +117,19 @@ def gunicorn_server(app_module):
 
     yield proc, port
 
-    # Cleanup
+    # Cleanup - use process group kill for better cleanup
     if proc.poll() is None:
-        proc.terminate()
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, OSError):
+            pass
         try:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            proc.kill()
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, OSError):
+                pass
             proc.wait()
 
 
@@ -141,8 +151,11 @@ class TestSignalHandlingIntegration:
         response = make_request('127.0.0.1', port)
         assert b'Hello, World!' in response
 
-        # Send SIGTERM
-        proc.send_signal(signal.SIGTERM)
+        # Send SIGTERM to the process group for reliable signal delivery
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, OSError):
+            proc.send_signal(signal.SIGTERM)
 
         # Wait for process to exit
         try:
@@ -160,8 +173,11 @@ class TestSignalHandlingIntegration:
         response = make_request('127.0.0.1', port)
         assert b'Hello, World!' in response
 
-        # Send SIGINT
-        proc.send_signal(signal.SIGINT)
+        # Send SIGINT to the process group for reliable signal delivery
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+        except (ProcessLookupError, OSError):
+            proc.send_signal(signal.SIGINT)
 
         # Wait for process to exit
         try:
@@ -179,7 +195,7 @@ class TestSignalHandlingIntegration:
         response = make_request('127.0.0.1', port)
         assert b'Hello, World!' in response
 
-        # Send SIGHUP
+        # Send SIGHUP to the master process (not process group - only master handles reload)
         proc.send_signal(signal.SIGHUP)
 
         # Wait a moment for reload

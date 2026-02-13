@@ -68,6 +68,7 @@ testing = [
 [project.scripts]
 # duplicates "python -m gunicorn" handling in __main__.py
 gunicorn = "gunicorn.app.wsgiapp:run"
+gunicornc = "gunicorn.ctl.cli:main"
 
 # note the quotes around "paste.server_runner" to escape the dot
 [project.entry-points."paste.server_runner"]
