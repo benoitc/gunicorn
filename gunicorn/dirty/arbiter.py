@@ -367,7 +367,8 @@ class DirtyArbiter:
         try:
             async with self._server:
                 await self._server.serve_forever()
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, RuntimeError):
+            # RuntimeError raised when server.close() is called during serve_forever()
             pass
         finally:
             monitor_task.cancel()
@@ -836,19 +837,19 @@ class DirtyArbiter:
                           pid, app_paths)
             return pid
 
-        # Child process
+        # Child process - use os._exit() to avoid asyncio cleanup issues
         worker.pid = os.getpid()
         try:
             util._setproctitle(f"dirty-worker [{self.cfg.proc_name}]")
             worker.init_process()
-            sys.exit(0)
-        except SystemExit:
-            raise
+            os._exit(0)
+        except SystemExit as e:
+            os._exit(e.code if e.code is not None else 0)
         except Exception:
             self.log.exception("Exception in dirty worker process")
             if not worker.booted:
-                sys.exit(self.WORKER_BOOT_ERROR)
-            sys.exit(-1)
+                os._exit(self.WORKER_BOOT_ERROR)
+            os._exit(1)
 
     def kill_worker(self, pid, sig):
         """Kill a worker by PID."""

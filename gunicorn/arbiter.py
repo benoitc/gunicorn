@@ -74,6 +74,17 @@ class Arbiter:
         self.dirty_arbiter = None
         self.dirty_pidfile = None  # Well-known location for orphan detection
 
+        # Control socket server
+        self._control_server = None
+
+        # Stats tracking
+        self._stats = {
+            'start_time': None,
+            'workers_spawned': 0,
+            'workers_killed': 0,
+            'reloads': 0,
+        }
+
         cwd = util.getcwd()
 
         args = sys.argv[:]
@@ -133,6 +144,9 @@ class Arbiter:
         """
         self.log.info("Starting gunicorn %s", __version__)
 
+        # Initialize stats tracking
+        self._stats['start_time'] = time.time()
+
         if 'GUNICORN_PID' in os.environ:
             self.master_pid = int(os.environ.get('GUNICORN_PID'))
             self.proc_name = self.proc_name + ".2"
@@ -178,6 +192,9 @@ class Arbiter:
         # Start dirty arbiter if configured
         if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
             self.spawn_dirty_arbiter()
+
+        # Start control socket server
+        self._start_control_server()
 
         self.cfg.when_ready(self)
 
@@ -351,6 +368,9 @@ class Arbiter:
 
     def halt(self, reason=None, exit_status=0):
         """ halt arbiter """
+        # Stop control socket server first
+        self._stop_control_server()
+
         self.stop()
 
         log_func = self.log.info if exit_status == 0 else self.log.error
@@ -477,6 +497,9 @@ class Arbiter:
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
 
     def reload(self):
+        # Track reload stats
+        self._stats['reloads'] += 1
+
         old_address = self.cfg.address
 
         # reset old environment
@@ -667,6 +690,7 @@ class Arbiter:
         if pid != 0:
             worker.pid = pid
             self.WORKERS[pid] = worker
+            self._stats['workers_spawned'] += 1
             return pid
 
         # Do not inherit the temporary files of other workers
@@ -737,6 +761,9 @@ class Arbiter:
          """
         try:
             os.kill(pid, sig)
+            # Track kills only on SIGTERM/SIGKILL (actual termination signals)
+            if sig in (signal.SIGTERM, signal.SIGKILL):
+                self._stats['workers_killed'] += 1
         except OSError as e:
             if e.errno == errno.ESRCH:
                 try:
@@ -906,3 +933,51 @@ class Arbiter:
         if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
             self.log.info("Spawning dirty arbiter...")
             self.spawn_dirty_arbiter()
+
+    # =========================================================================
+    # Control Socket Management
+    # =========================================================================
+
+    def _get_control_socket_path(self):
+        """Get the control socket path, making relative paths absolute."""
+        socket_path = self.cfg.control_socket
+        if not os.path.isabs(socket_path):
+            socket_path = os.path.join(util.getcwd(), socket_path)
+        return socket_path
+
+    def _start_control_server(self):
+        """\
+        Start the control socket server.
+
+        The server runs in a background thread and accepts commands
+        via Unix socket.
+        """
+        if self.cfg.control_socket_disable:
+            self.log.debug("Control socket disabled")
+            return
+
+        # Lazy import to avoid circular imports and gevent compatibility
+        from gunicorn.ctl.server import ControlSocketServer
+
+        socket_path = self._get_control_socket_path()
+        socket_mode = self.cfg.control_socket_mode
+
+        try:
+            self._control_server = ControlSocketServer(
+                self, socket_path, socket_mode
+            )
+            self._control_server.start()
+        except Exception as e:
+            self.log.warning("Failed to start control socket: %s", e)
+            self._control_server = None
+
+    def _stop_control_server(self):
+        """\
+        Stop the control socket server.
+        """
+        if self._control_server:
+            try:
+                self._control_server.stop()
+            except Exception as e:
+                self.log.debug("Error stopping control server: %s", e)
+            self._control_server = None
