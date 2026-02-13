@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://gunicorn.org/2023-news/">
+        <link rel="canonical" href="https://gunicorn.org/guides/gunicornc/">
       
       
-        <link rel="prev" href="../2024-news/">
+        <link rel="prev" href="../../dirty/">
       
       
-        <link rel="next" href="../2021-news/">
+        <link rel="next" href="../../uwsgi/">
       
       
         
       
       
-      <link rel="icon" href="../assets/gunicorn.svg">
+      <link rel="icon" href="../../assets/gunicorn.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>2023 - Gunicorn</title>
+        <title>Control Interface (gunicornc) - Gunicorn</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +51,11 @@
       
     
     
-      <link rel="stylesheet" href="../styles/overrides.css">
+      <link rel="stylesheet" href="../../styles/overrides.css">
     
-      <link rel="stylesheet" href="../assets/stylesheets/home.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/home.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#changelog-2023" class="md-skip">
+        <a href="#control-interface-gunicornc" class="md-skip">
           Skip to content
         </a>
       
@@ -96,9 +96,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Gunicorn" class="md-header__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+    <a href="../.." title="Gunicorn" class="md-header__button md-logo" aria-label="Gunicorn" data-md-component="logo">
       
-  <img src="../assets/gunicorn.svg" alt="logo">
+  <img src="../../assets/gunicorn.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              2023
+              Control Interface (gunicornc)
             
           </span>
         </div>
@@ -227,7 +227,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -248,7 +248,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../quickstart/" class="md-tabs__link">
+        <a href="../../quickstart/" class="md-tabs__link">
           
   
   
@@ -264,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../deploy/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../deploy/" class="md-tabs__link">
           
   
   
@@ -288,7 +290,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../community/" class="md-tabs__link">
+        <a href="../../community/" class="md-tabs__link">
           
   
   
@@ -306,7 +308,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../sponsor/" class="md-tabs__link">
+      <a href="../../sponsor/" class="md-tabs__link">
         
   
   
@@ -327,7 +329,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../reference/settings/" class="md-tabs__link">
+        <a href="../../reference/settings/" class="md-tabs__link">
           
   
   
@@ -343,13 +345,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../news/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../news/" class="md-tabs__link">
           
   
   
@@ -391,9 +391,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Gunicorn" class="md-nav__button md-logo" aria-label="Gunicorn" data-md-component="logo">
+    <a href="../.." title="Gunicorn" class="md-nav__button md-logo" aria-label="Gunicorn" data-md-component="logo">
       
-  <img src="../assets/gunicorn.svg" alt="logo">
+  <img src="../../assets/gunicorn.svg" alt="logo">
 
     </a>
     Gunicorn
@@ -420,7 +420,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -499,7 +499,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../../quickstart/" class="md-nav__link">
         
   
   
@@ -527,7 +527,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../install/" class="md-nav__link">
+      <a href="../../install/" class="md-nav__link">
         
   
   
@@ -555,7 +555,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../run/" class="md-nav__link">
+      <a href="../../run/" class="md-nav__link">
         
   
   
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../configure/" class="md-nav__link">
+      <a href="../../configure/" class="md-nav__link">
         
   
   
@@ -615,26 +615,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -652,7 +657,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -670,7 +675,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../deploy/" class="md-nav__link">
+      <a href="../../deploy/" class="md-nav__link">
         
   
   
@@ -698,7 +703,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/docker/" class="md-nav__link">
+      <a href="../docker/" class="md-nav__link">
         
   
   
@@ -726,7 +731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/http2/" class="md-nav__link">
+      <a href="../http2/" class="md-nav__link">
         
   
   
@@ -754,7 +759,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../asgi/" class="md-nav__link">
+      <a href="../../asgi/" class="md-nav__link">
         
   
   
@@ -782,7 +787,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dirty/" class="md-nav__link">
+      <a href="../../dirty/" class="md-nav__link">
         
   
   
@@ -807,10 +812,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../guides/gunicornc/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control Interface
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -826,6 +858,320 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Start">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#start-gunicorn-with-control-socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start Gunicorn with Control Socket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connect-with-gunicornc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect with gunicornc
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interactive-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interactive Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#show-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Show Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dirty-worker-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty Worker Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Control
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scripting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scripting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#request-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#response-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Response
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cannot-connect-to-socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cannot connect to socket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permission-denied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permission denied
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#socket-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Socket not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -838,7 +1184,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../uwsgi/" class="md-nav__link">
+      <a href="../../uwsgi/" class="md-nav__link">
         
   
   
@@ -866,7 +1212,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../signals/" class="md-nav__link">
+      <a href="../../signals/" class="md-nav__link">
         
   
   
@@ -894,7 +1240,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../instrumentation/" class="md-nav__link">
+      <a href="../../instrumentation/" class="md-nav__link">
         
   
   
@@ -922,7 +1268,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom/" class="md-nav__link">
+      <a href="../../custom/" class="md-nav__link">
         
   
   
@@ -950,7 +1296,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/" class="md-nav__link">
+      <a href="../../design/" class="md-nav__link">
         
   
   
@@ -1037,7 +1383,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../community/" class="md-nav__link">
+      <a href="../../community/" class="md-nav__link">
         
   
   
@@ -1065,7 +1411,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
+      <a href="../../faq/" class="md-nav__link">
         
   
   
@@ -1093,7 +1439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sponsor/" class="md-nav__link">
+      <a href="../../sponsor/" class="md-nav__link">
         
   
   
@@ -1128,7 +1474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sponsor/" class="md-nav__link">
+      <a href="../../sponsor/" class="md-nav__link">
         
   
   
@@ -1207,7 +1553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/settings/" class="md-nav__link">
+      <a href="../../reference/settings/" class="md-nav__link">
         
   
   
@@ -1239,31 +1585,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -1281,7 +1622,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1299,7 +1640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../news/" class="md-nav__link">
+      <a href="../../news/" class="md-nav__link">
         
   
   
@@ -1327,7 +1668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2026-news/" class="md-nav__link">
+      <a href="../../2026-news/" class="md-nav__link">
         
   
   
@@ -1355,7 +1696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2024-news/" class="md-nav__link">
+      <a href="../../2024-news/" class="md-nav__link">
         
   
   
@@ -1380,37 +1721,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    2023
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../2023-news/" class="md-nav__link">
         
   
   
@@ -1426,59 +1740,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#2120-2023-07-19" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        21.2.0 - 2023-07-19
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2101-2023-07-17" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        21.0.1 - 2023-07-17
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2100-2023-07-17" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        21.0.0 - 2023-07-17
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1491,7 +1752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2021-news/" class="md-nav__link">
+      <a href="../../2021-news/" class="md-nav__link">
         
   
   
@@ -1519,7 +1780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2020-news/" class="md-nav__link">
+      <a href="../../2020-news/" class="md-nav__link">
         
   
   
@@ -1547,7 +1808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2019-news/" class="md-nav__link">
+      <a href="../../2019-news/" class="md-nav__link">
         
   
   
@@ -1575,7 +1836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2018-news/" class="md-nav__link">
+      <a href="../../2018-news/" class="md-nav__link">
         
   
   
@@ -1603,7 +1864,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2017-news/" class="md-nav__link">
+      <a href="../../2017-news/" class="md-nav__link">
         
   
   
@@ -1631,7 +1892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2016-news/" class="md-nav__link">
+      <a href="../../2016-news/" class="md-nav__link">
         
   
   
@@ -1659,7 +1920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2015-news/" class="md-nav__link">
+      <a href="../../2015-news/" class="md-nav__link">
         
   
   
@@ -1687,7 +1948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2014-news/" class="md-nav__link">
+      <a href="../../2014-news/" class="md-nav__link">
         
   
   
@@ -1715,7 +1976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2013-news/" class="md-nav__link">
+      <a href="../../2013-news/" class="md-nav__link">
         
   
   
@@ -1743,7 +2004,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2012-news/" class="md-nav__link">
+      <a href="../../2012-news/" class="md-nav__link">
         
   
   
@@ -1771,7 +2032,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2011-news/" class="md-nav__link">
+      <a href="../../2011-news/" class="md-nav__link">
         
   
   
@@ -1799,7 +2060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../2010-news/" class="md-nav__link">
+      <a href="../../2010-news/" class="md-nav__link">
         
   
   
@@ -1852,7 +2113,7 @@
   
   
     <li class="md-path__item">
-      <a href=".." class="md-path__link">
+      <a href="../.." class="md-path__link">
         
   <span class="md-ellipsis">
     Home
@@ -1870,10 +2131,10 @@
     
     
       <li class="md-path__item">
-        <a href="../news/" class="md-path__link">
+        <a href="../../deploy/" class="md-path__link">
           
   <span class="md-ellipsis">
-    News
+    Guides
   </span>
 
         </a>
@@ -1895,45 +2156,351 @@
   
 
 
-<p><span id="news-2023"></span></p>
-<h1 id="changelog-2023">Changelog - 2023<a class="headerlink" href="#changelog-2023" title="Permanent link">&para;</a></h1>
-<h2 id="2120-2023-07-19">21.2.0 - 2023-07-19<a class="headerlink" href="#2120-2023-07-19" title="Permanent link">&para;</a></h2>
-<ul>
-<li>fix thread worker: revert change considering connection as idle . </li>
-</ul>
+<h1 id="control-interface-gunicornc">Control Interface (gunicornc)<a class="headerlink" href="#control-interface-gunicornc" title="Permanent link">&para;</a></h1>
+<p>Gunicorn provides a control interface similar to <a href="https://bird.network.cz/?get_doc&amp;v=20&amp;f=bird-3.html">birdc</a> for the BIRD routing daemon. This allows you to inspect and manage a running Gunicorn instance via a Unix socket.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The control interface consists of two parts:</p>
+<ol>
+<li><strong>Control Socket Server</strong> - Runs in the arbiter process, accepts commands via Unix socket</li>
+<li><strong>gunicornc CLI</strong> - Interactive client that connects to the control socket</li>
+</ol>
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<h3 id="start-gunicorn-with-control-socket">Start Gunicorn with Control Socket<a class="headerlink" href="#start-gunicorn-with-control-socket" title="Permanent link">&para;</a></h3>
+<p>By default, Gunicorn creates a control socket at <code>gunicorn.ctl</code> in the current directory:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-w<span class="w"> </span><span class="m">4</span><span class="w"> </span>myapp:app
+</code></pre></div>
+<p>Or specify a custom path:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--control-socket<span class="w"> </span>/tmp/myapp.ctl<span class="w"> </span>-w<span class="w"> </span><span class="m">4</span><span class="w"> </span>myapp:app
+</code></pre></div>
+<h3 id="connect-with-gunicornc">Connect with gunicornc<a class="headerlink" href="#connect-with-gunicornc" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Connect to default socket (./gunicorn.ctl)</span>
+gunicornc
+
+<span class="c1"># Connect to custom socket</span>
+gunicornc<span class="w"> </span>-s<span class="w"> </span>/tmp/myapp.ctl
+
+<span class="c1"># Run a single command</span>
+gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show workers&quot;</span>
+
+<span class="c1"># Output as JSON (for scripting)</span>
+gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show stats&quot;</span><span class="w"> </span>-j
+</code></pre></div>
+<h2 id="interactive-mode">Interactive Mode<a class="headerlink" href="#interactive-mode" title="Permanent link">&para;</a></h2>
+<p>When run without the <code>-c</code> flag, gunicornc enters interactive mode with readline support:</p>
+<div class="highlight"><pre><span></span><code>$ gunicornc
+Connected to gunicorn.ctl
+Type &#39;help&#39; for available commands, &#39;quit&#39; to exit.
+
+gunicorn&gt; show workers
+PID        AGE    BOOTED   LAST_BEAT
+----------------------------------------
+12345      1      yes      0.2s ago
+12346      2      yes      0.1s ago
+12347      3      yes      0.3s ago
+
+Total: 3 workers
+
+gunicorn&gt; worker add 2
+{
+  &quot;added&quot;: 2,
+  &quot;previous&quot;: 3,
+  &quot;total&quot;: 5
+}
+
+gunicorn&gt; quit
+</code></pre></div>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="show-commands">Show Commands<a class="headerlink" href="#show-commands" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>show all</code></td>
+<td>Overview of all processes (arbiter, web workers, dirty workers)</td>
+</tr>
+<tr>
+<td><code>show workers</code></td>
+<td>List HTTP workers with status</td>
+</tr>
+<tr>
+<td><code>show dirty</code></td>
+<td>List dirty workers and apps</td>
+</tr>
+<tr>
+<td><code>show config</code></td>
+<td>Show current effective configuration</td>
+</tr>
+<tr>
+<td><code>show stats</code></td>
+<td>Show server statistics</td>
+</tr>
+<tr>
+<td><code>show listeners</code></td>
+<td>Show bound sockets</td>
+</tr>
+<tr>
+<td><code>help</code></td>
+<td>Show available commands</td>
+</tr>
+</tbody>
+</table>
+<h3 id="worker-management">Worker Management<a class="headerlink" href="#worker-management" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>worker add [N]</code></td>
+<td>Spawn N workers (default 1)</td>
+</tr>
+<tr>
+<td><code>worker remove [N]</code></td>
+<td>Remove N workers (default 1)</td>
+</tr>
+<tr>
+<td><code>worker kill &lt;PID&gt;</code></td>
+<td>Gracefully terminate specific worker</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dirty-worker-management">Dirty Worker Management<a class="headerlink" href="#dirty-worker-management" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dirty add [N]</code></td>
+<td>Spawn N dirty workers (default 1)</td>
+</tr>
+<tr>
+<td><code>dirty remove [N]</code></td>
+<td>Remove N dirty workers (default 1)</td>
+</tr>
+</tbody>
+</table>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This is fixing the bad file description error.</p>
-<p>21.1.0 - 2023-07-18</p>
+<p class="admonition-title">Per-App Worker Limits</p>
+<p>When using <code>dirty add</code>, workers only load apps that haven't reached their
+worker limits. If all apps are at their limits, no new workers will be spawned.
+The response will include a <code>reason</code> field explaining this.</p>
 </div>
-<p>===================</p>
+<h3 id="server-control">Server Control<a class="headerlink" href="#server-control" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reload</code></td>
+<td>Graceful reload (equivalent to SIGHUP)</td>
+</tr>
+<tr>
+<td><code>reopen</code></td>
+<td>Reopen log files (equivalent to SIGUSR1)</td>
+</tr>
+<tr>
+<td><code>shutdown [graceful\|quick]</code></td>
+<td>Shutdown server (SIGTERM or SIGINT)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example-session">Example Session<a class="headerlink" href="#example-session" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>$ gunicornc
+Connected to gunicorn.ctl
+Type &#39;help&#39; for available commands, &#39;quit&#39; to exit.
+
+gunicorn&gt; show all
+ARBITER (master)
+  PID: 12345
+
+WEB WORKERS (4)
+  PID        AGE    BOOTED   LAST_BEAT
+  --------------------------------------
+  12346      1      yes      0.05s ago
+  12347      2      yes      0.04s ago
+  12348      3      yes      0.03s ago
+  12349      4      yes      0.02s ago
+
+DIRTY ARBITER
+  PID: 12350
+
+DIRTY WORKERS (2)
+  PID        AGE    APPS
+  --------------------------------------------------
+  12351      1      MLModel
+                    ImageProcessor
+  12352      2      MLModel
+
+gunicorn&gt; show stats
+Uptime:           2h 15m 30s
+PID:              12345
+Workers current:  4
+Workers target:   4
+Workers spawned:  6
+Workers killed:   2
+Reloads:          1
+
+gunicorn&gt; worker add
+{
+  &quot;added&quot;: 1,
+  &quot;previous&quot;: 4,
+  &quot;total&quot;: 5
+}
+
+gunicorn&gt; dirty add 1
+{
+  &quot;success&quot;: true,
+  &quot;operation&quot;: &quot;add&quot;,
+  &quot;requested&quot;: 1,
+  &quot;spawned&quot;: 1,
+  &quot;total_workers&quot;: 3,
+  &quot;target_workers&quot;: 3
+}
+
+gunicorn&gt; quit
+</code></pre></div>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>CLI Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>control_socket</code></td>
+<td><code>--control-socket</code></td>
+<td><code>gunicorn.ctl</code></td>
+<td>Unix socket path</td>
+</tr>
+<tr>
+<td><code>control_socket_mode</code></td>
+<td><code>--control-socket-mode</code></td>
+<td><code>0o600</code></td>
+<td>Socket file permissions</td>
+</tr>
+<tr>
+<td><code>control_socket_disable</code></td>
+<td><code>--no-control-socket</code></td>
+<td><code>False</code></td>
+<td>Disable control socket</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-configuration">Example Configuration<a class="headerlink" href="#example-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0:8000&quot;</span>
+<span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
+
+<span class="c1"># Control socket settings</span>
+<span class="n">control_socket</span> <span class="o">=</span> <span class="s2">&quot;/var/run/gunicorn/myapp.ctl&quot;</span>
+<span class="n">control_socket_mode</span> <span class="o">=</span> <span class="mo">0o660</span>  <span class="c1"># Allow group access</span>
+</code></pre></div>
+<h2 id="scripting">Scripting<a class="headerlink" href="#scripting" title="Permanent link">&para;</a></h2>
+<p>Use the <code>-j</code> flag for JSON output when scripting:</p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># Get current worker count</span>
+<span class="nv">workers</span><span class="o">=</span><span class="k">$(</span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show stats&quot;</span><span class="w"> </span>-j<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.workers_current&#39;</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current workers: </span><span class="nv">$workers</span><span class="s2">&quot;</span>
+
+<span class="c1"># Scale up if needed</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$workers</span><span class="s2">&quot;</span><span class="w"> </span>-lt<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;worker add </span><span class="k">$((</span><span class="m">8</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">workers</span><span class="k">))</span><span class="s2">&quot;</span>
+<span class="k">fi</span>
+</code></pre></div>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<p>The control socket uses filesystem permissions for access control:</p>
 <ul>
-<li>fix thread worker: fix socket removal from the queue</li>
+<li><strong>Default mode</strong>: <code>0o600</code> (owner only)</li>
+<li><strong>No authentication</strong>: Relies on filesystem permissions</li>
+<li><strong>Unix socket only</strong>: No TCP/remote access</li>
 </ul>
-<h2 id="2101-2023-07-17">21.0.1 - 2023-07-17<a class="headerlink" href="#2101-2023-07-17" title="Permanent link">&para;</a></h2>
+<p>To allow group access:</p>
+<div class="highlight"><pre><span></span><code><span class="n">control_socket_mode</span> <span class="o">=</span> <span class="mo">0o660</span>
+</code></pre></div>
+<p>To disable the control socket entirely:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--no-control-socket<span class="w"> </span>myapp:app
+</code></pre></div>
+<h2 id="protocol">Protocol<a class="headerlink" href="#protocol" title="Permanent link">&para;</a></h2>
+<p>The control interface uses a JSON-based protocol with length-prefixed framing:</p>
+<div class="highlight"><pre><span></span><code>+----------------+------------------+
+| Length (4B BE) |  JSON Payload    |
++----------------+------------------+
+</code></pre></div>
+<h3 id="request-format">Request Format<a class="headerlink" href="#request-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;show workers&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="response-format">Response Format<a class="headerlink" href="#response-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Unknown command: foo&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="cannot-connect-to-socket">Cannot connect to socket<a class="headerlink" href="#cannot-connect-to-socket" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Error: Connection refused
+</code></pre></div>
 <ul>
-<li>fix documentation build</li>
+<li>Check that Gunicorn is running</li>
+<li>Verify the socket path is correct</li>
+<li>Check socket file permissions</li>
 </ul>
-<h2 id="2100-2023-07-17">21.0.0 - 2023-07-17<a class="headerlink" href="#2100-2023-07-17" title="Permanent link">&para;</a></h2>
+<h3 id="permission-denied">Permission denied<a class="headerlink" href="#permission-denied" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Error: Permission denied
+</code></pre></div>
 <ul>
-<li>support python 3.11</li>
-<li>fix gevent and eventlet workers</li>
-<li>fix threads support (gththread.md): improve performance and unblock requests</li>
-<li>SSL: now use SSLContext object</li>
-<li>HTTP parser: miscellaneous fixes</li>
-<li>remove unnecessary setuid calls</li>
-<li>fix testing</li>
-<li>improve logging</li>
-<li>miscellaneous fixes to core engine</li>
+<li>Check that you have read/write access to the socket file</li>
+<li>The socket is created with mode <code>0o600</code> by default (owner only)</li>
 </ul>
-<p>*** RELEASE NOTE ***</p>
-<p>We made this release major to start our new release cycle. More info will be provided on our discussion forum.</p>
+<h3 id="socket-not-found">Socket not found<a class="headerlink" href="#socket-not-found" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Error: No such file or directory
+</code></pre></div>
+<ul>
+<li>Gunicorn creates the socket relative to the working directory by default</li>
+<li>Use an absolute path with <code>--control-socket /path/to/socket.ctl</code></li>
+<li>Check if <code>--no-control-socket</code> was specified</li>
+</ul>
 
 
 
 
 
 
+
+  
+  
 
 
 
@@ -2023,12 +2590,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.path", "search.highlight", "search.suggest", "search.share", "toc.follow", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.path", "search.highlight", "search.suggest", "search.share", "toc.follow", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../assets/javascripts/toc-collapse.js"></script>
+        <script src="../../assets/javascripts/toc-collapse.js"></script>
       
     
   </body>

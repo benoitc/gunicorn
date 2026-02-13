@@ -810,6 +810,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/gunicornc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../uwsgi/" class="md-nav__link">
         
   
@@ -1271,6 +1299,56 @@
     <span class="md-ellipsis">
       
         wsgi_app
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Control">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#control_socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        control_socket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control_socket_mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        control_socket_mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control_socket_disable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        control_socket_disable
       
     </span>
   </a>
@@ -3344,6 +3422,38 @@ prefix.</p>
 <p>A WSGI application path in pattern <code>$(MODULE_NAME):$(VARIABLE_NAME)</code>.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 20.1.0</p>
+</div>
+<h2 id="control">Control<a class="headerlink" href="#control" title="Permanent link">&para;</a></h2>
+<h3 id="control_socket"><code>control_socket</code><a class="headerlink" href="#control_socket" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--control-socket PATH</code></p>
+<p><strong>Default:</strong> <code>'gunicorn.ctl'</code></p>
+<p>Unix socket path for control interface.</p>
+<p>The control socket allows runtime management of Gunicorn via the
+<code>gunicornc</code> command-line tool. Commands include viewing worker
+status, adjusting worker count, and graceful reload/shutdown.</p>
+<p>By default, creates <code>gunicorn.ctl</code> in the working directory.
+Set an absolute path for a fixed location (e.g., <code>/var/run/gunicorn.ctl</code>).</p>
+<p>Use <code>--no-control-socket</code> to disable.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.1.0</p>
+</div>
+<h3 id="control_socket_mode"><code>control_socket_mode</code><a class="headerlink" href="#control_socket_mode" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--control-socket-mode INT</code></p>
+<p><strong>Default:</strong> <code>384</code></p>
+<p>Permission mode for control socket.</p>
+<p>Restricts who can connect to the control socket. Default <code>0600</code>
+allows only the socket owner. Set to <code>0660</code> to allow group access.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.1.0</p>
+</div>
+<h3 id="control_socket_disable"><code>control_socket_disable</code><a class="headerlink" href="#control_socket_disable" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--no-control-socket</code></p>
+<p><strong>Default:</strong> <code>False</code></p>
+<p>Disable control socket.</p>
+<p>When set, no control socket is created and <code>gunicornc</code> cannot
+connect to this Gunicorn instance.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.1.0</p>
 </div>
 <h2 id="debugging">Debugging<a class="headerlink" href="#debugging" title="Permanent link">&para;</a></h2>
 <h3 id="reload"><code>reload</code><a class="headerlink" href="#reload" title="Permanent link">&para;</a></h3>
