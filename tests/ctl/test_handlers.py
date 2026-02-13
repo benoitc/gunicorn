@@ -4,6 +4,7 @@
 
 """Tests for control socket command handlers."""
 
+import os
 import signal
 import time
 from unittest.mock import MagicMock, patch
@@ -296,6 +297,60 @@ class TestShowDirty:
 
         assert result["enabled"] is False
         assert result["pid"] is None
+
+
+class TestDirtyAdd:
+    """Tests for dirty add command."""
+
+    def test_dirty_add_not_running(self):
+        """Test dirty add when dirty arbiter not running."""
+        arbiter = MockArbiter()
+        handlers = CommandHandlers(arbiter)
+
+        result = handlers.dirty_add()
+
+        assert result["success"] is False
+        assert "not running" in result["error"]
+
+    def test_dirty_add_no_socket(self):
+        """Test dirty add when socket path not available."""
+        arbiter = MockArbiter()
+        arbiter.dirty_arbiter_pid = 2000
+        handlers = CommandHandlers(arbiter)
+
+        # No dirty_arbiter attribute and no env var
+        with patch.dict('os.environ', {}, clear=True):
+            result = handlers.dirty_add()
+
+        assert result["success"] is False
+        assert "socket" in result["error"].lower()
+
+
+class TestDirtyRemove:
+    """Tests for dirty remove command."""
+
+    def test_dirty_remove_not_running(self):
+        """Test dirty remove when dirty arbiter not running."""
+        arbiter = MockArbiter()
+        handlers = CommandHandlers(arbiter)
+
+        result = handlers.dirty_remove()
+
+        assert result["success"] is False
+        assert "not running" in result["error"]
+
+    def test_dirty_remove_no_socket(self):
+        """Test dirty remove when socket path not available."""
+        arbiter = MockArbiter()
+        arbiter.dirty_arbiter_pid = 2000
+        handlers = CommandHandlers(arbiter)
+
+        # No dirty_arbiter attribute and no env var
+        with patch.dict('os.environ', {}, clear=True):
+            result = handlers.dirty_remove()
+
+        assert result["success"] is False
+        assert "socket" in result["error"].lower()
 
 
 class TestReload:

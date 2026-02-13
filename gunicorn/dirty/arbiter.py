@@ -41,6 +41,8 @@ from .protocol import (
     STASH_OP_DELETE_TABLE,
     STASH_OP_TABLES,
     STASH_OP_EXISTS,
+    MANAGE_OP_ADD,
+    MANAGE_OP_REMOVE,
 )
 from .worker import DirtyWorker
 
@@ -426,6 +428,9 @@ class DirtyArbiter:
                 # Handle status queries
                 elif msg_type == DirtyProtocol.MSG_TYPE_STATUS:
                     await self.handle_status_request(message, writer)
+                # Handle worker management (add/remove workers)
+                elif msg_type == DirtyProtocol.MSG_TYPE_MANAGE:
+                    await self.handle_manage_request(message, writer)
                 else:
                     # Route request to a dirty worker - pass writer for streaming
                     await self.route_request(message, writer)
@@ -690,6 +695,100 @@ class DirtyArbiter:
         response = make_response(request_id, result)
         await DirtyProtocol.write_message_async(client_writer, response)
 
+    async def handle_manage_request(self, message, client_writer):
+        """
+        Handle a worker management request.
+
+        Supports adding or removing dirty workers via protocol messages.
+
+        Args:
+            message: Manage request message
+            client_writer: StreamWriter to send response to client
+        """
+        request_id = message.get("id", "unknown")
+        op = message.get("op")
+        count = max(1, int(message.get("count", 1)))
+
+        try:
+            if op == MANAGE_OP_ADD:
+                # Add workers - only loads apps that need more workers
+                spawned = 0
+                for _ in range(count):
+                    result = self.spawn_worker()
+                    if result is not None:
+                        self.num_workers += 1
+                        spawned += 1
+                    await asyncio.sleep(0.1)
+
+                # Provide feedback about why no workers were spawned
+                if spawned == 0:
+                    result = {
+                        "success": True,
+                        "operation": "add",
+                        "requested": count,
+                        "spawned": 0,
+                        "reason": "All apps have reached their worker limits",
+                        "total_workers": len(self.workers),
+                        "target_workers": self.num_workers,
+                    }
+                else:
+                    result = {
+                        "success": True,
+                        "operation": "add",
+                        "requested": count,
+                        "spawned": spawned,
+                        "total_workers": len(self.workers),
+                        "target_workers": self.num_workers,
+                    }
+
+            elif op == MANAGE_OP_REMOVE:
+                # Remove workers (similar to TTOU signal but via message)
+                min_workers = self._get_minimum_workers()
+                removed = 0
+
+                for _ in range(count):
+                    if self.num_workers <= min_workers:
+                        break
+                    if len(self.workers) <= 1:
+                        break
+
+                    self.num_workers -= 1
+
+                    # Kill oldest worker
+                    oldest_pid = min(self.workers.keys(),
+                                     key=lambda p: self.workers[p].age)
+                    self.kill_worker(oldest_pid, signal.SIGTERM)
+                    removed += 1
+                    await asyncio.sleep(0.1)
+
+                result = {
+                    "success": True,
+                    "operation": "remove",
+                    "requested": count,
+                    "removed": removed,
+                    "total_workers": len(self.workers),
+                    "target_workers": self.num_workers,
+                }
+
+            else:
+                error = DirtyError(f"Unknown manage operation: {op}")
+                response = make_error_response(request_id, error)
+                await DirtyProtocol.write_message_async(client_writer, response)
+                return
+
+            self.log.info("Worker management: %s %d workers (spawned/removed: %d)",
+                          "add" if op == MANAGE_OP_ADD else "remove",
+                          count,
+                          result.get("spawned", result.get("removed", 0)))
+
+            response = make_response(request_id, result)
+            await DirtyProtocol.write_message_async(client_writer, response)
+
+        except Exception as e:
+            self.log.error("Manage operation error: %s", e)
+            response = make_error_response(request_id, DirtyError(str(e)))
+            await DirtyProtocol.write_message_async(client_writer, response)
+
     async def handle_stash_request(self, message, client_writer):
         """
         Handle a stash operation directly in the arbiter.
@@ -830,13 +929,17 @@ class DirtyArbiter:
             self.kill_worker(oldest_pid, signal.SIGTERM)
             await asyncio.sleep(0.1)
 
-    def spawn_worker(self):
+    def spawn_worker(self, force_all_apps=False):
         """
         Spawn a new dirty worker.
 
         Worker app assignment follows these priorities:
         1. If there are pending respawns (from dead workers), use those apps
         2. Otherwise, determine apps for a new worker based on allocation
+        3. If force_all_apps=True, spawn with all apps regardless of limits
+
+        Args:
+            force_all_apps: If True, spawn worker with all apps ignoring limits
 
         Returns:
             Worker PID in parent process, or None if no apps need workers
@@ -844,6 +947,9 @@ class DirtyArbiter:
         # Priority 1: Respawn dead worker with same apps
         if self._pending_respawns:
             app_paths = self._pending_respawns.pop(0)
+        elif force_all_apps:
+            # Force spawn with all apps (used by TTIN signal)
+            app_paths = list(self.app_specs.keys())
         else:
             # Priority 2: New worker for initial pool
             app_paths = self._get_apps_for_new_worker()

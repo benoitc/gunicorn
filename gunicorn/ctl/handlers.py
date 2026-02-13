@@ -10,6 +10,7 @@ Provides handlers for all control commands with access to arbiter state.
 
 import os
 import signal
+import socket
 import time
 
 
@@ -309,6 +310,8 @@ class CommandHandlers:
         """
         Spawn additional dirty workers.
 
+        Sends a MANAGE message to the dirty arbiter to spawn workers.
+
         Args:
             count: Number of dirty workers to add (default 1)
 
@@ -321,24 +324,14 @@ class CommandHandlers:
                 "error": "Dirty arbiter not running",
             }
 
-        # Send TTIN signals to dirty arbiter
         count = max(1, int(count))
-        try:
-            for _ in range(count):
-                os.kill(self.arbiter.dirty_arbiter_pid, signal.SIGTTIN)
-            return {
-                "success": True,
-                "added": count,
-            }
-        except OSError as e:
-            return {
-                "success": False,
-                "error": str(e),
-            }
+        return self._send_manage_message("add", count)
 
     def dirty_remove(self, count: int = 1) -> dict:
         """
         Remove dirty workers.
+
+        Sends a MANAGE message to the dirty arbiter to remove workers.
 
         Args:
             count: Number of dirty workers to remove (default 1)
@@ -352,16 +345,73 @@ class CommandHandlers:
                 "error": "Dirty arbiter not running",
             }
 
-        # Send TTOU signals to dirty arbiter
         count = max(1, int(count))
-        try:
-            for _ in range(count):
-                os.kill(self.arbiter.dirty_arbiter_pid, signal.SIGTTOU)
+        return self._send_manage_message("remove", count)
+
+    def _send_manage_message(self, operation: str, count: int) -> dict:
+        """
+        Send a worker management message to the dirty arbiter.
+
+        Args:
+            operation: "add" or "remove"
+            count: Number of workers to add/remove
+
+        Returns:
+            Dictionary with result or error
+        """
+        # Get socket path from arbiter object or environment
+        dirty_socket_path = None
+        if hasattr(self.arbiter, 'dirty_arbiter') and self.arbiter.dirty_arbiter:
+            dirty_socket_path = getattr(
+                self.arbiter.dirty_arbiter, 'socket_path', None
+            )
+        if not dirty_socket_path:
+            dirty_socket_path = os.environ.get('GUNICORN_DIRTY_SOCKET')
+        if not dirty_socket_path:
             return {
-                "success": True,
-                "removed": count,
+                "success": False,
+                "error": "Cannot find dirty arbiter socket path",
             }
-        except OSError as e:
+
+        try:
+            from gunicorn.dirty.protocol import (
+                DirtyProtocol, MANAGE_OP_ADD, MANAGE_OP_REMOVE
+            )
+
+            op = MANAGE_OP_ADD if operation == "add" else MANAGE_OP_REMOVE
+
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(10.0)
+            sock.connect(dirty_socket_path)
+
+            # Send manage request
+            request = {
+                "type": DirtyProtocol.MSG_TYPE_MANAGE,
+                "id": 1,
+                "op": op,
+                "count": count,
+            }
+            DirtyProtocol.write_message(sock, request)
+
+            # Read response
+            response = DirtyProtocol.read_message(sock)
+            sock.close()
+
+            if response.get("type") == DirtyProtocol.MSG_TYPE_RESPONSE:
+                return response.get("result", {"success": True})
+            elif response.get("type") == DirtyProtocol.MSG_TYPE_ERROR:
+                error = response.get("error", {})
+                return {
+                    "success": False,
+                    "error": error.get("message", str(error)),
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unexpected response type: {response.get('type')}",
+                }
+
+        except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
