@@ -43,6 +43,7 @@ MSG_TYPE_ERROR = 0x03
 MSG_TYPE_CHUNK = 0x04
 MSG_TYPE_END = 0x05
 MSG_TYPE_STASH = 0x10  # Stash operations (shared state between workers)
+MSG_TYPE_STATUS = 0x11  # Status query for arbiter/workers
 
 # Message type names (for backwards compatibility with old API)
 MSG_TYPE_REQUEST_STR = "request"
@@ -51,6 +52,7 @@ MSG_TYPE_ERROR_STR = "error"
 MSG_TYPE_CHUNK_STR = "chunk"
 MSG_TYPE_END_STR = "end"
 MSG_TYPE_STASH_STR = "stash"
+MSG_TYPE_STATUS_STR = "status"
 
 # Map int types to string names
 MSG_TYPE_TO_STR = {
@@ -60,6 +62,7 @@ MSG_TYPE_TO_STR = {
     MSG_TYPE_CHUNK: MSG_TYPE_CHUNK_STR,
     MSG_TYPE_END: MSG_TYPE_END_STR,
     MSG_TYPE_STASH: MSG_TYPE_STASH_STR,
+    MSG_TYPE_STATUS: MSG_TYPE_STATUS_STR,
 }
 
 # Map string names to int types
@@ -98,6 +101,7 @@ class BinaryProtocol:
     MSG_TYPE_CHUNK = MSG_TYPE_CHUNK_STR
     MSG_TYPE_END = MSG_TYPE_END_STR
     MSG_TYPE_STASH = MSG_TYPE_STASH_STR
+    MSG_TYPE_STATUS = MSG_TYPE_STATUS_STR
 
     @staticmethod
     def encode_header(msg_type: int, request_id: int, payload_length: int) -> bytes:

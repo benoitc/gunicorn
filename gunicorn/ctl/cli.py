@@ -206,17 +206,21 @@ def format_all(data: dict) -> str:
         dirty_workers = data.get("dirty_workers", [])
         lines.append(f"DIRTY WORKERS ({data.get('dirty_worker_count', 0)})")
         if dirty_workers:
-            lines.append(f"  {'PID':<10} {'AGE':<6} {'APPS':<30} {'LAST_BEAT'}")
-            lines.append(f"  {'-' * 58}")
+            lines.append(f"  {'PID':<10} {'AGE':<6} {'APPS'}")
+            lines.append(f"  {'-' * 50}")
             for w in dirty_workers:
                 pid = w.get("pid", "?")
                 age = w.get("age", "?")
-                apps = ", ".join(w.get("apps", []))
-                if len(apps) > 28:
-                    apps = apps[:25] + "..."
-                hb = w.get("last_heartbeat")
-                hb_str = f"{hb}s ago" if hb is not None else "n/a"
-                lines.append(f"  {pid:<10} {age:<6} {apps:<30} {hb_str}")
+                apps = w.get("apps", [])
+                # Show each app on its own line if multiple
+                if apps:
+                    first_app = apps[0].split(":")[-1]  # Just the class name
+                    lines.append(f"  {pid:<10} {age:<6} {first_app}")
+                    for app in apps[1:]:
+                        app_name = app.split(":")[-1]
+                        lines.append(f"  {'':<10} {'':<6} {app_name}")
+                else:
+                    lines.append(f"  {pid:<10} {age:<6} (no apps)")
         else:
             lines.append("  (none)")
     else:

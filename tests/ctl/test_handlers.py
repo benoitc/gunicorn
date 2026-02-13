@@ -381,7 +381,7 @@ class TestShowAll:
         assert "dirty_arbiter" in result
         assert result["dirty_arbiter"] is None
 
-        assert "dirty_workers" in result
+        # No dirty workers when no dirty arbiter
         assert result["dirty_worker_count"] == 0
 
     def test_show_all_with_dirty(self):

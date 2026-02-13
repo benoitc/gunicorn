@@ -423,6 +423,9 @@ class DirtyArbiter:
                 # Handle stash operations
                 if msg_type == DirtyProtocol.MSG_TYPE_STASH:
                     await self.handle_stash_request(message, writer)
+                # Handle status queries
+                elif msg_type == DirtyProtocol.MSG_TYPE_STATUS:
+                    await self.handle_status_request(message, writer)
                 else:
                     # Route request to a dirty worker - pass writer for streaming
                     await self.route_request(message, writer)
@@ -645,6 +648,47 @@ class DirtyArbiter:
     # -------------------------------------------------------------------------
     # Stash (shared state) operations - handled directly in arbiter
     # -------------------------------------------------------------------------
+
+    async def handle_status_request(self, message, client_writer):
+        """
+        Handle a status query request.
+
+        Returns information about the dirty arbiter and its workers.
+
+        Args:
+            message: Status request message
+            client_writer: StreamWriter to send response to client
+        """
+        request_id = message.get("id", "unknown")
+        now = time.monotonic()
+
+        workers_info = []
+        for pid, worker in self.workers.items():
+            try:
+                last_update = worker.tmp.last_update()
+                last_heartbeat = round(now - last_update, 2)
+            except (OSError, ValueError, AttributeError):
+                last_heartbeat = None
+
+            workers_info.append({
+                "pid": pid,
+                "age": worker.age,
+                "apps": getattr(worker, 'app_paths', []),
+                "booted": getattr(worker, 'booted', False),
+                "last_heartbeat": last_heartbeat,
+            })
+
+        workers_info.sort(key=lambda w: w["age"])
+
+        result = {
+            "arbiter_pid": self.pid,
+            "workers": workers_info,
+            "worker_count": len(workers_info),
+            "apps": list(self.app_specs.keys()) if self.app_specs else [],
+        }
+
+        response = make_response(request_id, result)
+        await DirtyProtocol.write_message_async(client_writer, response)
 
     async def handle_stash_request(self, message, client_writer):
         """

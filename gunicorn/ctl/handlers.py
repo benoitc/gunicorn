@@ -441,7 +441,7 @@ class CommandHandlers:
         # Sort by age
         web_workers.sort(key=lambda w: w["age"])
 
-        # Dirty arbiter and workers
+        # Dirty arbiter info (runs in separate process)
         dirty_arbiter_info = None
         dirty_workers = []
 
@@ -452,26 +452,8 @@ class CommandHandlers:
                 "role": "dirty master",
             }
 
-            # Get dirty workers if we have access
-            dirty_arbiter = getattr(self.arbiter, 'dirty_arbiter', None)
-            if dirty_arbiter and hasattr(dirty_arbiter, 'workers'):
-                for pid, worker in dirty_arbiter.workers.items():
-                    try:
-                        last_update = worker.tmp.last_update()
-                        last_heartbeat = round(now - last_update, 2)
-                    except (OSError, ValueError, AttributeError):
-                        last_heartbeat = None
-
-                    dirty_workers.append({
-                        "pid": pid,
-                        "type": "dirty",
-                        "age": worker.age,
-                        "apps": getattr(worker, 'app_paths', []),
-                        "booted": getattr(worker, 'booted', False),
-                        "last_heartbeat": last_heartbeat,
-                    })
-
-                dirty_workers.sort(key=lambda w: w["age"])
+            # Query dirty arbiter for worker info via its socket
+            dirty_workers = self._query_dirty_workers()
 
         return {
             "arbiter": arbiter_info,
@@ -481,6 +463,47 @@ class CommandHandlers:
             "dirty_workers": dirty_workers,
             "dirty_worker_count": len(dirty_workers),
         }
+
+    def _query_dirty_workers(self) -> list:
+        """
+        Query the dirty arbiter for worker information.
+
+        Connects to the dirty arbiter socket and sends a status request.
+
+        Returns:
+            List of dirty worker info dicts, or empty list on error
+        """
+        import socket
+        dirty_socket_path = os.environ.get('GUNICORN_DIRTY_SOCKET')
+        if not dirty_socket_path:
+            return []
+
+        try:
+            from gunicorn.dirty.protocol import DirtyProtocol
+
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(2.0)
+            sock.connect(dirty_socket_path)
+
+            # Send status request
+            request = {
+                "type": DirtyProtocol.MSG_TYPE_STATUS,
+                "id": "ctl-status-1",
+            }
+            DirtyProtocol.write_message(sock, request)
+
+            # Read response
+            response = DirtyProtocol.read_message(sock)
+            sock.close()
+
+            if response.get("type") == DirtyProtocol.MSG_TYPE_RESPONSE:
+                data = response.get("data", {})
+                return data.get("workers", [])
+
+        except Exception:
+            pass
+
+        return []
 
     def help(self) -> dict:
         """
