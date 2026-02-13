@@ -106,7 +106,7 @@ markdown_extensions:
   - md_in_html
   - tables
   - markdown_grid_tables:
-      hard_linebreaks: false
+      hard_linebreaks: true
   - toc:
       permalink: true
   - pymdownx.details
