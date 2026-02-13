@@ -278,6 +278,21 @@ class BinaryProtocol:
         return header
 
     @staticmethod
+    def encode_status(request_id: int) -> bytes:
+        """
+        Encode a status query message.
+
+        Args:
+            request_id: Request identifier
+
+        Returns:
+            bytes: Complete message (header + empty payload)
+        """
+        # Status query has empty payload
+        header = BinaryProtocol.encode_header(MSG_TYPE_STATUS, request_id, 0)
+        return header
+
+    @staticmethod
     def encode_stash(request_id: int, op: int, table: str,
                      key=None, value=None, pattern=None) -> bytes:
         """
@@ -586,6 +601,8 @@ class BinaryProtocol:
                 message.get("value"),
                 message.get("pattern")
             )
+        elif msg_type == MSG_TYPE_STATUS:
+            return BinaryProtocol.encode_status(request_id)
         else:
             raise DirtyProtocolError(f"Unhandled message type: {msg_type}")
 

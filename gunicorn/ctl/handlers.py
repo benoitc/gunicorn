@@ -474,7 +474,13 @@ class CommandHandlers:
             List of dirty worker info dicts, or empty list on error
         """
         import socket
-        dirty_socket_path = os.environ.get('GUNICORN_DIRTY_SOCKET')
+
+        # Get socket path from arbiter object or environment
+        dirty_socket_path = None
+        if hasattr(self.arbiter, 'dirty_arbiter') and self.arbiter.dirty_arbiter:
+            dirty_socket_path = getattr(self.arbiter.dirty_arbiter, 'socket_path', None)
+        if not dirty_socket_path:
+            dirty_socket_path = os.environ.get('GUNICORN_DIRTY_SOCKET')
         if not dirty_socket_path:
             return []
 
@@ -500,8 +506,10 @@ class CommandHandlers:
                 data = response.get("data", {})
                 return data.get("workers", [])
 
-        except Exception:
-            pass
+        except Exception as e:
+            # Log error for debugging
+            if hasattr(self.arbiter, 'log') and self.arbiter.log:
+                self.arbiter.log.debug("Failed to query dirty workers: %s", e)
 
         return []
 
