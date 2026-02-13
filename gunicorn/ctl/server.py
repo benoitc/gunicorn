@@ -204,7 +204,7 @@ class ControlSocketServer:
                 self.arbiter.log.exception("Command error")
             return make_error_response(request_id, f"Command failed: {e}")
 
-    def _execute_command(self, parts: list) -> dict:
+    def _execute_command(self, parts: list) -> dict:  # pylint: disable=too-many-return-statements
         """
         Execute a parsed command.
 

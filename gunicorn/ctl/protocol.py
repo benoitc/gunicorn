@@ -26,7 +26,6 @@ import struct
 
 class ProtocolError(Exception):
     """Protocol-level error."""
-    pass
 
 
 class ControlProtocol:

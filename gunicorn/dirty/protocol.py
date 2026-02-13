@@ -573,7 +573,7 @@ class BinaryProtocol:
         sock.sendall(data)
 
     @staticmethod
-    def _encode_from_dict(message: dict) -> bytes:
+    def _encode_from_dict(message: dict) -> bytes:  # pylint: disable=too-many-return-statements
         """
         Encode a message dict to binary format.
 

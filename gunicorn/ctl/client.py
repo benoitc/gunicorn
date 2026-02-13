@@ -19,7 +19,6 @@ from gunicorn.ctl.protocol import (
 
 class ControlClientError(Exception):
     """Control client error."""
-    pass
 
 
 class ControlClient:

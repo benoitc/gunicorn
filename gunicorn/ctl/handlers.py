@@ -210,7 +210,6 @@ class CommandHandlers:
 
             # Try to get socket family
             try:
-                import socket
                 sock = lnr.sock
                 if sock.family == socket.AF_UNIX:
                     listener_info["type"] = "unix"
@@ -523,8 +522,6 @@ class CommandHandlers:
         Returns:
             List of dirty worker info dicts, or empty list on error
         """
-        import socket
-
         # Get socket path from arbiter object or environment
         dirty_socket_path = None
         if hasattr(self.arbiter, 'dirty_arbiter') and self.arbiter.dirty_arbiter:

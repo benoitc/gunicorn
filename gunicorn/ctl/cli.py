@@ -230,7 +230,7 @@ def format_all(data: dict) -> str:
     return "\n".join(lines)
 
 
-def format_response(command: str, data: dict) -> str:
+def format_response(command: str, data: dict) -> str:  # pylint: disable=too-many-return-statements
     """
     Format response data based on command.
 
