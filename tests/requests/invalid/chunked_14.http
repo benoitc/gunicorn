@@ -1,0 +1,7 @@
+POST /chunked_newline_in_chunk_ext HTTP/1.1\r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+5;foo\nbar\r\n
+hello\r\n
+0\r\n
+\r\n

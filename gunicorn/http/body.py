@@ -6,7 +6,7 @@ import io
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
-                                  InvalidChunkSize)
+                                  InvalidChunkSize, InvalidChunkExtension)
 
 
 class ChunkedReader:
@@ -91,6 +91,10 @@ class ChunkedReader:
         chunk_size, *chunk_ext = line.split(b";", 1)
         if chunk_ext:
             chunk_size = chunk_size.rstrip(b" \t")
+            # Security: Don't allow CRs and LFs in chunk extensions
+            # This can cause request smuggling issues with some proxies
+            if any(c in chunk_ext[0] for c in (b"\n", b"\r")):
+                raise InvalidChunkExtension(chunk_ext[0])
         if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)
         if len(chunk_size) == 0:
