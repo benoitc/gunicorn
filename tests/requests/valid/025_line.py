@@ -7,7 +7,7 @@ request = {
     "uri": uri("/chunked"),
     "version": (1, 1),
     "headers": [
-        ('TRANSFER-ENCODING', 'gzip,chunked')
+        ('TRANSFER-ENCODING', 'identity,chunked')
 
     ],
     "body": b"hello world"
