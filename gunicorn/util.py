@@ -32,6 +32,7 @@ import urllib.parse
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
+# https://datatracker.ietf.org/doc/html/rfc9110#section-7.6.1
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
 # origin server which the WSGI spec says we should
@@ -41,6 +42,7 @@ REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 # might be better, but nothing else does it and
 # dropping them is easier.
 hop_headers = set("""
+    proxy-connection
     connection keep-alive proxy-authenticate proxy-authorization
     te trailers transfer-encoding upgrade
     server date

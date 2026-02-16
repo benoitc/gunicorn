@@ -57,6 +57,8 @@ METHOD_BADCHAR_RE = re.compile("[a-z#]")
 # usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
+# OWS = *( SP / HTAB )
+RFC9110_5_6_3_WHITESPACE = " \t"
 
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
@@ -150,6 +152,7 @@ class Message:
             if curr.find(":") <= 0:
                 raise InvalidHeader(curr)
             name, value = curr.split(":", 1)
+            # non-standard and dangerous
             if self.cfg.strip_header_spaces:
                 name = name.rstrip(" \t")
             if not TOKEN_RE.fullmatch(name):
@@ -161,10 +164,12 @@ class Message:
             # b"\xDF".decode("latin-1").upper().encode("ascii") == b"SS"
             name = name.upper()
 
-            value = [value.strip(" \t")]
+            # https://datatracker.ietf.org/doc/html/rfc9112#name-field-syntax
+            # optional whitespace before and after field-value
+            value = [value.strip(RFC9110_5_6_3_WHITESPACE)]
 
             # Consume value continuation lines..
-            while lines and lines[0].startswith((" ", "\t")):
+            while lines and lines[0].startswith(tuple(RFC9110_5_6_3_WHITESPACE)):
                 # .. which is obsolete here, and no longer done by default
                 if not self.cfg.permit_obsolete_folding:
                     raise ObsoleteFolding(name)
@@ -173,7 +178,7 @@ class Message:
                 if header_length > self.limit_request_field_size > 0:
                     raise LimitRequestHeaders("limit request headers "
                                               "fields size")
-                value.append(curr.strip("\t "))
+                value.append(curr.strip(RFC9110_5_6_3_WHITESPACE))
             value = " ".join(value)
 
             if RFC9110_5_5_INVALID_AND_DANGEROUS.search(value):
@@ -243,7 +248,7 @@ class Message:
             elif name == "TRANSFER-ENCODING":
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
-                vals = [v.strip() for v in value.split(',')]
+                vals = [v.strip(RFC9110_5_6_3_WHITESPACE) for v in value.split(',')]
                 for val in vals:
                     if val.lower() == "chunked":
                         # DANGER: transfer codings stack, and stacked chunking is never intended
@@ -296,7 +301,9 @@ class Message:
             return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
-                v = v.lower().strip(" \t")
+                # https://datatracker.ietf.org/doc/html/rfc9110#section-7.6.1
+                # Connection options are case-insensitive.
+                v = v.lower()
                 if v == "close":
                     return True
                 elif v == "keep-alive":
