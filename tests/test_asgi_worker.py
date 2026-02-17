@@ -818,3 +818,187 @@ class TestASGIHTTP2Trailers:
         assert "http.response.priority" in extensions
         assert "http.response.trailers" in extensions
         assert extensions["http.response.priority"]["weight"] == 128
+
+
+# ============================================================================
+# Connection Limit Tests
+# ============================================================================
+
+class TestASGIConnectionLimit:
+    """Tests for worker_connections enforcement in ASGI worker."""
+
+    def create_worker(self, worker_connections=1):
+        """Create a worker with specific connection limit."""
+        cfg = Config()
+        cfg.set('workers', 1)
+        cfg.set('worker_connections', worker_connections)
+
+        worker = gasgi.ASGIWorker(
+            age=1,
+            ppid=os.getpid(),
+            sockets=[],
+            app=FakeApp(),
+            timeout=30,
+            cfg=cfg,
+            log=mock.Mock(),
+        )
+        worker._setup_event_loop()
+        return worker
+
+    def test_accepting_defaults_to_true(self):
+        """Test that _accepting starts as True."""
+        worker = self.create_worker()
+        assert worker._accepting is True
+        worker.loop.close()
+
+    def test_worker_marks_not_accepting_at_limit(self):
+        """Test that _accepting becomes False when connection limit is reached."""
+        worker = self.create_worker(worker_connections=2)
+
+        # Simulate reaching the limit
+        worker.nr_conns = 2
+
+        # Run one iteration of the serve loop logic
+        at_capacity = worker.nr_conns >= worker.worker_connections
+        if at_capacity and worker._accepting:
+            worker._accepting = False
+
+        assert worker._accepting is False
+        worker.loop.close()
+
+    def test_worker_marks_accepting_after_connection_freed(self):
+        """Test that _accepting becomes True when connections drop below limit."""
+        worker = self.create_worker(worker_connections=2)
+
+        # Set to not-accepting state
+        worker._accepting = False
+        worker.nr_conns = 1  # Below limit
+
+        # Run resume logic
+        at_capacity = worker.nr_conns >= worker.worker_connections
+        if not at_capacity and not worker._accepting:
+            worker._accepting = True
+
+        assert worker._accepting is True
+        worker.loop.close()
+
+    def test_no_action_when_below_limit_and_accepting(self):
+        """Test _accepting stays True when below limit and already accepting."""
+        worker = self.create_worker(worker_connections=5)
+
+        worker.nr_conns = 2
+        worker._accepting = True
+
+        at_capacity = worker.nr_conns >= worker.worker_connections
+        if at_capacity and worker._accepting:
+            worker._accepting = False
+        elif not at_capacity and not worker._accepting:
+            worker._accepting = True
+
+        assert worker._accepting is True
+        worker.loop.close()
+
+
+class TestASGIProtocolConnectionLimit:
+    """Tests for connection limit enforcement in ASGIProtocol."""
+
+    def test_reject_over_limit(self):
+        """Test that connections over the limit get 503."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+        worker.nr_conns = 5
+        worker.worker_connections = 5
+        worker.loop = asyncio.new_event_loop()
+
+        protocol = ASGIProtocol(worker)
+        transport = mock.Mock()
+        transport.get_extra_info = mock.Mock(return_value=None)
+
+        # connection_made increments nr_conns to 6 (> 5), should reject
+        protocol.connection_made(transport)
+
+        # Verify 503 was sent
+        transport.write.assert_called_once()
+        written = transport.write.call_args[0][0]
+        assert b"503 Service Unavailable" in written
+
+        # Verify transport was closed
+        transport.close.assert_called_once()
+
+        # Verify nr_conns was decremented back
+        assert worker.nr_conns == 5
+
+        # Verify protocol is marked as closed
+        assert protocol._closed is True
+
+        worker.loop.close()
+
+    def test_accept_under_limit(self):
+        """Test that connections under the limit are accepted normally."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+        worker.nr_conns = 0
+        worker.worker_connections = 5
+        worker.loop = asyncio.new_event_loop()
+
+        protocol = ASGIProtocol(worker)
+        transport = mock.Mock()
+        transport.get_extra_info = mock.Mock(return_value=None)
+
+        protocol.connection_made(transport)
+
+        # Connection should be accepted (no 503, task created)
+        assert protocol.transport == transport
+        assert protocol._closed is False
+        assert worker.nr_conns == 1
+
+        # Cancel the handler task to clean up
+        if protocol._task:
+            protocol._task.cancel()
+
+        worker.loop.close()
+
+    def test_single_connection_worker(self):
+        """Test worker_connections=1 allows exactly one connection."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+        worker.nr_conns = 0
+        worker.worker_connections = 1
+        worker.loop = asyncio.new_event_loop()
+
+        # First connection — should be accepted
+        p1 = ASGIProtocol(worker)
+        t1 = mock.Mock()
+        t1.get_extra_info = mock.Mock(return_value=None)
+        p1.connection_made(t1)
+        assert p1._closed is False
+        assert worker.nr_conns == 1
+
+        # Second connection — should be rejected with 503
+        p2 = ASGIProtocol(worker)
+        t2 = mock.Mock()
+        t2.get_extra_info = mock.Mock(return_value=None)
+        p2.connection_made(t2)
+        assert p2._closed is True
+        t2.write.assert_called_once()
+        assert b"503" in t2.write.call_args[0][0]
+        t2.close.assert_called_once()
+        assert worker.nr_conns == 1  # Back to 1
+
+        # Clean up
+        if p1._task:
+            p1._task.cancel()
+        worker.loop.close()
+

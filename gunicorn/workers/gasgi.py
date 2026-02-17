@@ -37,6 +37,7 @@ class ASGIWorker(base.Worker):
         self.lifespan = None
         self.state = {}  # Shared state for lifespan
         self._quick_shutdown = False  # True for SIGINT/SIGQUIT (immediate), False for SIGTERM (graceful)
+        self._accepting = True  # Whether we're currently accepting new connections
 
     @classmethod
     def check_config(cls, cfg, log):
@@ -207,8 +208,21 @@ class ASGIWorker(base.Worker):
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
 
-                # Check connection limit
-                # (Connections are managed by nr_conns in ASGIProtocol)
+                # Log connection capacity status
+                # (Enforcement happens in ASGIProtocol.connection_made via 503 rejection)
+                at_capacity = self.nr_conns >= self.worker_connections
+                if at_capacity and self._accepting:
+                    self._accepting = False
+                    self.log.debug(
+                        "Connection limit reached (%d/%d), rejecting new connections",
+                        self.nr_conns, self.worker_connections
+                    )
+                elif not at_capacity and not self._accepting:
+                    self._accepting = True
+                    self.log.debug(
+                        "Connections available (%d/%d), accepting new connections",
+                        self.nr_conns, self.worker_connections
+                    )
 
                 await asyncio.sleep(1.0)
 
