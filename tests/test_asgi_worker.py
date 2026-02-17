@@ -851,36 +851,49 @@ class TestASGIConnectionLimit:
         assert worker._accepting is True
         worker.loop.close()
 
-    def test_worker_marks_not_accepting_at_limit(self):
-        """Test that _accepting becomes False when connection limit is reached."""
+    def test_worker_pauses_accepting_at_limit(self):
+        """Test that _pause_accepting deregisters sockets and sets flag."""
         worker = self.create_worker(worker_connections=2)
 
-        # Simulate reaching the limit
+        # Use mock loop for remove_reader
+        real_loop = worker.loop
+        worker.loop = mock.Mock()
+
+        mock_sock = mock.Mock()
+        mock_sock.fileno.return_value = 5
+        mock_server = mock.Mock()
+        mock_server.sockets = [mock_sock]
+        worker.servers = [mock_server]
+        worker._ssl_context = None
         worker.nr_conns = 2
 
-        # Run one iteration of the serve loop logic
-        at_capacity = worker.nr_conns >= worker.worker_connections
-        if at_capacity and worker._accepting:
-            worker._accepting = False
+        worker._pause_accepting()
 
         assert worker._accepting is False
-        worker.loop.close()
+        worker.loop.remove_reader.assert_called_once_with(5)
+        real_loop.close()
 
-    def test_worker_marks_accepting_after_connection_freed(self):
-        """Test that _accepting becomes True when connections drop below limit."""
+    def test_worker_resumes_accepting_after_freed(self):
+        """Test that _resume_accepting re-registers sockets and sets flag."""
         worker = self.create_worker(worker_connections=2)
 
-        # Set to not-accepting state
-        worker._accepting = False
-        worker.nr_conns = 1  # Below limit
+        real_loop = worker.loop
+        worker.loop = mock.Mock()
 
-        # Run resume logic
-        at_capacity = worker.nr_conns >= worker.worker_connections
-        if not at_capacity and not worker._accepting:
-            worker._accepting = True
+        mock_sock = mock.Mock()
+        mock_sock.fileno.return_value = 5
+        mock_server = mock.Mock()
+        mock_server.sockets = [mock_sock]
+        worker.servers = [mock_server]
+        worker._ssl_context = None
+        worker._accepting = False
+        worker.nr_conns = 1
+
+        worker._resume_accepting()
 
         assert worker._accepting is True
-        worker.loop.close()
+        worker.loop._start_serving.assert_called_once()
+        real_loop.close()
 
     def test_no_action_when_below_limit_and_accepting(self):
         """Test _accepting stays True when below limit and already accepting."""
@@ -891,9 +904,9 @@ class TestASGIConnectionLimit:
 
         at_capacity = worker.nr_conns >= worker.worker_connections
         if at_capacity and worker._accepting:
-            worker._accepting = False
+            worker._pause_accepting()
         elif not at_capacity and not worker._accepting:
-            worker._accepting = True
+            worker._resume_accepting()
 
         assert worker._accepting is True
         worker.loop.close()

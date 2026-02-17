@@ -179,6 +179,7 @@ class ASGIWorker(base.Worker):
 
         # Create servers for each listener socket
         ssl_context = self._get_ssl_context()
+        self._ssl_context = ssl_context
 
         for sock in self.sockets:
             try:
@@ -208,29 +209,67 @@ class ASGIWorker(base.Worker):
                     self.log.info("Parent changed, shutting down: %s", self)
                     break
 
-                # Log connection capacity status
-                # (Enforcement happens in ASGIProtocol.connection_made via 503 rejection)
+                # Enforce connection limit at OS level:
+                # - At capacity: remove socket FDs from event loop so kernel
+                #   won't deliver new connections to this worker
+                # - Below capacity: re-register socket FDs so this worker
+                #   can accept again
                 at_capacity = self.nr_conns >= self.worker_connections
                 if at_capacity and self._accepting:
-                    self._accepting = False
-                    self.log.debug(
-                        "Connection limit reached (%d/%d), rejecting new connections",
-                        self.nr_conns, self.worker_connections
-                    )
+                    self._pause_accepting()
                 elif not at_capacity and not self._accepting:
-                    self._accepting = True
-                    self.log.debug(
-                        "Connections available (%d/%d), accepting new connections",
-                        self.nr_conns, self.worker_connections
-                    )
+                    self._resume_accepting()
 
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.25)
 
         except asyncio.CancelledError:
             pass
 
         # Graceful shutdown
         await self._shutdown()
+
+    def _pause_accepting(self):
+        """Stop accepting new connections at the OS level.
+
+        Removes socket file descriptors from the event loop's reader set.
+        The kernel will not deliver new connections to this worker while
+        paused, routing them to other workers that are still accepting.
+        The sockets remain open so they can be re-registered later.
+        """
+        for server in self.servers:
+            # Use _sockets (raw sockets), not .sockets (TransportSocket wrappers)
+            raw_sockets = getattr(server, '_sockets', None) or []
+            for sock in raw_sockets:
+                self.loop.remove_reader(sock.fileno())
+        self._accepting = False
+        self.log.debug(
+            "Connection limit reached (%d/%d), paused accepting",
+            self.nr_conns, self.worker_connections
+        )
+
+    def _resume_accepting(self):
+        """Resume accepting connections at the OS level.
+
+        Re-registers socket file descriptors with the event loop so the
+        kernel can deliver new connections to this worker again.
+        Uses server._sockets (raw sockets) because _start_serving needs
+        the actual socket object with .accept() method.
+        """
+        for server in self.servers:
+            raw_sockets = getattr(server, '_sockets', None) or []
+            for sock in raw_sockets:
+                self.loop._start_serving(
+                    lambda: ASGIProtocol(self),
+                    sock,
+                    self._ssl_context,
+                    server,
+                    self.cfg.backlog,
+                )
+        self._accepting = True
+        self.log.debug(
+            "Connections available (%d/%d), resumed accepting",
+            self.nr_conns, self.worker_connections
+        )
 
     async def _shutdown(self):
         """Perform graceful shutdown."""

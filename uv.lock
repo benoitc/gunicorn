@@ -317,7 +317,7 @@ wheels = [
 ]
 
 [[package]]
-name = "gunicorn"
+name = "gunicorn-monster"
 source = { editable = "." }
 dependencies = [
     { name = "packaging" },

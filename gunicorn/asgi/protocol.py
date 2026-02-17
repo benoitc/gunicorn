@@ -80,6 +80,12 @@ class ASGIProtocol(asyncio.Protocol):
             self._reject_over_limit(transport)
             return
 
+        # At capacity — stop accepting at OS level so kernel routes
+        # new connections to other workers immediately
+        if (self.worker.nr_conns >= self.worker.worker_connections
+                and self.worker._accepting):
+            self.worker._pause_accepting()
+
         # Check if HTTP/2 was negotiated via ALPN
         ssl_object = transport.get_extra_info('ssl_object')
         if ssl_object and hasattr(ssl_object, 'selected_alpn_protocol'):
@@ -140,6 +146,13 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._closed = True
         self.worker.nr_conns -= 1
+
+        # Below capacity — resume accepting so this worker can take
+        # new connections again
+        if (self.worker.nr_conns < self.worker.worker_connections
+                and not self.worker._accepting):
+            self.worker._resume_accepting()
+
         if self.reader:
             self.reader.feed_eof()
 
@@ -688,6 +701,11 @@ class ASGIProtocol(asyncio.Protocol):
                 pass
             self.worker.nr_conns -= 1
             self._closed = True
+
+            # Below capacity — resume accepting
+            if (self.worker.nr_conns < self.worker.worker_connections
+                    and not self.worker._accepting):
+                self.worker._resume_accepting()
 
     async def _handle_http2_connection(self, transport, ssl_object):
         """Handle an HTTP/2 connection."""
