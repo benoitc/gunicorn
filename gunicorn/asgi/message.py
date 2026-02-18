@@ -151,26 +151,23 @@ class AsyncRequest:
 
         self._parse_request_line(line)
 
-        # Headers
-        data = bytes(buf)
-
+        # Headers - use bytearray.find() directly to avoid bytes() conversions
         while True:
-            idx = data.find(b"\r\n\r\n")
-            done = data[:2] == b"\r\n"
+            idx = buf.find(b"\r\n\r\n")
+            done = buf[:2] == b"\r\n"
 
             if idx < 0 and not done:
                 await self._read_into(buf)
-                data = bytes(buf)
-                if len(data) > self.max_buffer_headers:
+                if len(buf) > self.max_buffer_headers:
                     raise LimitRequestHeaders("max buffer headers")
             else:
                 break
 
         if done:
-            self.unreader.unread(data[2:])
+            self.unreader.unread(bytes(buf[2:]))
         else:
-            self.headers = self._parse_headers(data[:idx], from_trailer=False)
-            self.unreader.unread(data[idx + 4:])
+            self.headers = self._parse_headers(bytes(buf[:idx]), from_trailer=False)
+            self.unreader.unread(bytes(buf[idx + 4:]))
 
         self._set_body_reader()
 
@@ -182,21 +179,23 @@ class AsyncRequest:
         buf.extend(data)
 
     async def _read_line(self, buf, limit=0):
-        """Read a line from buffer, returning (line, remaining_buffer)."""
-        data = bytes(buf)
+        """Read a line from buffer, returning (line, remaining_buffer).
 
+        Uses bytearray.find() directly to avoid repeated bytes() conversions.
+        """
         while True:
-            idx = data.find(b"\r\n")
+            idx = buf.find(b"\r\n")
             if idx >= 0:
                 if idx > limit > 0:
                     raise LimitRequestLine(idx, limit)
                 break
-            if len(data) - 2 > limit > 0:
-                raise LimitRequestLine(len(data), limit)
+            if len(buf) - 2 > limit > 0:
+                raise LimitRequestLine(len(buf), limit)
             await self._read_into(buf)
-            data = bytes(buf)
 
-        return (data[:idx], bytearray(data[idx + 2:]))
+        line = bytes(buf[:idx])
+        remaining = bytearray(buf[idx + 2:])
+        return (line, remaining)
 
     async def _handle_proxy_protocol(self, buf, mode):
         """Handle PROXY protocol detection and parsing.
@@ -422,11 +421,16 @@ class AsyncRequest:
                 raise InvalidHTTPVersion(self.version)
 
     def _parse_headers(self, data, from_trailer=False):
-        """Parse HTTP headers from raw data."""
+        """Parse HTTP headers from raw data.
+
+        Uses index-based iteration instead of list.pop(0) for O(1) access.
+        """
         cfg = self.cfg
         headers = []
 
         lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
+        num_lines = len(lines)
+        i = 0
 
         # Handle scheme headers
         scheme_header = False
@@ -440,11 +444,12 @@ class AsyncRequest:
             secure_scheme_headers = cfg.secure_scheme_headers
             forwarder_headers = cfg.forwarder_headers
 
-        while lines:
+        while i < num_lines:
             if len(headers) >= self.limit_request_fields:
                 raise LimitRequestHeaders("limit request headers fields")
 
-            curr = lines.pop(0)
+            curr = lines[i]
+            i += 1
             header_length = len(curr) + len("\r\n")
             if curr.find(":") <= 0:
                 raise InvalidHeader(curr)
@@ -457,11 +462,12 @@ class AsyncRequest:
             name = name.upper()
             value = [value.strip(" \t")]
 
-            # Consume value continuation lines
-            while lines and lines[0].startswith((" ", "\t")):
+            # Consume value continuation lines using index-based iteration
+            while i < num_lines and lines[i].startswith((" ", "\t")):
                 if not self.cfg.permit_obsolete_folding:
                     raise ObsoleteFolding(name)
-                curr = lines.pop(0)
+                curr = lines[i]
+                i += 1
                 header_length += len(curr) + len("\r\n")
                 if header_length > self.limit_request_field_size > 0:
                     raise LimitRequestHeaders("limit request headers fields size")
@@ -676,29 +682,48 @@ class AsyncRequest:
                     raise InvalidHeader("Missing chunk terminator")
 
     async def _read_chunk_size_line(self):
-        """Read a chunk size line."""
-        buf = io.BytesIO()
+        """Read a chunk size line.
+
+        Performance optimization: reads 64-byte chunks instead of 1 byte at a time,
+        then pushes back any excess data after finding the line terminator.
+        """
+        buf = bytearray()
         while True:
-            data = await self.unreader.read(1)
+            data = await self.unreader.read(64)
             if not data:
                 raise NoMoreData()
-            buf.write(data)
-            if buf.getvalue().endswith(b"\r\n"):
-                return buf.getvalue()[:-2]
+            buf.extend(data)
+            idx = buf.find(b"\r\n")
+            if idx >= 0:
+                # Push back any data after the line
+                if idx + 2 < len(buf):
+                    self.unreader.unread(bytes(buf[idx + 2:]))
+                return bytes(buf[:idx])
 
     async def _skip_trailers(self):
-        """Skip trailer headers after chunked body."""
-        buf = io.BytesIO()
+        """Skip trailer headers after chunked body.
+
+        Performance optimization: reads 64-byte chunks instead of 1 byte at a time,
+        then pushes back any excess data after finding the trailer terminator.
+        """
+        buf = bytearray()
         while True:
-            data = await self.unreader.read(1)
+            data = await self.unreader.read(64)
             if not data:
                 return
-            buf.write(data)
-            content = buf.getvalue()
-            if content.endswith(b"\r\n\r\n"):
-                # Could parse trailers here if needed
+            buf.extend(data)
+            # Check for empty trailer (just CRLF)
+            if buf[:2] == b"\r\n":
+                # Push back remaining data
+                if len(buf) > 2:
+                    self.unreader.unread(bytes(buf[2:]))
                 return
-            if content == b"\r\n":
+            # Check for full trailer terminator
+            idx = buf.find(b"\r\n\r\n")
+            if idx >= 0:
+                # Push back data after the trailer
+                if idx + 4 < len(buf):
+                    self.unreader.unread(bytes(buf[idx + 4:]))
                 return
 
     async def drain_body(self):

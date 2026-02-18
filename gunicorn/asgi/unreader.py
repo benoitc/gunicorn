@@ -16,6 +16,9 @@ class AsyncUnreader:
 
     This class wraps an asyncio StreamReader and provides the ability
     to "unread" data back into a buffer for re-parsing.
+
+    Performance optimization: Reuses BytesIO buffer with truncate/seek
+    instead of creating new objects to reduce GC pressure.
     """
 
     def __init__(self, reader, max_chunk=8192):
@@ -28,6 +31,25 @@ class AsyncUnreader:
         self.reader = reader
         self.buf = io.BytesIO()
         self.max_chunk = max_chunk
+        self._buf_start = 0  # Start position of valid data in buffer
+
+    def _reset_buffer(self):
+        """Reset buffer for reuse instead of creating new BytesIO."""
+        self.buf.seek(0)
+        self.buf.truncate(0)
+        self._buf_start = 0
+
+    def _get_buffered_data(self):
+        """Get all buffered data and reset buffer."""
+        self.buf.seek(self._buf_start)
+        data = self.buf.read()
+        self._reset_buffer()
+        return data
+
+    def _buffer_size(self):
+        """Get size of buffered data."""
+        end = self.buf.seek(0, io.SEEK_END)
+        return end - self._buf_start
 
     async def read(self, size=None):
         """Read data from the stream, using buffered data first.
@@ -48,31 +70,39 @@ class AsyncUnreader:
             if size < 0:
                 size = None
 
-        # Move to end to check buffer size
-        self.buf.seek(0, io.SEEK_END)
+        buf_size = self._buffer_size()
 
         # If no size specified, return buffered data or read chunk
-        if size is None and self.buf.tell():
-            ret = self.buf.getvalue()
-            self.buf = io.BytesIO()
-            return ret
+        if size is None and buf_size > 0:
+            return self._get_buffered_data()
         if size is None:
             chunk = await self._read_chunk()
             return chunk
 
         # Read until we have enough data
-        while self.buf.tell() < size:
+        while buf_size < size:
             chunk = await self._read_chunk()
             if not chunk:
-                ret = self.buf.getvalue()
-                self.buf = io.BytesIO()
-                return ret
+                return self._get_buffered_data()
+            self.buf.seek(0, io.SEEK_END)
             self.buf.write(chunk)
+            buf_size += len(chunk)
 
-        data = self.buf.getvalue()
-        self.buf = io.BytesIO()
-        self.buf.write(data[size:])
-        return data[:size]
+        # We have enough data - extract what we need
+        self.buf.seek(self._buf_start)
+        data = self.buf.read(size)
+
+        # Update start position instead of creating new buffer
+        self._buf_start += size
+
+        # If buffer is getting large with consumed data, compact it
+        if self._buf_start > 8192:
+            remaining = self.buf.read()  # Read from current position
+            self._reset_buffer()
+            if remaining:
+                self.buf.write(remaining)
+
+        return data
 
     async def _read_chunk(self):
         """Read a chunk of data from the underlying stream."""
@@ -86,15 +116,20 @@ class AsyncUnreader:
 
         Args:
             data: bytes to push back
+
+        Note: This prepends data to the buffer so it will be read first.
         """
         if data:
-            self.buf.seek(0, io.SEEK_END)
+            # Get existing buffered data
+            self.buf.seek(self._buf_start)
+            existing = self.buf.read()
+
+            # Reset and write new data first, then existing
+            self._reset_buffer()
             self.buf.write(data)
+            if existing:
+                self.buf.write(existing)
 
     def has_buffered_data(self):
         """Check if there's data in the pushback buffer."""
-        pos = self.buf.tell()
-        self.buf.seek(0, io.SEEK_END)
-        has_data = self.buf.tell() > 0
-        self.buf.seek(pos)
-        return has_data
+        return self._buffer_size() > 0
