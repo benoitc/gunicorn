@@ -1564,3 +1564,215 @@ class TestHTTP2TrailerCallback:
         send_trailers_h2([])
 
         assert len(pending_trailers) == 0
+
+
+class TestSlowClientResilience:
+    """Tests for slow client handling to prevent thread pool exhaustion."""
+
+    def create_worker(self, cfg=None):
+        """Helper to create a ThreadWorker for testing."""
+        if cfg is None:
+            cfg = Config()
+        cfg.set('threads', 4)
+        cfg.set('worker_connections', 1000)
+        cfg.set('keepalive', 5)
+
+        worker = gthread.ThreadWorker(
+            age=1,
+            ppid=os.getpid(),
+            sockets=[],
+            app=mock.Mock(),
+            timeout=30,
+            cfg=cfg,
+            log=mock.Mock(),
+        )
+        return worker
+
+    def test_tconn_wait_for_data_returns_true_when_ready(self):
+        """Test wait_for_data returns True when data_ready is already set."""
+        cfg = Config()
+        sock = FakeSocket()
+        conn = gthread.TConn(cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.data_ready = True
+
+        # Should return True immediately without waiting
+        assert conn.wait_for_data(5.0) is True
+
+    def test_tconn_wait_for_data_sets_data_ready(self):
+        """Test wait_for_data sets data_ready flag when data arrives."""
+        import socket as stdlib_socket
+        # Create a real socket pair to test selector behavior
+        server, client = stdlib_socket.socketpair()
+        try:
+            cfg = Config()
+            conn = gthread.TConn(cfg, server, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+            conn.data_ready = False
+
+            # Send data from client
+            client.send(b'GET / HTTP/1.1\r\n')
+
+            # Should detect data is ready
+            result = conn.wait_for_data(1.0)
+
+            assert result is True
+            assert conn.data_ready is True
+        finally:
+            server.close()
+            client.close()
+
+    def test_tconn_wait_for_data_timeout(self):
+        """Test wait_for_data returns False on timeout."""
+        import socket as stdlib_socket
+        # Create a real socket pair but don't send any data
+        server, client = stdlib_socket.socketpair()
+        try:
+            cfg = Config()
+            conn = gthread.TConn(cfg, server, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+            conn.data_ready = False
+
+            # Don't send any data - should timeout
+            start = time.monotonic()
+            result = conn.wait_for_data(0.1)  # Short timeout
+            elapsed = time.monotonic() - start
+
+            assert result is False
+            assert conn.data_ready is False
+            assert elapsed >= 0.1
+        finally:
+            server.close()
+            client.close()
+
+    def test_finish_request_handles_defer(self):
+        """Test finish_request puts deferred connections back on poller."""
+        worker = self.create_worker()
+        worker.poller = mock.Mock()
+        worker.pending_conns = deque()
+        worker.nr_conns = 1
+        worker.alive = True
+
+        sock = FakeSocket()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+
+        # Create a future that returns _DEFER
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = gthread._DEFER
+
+        worker.finish_request(conn, fs)
+
+        # Connection should be in pending_conns, not closed
+        assert len(worker.pending_conns) == 1
+        assert worker.pending_conns[0] is conn
+        assert worker.nr_conns == 1  # Still counted
+        assert not sock.closed
+
+        # Should be registered with poller
+        worker.poller.register.assert_called_once()
+
+    def test_on_pending_socket_readable_sets_data_ready(self):
+        """Test on_pending_socket_readable marks connection data as ready."""
+        worker = self.create_worker()
+        worker.poller = mock.Mock()
+        worker.tpool = mock.Mock()
+        worker.method_queue = mock.Mock()
+        worker.pending_conns = deque()
+
+        sock = FakeSocket()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.data_ready = False
+        worker.pending_conns.append(conn)
+
+        # Simulate socket becoming readable
+        worker.on_pending_socket_readable(conn, sock)
+
+        assert conn.data_ready is True
+        assert conn not in worker.pending_conns
+        worker.poller.unregister.assert_called_once_with(sock)
+        worker.tpool.submit.assert_called_once()
+
+    def test_murder_pending_closes_expired_connections(self):
+        """Test murder_pending closes connections that have timed out."""
+        worker = self.create_worker()
+        worker.poller = mock.Mock()
+        worker.pending_conns = deque()
+        worker.nr_conns = 2
+
+        # Create two connections, one expired, one not
+        sock1 = FakeSocket()
+        conn1 = gthread.TConn(worker.cfg, sock1, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn1.timeout = time.monotonic() - 10  # Expired
+
+        sock2 = FakeSocket()
+        conn2 = gthread.TConn(worker.cfg, sock2, ('127.0.0.1', 12346), ('127.0.0.1', 8000))
+        conn2.timeout = time.monotonic() + 100  # Not expired
+
+        worker.pending_conns.append(conn1)
+        worker.pending_conns.append(conn2)
+
+        worker.murder_pending()
+
+        # Only expired connection should be closed
+        assert sock1.closed
+        assert not sock2.closed
+        assert len(worker.pending_conns) == 1
+        assert worker.pending_conns[0] is conn2
+        assert worker.nr_conns == 1
+
+    def test_handle_defers_slow_connection(self):
+        """Test that handle() returns _DEFER for connections without data."""
+        worker = self.create_worker()
+
+        # Create a connection that will timeout waiting for data
+        sock = mock.Mock()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.initialized = False
+        conn.data_ready = False
+
+        # Mock wait_for_data to simulate timeout
+        conn.wait_for_data = mock.Mock(return_value=False)
+
+        result = worker.handle(conn)
+
+        assert result is gthread._DEFER
+        conn.wait_for_data.assert_called_once()
+
+    def test_handle_processes_fast_connection(self):
+        """Test that handle() processes connections with data immediately."""
+        worker = self.create_worker()
+        worker.wsgi = mock.Mock(return_value=[b'OK'])
+
+        # Create a connection with data ready
+        sock = mock.Mock()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.initialized = False
+        conn.data_ready = True  # Data is ready
+
+        # Mock init and parser
+        conn.init = mock.Mock()
+        conn.parser = mock.Mock()
+        conn.parser.__next__ = mock.Mock(return_value=None)  # No request parsed
+
+        result = worker.handle(conn)
+
+        # Should not return _DEFER since data was ready
+        assert result is not gthread._DEFER
+        conn.init.assert_called_once()
+
+    def test_handle_skips_wait_for_initialized_connections(self):
+        """Test handle() skips wait_for_data for already initialized (keepalive) connections."""
+        worker = self.create_worker()
+        worker.wsgi = mock.Mock(return_value=[b'OK'])
+
+        sock = mock.Mock()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.initialized = True  # Already initialized (keepalive)
+        conn.data_ready = False
+        conn.wait_for_data = mock.Mock()
+
+        conn.parser = mock.Mock()
+        conn.parser.__next__ = mock.Mock(return_value=None)
+
+        worker.handle(conn)
+
+        # wait_for_data should not be called for initialized connections
+        conn.wait_for_data.assert_not_called()
