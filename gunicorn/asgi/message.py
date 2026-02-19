@@ -8,7 +8,6 @@ Async version of gunicorn/http/message.py for ASGI workers.
 Reuses the parsing logic from the sync version, adapted for async I/O.
 """
 
-import io
 import ipaddress
 import re
 import socket
