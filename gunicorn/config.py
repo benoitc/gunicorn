@@ -3123,7 +3123,7 @@ class ControlSocket(Setting):
     cli = ["--control-socket"]
     meta = "PATH"
     validator = validate_string
-    default = "gunicorn.ctl"
+    default = "/tmp/gunicorn.ctl"
     desc = """\
         Unix socket path for control interface.
 
@@ -3131,8 +3131,8 @@ class ControlSocket(Setting):
         ``gunicornc`` command-line tool. Commands include viewing worker
         status, adjusting worker count, and graceful reload/shutdown.
 
-        By default, creates ``gunicorn.ctl`` in the working directory.
-        Set an absolute path for a fixed location (e.g., ``/var/run/gunicorn.ctl``).
+        By default, creates ``/tmp/gunicorn.ctl``. Set an absolute path for a
+        different location (e.g., ``/var/run/gunicorn.ctl``).
 
         Use ``--no-control-socket`` to disable.
 
