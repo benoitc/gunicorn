@@ -61,6 +61,7 @@ def sd_notify(state, logger, unset_environment=False):
     if addr is None:
         # not run in a service, just a noop
         return
+    sock = None
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM | socket.SOCK_CLOEXEC)
         if addr[0] == '@':
@@ -72,4 +73,5 @@ def sd_notify(state, logger, unset_environment=False):
     finally:
         if unset_environment:
             os.environ.pop('NOTIFY_SOCKET')
-        sock.close()
+        if sock is not None:
+            sock.close()
