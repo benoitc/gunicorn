@@ -73,6 +73,19 @@ class ASGIProtocol(asyncio.Protocol):
         self.transport = transport
         self.worker.nr_conns += 1
 
+        # Enforce connection limit (race condition guard)
+        # A connection may arrive between the server accepting and the
+        # worker reacting to a capacity change. Reject it with 503.
+        if self.worker.nr_conns > self.worker.worker_connections:
+            self._reject_over_limit(transport)
+            return
+
+        # At capacity — stop accepting at OS level so kernel routes
+        # new connections to other workers immediately
+        if (self.worker.nr_conns >= self.worker.worker_connections
+                and self.worker._accepting):
+            self.worker._pause_accepting()
+
         # Check if HTTP/2 was negotiated via ALPN
         ssl_object = transport.get_extra_info('ssl_object')
         if ssl_object and hasattr(ssl_object, 'selected_alpn_protocol'):
@@ -99,6 +112,24 @@ class ASGIProtocol(asyncio.Protocol):
         if self.reader:
             self.reader.feed_data(data)
 
+    def _reject_over_limit(self, transport):
+        """Reject connection when worker is at capacity."""
+        response = (
+            b"HTTP/1.1 503 Service Unavailable\r\n"
+            b"Content-Type: text/plain\r\n"
+            b"Content-Length: 20\r\n"
+            b"Connection: close\r\n"
+            b"\r\n"
+            b"Service Unavailable\n"
+        )
+        try:
+            transport.write(response)
+        except Exception:
+            pass
+        transport.close()
+        self.worker.nr_conns -= 1
+        self._closed = True
+
     def connection_lost(self, exc):
         """Called when the connection is lost or closed.
 
@@ -115,6 +146,13 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._closed = True
         self.worker.nr_conns -= 1
+
+        # Below capacity — resume accepting so this worker can take
+        # new connections again
+        if (self.worker.nr_conns < self.worker.worker_connections
+                and not self.worker._accepting):
+            self.worker._resume_accepting()
+
         if self.reader:
             self.reader.feed_eof()
 
@@ -651,6 +689,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         Calls write_eof() first if supported to signal end of writing,
         which helps ensure buffered data is flushed before closing.
+        Also decrements nr_conns if not already decremented by connection_lost.
         """
         if self.transport and not self._closed:
             try:
@@ -660,7 +699,13 @@ class ASGIProtocol(asyncio.Protocol):
                 self.transport.close()
             except Exception:
                 pass
+            self.worker.nr_conns -= 1
             self._closed = True
+
+            # Below capacity — resume accepting
+            if (self.worker.nr_conns < self.worker.worker_connections
+                    and not self.worker._accepting):
+                self.worker._resume_accepting()
 
     async def _handle_http2_connection(self, transport, ssl_object):
         """Handle an HTTP/2 connection."""
