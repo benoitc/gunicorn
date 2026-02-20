@@ -138,7 +138,7 @@ class LengthReader:
         buf = buf.getvalue()
         ret, rest = buf[:size], buf[size:]
         self.unreader.unread(rest)
-        self.length -= size
+        self.length -= len(ret)
         return ret
 
 
