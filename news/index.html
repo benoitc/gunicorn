@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -1359,6 +1359,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2510-2026-02-13" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2276,6 +2304,16 @@
 
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="unreleased">unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ASGI HTTP Parser Optimizations</strong>: Improve ASGI worker HTTP parsing performance</li>
+<li>Read chunks in 64-byte blocks instead of 1 byte at a time for chunk size lines and trailers</li>
+<li>Reuse BytesIO buffers with truncate/seek instead of creating new objects (reduces GC pressure)</li>
+<li>Use <code>bytearray.find()</code> directly instead of converting to bytes first</li>
+<li>Use index-based iteration for header parsing instead of <code>list.pop(0)</code> (O(1) vs O(n))</li>
+</ul>
+<hr />
 <h2 id="2510-2026-02-13">25.1.0 - 2026-02-13<a class="headerlink" href="#2510-2026-02-13" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
