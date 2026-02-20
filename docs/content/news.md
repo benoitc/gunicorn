@@ -1,6 +1,18 @@
 <span id="news"></span>
 # Changelog
 
+## unreleased
+
+### Performance
+
+- **ASGI HTTP Parser Optimizations**: Improve ASGI worker HTTP parsing performance
+  - Read chunks in 64-byte blocks instead of 1 byte at a time for chunk size lines and trailers
+  - Reuse BytesIO buffers with truncate/seek instead of creating new objects (reduces GC pressure)
+  - Use `bytearray.find()` directly instead of converting to bytes first
+  - Use index-based iteration for header parsing instead of `list.pop(0)` (O(1) vs O(n))
+
+---
+
 ## 25.1.0 - 2026-02-13
 
 ### New Features
