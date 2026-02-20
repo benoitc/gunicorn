@@ -110,6 +110,8 @@ class SyncWorker(base.Worker):
                 return
 
     def run(self):
+        assert len(self.WORKAROUND_BASE_EXCEPTIONS) == 0
+
         # if no timeout is given the worker will never wait and will
         # use the CPU for nothing. This minimal timeout prevent it.
         timeout = self.timeout or 0.5
@@ -161,7 +163,7 @@ class SyncWorker(base.Worker):
                     self.log.debug("Ignoring socket not connected")
                 else:
                     self.log.debug("Ignoring EPIPE")
-        except BaseException as e:
+        except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
             util.close(client)

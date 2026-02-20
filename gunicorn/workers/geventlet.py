@@ -147,6 +147,8 @@ def patch_sendfile():
 
 class EventletWorker(AsyncWorker):
 
+    WORKAROUND_BASE_EXCEPTIONS = (eventlet.Timeout, )
+
     def patch(self):
         # NOTE: eventlet.monkey_patch() is called at module import time to
         # ensure all imports are properly patched. However, hubs.use_hub()
