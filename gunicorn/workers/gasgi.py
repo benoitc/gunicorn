@@ -14,6 +14,7 @@ import os
 import signal
 import sys
 
+from gunicorn.sock import get_uri
 from gunicorn.workers import base
 from gunicorn.asgi.protocol import ASGIProtocol
 
@@ -183,15 +184,15 @@ class ASGIWorker(base.Worker):
             try:
                 server = await self.loop.create_server(
                     lambda: ASGIProtocol(self),
-                    sock=sock.sock,
+                    sock=sock,
                     ssl=ssl_context,
                     reuse_address=True,
                     start_serving=True,
                 )
                 self.servers.append(server)
-                self.log.info("ASGI server listening on %s", sock)
+                self.log.info("ASGI server listening on %s", get_uri(sock, self.cfg.is_ssl))
             except Exception as e:
-                self.log.error("Failed to create server on %s: %s", sock, e)
+                self.log.error("Failed to create server on %s: %s", get_uri(sock, self.cfg.is_ssl), e)
 
         if not self.servers:
             self.log.error("No servers could be started")
