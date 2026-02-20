@@ -257,7 +257,9 @@ class Worker:
             msg = "Invalid request from ip={ip}: {error}"
             self.log.warning(msg.format(ip=addr[0], error=str(exc)))
         else:
-            if hasattr(req, "uri"):
+            if hasattr(req, "uri") and hasattr(req, "method"):
+                self.log.exception("Error handling request %s %s", req.method, req.uri)
+            elif hasattr(req, "uri"):
                 self.log.exception("Error handling request %s", req.uri)
             else:
                 self.log.exception("Error handling request (no URI read)")
