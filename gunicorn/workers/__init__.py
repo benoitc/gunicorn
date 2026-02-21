@@ -12,4 +12,5 @@ SUPPORTED_WORKERS = {
     "tornado": "gunicorn.workers.gtornado.TornadoWorker",
     "gthread": "gunicorn.workers.gthread.ThreadWorker",
     "asgi": "gunicorn.workers.gasgi.ASGIWorker",
+    "ginterpreter": "gunicorn.workers.ginterpreter.InterpreterWorker",
 }
