@@ -330,6 +330,10 @@ class Response:
             value = value.strip(" \t")
             lname = name.lower()
             if lname == "content-length":
+                # RFC 9112 6.3: 1xx, 204, and 304 responses must not
+                # contain a message body, so Content-Length is stripped.
+                if self.status_code in (204, 304):
+                    continue
                 self.response_length = int(value)
             elif util.is_hoppish(name):
                 if lname == "connection":
@@ -395,6 +399,12 @@ class Response:
         self.send_headers()
         if not isinstance(arg, bytes):
             raise TypeError('%r is not a byte' % arg)
+
+        # RFC 9112 6.3: 204 and 304 responses must not contain
+        # a message body. Silently discard any body data.
+        if self.status_code in (204, 304):
+            return
+
         arglen = len(arg)
         tosend = arglen
         if self.response_length is not None:
