@@ -31,15 +31,14 @@ from gunicorn.ctl.protocol import (
 # Module-level tracking of active control server instances for fork handling.
 # This is necessary because os.register_at_fork() callbacks are process-level.
 _active_servers = set()
-_fork_handlers_registered = False
+_module_state = {"fork_handlers_registered": False}
 
 
 def _register_fork_handlers():
     """Register fork handlers once at module level."""
-    global _fork_handlers_registered
-    if _fork_handlers_registered:
+    if _module_state["fork_handlers_registered"]:
         return
-    _fork_handlers_registered = True
+    _module_state["fork_handlers_registered"] = True
 
     os.register_at_fork(
         before=_before_fork,

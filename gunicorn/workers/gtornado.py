@@ -98,10 +98,12 @@ class TornadoWorker(Worker):
                 not isinstance(app, tornado.web.Application):
             app = WSGIContainer(app)
 
+        worker = self
+
         class _HTTPServer(tornado.httpserver.HTTPServer):
 
-            def on_close(instance, server_conn):
-                self.handle_request()
+            def on_close(self, server_conn):
+                worker.handle_request()
                 super().on_close(server_conn)
 
         if self.cfg.is_ssl:
