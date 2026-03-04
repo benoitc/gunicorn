@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import glob
 import io
 import os
 import signal
@@ -130,7 +131,14 @@ class Worker:
 
             self.log.warning("Reloader is on. Use in development only!")
             reloader_cls = reloader_engines[self.cfg.reload_engine]
-            self.reloader = reloader_cls(extra_files=self.cfg.reload_extra_files,
+            extra_files = []
+            for pattern in self.cfg.reload_extra_files:
+                expanded = glob.glob(pattern, recursive=True)
+                if expanded:
+                    extra_files.extend(expanded)
+                else:
+                    extra_files.append(pattern)
+            self.reloader = reloader_cls(extra_files=extra_files,
                                          callback=changed)
 
         self.load_wsgi()
