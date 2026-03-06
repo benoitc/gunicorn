@@ -54,7 +54,7 @@ A WSGI application path in pattern ``$(MODULE_NAME):$(VARIABLE_NAME)``.
 
 **Command line:** `--control-socket PATH`
 
-**Default:** `'gunicorn.ctl'`
+**Default:** `'/run/gunicorn.ctl'`
 
 Unix socket path for control interface.
 
@@ -62,8 +62,9 @@ The control socket allows runtime management of Gunicorn via the
 ``gunicornc`` command-line tool. Commands include viewing worker
 status, adjusting worker count, and graceful reload/shutdown.
 
-By default, creates ``gunicorn.ctl`` in the working directory.
-Set an absolute path for a fixed location (e.g., ``/var/run/gunicorn.ctl``).
+By default, creates ``/run/gunicorn.ctl`` (requires write access to
+``/run``). For user-level deployments, specify a different path such
+as ``/tmp/gunicorn.ctl`` or ``~/.gunicorn.ctl``.
 
 Use ``--no-control-socket`` to disable.
 

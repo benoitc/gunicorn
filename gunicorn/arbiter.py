@@ -193,8 +193,8 @@ class Arbiter:
         if self.cfg.dirty_workers > 0 and self.cfg.dirty_apps:
             self.spawn_dirty_arbiter()
 
-        # Start control socket server
-        self._start_control_server()
+        # Note: control socket server is started after initial workers spawn
+        # to avoid fork deadlocks with asyncio
 
         self.cfg.when_ready(self)
 
@@ -221,6 +221,10 @@ class Arbiter:
 
         try:
             self.manage_workers()
+
+            # Start control socket server after initial workers are spawned
+            # to avoid fork deadlocks with asyncio
+            self._start_control_server()
 
             while True:
                 self.maybe_promote_master()
@@ -686,6 +690,7 @@ class Arbiter:
                                    self.app, self.timeout / 2.0,
                                    self.cfg, self.log)
         self.cfg.pre_fork(self, worker)
+
         pid = os.fork()
         if pid != 0:
             worker.pid = pid
