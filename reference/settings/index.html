@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -3426,13 +3426,14 @@ prefix.</p>
 <h2 id="control">Control<a class="headerlink" href="#control" title="Permanent link">&para;</a></h2>
 <h3 id="control_socket"><code>control_socket</code><a class="headerlink" href="#control_socket" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--control-socket PATH</code></p>
-<p><strong>Default:</strong> <code>'gunicorn.ctl'</code></p>
+<p><strong>Default:</strong> <code>'/run/gunicorn.ctl'</code></p>
 <p>Unix socket path for control interface.</p>
 <p>The control socket allows runtime management of Gunicorn via the
 <code>gunicornc</code> command-line tool. Commands include viewing worker
 status, adjusting worker count, and graceful reload/shutdown.</p>
-<p>By default, creates <code>gunicorn.ctl</code> in the working directory.
-Set an absolute path for a fixed location (e.g., <code>/var/run/gunicorn.ctl</code>).</p>
+<p>By default, creates <code>/run/gunicorn.ctl</code> (requires write access to
+<code>/run</code>). For user-level deployments, specify a different path such
+as <code>/tmp/gunicorn.ctl</code> or <code>~/.gunicorn.ctl</code>.</p>
 <p>Use <code>--no-control-socket</code> to disable.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.1.0</p>
