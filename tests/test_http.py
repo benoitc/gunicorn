@@ -126,6 +126,69 @@ def test_http_invalid_response_header():
         response.start_response("200 OK", [('foo\r\n', 'essai')])
 
 
+def test_204_response_strips_content_length_and_body():
+    """RFC 9112: 204 responses must not contain body or Content-Length."""
+    mocked_socket = mock.MagicMock()
+    mocked_request = mock.MagicMock()
+    mocked_request.version = (1, 1)
+    mocked_request.method = 'GET'
+
+    response = Response(mocked_request, mocked_socket, None)
+    response.start_response("204 No Content", [
+        ('Content-Length', '5'),
+        ('X-Custom', 'keep'),
+    ])
+
+    # Content-Length should be stripped
+    header_names = [h[0].lower() for h in response.headers]
+    assert 'content-length' not in header_names
+    assert 'x-custom' in header_names
+    assert response.response_length is None
+
+    # Body writes should be silently discarded
+    response.write(b"hello")
+    assert response.sent == 0
+
+
+def test_304_response_strips_content_length_and_body():
+    """RFC 9112: 304 responses must not contain body or Content-Length."""
+    mocked_socket = mock.MagicMock()
+    mocked_request = mock.MagicMock()
+    mocked_request.version = (1, 1)
+    mocked_request.method = 'GET'
+
+    response = Response(mocked_request, mocked_socket, None)
+    response.start_response("304 Not Modified", [
+        ('Content-Length', '100'),
+        ('ETag', '"abc"'),
+    ])
+
+    header_names = [h[0].lower() for h in response.headers]
+    assert 'content-length' not in header_names
+    assert 'etag' in header_names
+    assert response.response_length is None
+
+    response.write(b"x" * 100)
+    assert response.sent == 0
+
+
+def test_200_response_keeps_content_length_and_body():
+    """Normal responses should keep Content-Length and body."""
+    mocked_socket = mock.MagicMock()
+    mocked_request = mock.MagicMock()
+    mocked_request.version = (1, 1)
+    mocked_request.method = 'GET'
+
+    response = Response(mocked_request, mocked_socket, None)
+    response.start_response("200 OK", [
+        ('Content-Length', '5'),
+    ])
+
+    assert response.response_length == 5
+    response.write(b"hello")
+    assert response.sent == 5
+
+
 def test_unreader_read_when_size_is_none():
     unreader = Unreader()
     unreader.chunk = mock.MagicMock(side_effect=[b'qwerty', b'123456', b''])
