@@ -4346,59 +4346,110 @@ an IP address are treated as allowed, unconditionally.</p>
 <code>secure_scheme_headers</code> is complex. Various scenarios are documented below to further elaborate.
 In each case, we have a request from the remote address 134.213.44.18, and the default value of
 <code>secure_scheme_headers</code>:</p>
-<p>.. code::</p>
-<div class="highlight"><pre><span></span><code>secure_scheme_headers = {
-    &#39;X-FORWARDED-PROTOCOL&#39;: &#39;ssl&#39;,
-    &#39;X-FORWARDED-PROTO&#39;: &#39;https&#39;,
-    &#39;X-FORWARDED-SSL&#39;: &#39;on&#39;
-}
+<div class="highlight"><pre><span></span><code><span class="n">secure_scheme_headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;X-FORWARDED-PROTOCOL&#39;</span><span class="p">:</span> <span class="s1">&#39;ssl&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;X-FORWARDED-PROTO&#39;</span><span class="p">:</span> <span class="s1">&#39;https&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;X-FORWARDED-SSL&#39;</span><span class="p">:</span> <span class="s1">&#39;on&#39;</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>.. list-table::
-    :header-rows: 1
-    :align: center
-    :widths: auto</p>
-<div class="highlight"><pre><span></span><code>* - ``forwarded-allow-ips``
-  - Secure Request Headers
-  - Result
-  - Explanation
-* - .. code::
-
-        [&quot;127.0.0.1&quot;]
-  - .. code::
-
-        X-Forwarded-Proto: https
-  - .. code::
-
-        wsgi.url_scheme = &quot;http&quot;
-  - IP address was not allowed
-* - .. code::
-
-        &quot;*&quot;
-  - &lt;none&gt;
-  - .. code::
-
-        wsgi.url_scheme = &quot;http&quot;
-  - IP address allowed, but no secure headers provided
-* - .. code::
-
-        &quot;*&quot;
-  - .. code::
-
-        X-Forwarded-Proto: https
-  - .. code::
-
-        wsgi.url_scheme = &quot;https&quot;
-  - IP address allowed, one request header matched
-* - .. code::
-
-        [&quot;134.213.44.18&quot;]
-  - .. code::
-
-        X-Forwarded-Ssl: on
-        X-Forwarded-Proto: http
-  - ``InvalidSchemeHeaders()`` raised
-  - IP address allowed, but the two secure headers disagreed on if HTTPS was used
-</code></pre></div>
+<table>
+<thead>
+<tr>
+<th colspan="1" rowspan="1">
+<p>forwarded-allow-ips</p>
+</th>
+<th colspan="1" rowspan="1">
+<p>Secure Request Headers</p>
+</th>
+<th colspan="1" rowspan="1">
+<p>Result</p>
+</th>
+<th colspan="1" rowspan="1">
+<p>Explanation</p>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td colspan="1" rowspan="1">
+<p><code>"127.0.0.1"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>X-Forwarded-Proto: https</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>wsgi.url_scheme = "http"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p>IP address was not<br />
+allowed</p>
+</td>
+</tr>
+<tr>
+<td colspan="1" rowspan="1">
+<p><code>"*"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>&lt;none&gt;</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>wsgi.url_scheme = "http"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p>IP address allowed, but<br />
+no secure headers<br />
+provided</p>
+</td>
+</tr>
+<tr>
+<td colspan="1" rowspan="1">
+<p><code>"*"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>X-Forwarded-Proto: https</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>wsgi.url_scheme = "https"</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p>IP address allowed, one<br />
+request header matched</p>
+</td>
+</tr>
+<tr>
+<td colspan="1" rowspan="1">
+<p><code>"134.213.44.18"</code><br />
+<br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>X-Forwarded-Ssl: on</code><br />
+<code>X-Forwarded-Proto: http</code><br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p><code>InvalidSchemeHeaders()</code><br />
+raised<br />
+</p>
+</td>
+<td colspan="1" rowspan="1">
+<p>IP address allowed, but<br />
+the two secure headers<br />
+disagreed on if HTTPS<br />
+was used</p>
+</td>
+</tr>
+</tbody>
+</table>
 </div>
 <h3 id="pythonpath"><code>pythonpath</code><a class="headerlink" href="#pythonpath" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--pythonpath STRING</code></p>
