@@ -640,7 +640,7 @@ class Request(Message):
         if not (1, 0) <= self.version < (2, 0):
             # if ever relaxing this, carefully review Content-Encoding processing
             if not self.cfg.permit_unconventional_http_version:
-                raise InvalidHTTPVersion(self.version)
+                raise InvalidHTTPVersion(bits[2])
 
     def set_body_reader(self):
         super().set_body_reader()
