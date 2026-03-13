@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 # see https://packaging.python.org/en/latest/specifications/pyproject-toml/
-name = "gunicorn"
+name = "gunicorn-monster"
 authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
 license = "MIT"
 license-files = ["LICENSE"]

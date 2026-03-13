@@ -773,7 +773,7 @@ class WorkerConnections(Setting):
     desc = """\
         The maximum number of simultaneous clients.
 
-        This setting only affects the ``gthread``, ``eventlet`` and ``gevent`` worker types.
+        This setting only affects the ``gthread``, ``eventlet``, ``gevent``, and ``asgi`` worker types.
         """
 
 
