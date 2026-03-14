@@ -158,6 +158,7 @@ class InterpreterWorker(Worker):
         super().__init__(*args, **kwargs)
         self.nr_conns = 0
         self.pending_futures = set()
+        self.max_conns = 0
 
     def init_process(self):
         _check_interpreter_pool_available()
@@ -196,6 +197,7 @@ class InterpreterWorker(Worker):
             initializer=_init_interpreter,
             initargs=(self.cfg_dict, self.app_uri),
         )
+        self.max_conns = min(self.cfg.threads, self.cfg.worker_connections)
 
         super().init_process()
 
@@ -279,7 +281,8 @@ class InterpreterWorker(Worker):
                 break
 
             try:
-                ready = select.select(self.sockets, [], [], 1.0)
+                listeners = self.sockets if self.nr_conns < self.max_conns else []
+                ready = select.select(listeners, [], [], 1.0)
                 for listener in ready[0]:
                     try:
                         self.accept(listener)
