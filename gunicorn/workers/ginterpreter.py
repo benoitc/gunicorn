@@ -57,7 +57,7 @@ def _init_interpreter(cfg_dict, app_uri) -> None:
     _interpreter_state.wsgi_app = import_app(app_uri)
 
     if cfg.is_ssl:
-        import ssl
+        import ssl  # pylint: disable=reimported
         context = ssl.create_default_context(
             ssl.Purpose.CLIENT_AUTH, cafile=cfg.ca_certs
         )
@@ -75,7 +75,7 @@ def _init_interpreter(cfg_dict, app_uri) -> None:
 def _handle_request_in_interpreter(fd, client_addr, server_addr, family):
     """Handle a single HTTP request in a sub-interpreter."""
     import socket
-    import ssl
+    import ssl  # pylint: disable=reimported
     from datetime import datetime
 
     from gunicorn.http.parser import RequestParser
