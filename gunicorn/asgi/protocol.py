@@ -448,6 +448,16 @@ class ASGIProtocol(asyncio.Protocol):
         server = _normalize_sockaddr(sockname)
         client = _normalize_sockaddr(peername)
 
+        # Use the original URI for raw_path and query_string to preserve
+        # percent-encoded characters (e.g., /%C3%B6/ for /ö/).
+        # request.path/request.query are decoded and may contain non-ASCII
+        # characters that fail latin-1 encoding.
+        if request.uri and "?" in request.uri:
+            raw_path_str, raw_query_str = request.uri.split("?", 1)
+        else:
+            raw_path_str = request.uri or ""
+            raw_query_str = ""
+
         scope = {
             "type": "http",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
@@ -455,8 +465,8 @@ class ASGIProtocol(asyncio.Protocol):
             "method": request.method,
             "scheme": request.scheme,
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
-            "query_string": request.query.encode("latin-1") if request.query else b"",
+            "raw_path": raw_path_str.encode("utf-8") if raw_path_str else b"",
+            "query_string": raw_query_str.encode("utf-8") if raw_query_str else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
             "server": server,
@@ -513,14 +523,22 @@ class ASGIProtocol(asyncio.Protocol):
         server = _normalize_sockaddr(sockname)
         client = _normalize_sockaddr(peername)
 
+        # Use the original URI for raw_path and query_string to preserve
+        # percent-encoded characters (e.g., /%C3%B6/ for /ö/).
+        if request.uri and "?" in request.uri:
+            raw_path_str, raw_query_str = request.uri.split("?", 1)
+        else:
+            raw_path_str = request.uri or ""
+            raw_query_str = ""
+
         scope = {
             "type": "websocket",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
             "http_version": f"{request.version[0]}.{request.version[1]}",
             "scheme": "wss" if request.scheme == "https" else "ws",
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
-            "query_string": request.query.encode("latin-1") if request.query else b"",
+            "raw_path": raw_path_str.encode("utf-8") if raw_path_str else b"",
+            "query_string": raw_query_str.encode("utf-8") if raw_query_str else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
             "server": server,
@@ -895,6 +913,14 @@ class ASGIProtocol(asyncio.Protocol):
         server = _normalize_sockaddr(sockname)
         client = _normalize_sockaddr(peername)
 
+        # Use the original URI for raw_path and query_string to preserve
+        # percent-encoded characters (e.g., /%C3%B6/ for /ö/).
+        if request.uri and "?" in request.uri:
+            raw_path_str, raw_query_str = request.uri.split("?", 1)
+        else:
+            raw_path_str = request.uri or ""
+            raw_query_str = ""
+
         scope = {
             "type": "http",
             "asgi": {"version": "3.0", "spec_version": "2.4"},
@@ -902,8 +928,8 @@ class ASGIProtocol(asyncio.Protocol):
             "method": request.method,
             "scheme": request.scheme,
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
-            "query_string": request.query.encode("latin-1") if request.query else b"",
+            "raw_path": raw_path_str.encode("utf-8") if raw_path_str else b"",
+            "query_string": raw_query_str.encode("utf-8") if raw_query_str else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
             "server": server,
