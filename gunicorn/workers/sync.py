@@ -134,6 +134,7 @@ class SyncWorker(base.Worker):
 
     def handle(self, listener, client, addr):
         req = None
+        parser = None
         try:
             if self.cfg.is_ssl:
                 client = sock.ssl_wrap_socket(client, self.cfg)
@@ -164,6 +165,14 @@ class SyncWorker(base.Worker):
         except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:
+            # Drain unread request body to prevent RST on close.
+            # See: https://github.com/benoitc/gunicorn/issues/3334
+            if parser:
+                try:
+                    client.settimeout(1)
+                    parser.finish_body()
+                except Exception:
+                    pass
             util.close(client)
 
     def handle_request(self, listener, req, client, addr):

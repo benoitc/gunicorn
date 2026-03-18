@@ -32,6 +32,7 @@ class AsyncWorker(base.Worker):
 
     def handle(self, listener, client, addr):
         req = None
+        parser = None
         try:
             # Complete the handshake to ensure ALPN negotiation is done
             # (needed if do_handshake_on_connect is False)
@@ -98,6 +99,14 @@ class AsyncWorker(base.Worker):
         except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:
+            # Drain unread request body to prevent RST on close.
+            # See: https://github.com/benoitc/gunicorn/issues/3334
+            if parser:
+                try:
+                    client.settimeout(1)
+                    parser.finish_body()
+                except Exception:
+                    pass
             util.close(client)
 
     def handle_http2(self, listener, client, addr):
