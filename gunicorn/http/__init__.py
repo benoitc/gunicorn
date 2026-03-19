@@ -29,8 +29,10 @@ def get_parser(cfg, source, source_addr, http2_connection=False):
         from gunicorn.uwsgi.parser import UWSGIParser
         return UWSGIParser(cfg, source, source_addr)
 
-    # Default HTTP/1.x
-    return RequestParser(cfg, source, source_addr)
+    # HTTP/1.x - use fast parser if configured and available
+    from gunicorn.http.fast_parser import get_parser_class
+    ParserClass = get_parser_class(cfg)
+    return ParserClass(cfg, source, source_addr)
 
 
 __all__ = ['Message', 'Request', 'RequestParser', 'get_parser']

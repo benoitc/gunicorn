@@ -51,6 +51,7 @@ gevent = ["gevent>=24.10.1"]
 eventlet = ["eventlet>=0.40.3"]
 tornado = ["tornado>=6.5.0"]
 gthread = []
+fast-parser = ["gunicorn_h1c @ git+https://github.com/benoitc/gunicorn_h1c.git"]
 setproctitle = ["setproctitle"]
 http2 = ["h2>=4.1.0"]
 testing = [

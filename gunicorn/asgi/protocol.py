@@ -16,6 +16,7 @@ from datetime import datetime
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.message import AsyncRequest
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
+from gunicorn.http.fast_parser import get_request_class
 from gunicorn.http.errors import NoMoreData
 from gunicorn.uwsgi.errors import UWSGIParseException
 
@@ -180,7 +181,9 @@ class ASGIProtocol(asyncio.Protocol):
                             self.req_count
                         )
                     else:
-                        request = await AsyncRequest.parse(
+                        # Use fast parser if configured and available
+                        RequestClass = get_request_class(self.cfg, async_mode=True)
+                        request = await RequestClass.parse(
                             self.cfg,
                             unreader,
                             peername,

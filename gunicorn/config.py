@@ -939,6 +939,40 @@ class LimitRequestFieldSize(Setting):
         """
 
 
+def validate_http_parser(val):
+    if val is None:
+        return "auto"
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    val = val.lower().strip()
+    if val not in ("auto", "fast", "python"):
+        raise ValueError("Invalid http_parser setting: %s" % val)
+    return val
+
+
+class HTTPParser(Setting):
+    name = "http_parser"
+    section = "Security"
+    cli = ["--http-parser"]
+    meta = "STRING"
+    validator = validate_http_parser
+    default = "auto"
+    desc = """\
+        HTTP/1.1 request parser implementation.
+
+        - auto: Use fast C parser if available, otherwise pure Python
+        - fast: Require fast C parser (fail if not installed)
+        - python: Always use pure Python parser
+
+        The fast parser uses gunicorn_h1c (picohttpparser with SIMD).
+        Install with: pip install gunicorn[fast-parser]
+
+        Works with all worker types (sync, gthread, asgi).
+
+        .. versionadded:: 25.1.0
+        """
+
+
 class Reload(Setting):
     name = "reload"
     section = 'Debugging'
