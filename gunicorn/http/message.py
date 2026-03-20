@@ -57,6 +57,8 @@ METHOD_BADCHAR_RE = re.compile("[a-z#]")
 # usually 1.0 or 1.1 - RFC9112 permits restricting to single-digit versions
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
+# https://datatracker.ietf.org/doc/html/rfc9110#section-5.3-3
+SINGLETON_FIELDS = {"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"}
 
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
@@ -119,7 +121,7 @@ class Message:
 
     def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
-        headers = []
+        headers = {}
 
         # Split lines on \r\n
         lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
@@ -227,9 +229,14 @@ class Message:
                     # fail-safe fallthrough: refuse
                     raise InvalidHeaderName(name)
 
-            headers.append((name, value))
+            if name in headers:
+                if name in SINGLETON_FIELDS:
+                    raise InvalidHeader(name)
+                headers[name] = "%s,%s" % (headers[name], value)
+            else:
+                headers[name] = value
 
-        return headers
+        return list(headers.items())
 
     def set_body_reader(self):
         chunked = False
