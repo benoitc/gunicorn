@@ -219,6 +219,16 @@ class HttpParser:
             pr.content_length = req.content_length if req.content_length >= 0 else 0
             pr.chunked = req.has_chunked
 
+            # Validate Transfer-Encoding per RFC 7230
+            if pr.chunked:
+                # Chunked requires HTTP/1.1+
+                if req.minor_version < 1:
+                    raise InvalidHeader("TRANSFER-ENCODING")
+                # Chunked with Content-Length is invalid
+                if req.content_length >= 0:
+                    raise InvalidHeader("CONTENT-LENGTH")
+                pr.content_length = -1
+
             # connection_close: -1 = not set, 0 = keep-alive, 1 = close
             if req.connection_close == 1:
                 pr.must_close = True
