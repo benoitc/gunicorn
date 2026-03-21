@@ -28,7 +28,7 @@ _fast_parser_module = None
 
 def _check_fast_parser(cfg):
     """Check if fast C parser is available and should be used."""
-    global _fast_parser_available, _fast_parser_module
+    global _fast_parser_available, _fast_parser_module  # pylint: disable=global-statement
 
     parser_setting = getattr(cfg, 'http_parser', 'auto')
     if parser_setting == 'python':

@@ -1971,3 +1971,21 @@ need to increase this value.
 This setting only affects the ``asgi`` worker type.
 
 !!! info "Added in 25.0.0"
+
+### `http_parser`
+
+**Command line:** `--http-parser STRING`
+
+**Default:** `'auto'`
+
+HTTP parser implementation.
+
+- auto: Use gunicorn_h1c if available, otherwise pure Python (default)
+- fast: Require gunicorn_h1c C extension (fail if unavailable)
+- python: Force pure Python parser
+
+The gunicorn_h1c C extension provides significantly faster HTTP
+parsing using picohttpparser with SIMD optimizations. Install it
+with: pip install gunicorn[fast]
+
+!!! info "Added in 25.0.0"

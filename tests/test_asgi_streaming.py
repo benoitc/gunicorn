@@ -9,7 +9,6 @@ Tests for chunked transfer encoding, Server-Sent Events (SSE),
 and streaming response handling.
 """
 
-import asyncio
 from unittest import mock
 
 import pytest

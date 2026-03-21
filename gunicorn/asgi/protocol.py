@@ -11,10 +11,11 @@ and dispatch to ASGI applications.
 
 import asyncio
 import errno
+import ipaddress
 from datetime import datetime
 
 from gunicorn.asgi.unreader import AsyncUnreader
-from gunicorn.asgi.message import AsyncRequest
+from gunicorn.asgi.parser import HttpParser, FastAsyncRequest
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
 from gunicorn.uwsgi.errors import UWSGIParseException
@@ -28,6 +29,56 @@ def _normalize_sockaddr(sockaddr):
     so we extract just the first two elements.
     """
     return tuple(sockaddr[:2]) if sockaddr else None
+
+
+def _check_trusted_proxy(peer_addr, allow_list, networks):
+    """Check if peer address is in the trusted proxy list.
+
+    Cached at connection start to avoid repeated IP parsing per request.
+    """
+    if not isinstance(peer_addr, tuple):
+        return False
+    if '*' in allow_list:
+        return True
+    try:
+        ip = ipaddress.ip_address(peer_addr[0])
+    except ValueError:
+        return False
+    for network in networks:
+        if ip in network:
+            return True
+    return False
+
+
+# Cached response bytes for common cases
+_CACHED_STATUS_LINES = {}
+_CACHED_SERVER_HEADER = b"Server: gunicorn/asgi\r\n"
+
+# Date header cache (updated once per second)
+_cached_date_header = b""
+_cached_date_time = 0.0
+
+
+def _get_cached_date_header():
+    """Get cached Date header, updating once per second."""
+    global _cached_date_header, _cached_date_time  # pylint: disable=global-statement
+    import time
+    now = time.time()
+    if now - _cached_date_time >= 1.0:
+        # Update date header
+        from email.utils import formatdate
+        _cached_date_header = f"Date: {formatdate(usegmt=True)}\r\n".encode("latin-1")
+        _cached_date_time = now
+    return _cached_date_header
+
+
+def _get_cached_status_line(version, status, reason):
+    """Get cached status line bytes."""
+    key = (version, status)
+    if key not in _CACHED_STATUS_LINES:
+        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n"
+        _CACHED_STATUS_LINES[key] = line.encode("latin-1")
+    return _CACHED_STATUS_LINES[key]
 
 
 class ASGIResponseInfo:
@@ -44,6 +95,96 @@ class ASGIResponseInfo:
             if isinstance(value, bytes):
                 value = value.decode("latin-1")
             self.headers.append((name, value))
+
+
+class BodyReceiver:
+    """Lightweight body receiver that reads directly on demand.
+
+    Replaces per-request Queue and Task with direct on-demand reading.
+    This reduces allocations and improves performance for most requests
+    where body is read sequentially.
+    """
+
+    __slots__ = ('request', 'protocol', 'body_complete', '_disconnect_event')
+
+    def __init__(self, request, protocol):
+        self.request = request
+        self.protocol = protocol
+        self.body_complete = False
+        self._disconnect_event = asyncio.Event()
+
+    def signal_disconnect(self):
+        """Signal that connection has been lost."""
+        self._disconnect_event.set()
+
+    async def receive(self):  # pylint: disable=too-many-return-statements
+        """ASGI receive callable - reads body on demand."""
+        # Already finished body - return disconnect
+        if self.body_complete:
+            return {"type": "http.disconnect"}
+
+        # No body expected - must return body message before disconnect
+        if self.request.content_length == 0 and not self.request.chunked:
+            self.body_complete = True
+            return {
+                "type": "http.request",
+                "body": b"",
+                "more_body": False,
+            }
+
+        # Check for disconnect before reading (only when body hasn't been returned)
+        if self.protocol._closed:
+            return {"type": "http.disconnect"}
+
+        # Read body chunk directly (no intermediate Queue)
+        try:
+            # Create tasks for reading body and waiting for disconnect
+            read_task = asyncio.create_task(self.request.read_body(65536))
+            disconnect_task = asyncio.create_task(self._disconnect_event.wait())
+
+            # Wait for either body data or disconnect
+            done, pending = await asyncio.wait(
+                [read_task, disconnect_task],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+
+            # Cancel pending tasks
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+            # Check what completed
+            if disconnect_task in done:
+                return {"type": "http.disconnect"}
+
+            chunk = read_task.result()
+
+            if chunk:
+                return {
+                    "type": "http.request",
+                    "body": chunk,
+                    "more_body": True,
+                }
+            else:
+                self.body_complete = True
+                return {
+                    "type": "http.request",
+                    "body": b"",
+                    "more_body": False,
+                }
+
+        except asyncio.CancelledError:
+            return {"type": "http.disconnect"}
+        except Exception:
+            self.body_complete = True
+            return {
+                "type": "http.request",
+                "body": b"",
+                "more_body": False,
+            }
 
 
 class ASGIProtocol(asyncio.Protocol):
@@ -66,7 +207,14 @@ class ASGIProtocol(asyncio.Protocol):
 
         # Connection state
         self._closed = False
-        self._receive_queue = None  # Set per-request for disconnect signaling
+        self._body_receiver = None  # Set per-request for disconnect signaling
+
+        # Backpressure control
+        self._reading_paused = False
+        self._max_buffer_size = 65536 * 4  # 256KB max buffer
+
+        # Keep-alive timer
+        self._keepalive_handle = None
 
     def connection_made(self, transport):
         """Called when a connection is established."""
@@ -98,6 +246,54 @@ class ASGIProtocol(asyncio.Protocol):
         """Called when data is received on the connection."""
         if self.reader:
             self.reader.feed_data(data)
+            # Backpressure: pause reading if buffer is too large
+            if not self._reading_paused and self._is_buffer_full():
+                self._pause_reading()
+
+    def _is_buffer_full(self):
+        """Check if internal buffer is full."""
+        # Check StreamReader internal buffer size
+        if hasattr(self.reader, '_buffer'):
+            return len(self.reader._buffer) > self._max_buffer_size
+        return False
+
+    def _pause_reading(self):
+        """Pause reading from transport due to backpressure."""
+        if not self._reading_paused and self.transport:
+            self._reading_paused = True
+            try:
+                self.transport.pause_reading()
+            except (AttributeError, RuntimeError):
+                pass
+
+    def _resume_reading(self):
+        """Resume reading from transport."""
+        if self._reading_paused and self.transport:
+            self._reading_paused = False
+            try:
+                self.transport.resume_reading()
+            except (AttributeError, RuntimeError):
+                pass
+
+    def _arm_keepalive_timer(self):
+        """Arm keepalive timeout timer after response completion."""
+        if self._keepalive_handle:
+            self._keepalive_handle.cancel()
+        keepalive_timeout = self.cfg.keepalive
+        if keepalive_timeout > 0:
+            self._keepalive_handle = self.worker.loop.call_later(
+                keepalive_timeout, self._keepalive_timeout
+            )
+
+    def _cancel_keepalive_timer(self):
+        """Cancel keepalive timer when new request arrives."""
+        if self._keepalive_handle:
+            self._keepalive_handle.cancel()
+            self._keepalive_handle = None
+
+    def _keepalive_timeout(self):
+        """Called when keepalive timeout expires."""
+        self._close_transport()
 
     def connection_lost(self, exc):
         """Called when the connection is lost or closed.
@@ -115,12 +311,16 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._closed = True
         self.worker.nr_conns -= 1
+
+        # Cancel keepalive timer
+        self._cancel_keepalive_timer()
+
         if self.reader:
             self.reader.feed_eof()
 
-        # Signal disconnect to the app via the receive queue
-        if self._receive_queue is not None:
-            self._receive_queue.put_nowait({"type": "http.disconnect"})
+        # Signal disconnect to the app via the body receiver
+        if self._body_receiver is not None:
+            self._body_receiver.signal_disconnect()
 
         # Schedule task cancellation after grace period if task doesn't complete
         if self._task and not self._task.done():
@@ -160,67 +360,18 @@ class ASGIProtocol(asyncio.Protocol):
 
     async def _handle_connection(self):
         """Main request handling loop for this connection."""
-        unreader = AsyncUnreader(self.reader)
-
         try:
             peername = self.transport.get_extra_info('peername')
             sockname = self.transport.get_extra_info('sockname')
 
-            while not self._closed:
-                self.req_count += 1
+            # Check protocol type - use old path for uWSGI
+            protocol_type = getattr(self.cfg, 'protocol', 'http')
+            if protocol_type == 'uwsgi':
+                await self._handle_connection_uwsgi(peername, sockname)
+                return
 
-                try:
-                    # Parse request based on protocol
-                    protocol = getattr(self.cfg, 'protocol', 'http')
-                    if protocol == 'uwsgi':
-                        request = await AsyncUWSGIRequest.parse(
-                            self.cfg,
-                            unreader,
-                            peername,
-                            self.req_count
-                        )
-                    else:
-                        request = await AsyncRequest.parse(
-                            self.cfg,
-                            unreader,
-                            peername,
-                            self.req_count
-                        )
-                except NoMoreData:
-                    # Client disconnected
-                    break
-                except UWSGIParseException as e:
-                    self.log.debug("uWSGI parse error: %s", e)
-                    break
-
-                # Check for WebSocket upgrade
-                if self._is_websocket_upgrade(request):
-                    await self._handle_websocket(request, sockname, peername)
-                    break  # WebSocket takes over the connection
-
-                # Handle HTTP request
-                keepalive = await self._handle_http_request(
-                    request, sockname, peername
-                )
-
-                # Increment worker request count
-                self.worker.nr += 1
-
-                # Check max_requests
-                if self.worker.nr >= self.worker.max_requests:
-                    self.log.info("Autorestarting worker after current request.")
-                    self.worker.alive = False
-                    keepalive = False
-
-                if not keepalive or not self.worker.alive:
-                    break
-
-                # Check connection limits for keepalive
-                if not self.cfg.keepalive:
-                    break
-
-                # Drain any unread body before next request
-                await request.drain_body()
+            # Fast path: use HttpParser for HTTP protocol
+            await self._handle_connection_fast(peername, sockname)
 
         except asyncio.CancelledError:
             pass
@@ -228,6 +379,161 @@ class ASGIProtocol(asyncio.Protocol):
             self.log.exception("Error handling connection: %s", e)
         finally:
             self._close_transport()
+
+    async def _handle_connection_fast(self, peername, sockname):
+        """Fast HTTP connection handling using HttpParser."""
+        # Check if peer is trusted proxy once per connection
+        is_trusted = _check_trusted_proxy(
+            peername,
+            self.cfg.forwarded_allow_ips,
+            self.cfg.forwarded_allow_networks()
+        )
+
+        # Get SSL state
+        ssl_object = self.transport.get_extra_info('ssl_object')
+        is_ssl = ssl_object is not None
+
+        # Create parser and buffer
+        parser = HttpParser(
+            self.cfg, peername, is_ssl=is_ssl,
+            req_number=1, is_trusted_proxy=is_trusted
+        )
+        buffer = bytearray()
+
+        while not self._closed:
+            self.req_count += 1
+
+            # Cancel keepalive timer when new request starts
+            self._cancel_keepalive_timer()
+
+            try:
+                # Parse request using fast parser
+                request = await self._parse_request_fast(
+                    parser, buffer, peername
+                )
+            except NoMoreData:
+                # Client disconnected
+                break
+
+            # Check for WebSocket upgrade
+            if self._is_websocket_upgrade(request):
+                await self._handle_websocket(request, sockname, peername)
+                break  # WebSocket takes over the connection
+
+            # Handle HTTP request
+            keepalive = await self._handle_http_request(
+                request, sockname, peername
+            )
+
+            # Increment worker request count
+            self.worker.nr += 1
+
+            # Check max_requests
+            if self.worker.nr >= self.worker.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                self.worker.alive = False
+                keepalive = False
+
+            if not keepalive or not self.worker.alive:
+                break
+
+            # Check connection limits for keepalive
+            if not self.cfg.keepalive:
+                break
+
+            # Drain any unread body before next request
+            await request.drain_body()
+
+            # Resume reading if paused during body consumption
+            self._resume_reading()
+
+            # Reset parser for next request (keep trusted proxy check)
+            parser.reset()
+
+            # Arm keepalive timer between requests
+            self._arm_keepalive_timer()
+
+    async def _parse_request_fast(self, parser, buffer, peername):
+        """Parse request using fast HttpParser.
+
+        Returns a FastAsyncRequest wrapping the ParseResult.
+        """
+        # Read data until we have complete headers
+        while True:
+            # Try to parse current buffer
+            if buffer:
+                try:
+                    result = parser.feed(buffer)
+                    if result is not None:
+                        # Headers complete - create request wrapper
+                        request = FastAsyncRequest(
+                            result, self.reader, buffer, result.consumed
+                        )
+                        # Clear consumed data from buffer
+                        del buffer[:result.consumed]
+                        return request
+                except Exception as e:
+                    # Re-raise HTTP parsing errors
+                    if 'incomplete' not in str(e).lower():
+                        raise
+
+            # Need more data
+            try:
+                data = await self.reader.read(65536)
+            except Exception:
+                data = b""
+
+            if not data:
+                raise NoMoreData(bytes(buffer))
+
+            buffer.extend(data)
+
+    async def _handle_connection_uwsgi(self, peername, sockname):
+        """Handle uWSGI protocol connections (legacy path)."""
+        unreader = AsyncUnreader(self.reader)
+
+        while not self._closed:
+            self.req_count += 1
+
+            try:
+                request = await AsyncUWSGIRequest.parse(
+                    self.cfg,
+                    unreader,
+                    peername,
+                    self.req_count
+                )
+            except NoMoreData:
+                break
+            except UWSGIParseException as e:
+                self.log.debug("uWSGI parse error: %s", e)
+                break
+
+            # Check for WebSocket upgrade
+            if self._is_websocket_upgrade(request):
+                await self._handle_websocket(request, sockname, peername)
+                break
+
+            # Handle HTTP request
+            keepalive = await self._handle_http_request(
+                request, sockname, peername
+            )
+
+            # Increment worker request count
+            self.worker.nr += 1
+
+            # Check max_requests
+            if self.worker.nr >= self.worker.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                self.worker.alive = False
+                keepalive = False
+
+            if not keepalive or not self.worker.alive:
+                break
+
+            if not self.cfg.keepalive:
+                break
+
+            await request.drain_body()
 
     def _is_websocket_upgrade(self, request):
         """Check if request is a WebSocket upgrade.
@@ -273,36 +579,9 @@ class ASGIProtocol(asyncio.Protocol):
         response_headers = []
         response_sent = 0
 
-        # Receive queue for body - stored on self for disconnect signaling
-        receive_queue = asyncio.Queue()
-        self._receive_queue = receive_queue
-        body_complete = False
-
-        # Pre-populate with initial body state
-        if request.content_length == 0 and not request.chunked:
-            await receive_queue.put({
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            })
-            body_complete = True
-        else:
-            # Start body reading task
-            asyncio.create_task(self._read_body_to_queue(request, receive_queue))
-
-        async def receive():
-            nonlocal body_complete
-            # Check if already disconnected before waiting
-            if self._closed and body_complete:
-                return {"type": "http.disconnect"}
-
-            msg = await receive_queue.get()
-
-            # Track when body is complete
-            if msg.get("type") == "http.request" and not msg.get("more_body", True):
-                body_complete = True
-
-            return msg
+        # Create body receiver - reads directly on demand, no Queue/Task overhead
+        body_receiver = BodyReceiver(request, self)
+        self._body_receiver = body_receiver
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
@@ -373,7 +652,7 @@ class ASGIProtocol(asyncio.Protocol):
             request_start = datetime.now()
             self.cfg.pre_request(self.worker, request)
 
-            await self.app(scope, receive, send)
+            await self.app(scope, body_receiver.receive, send)
 
             if exc_to_raise is not None:
                 raise exc_to_raise
@@ -394,8 +673,8 @@ class ASGIProtocol(asyncio.Protocol):
                 response_status = 500
             return False
         finally:
-            # Clear the receive queue reference
-            self._receive_queue = None
+            # Clear the body receiver reference
+            self._body_receiver = None
 
             try:
                 request_time = datetime.now() - request_start
@@ -412,38 +691,17 @@ class ASGIProtocol(asyncio.Protocol):
 
         return self.worker.alive and self.cfg.keepalive
 
-    async def _read_body_to_queue(self, request, queue):
-        """Read request body and put chunks on the queue."""
-        try:
-            while True:
-                chunk = await request.read_body(65536)
-                if chunk:
-                    await queue.put({
-                        "type": "http.request",
-                        "body": chunk,
-                        "more_body": True,
-                    })
-                else:
-                    await queue.put({
-                        "type": "http.request",
-                        "body": b"",
-                        "more_body": False,
-                    })
-                    break
-        except Exception as e:
-            self.log.debug("Error reading body: %s", e)
-            await queue.put({
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            })
-
     def _build_http_scope(self, request, sockname, peername):
         """Build ASGI HTTP scope from parsed request."""
-        # Build headers list as bytes tuples
-        headers = []
-        for name, value in request.headers:
-            headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
+        # Use pre-computed bytes headers if available (fast path)
+        # Fall back to conversion for legacy requests (AsyncRequest, HTTP/2)
+        headers_bytes = getattr(request, 'headers_bytes', None)
+        if isinstance(headers_bytes, list):
+            headers = list(headers_bytes)  # Copy to avoid mutation
+        else:
+            headers = []
+            for name, value in request.headers:
+                headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
 
         server = _normalize_sockaddr(sockname)
         client = _normalize_sockaddr(peername)
@@ -563,26 +821,54 @@ class ASGIProtocol(asyncio.Protocol):
         self._safe_write(response.encode("latin-1"))
 
     async def _send_response_start(self, status, headers, request):
-        """Send HTTP response status and headers."""
-        # Build status line
-        reason = self._get_reason_phrase(status)
-        status_line = f"HTTP/{request.version[0]}.{request.version[1]} {status} {reason}\r\n"
+        """Send HTTP response status and headers.
 
-        # Build headers
-        header_lines = []
+        Uses cached status lines and headers for common cases to avoid
+        repeated string formatting and encoding.
+        """
+        # Get cached status line bytes
+        reason = self._get_reason_phrase(status)
+        status_line = _get_cached_status_line(request.version, status, reason)
+
+        # Build headers as bytes directly
+        parts = [status_line]
+
+        has_date = False
+        has_server = False
 
         for name, value in headers:
             if isinstance(name, bytes):
-                name = name.decode("latin-1")
+                name_lower = name.lower()
+                parts.append(name)
+            else:
+                name_lower = name.lower().encode("latin-1")
+                parts.append(name.encode("latin-1"))
+
+            parts.append(b": ")
+
             if isinstance(value, bytes):
-                value = value.decode("latin-1")
-            header_lines.append(f"{name}: {value}\r\n")
+                parts.append(value)
+            else:
+                parts.append(value.encode("latin-1"))
 
-        # Add server header if not present
-        header_lines.append("Server: gunicorn/asgi\r\n")
+            parts.append(b"\r\n")
 
-        response = status_line + "".join(header_lines) + "\r\n"
-        self._safe_write(response.encode("latin-1"))
+            # Track if Date/Server headers are present
+            if name_lower == b"date":
+                has_date = True
+            elif name_lower == b"server":
+                has_server = True
+
+        # Add default headers if not present
+        if not has_server:
+            parts.append(_CACHED_SERVER_HEADER)
+        if not has_date:
+            parts.append(_get_cached_date_header())
+
+        parts.append(b"\r\n")
+
+        # Write as single buffer
+        self._safe_write(b"".join(parts))
 
     async def _send_body(self, body, chunked=False):
         """Send response body chunk."""

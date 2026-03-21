@@ -9,7 +9,6 @@ Tests that gunicorn's WebSocket implementation conforms to RFC 6455:
 https://tools.ietf.org/html/rfc6455
 """
 
-import asyncio
 import base64
 import hashlib
 import struct

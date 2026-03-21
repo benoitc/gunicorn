@@ -52,11 +52,16 @@ def _ip_in_allow_list(ip_str, allow_list, networks):
 
 
 class ParseResult:
-    """Result of header parsing."""
+    """Result of header parsing.
+
+    Headers are stored as bytes tuples for performance:
+    - headers_bytes: list of (name_bytes_lowercase, value_bytes)
+    - headers: list of (name_str_uppercase, value_str) for compatibility
+    """
 
     __slots__ = (
         'method', 'uri', 'path', 'query', 'fragment', 'version',
-        'headers', 'scheme', 'content_length', 'chunked',
+        'headers', 'headers_bytes', 'scheme', 'content_length', 'chunked',
         'keep_alive', 'consumed', 'proxy_protocol_info',
         'must_close', 'expect_100_continue',
     )
@@ -68,7 +73,8 @@ class ParseResult:
         self.query = None
         self.fragment = None
         self.version = None
-        self.headers = []
+        self.headers = []  # (name_str_uppercase, value_str) for compatibility
+        self.headers_bytes = []  # (name_bytes_lowercase, value_bytes) for ASGI scope
         self.scheme = "http"
         self.content_length = 0
         self.chunked = False
@@ -164,15 +170,25 @@ class HttpParser:
             return self._feed_python(buffer)
 
     def _feed_fast(self, buffer):
-        """Parse using fast C parser."""
-        try:
-            result = HttpParser._h1c_module.parse_request(bytes(buffer))
+        """Parse using fast C parser with optimized API.
 
-            # gunicorn_h1c returns bytes, convert to strings (latin-1)
+        Uses parse_request_fast() which:
+        - Accepts bytearray directly (no bytes() copy)
+        - Returns pre-computed content_length, has_chunked, connection_close
+        - Returns headers as bytes tuples (no intermediate conversion)
+        """
+        h1c = HttpParser._h1c_module
+        try:
+            # Use parse_request_fast - accepts bytearray directly
+            req = h1c.parse_request_fast(buffer)
+
+            # Build ParseResult from fast request object
             pr = ParseResult()
-            pr.method = bytes_to_str(result['method'])
-            # gunicorn_h1c returns 'path' which is the full URI (path?query)
-            pr.uri = bytes_to_str(result['path'])
+
+            # Method and path (bytes -> str)
+            pr.method = bytes_to_str(req.method)
+            pr.uri = bytes_to_str(req.path)
+
             # Parse path/query from URI
             try:
                 parts = split_request_uri(pr.uri)
@@ -183,25 +199,52 @@ class HttpParser:
                 pr.path = pr.uri
                 pr.query = ""
                 pr.fragment = ""
-            pr.version = (1, result['minor_version'])
 
-            # Headers - convert to uppercase strings
-            pr.headers = [(bytes_to_str(n).upper(), bytes_to_str(v)) for n, v in result['headers']]
+            pr.version = (1, req.minor_version)
+            pr.consumed = req.consumed
 
-            pr.consumed = result['consumed']
-            pr.keep_alive = result['minor_version'] >= 1
+            # Headers - store both bytes (for ASGI scope) and strings (for compatibility)
+            # gunicorn_h1c returns headers as (name_bytes, value_bytes)
+            headers_bytes = []
+            headers_str = []
+            for n, v in req.headers:
+                # ASGI requires lowercase header names
+                headers_bytes.append((n.lower(), v))
+                # Compatibility: uppercase string names
+                headers_str.append((bytes_to_str(n).upper(), bytes_to_str(v)))
+            pr.headers_bytes = headers_bytes
+            pr.headers = headers_str
+
+            # Use pre-computed body info from C parser
+            pr.content_length = req.content_length if req.content_length >= 0 else 0
+            pr.chunked = req.has_chunked
+
+            # connection_close: -1 = not set, 0 = keep-alive, 1 = close
+            if req.connection_close == 1:
+                pr.must_close = True
+                pr.keep_alive = False
+            elif req.connection_close == 0:
+                pr.must_close = False
+                pr.keep_alive = True
+            else:
+                # Not set - default based on HTTP version
+                pr.keep_alive = req.minor_version >= 1
+                pr.must_close = False
+
             pr.scheme = "https" if self.is_ssl else "http"
 
-            # Parse body info from headers
-            self._parse_body_info(pr)
+            # Apply scheme headers for trusted proxies
+            if self._is_trusted_proxy:
+                self._apply_scheme_headers(pr)
 
             self._result = pr
             return pr
 
-        except Exception as e:
-            if "incomplete" in str(e).lower():
-                return None
-            raise
+        except h1c.IncompleteError:
+            return None
+        except h1c.ParseError as e:
+            # Map to gunicorn HTTP errors
+            raise InvalidRequestLine(str(e))
 
     def _feed_python(self, buffer):
         """Parse using pure Python parser."""
@@ -263,9 +306,15 @@ class HttpParser:
         if buffer[headers_start:headers_start + 2] == b"\r\n":
             # Empty headers
             pr.consumed = headers_start + 2
+            pr.headers_bytes = []
         else:
             headers_data = bytes(buffer[headers_start:headers_end])
             pr.headers = self._parse_headers(headers_data)
+            # Also generate bytes headers for ASGI scope
+            pr.headers_bytes = [
+                (n.lower().encode('latin-1'), v.encode('latin-1'))
+                for n, v in pr.headers
+            ]
             pr.consumed = headers_end + 4
 
         # Set scheme
@@ -637,3 +686,238 @@ class HttpParser:
         """Reset parser state for next request on keep-alive connection."""
         self._result = None
         self.req_number += 1
+
+
+class FastAsyncRequest:
+    """Fast async HTTP request wrapper.
+
+    Wraps a ParseResult from HttpParser and provides async body reading.
+    This is a lightweight adapter that allows protocol.py to use the fast
+    parser while maintaining compatibility with the existing interface.
+    """
+
+    __slots__ = (
+        'method', 'uri', 'path', 'query', 'fragment', 'version',
+        'headers', 'headers_bytes', 'scheme', 'content_length', 'chunked',
+        'must_close', 'proxy_protocol_info',
+        '_reader', '_buffer', '_body_remaining', '_body_reader',
+        '_expect_100_continue',
+    )
+
+    def __init__(self, parse_result, reader, buffer, consumed):
+        """Initialize from a ParseResult.
+
+        Args:
+            parse_result: ParseResult from HttpParser.feed()
+            reader: asyncio.StreamReader for body reading
+            buffer: bytearray buffer with remaining data after headers
+            consumed: bytes consumed from buffer by parser
+        """
+        # Copy attributes from ParseResult
+        self.method = parse_result.method
+        self.uri = parse_result.uri
+        self.path = parse_result.path
+        self.query = parse_result.query
+        self.fragment = parse_result.fragment
+        self.version = parse_result.version
+        self.headers = parse_result.headers
+        self.headers_bytes = parse_result.headers_bytes  # Pre-computed bytes headers
+        self.scheme = parse_result.scheme
+        self.content_length = parse_result.content_length
+        self.chunked = parse_result.chunked
+        self.must_close = parse_result.must_close
+        self.proxy_protocol_info = parse_result.proxy_protocol_info
+        self._expect_100_continue = parse_result.expect_100_continue
+
+        # Body reading state
+        self._reader = reader
+        # Keep remaining data after headers in buffer
+        self._buffer = bytearray(buffer[consumed:])
+        if self.chunked:
+            self._body_remaining = -1
+        elif self.content_length:
+            self._body_remaining = self.content_length
+        else:
+            self._body_remaining = 0
+        self._body_reader = None
+
+    def should_close(self):
+        """Check if connection should be closed after this request."""
+        if self.must_close:
+            return True
+        for name, value in self.headers:
+            if name == "CONNECTION":
+                v = value.lower().strip(" \t")
+                if v == "close":
+                    return True
+                elif v == "keep-alive":
+                    return False
+                break
+        return self.version <= (1, 0)
+
+    def get_header(self, name):
+        """Get a header value by name (case-insensitive)."""
+        name = name.upper()
+        for h, v in self.headers:
+            if h == name:
+                return v
+        return None
+
+    async def read_body(self, size=8192):
+        """Read a chunk of the request body.
+
+        Args:
+            size: Maximum bytes to read
+
+        Returns:
+            bytes: Body data, empty bytes when body is exhausted
+        """
+        if self._body_remaining == 0:
+            return b""
+
+        if self.chunked:
+            return await self._read_chunked_body(size)
+        else:
+            return await self._read_length_body(size)
+
+    async def _read_length_body(self, size):
+        """Read from a length-delimited body."""
+        if self._body_remaining <= 0:
+            return b""
+
+        to_read = min(size, self._body_remaining)
+
+        # First, use data from our buffer
+        if self._buffer:
+            if len(self._buffer) <= to_read:
+                data = bytes(self._buffer)
+                self._buffer.clear()
+            else:
+                data = bytes(self._buffer[:to_read])
+                del self._buffer[:to_read]
+            self._body_remaining -= len(data)
+            return data
+
+        # Read from stream
+        try:
+            data = await self._reader.read(to_read)
+            if data:
+                self._body_remaining -= len(data)
+            return data
+        except Exception:
+            return b""
+
+    async def _read_chunked_body(self, size):
+        """Read from a chunked body."""
+        if self._body_reader is None:
+            self._body_reader = self._chunked_body_reader()
+
+        try:
+            return await anext(self._body_reader)
+        except StopAsyncIteration:
+            self._body_remaining = 0
+            return b""
+
+    async def _chunked_body_reader(self):
+        """Async generator for reading chunked body."""
+        while True:
+            # Read chunk size line
+            size_line = await self._read_until_crlf()
+            # Parse chunk size (handle extensions)
+            chunk_size, *_ = size_line.split(b";", 1)
+            if _:
+                chunk_size = chunk_size.rstrip(b" \t")
+
+            if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
+                raise InvalidHeader("Invalid chunk size")
+            if len(chunk_size) == 0:
+                raise InvalidHeader("Invalid chunk size")
+
+            chunk_size = int(chunk_size, 16)
+
+            if chunk_size == 0:
+                # Final chunk - skip trailers and final CRLF
+                await self._skip_trailers()
+                return
+
+            # Read chunk data
+            remaining = chunk_size
+            while remaining > 0:
+                data = await self._read_data(min(remaining, 8192))
+                if not data:
+                    raise NoMoreData()
+                remaining -= len(data)
+                yield data
+
+            # Skip chunk terminating CRLF
+            crlf = await self._read_data(2)
+            if crlf != b"\r\n":
+                # May have partial read
+                while len(crlf) < 2:
+                    more = await self._read_data(2 - len(crlf))
+                    if not more:
+                        break
+                    crlf += more
+
+    async def _read_data(self, size):
+        """Read data from buffer or stream."""
+        if self._buffer:
+            if len(self._buffer) <= size:
+                data = bytes(self._buffer)
+                self._buffer.clear()
+                return data
+            else:
+                data = bytes(self._buffer[:size])
+                del self._buffer[:size]
+                return data
+        try:
+            return await self._reader.read(size)
+        except Exception:
+            return b""
+
+    async def _read_until_crlf(self):
+        """Read bytes until CRLF."""
+        result = bytearray()
+        while True:
+            # Check buffer first
+            if self._buffer:
+                idx = self._buffer.find(b"\r\n")
+                if idx >= 0:
+                    result.extend(self._buffer[:idx])
+                    del self._buffer[:idx + 2]
+                    return bytes(result)
+                result.extend(self._buffer)
+                self._buffer.clear()
+
+            # Read more data
+            try:
+                data = await self._reader.read(64)
+            except Exception:
+                break
+            if not data:
+                break
+            idx = data.find(b"\r\n")
+            if idx >= 0:
+                result.extend(data[:idx])
+                # Put remaining data back in buffer
+                remaining = data[idx + 2:]
+                if remaining:
+                    self._buffer.extend(remaining)
+                return bytes(result)
+            result.extend(data)
+
+        return bytes(result)
+
+    async def _skip_trailers(self):
+        """Skip trailer headers after chunked body."""
+        while True:
+            line = await self._read_until_crlf()
+            if not line:
+                return
+
+    async def drain_body(self):
+        """Drain any unread body data."""
+        while True:
+            data = await self.read_body(8192)
+            if not data:
+                break
