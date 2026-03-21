@@ -220,43 +220,39 @@ class TestProtocolSendBody:
 
         return protocol
 
-    @pytest.mark.asyncio
-    async def test_send_body_without_chunking(self):
+    def test_send_body_without_chunking(self):
         """Test sending body without chunked encoding."""
         protocol = self._create_protocol()
 
-        await protocol._send_body(b"Hello, World!", chunked=False)
+        protocol._send_body(b"Hello, World!", chunked=False)
 
         protocol.transport.write.assert_called_once_with(b"Hello, World!")
 
-    @pytest.mark.asyncio
-    async def test_send_body_with_chunking(self):
+    def test_send_body_with_chunking(self):
         """Test sending body with chunked encoding."""
         protocol = self._create_protocol()
 
-        await protocol._send_body(b"Hello", chunked=True)
+        protocol._send_body(b"Hello", chunked=True)
 
         # Should write: "5\r\nHello\r\n"
         protocol.transport.write.assert_called_once()
         call_arg = protocol.transport.write.call_args[0][0]
         assert call_arg == b"5\r\nHello\r\n"
 
-    @pytest.mark.asyncio
-    async def test_send_body_empty_without_chunking(self):
+    def test_send_body_empty_without_chunking(self):
         """Test sending empty body without chunked encoding."""
         protocol = self._create_protocol()
 
-        await protocol._send_body(b"", chunked=False)
+        protocol._send_body(b"", chunked=False)
 
         # Empty body should not write anything
         protocol.transport.write.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_send_body_empty_with_chunking(self):
+    def test_send_body_empty_with_chunking(self):
         """Test sending empty body with chunked encoding."""
         protocol = self._create_protocol()
 
-        await protocol._send_body(b"", chunked=True)
+        protocol._send_body(b"", chunked=True)
 
         # Empty body should not write (terminal chunk handled separately)
         protocol.transport.write.assert_not_called()

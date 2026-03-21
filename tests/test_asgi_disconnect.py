@@ -67,14 +67,14 @@ class TestASGIGracefulDisconnect:
         body_receiver = BodyReceiver(mock_request, protocol)
         protocol._body_receiver = body_receiver
 
-        # Verify disconnect event is not set initially
-        assert not body_receiver._disconnect_event.is_set()
+        # Verify disconnect flag is not set initially
+        assert not body_receiver._closed
 
         # Simulate connection lost
         protocol.connection_lost(None)
 
-        # Check that disconnect event was signaled
-        assert body_receiver._disconnect_event.is_set()
+        # Check that disconnect flag was set
+        assert body_receiver._closed
 
     def test_disconnect_is_idempotent(self, mock_worker):
         """Test that connection_lost can be called multiple times safely."""
@@ -96,12 +96,12 @@ class TestASGIGracefulDisconnect:
         protocol.connection_lost(None)
         assert protocol._closed is True
         assert mock_worker.nr_conns == 1
-        assert body_receiver._disconnect_event.is_set()
+        assert body_receiver._closed
 
         # Second call should be a no-op
         protocol.connection_lost(None)
         assert mock_worker.nr_conns == 1  # Should not decrement again
-        # Event is still set (no way to "double set" an event, so this is fine)
+        # Closed flag is still set
 
     def test_disconnect_does_not_cancel_immediately(self, mock_worker):
         """Test that connection_lost doesn't cancel task immediately."""

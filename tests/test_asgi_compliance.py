@@ -748,7 +748,7 @@ class TestHTTPDisconnectEvent:
         protocol.connection_lost(None)
 
         # Per ASGI spec: disconnect should be signaled
-        assert body_receiver._disconnect_event.is_set()
+        assert body_receiver._closed
 
     def test_disconnect_event_sent_on_connection_lost(self):
         """Test that disconnect is signaled when connection is lost."""
@@ -764,13 +764,13 @@ class TestHTTPDisconnectEvent:
         body_receiver = BodyReceiver(mock_request, protocol)
         protocol._body_receiver = body_receiver
 
-        assert not body_receiver._disconnect_event.is_set()
+        assert not body_receiver._closed
 
         # Simulate client disconnect
         protocol.connection_lost(None)
 
         # Disconnect should have been signaled
-        assert body_receiver._disconnect_event.is_set()
+        assert body_receiver._closed
 
     def test_disconnect_sets_closed_flag(self):
         """Test that connection_lost sets the closed flag."""
