@@ -2775,15 +2775,16 @@ def validate_asgi_lifespan(val):
 def validate_http_parser(val):
     """Validate http_parser setting.
 
-    Accepts: auto, fast, python
+    Accepts: auto, fast, python, callback, fast-callback
     """
     if val is None:
         return "auto"
     if not isinstance(val, str):
         raise TypeError("http_parser must be a string")
     val = val.lower().strip()
-    if val not in ("auto", "fast", "python"):
-        raise ValueError("http_parser must be: auto, fast, or python")
+    valid_values = ("auto", "fast", "python", "callback", "fast-callback")
+    if val not in valid_values:
+        raise ValueError("http_parser must be one of: %s" % ", ".join(valid_values))
     return val
 
 
@@ -2870,9 +2871,14 @@ class HttpParser(Setting):
     desc = """\
         HTTP parser implementation.
 
+        Pull-based parsers (used in request handling loop):
         - auto: Use gunicorn_h1c if available, otherwise pure Python (default)
         - fast: Require gunicorn_h1c C extension (fail if unavailable)
         - python: Force pure Python parser
+
+        Callback-based parsers (parsing in data_received, lower overhead):
+        - callback: Use callback parser (H1CProtocol if available, else PythonProtocol)
+        - fast-callback: Require H1CProtocol callback parser (fail if unavailable)
 
         The gunicorn_h1c C extension provides significantly faster HTTP
         parsing using picohttpparser with SIMD optimizations. Install it
