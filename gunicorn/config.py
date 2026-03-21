@@ -2868,7 +2868,7 @@ class HttpParser(Setting):
     validator = validate_http_parser
     default = "auto"
     desc = """\
-        HTTP parser implementation for ASGI workers.
+        HTTP parser implementation.
 
         - auto: Use gunicorn_h1c if available, otherwise pure Python (default)
         - fast: Require gunicorn_h1c C extension (fail if unavailable)
@@ -2877,8 +2877,6 @@ class HttpParser(Setting):
         The gunicorn_h1c C extension provides significantly faster HTTP
         parsing using picohttpparser with SIMD optimizations. Install it
         with: pip install gunicorn[fast]
-
-        This setting only affects the ``asgi`` worker type.
 
         .. versionadded:: 25.0.0
         """
