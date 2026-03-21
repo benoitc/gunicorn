@@ -2772,6 +2772,21 @@ def validate_asgi_lifespan(val):
     return val
 
 
+def validate_http_parser(val):
+    """Validate http_parser setting.
+
+    Accepts: auto, fast, python
+    """
+    if val is None:
+        return "auto"
+    if not isinstance(val, str):
+        raise TypeError("http_parser must be a string")
+    val = val.lower().strip()
+    if val not in ("auto", "fast", "python"):
+        raise ValueError("http_parser must be: auto, fast, or python")
+    return val
+
+
 class ASGILoop(Setting):
     name = "asgi_loop"
     section = "Worker Processes"
@@ -2838,6 +2853,30 @@ class ASGIDisconnectGracePeriod(Setting):
         Set to 0 to cancel immediately (not recommended for apps with async
         database connections). Apps with long-running database operations may
         need to increase this value.
+
+        This setting only affects the ``asgi`` worker type.
+
+        .. versionadded:: 25.0.0
+        """
+
+
+class HttpParser(Setting):
+    name = "http_parser"
+    section = "Worker Processes"
+    cli = ["--http-parser"]
+    meta = "STRING"
+    validator = validate_http_parser
+    default = "auto"
+    desc = """\
+        HTTP parser implementation for ASGI workers.
+
+        - auto: Use gunicorn_h1c if available, otherwise pure Python (default)
+        - fast: Require gunicorn_h1c C extension (fail if unavailable)
+        - python: Force pure Python parser
+
+        The gunicorn_h1c C extension provides significantly faster HTTP
+        parsing using picohttpparser with SIMD optimizations. Install it
+        with: pip install gunicorn[fast]
 
         This setting only affects the ``asgi`` worker type.
 
