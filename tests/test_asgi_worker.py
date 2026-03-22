@@ -724,10 +724,11 @@ class TestASGIHTTP2Priority:
         protocol = ASGIProtocol(worker)
 
         # Create mock HTTP/1.1 request (no priority attributes)
-        request = mock.Mock(spec=['method', 'path', 'query', 'version',
+        request = mock.Mock(spec=['method', 'path', 'raw_path', 'query', 'version',
                                    'scheme', 'headers'])
         request.method = "GET"
         request.path = "/test"
+        request.raw_path = b"/test"
         request.query = ""
         request.version = (1, 1)
         request.scheme = "http"

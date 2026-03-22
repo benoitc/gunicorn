@@ -38,7 +38,9 @@ class TestASGIVersion:
         """Create a mock HTTP request."""
         request = mock.Mock()
         request.method = kwargs.get("method", "GET")
-        request.path = kwargs.get("path", "/")
+        path = kwargs.get("path", "/")
+        request.path = path
+        request.raw_path = kwargs.get("raw_path", path.encode("latin-1") if path else b"")
         request.query = kwargs.get("query", "")
         request.version = kwargs.get("version", (1, 1))
         request.scheme = kwargs.get("scheme", "http")
@@ -137,7 +139,9 @@ class TestHTTPScopeKeys:
         """Create a mock HTTP request."""
         request = mock.Mock()
         request.method = kwargs.get("method", "GET")
-        request.path = kwargs.get("path", "/")
+        path = kwargs.get("path", "/")
+        request.path = path
+        request.raw_path = kwargs.get("raw_path", path.encode("latin-1") if path else b"")
         request.query = kwargs.get("query", "")
         request.version = kwargs.get("version", (1, 1))
         request.scheme = kwargs.get("scheme", "http")
@@ -654,6 +658,7 @@ class TestStateSharing:
         request = mock.Mock()
         request.method = "GET"
         request.path = "/"
+        request.raw_path = b"/"
         request.query = ""
         request.version = (1, 1)
         request.scheme = "http"
