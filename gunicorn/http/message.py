@@ -173,7 +173,7 @@ class Message:
                 or self.limit_request_fields > MAX_HEADERS):
             self.limit_request_fields = MAX_HEADERS
         self.limit_request_field_size = cfg.limit_request_field_size
-        if self.limit_request_field_size < 0:
+        if self.limit_request_field_size <= 0:
             self.limit_request_field_size = DEFAULT_MAX_HEADERFIELD_SIZE
 
         # set max header buffer size
@@ -389,7 +389,7 @@ class Request(Message):
 
         # get max request line size
         self.limit_request_line = cfg.limit_request_line
-        if (self.limit_request_line < 0
+        if (self.limit_request_line <= 0
                 or self.limit_request_line >= MAX_REQUEST_LINE):
             self.limit_request_line = MAX_REQUEST_LINE
 
@@ -432,7 +432,7 @@ class Request(Message):
 
         while True:
             try:
-                # Pass all limit parameters (guaranteed >= 0.4.1)
+                # Pass all limit parameters to C parser
                 result = _fast_parser_module.parse_request(
                     data,
                     last_len=last_len,

@@ -114,11 +114,13 @@ class ChunkMissingTerminator(IOError):
 
 
 class LimitRequestLine(ParseException):
-    def __init__(self, size, max_size):
+    def __init__(self, size, max_size=None):
         self.size = size
         self.max_size = max_size
 
     def __str__(self):
+        if self.max_size is None:
+            return str(self.size)
         return "Request Line is too large (%s > %s)" % (self.size, self.max_size)
 
 
