@@ -40,6 +40,9 @@ def load_py(fname):
     setattr(mod, 'cfg', Config())
     loader = importlib.machinery.SourceFileLoader(module_name, fname)
     loader.exec_module(mod)
+    # Use Python parser for tests to ensure consistent validation behavior
+    # (set after loading so test-specific configs don't override)
+    mod.cfg.set('http_parser', 'python')
     return vars(mod)
 
 

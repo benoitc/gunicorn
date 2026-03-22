@@ -6,7 +6,6 @@
 Tests for ASGI HTTP parser optimizations.
 """
 
-import asyncio
 import ipaddress
 import pytest
 

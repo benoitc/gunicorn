@@ -11,7 +11,6 @@ and extension support.
 
 from unittest import mock
 
-import pytest
 
 from gunicorn.config import Config
 

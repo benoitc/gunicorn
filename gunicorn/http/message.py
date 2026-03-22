@@ -21,6 +21,33 @@ from gunicorn.http.errors import InvalidSchemeHeaders
 from gunicorn.util import bytes_to_str, split_request_uri
 
 
+# Fast parser availability (cached at module level)
+_fast_parser_available = None
+_fast_parser_module = None
+
+
+def _check_fast_parser(cfg):
+    """Check if fast C parser is available and should be used."""
+    global _fast_parser_available, _fast_parser_module  # pylint: disable=global-statement
+
+    parser_setting = getattr(cfg, 'http_parser', 'auto')
+    if parser_setting == 'python':
+        return False
+
+    if _fast_parser_available is None:
+        try:
+            import gunicorn_h1c
+            _fast_parser_available = True
+            _fast_parser_module = gunicorn_h1c
+        except ImportError:
+            _fast_parser_available = False
+
+    if not _fast_parser_available and parser_setting == 'fast':
+        raise RuntimeError("gunicorn_h1c not installed but http_parser='fast'")
+
+    return _fast_parser_available
+
+
 # PROXY protocol v2 constants
 PP_V2_SIGNATURE = b"\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A"
 
@@ -321,6 +348,10 @@ class Request(Message):
 
         self.req_number = req_number
         self.proxy_protocol_info = None
+
+        # Check if fast parser should be used
+        self._use_fast = _check_fast_parser(cfg)
+
         super().__init__(cfg, unreader, peer_addr)
 
     def get_data(self, unreader, buf, stop=False):
@@ -340,6 +371,94 @@ class Request(Message):
         if mode != "off" and self.req_number == 1:
             buf = self._handle_proxy_protocol(unreader, buf, mode)
 
+        # Use fast parser if available
+        if self._use_fast:
+            return self._parse_fast(unreader, buf)
+
+        return self._parse_python(unreader, buf)
+
+    def _parse_fast(self, unreader, buf):
+        """Parse request using fast C parser (gunicorn_h1c)."""
+        # Read until we have complete headers
+        data = bytes(buf)
+        last_len = 0
+
+        while True:
+            try:
+                result = _fast_parser_module.parse_request(data, last_len=last_len)
+                break
+            except _fast_parser_module.IncompleteError:
+                last_len = len(data)
+                self.read_into(unreader, buf)
+                data = bytes(buf)
+                if len(data) > self.max_buffer_headers + self.limit_request_line:
+                    raise LimitRequestHeaders("max buffer headers")
+            except _fast_parser_module.ParseError as e:
+                raise InvalidRequestLine(str(e))
+
+        # Extract parsed data
+        self.method = bytes_to_str(result['method'])
+        self.uri = bytes_to_str(result['path'])
+
+        # Validate method
+        if not self.cfg.permit_unconventional_http_method:
+            if METHOD_BADCHAR_RE.search(self.method):
+                raise InvalidRequestMethod(self.method)
+            if not 3 <= len(self.method) <= 20:
+                raise InvalidRequestMethod(self.method)
+        if not TOKEN_RE.fullmatch(self.method):
+            raise InvalidRequestMethod(self.method)
+        if self.cfg.casefold_http_method:
+            self.method = self.method.upper()
+
+        # Parse URI parts
+        if len(self.uri) == 0:
+            raise InvalidRequestLine(self.uri)
+        try:
+            parts = split_request_uri(self.uri)
+        except ValueError:
+            raise InvalidRequestLine(self.uri)
+        self.path = parts.path or ""
+        self.query = parts.query or ""
+        self.fragment = parts.fragment or ""
+
+        # Version
+        self.version = (1, result['minor_version'])
+        if not (1, 0) <= self.version < (2, 0):
+            if not self.cfg.permit_unconventional_http_version:
+                raise InvalidHTTPVersion(self.version)
+
+        # Headers - convert bytes to strings with uppercase names
+        # gunicorn_h1c returns headers as (bytes, bytes) tuples
+        self.headers = []
+        for name_bytes, value_bytes in result['headers']:
+            name = bytes_to_str(name_bytes).upper()
+            value = bytes_to_str(value_bytes)
+
+            # Validate header name
+            if not TOKEN_RE.fullmatch(name):
+                raise InvalidHeaderName(name)
+
+            # Handle underscore in header names
+            if "_" in name:
+                forwarder_headers = self.cfg.forwarder_headers
+                if name in forwarder_headers or "*" in forwarder_headers:
+                    pass
+                elif self.cfg.header_map == "dangerous":
+                    pass
+                elif self.cfg.header_map == "drop":
+                    continue
+                else:
+                    raise InvalidHeaderName(name)
+
+            self.headers.append((name, value))
+
+        # Return remaining data after headers
+        consumed = result['consumed']
+        return data[consumed:]
+
+    def _parse_python(self, unreader, buf):
+        """Parse request using pure Python parser."""
         # Get request line
         line, buf = self.read_line(unreader, buf, self.limit_request_line)
 

@@ -12,11 +12,7 @@ that actually start the server and make HTTP requests.
 import asyncio
 import errno
 import os
-import signal
 import socket
-import sys
-import time
-import threading
 from unittest import mock
 
 import pytest
@@ -120,7 +116,7 @@ class FakeListener:
 def _has_uvloop():
     """Check if uvloop is available."""
     try:
-        import uvloop
+        import uvloop  # noqa: F401
         return True
     except ImportError:
         return False
@@ -337,9 +333,9 @@ class TestLifespanManager:
         async def app(scope, receive, send):
             assert "state" in scope
             scope["state"]["db"] = "connected"
-            message = await receive()
+            _ = await receive()
             await send({"type": "lifespan.startup.complete"})
-            message = await receive()
+            _ = await receive()
             await send({"type": "lifespan.shutdown.complete"})
 
         manager = LifespanManager(app, mock.Mock(), state)
@@ -555,7 +551,6 @@ class TestASGIProtocol:
     def test_scope_building(self):
         """Test HTTP scope building."""
         from gunicorn.asgi.protocol import ASGIProtocol
-        from gunicorn.asgi.message import AsyncRequest
 
         worker = mock.Mock()
         worker.cfg = Config()
