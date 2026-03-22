@@ -16,7 +16,7 @@ import time
 
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.parser import (
-    HttpParser, FastAsyncRequest, PythonProtocol, CallbackRequest, ParseError
+    PythonProtocol, CallbackRequest, ParseError
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
@@ -159,41 +159,14 @@ class ASGIResponseInfo:
             self.headers.append((name, value))
 
 
-class BufferReader:
-    """Minimal async reader using protocol's direct buffer.
-
-    Provides the read() interface that FastAsyncRequest expects,
-    but uses direct buffering instead of StreamReader.
-    """
-
-    __slots__ = ('_protocol',)
-
-    def __init__(self, protocol):
-        self._protocol = protocol
-
-    async def read(self, n):
-        """Read up to n bytes from the buffer."""
-        p = self._protocol
-
-        # Fast path: data already available
-        if p._buffer:
-            return p._consume_buffer(n)
-
-        # Wait for data
-        if not await p._wait_for_data():
-            return b""
-
-        return p._consume_buffer(n)
-
-
 class BodyReceiver:
-    """Fast body receiver using Future-based waiting.
+    """Body receiver for callback-based parsers.
 
-    Avoids asyncio.create_task overhead by using a single Future for waiting.
-    Supports direct chunk feeding for callback-based parsers.
+    Body chunks are fed directly via the feed() method from parser callbacks.
+    Uses Future-based waiting for efficient async receive().
     """
 
-    __slots__ = ('_chunks', '_complete', '_body_finished', '_closed', '_waiter', '_loop',
+    __slots__ = ('_chunks', '_complete', '_body_finished', '_closed', '_waiter',
                  'request', 'protocol')
 
     def __init__(self, request, protocol):
@@ -204,7 +177,6 @@ class BodyReceiver:
         self._body_finished = False  # True after returning more_body=False
         self._closed = False
         self._waiter = None
-        self._loop = None
 
     def feed(self, chunk):
         """Feed a body chunk directly (called by parser callback)."""
@@ -257,63 +229,55 @@ class BodyReceiver:
             self._closed = True
             return {"type": "http.disconnect"}
 
-        # Need to read body from request (legacy path until Phase 3/4)
-        # Use direct await instead of create_task + wait
+        # Wait for body chunk to arrive via callback
         try:
-            chunk = await self._read_with_disconnect_check()
-            if chunk:
-                return {"type": "http.request", "body": chunk, "more_body": True}
-            else:
-                self._complete = True
+            await self._wait_for_data()
+
+            # Check what arrived
+            if self._closed:
+                return {"type": "http.disconnect"}
+
+            if self._chunks:
+                chunk = self._chunks.pop(0)
+                more = bool(self._chunks) or not self._complete
+                if not more:
+                    self._body_finished = True
+                return {"type": "http.request", "body": chunk, "more_body": more}
+
+            if self._complete:
                 self._body_finished = True
                 return {"type": "http.request", "body": b"", "more_body": False}
+
+            # Timeout or other condition - return empty with more_body=True
+            return {"type": "http.request", "body": b"", "more_body": True}
+
         except asyncio.CancelledError:
             return {"type": "http.disconnect"}
-        except Exception:
-            self._complete = True
-            self._body_finished = True
-            return {"type": "http.request", "body": b"", "more_body": False}
 
-    async def _read_with_disconnect_check(self):
-        """Read body using event-based waiting (no polling).
+    async def _wait_for_data(self):
+        """Wait for body data to arrive via callback."""
+        if self._chunks or self._complete or self._closed:
+            return
 
-        Uses the protocol's data event to wait for incoming data,
-        avoiding the latency and CPU overhead of periodic polling.
-        """
-        while not self._closed and not self.protocol._closed:
-            # Try to read available data
-            try:
-                chunk = await self.request.read_body(65536)
-                return chunk
-            except Exception:
-                # If read fails, check if we should continue
-                if self._closed or self.protocol._closed:
-                    return None
-                # Wait for more data using the protocol's data event
-                if self.protocol._data_event:
-                    self.protocol._data_event.clear()
-                    # Use wait_for with longer timeout for disconnect detection
-                    try:
-                        await asyncio.wait_for(
-                            self.protocol._data_event.wait(),
-                            timeout=30.0  # 30s timeout for disconnect detection
-                        )
-                    except asyncio.TimeoutError:
-                        # Check connection state and continue
-                        continue
-                else:
-                    # No event available, brief sleep as fallback
-                    await asyncio.sleep(0.001)
-        return None
+        # Create a new waiter
+        loop = asyncio.get_event_loop()
+        self._waiter = loop.create_future()
+
+        try:
+            # Wait with timeout for data or completion
+            await asyncio.wait_for(self._waiter, timeout=30.0)
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            self._waiter = None
 
 
 class ASGIProtocol(asyncio.Protocol):
     """HTTP/1.1 protocol handler for ASGI applications.
 
     Handles connection lifecycle, request parsing, and ASGI app invocation.
-    Uses direct buffering instead of StreamReader for better performance.
-    Supports both pull-based (HttpParser) and callback-based (H1CProtocol/PythonProtocol)
-    parsing modes.
+    Uses callback-based parsing (H1CProtocol/PythonProtocol) for efficient
+    incremental parsing in data_received().
     """
 
     # Class-level cache for H1CProtocol availability
@@ -336,26 +300,21 @@ class ASGIProtocol(asyncio.Protocol):
         self._closed = False
         self._body_receiver = None  # Set per-request for disconnect signaling
 
-        # Direct buffering (replaces StreamReader for HTTP/1.1)
-        self._buffer = bytearray()
-        self._data_event = None  # Lazy init to avoid event loop issues
-
         # Response buffering for write batching
         self._response_buffer = None
 
         # Backpressure control
         self._reading_paused = False
-        self._max_buffer_size = 65536 * 4  # 256KB max buffer
+        self._max_buffer_size = 65536 * 4  # 256KB max buffer (HTTP/2 only)
 
         # Keep-alive timer
         self._keepalive_handle = None
 
-        # Callback parser state (used when use_callback_parser=True)
+        # Callback parser state
         self._callback_parser = None
         self._request_ready = None  # Event signaling headers complete
         self._current_request = None  # Request built from parser state
         self._is_ssl = False
-        self._use_callback_parser = False
 
         # Write flow control
         self._flow_control = None
@@ -377,26 +336,18 @@ class ASGIProtocol(asyncio.Protocol):
                 )
                 return
 
-        # HTTP/1.x connection
+        # HTTP/1.x connection - always use callback parser
         self._is_ssl = ssl_object is not None
-        self._data_event = asyncio.Event()
         self.writer = transport
 
         # Setup flow control for HTTP/1.x
         self._flow_control = FlowControl(transport)
         transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
 
-        # Check if callback parser should be used
-        self._use_callback_parser = self._should_use_callback_parser()
-
-        if self._use_callback_parser:
-            # Callback parser mode - setup request ready event
-            self._request_ready = asyncio.Event()
-            self._setup_callback_parser()
-            self._task = self.worker.loop.create_task(self._handle_connection_callback())
-        else:
-            # Pull-based parser mode (existing fast path)
-            self._task = self.worker.loop.create_task(self._handle_connection())
+        # Setup callback parser with request ready event
+        self._request_ready = asyncio.Event()
+        self._setup_callback_parser()
+        self._task = self.worker.loop.create_task(self._handle_connection())
 
     @classmethod
     def _check_h1c_protocol_available(cls):
@@ -410,27 +361,27 @@ class ASGIProtocol(asyncio.Protocol):
                 cls._h1c_available = False
         return cls._h1c_available
 
-    def _should_use_callback_parser(self):
-        """Determine if callback parser should be used."""
+    def _setup_callback_parser(self):
+        """Create callback parser based on http_parser setting.
+
+        Parser selection:
+        - auto: Use H1CProtocol if available, else PythonProtocol
+        - fast: Require H1CProtocol (error if unavailable)
+        - python: Use PythonProtocol only
+        """
         parser_setting = getattr(self.cfg, 'http_parser', 'auto')
 
-        # Currently default to pull-based parser for stability
-        # Set http_parser='callback' to enable callback mode
-        if parser_setting == 'callback':
-            return True
-        if parser_setting == 'fast-callback':
-            # Only use callback mode if H1CProtocol is available
-            return self._check_h1c_protocol_available()
-
-        return False
-
-    def _setup_callback_parser(self):
-        """Create callback parser with request building handlers."""
-        # Select parser implementation
-        if self._check_h1c_protocol_available():
-            parser_class = ASGIProtocol._h1c_protocol_class
-        else:
+        if parser_setting == 'python':
             parser_class = PythonProtocol
+        elif parser_setting == 'fast':
+            if not self._check_h1c_protocol_available():
+                raise RuntimeError("gunicorn_h1c required for http_parser='fast'")
+            parser_class = ASGIProtocol._h1c_protocol_class
+        else:  # auto
+            if self._check_h1c_protocol_available():
+                parser_class = ASGIProtocol._h1c_protocol_class
+            else:
+                parser_class = PythonProtocol
 
         # Create parser with callbacks
         self._callback_parser = parser_class(
@@ -471,33 +422,23 @@ class ASGIProtocol(asyncio.Protocol):
         if self.reader:
             # HTTP/2 path - use StreamReader
             self.reader.feed_data(data)
-        elif self._use_callback_parser and self._callback_parser:
-            # Callback parser path - feed directly to parser
+        elif self._callback_parser:
+            # HTTP/1.x path - feed directly to callback parser
             try:
                 self._callback_parser.feed(data)
             except ParseError as e:
                 self._send_error_response(400, str(e))
                 self._close_transport()
                 return
-        else:
-            # HTTP/1.x path - direct buffer (faster)
-            self._buffer.extend(data)
-            if self._data_event is not None:
-                self._data_event.set()
 
         # Backpressure: pause reading if buffer is too large
         if not self._reading_paused and self._is_buffer_full():
             self._pause_reading()
 
     def _is_buffer_full(self):
-        """Check if internal buffer is full."""
-        if self.reader:
-            # HTTP/2 path
-            if hasattr(self.reader, '_buffer'):
-                return len(self.reader._buffer) > self._max_buffer_size
-        else:
-            # HTTP/1.x path
-            return len(self._buffer) > self._max_buffer_size
+        """Check if internal buffer is full (HTTP/2 only)."""
+        if self.reader and hasattr(self.reader, '_buffer'):
+            return len(self.reader._buffer) > self._max_buffer_size
         return False
 
     def _pause_reading(self):
@@ -517,33 +458,6 @@ class ASGIProtocol(asyncio.Protocol):
                 self.transport.resume_reading()
             except (AttributeError, RuntimeError):
                 pass
-
-    async def _wait_for_data(self):
-        """Wait for data to arrive in the buffer.
-
-        Returns True if data is available, False if connection closed.
-        """
-        if self._buffer:
-            return True
-        if self._closed:
-            return False
-        if self._data_event is None:
-            return False
-
-        self._data_event.clear()
-        await self._data_event.wait()
-        return bool(self._buffer) and not self._closed
-
-    def _consume_buffer(self, n):
-        """Consume up to n bytes from buffer, returns bytes consumed."""
-        if n >= len(self._buffer):
-            data = bytes(self._buffer)
-            self._buffer.clear()
-            return data
-        else:
-            data = bytes(self._buffer[:n])
-            del self._buffer[:n]
-            return data
 
     def _arm_keepalive_timer(self):
         """Arm keepalive timeout timer after response completion."""
@@ -639,125 +553,34 @@ class ASGIProtocol(asyncio.Protocol):
             pass
 
     async def _handle_connection(self):
-        """Main request handling loop for this connection."""
-        try:
-            peername = self.transport.get_extra_info('peername')
-            sockname = self.transport.get_extra_info('sockname')
+        """Main request handling loop using callback-based parser.
 
-            # Check protocol type - use old path for uWSGI
-            protocol_type = getattr(self.cfg, 'protocol', 'http')
-            if protocol_type == 'uwsgi':
-                await self._handle_connection_uwsgi(peername, sockname)
-                return
-
-            # Fast path: use HttpParser for HTTP protocol
-            await self._handle_connection_fast(peername, sockname)
-
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            self.log.exception("Error handling connection: %s", e)
-        finally:
-            self._close_transport()
-
-    async def _handle_connection_fast(self, peername, sockname):
-        """Fast HTTP connection handling using HttpParser."""
-        # Check if peer is trusted proxy once per connection
-        is_trusted = _check_trusted_proxy(
-            peername,
-            self.cfg.forwarded_allow_ips,
-            self.cfg.forwarded_allow_networks()
-        )
-
-        # Get SSL state
-        ssl_object = self.transport.get_extra_info('ssl_object')
-        is_ssl = ssl_object is not None
-
-        # Create parser and buffer
-        parser = HttpParser(
-            self.cfg, peername, is_ssl=is_ssl,
-            req_number=1, is_trusted_proxy=is_trusted
-        )
-        buffer = bytearray()
-
-        while not self._closed:
-            self.req_count += 1
-
-            # Cancel keepalive timer when new request starts
-            self._cancel_keepalive_timer()
-
-            try:
-                # Parse request using fast parser
-                request = await self._parse_request_fast(
-                    parser, buffer, peername
-                )
-            except NoMoreData:
-                # Client disconnected
-                break
-
-            # Check for WebSocket upgrade
-            if self._is_websocket_upgrade(request):
-                await self._handle_websocket(request, sockname, peername)
-                break  # WebSocket takes over the connection
-
-            # Handle HTTP request
-            keepalive = await self._handle_http_request(
-                request, sockname, peername
-            )
-
-            # Increment worker request count
-            self.worker.nr += 1
-
-            # Check max_requests
-            if self.worker.nr >= self.worker.max_requests:
-                self.log.info("Autorestarting worker after current request.")
-                self.worker.alive = False
-                keepalive = False
-
-            if not keepalive or not self.worker.alive:
-                break
-
-            # Check connection limits for keepalive
-            if not self.cfg.keepalive:
-                break
-
-            # Drain any unread body before next request
-            await request.drain_body()
-
-            # Resume reading if paused during body consumption
-            self._resume_reading()
-
-            # Reset parser for next request (keep trusted proxy check)
-            parser.reset()
-
-            # Arm keepalive timer between requests
-            self._arm_keepalive_timer()
-
-    async def _handle_connection_callback(self):
-        """Handle HTTP connection using callback-based parser.
-
-        This mode uses synchronous parsing in data_received(), avoiding
-        the async overhead of the pull-based parsing loop. The parser
-        fires callbacks when headers and body data are available, and
-        the main loop waits on events rather than actively parsing.
+        Uses synchronous parsing in data_received(), avoiding the async
+        overhead of pull-based parsing. The parser fires callbacks when
+        headers and body data are available, and this loop waits on
+        events rather than actively parsing.
         """
         try:
             peername = self.transport.get_extra_info('peername')
             sockname = self.transport.get_extra_info('sockname')
 
+            # Check protocol type - use separate path for uWSGI
+            protocol_type = getattr(self.cfg, 'protocol', 'http')
+            if protocol_type == 'uwsgi':
+                await self._handle_connection_uwsgi(peername, sockname)
+                return
+
             while not self._closed:
                 self.req_count += 1
                 self._cancel_keepalive_timer()
 
-                # Wait for headers to be parsed (callback sets this event)
-                self._request_ready.clear()
-                self._current_request = None
-
-                # Wait for request or timeout/disconnect
-                try:
-                    await self._request_ready.wait()
-                except asyncio.CancelledError:
-                    break
+                # Wait for headers to be parsed (callback sets the event and _current_request)
+                # Don't clear if request already arrived (data_received ran before us)
+                if not self._request_ready.is_set():
+                    try:
+                        await self._request_ready.wait()
+                    except asyncio.CancelledError:
+                        break
 
                 if self._closed or self._current_request is None:
                     break
@@ -797,9 +620,10 @@ class ASGIProtocol(asyncio.Protocol):
                 if self._callback_parser:
                     self._callback_parser.reset()
 
-                # Clear request state
+                # Clear request state for next iteration
                 self._current_request = None
                 self._body_receiver = None
+                self._request_ready.clear()
 
                 # Arm keepalive timer between requests
                 self._arm_keepalive_timer()
@@ -810,53 +634,6 @@ class ASGIProtocol(asyncio.Protocol):
             self.log.exception("Error handling connection: %s", e)
         finally:
             self._close_transport()
-
-    async def _parse_request_fast(self, parser, buffer, peername):
-        """Parse request using fast HttpParser with direct buffering.
-
-        Returns a FastAsyncRequest wrapping the ParseResult.
-        Uses protocol's direct buffer instead of StreamReader for speed.
-        """
-        # Use protocol's direct buffer (self._buffer) instead of local buffer
-        # The local 'buffer' param is kept for parser state
-
-        # Create buffer reader for body reading (wraps protocol buffer)
-        buffer_reader = BufferReader(self)
-
-        # Read data until we have complete headers
-        while True:
-            # Sync buffer with protocol buffer
-            if self._buffer:
-                buffer.extend(self._buffer)
-                self._buffer.clear()
-
-            # Try to parse current buffer
-            if buffer:
-                try:
-                    result = parser.feed(buffer)
-                    if result is not None:
-                        # Headers complete - create request wrapper
-                        # Remaining data after headers stays in local buffer
-                        # then gets copied to protocol buffer for body reading
-                        request = FastAsyncRequest(
-                            result, buffer_reader, buffer, result.consumed
-                        )
-                        # Clear consumed data from buffer
-                        del buffer[:result.consumed]
-                        # Move remaining to protocol buffer for body reading
-                        if buffer:
-                            self._buffer.extend(buffer)
-                            buffer.clear()
-                        return request
-                except Exception as e:
-                    # Re-raise HTTP parsing errors
-                    if 'incomplete' not in str(e).lower():
-                        raise
-
-            # Need more data - wait for it
-            if not await self._wait_for_data():
-                raise NoMoreData(bytes(buffer))
-            # Data is now in self._buffer, loop will sync it
 
     async def _handle_connection_uwsgi(self, peername, sockname):
         """Handle uWSGI protocol connections (legacy path)."""

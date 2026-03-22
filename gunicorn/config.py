@@ -2775,14 +2775,14 @@ def validate_asgi_lifespan(val):
 def validate_http_parser(val):
     """Validate http_parser setting.
 
-    Accepts: auto, fast, python, callback, fast-callback
+    Accepts: auto, fast, python
     """
     if val is None:
         return "auto"
     if not isinstance(val, str):
         raise TypeError("http_parser must be a string")
     val = val.lower().strip()
-    valid_values = ("auto", "fast", "python", "callback", "fast-callback")
+    valid_values = ("auto", "fast", "python")
     if val not in valid_values:
         raise ValueError("http_parser must be one of: %s" % ", ".join(valid_values))
     return val
@@ -2869,20 +2869,17 @@ class HttpParser(Setting):
     validator = validate_http_parser
     default = "auto"
     desc = """\
-        HTTP parser implementation.
+        HTTP parser implementation for ASGI workers.
 
-        Pull-based parsers (used in request handling loop):
-        - auto: Use gunicorn_h1c if available, otherwise pure Python (default)
-        - fast: Require gunicorn_h1c C extension (fail if unavailable)
-        - python: Force pure Python parser
+        - auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)
+        - fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)
+        - python: Force pure Python PythonProtocol parser
 
-        Callback-based parsers (parsing in data_received, lower overhead):
-        - callback: Use callback parser (H1CProtocol if available, else PythonProtocol)
-        - fast-callback: Require H1CProtocol callback parser (fail if unavailable)
+        ASGI workers use callback-based parsing in data_received() for efficient
+        incremental parsing. The gunicorn_h1c C extension provides significantly
+        faster HTTP parsing using picohttpparser with SIMD optimizations.
 
-        The gunicorn_h1c C extension provides significantly faster HTTP
-        parsing using picohttpparser with SIMD optimizations. Install it
-        with: pip install gunicorn[fast]
+        Install it with: pip install gunicorn[fast]
 
         .. versionadded:: 25.0.0
         """
