@@ -24,9 +24,11 @@ gunicorn main:app --worker-class asgi --bind 0.0.0.0:8000
 The ASGI worker provides:
 
 - **HTTP/1.1** with keepalive connections
+- **HTTP/2** with multiplexing and server push (requires SSL)
 - **WebSocket** support for real-time applications
 - **Lifespan protocol** for startup/shutdown hooks
-- **Optional uvloop** for improved performance
+- **Optional fast HTTP parser** via C extension for high throughput
+- **Optional uvloop** for improved event loop performance
 - **SSL/TLS** support
 - **uWSGI protocol** for nginx `uwsgi_pass` integration
 
@@ -224,6 +226,56 @@ graceful_timeout = 30  # Graceful shutdown timeout
 asgi_loop = "auto"  # Use uvloop if available
 asgi_lifespan = "auto"  # Auto-detect lifespan support
 ```
+
+## Performance
+
+### Fast HTTP Parser
+
+For maximum performance, install the optional `gunicorn_h1c` C extension:
+
+```bash
+pip install gunicorn[fast]
+```
+
+This provides a high-performance HTTP parser using picohttpparser with SIMD
+optimizations, offering significant speedups for HTTP parsing compared to the
+pure Python implementation.
+
+The parser is automatically used when available (`--http-parser auto`), or you
+can explicitly require it:
+
+```bash
+gunicorn myapp:app --worker-class asgi --http-parser fast
+```
+
+| Parser | Description |
+|--------|-------------|
+| `auto` | Use fast parser if available, otherwise Python (default) |
+| `fast` | Require fast parser, fail if unavailable |
+| `python` | Force pure Python parser |
+
+### Performance Tips
+
+1. **Use uvloop** for improved event loop performance:
+   ```bash
+   pip install uvloop
+   gunicorn myapp:app --worker-class asgi --asgi-loop uvloop
+   ```
+
+2. **Install the fast parser** for optimized HTTP parsing:
+   ```bash
+   pip install gunicorn[fast]
+   ```
+
+3. **Tune worker count** based on CPU cores:
+   ```bash
+   gunicorn myapp:app --worker-class asgi --workers $(nproc)
+   ```
+
+4. **Increase connections** for I/O-bound applications:
+   ```bash
+   gunicorn myapp:app --worker-class asgi --worker-connections 2000
+   ```
 
 ## Comparison with Other ASGI Servers
 
