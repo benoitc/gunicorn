@@ -1978,14 +1978,15 @@ This setting only affects the ``asgi`` worker type.
 
 **Default:** `'auto'`
 
-HTTP parser implementation for WSGI and ASGI workers.
+HTTP parser implementation for ASGI workers.
 
-- auto: Use gunicorn_h1c if available (>= 0.4.1), else pure Python parser (default)
-- fast: Require gunicorn_h1c >= 0.4.1 (fail if unavailable)
-- python: Force pure Python parser
+- auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)
+- fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)
+- python: Force pure Python PythonProtocol parser
 
-The gunicorn_h1c C extension provides faster HTTP parsing using picohttpparser
-with SIMD optimizations. Requires gunicorn_h1c >= 0.4.1 for limit enforcement.
+ASGI workers use callback-based parsing in data_received() for efficient
+incremental parsing. The gunicorn_h1c C extension provides significantly
+faster HTTP parsing using picohttpparser with SIMD optimizations.
 
 Install it with: pip install gunicorn[fast]
 
