@@ -443,7 +443,7 @@ class CallbackRequest:
 
     __slots__ = (
         'method', 'uri', 'path', 'query', 'fragment', 'version',
-        'headers', 'headers_bytes', 'scheme',
+        'headers', 'headers_bytes', 'scheme', 'raw_path',
         'content_length', 'chunked', 'must_close',
         'proxy_protocol_info', '_expect_100_continue',
     )
@@ -458,6 +458,7 @@ class CallbackRequest:
         self.headers = []
         self.headers_bytes = []
         self.scheme = "http"
+        self.raw_path = b''
         self.content_length = 0
         self.chunked = False
         self.must_close = False
@@ -475,20 +476,27 @@ class CallbackRequest:
         Returns:
             CallbackRequest instance
         """
+        from urllib.parse import unquote_to_bytes
+
         req = cls()
         req.method = parser.method.decode('ascii')
 
         # Parse path and query from URL
-        raw_path = parser.path
-        if b'?' in raw_path:
-            path_part, query_part = raw_path.split(b'?', 1)
-            req.path = path_part.decode('latin-1')
+        # Per ASGI spec:
+        # - path: percent-decoded UTF-8 string
+        # - raw_path: original bytes as received
+        raw_url = parser.path
+        if b'?' in raw_url:
+            path_part, query_part = raw_url.split(b'?', 1)
+            req.raw_path = path_part  # Store original bytes
+            req.path = unquote_to_bytes(path_part).decode('utf-8', errors='replace')
             req.query = query_part.decode('latin-1')
         else:
-            req.path = raw_path.decode('latin-1')
+            req.raw_path = raw_url  # Store original bytes
+            req.path = unquote_to_bytes(raw_url).decode('utf-8', errors='replace')
             req.query = ''
 
-        req.uri = raw_path.decode('latin-1')
+        req.uri = raw_url.decode('latin-1')
         req.fragment = ''
         req.version = parser.http_version
 

@@ -429,3 +429,90 @@ class TestCallbackBehavior:
 
         assert parser.is_complete
         assert body_chunks == []  # Body was skipped
+
+
+class TestCallbackRequest:
+    """Test CallbackRequest building from parser state."""
+
+    def test_non_ascii_path_decoding(self, http_parser):
+        """Test that percent-encoded UTF-8 paths are decoded correctly.
+
+        Per ASGI spec:
+        - path: percent-decoded UTF-8 string
+        - raw_path: original bytes as received
+        """
+        from gunicorn.asgi.parser import CallbackRequest
+
+        parser_class = get_parser_class(http_parser)
+        parser = parser_class()
+
+        # ö = %C3%B6 in UTF-8 percent-encoded
+        parser.feed(b"GET /%C3%B6/ HTTP/1.1\r\nHost: test\r\n\r\n")
+
+        request = CallbackRequest.from_parser(parser)
+
+        # path should be percent-decoded UTF-8 string
+        assert request.path == "/\u00f6/"  # /ö/
+        # raw_path should be original bytes
+        assert request.raw_path == b"/%C3%B6/"
+
+    def test_non_ascii_path_with_query(self, http_parser):
+        """Test percent-encoded path with query string."""
+        from gunicorn.asgi.parser import CallbackRequest
+
+        parser_class = get_parser_class(http_parser)
+        parser = parser_class()
+
+        # Japanese: /日本/ = /%E6%97%A5%E6%9C%AC/
+        parser.feed(b"GET /%E6%97%A5%E6%9C%AC/?q=test HTTP/1.1\r\nHost: test\r\n\r\n")
+
+        request = CallbackRequest.from_parser(parser)
+
+        assert request.path == "/\u65e5\u672c/"  # /日本/
+        assert request.raw_path == b"/%E6%97%A5%E6%9C%AC/"
+        assert request.query == "q=test"
+
+    def test_invalid_utf8_path(self, http_parser):
+        """Test that invalid UTF-8 sequences use replacement character."""
+        from gunicorn.asgi.parser import CallbackRequest
+
+        parser_class = get_parser_class(http_parser)
+        parser = parser_class()
+
+        # %FF is invalid UTF-8
+        parser.feed(b"GET /%FF HTTP/1.1\r\nHost: test\r\n\r\n")
+
+        request = CallbackRequest.from_parser(parser)
+
+        # Should use replacement character for invalid bytes
+        assert "\ufffd" in request.path
+        assert request.raw_path == b"/%FF"
+
+    def test_simple_ascii_path(self, http_parser):
+        """Test that simple ASCII paths work unchanged."""
+        from gunicorn.asgi.parser import CallbackRequest
+
+        parser_class = get_parser_class(http_parser)
+        parser = parser_class()
+
+        parser.feed(b"GET /api/users HTTP/1.1\r\nHost: test\r\n\r\n")
+
+        request = CallbackRequest.from_parser(parser)
+
+        assert request.path == "/api/users"
+        assert request.raw_path == b"/api/users"
+
+    def test_percent_encoded_ascii(self, http_parser):
+        """Test percent-encoded ASCII characters."""
+        from gunicorn.asgi.parser import CallbackRequest
+
+        parser_class = get_parser_class(http_parser)
+        parser = parser_class()
+
+        # Space encoded as %20
+        parser.feed(b"GET /hello%20world HTTP/1.1\r\nHost: test\r\n\r\n")
+
+        request = CallbackRequest.from_parser(parser)
+
+        assert request.path == "/hello world"
+        assert request.raw_path == b"/hello%20world"
