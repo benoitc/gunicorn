@@ -124,7 +124,6 @@ class FlowControl:
 def _get_cached_date_header():
     """Get cached Date header, updating once per second."""
     global _cached_date_header, _cached_date_time  # pylint: disable=global-statement
-    import time
     now = time.time()
     if now - _cached_date_time >= 1.0:
         # Update date header
@@ -199,7 +198,7 @@ class BodyReceiver:
         if self._waiter is not None and not self._waiter.done():
             self._waiter.set_result(None)
 
-    async def receive(self):
+    async def receive(self):  # pylint: disable=too-many-return-statements
         """ASGI receive callable - returns body chunks or disconnect."""
         # Already disconnected or body finished
         if self._closed or self._body_finished:
@@ -207,11 +206,7 @@ class BodyReceiver:
 
         # Fast path: chunk already available
         if self._chunks:
-            chunk = self._chunks.pop(0)
-            more = bool(self._chunks) or not self._complete
-            if not more:
-                self._body_finished = True
-            return {"type": "http.request", "body": chunk, "more_body": more}
+            return self._pop_chunk()
 
         # Body complete with no more chunks
         if self._complete:
@@ -232,27 +227,32 @@ class BodyReceiver:
         # Wait for body chunk to arrive via callback
         try:
             await self._wait_for_data()
-
-            # Check what arrived
-            if self._closed:
-                return {"type": "http.disconnect"}
-
-            if self._chunks:
-                chunk = self._chunks.pop(0)
-                more = bool(self._chunks) or not self._complete
-                if not more:
-                    self._body_finished = True
-                return {"type": "http.request", "body": chunk, "more_body": more}
-
-            if self._complete:
-                self._body_finished = True
-                return {"type": "http.request", "body": b"", "more_body": False}
-
-            # Timeout or other condition - return empty with more_body=True
-            return {"type": "http.request", "body": b"", "more_body": True}
-
+            return self._build_receive_result()
         except asyncio.CancelledError:
             return {"type": "http.disconnect"}
+
+    def _pop_chunk(self):
+        """Pop a chunk and return the appropriate message."""
+        chunk = self._chunks.pop(0)
+        more = bool(self._chunks) or not self._complete
+        if not more:
+            self._body_finished = True
+        return {"type": "http.request", "body": chunk, "more_body": more}
+
+    def _build_receive_result(self):
+        """Build receive result after waiting for data."""
+        if self._closed:
+            return {"type": "http.disconnect"}
+
+        if self._chunks:
+            return self._pop_chunk()
+
+        if self._complete:
+            self._body_finished = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        # Timeout or other condition - return empty with more_body=True
+        return {"type": "http.request", "body": b"", "more_body": True}
 
     async def _wait_for_data(self):
         """Wait for body data to arrive via callback."""

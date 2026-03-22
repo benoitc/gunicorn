@@ -12,7 +12,6 @@ or the pure Python PythonProtocol fallback.
 
 class ParseError(Exception):
     """Error raised during HTTP parsing."""
-    pass
 
 
 class PythonProtocol:
