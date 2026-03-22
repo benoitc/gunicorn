@@ -11,7 +11,31 @@ or the pure Python PythonProtocol fallback.
 
 
 class ParseError(Exception):
-    """Error raised during HTTP parsing."""
+    """Base error raised during HTTP parsing."""
+
+
+class LimitRequestLine(ParseError):
+    """Request line exceeds configured limit."""
+
+
+class LimitRequestHeaders(ParseError):
+    """Too many headers or header field too large."""
+
+
+class InvalidRequestMethod(ParseError):
+    """Invalid HTTP method."""
+
+
+class InvalidHTTPVersion(ParseError):
+    """Invalid HTTP version."""
+
+
+class InvalidHeaderName(ParseError):
+    """Invalid header name."""
+
+
+class InvalidHeader(ParseError):
+    """Invalid header value."""
 
 
 class PythonProtocol:
@@ -37,6 +61,9 @@ class PythonProtocol:
         'content_length', 'is_chunked', 'should_keep_alive', 'is_complete',
         '_body_remaining', '_skip_body',
         '_chunk_state', '_chunk_size', '_chunk_remaining',
+        '_limit_request_line', '_limit_request_fields', '_limit_request_field_size',
+        '_permit_unconventional_http_method', '_permit_unconventional_http_version',
+        '_header_count',
     )
 
     def __init__(
@@ -47,6 +74,11 @@ class PythonProtocol:
         on_headers_complete=None,
         on_body=None,
         on_message_complete=None,
+        limit_request_line=8190,
+        limit_request_fields=100,
+        limit_request_field_size=8190,
+        permit_unconventional_http_method=False,
+        permit_unconventional_http_version=False,
     ):
         self._on_message_begin = on_message_begin
         self._on_url = on_url
@@ -54,6 +86,14 @@ class PythonProtocol:
         self._on_headers_complete = on_headers_complete
         self._on_body = on_body
         self._on_message_complete = on_message_complete
+
+        # Store limits
+        self._limit_request_line = limit_request_line
+        self._limit_request_fields = limit_request_fields
+        self._limit_request_field_size = limit_request_field_size
+        self._permit_unconventional_http_method = permit_unconventional_http_method
+        self._permit_unconventional_http_version = permit_unconventional_http_version
+        self._header_count = 0
 
         # Parser state: request_line, headers, body, chunked_size, chunked_data, complete
         self._state = 'request_line'
@@ -124,12 +164,17 @@ class PythonProtocol:
         self._chunk_state = 'size'
         self._chunk_size = 0
         self._chunk_remaining = 0
+        self._header_count = 0
 
     def _parse_request_line(self):
         """Parse request line, return True if complete."""
         idx = self._buffer.find(b'\r\n')
         if idx == -1:
             return False
+
+        # Check request line length limit
+        if self._limit_request_line > 0 and idx > self._limit_request_line:
+            raise LimitRequestLine("Request line is too large")
 
         line = bytes(self._buffer[:idx])
         del self._buffer[:idx + 2]
@@ -142,6 +187,11 @@ class PythonProtocol:
         self.method = parts[0]
         self.path = parts[1]
 
+        # Validate method
+        if not self._permit_unconventional_http_method:
+            if not self._is_valid_method(self.method):
+                raise InvalidRequestMethod(self.method.decode('latin-1'))
+
         # Parse version
         version = parts[2]
         if version == b'HTTP/1.1':
@@ -149,7 +199,17 @@ class PythonProtocol:
         elif version == b'HTTP/1.0':
             self.http_version = (1, 0)
         else:
-            raise ParseError("Unsupported HTTP version")
+            if not self._permit_unconventional_http_version:
+                raise InvalidHTTPVersion(version.decode('latin-1'))
+            # Try to parse other HTTP/1.x versions if permitted
+            if version.startswith(b'HTTP/1.'):
+                try:
+                    minor = int(version[7:])
+                    self.http_version = (1, minor)
+                except ValueError:
+                    raise InvalidHTTPVersion(version.decode('latin-1'))
+            else:
+                raise InvalidHTTPVersion(version.decode('latin-1'))
 
         if self._on_message_begin:
             self._on_message_begin()
@@ -174,18 +234,34 @@ class PythonProtocol:
                 self._finalize_headers()
                 return True
 
+            # Check header field size limit
+            if self._limit_request_field_size > 0 and len(line) > self._limit_request_field_size:
+                raise LimitRequestHeaders("Request header field is too large")
+
+            # Check header count limit
+            self._header_count += 1
+            if self._limit_request_fields > 0 and self._header_count > self._limit_request_fields:
+                raise LimitRequestHeaders("Too many headers")
+
             # Parse header
             colon = line.find(b':')
             if colon == -1:
-                raise ParseError("Invalid header")
+                raise InvalidHeader("Missing colon in header")
 
-            name = line[:colon].strip().lower()
+            name = line[:colon].strip()
+            if not self._is_valid_token(name):
+                raise InvalidHeaderName(name.decode('latin-1'))
+
             value = line[colon + 1:].strip()
+            if self._has_invalid_header_chars(value):
+                raise InvalidHeader("Invalid characters in header value")
 
-            self._headers_list.append((name, value))
+            # Store lowercase name for internal use
+            name_lower = name.lower()
+            self._headers_list.append((name_lower, value))
 
             if self._on_header:
-                self._on_header(name, value)
+                self._on_header(name_lower, value)
 
     def _finalize_headers(self):
         """Called when all headers received."""
@@ -328,6 +404,35 @@ class PythonProtocol:
                     return True
 
         return False
+
+    def _is_valid_method(self, method):
+        """Check if method is valid token with conventional restrictions."""
+        if not method:
+            return False
+        # Check length (3-20 chars)
+        if not 3 <= len(method) <= 20:
+            return False
+        # Check for lowercase or # (unconventional)
+        for c in method:
+            if c in b'abcdefghijklmnopqrstuvwxyz#':
+                return False
+        return self._is_valid_token(method)
+
+    def _is_valid_token(self, data):
+        """Check if data contains only RFC 9110 token characters."""
+        if not data:
+            return False
+        for c in data:
+            if c < 0x21 or c > 0x7e:
+                return False
+            # RFC 9110 delimiters: "(),/:;<=>?@[\]{}
+            if c in b'"(),/:;<=>?@[\\]{}"':
+                return False
+        return True
+
+    def _has_invalid_header_chars(self, value):
+        """Check for NUL, CR, LF in header value."""
+        return b'\x00' in value or b'\r' in value or b'\n' in value
 
 
 class CallbackRequest:

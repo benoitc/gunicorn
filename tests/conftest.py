@@ -18,7 +18,10 @@ if tests_dir not in sys.path:
 
 @pytest.fixture(params=["python", "fast"])
 def http_parser(request):
-    """Parametrize tests over ASGI http_parser implementations."""
+    """Parametrize tests over http_parser implementations."""
     if request.param == "fast":
-        pytest.importorskip("gunicorn_h1c", reason="gunicorn_h1c required")
+        gunicorn_h1c = pytest.importorskip("gunicorn_h1c", reason="gunicorn_h1c required")
+        # Require >= 0.4.1 for limit enforcement
+        if not hasattr(gunicorn_h1c, 'LimitRequestLine'):
+            pytest.skip("gunicorn_h1c >= 0.4.1 required")
     return request.param

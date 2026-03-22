@@ -16,7 +16,8 @@ import time
 
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.parser import (
-    PythonProtocol, CallbackRequest, ParseError
+    PythonProtocol, CallbackRequest, ParseError,
+    LimitRequestLine, LimitRequestHeaders
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
@@ -283,6 +284,7 @@ class ASGIProtocol(asyncio.Protocol):
     # Class-level cache for H1CProtocol availability
     _h1c_available = None
     _h1c_protocol_class = None
+    _h1c_has_limits = False  # True if >= 0.4.1 (has limit parameters)
 
     def __init__(self, worker):
         self.worker = worker
@@ -354,40 +356,73 @@ class ASGIProtocol(asyncio.Protocol):
         """Check if H1CProtocol is available (cached at class level)."""
         if cls._h1c_available is None:
             try:
+                import gunicorn_h1c
                 from gunicorn_h1c import H1CProtocol
                 cls._h1c_available = True
                 cls._h1c_protocol_class = H1CProtocol
+                # Require >= 0.4.1 for limit enforcement
+                cls._h1c_has_limits = hasattr(gunicorn_h1c, 'LimitRequestLine')
             except ImportError:
                 cls._h1c_available = False
+                cls._h1c_has_limits = False
         return cls._h1c_available
+
+    # Compatibility flags not supported by the fast parser
+    _FAST_PARSER_INCOMPATIBLE_FLAGS = (
+        'permit_obsolete_folding',
+        'strip_header_spaces',
+    )
 
     def _setup_callback_parser(self):
         """Create callback parser based on http_parser setting.
 
         Parser selection:
-        - auto: Use H1CProtocol if available, else PythonProtocol
-        - fast: Require H1CProtocol (error if unavailable)
+        - auto: Use H1CProtocol if available (>= 0.4.1) and no incompatible flags, else PythonProtocol
+        - fast: Require H1CProtocol >= 0.4.1 (error if unavailable or incompatible flags)
         - python: Use PythonProtocol only
         """
         parser_setting = getattr(self.cfg, 'http_parser', 'auto')
+
+        # Check for incompatible compatibility flags
+        incompatible = []
+        for flag in self._FAST_PARSER_INCOMPATIBLE_FLAGS:
+            if getattr(self.cfg, flag, False):
+                incompatible.append(flag)
 
         if parser_setting == 'python':
             parser_class = PythonProtocol
         elif parser_setting == 'fast':
             if not self._check_h1c_protocol_available():
                 raise RuntimeError("gunicorn_h1c required for http_parser='fast'")
+            if not ASGIProtocol._h1c_has_limits:
+                raise RuntimeError(
+                    "gunicorn_h1c >= 0.4.1 required for http_parser='fast'. "
+                    "Please upgrade: pip install --upgrade gunicorn_h1c"
+                )
+            if incompatible:
+                raise RuntimeError(
+                    "http_parser='fast' is incompatible with compatibility flags: %s. "
+                    "Use http_parser='python' or disable these flags."
+                    % ', '.join(incompatible)
+                )
             parser_class = ASGIProtocol._h1c_protocol_class
         else:  # auto
-            if self._check_h1c_protocol_available():
+            if (self._check_h1c_protocol_available() and
+                    ASGIProtocol._h1c_has_limits and not incompatible):
                 parser_class = ASGIProtocol._h1c_protocol_class
             else:
                 parser_class = PythonProtocol
 
-        # Create parser with callbacks
+        # Create parser with callbacks and limit parameters (both parsers support them)
         self._callback_parser = parser_class(
             on_headers_complete=self._on_headers_complete,
             on_body=self._on_body,
             on_message_complete=self._on_message_complete,
+            limit_request_line=self.cfg.limit_request_line,
+            limit_request_fields=self.cfg.limit_request_fields,
+            limit_request_field_size=self.cfg.limit_request_field_size,
+            permit_unconventional_http_method=self.cfg.permit_unconventional_http_method,
+            permit_unconventional_http_version=self.cfg.permit_unconventional_http_version,
         )
 
     def _on_headers_complete(self):
@@ -426,6 +461,14 @@ class ASGIProtocol(asyncio.Protocol):
             # HTTP/1.x path - feed directly to callback parser
             try:
                 self._callback_parser.feed(data)
+            except LimitRequestLine as e:
+                self._send_error_response(414, str(e))  # URI Too Long
+                self._close_transport()
+                return
+            except LimitRequestHeaders as e:
+                self._send_error_response(431, str(e))  # Request Header Fields Too Large
+                self._close_transport()
+                return
             except ParseError as e:
                 self._send_error_response(400, str(e))
                 self._close_transport()
