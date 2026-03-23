@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -2791,6 +2791,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#http_parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http_parser
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4830,6 +4841,22 @@ connections) before the request task is cancelled.</p>
 database connections). Apps with long-running database operations may
 need to increase this value.</p>
 <p>This setting only affects the <code>asgi</code> worker type.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http_parser"><code>http_parser</code><a class="headerlink" href="#http_parser" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http-parser STRING</code></p>
+<p><strong>Default:</strong> <code>'auto'</code></p>
+<p>HTTP parser implementation for ASGI workers.</p>
+<ul>
+<li>auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)</li>
+<li>fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)</li>
+<li>python: Force pure Python PythonProtocol parser</li>
+</ul>
+<p>ASGI workers use callback-based parsing in data_received() for efficient
+incremental parsing. The gunicorn_h1c C extension provides significantly
+faster HTTP parsing using picohttpparser with SIMD optimizations.</p>
+<p>Install it with: pip install gunicorn[fast]</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
 </div>

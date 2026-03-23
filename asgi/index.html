@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -962,6 +962,45 @@
     <span class="md-ellipsis">
       
         Recommended Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fast-http-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fast HTTP Parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Tips
       
     </span>
   </a>
@@ -2106,9 +2145,11 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 <p>The ASGI worker provides:</p>
 <ul>
 <li><strong>HTTP/1.1</strong> with keepalive connections</li>
+<li><strong>HTTP/2</strong> with multiplexing and server push (requires SSL)</li>
 <li><strong>WebSocket</strong> support for real-time applications</li>
 <li><strong>Lifespan protocol</strong> for startup/shutdown hooks</li>
-<li><strong>Optional uvloop</strong> for improved performance</li>
+<li><strong>Optional fast HTTP parser</strong> via C extension for high throughput</li>
+<li><strong>Optional uvloop</strong> for improved event loop performance</li>
 <li><strong>SSL/TLS</strong> support</li>
 <li><strong>uWSGI protocol</strong> for nginx <code>uwsgi_pass</code> integration</li>
 </ul>
@@ -2290,6 +2331,64 @@ Use HTTP proxy for WebSocket endpoints.</p>
 <span class="n">asgi_loop</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>  <span class="c1"># Use uvloop if available</span>
 <span class="n">asgi_lifespan</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>  <span class="c1"># Auto-detect lifespan support</span>
 </code></pre></div>
+<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
+<h3 id="fast-http-parser">Fast HTTP Parser<a class="headerlink" href="#fast-http-parser" title="Permanent link">&para;</a></h3>
+<p>For maximum performance, install the optional <code>gunicorn_h1c</code> C extension:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>gunicorn<span class="o">[</span>fast<span class="o">]</span>
+</code></pre></div>
+<p>This provides a high-performance HTTP parser using picohttpparser with SIMD
+optimizations, offering significant speedups for HTTP parsing compared to the
+pure Python implementation.</p>
+<p>The parser is automatically used when available (<code>--http-parser auto</code>), or you
+can explicitly require it:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--http-parser<span class="w"> </span>fast
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Parser</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auto</code></td>
+<td>Use fast parser if available, otherwise Python (default)</td>
+</tr>
+<tr>
+<td><code>fast</code></td>
+<td>Require fast parser, fail if unavailable</td>
+</tr>
+<tr>
+<td><code>python</code></td>
+<td>Force pure Python parser</td>
+</tr>
+</tbody>
+</table>
+<h3 id="performance-tips">Performance Tips<a class="headerlink" href="#performance-tips" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Use uvloop</strong> for improved event loop performance:
+   <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>uvloop
+gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--asgi-loop<span class="w"> </span>uvloop
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Install the fast parser</strong> for optimized HTTP parsing:
+   <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>gunicorn<span class="o">[</span>fast<span class="o">]</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Tune worker count</strong> based on CPU cores:
+   <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--workers<span class="w"> </span><span class="k">$(</span>nproc<span class="k">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Increase connections</strong> for I/O-bound applications:
+   <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--worker-connections<span class="w"> </span><span class="m">2000</span>
+</code></pre></div></p>
+</li>
+</ol>
 <h2 id="comparison-with-other-asgi-servers">Comparison with Other ASGI Servers<a class="headerlink" href="#comparison-with-other-asgi-servers" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

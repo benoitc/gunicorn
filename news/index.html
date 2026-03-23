@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1371,6 +1371,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#performance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1399,7 +1410,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1566,7 +1577,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1655,7 +1666,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1694,7 +1705,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_3" class="md-nav__link">
+  <a href="#new-features_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -2305,6 +2316,14 @@
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Fast HTTP Parser (gunicorn_h1c 0.4.1)</strong>: Integrate new exception types and limit
+  parameters from gunicorn_h1c 0.4.1 for both WSGI and ASGI workers</li>
+<li>Requires gunicorn_h1c &gt;= 0.4.1 for <code>http_parser='fast'</code></li>
+<li>Falls back to Python parser in <code>auto</code> mode if version not met</li>
+<li>Proper HTTP status codes for limit errors (414, 431)</li>
+</ul>
 <h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI HTTP Parser Optimizations</strong>: Improve ASGI worker HTTP parsing performance</li>
@@ -2315,7 +2334,7 @@
 </ul>
 <hr />
 <h2 id="2510-2026-02-13">25.1.0 - 2026-02-13<a class="headerlink" href="#2510-2026-02-13" title="Permanent link">&para;</a></h2>
-<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Control Interface (gunicornc)</strong>: Add interactive control interface for managing
   running Gunicorn instances, similar to birdc for BIRD routing daemon
@@ -2433,7 +2452,7 @@
 </ul>
 <hr />
 <h2 id="2500-2026-02-01">25.0.0 - 2026-02-01<a class="headerlink" href="#2500-2026-02-01" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Dirty Arbiters</strong>: Separate process pool for executing long-running, blocking
   operations (AI model loading, heavy computation) without blocking HTTP workers
@@ -2543,7 +2562,7 @@
 </ul>
 <hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
   Container Registry at <code>ghcr.io/benoitc/gunicorn</code></li>
@@ -2585,7 +2604,7 @@
 </ul>
 <hr />
 <h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_4">New Features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies</li>
