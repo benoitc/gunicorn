@@ -3437,14 +3437,15 @@ prefix.</p>
 <h2 id="control">Control<a class="headerlink" href="#control" title="Permanent link">&para;</a></h2>
 <h3 id="control_socket"><code>control_socket</code><a class="headerlink" href="#control_socket" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--control-socket PATH</code></p>
-<p><strong>Default:</strong> <code>'/run/gunicorn.ctl'</code></p>
+<p><strong>Default:</strong></p>
+<p>$XDG_RUNTIME_DIR/gunicorn.ctl or $HOME/.gunicorn/gunicorn.ctl</p>
 <p>Unix socket path for control interface.</p>
 <p>The control socket allows runtime management of Gunicorn via the
 <code>gunicornc</code> command-line tool. Commands include viewing worker
 status, adjusting worker count, and graceful reload/shutdown.</p>
-<p>By default, creates <code>/run/gunicorn.ctl</code> (requires write access to
-<code>/run</code>). For user-level deployments, specify a different path such
-as <code>/tmp/gunicorn.ctl</code> or <code>~/.gunicorn.ctl</code>.</p>
+<p>Default: <code>$XDG_RUNTIME_DIR/gunicorn.ctl</code> if XDG_RUNTIME_DIR is set,
+otherwise <code>$HOME/.gunicorn/gunicorn.ctl</code>. The parent directory is
+created automatically if needed.</p>
 <p>Use <code>--no-control-socket</code> to disable.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.1.0</p>
