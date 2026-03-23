@@ -309,6 +309,10 @@ class HTTP2Stream:
         # Initialize event lazily (avoids event loop issues at construction)
         if self._body_event is None:
             self._body_event = asyncio.Event()
+            # If data already arrived before event existed, set it now
+            # This prevents race where DATA frames arrive before first read
+            if self._body_chunks or self._body_complete:
+                self._body_event.set()
 
         while True:
             # Return chunk if available

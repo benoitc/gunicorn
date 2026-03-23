@@ -389,7 +389,7 @@ class TestWebSocketProtocol:
         from gunicorn.asgi.websocket import WebSocketProtocol
 
         # Create a minimal protocol instance
-        protocol = WebSocketProtocol(None, None, {}, None, mock.Mock())
+        protocol = WebSocketProtocol(None, {}, None, mock.Mock())
 
         # Test unmasking (XOR operation)
         masking_key = bytes([0x37, 0xfa, 0x21, 0x3d])
@@ -402,7 +402,7 @@ class TestWebSocketProtocol:
         """Test WebSocket frame unmasking with empty payload."""
         from gunicorn.asgi.websocket import WebSocketProtocol
 
-        protocol = WebSocketProtocol(None, None, {}, None, mock.Mock())
+        protocol = WebSocketProtocol(None, {}, None, mock.Mock())
 
         masking_key = bytes([0x37, 0xfa, 0x21, 0x3d])
         unmasked = protocol._unmask(b"", masking_key)

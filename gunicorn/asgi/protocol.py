@@ -248,12 +248,10 @@ class BodyReceiver:
         if self._chunks:
             return self._pop_chunk()
 
-        if self._complete:
-            self._body_finished = True
-            return {"type": "http.request", "body": b"", "more_body": False}
-
-        # Timeout or other condition - return empty with more_body=True
-        return {"type": "http.request", "body": b"", "more_body": True}
+        # Complete OR timeout - mark body finished to prevent infinite loops
+        # Apps should not loop forever waiting for body that won't arrive
+        self._body_finished = True
+        return {"type": "http.request", "body": b"", "more_body": False}
 
     async def _wait_for_data(self):
         """Wait for body data to arrive via callback."""
@@ -320,6 +318,9 @@ class ASGIProtocol(asyncio.Protocol):
 
         # Write flow control
         self._flow_control = None
+
+        # WebSocket protocol (set during upgrade, receives data via callbacks)
+        self._websocket = None
 
     def connection_made(self, transport):
         """Called when a connection is established."""
@@ -454,6 +455,10 @@ class ASGIProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         """Called when data is received on the connection."""
+        if self._websocket:
+            # WebSocket path - forward to WebSocket protocol
+            self._websocket.feed_data(data)
+            return
         if self.reader:
             # HTTP/2 path - use StreamReader
             self.reader.feed_data(data)
@@ -544,6 +549,10 @@ class ASGIProtocol(asyncio.Protocol):
 
         if self.reader:
             self.reader.feed_eof()
+
+        # Signal EOF to WebSocket if active
+        if self._websocket:
+            self._websocket.feed_eof()
 
         # Signal disconnect to the app via the body receiver
         if self._body_receiver is not None:
@@ -750,10 +759,17 @@ class ASGIProtocol(asyncio.Protocol):
         """Handle WebSocket upgrade request."""
         from gunicorn.asgi.websocket import WebSocketProtocol
 
+        # Stop callback parser - WebSocket uses its own data handling
+        self._callback_parser = None
+
         scope = self._build_websocket_scope(request, sockname, peername)
         ws_protocol = WebSocketProtocol(
-            self.transport, self.reader, scope, self.app, self.log
+            self.transport, scope, self.app, self.log
         )
+
+        # Store reference so data_received() forwards to WebSocket
+        self._websocket = ws_protocol
+
         await ws_protocol.run()
 
     async def _handle_http_request(self, request, sockname, peername):
@@ -772,9 +788,8 @@ class ASGIProtocol(asyncio.Protocol):
         response_headers = []
         response_sent = 0
 
-        # Create body receiver - reads directly on demand, no Queue/Task overhead
-        body_receiver = BodyReceiver(request, self)
-        self._body_receiver = body_receiver
+        # Use body receiver created in _on_headers_complete (receives data via callbacks)
+        body_receiver = self._body_receiver
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
