@@ -5,10 +5,12 @@
 import os
 import re
 import sys
+import tempfile
 
 import pytest
 
 from gunicorn import config
+from gunicorn.config import _get_default_control_socket
 from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
 from gunicorn.errors import ConfigError
@@ -551,3 +553,39 @@ def test_str():
         assert False, 'missing expected setting lines? {}'.format(
             OUTPUT_MATCH.keys()
         )
+
+
+# Tests for _get_default_control_socket
+
+class TestGetDefaultControlSocket:
+    """Tests for the _get_default_control_socket function."""
+
+    def test_uses_xdg_runtime_dir_when_set_and_exists(self, monkeypatch):
+        """When XDG_RUNTIME_DIR is set and exists, use it."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monkeypatch.setenv('XDG_RUNTIME_DIR', tmpdir)
+            result = _get_default_control_socket()
+            assert result == os.path.join(tmpdir, 'gunicorn.ctl')
+
+    def test_falls_back_when_xdg_runtime_dir_not_exists(self, monkeypatch):
+        """When XDG_RUNTIME_DIR is set but doesn't exist, fall back to home."""
+        monkeypatch.setenv('XDG_RUNTIME_DIR', '/nonexistent/path/that/does/not/exist')
+        monkeypatch.setenv('HOME', '/home/testuser')
+        result = _get_default_control_socket()
+        assert result == '/home/testuser/.gunicorn/gunicorn.ctl'
+
+    def test_falls_back_when_xdg_runtime_dir_not_set(self, monkeypatch):
+        """When XDG_RUNTIME_DIR is not set, use home directory."""
+        monkeypatch.delenv('XDG_RUNTIME_DIR', raising=False)
+        monkeypatch.setenv('HOME', '/home/testuser')
+        result = _get_default_control_socket()
+        assert result == '/home/testuser/.gunicorn/gunicorn.ctl'
+
+    def test_uses_home_directory_structure(self, monkeypatch):
+        """Verify the path structure uses .gunicorn subdirectory."""
+        monkeypatch.delenv('XDG_RUNTIME_DIR', raising=False)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monkeypatch.setenv('HOME', tmpdir)
+            result = _get_default_control_socket()
+            assert result == os.path.join(tmpdir, '.gunicorn', 'gunicorn.ctl')
+            assert result.endswith('.gunicorn/gunicorn.ctl')

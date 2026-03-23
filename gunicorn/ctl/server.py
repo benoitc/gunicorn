@@ -187,6 +187,11 @@ class ControlSocketServer:
         """Main async server loop."""
         self._loop = asyncio.get_running_loop()
 
+        # Create parent directory if needed (for ~/.gunicorn/)
+        socket_dir = os.path.dirname(self.socket_path)
+        if socket_dir and not os.path.exists(socket_dir):
+            os.makedirs(socket_dir, mode=0o700)
+
         # Remove socket if it exists
         if os.path.exists(self.socket_path):
             os.unlink(self.socket_path)
