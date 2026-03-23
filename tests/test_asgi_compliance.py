@@ -9,8 +9,9 @@ Tests that gunicorn's ASGI implementation conforms to the ASGI 3.0 spec:
 https://asgi.readthedocs.io/en/latest/specs/main.html
 """
 
-import asyncio
 from unittest import mock
+
+import pytest
 
 from gunicorn.config import Config
 
@@ -37,7 +38,9 @@ class TestASGIVersion:
         """Create a mock HTTP request."""
         request = mock.Mock()
         request.method = kwargs.get("method", "GET")
-        request.path = kwargs.get("path", "/")
+        path = kwargs.get("path", "/")
+        request.path = path
+        request.raw_path = kwargs.get("raw_path", path.encode("latin-1") if path else b"")
         request.query = kwargs.get("query", "")
         request.version = kwargs.get("version", (1, 1))
         request.scheme = kwargs.get("scheme", "http")
@@ -136,7 +139,9 @@ class TestHTTPScopeKeys:
         """Create a mock HTTP request."""
         request = mock.Mock()
         request.method = kwargs.get("method", "GET")
-        request.path = kwargs.get("path", "/")
+        path = kwargs.get("path", "/")
+        request.path = path
+        request.raw_path = kwargs.get("raw_path", path.encode("latin-1") if path else b"")
         request.query = kwargs.get("query", "")
         request.version = kwargs.get("version", (1, 1))
         request.scheme = kwargs.get("scheme", "http")
@@ -653,6 +658,7 @@ class TestStateSharing:
         request = mock.Mock()
         request.method = "GET"
         request.path = "/"
+        request.raw_path = b"/"
         request.query = ""
         request.version = (1, 1)
         request.scheme = "http"
@@ -730,31 +736,46 @@ class TestHTTPDisconnectEvent:
         return protocol
 
     def test_disconnect_event_type(self):
-        """Test that disconnect event has correct type per ASGI spec."""
+        """Test that disconnect event signals body receiver per ASGI spec."""
+        from gunicorn.asgi.protocol import BodyReceiver
+
         protocol = self._create_protocol()
-        protocol._receive_queue = asyncio.Queue()
+
+        # Create a mock request for the body receiver
+        mock_request = mock.Mock()
+        mock_request.content_length = 100
+        mock_request.chunked = False
+
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
 
         # Simulate client disconnect
         protocol.connection_lost(None)
 
-        # Get the message from queue
-        msg = protocol._receive_queue.get_nowait()
-
-        # Per ASGI spec: type MUST be "http.disconnect"
-        assert msg["type"] == "http.disconnect"
+        # Per ASGI spec: disconnect should be signaled
+        assert body_receiver._closed
 
     def test_disconnect_event_sent_on_connection_lost(self):
-        """Test that http.disconnect is sent when connection is lost."""
-        protocol = self._create_protocol()
-        protocol._receive_queue = asyncio.Queue()
+        """Test that disconnect is signaled when connection is lost."""
+        from gunicorn.asgi.protocol import BodyReceiver
 
-        assert protocol._receive_queue.empty()
+        protocol = self._create_protocol()
+
+        # Create a mock request for the body receiver
+        mock_request = mock.Mock()
+        mock_request.content_length = 100
+        mock_request.chunked = False
+
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
+
+        assert not body_receiver._closed
 
         # Simulate client disconnect
         protocol.connection_lost(None)
 
-        # Queue should have disconnect message
-        assert not protocol._receive_queue.empty()
+        # Disconnect should have been signaled
+        assert body_receiver._closed
 
     def test_disconnect_sets_closed_flag(self):
         """Test that connection_lost sets the closed flag."""
@@ -788,18 +809,33 @@ class TestHTTPDisconnectEvent:
         # Cancellation should be scheduled after grace period
         protocol.worker.loop.call_later.assert_called_once()
 
-    def test_disconnect_message_format(self):
+    @pytest.mark.asyncio
+    async def test_disconnect_message_format(self):
         """Test http.disconnect message format per ASGI spec.
 
-        The disconnect message should only contain 'type' key.
+        When body is complete and disconnect is signaled, receive()
+        should return {"type": "http.disconnect"}.
         """
+        from gunicorn.asgi.protocol import BodyReceiver
+
         protocol = self._create_protocol()
-        protocol._receive_queue = asyncio.Queue()
 
-        protocol.connection_lost(None)
+        # Create a mock request with no body
+        mock_request = mock.Mock()
+        mock_request.content_length = 0
+        mock_request.chunked = False
 
-        msg = protocol._receive_queue.get_nowait()
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
+
+        # Get initial body message (empty body)
+        msg1 = await body_receiver.receive()
+        assert msg1["type"] == "http.request"
+        assert msg1["more_body"] is False
+
+        # Now receive should return disconnect
+        msg2 = await body_receiver.receive()
 
         # Per ASGI spec, disconnect message only has 'type'
-        assert msg == {"type": "http.disconnect"}
-        assert len(msg) == 1
+        assert msg2 == {"type": "http.disconnect"}
+        assert len(msg2) == 1

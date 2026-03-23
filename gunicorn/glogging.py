@@ -341,14 +341,24 @@ class Logger:
 
         return atoms
 
+    @property
+    def access_log_enabled(self):
+        """Check if access logging is enabled.
+
+        Used by protocol handlers to skip building log data when logging is disabled.
+        """
+        return bool(
+            self.cfg.accesslog or self.cfg.logconfig or
+            self.cfg.logconfig_dict or self.cfg.logconfig_json or
+            (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)
+        )
+
     def access(self, resp, req, environ, request_time):
         """ See http://httpd.apache.org/docs/2.0/logs.html#combined
         for format details
         """
 
-        if not (self.cfg.accesslog or self.cfg.logconfig or
-           self.cfg.logconfig_dict or self.cfg.logconfig_json or
-           (self.cfg.syslog and not self.cfg.disable_redirect_access_to_syslog)):
+        if not self.access_log_enabled:
             return
 
         # wrap atoms:

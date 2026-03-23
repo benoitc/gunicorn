@@ -33,19 +33,26 @@ def uri(data):
     return ret
 
 
-def load_py(fname):
+def load_py(fname, http_parser='python'):
+    """Load test configuration from Python file.
+
+    Args:
+        fname: Path to the .py configuration file
+        http_parser: Parser to use - 'python' or 'fast'
+    """
     module_name = '__config__'
     mod = types.ModuleType(module_name)
     setattr(mod, 'uri', uri)
     setattr(mod, 'cfg', Config())
     loader = importlib.machinery.SourceFileLoader(module_name, fname)
     loader.exec_module(mod)
+    # Set parser after loading so test-specific configs don't override
+    mod.cfg.set('http_parser', http_parser)
     return vars(mod)
 
 
 def decode_hex_escapes(data):
     """Decode hex escape sequences like \\xAB in test data."""
-    import re
     result = bytearray()
     i = 0
     while i < len(data):

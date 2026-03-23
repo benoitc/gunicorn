@@ -7,10 +7,8 @@ Tests for ASGI worker components.
 """
 
 import asyncio
-import io
 import ipaddress
 import pytest
-from unittest import mock
 
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.message import AsyncRequest

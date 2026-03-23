@@ -5,8 +5,9 @@
 from gunicorn.config import Config
 
 cfg = Config()
-cfg.set('limit_request_line', 0)
-cfg.set('limit_request_field_size', 0)
+# Request line is 8194 bytes, header line is 8209 bytes (both include CRLF)
+cfg.set('limit_request_line', 8200)
+cfg.set('limit_request_field_size', 8210)
 request = {
     "method": "PUT",
     "uri":

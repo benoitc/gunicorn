@@ -11,13 +11,31 @@ and dispatch to ASGI applications.
 
 import asyncio
 import errno
-from datetime import datetime
+import ipaddress
+import time
 
 from gunicorn.asgi.unreader import AsyncUnreader
-from gunicorn.asgi.message import AsyncRequest
+from gunicorn.asgi.parser import (
+    PythonProtocol, CallbackRequest, ParseError,
+    LimitRequestLine, LimitRequestHeaders
+)
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
 from gunicorn.uwsgi.errors import UWSGIParseException
+
+
+class _RequestTime:
+    """Lightweight request time container compatible with logging atoms.
+
+    Uses time.monotonic() elapsed seconds instead of datetime.now() syscalls.
+    Provides .seconds and .microseconds attributes for glogging.py compatibility.
+    """
+
+    __slots__ = ('seconds', 'microseconds')
+
+    def __init__(self, elapsed):
+        self.seconds = int(elapsed)
+        self.microseconds = int((elapsed - self.seconds) * 1_000_000)
 
 
 def _normalize_sockaddr(sockaddr):
@@ -28,6 +46,101 @@ def _normalize_sockaddr(sockaddr):
     so we extract just the first two elements.
     """
     return tuple(sockaddr[:2]) if sockaddr else None
+
+
+def _check_trusted_proxy(peer_addr, allow_list, networks):
+    """Check if peer address is in the trusted proxy list.
+
+    Cached at connection start to avoid repeated IP parsing per request.
+    """
+    if not isinstance(peer_addr, tuple):
+        return False
+    if '*' in allow_list:
+        return True
+    try:
+        ip = ipaddress.ip_address(peer_addr[0])
+    except ValueError:
+        return False
+    for network in networks:
+        if ip in network:
+            return True
+    return False
+
+
+# Cached response bytes for common cases
+_CACHED_STATUS_LINES = {}
+_CACHED_SERVER_HEADER = b"Server: gunicorn/asgi\r\n"
+
+# Date header cache (updated once per second)
+_cached_date_header = b""
+_cached_date_time = 0.0
+
+# Pre-compute common chunk size prefixes to avoid repeated formatting
+_CHUNK_PREFIXES = {i: f"{i:x}\r\n".encode("latin-1") for i in range(16384)}
+
+# High water mark for write buffer backpressure (64KB)
+HIGH_WATER_LIMIT = 65536
+
+
+class FlowControl:
+    """Manage transport-level write flow control.
+
+    Blocks send() when transport buffer exceeds high water mark,
+    preventing memory issues with large streaming responses.
+    """
+    __slots__ = ('_transport', 'read_paused', 'write_paused', '_is_writable_event')
+
+    def __init__(self, transport):
+        self._transport = transport
+        self.read_paused = False
+        self.write_paused = False
+        self._is_writable_event = asyncio.Event()
+        self._is_writable_event.set()
+
+    async def drain(self):
+        """Wait until transport is writable."""
+        await self._is_writable_event.wait()
+
+    def pause_reading(self):
+        if not self.read_paused:
+            self.read_paused = True
+            self._transport.pause_reading()
+
+    def resume_reading(self):
+        if self.read_paused:
+            self.read_paused = False
+            self._transport.resume_reading()
+
+    def pause_writing(self):
+        if not self.write_paused:
+            self.write_paused = True
+            self._is_writable_event.clear()
+
+    def resume_writing(self):
+        if self.write_paused:
+            self.write_paused = False
+            self._is_writable_event.set()
+
+
+def _get_cached_date_header():
+    """Get cached Date header, updating once per second."""
+    global _cached_date_header, _cached_date_time  # pylint: disable=global-statement
+    now = time.time()
+    if now - _cached_date_time >= 1.0:
+        # Update date header
+        from email.utils import formatdate
+        _cached_date_header = f"Date: {formatdate(usegmt=True)}\r\n".encode("latin-1")
+        _cached_date_time = now
+    return _cached_date_header
+
+
+def _get_cached_status_line(version, status, reason):
+    """Get cached status line bytes."""
+    key = (version, status)
+    if key not in _CACHED_STATUS_LINES:
+        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n"
+        _CACHED_STATUS_LINES[key] = line.encode("latin-1")
+    return _CACHED_STATUS_LINES[key]
 
 
 class ASGIResponseInfo:
@@ -46,11 +159,130 @@ class ASGIResponseInfo:
             self.headers.append((name, value))
 
 
+class BodyReceiver:
+    """Body receiver for callback-based parsers.
+
+    Body chunks are fed directly via the feed() method from parser callbacks.
+    Uses Future-based waiting for efficient async receive().
+    """
+
+    __slots__ = ('_chunks', '_complete', '_body_finished', '_closed', '_waiter',
+                 'request', 'protocol')
+
+    def __init__(self, request, protocol):
+        self.request = request
+        self.protocol = protocol
+        self._chunks = []
+        self._complete = False
+        self._body_finished = False  # True after returning more_body=False
+        self._closed = False
+        self._waiter = None
+
+    def feed(self, chunk):
+        """Feed a body chunk directly (called by parser callback)."""
+        if chunk:
+            self._chunks.append(chunk)
+            self._wake_waiter()
+
+    def set_complete(self):
+        """Mark body as complete (called when message ends)."""
+        self._complete = True
+        self._wake_waiter()
+
+    def signal_disconnect(self):
+        """Signal that connection has been lost."""
+        self._closed = True
+        self._wake_waiter()
+
+    def _wake_waiter(self):
+        """Wake up any pending receive() call."""
+        if self._waiter is not None and not self._waiter.done():
+            self._waiter.set_result(None)
+
+    async def receive(self):  # pylint: disable=too-many-return-statements
+        """ASGI receive callable - returns body chunks or disconnect."""
+        # Already disconnected or body finished
+        if self._closed or self._body_finished:
+            return {"type": "http.disconnect"}
+
+        # Fast path: chunk already available
+        if self._chunks:
+            return self._pop_chunk()
+
+        # Body complete with no more chunks
+        if self._complete:
+            self._body_finished = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        # No body expected
+        if self.request.content_length == 0 and not self.request.chunked:
+            self._complete = True
+            self._body_finished = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        # Check protocol closed state
+        if self.protocol._closed:
+            self._closed = True
+            return {"type": "http.disconnect"}
+
+        # Wait for body chunk to arrive via callback
+        try:
+            await self._wait_for_data()
+            return self._build_receive_result()
+        except asyncio.CancelledError:
+            return {"type": "http.disconnect"}
+
+    def _pop_chunk(self):
+        """Pop a chunk and return the appropriate message."""
+        chunk = self._chunks.pop(0)
+        more = bool(self._chunks) or not self._complete
+        if not more:
+            self._body_finished = True
+        return {"type": "http.request", "body": chunk, "more_body": more}
+
+    def _build_receive_result(self):
+        """Build receive result after waiting for data."""
+        if self._closed:
+            return {"type": "http.disconnect"}
+
+        if self._chunks:
+            return self._pop_chunk()
+
+        # Complete OR timeout - mark body finished to prevent infinite loops
+        # Apps should not loop forever waiting for body that won't arrive
+        self._body_finished = True
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def _wait_for_data(self):
+        """Wait for body data to arrive via callback."""
+        if self._chunks or self._complete or self._closed:
+            return
+
+        # Create a new waiter
+        loop = asyncio.get_event_loop()
+        self._waiter = loop.create_future()
+
+        try:
+            # Wait with timeout for data or completion
+            await asyncio.wait_for(self._waiter, timeout=30.0)
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            self._waiter = None
+
+
 class ASGIProtocol(asyncio.Protocol):
     """HTTP/1.1 protocol handler for ASGI applications.
 
     Handles connection lifecycle, request parsing, and ASGI app invocation.
+    Uses callback-based parsing (H1CProtocol/PythonProtocol) for efficient
+    incremental parsing in data_received().
     """
+
+    # Class-level cache for H1CProtocol availability
+    _h1c_available = None
+    _h1c_protocol_class = None
+    _h1c_has_limits = False  # True if >= 0.4.1 (has limit parameters)
 
     def __init__(self, worker):
         self.worker = worker
@@ -59,14 +291,36 @@ class ASGIProtocol(asyncio.Protocol):
         self.app = worker.asgi
 
         self.transport = None
-        self.reader = None
+        self.reader = None  # Only used for HTTP/2
         self.writer = None
         self._task = None
         self.req_count = 0
 
         # Connection state
         self._closed = False
-        self._receive_queue = None  # Set per-request for disconnect signaling
+        self._body_receiver = None  # Set per-request for disconnect signaling
+
+        # Response buffering for write batching
+        self._response_buffer = None
+
+        # Backpressure control
+        self._reading_paused = False
+        self._max_buffer_size = 65536 * 4  # 256KB max buffer (HTTP/2 only)
+
+        # Keep-alive timer
+        self._keepalive_handle = None
+
+        # Callback parser state
+        self._callback_parser = None
+        self._request_ready = None  # Event signaling headers complete
+        self._current_request = None  # Request built from parser state
+        self._is_ssl = False
+
+        # Write flow control
+        self._flow_control = None
+
+        # WebSocket protocol (set during upgrade, receives data via callbacks)
+        self._websocket = None
 
     def connection_made(self, transport):
         """Called when a connection is established."""
@@ -78,26 +332,200 @@ class ASGIProtocol(asyncio.Protocol):
         if ssl_object and hasattr(ssl_object, 'selected_alpn_protocol'):
             alpn = ssl_object.selected_alpn_protocol()
             if alpn == 'h2':
-                # HTTP/2 connection - create reader immediately to avoid race condition
-                # data_received may be called before _handle_http2_connection starts
+                # HTTP/2 connection - uses StreamReader (complex framing)
                 self.reader = asyncio.StreamReader()
                 self._task = self.worker.loop.create_task(
                     self._handle_http2_connection(transport, ssl_object)
                 )
                 return
 
-        # HTTP/1.x connection
-        # Create stream reader/writer
-        self.reader = asyncio.StreamReader()
+        # HTTP/1.x connection - always use callback parser
+        self._is_ssl = ssl_object is not None
         self.writer = transport
 
-        # Start handling requests
+        # Setup flow control for HTTP/1.x
+        self._flow_control = FlowControl(transport)
+        transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
+
+        # Setup callback parser with request ready event
+        self._request_ready = asyncio.Event()
+        self._setup_callback_parser()
         self._task = self.worker.loop.create_task(self._handle_connection())
+
+    @classmethod
+    def _check_h1c_protocol_available(cls):
+        """Check if H1CProtocol is available (cached at class level)."""
+        if cls._h1c_available is None:
+            try:
+                import gunicorn_h1c
+                from gunicorn_h1c import H1CProtocol
+                cls._h1c_available = True
+                cls._h1c_protocol_class = H1CProtocol
+                # Require >= 0.4.1 for limit enforcement
+                cls._h1c_has_limits = hasattr(gunicorn_h1c, 'LimitRequestLine')
+            except ImportError:
+                cls._h1c_available = False
+                cls._h1c_has_limits = False
+        return cls._h1c_available
+
+    # Compatibility flags not supported by the fast parser
+    _FAST_PARSER_INCOMPATIBLE_FLAGS = (
+        'permit_obsolete_folding',
+        'strip_header_spaces',
+    )
+
+    def _setup_callback_parser(self):
+        """Create callback parser based on http_parser setting.
+
+        Parser selection:
+        - auto: Use H1CProtocol if available (>= 0.4.1) and no incompatible flags, else PythonProtocol
+        - fast: Require H1CProtocol >= 0.4.1 (error if unavailable or incompatible flags)
+        - python: Use PythonProtocol only
+        """
+        parser_setting = getattr(self.cfg, 'http_parser', 'auto')
+
+        # Check for incompatible compatibility flags
+        incompatible = []
+        for flag in self._FAST_PARSER_INCOMPATIBLE_FLAGS:
+            if getattr(self.cfg, flag, False):
+                incompatible.append(flag)
+
+        if parser_setting == 'python':
+            parser_class = PythonProtocol
+        elif parser_setting == 'fast':
+            if not self._check_h1c_protocol_available():
+                raise RuntimeError("gunicorn_h1c required for http_parser='fast'")
+            if not ASGIProtocol._h1c_has_limits:
+                raise RuntimeError(
+                    "gunicorn_h1c >= 0.4.1 required for http_parser='fast'. "
+                    "Please upgrade: pip install --upgrade gunicorn_h1c"
+                )
+            if incompatible:
+                raise RuntimeError(
+                    "http_parser='fast' is incompatible with compatibility flags: %s. "
+                    "Use http_parser='python' or disable these flags."
+                    % ', '.join(incompatible)
+                )
+            parser_class = ASGIProtocol._h1c_protocol_class
+        else:  # auto
+            if (self._check_h1c_protocol_available() and
+                    ASGIProtocol._h1c_has_limits and not incompatible):
+                parser_class = ASGIProtocol._h1c_protocol_class
+            else:
+                parser_class = PythonProtocol
+
+        # Create parser with callbacks and limit parameters (both parsers support them)
+        self._callback_parser = parser_class(
+            on_headers_complete=self._on_headers_complete,
+            on_body=self._on_body,
+            on_message_complete=self._on_message_complete,
+            limit_request_line=self.cfg.limit_request_line,
+            limit_request_fields=self.cfg.limit_request_fields,
+            limit_request_field_size=self.cfg.limit_request_field_size,
+            permit_unconventional_http_method=self.cfg.permit_unconventional_http_method,
+            permit_unconventional_http_version=self.cfg.permit_unconventional_http_version,
+        )
+
+    def _on_headers_complete(self):
+        """Callback: request headers are complete."""
+        # Build request from parser state
+        self._current_request = CallbackRequest.from_parser(
+            self._callback_parser, is_ssl=self._is_ssl
+        )
+
+        # Create body receiver for this request
+        self._body_receiver = BodyReceiver(self._current_request, self)
+
+        # Signal that request is ready for processing
+        if self._request_ready:
+            self._request_ready.set()
+
+        # Return True for HEAD to skip body parsing
+        return self._callback_parser.method == b'HEAD'
+
+    def _on_body(self, chunk):
+        """Callback: received body data chunk."""
+        if self._body_receiver:
+            self._body_receiver.feed(chunk)
+
+    def _on_message_complete(self):
+        """Callback: request is fully received."""
+        if self._body_receiver:
+            self._body_receiver.set_complete()
 
     def data_received(self, data):
         """Called when data is received on the connection."""
+        if self._websocket:
+            # WebSocket path - forward to WebSocket protocol
+            self._websocket.feed_data(data)
+            return
         if self.reader:
+            # HTTP/2 path - use StreamReader
             self.reader.feed_data(data)
+        elif self._callback_parser:
+            # HTTP/1.x path - feed directly to callback parser
+            try:
+                self._callback_parser.feed(data)
+            except LimitRequestLine as e:
+                self._send_error_response(414, str(e))  # URI Too Long
+                self._close_transport()
+                return
+            except LimitRequestHeaders as e:
+                self._send_error_response(431, str(e))  # Request Header Fields Too Large
+                self._close_transport()
+                return
+            except ParseError as e:
+                self._send_error_response(400, str(e))
+                self._close_transport()
+                return
+
+        # Backpressure: pause reading if buffer is too large
+        if not self._reading_paused and self._is_buffer_full():
+            self._pause_reading()
+
+    def _is_buffer_full(self):
+        """Check if internal buffer is full (HTTP/2 only)."""
+        if self.reader and hasattr(self.reader, '_buffer'):
+            return len(self.reader._buffer) > self._max_buffer_size
+        return False
+
+    def _pause_reading(self):
+        """Pause reading from transport due to backpressure."""
+        if not self._reading_paused and self.transport:
+            self._reading_paused = True
+            try:
+                self.transport.pause_reading()
+            except (AttributeError, RuntimeError):
+                pass
+
+    def _resume_reading(self):
+        """Resume reading from transport."""
+        if self._reading_paused and self.transport:
+            self._reading_paused = False
+            try:
+                self.transport.resume_reading()
+            except (AttributeError, RuntimeError):
+                pass
+
+    def _arm_keepalive_timer(self):
+        """Arm keepalive timeout timer after response completion."""
+        if self._keepalive_handle:
+            self._keepalive_handle.cancel()
+        keepalive_timeout = self.cfg.keepalive
+        if keepalive_timeout > 0:
+            self._keepalive_handle = self.worker.loop.call_later(
+                keepalive_timeout, self._keepalive_timeout
+            )
+
+    def _cancel_keepalive_timer(self):
+        """Cancel keepalive timer when new request arrives."""
+        if self._keepalive_handle:
+            self._keepalive_handle.cancel()
+            self._keepalive_handle = None
+
+    def _keepalive_timeout(self):
+        """Called when keepalive timeout expires."""
+        self._close_transport()
 
     def connection_lost(self, exc):
         """Called when the connection is lost or closed.
@@ -115,12 +543,20 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._closed = True
         self.worker.nr_conns -= 1
+
+        # Cancel keepalive timer
+        self._cancel_keepalive_timer()
+
         if self.reader:
             self.reader.feed_eof()
 
-        # Signal disconnect to the app via the receive queue
-        if self._receive_queue is not None:
-            self._receive_queue.put_nowait({"type": "http.disconnect"})
+        # Signal EOF to WebSocket if active
+        if self._websocket:
+            self._websocket.feed_eof()
+
+        # Signal disconnect to the app via the body receiver
+        if self._body_receiver is not None:
+            self._body_receiver.signal_disconnect()
 
         # Schedule task cancellation after grace period if task doesn't complete
         if self._task and not self._task.done():
@@ -138,6 +574,16 @@ class ASGIProtocol(asyncio.Protocol):
         """Cancel the task if it's still pending after grace period."""
         if self._task and not self._task.done():
             self._task.cancel()
+
+    def pause_writing(self):
+        """Called by transport when write buffer exceeds high water mark."""
+        if self._flow_control:
+            self._flow_control.pause_writing()
+
+    def resume_writing(self):
+        """Called by transport when write buffer drains below low water mark."""
+        if self._flow_control:
+            self._flow_control.resume_writing()
 
     def _safe_write(self, data):
         """Write data to transport, handling connection errors gracefully.
@@ -159,39 +605,39 @@ class ASGIProtocol(asyncio.Protocol):
             pass
 
     async def _handle_connection(self):
-        """Main request handling loop for this connection."""
-        unreader = AsyncUnreader(self.reader)
+        """Main request handling loop using callback-based parser.
 
+        Uses synchronous parsing in data_received(), avoiding the async
+        overhead of pull-based parsing. The parser fires callbacks when
+        headers and body data are available, and this loop waits on
+        events rather than actively parsing.
+        """
         try:
             peername = self.transport.get_extra_info('peername')
             sockname = self.transport.get_extra_info('sockname')
 
+            # Check protocol type - use separate path for uWSGI
+            protocol_type = getattr(self.cfg, 'protocol', 'http')
+            if protocol_type == 'uwsgi':
+                await self._handle_connection_uwsgi(peername, sockname)
+                return
+
             while not self._closed:
                 self.req_count += 1
+                self._cancel_keepalive_timer()
 
-                try:
-                    # Parse request based on protocol
-                    protocol = getattr(self.cfg, 'protocol', 'http')
-                    if protocol == 'uwsgi':
-                        request = await AsyncUWSGIRequest.parse(
-                            self.cfg,
-                            unreader,
-                            peername,
-                            self.req_count
-                        )
-                    else:
-                        request = await AsyncRequest.parse(
-                            self.cfg,
-                            unreader,
-                            peername,
-                            self.req_count
-                        )
-                except NoMoreData:
-                    # Client disconnected
+                # Wait for headers to be parsed (callback sets the event and _current_request)
+                # Don't clear if request already arrived (data_received ran before us)
+                if not self._request_ready.is_set():
+                    try:
+                        await self._request_ready.wait()
+                    except asyncio.CancelledError:
+                        break
+
+                if self._closed or self._current_request is None:
                     break
-                except UWSGIParseException as e:
-                    self.log.debug("uWSGI parse error: %s", e)
-                    break
+
+                request = self._current_request
 
                 # Check for WebSocket upgrade
                 if self._is_websocket_upgrade(request):
@@ -219,8 +665,20 @@ class ASGIProtocol(asyncio.Protocol):
                 if not self.cfg.keepalive:
                     break
 
-                # Drain any unread body before next request
-                await request.drain_body()
+                # Resume reading if paused during body consumption
+                self._resume_reading()
+
+                # Reset parser for next request
+                if self._callback_parser:
+                    self._callback_parser.reset()
+
+                # Clear request state for next iteration
+                self._current_request = None
+                self._body_receiver = None
+                self._request_ready.clear()
+
+                # Arm keepalive timer between requests
+                self._arm_keepalive_timer()
 
         except asyncio.CancelledError:
             pass
@@ -228,6 +686,53 @@ class ASGIProtocol(asyncio.Protocol):
             self.log.exception("Error handling connection: %s", e)
         finally:
             self._close_transport()
+
+    async def _handle_connection_uwsgi(self, peername, sockname):
+        """Handle uWSGI protocol connections (legacy path)."""
+        unreader = AsyncUnreader(self.reader)
+
+        while not self._closed:
+            self.req_count += 1
+
+            try:
+                request = await AsyncUWSGIRequest.parse(
+                    self.cfg,
+                    unreader,
+                    peername,
+                    self.req_count
+                )
+            except NoMoreData:
+                break
+            except UWSGIParseException as e:
+                self.log.debug("uWSGI parse error: %s", e)
+                break
+
+            # Check for WebSocket upgrade
+            if self._is_websocket_upgrade(request):
+                await self._handle_websocket(request, sockname, peername)
+                break
+
+            # Handle HTTP request
+            keepalive = await self._handle_http_request(
+                request, sockname, peername
+            )
+
+            # Increment worker request count
+            self.worker.nr += 1
+
+            # Check max_requests
+            if self.worker.nr >= self.worker.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                self.worker.alive = False
+                keepalive = False
+
+            if not keepalive or not self.worker.alive:
+                break
+
+            if not self.cfg.keepalive:
+                break
+
+            await request.drain_body()
 
     def _is_websocket_upgrade(self, request):
         """Check if request is a WebSocket upgrade.
@@ -254,10 +759,17 @@ class ASGIProtocol(asyncio.Protocol):
         """Handle WebSocket upgrade request."""
         from gunicorn.asgi.websocket import WebSocketProtocol
 
+        # Stop callback parser - WebSocket uses its own data handling
+        self._callback_parser = None
+
         scope = self._build_websocket_scope(request, sockname, peername)
         ws_protocol = WebSocketProtocol(
-            self.transport, self.reader, scope, self.app, self.log
+            self.transport, scope, self.app, self.log
         )
+
+        # Store reference so data_received() forwards to WebSocket
+        self._websocket = ws_protocol
+
         await ws_protocol.run()
 
     async def _handle_http_request(self, request, sockname, peername):
@@ -268,41 +780,16 @@ class ASGIProtocol(asyncio.Protocol):
         exc_to_raise = None
         use_chunked = False
 
+        # Reset response buffer for write batching
+        self._response_buffer = None
+
         # Response tracking for access logging
         response_status = 500
         response_headers = []
         response_sent = 0
 
-        # Receive queue for body - stored on self for disconnect signaling
-        receive_queue = asyncio.Queue()
-        self._receive_queue = receive_queue
-        body_complete = False
-
-        # Pre-populate with initial body state
-        if request.content_length == 0 and not request.chunked:
-            await receive_queue.put({
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            })
-            body_complete = True
-        else:
-            # Start body reading task
-            asyncio.create_task(self._read_body_to_queue(request, receive_queue))
-
-        async def receive():
-            nonlocal body_complete
-            # Check if already disconnected before waiting
-            if self._closed and body_complete:
-                return {"type": "http.disconnect"}
-
-            msg = await receive_queue.get()
-
-            # Track when body is complete
-            if msg.get("type") == "http.request" and not msg.get("more_body", True):
-                body_complete = True
-
-            return msg
+        # Use body receiver created in _on_headers_complete (receives data via callbacks)
+        body_receiver = self._body_receiver
 
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
@@ -319,7 +806,7 @@ class ASGIProtocol(asyncio.Protocol):
                 # Handle informational responses (1xx) like 103 Early Hints
                 info_status = message.get("status")
                 info_headers = message.get("headers", [])
-                await self._send_informational(info_status, info_headers, request)
+                self._send_informational(info_status, info_headers, request)
                 return
 
             if msg_type == "http.response.start":
@@ -342,7 +829,7 @@ class ASGIProtocol(asyncio.Protocol):
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 
-                await self._send_response_start(response_status, response_headers, request)
+                self._send_response_start(response_status, response_headers, request)
 
             elif msg_type == "http.response.body":
                 if not response_started:
@@ -356,31 +843,41 @@ class ASGIProtocol(asyncio.Protocol):
                 more_body = message.get("more_body", False)
 
                 if body:
-                    await self._send_body(body, chunked=use_chunked)
+                    self._send_body(body, chunked=use_chunked)
                     response_sent += len(body)
+                    # Apply write backpressure for streaming responses
+                    if self._flow_control:
+                        await self._flow_control.drain()
 
                 if not more_body:
                     if use_chunked:
-                        # Send terminal chunk
-                        self._safe_write(b"0\r\n\r\n")
+                        # Send terminal chunk, combined with any buffered headers
+                        if self._response_buffer:
+                            self._safe_write(self._response_buffer + b"0\r\n\r\n")
+                            self._response_buffer = None
+                        else:
+                            self._safe_write(b"0\r\n\r\n")
+                    elif self._response_buffer:
+                        # Non-chunked empty response - flush headers
+                        self._safe_write(self._response_buffer)
+                        self._response_buffer = None
                     response_complete = True
 
-        # Build environ for logging
-        environ = self._build_environ(request, sockname, peername)
-        resp = None
+        # Only build environ for logging if access logging is enabled
+        access_log_enabled = self.log.access_log_enabled
 
         try:
-            request_start = datetime.now()
+            request_start = time.monotonic()
             self.cfg.pre_request(self.worker, request)
 
-            await self.app(scope, receive, send)
+            await self.app(scope, body_receiver.receive, send)
 
             if exc_to_raise is not None:
                 raise exc_to_raise
 
             # Ensure response was sent
             if not response_started:
-                await self._send_error_response(500, "Internal Server Error")
+                self._send_error_response(500, "Internal Server Error")
                 response_status = 500
 
         except asyncio.CancelledError:
@@ -390,18 +887,23 @@ class ASGIProtocol(asyncio.Protocol):
         except Exception:
             self.log.exception("Error in ASGI application")
             if not response_started:
-                await self._send_error_response(500, "Internal Server Error")
+                self._send_error_response(500, "Internal Server Error")
                 response_status = 500
             return False
         finally:
-            # Clear the receive queue reference
-            self._receive_queue = None
+            # Clear the body receiver reference
+            self._body_receiver = None
 
             try:
-                request_time = datetime.now() - request_start
-                # Create response info for logging
-                resp = ASGIResponseInfo(response_status, response_headers, response_sent)
-                self.log.access(resp, request, environ, request_time)
+                request_time = _RequestTime(time.monotonic() - request_start)
+                # Only build log data if access logging is enabled
+                if access_log_enabled:
+                    environ = self._build_environ(request, sockname, peername)
+                    resp = ASGIResponseInfo(response_status, response_headers, response_sent)
+                    self.log.access(resp, request, environ, request_time)
+                else:
+                    environ = None
+                    resp = None
                 self.cfg.post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
@@ -412,38 +914,17 @@ class ASGIProtocol(asyncio.Protocol):
 
         return self.worker.alive and self.cfg.keepalive
 
-    async def _read_body_to_queue(self, request, queue):
-        """Read request body and put chunks on the queue."""
-        try:
-            while True:
-                chunk = await request.read_body(65536)
-                if chunk:
-                    await queue.put({
-                        "type": "http.request",
-                        "body": chunk,
-                        "more_body": True,
-                    })
-                else:
-                    await queue.put({
-                        "type": "http.request",
-                        "body": b"",
-                        "more_body": False,
-                    })
-                    break
-        except Exception as e:
-            self.log.debug("Error reading body: %s", e)
-            await queue.put({
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            })
-
     def _build_http_scope(self, request, sockname, peername):
         """Build ASGI HTTP scope from parsed request."""
-        # Build headers list as bytes tuples
-        headers = []
-        for name, value in request.headers:
-            headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
+        # Use pre-computed bytes headers if available (fast path)
+        # Fall back to conversion for legacy requests (AsyncRequest, HTTP/2)
+        headers_bytes = getattr(request, 'headers_bytes', None)
+        if isinstance(headers_bytes, list):
+            headers = list(headers_bytes)  # Copy to avoid mutation
+        else:
+            headers = []
+            for name, value in request.headers:
+                headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
 
         server = _normalize_sockaddr(sockname)
         client = _normalize_sockaddr(peername)
@@ -455,7 +936,7 @@ class ASGIProtocol(asyncio.Protocol):
             "method": request.method,
             "scheme": request.scheme,
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
+            "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
@@ -519,7 +1000,7 @@ class ASGIProtocol(asyncio.Protocol):
             "http_version": f"{request.version[0]}.{request.version[1]}",
             "scheme": "wss" if request.scheme == "https" else "ws",
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
+            "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
@@ -534,7 +1015,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         return scope
 
-    async def _send_informational(self, status, headers, request):
+    def _send_informational(self, status, headers, request):
         """Send an informational response (1xx) such as 103 Early Hints.
 
         Args:
@@ -562,39 +1043,86 @@ class ASGIProtocol(asyncio.Protocol):
         response += "\r\n"
         self._safe_write(response.encode("latin-1"))
 
-    async def _send_response_start(self, status, headers, request):
-        """Send HTTP response status and headers."""
-        # Build status line
-        reason = self._get_reason_phrase(status)
-        status_line = f"HTTP/{request.version[0]}.{request.version[1]} {status} {reason}\r\n"
+    def _send_response_start(self, status, headers, request):
+        """Send HTTP response status and headers.
 
-        # Build headers
-        header_lines = []
+        Uses cached status lines and headers for common cases to avoid
+        repeated string formatting and encoding.
+        """
+        # Get cached status line bytes
+        reason = self._get_reason_phrase(status)
+        status_line = _get_cached_status_line(request.version, status, reason)
+
+        # Build headers as bytes directly
+        parts = [status_line]
+
+        has_date = False
+        has_server = False
 
         for name, value in headers:
             if isinstance(name, bytes):
-                name = name.decode("latin-1")
-            if isinstance(value, bytes):
-                value = value.decode("latin-1")
-            header_lines.append(f"{name}: {value}\r\n")
-
-        # Add server header if not present
-        header_lines.append("Server: gunicorn/asgi\r\n")
-
-        response = status_line + "".join(header_lines) + "\r\n"
-        self._safe_write(response.encode("latin-1"))
-
-    async def _send_body(self, body, chunked=False):
-        """Send response body chunk."""
-        if body:
-            if chunked:
-                # Chunked encoding: size in hex + CRLF + data + CRLF
-                chunk = f"{len(body):x}\r\n".encode("latin-1") + body + b"\r\n"
-                self._safe_write(chunk)
+                name_lower = name.lower()
+                parts.append(name)
             else:
+                name_lower = name.lower().encode("latin-1")
+                parts.append(name.encode("latin-1"))
+
+            parts.append(b": ")
+
+            if isinstance(value, bytes):
+                parts.append(value)
+            else:
+                parts.append(value.encode("latin-1"))
+
+            parts.append(b"\r\n")
+
+            # Track if Date/Server headers are present
+            if name_lower == b"date":
+                has_date = True
+            elif name_lower == b"server":
+                has_server = True
+
+        # Add default headers if not present
+        if not has_server:
+            parts.append(_CACHED_SERVER_HEADER)
+        if not has_date:
+            parts.append(_get_cached_date_header())
+
+        parts.append(b"\r\n")
+
+        # Buffer headers for batching with first body chunk
+        self._response_buffer = b"".join(parts)
+
+    def _send_body(self, body, chunked=False):
+        """Send response body chunk.
+
+        Combines buffered headers with first body chunk for efficient write batching.
+        """
+        if chunked:
+            if body:
+                # Chunked encoding: size in hex + CRLF + data + CRLF
+                # Use pre-cached prefix for common sizes, else format
+                size = len(body)
+                prefix = _CHUNK_PREFIXES.get(size) or f"{size:x}\r\n".encode("latin-1")
+                chunk_data = prefix + body + b"\r\n"
+            else:
+                chunk_data = b""
+
+            # Combine with buffered headers if present
+            if self._response_buffer:
+                self._safe_write(self._response_buffer + chunk_data)
+                self._response_buffer = None
+            elif chunk_data:
+                self._safe_write(chunk_data)
+        else:
+            # Non-chunked: combine headers + body or just body
+            if self._response_buffer:
+                self._safe_write(self._response_buffer + body)
+                self._response_buffer = None
+            elif body:
                 self._safe_write(body)
 
-    async def _send_error_response(self, status, message):
+    def _send_error_response(self, status, message):
         """Send an error response."""
         body = message.encode("utf-8")
         response = (
@@ -733,32 +1261,82 @@ class ASGIProtocol(asyncio.Protocol):
                     pass
             self._close_transport()
 
+    def _convert_h2_headers(self, headers):
+        """Convert ASGI headers to HTTP/2 format (lowercase string names)."""
+        result = []
+        for name, value in headers:
+            if isinstance(name, bytes):
+                name = name.decode("latin-1")
+            if isinstance(value, bytes):
+                value = value.decode("latin-1")
+            result.append((name.lower(), value))
+        return result
+
     async def _handle_http2_request(self, request, h2_conn, sockname, peername):
-        """Handle a single HTTP/2 request."""
+        """Handle a single HTTP/2 request with streaming support.
+
+        Streams both request and response body chunks immediately,
+        avoiding buffering entire uploads and enabling SSE, streaming
+        downloads, and other real-time use cases.
+        """
         stream_id = request.stream.stream_id
+        stream = h2_conn.streams.get(stream_id)
         scope = self._build_http2_scope(request, sockname, peername)
 
         response_started = False
         response_complete = False
+        headers_sent = False
         exc_to_raise = None
-
         response_status = 500
         response_headers = []
-        response_body = b''
-        response_trailers = []
+        response_sent = 0
+
+        # Track if we've finished receiving body
+        body_received = False
 
         async def receive():
-            # For HTTP/2, the body is already buffered in the stream
-            body = request.body.read()
+            nonlocal body_received
+
+            # Check if stream is closed or missing
+            if stream is None or stream.state.name == "CLOSED":
+                return {"type": "http.disconnect"}
+
+            # First call: if body already complete (small requests), return it
+            if not body_received and stream.request_complete and not stream._body_chunks:
+                body_received = True
+                body = stream.get_request_body()
+                return {
+                    "type": "http.request",
+                    "body": body,
+                    "more_body": False,
+                }
+
+            # Streaming: read next chunk
+            try:
+                chunk = await asyncio.wait_for(
+                    stream.read_body_chunk(),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                return {"type": "http.disconnect"}
+
+            if chunk is None:
+                body_received = True
+                return {
+                    "type": "http.request",
+                    "body": b"",
+                    "more_body": False,
+                }
+
             return {
                 "type": "http.request",
-                "body": body,
-                "more_body": False,
+                "body": chunk,
+                "more_body": not stream._body_complete,
             }
 
         async def send(message):
-            nonlocal response_started, response_complete, exc_to_raise
-            nonlocal response_status, response_headers, response_body
+            nonlocal response_started, response_complete, headers_sent
+            nonlocal response_status, response_headers, response_sent, exc_to_raise
 
             msg_type = message["type"]
 
@@ -766,14 +1344,7 @@ class ASGIProtocol(asyncio.Protocol):
                 # Handle informational responses (1xx) like 103 Early Hints over HTTP/2
                 info_status = message.get("status")
                 info_headers = message.get("headers", [])
-                # Convert headers to list of string tuples
-                headers = []
-                for name, value in info_headers:
-                    if isinstance(name, bytes):
-                        name = name.decode("latin-1")
-                    if isinstance(value, bytes):
-                        value = value.decode("latin-1")
-                    headers.append((name, value))
+                headers = self._convert_h2_headers(info_headers)
                 await h2_conn.send_informational(stream_id, info_status, headers)
                 return
 
@@ -784,6 +1355,7 @@ class ASGIProtocol(asyncio.Protocol):
                 response_started = True
                 response_status = message["status"]
                 response_headers = message.get("headers", [])
+                # Don't send headers yet - wait for first body chunk
 
             elif msg_type == "http.response.body":
                 if not response_started:
@@ -796,10 +1368,31 @@ class ASGIProtocol(asyncio.Protocol):
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
 
+                # Send headers with first body chunk
+                if not headers_sent:
+                    headers = self._convert_h2_headers(response_headers)
+                    response_hdrs = [(':status', str(response_status))]
+                    response_hdrs.extend(headers)
+
+                    # Send headers without end_stream since we have body
+                    stream = h2_conn.streams.get(stream_id)
+                    if stream is None:
+                        exc_to_raise = RuntimeError("Stream closed")
+                        return
+                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=False)
+                    stream.send_headers(response_hdrs, end_stream=False)
+                    await h2_conn._send_pending_data()
+                    headers_sent = True
+
+                # Stream body immediately
                 if body:
-                    response_body += body
+                    await h2_conn.send_data(stream_id, body, end_stream=not more_body)
+                    response_sent += len(body)
 
                 if not more_body:
+                    if not body:
+                        # Empty final chunk - send end_stream
+                        await h2_conn.send_data(stream_id, b"", end_stream=True)
                     response_complete = True
 
             elif msg_type == "http.response.trailers":
@@ -807,19 +1400,12 @@ class ASGIProtocol(asyncio.Protocol):
                     exc_to_raise = RuntimeError("Cannot send trailers before body complete")
                     return
                 trailer_headers = message.get("headers", [])
-                # Convert to list of tuples with string values
-                trailers = []
-                for name, value in trailer_headers:
-                    if isinstance(name, bytes):
-                        name = name.decode("latin-1")
-                    if isinstance(value, bytes):
-                        value = value.decode("latin-1")
-                    trailers.append((name, value))
-                response_trailers.extend(trailers)
+                trailers = self._convert_h2_headers(trailer_headers)
+                await h2_conn.send_trailers(stream_id, trailers)
 
-        # Build environ for logging
-        environ = self._build_http2_environ(request, sockname, peername)
-        request_start = datetime.now()
+        # Only build environ for logging if access logging is enabled
+        access_log_enabled = self.log.access_log_enabled
+        request_start = time.monotonic()
 
         try:
             self.cfg.pre_request(self.worker, request)
@@ -828,57 +1414,41 @@ class ASGIProtocol(asyncio.Protocol):
             if exc_to_raise is not None:
                 raise exc_to_raise
 
-            # Send response via HTTP/2
-            if response_started:
-                # Convert headers to list of tuples
-                headers = []
-                for name, value in response_headers:
-                    if isinstance(name, bytes):
-                        name = name.decode("latin-1")
-                    if isinstance(value, bytes):
-                        value = value.decode("latin-1")
-                    headers.append((name, value))
-
-                if response_trailers:
-                    # Send headers, body, then trailers separately
-                    response_hdrs = [(':status', str(response_status))]
-                    for name, value in headers:
-                        response_hdrs.append((name.lower(), str(value)))
-
-                    # Send headers without ending stream
-                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=False)
-                    stream = h2_conn.streams[stream_id]
-                    stream.send_headers(response_hdrs, end_stream=False)
-                    await h2_conn._send_pending_data()
-
-                    # Send body without ending stream
-                    if response_body:
-                        h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
-                        stream.send_data(response_body, end_stream=False)
-                        await h2_conn._send_pending_data()
-
-                    # Send trailers (ends stream)
-                    await h2_conn.send_trailers(stream_id, response_trailers)
-                else:
-                    await h2_conn.send_response(
-                        stream_id, response_status, headers, response_body
-                    )
-            else:
+            # Handle case where app didn't send any response
+            if not response_started:
                 await h2_conn.send_error(stream_id, 500, "Internal Server Error")
                 response_status = 500
 
+            # Handle case where headers were started but no body was sent
+            elif not headers_sent:
+                # Send headers now (empty body response)
+                headers = self._convert_h2_headers(response_headers)
+                response_hdrs = [(':status', str(response_status))]
+                response_hdrs.extend(headers)
+                stream = h2_conn.streams.get(stream_id)
+                if stream:
+                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=True)
+                    stream.send_headers(response_hdrs, end_stream=True)
+                    await h2_conn._send_pending_data()
+
         except Exception:
             self.log.exception("Error in ASGI application")
-            if not response_started:
+            if not headers_sent:
                 await h2_conn.send_error(stream_id, 500, "Internal Server Error")
                 response_status = 500
         finally:
             try:
-                request_time = datetime.now() - request_start
-                resp = ASGIResponseInfo(
-                    response_status, response_headers, len(response_body)
-                )
-                self.log.access(resp, request, environ, request_time)
+                request_time = _RequestTime(time.monotonic() - request_start)
+                # Only build log data if access logging is enabled
+                if access_log_enabled:
+                    environ = self._build_http2_environ(request, sockname, peername)
+                    resp = ASGIResponseInfo(
+                        response_status, response_headers, response_sent
+                    )
+                    self.log.access(resp, request, environ, request_time)
+                else:
+                    environ = None
+                    resp = None
                 self.cfg.post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
@@ -902,7 +1472,7 @@ class ASGIProtocol(asyncio.Protocol):
             "method": request.method,
             "scheme": request.scheme,
             "path": request.path,
-            "raw_path": request.path.encode("latin-1") if request.path else b"",
+            "raw_path": getattr(request, 'raw_path', None) or (request.path.encode("latin-1") if request.path else b""),
             "query_string": request.query.encode("latin-1") if request.query else b"",
             "root_path": self.cfg.root_path or "",
             "headers": headers,
