@@ -6,7 +6,9 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     sentence-transformers \
     fastapi \
-    pydantic
+    pydantic \
+    pytest \
+    requests
 
 # Copy gunicorn source
 COPY . /app/gunicorn-src
