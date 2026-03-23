@@ -40,20 +40,22 @@ WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
 class WebSocketProtocol:
-    """WebSocket connection handler for ASGI applications."""
+    """WebSocket connection handler for ASGI applications.
 
-    def __init__(self, transport, reader, scope, app, log):
+    Uses callback-based data feeding instead of StreamReader for efficiency.
+    Data is fed via feed_data() from the parent protocol's data_received().
+    """
+
+    def __init__(self, transport, scope, app, log):
         """Initialize WebSocket protocol handler.
 
         Args:
             transport: asyncio transport for writing
-            reader: asyncio StreamReader for reading
             scope: ASGI WebSocket scope dict
             app: ASGI application callable
             log: Logger instance
         """
         self.transport = transport
-        self.reader = reader
         self.scope = scope
         self.app = app
         self.log = log
@@ -69,6 +71,26 @@ class WebSocketProtocol:
 
         # Receive queue for incoming messages
         self._receive_queue = asyncio.Queue()
+
+        # Callback-based data reception (replaces StreamReader)
+        self._buffer = bytearray()
+        self._data_event = asyncio.Event()
+        self._eof = False
+
+    def feed_data(self, data):
+        """Feed incoming data from the parent protocol's data_received().
+
+        Args:
+            data: bytes received on the connection
+        """
+        if data:
+            self._buffer.extend(data)
+            self._data_event.set()
+
+    def feed_eof(self):
+        """Signal that the connection has been closed."""
+        self._eof = True
+        self._data_event.set()
 
     async def run(self):
         """Run the WebSocket ASGI application."""
@@ -295,14 +317,25 @@ class WebSocketProtocol:
             return (opcode, payload)
 
     async def _read_exact(self, n):
-        """Read exactly n bytes from the reader."""
-        try:
-            data = await self.reader.readexactly(n)
-            return data
-        except asyncio.IncompleteReadError:
-            return None
-        except Exception:
-            return None
+        """Read exactly n bytes from internal buffer.
+
+        Waits for data via the callback-fed buffer instead of StreamReader.
+        """
+        while len(self._buffer) < n:
+            if self._eof:
+                return None
+            self._data_event.clear()
+            # Critical: check buffer AGAIN after clearing to avoid race
+            # condition where data arrives between clear() and wait()
+            if len(self._buffer) >= n:
+                break
+            await self._data_event.wait()
+            if self._eof and len(self._buffer) < n:
+                return None
+
+        data = bytes(self._buffer[:n])
+        del self._buffer[:n]
+        return data
 
     def _unmask(self, payload, masking_key):
         """Unmask WebSocket payload data."""
