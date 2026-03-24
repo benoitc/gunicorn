@@ -2337,11 +2337,19 @@
 </ul>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>FileWrapper Iterator Protocol</strong>: Add <code>__iter__</code> and <code>__next__</code> methods to
+<li>
+<p><strong>uWSGI Async Workers</strong>: Fix <code>InvalidUWSGIHeader: incomplete header</code> error
+  when using gevent or gthread workers with uwsgi protocol behind nginx.
+  (<a href="https://github.com/benoitc/gunicorn/issues/3552">#3552</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3554">PR #3554</a>)</p>
+</li>
+<li>
+<p><strong>FileWrapper Iterator Protocol</strong>: Add <code>__iter__</code> and <code>__next__</code> methods to
   <code>FileWrapper</code> for full PEP 3333 compliance. Previously only supported old-style
   <code>__getitem__</code> iteration which broke code explicitly using <code>iter()</code> or <code>next()</code>.
   (<a href="https://github.com/benoitc/gunicorn/issues/3396">#3396</a>,
-  <a href="https://github.com/benoitc/gunicorn/pull/3550">PR #3550</a>)</li>
+  <a href="https://github.com/benoitc/gunicorn/pull/3550">PR #3550</a>)</p>
+</li>
 </ul>
 <h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
 <ul>
