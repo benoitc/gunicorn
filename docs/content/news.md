@@ -13,6 +13,11 @@
 
 ### Bug Fixes
 
+- **uWSGI Async Workers**: Fix `InvalidUWSGIHeader: incomplete header` error
+  when using gevent or gthread workers with uwsgi protocol behind nginx.
+  ([#3552](https://github.com/benoitc/gunicorn/issues/3552),
+  [PR #3554](https://github.com/benoitc/gunicorn/pull/3554))
+
 - **FileWrapper Iterator Protocol**: Add `__iter__` and `__next__` methods to
   `FileWrapper` for full PEP 3333 compliance. Previously only supported old-style
   `__getitem__` iteration which broke code explicitly using `iter()` or `next()`.
