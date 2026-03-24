@@ -11,6 +11,14 @@
   - Falls back to Python parser in `auto` mode if version not met
   - Proper HTTP status codes for limit errors (414, 431)
 
+### Bug Fixes
+
+- **FileWrapper Iterator Protocol**: Add `__iter__` and `__next__` methods to
+  `FileWrapper` for full PEP 3333 compliance. Previously only supported old-style
+  `__getitem__` iteration which broke code explicitly using `iter()` or `next()`.
+  ([#3396](https://github.com/benoitc/gunicorn/issues/3396),
+  [PR #3550](https://github.com/benoitc/gunicorn/pull/3550))
+
 ### Performance
 
 - **ASGI HTTP Parser Optimizations**: Improve ASGI worker HTTP parsing performance
