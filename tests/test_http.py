@@ -9,7 +9,7 @@ from unittest import mock
 
 from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
-from gunicorn.http.wsgi import Response
+from gunicorn.http.wsgi import FileWrapper, Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, InvalidHTTPVersion
 from gunicorn.http.message import TOKEN_RE
@@ -257,9 +257,6 @@ def test_invalid_http_version_error():
 
 def test_file_wrapper_iterable():
     """FileWrapper should support the iterator protocol per PEP 3333."""
-    import io
-    from gunicorn.http.wsgi import FileWrapper
-
     filelike = io.BytesIO(b"hello world")
     wrapper = FileWrapper(filelike, blksize=5)
 
