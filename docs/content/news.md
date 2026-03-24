@@ -1,7 +1,7 @@
 <span id="news"></span>
 # Changelog
 
-## unreleased
+## 25.2.0 - 2026-03-24
 
 ### New Features
 
