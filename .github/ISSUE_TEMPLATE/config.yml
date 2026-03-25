@@ -6,3 +6,6 @@ contact_links:
   - name: Question
     url: https://github.com/benoitc/gunicorn/discussions/new?category=q-a
     about: Ask a question about configuration, deployment, or usage
+  - name: ❤️ Support Gunicorn
+    url: https://gunicorn.org/sponsor/
+    about: Gunicorn is volunteer-maintained. Consider sponsoring to support development.
