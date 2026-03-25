@@ -3,7 +3,7 @@
 # Build: docker build -t gunicorn-http2-gevent .
 # Run:   docker run -p 8443:8443 -v $(pwd)/certs:/certs:ro gunicorn-http2-gevent
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Install build dependencies for gevent and h2
 RUN apt-get update && apt-get install -y --no-install-recommends \

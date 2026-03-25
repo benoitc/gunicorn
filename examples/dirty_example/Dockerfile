@@ -2,7 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
