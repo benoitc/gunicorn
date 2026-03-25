@@ -3,8 +3,7 @@
 <p align="center">
   <strong>Gunicorn is maintained by volunteers. If it powers your production, please consider supporting us:</strong><br>
   <a href="https://github.com/sponsors/benoitc"><img src="https://img.shields.io/badge/GitHub_Sponsors-❤-ea4aaa?style=for-the-badge&logo=github" alt="GitHub Sponsors"></a>
-  <a href="https://opencollective.com/gunicorn"><img src="https://img.shields.io/badge/Open_Collective-Support-7FADF2?style=for-the-badge&logo=opencollective" alt="Open Collective"></a>
-  <a href="https://checkout.revolut.com/pay/c934e028-3a71-44eb-b99c-491342df2044"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
+  <a href="https://checkout.revolut.com/pay/ac271e5e-172a-408b-947b-2f9f79d3a88a"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
 </p>
 
 [![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)
@@ -62,6 +61,10 @@ Full documentation at https://gunicorn.org
 Powering Python apps since 2010. Support continued development.
 
 [![Become a Sponsor](https://img.shields.io/badge/Become_a_Sponsor-❤-ff69b4)](https://gunicorn.org/sponsor/)
+
+### Sponsors
+
+<a href="https://enki-multimedia.eu"><img src="docs/content/assets/enki-multimedia.svg" alt="Enki Multimedia" height="50" /></a>
 
 ## License
 
