@@ -2,6 +2,11 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+from gunicorn.config import Config
+
+cfg = Config()
+cfg.set("header_map", "drop")
+
 request = {
     "method": "GET",
     "uri": uri("/keep/same/as?invalid/040"),

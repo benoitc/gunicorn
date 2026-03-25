@@ -1,0 +1,5 @@
+PUT /ß/germans..?ö=ä HTTP/1.1\r\n
+Unicode: awesome\r\n
+Content-Length: 6\r\n
+\r\n
+ÄÖÜ
