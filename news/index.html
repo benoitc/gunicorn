@@ -2354,8 +2354,7 @@
 <h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI HTTP Parser Optimizations</strong>: Improve ASGI worker HTTP parsing performance</li>
-<li>Read chunks in 64-byte blocks instead of 1 byte at a time for chunk size lines and trailers</li>
-<li>Reuse BytesIO buffers with truncate/seek instead of creating new objects (reduces GC pressure)</li>
+<li>Callback-based parsing with direct <code>bytearray</code> buffer operations</li>
 <li>Use <code>bytearray.find()</code> directly instead of converting to bytes first</li>
 <li>Use index-based iteration for header parsing instead of <code>list.pop(0)</code> (O(1) vs O(n))</li>
 </ul>
