@@ -9,9 +9,45 @@ Provides callback-based parsing using either the fast C parser (gunicorn_h1c)
 or the pure Python PythonProtocol fallback.
 """
 
+import struct
+from enum import IntEnum
+
 
 class ParseError(Exception):
     """Base error raised during HTTP parsing."""
+
+
+class InvalidProxyLine(ParseError):
+    """Invalid PROXY protocol v1 line."""
+
+
+class InvalidProxyHeader(ParseError):
+    """Invalid PROXY protocol v2 header."""
+
+
+# PROXY protocol v2 constants
+PP_V2_SIGNATURE = b"\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A"
+
+
+class PPCommand(IntEnum):
+    """PROXY protocol v2 commands."""
+    LOCAL = 0x0
+    PROXY = 0x1
+
+
+class PPFamily(IntEnum):
+    """PROXY protocol v2 address families."""
+    UNSPEC = 0x0
+    INET = 0x1   # IPv4
+    INET6 = 0x2  # IPv6
+    UNIX = 0x3
+
+
+class PPProtocol(IntEnum):
+    """PROXY protocol v2 transport protocols."""
+    UNSPEC = 0x0
+    STREAM = 0x1  # TCP
+    DGRAM = 0x2   # UDP
 
 
 class LimitRequestLine(ParseError):
@@ -20,6 +56,10 @@ class LimitRequestLine(ParseError):
 
 class LimitRequestHeaders(ParseError):
     """Too many headers or header field too large."""
+
+
+class InvalidRequestLine(ParseError):
+    """Invalid request line."""
 
 
 class InvalidRequestMethod(ParseError):
@@ -36,6 +76,14 @@ class InvalidHeaderName(ParseError):
 
 class InvalidHeader(ParseError):
     """Invalid header value."""
+
+
+class UnsupportedTransferCoding(ParseError):
+    """Unsupported Transfer-Encoding value."""
+
+
+class InvalidChunkSize(ParseError):
+    """Invalid chunk size in chunked transfer encoding."""
 
 
 class PythonProtocol:
@@ -64,6 +112,7 @@ class PythonProtocol:
         '_limit_request_line', '_limit_request_fields', '_limit_request_field_size',
         '_permit_unconventional_http_method', '_permit_unconventional_http_version',
         '_header_count',
+        '_proxy_protocol', '_proxy_protocol_info', '_proxy_protocol_done',
     )
 
     def __init__(
@@ -79,6 +128,7 @@ class PythonProtocol:
         limit_request_field_size=8190,
         permit_unconventional_http_method=False,
         permit_unconventional_http_version=False,
+        proxy_protocol='off',
     ):
         self._on_message_begin = on_message_begin
         self._on_url = on_url
@@ -95,8 +145,13 @@ class PythonProtocol:
         self._permit_unconventional_http_version = permit_unconventional_http_version
         self._header_count = 0
 
-        # Parser state: request_line, headers, body, chunked_size, chunked_data, complete
-        self._state = 'request_line'
+        # Proxy protocol
+        self._proxy_protocol = proxy_protocol
+        self._proxy_protocol_info = None
+        self._proxy_protocol_done = (proxy_protocol == 'off')
+
+        # Parser state: proxy_protocol, request_line, headers, body, chunked_size, chunked_data, complete
+        self._state = 'proxy_protocol' if proxy_protocol != 'off' else 'request_line'
         self._buffer = bytearray()
         self._headers_list = []
 
@@ -131,7 +186,10 @@ class PythonProtocol:
         self._buffer.extend(data)
 
         while self._buffer:
-            if self._state == 'request_line':
+            if self._state == 'proxy_protocol':
+                if not self._parse_proxy_protocol():
+                    break
+            elif self._state == 'request_line':
                 if not self._parse_request_line():
                     break
             elif self._state == 'headers':
@@ -145,6 +203,11 @@ class PythonProtocol:
                     break
             else:
                 break
+
+    @property
+    def proxy_protocol_info(self):
+        """Return proxy protocol info if parsed."""
+        return self._proxy_protocol_info
 
     def reset(self):
         """Reset for next request (keepalive)."""
@@ -166,6 +229,190 @@ class PythonProtocol:
         self._chunk_remaining = 0
         self._header_count = 0
 
+    def _parse_proxy_protocol(self):
+        """Parse PROXY protocol header if enabled.
+
+        Returns True if parsing is complete (or not applicable),
+        False if more data is needed.
+        """
+        # Need at least 12 bytes to detect v2 signature or check for v1 prefix
+        if len(self._buffer) < 12:
+            return False
+
+        mode = self._proxy_protocol
+
+        # Check for v2 signature first
+        if mode in ('v2', 'auto') and self._buffer[:12] == PP_V2_SIGNATURE:
+            return self._parse_proxy_protocol_v2()
+
+        # Check for v1 prefix
+        if mode in ('v1', 'auto') and self._buffer[:6] == b'PROXY ':
+            return self._parse_proxy_protocol_v1()
+
+        # Not proxy protocol - continue with normal parsing
+        self._proxy_protocol_done = True
+        self._state = 'request_line'
+        return True
+
+    def _parse_proxy_protocol_v1(self):
+        """Parse PROXY protocol v1 (text format).
+
+        Format: PROXY <PROTO> <SRC_ADDR> <DST_ADDR> <SRC_PORT> <DST_PORT>\r\n
+        """
+        # Find end of line
+        idx = self._buffer.find(b'\r\n')
+        if idx == -1:
+            # Need more data - v1 header can be up to 107 bytes
+            if len(self._buffer) > 107:
+                raise InvalidProxyLine("PROXY v1 header too long")
+            return False
+
+        line = bytes(self._buffer[:idx]).decode('latin-1')
+        del self._buffer[:idx + 2]
+
+        # Parse the line
+        parts = line.split(' ')
+        if len(parts) < 2:
+            raise InvalidProxyLine("Invalid PROXY v1 line")
+
+        proto = parts[1].upper()
+
+        if proto == 'UNKNOWN':
+            # Unknown protocol - no address info
+            self._proxy_protocol_info = {
+                'proxy_protocol': 'UNKNOWN',
+                'client_addr': None,
+                'client_port': None,
+                'proxy_addr': None,
+                'proxy_port': None,
+            }
+        elif proto in ('TCP4', 'TCP6'):
+            if len(parts) != 6:
+                raise InvalidProxyLine("Invalid PROXY v1 line for %s" % proto)
+
+            try:
+                s_addr = parts[2]
+                d_addr = parts[3]
+                s_port = int(parts[4])
+                d_port = int(parts[5])
+            except ValueError as e:
+                raise InvalidProxyLine("Invalid PROXY v1 port: %s" % e)
+
+            if not (0 <= s_port <= 65535 and 0 <= d_port <= 65535):
+                raise InvalidProxyLine("Invalid PROXY v1 port range")
+
+            self._proxy_protocol_info = {
+                'proxy_protocol': proto,
+                'client_addr': s_addr,
+                'client_port': s_port,
+                'proxy_addr': d_addr,
+                'proxy_port': d_port,
+            }
+        else:
+            raise InvalidProxyLine("Unknown PROXY v1 protocol: %s" % proto)
+
+        self._proxy_protocol_done = True
+        self._state = 'request_line'
+        return True
+
+    def _parse_proxy_protocol_v2(self):
+        """Parse PROXY protocol v2 (binary format)."""
+        # Need at least 16 bytes for header
+        if len(self._buffer) < 16:
+            return False
+
+        # Parse header
+        ver_cmd = self._buffer[12]
+        fam_prot = self._buffer[13]
+        length = struct.unpack('>H', bytes(self._buffer[14:16]))[0]
+
+        # Check version
+        version = (ver_cmd & 0xF0) >> 4
+        if version != 2:
+            raise InvalidProxyHeader("Unsupported PROXY v2 version: %d" % version)
+
+        # Check command
+        command = ver_cmd & 0x0F
+        if command not in (PPCommand.LOCAL, PPCommand.PROXY):
+            raise InvalidProxyHeader("Unsupported PROXY v2 command: %d" % command)
+
+        # Check if we have the complete header
+        total_size = 16 + length
+        if len(self._buffer) < total_size:
+            return False
+
+        # Extract address data
+        addr_data = bytes(self._buffer[16:total_size])
+        del self._buffer[:total_size]
+
+        # Handle LOCAL command
+        if command == PPCommand.LOCAL:
+            self._proxy_protocol_info = {
+                'proxy_protocol': 'LOCAL',
+                'client_addr': None,
+                'client_port': None,
+                'proxy_addr': None,
+                'proxy_port': None,
+            }
+            self._proxy_protocol_done = True
+            self._state = 'request_line'
+            return True
+
+        # Parse address family and protocol
+        family = (fam_prot & 0xF0) >> 4
+        protocol = fam_prot & 0x0F
+
+        if family == PPFamily.INET:
+            # IPv4
+            if len(addr_data) < 12:
+                raise InvalidProxyHeader("Invalid PROXY v2 IPv4 address data")
+            s_addr = '.'.join(str(b) for b in addr_data[:4])
+            d_addr = '.'.join(str(b) for b in addr_data[4:8])
+            s_port = struct.unpack('>H', addr_data[8:10])[0]
+            d_port = struct.unpack('>H', addr_data[10:12])[0]
+            proto = 'TCP4' if protocol == PPProtocol.STREAM else 'UDP4'
+
+        elif family == PPFamily.INET6:
+            # IPv6
+            if len(addr_data) < 36:
+                raise InvalidProxyHeader("Invalid PROXY v2 IPv6 address data")
+            # Format IPv6 addresses
+            s_words = struct.unpack('>8H', addr_data[:16])
+            d_words = struct.unpack('>8H', addr_data[16:32])
+            s_addr = ':'.join('%x' % w for w in s_words)
+            d_addr = ':'.join('%x' % w for w in d_words)
+            s_port = struct.unpack('>H', addr_data[32:34])[0]
+            d_port = struct.unpack('>H', addr_data[34:36])[0]
+            proto = 'TCP6' if protocol == PPProtocol.STREAM else 'UDP6'
+
+        elif family == PPFamily.UNSPEC:
+            # Unspecified address family
+            self._proxy_protocol_info = {
+                'proxy_protocol': 'UNSPEC',
+                'client_addr': None,
+                'client_port': None,
+                'proxy_addr': None,
+                'proxy_port': None,
+            }
+            self._proxy_protocol_done = True
+            self._state = 'request_line'
+            return True
+
+        else:
+            raise InvalidProxyHeader("Unsupported PROXY v2 address family: %d" % family)
+
+        self._proxy_protocol_info = {
+            'proxy_protocol': proto,
+            'client_addr': s_addr,
+            'client_port': s_port,
+            'proxy_addr': d_addr,
+            'proxy_port': d_port,
+        }
+
+        self._proxy_protocol_done = True
+        self._state = 'request_line'
+        return True
+
     def _parse_request_line(self):
         """Parse request line, return True if complete."""
         idx = self._buffer.find(b'\r\n')
@@ -182,7 +429,7 @@ class PythonProtocol:
         # Parse: METHOD PATH HTTP/x.y
         parts = line.split(b' ', 2)
         if len(parts) != 3:
-            raise ParseError("Invalid request line")
+            raise InvalidRequestLine("Invalid request line")
 
         self.method = parts[0]
         self.path = parts[1]
@@ -234,8 +481,8 @@ class PythonProtocol:
                 self._finalize_headers()
                 return True
 
-            # Check header field size limit
-            if self._limit_request_field_size > 0 and len(line) > self._limit_request_field_size:
+            # Check header field size limit (include CRLF in size to match WSGI parser)
+            if self._limit_request_field_size > 0 and len(line) + 2 > self._limit_request_field_size:
                 raise LimitRequestHeaders("Request header field is too large")
 
             # Check header count limit
@@ -264,22 +511,84 @@ class PythonProtocol:
                 self._on_header(name_lower, value)
 
     def _finalize_headers(self):
-        """Called when all headers received."""
+        """Called when all headers received.
+
+        Validates headers for request smuggling vulnerabilities:
+        - Rejects duplicate Content-Length headers
+        - Rejects requests with both Content-Length and Transfer-Encoding
+        - Rejects chunked Transfer-Encoding in HTTP/1.0
+        - Rejects stacked chunked encoding
+        - Validates Transfer-Encoding values
+        """
         self.headers = self._headers_list
 
-        # Extract content-length and chunked
+        # Extract and validate content-length and transfer-encoding
+        content_length = None
+        chunked = False
+
         for name, value in self.headers:
             if name == b'content-length':
-                self.content_length = int(value)
-                self._body_remaining = self.content_length
+                # Reject duplicate Content-Length headers (request smuggling vector)
+                if content_length is not None:
+                    raise InvalidHeader("Duplicate Content-Length header")
+                try:
+                    cl_value = int(value)
+                except ValueError:
+                    raise InvalidHeader("Invalid Content-Length value")
+                if cl_value < 0:
+                    raise InvalidHeader("Negative Content-Length")
+                content_length = cl_value
+
             elif name == b'transfer-encoding':
-                self.is_chunked = b'chunked' in value.lower()
+                # Properly parse comma-separated Transfer-Encoding values
+                # per RFC 9112 Section 6.1
+                vals = [v.strip() for v in value.split(b',')]
+                for val in vals:
+                    val_lower = val.lower()
+                    if val_lower == b'chunked':
+                        # Reject stacked chunked encoding (request smuggling vector)
+                        if chunked:
+                            raise InvalidHeader("Stacked chunked encoding")
+                        chunked = True
+                    elif val_lower == b'identity':
+                        # identity after chunked is invalid
+                        if chunked:
+                            raise InvalidHeader("Invalid Transfer-Encoding after chunked")
+                    elif val_lower in (b'compress', b'deflate', b'gzip'):
+                        # Compression after chunked is invalid
+                        if chunked:
+                            raise InvalidHeader("Invalid Transfer-Encoding after chunked")
+                        # Mark connection for close (unsupported but valid)
+                        self.should_keep_alive = False
+                    else:
+                        # Reject unknown transfer codings
+                        raise UnsupportedTransferCoding(val.decode('latin-1'))
+
             elif name == b'connection':
                 val = value.lower()
                 if b'close' in val:
                     self.should_keep_alive = False
                 elif b'keep-alive' in val:
                     self.should_keep_alive = True
+
+        # Security checks for request smuggling prevention
+        if chunked:
+            # Reject chunked in HTTP/1.0 (RFC 9112 Section 6.1)
+            if self.http_version < (1, 1):
+                raise InvalidHeader("Chunked encoding not allowed in HTTP/1.0")
+            # Reject Content-Length with Transfer-Encoding (request smuggling vector)
+            if content_length is not None:
+                raise InvalidHeader("Content-Length with Transfer-Encoding")
+            self.is_chunked = True
+            self.content_length = None
+            self._body_remaining = -1  # Chunked mode
+        elif content_length is not None:
+            self.content_length = content_length
+            self._body_remaining = content_length
+        else:
+            # No body
+            self.content_length = None
+            self._body_remaining = 0
 
         # HTTP/1.0 defaults to close
         if self.http_version == (1, 0) and self.should_keep_alive:
@@ -348,12 +657,24 @@ class PythonProtocol:
                 # Handle chunk extensions (e.g., "5;ext=value")
                 semicolon = size_line.find(b';')
                 if semicolon != -1:
-                    size_line = size_line[:semicolon].strip()
+                    size_line = size_line[:semicolon]
+
+                # Strict validation: reject leading/trailing whitespace
+                # to prevent parser desync (request smuggling vector)
+                if size_line != size_line.strip():
+                    raise InvalidChunkSize("Whitespace in chunk size")
+                if not size_line:
+                    raise InvalidChunkSize("Empty chunk size")
+
+                # Validate hex characters only (0-9, a-f, A-F)
+                for c in size_line:
+                    if c not in b'0123456789abcdefABCDEF':
+                        raise InvalidChunkSize("Invalid character in chunk size")
 
                 try:
                     self._chunk_size = int(size_line, 16)
                 except ValueError:
-                    raise ParseError("Invalid chunk size")
+                    raise InvalidChunkSize("Invalid chunk size")
 
                 if self._chunk_size == 0:
                     # Final chunk - skip trailers
