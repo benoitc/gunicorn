@@ -2396,6 +2396,11 @@
 <p><strong>Chunked Encoding</strong>: Reject chunk extensions containing bare CR bytes per RFC 9112
   (<a href="https://github.com/benoitc/gunicorn/discussions/3556">#3556</a>)</p>
 </li>
+<li>
+<p><strong>Request Line Limit</strong>: Fix <code>--limit-request-line 0</code> to mean unlimited as documented,
+  instead of using default maximum. Works with both Python and fast C parser.
+  (<a href="https://github.com/benoitc/gunicorn/issues/3563">#3563</a>)</p>
+</li>
 </ul>
 <h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2410,11 +2415,14 @@
 <h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p><strong>Fast HTTP Parser</strong>: Update to gunicorn_h1c &gt;= 0.6.2 for <code>asgi_headers</code> property
-  which provides headers with lowercase names directly from the C parser</p>
+<p><strong>Fast HTTP Parser</strong>: Update to gunicorn_h1c &gt;= 0.6.3 for <code>asgi_headers</code> property
+  and <code>InvalidChunkExtension</code> validation for bare CR rejection</p>
 </li>
 <li>
 <p><strong>ASGI PROXY Protocol</strong>: Add PROXY protocol v1/v2 support to callback parser</p>
+</li>
+<li>
+<p><strong>Docker Images</strong>: Update to Python 3.14</p>
 </li>
 </ul>
 <hr />
