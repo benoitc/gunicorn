@@ -86,6 +86,10 @@ class InvalidChunkSize(ParseError):
     """Invalid chunk size in chunked transfer encoding."""
 
 
+class InvalidChunkExtension(ParseError):
+    """Invalid chunk extension per RFC 9112."""
+
+
 class PythonProtocol:
     """Callback-based HTTP/1.1 parser (pure Python fallback).
 
@@ -673,7 +677,7 @@ class PythonProtocol:
                     # RFC 9112: chunk-ext must not contain bare CR
                     chunk_ext = size_line[semicolon + 1:]
                     if b'\r' in chunk_ext:
-                        raise ParseError("Invalid chunk extension: bare CR not allowed")
+                        raise InvalidChunkExtension("bare CR not allowed")
                     size_line = size_line[:semicolon]
 
                 # Strict validation: reject leading/trailing whitespace
