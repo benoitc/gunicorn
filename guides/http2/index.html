@@ -2571,7 +2571,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 </code></pre></div>
 <p>Or in a configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="s2">&quot;h1&quot;</span><span class="p">]</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
 </code></pre></div>
 <p>The order matters for ALPN negotiation - protocols are tried in order of preference.</p>
 <table>
@@ -2607,7 +2607,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
 <span class="n">certfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.crt&quot;</span>
 <span class="n">keyfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.key&quot;</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="s2">&quot;h1&quot;</span><span class="p">]</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
 </code></pre></div>
 <h3 id="http2-settings">HTTP/2 Settings<a class="headerlink" href="#http2-settings" title="Permanent link">&para;</a></h3>
 <p>Fine-tune HTTP/2 behavior with these settings:</p>
@@ -2644,7 +2644,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 </table>
 <p>Example configuration:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="s2">&quot;h1&quot;</span><span class="p">]</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">200</span>
 <span class="n">http2_initial_window_size</span> <span class="o">=</span> <span class="mi">1048576</span>  <span class="c1"># 1MB</span>
 </code></pre></div>
@@ -2988,7 +2988,7 @@ and the <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#early_
 <span class="n">keyfile</span> <span class="o">=</span> <span class="s2">&quot;/etc/letsencrypt/live/example.com/privkey.pem&quot;</span>
 
 <span class="c1"># HTTP/2</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="s2">&quot;h1&quot;</span><span class="p">]</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">100</span>
 </code></pre></div>
 <h3 id="recommended-settings">Recommended Settings<a class="headerlink" href="#recommended-settings" title="Permanent link">&para;</a></h3>
@@ -3005,7 +3005,7 @@ and the <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#early_
 <span class="n">ssl_version</span> <span class="o">=</span> <span class="s2">&quot;TLSv1_2&quot;</span>  <span class="c1"># Minimum TLS 1.2 for HTTP/2</span>
 
 <span class="c1"># HTTP/2</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="s2">&quot;h1&quot;</span><span class="p">]</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">http2_initial_window_size</span> <span class="o">=</span> <span class="mi">65535</span>
 </code></pre></div>
