@@ -496,7 +496,8 @@ class ASGIProtocol(asyncio.Protocol):
             except Exception as e:
                 # Handle gunicorn_h1c exceptions (different class hierarchy)
                 h1c_exc = ASGIProtocol._h1c_invalid_chunk_extension
-                if h1c_exc and isinstance(e, h1c_exc):
+                # pylint: disable=isinstance-second-argument-not-valid-type
+                if h1c_exc is not None and isinstance(e, h1c_exc):
                     self._send_error_response(400, str(e))
                     self._close_transport()
                     return
