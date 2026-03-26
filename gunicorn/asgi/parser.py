@@ -148,7 +148,7 @@ class PythonProtocol:
         # Proxy protocol
         self._proxy_protocol = proxy_protocol
         self._proxy_protocol_info = None
-        self._proxy_protocol_done = (proxy_protocol == 'off')
+        self._proxy_protocol_done = proxy_protocol == 'off'
 
         # Parser state: proxy_protocol, request_line, headers, body, chunked_size, chunked_data, complete
         self._state = 'proxy_protocol' if proxy_protocol != 'off' else 'request_line'
