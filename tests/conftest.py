@@ -21,7 +21,7 @@ def http_parser(request):
     """Parametrize tests over http_parser implementations."""
     if request.param == "fast":
         gunicorn_h1c = pytest.importorskip("gunicorn_h1c", reason="gunicorn_h1c required")
-        # Require >= 0.4.1 for limit enforcement
-        if not hasattr(gunicorn_h1c, 'LimitRequestLine'):
-            pytest.skip("gunicorn_h1c >= 0.4.1 required")
+        # Require >= 0.6.2 for asgi_headers support
+        if not hasattr(gunicorn_h1c.H1CProtocol, 'asgi_headers'):
+            pytest.skip("gunicorn_h1c >= 0.6.2 required")
     return request.param

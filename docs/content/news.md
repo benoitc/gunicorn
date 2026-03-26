@@ -1,6 +1,36 @@
 <span id="news"></span>
 # Changelog
 
+## 25.3.0 - 2026-03-26
+
+### Bug Fixes
+
+- **HTTP/2 ASGI Body Duplication**: Fix request body being received twice in HTTP/2
+  ASGI requests, causing JSON parsing errors with "Extra data" messages
+  ([#3558](https://github.com/benoitc/gunicorn/issues/3558))
+
+- **ASGI Chunked EOF Handling**: Add `finish()` method to callback parser to handle
+  chunked encoding edge case where connection closes before final CRLF after zero-chunk
+
+### Security
+
+- **ASGI Parser Header Validation**: Add security checks per RFC 9110/9112:
+  - Reject duplicate Content-Length headers
+  - Reject requests with both Content-Length and Transfer-Encoding
+  - Reject chunked transfer encoding in HTTP/1.0
+  - Reject stacked chunked encoding
+  - Validate Transfer-Encoding values
+  - Strict chunk size validation
+
+### Changes
+
+- **Fast HTTP Parser**: Update to gunicorn_h1c >= 0.6.2 for `asgi_headers` property
+  which provides headers with lowercase names directly from the C parser
+
+- **ASGI PROXY Protocol**: Add PROXY protocol v1/v2 support to callback parser
+
+---
+
 ## 25.2.0 - 2026-03-24
 
 ### New Features

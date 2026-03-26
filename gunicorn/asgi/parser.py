@@ -501,7 +501,9 @@ class CallbackRequest:
         req.version = parser.http_version
 
         # Headers - store both bytes (for ASGI scope) and strings (for compatibility)
-        req.headers_bytes = list(parser.headers)
+        # Use asgi_headers (lowercase names) if available (fast parser >= 0.6.2),
+        # otherwise fall back to headers (Python parser already uses lowercase)
+        req.headers_bytes = list(getattr(parser, 'asgi_headers', None) or parser.headers)
         req.headers = [
             (n.decode('latin-1').upper(), v.decode('latin-1'))
             for n, v in parser.headers
