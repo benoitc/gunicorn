@@ -5,9 +5,9 @@
 
 ### New Features
 
-- **Fast HTTP Parser (gunicorn_h1c 0.4.1)**: Integrate new exception types and limit
-  parameters from gunicorn_h1c 0.4.1 for both WSGI and ASGI workers
-  - Requires gunicorn_h1c >= 0.4.1 for `http_parser='fast'`
+- **Fast HTTP Parser (gunicorn_h1c 0.6.0)**: Integrate new exception types and limit
+  parameters from gunicorn_h1c 0.6.0 for both WSGI and ASGI workers
+  - Requires gunicorn_h1c >= 0.6.0 for `http_parser='fast'`
   - Falls back to Python parser in `auto` mode if version not met
   - Proper HTTP status codes for limit errors (414, 431)
 

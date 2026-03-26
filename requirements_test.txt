@@ -3,4 +3,4 @@ coverage
 pytest>=7.2.0
 pytest-cov
 pytest-asyncio
-gunicorn_h1c>=0.4.1
+gunicorn_h1c>=0.6.0
