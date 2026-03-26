@@ -387,11 +387,19 @@ class Request(Message):
         self.query = None
         self.fragment = None
 
-        # get max request line size
+        # get max request line size (0 means unlimited per documentation)
         self.limit_request_line = cfg.limit_request_line
-        if (self.limit_request_line <= 0
-                or self.limit_request_line >= MAX_REQUEST_LINE):
+        if self.limit_request_line < 0:
             self.limit_request_line = MAX_REQUEST_LINE
+        # For fast parser: use large value when unlimited (0), since C parser
+        # doesn't support 0 as unlimited. 1MB should be more than enough.
+        if self.limit_request_line == 0:
+            self._fast_limit_request_line = 1024 * 1024  # 1MB
+        elif self.limit_request_line >= MAX_REQUEST_LINE:
+            self._fast_limit_request_line = MAX_REQUEST_LINE
+            self.limit_request_line = MAX_REQUEST_LINE
+        else:
+            self._fast_limit_request_line = self.limit_request_line
 
         self.req_number = req_number
         self.proxy_protocol_info = None
@@ -433,10 +441,11 @@ class Request(Message):
         while True:
             try:
                 # Pass all limit parameters to C parser
+                # Use _fast_limit_request_line which handles 0=unlimited
                 result = _fast_parser_module.parse_request(
                     data,
                     last_len=last_len,
-                    limit_request_line=self.limit_request_line,
+                    limit_request_line=self._fast_limit_request_line,
                     limit_request_fields=self.limit_request_fields,
                     limit_request_field_size=self.limit_request_field_size,
                     permit_unconventional_http_method=self.cfg.permit_unconventional_http_method,
@@ -447,7 +456,7 @@ class Request(Message):
                 last_len = len(data)
                 self.read_into(unreader, buf)
                 data = bytes(buf)
-                if len(data) > self.max_buffer_headers + self.limit_request_line:
+                if len(data) > self.max_buffer_headers + self._fast_limit_request_line:
                     raise LimitRequestHeaders("max buffer headers")
             except _fast_parser_module.LimitRequestLine as e:
                 raise LimitRequestLine(str(e))

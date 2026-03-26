@@ -419,12 +419,18 @@ class ASGIProtocol(asyncio.Protocol):
             else:
                 parser_class = PythonProtocol
 
+        # Handle limit_request_line=0 (unlimited per documentation)
+        # PythonProtocol handles 0 correctly, but C parser needs a large value
+        limit_request_line = self.cfg.limit_request_line
+        if limit_request_line == 0 and parser_class != PythonProtocol:
+            limit_request_line = 1024 * 1024  # 1MB for C parser
+
         # Create parser with callbacks and limit parameters (both parsers support them)
         self._callback_parser = parser_class(
             on_headers_complete=self._on_headers_complete,
             on_body=self._on_body,
             on_message_complete=self._on_message_complete,
-            limit_request_line=self.cfg.limit_request_line,
+            limit_request_line=limit_request_line,
             limit_request_fields=self.cfg.limit_request_fields,
             limit_request_field_size=self.cfg.limit_request_field_size,
             permit_unconventional_http_method=self.cfg.permit_unconventional_http_method,
