@@ -80,6 +80,8 @@ main = "gunicorn.app.pasterapp:serve"
 norecursedirs = ["examples", "lib", "local", "src", "tests/docker"]
 testpaths = ["tests/"]
 addopts = "--assert=plain --cov=gunicorn --cov-report=xml"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     # Eventlet patches select module, which breaks asyncio event loop cleanup
     # This is expected behavior when testing eventlet worker
