@@ -17,7 +17,7 @@ import time
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.parser import (
     PythonProtocol, CallbackRequest, ParseError,
-    LimitRequestLine, LimitRequestHeaders
+    LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
@@ -283,6 +283,7 @@ class ASGIProtocol(asyncio.Protocol):
     _h1c_available = None
     _h1c_protocol_class = None
     _h1c_has_limits = False  # True if >= 0.4.1 (has limit parameters)
+    _h1c_invalid_chunk_extension = None  # Exception class from gunicorn_h1c >= 0.6.3
 
     def __init__(self, worker):
         self.worker = worker
@@ -363,6 +364,10 @@ class ASGIProtocol(asyncio.Protocol):
                 cls._h1c_protocol_class = H1CProtocol
                 # Require >= 0.4.1 for limit enforcement
                 cls._h1c_has_limits = hasattr(gunicorn_h1c, 'LimitRequestLine')
+                # Check for InvalidChunkExtension (>= 0.6.3)
+                cls._h1c_invalid_chunk_extension = getattr(
+                    gunicorn_h1c, 'InvalidChunkExtension', None
+                )
             except ImportError:
                 cls._h1c_available = False
                 cls._h1c_has_limits = False
@@ -474,10 +479,22 @@ class ASGIProtocol(asyncio.Protocol):
                 self._send_error_response(431, str(e))  # Request Header Fields Too Large
                 self._close_transport()
                 return
+            except InvalidChunkExtension as e:
+                self._send_error_response(400, str(e))
+                self._close_transport()
+                return
             except ParseError as e:
                 self._send_error_response(400, str(e))
                 self._close_transport()
                 return
+            except Exception as e:
+                # Handle gunicorn_h1c exceptions (different class hierarchy)
+                h1c_exc = ASGIProtocol._h1c_invalid_chunk_extension
+                if h1c_exc and isinstance(e, h1c_exc):
+                    self._send_error_response(400, str(e))
+                    self._close_transport()
+                    return
+                raise
 
         # Backpressure: pause reading if buffer is too large
         if not self._reading_paused and self._is_buffer_full():

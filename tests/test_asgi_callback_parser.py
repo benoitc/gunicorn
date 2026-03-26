@@ -516,3 +516,99 @@ class TestCallbackRequest:
 
         assert request.path == "/hello world"
         assert request.raw_path == b"/hello%20world"
+
+
+class TestChunkExtensionValidation:
+    """Test chunk extension validation per RFC 9112."""
+
+    def test_valid_chunk_extension(self, http_parser):
+        """Valid chunk extensions should be accepted."""
+        parser_class = get_parser_class(http_parser)
+        body_chunks = []
+
+        parser = parser_class(
+            on_body=lambda chunk: body_chunks.append(chunk),
+        )
+        parser.feed(
+            b"POST /data HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+            b"5;name=value\r\n"
+            b"Hello\r\n"
+            b"0\r\n"
+            b"\r\n"
+        )
+
+        assert b"".join(body_chunks) == b"Hello"
+        assert parser.is_complete
+
+    def test_chunk_extension_with_quoted_string(self, http_parser):
+        """Chunk extensions with quoted values should be accepted."""
+        parser_class = get_parser_class(http_parser)
+        body_chunks = []
+
+        parser = parser_class(
+            on_body=lambda chunk: body_chunks.append(chunk),
+        )
+        parser.feed(
+            b"POST /data HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+            b'5;name="quoted value"\r\n'
+            b"Hello\r\n"
+            b"0\r\n"
+            b"\r\n"
+        )
+
+        assert b"".join(body_chunks) == b"Hello"
+        assert parser.is_complete
+
+    def test_chunk_extension_bare_cr_rejected(self, http_parser):
+        """Chunk extensions with bare CR should be rejected per RFC 9112."""
+        import pytest
+        from gunicorn.asgi.parser import InvalidChunkExtension
+
+        parser_class = get_parser_class(http_parser)
+
+        # Build the exception types to catch
+        exceptions_to_catch = [InvalidChunkExtension]
+        if http_parser == "fast":
+            import gunicorn_h1c
+            if hasattr(gunicorn_h1c, 'InvalidChunkExtension'):
+                exceptions_to_catch.append(gunicorn_h1c.InvalidChunkExtension)
+
+        parser = parser_class()
+        parser.feed(
+            b"POST /data HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+        )
+
+        # Chunk extension with bare CR (not followed by LF)
+        with pytest.raises(tuple(exceptions_to_catch)):
+            parser.feed(b"5;ext=val\rue\r\nHello\r\n0\r\n\r\n")
+
+    def test_multiple_chunk_extensions(self, http_parser):
+        """Multiple chunk extensions should be accepted."""
+        parser_class = get_parser_class(http_parser)
+        body_chunks = []
+
+        parser = parser_class(
+            on_body=lambda chunk: body_chunks.append(chunk),
+        )
+        parser.feed(
+            b"POST /data HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+            b"5;a=1;b=2;c=3\r\n"
+            b"Hello\r\n"
+            b"0\r\n"
+            b"\r\n"
+        )
+
+        assert b"".join(body_chunks) == b"Hello"
+        assert parser.is_complete
