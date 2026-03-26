@@ -934,7 +934,7 @@ class ASGIProtocol(asyncio.Protocol):
     def _build_http_scope(self, request, sockname, peername):
         """Build ASGI HTTP scope from parsed request."""
         # Use pre-computed bytes headers if available (fast path)
-        # Fall back to conversion for legacy requests (AsyncRequest, HTTP/2)
+        # Fall back to conversion for HTTP/2 requests
         headers_bytes = getattr(request, 'headers_bytes', None)
         if isinstance(headers_bytes, list):
             headers = list(headers_bytes)  # Copy to avoid mutation
