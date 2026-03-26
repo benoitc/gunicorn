@@ -1328,6 +1328,9 @@ class ASGIProtocol(asyncio.Protocol):
                     "more_body": False,
                 }
 
+            if stream._body_complete:
+                body_received = True
+
             return {
                 "type": "http.request",
                 "body": chunk,
