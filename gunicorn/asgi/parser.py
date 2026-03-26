@@ -348,6 +348,10 @@ class PythonProtocol:
                 # Handle chunk extensions (e.g., "5;ext=value")
                 semicolon = size_line.find(b';')
                 if semicolon != -1:
+                    # RFC 9112: chunk-ext must not contain bare CR
+                    chunk_ext = size_line[semicolon + 1:]
+                    if b'\r' in chunk_ext:
+                        raise ParseError("Invalid chunk extension: bare CR not allowed")
                     size_line = size_line[:semicolon].strip()
 
                 try:

@@ -15,6 +15,9 @@
 - **HTTP/2 Documentation**: Fix `http_protocols` examples to use comma-separated string
   instead of list syntax ([#3561](https://github.com/benoitc/gunicorn/issues/3561))
 
+- **Chunked Encoding**: Reject chunk extensions containing bare CR bytes per RFC 9112
+  ([#3556](https://github.com/benoitc/gunicorn/discussions/3556))
+
 ### Security
 
 - **ASGI Parser Header Validation**: Add security checks per RFC 9110/9112:

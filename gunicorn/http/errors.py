@@ -113,6 +113,16 @@ class ChunkMissingTerminator(IOError):
         return "Invalid chunk terminator is not '\\r\\n': %r" % self.term
 
 
+class InvalidChunkExtension(IOError):
+    """Invalid chunk extension per RFC 9112."""
+
+    def __init__(self, reason):
+        self.reason = reason
+
+    def __str__(self):
+        return "Invalid chunk extension: %s" % self.reason
+
+
 class LimitRequestLine(ParseException):
     def __init__(self, size, max_size=None):
         self.size = size
