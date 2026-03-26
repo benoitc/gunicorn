@@ -167,6 +167,7 @@ class request:
 
         for chunk in sender():
             parser.feed(chunk)
+        parser.finish()  # Signal EOF
 
         # Verify parsed request matches expected
         exp = self.expect[0]  # For now, handle single request
@@ -190,9 +191,11 @@ class request:
         assert parsed_headers == exp["headers"], \
             f"Headers mismatch: {parsed_headers} != {exp['headers']}"
 
-        # Body
+        # Body - ensure expected_body is bytes for comparison
         body = b"".join(body_chunks)
         expected_body = exp["body"]
+        if isinstance(expected_body, str):
+            expected_body = expected_body.encode('latin-1')
         assert body == expected_body, \
             f"Body mismatch: {body!r} != {expected_body!r}"
 

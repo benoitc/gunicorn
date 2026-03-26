@@ -229,6 +229,19 @@ class PythonProtocol:
         self._chunk_remaining = 0
         self._header_count = 0
 
+    def finish(self):
+        """Mark parsing complete for EOF handling.
+
+        Call when no more data will be received. Handles edge cases like
+        chunked encoding without final trailer CRLF.
+        """
+        if self._state == 'chunked' and self._chunk_state == 'trailer':
+            # All body data received, just missing final CRLF
+            self._state = 'complete'
+            self.is_complete = True
+            if self._on_message_complete:
+                self._on_message_complete()
+
     def _parse_proxy_protocol(self):
         """Parse PROXY protocol header if enabled.
 
