@@ -5,7 +5,7 @@
 """Test request utilities for ASGI callback parser.
 
 Provides the same test infrastructure as treq.py but for testing
-the ASGI PythonProtocol callback parser.
+the ASGI callback parsers (PythonProtocol and H1CProtocol).
 """
 
 import importlib.machinery
@@ -26,6 +26,7 @@ from gunicorn.asgi.parser import (
     LimitRequestHeaders,
     UnsupportedTransferCoding,
     InvalidChunkSize,
+    InvalidChunkExtension,
     InvalidProxyLine,
     InvalidProxyHeader,
 )
@@ -33,6 +34,31 @@ from gunicorn.util import split_request_uri
 
 dirname = os.path.dirname(__file__)
 random.seed()
+
+# Track if fast parser is available
+_gunicorn_h1c = None
+
+
+def _get_h1c():
+    """Lazily import gunicorn_h1c if available."""
+    global _gunicorn_h1c
+    if _gunicorn_h1c is None:
+        try:
+            import gunicorn_h1c
+            _gunicorn_h1c = gunicorn_h1c
+        except ImportError:
+            _gunicorn_h1c = False
+    return _gunicorn_h1c if _gunicorn_h1c else None
+
+
+def get_parser_class(http_parser):
+    """Get the appropriate parser class for the test parameter."""
+    if http_parser == "fast":
+        h1c = _get_h1c()
+        if h1c is None:
+            raise ImportError("gunicorn_h1c required for fast parser tests")
+        return h1c.H1CProtocol
+    return PythonProtocol
 
 
 def uri(data):
@@ -47,15 +73,22 @@ def uri(data):
     return ret
 
 
-def load_py(fname):
-    """Load test configuration from Python file."""
+def load_py(fname, http_parser='python'):
+    """Load test configuration from Python file.
+
+    Args:
+        fname: Path to the Python configuration file
+        http_parser: Parser to use - 'python' or 'fast'
+    """
     module_name = '__config__'
     mod = types.ModuleType(module_name)
     setattr(mod, 'uri', uri)
     setattr(mod, 'cfg', Config())
     loader = importlib.machinery.SourceFileLoader(module_name, fname)
     loader.exec_module(mod)
-    return vars(mod)
+    result = vars(mod)
+    result['http_parser'] = http_parser
+    return result
 
 
 def decode_hex_escapes(data):
@@ -88,18 +121,39 @@ EXCEPTION_MAP = {
     'LimitRequestHeaders': (LimitRequestHeaders, ParseError),
     'UnsupportedTransferCoding': (UnsupportedTransferCoding, ParseError),
     'InvalidChunkSize': (InvalidChunkSize, ParseError),
+    'InvalidChunkExtension': (InvalidChunkExtension, ParseError),
     'InvalidProxyLine': (InvalidProxyLine, ParseError),
     'InvalidProxyHeader': (InvalidProxyHeader, ParseError),
 }
 
 
-def map_exception(wsgi_exc):
-    """Map a WSGI exception class to equivalent ASGI parser exceptions."""
+def map_exception(wsgi_exc, http_parser='python'):
+    """Map a WSGI exception class to equivalent ASGI parser exceptions.
+
+    Args:
+        wsgi_exc: The expected WSGI exception class
+        http_parser: Parser being used - 'python' or 'fast'
+
+    Returns:
+        Tuple of acceptable exception classes
+    """
     exc_name = wsgi_exc.__name__
-    if exc_name in EXCEPTION_MAP:
-        return EXCEPTION_MAP[exc_name]
-    # For other exceptions, accept any ParseError
-    return (ParseError,)
+    base_exceptions = EXCEPTION_MAP.get(exc_name, (ParseError,))
+
+    # For fast parser, also accept gunicorn_h1c exceptions
+    if http_parser == 'fast':
+        h1c = _get_h1c()
+        if h1c is not None:
+            h1c_exceptions = []
+            # Check for matching exception in gunicorn_h1c
+            if hasattr(h1c, exc_name):
+                h1c_exceptions.append(getattr(h1c, exc_name))
+            # Always accept generic ParseError from h1c
+            if hasattr(h1c, 'ParseError'):
+                h1c_exceptions.append(h1c.ParseError)
+            return base_exceptions + tuple(h1c_exceptions)
+
+    return base_exceptions
 
 
 class request:
@@ -229,24 +283,58 @@ class badrequest:
             yield self.data[read:read+chunk]
             read += chunk
 
-    def check(self, cfg, expected_exc):
-        """Verify parser raises expected exception."""
+    def check(self, cfg, expected_exc, http_parser='python'):
+        """Verify parser raises expected exception.
+
+        Args:
+            cfg: Gunicorn config object
+            expected_exc: Expected WSGI exception class
+            http_parser: Parser to use - 'python' or 'fast'
+        """
+        parser_class = get_parser_class(http_parser)
+
         # Handle limit_request_field_size=0 meaning "use default"
         field_size = cfg.limit_request_field_size
         if field_size <= 0:
             field_size = 8190  # Default max
 
-        parser = PythonProtocol(
-            limit_request_line=cfg.limit_request_line,
-            limit_request_fields=cfg.limit_request_fields,
-            limit_request_field_size=field_size,
-            permit_unconventional_http_method=cfg.permit_unconventional_http_method,
-            permit_unconventional_http_version=cfg.permit_unconventional_http_version,
-            proxy_protocol=getattr(cfg, 'proxy_protocol', 'off'),
-        )
+        # Fast parser (H1CProtocol) has different constructor signature
+        if http_parser == 'fast':
+            parser = parser_class(
+                limit_request_line=cfg.limit_request_line,
+                limit_request_fields=cfg.limit_request_fields,
+                limit_request_field_size=field_size,
+            )
+        else:
+            parser = parser_class(
+                limit_request_line=cfg.limit_request_line,
+                limit_request_fields=cfg.limit_request_fields,
+                limit_request_field_size=field_size,
+                permit_unconventional_http_method=cfg.permit_unconventional_http_method,
+                permit_unconventional_http_version=cfg.permit_unconventional_http_version,
+                proxy_protocol=getattr(cfg, 'proxy_protocol', 'off'),
+            )
 
-        # Get acceptable exception types
-        acceptable = map_exception(expected_exc)
+        # Get acceptable exception types (includes h1c exceptions for fast parser)
+        acceptable = list(map_exception(expected_exc, http_parser))
+
+        # Always accept ParseError from python parser
+        if ParseError not in acceptable:
+            acceptable.append(ParseError)
+
+        # For fast parser, also catch gunicorn_h1c exceptions
+        if http_parser == 'fast':
+            h1c = _get_h1c()
+            if h1c:
+                # gunicorn_h1c has two ParseError classes in different modules
+                if hasattr(h1c, 'ParseError'):
+                    acceptable.append(h1c.ParseError)
+                if hasattr(h1c, '_protocol') and hasattr(h1c._protocol, 'ParseError'):
+                    acceptable.append(h1c._protocol.ParseError)
+                if hasattr(h1c, 'IncompleteError'):
+                    acceptable.append(h1c.IncompleteError)
+
+        acceptable = tuple(acceptable)
 
         raised = False
         try:
@@ -258,9 +346,6 @@ class badrequest:
                 # Parser stalled - this counts as detecting invalid input
                 raised = True
         except acceptable:
-            raised = True
-        except ParseError:
-            # Accept any ParseError as valid rejection
             raised = True
 
         if not raised:

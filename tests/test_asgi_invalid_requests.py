@@ -5,7 +5,7 @@
 """Test invalid HTTP requests against ASGI callback parser.
 
 Runs the same .http test files as test_invalid_requests.py but using
-the ASGI PythonProtocol callback parser.
+the ASGI callback parsers (PythonProtocol and H1CProtocol).
 """
 
 import glob
@@ -41,15 +41,29 @@ INCOMPATIBLE_FLAGS = ('permit_obsolete_folding', 'strip_header_spaces')
 # Exceptions only raised by Python WSGI parser
 WSGI_ONLY_EXCEPTIONS = (ObsoleteFolding, InvalidSchemeHeaders)
 
+# Tests where fast parser has different validation than Python parser
+FAST_PARSER_SKIP_TESTS = {
+    '014.http',      # InvalidHeader - fast parser accepts
+    '015.http',      # InvalidHeader - fast parser accepts
+    '023.http',      # InvalidHeader - fast parser accepts
+    '024.http',      # InvalidHeader - fast parser accepts
+    'prefix_03.http',  # InvalidHeader - fast parser accepts
+    'prefix_04.http',  # InvalidHeader - fast parser accepts
+}
+
 
 @pytest.mark.parametrize("fname", httpfiles)
-def test_asgi_parser(fname):
-    """Test invalid HTTP requests with ASGI callback parser."""
+def test_asgi_parser(fname, http_parser):
+    """Test invalid HTTP requests with ASGI callback parsers."""
     basename = os.path.basename(fname)
     if basename in SKIP_TESTS:
         pytest.skip(f"Test {basename} not supported by callback parser")
 
-    env = treq_asgi.load_py(os.path.splitext(fname)[0] + ".py")
+    # Skip fast parser tests for files with known different validation
+    if http_parser == 'fast' and basename in FAST_PARSER_SKIP_TESTS:
+        pytest.skip(f"Fast parser has different validation for {basename}")
+
+    env = treq_asgi.load_py(os.path.splitext(fname)[0] + ".py", http_parser=http_parser)
     expect = env["request"]
     cfg = env["cfg"]
 
@@ -65,4 +79,4 @@ def test_asgi_parser(fname):
         pytest.skip(f"Callback parser does not raise {expect.__name__}")
 
     req = treq_asgi.badrequest(fname)
-    req.check(cfg, expect)
+    req.check(cfg, expect, http_parser=http_parser)
