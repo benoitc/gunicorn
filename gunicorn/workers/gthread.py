@@ -443,6 +443,7 @@ class ThreadWorker(base.Worker):
     def handle(self, conn):
         """Handle a request on a connection. Runs in a worker thread."""
         req = None
+        drain = False
         try:
             # For new connections (not yet initialized), wait for data with timeout
             # to prevent slow clients from blocking thread pool slots indefinitely.
@@ -468,6 +469,7 @@ class ThreadWorker(base.Worker):
             if conn.is_http2:
                 return self.handle_http2(conn)
 
+            drain = True
             req = next(conn.parser)
             if not req:
                 return False
@@ -478,6 +480,7 @@ class ThreadWorker(base.Worker):
                 # Discard any unread request body before keepalive
                 # to prevent socket appearing readable due to leftover bytes
                 conn.parser.finish_body()
+                drain = False
                 return True
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
@@ -502,6 +505,15 @@ class ThreadWorker(base.Worker):
                     self.log.debug("Ignoring connection epipe")
         except Exception as e:
             self.handle_error(req, conn.sock, conn.client, e)
+        finally:
+            # Drain unread request body to prevent RST on close.
+            # See: https://github.com/benoitc/gunicorn/issues/3334
+            if drain and hasattr(conn.parser, 'finish_body'):
+                try:
+                    conn.sock.settimeout(1)
+                    conn.parser.finish_body()
+                except Exception:
+                    pass
 
         return False
 
