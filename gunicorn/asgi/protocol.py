@@ -283,6 +283,8 @@ class ASGIProtocol(asyncio.Protocol):
     _h1c_available = None
     _h1c_protocol_class = None
     _h1c_has_limits = False  # True if >= 0.4.1 (has limit parameters)
+    _h1c_limit_request_line = None  # Exception class from gunicorn_h1c >= 0.4.1
+    _h1c_limit_request_headers = None  # Exception class from gunicorn_h1c >= 0.4.1
     _h1c_invalid_chunk_extension = None  # Exception class from gunicorn_h1c >= 0.6.3
 
     def __init__(self, worker):
@@ -364,6 +366,13 @@ class ASGIProtocol(asyncio.Protocol):
                 cls._h1c_protocol_class = H1CProtocol
                 # Require >= 0.4.1 for limit enforcement
                 cls._h1c_has_limits = hasattr(gunicorn_h1c, 'LimitRequestLine')
+                # Store h1c exception classes for handling (>= 0.4.1)
+                cls._h1c_limit_request_line = getattr(
+                    gunicorn_h1c, 'LimitRequestLine', None
+                )
+                cls._h1c_limit_request_headers = getattr(
+                    gunicorn_h1c, 'LimitRequestHeaders', None
+                )
                 # Check for InvalidChunkExtension (>= 0.6.3)
                 cls._h1c_invalid_chunk_extension = getattr(
                     gunicorn_h1c, 'InvalidChunkExtension', None
@@ -495,9 +504,19 @@ class ASGIProtocol(asyncio.Protocol):
                 return
             except Exception as e:
                 # Handle gunicorn_h1c exceptions (different class hierarchy)
-                h1c_exc = ASGIProtocol._h1c_invalid_chunk_extension
                 # pylint: disable=isinstance-second-argument-not-valid-type
-                if h1c_exc is not None and isinstance(e, h1c_exc):
+                h1c_limit_line = ASGIProtocol._h1c_limit_request_line
+                if h1c_limit_line is not None and isinstance(e, h1c_limit_line):
+                    self._send_error_response(414, str(e))  # URI Too Long
+                    self._close_transport()
+                    return
+                h1c_limit_headers = ASGIProtocol._h1c_limit_request_headers
+                if h1c_limit_headers is not None and isinstance(e, h1c_limit_headers):
+                    self._send_error_response(431, str(e))  # Request Header Fields Too Large
+                    self._close_transport()
+                    return
+                h1c_chunk_ext = ASGIProtocol._h1c_invalid_chunk_extension
+                if h1c_chunk_ext is not None and isinstance(e, h1c_chunk_ext):
                     self._send_error_response(400, str(e))
                     self._close_transport()
                     return
