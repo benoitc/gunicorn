@@ -283,6 +283,8 @@ class ASGIProtocol(asyncio.Protocol):
     _h1c_available = None
     _h1c_protocol_class = None
     _h1c_has_limits = False  # True if >= 0.4.1 (has limit parameters)
+    _h1c_limit_request_line = None  # Exception class from gunicorn_h1c >= 0.4.1
+    _h1c_limit_request_headers = None  # Exception class from gunicorn_h1c >= 0.4.1
     _h1c_invalid_chunk_extension = None  # Exception class from gunicorn_h1c >= 0.6.3
 
     def __init__(self, worker):
@@ -364,6 +366,13 @@ class ASGIProtocol(asyncio.Protocol):
                 cls._h1c_protocol_class = H1CProtocol
                 # Require >= 0.4.1 for limit enforcement
                 cls._h1c_has_limits = hasattr(gunicorn_h1c, 'LimitRequestLine')
+                # Store h1c exception classes for handling (>= 0.4.1)
+                cls._h1c_limit_request_line = getattr(
+                    gunicorn_h1c, 'LimitRequestLine', None
+                )
+                cls._h1c_limit_request_headers = getattr(
+                    gunicorn_h1c, 'LimitRequestHeaders', None
+                )
                 # Check for InvalidChunkExtension (>= 0.6.3)
                 cls._h1c_invalid_chunk_extension = getattr(
                     gunicorn_h1c, 'InvalidChunkExtension', None
@@ -464,6 +473,29 @@ class ASGIProtocol(asyncio.Protocol):
         if self._body_receiver:
             self._body_receiver.set_complete()
 
+    def _handle_h1c_exception(self, exc):
+        """Handle gunicorn_h1c exceptions with appropriate HTTP status codes.
+
+        Returns True if the exception was handled, False otherwise.
+        """
+        # pylint: disable=isinstance-second-argument-not-valid-type
+        h1c_limit_line = ASGIProtocol._h1c_limit_request_line
+        if h1c_limit_line is not None and isinstance(exc, h1c_limit_line):
+            self._send_error_response(414, str(exc))  # URI Too Long
+            self._close_transport()
+            return True
+        h1c_limit_headers = ASGIProtocol._h1c_limit_request_headers
+        if h1c_limit_headers is not None and isinstance(exc, h1c_limit_headers):
+            self._send_error_response(431, str(exc))  # Request Header Fields Too Large
+            self._close_transport()
+            return True
+        h1c_chunk_ext = ASGIProtocol._h1c_invalid_chunk_extension
+        if h1c_chunk_ext is not None and isinstance(exc, h1c_chunk_ext):
+            self._send_error_response(400, str(exc))
+            self._close_transport()
+            return True
+        return False
+
     def data_received(self, data):
         """Called when data is received on the connection."""
         if self._websocket:
@@ -475,37 +507,38 @@ class ASGIProtocol(asyncio.Protocol):
             self.reader.feed_data(data)
         elif self._callback_parser:
             # HTTP/1.x path - feed directly to callback parser
-            try:
-                self._callback_parser.feed(data)
-            except LimitRequestLine as e:
-                self._send_error_response(414, str(e))  # URI Too Long
-                self._close_transport()
+            if not self._feed_callback_parser(data):
                 return
-            except LimitRequestHeaders as e:
-                self._send_error_response(431, str(e))  # Request Header Fields Too Large
-                self._close_transport()
-                return
-            except InvalidChunkExtension as e:
-                self._send_error_response(400, str(e))
-                self._close_transport()
-                return
-            except ParseError as e:
-                self._send_error_response(400, str(e))
-                self._close_transport()
-                return
-            except Exception as e:
-                # Handle gunicorn_h1c exceptions (different class hierarchy)
-                h1c_exc = ASGIProtocol._h1c_invalid_chunk_extension
-                # pylint: disable=isinstance-second-argument-not-valid-type
-                if h1c_exc is not None and isinstance(e, h1c_exc):
-                    self._send_error_response(400, str(e))
-                    self._close_transport()
-                    return
-                raise
 
         # Backpressure: pause reading if buffer is too large
         if not self._reading_paused and self._is_buffer_full():
             self._pause_reading()
+
+    def _feed_callback_parser(self, data):
+        """Feed data to callback parser, handling parse errors.
+
+        Returns True if parsing should continue, False if connection was closed.
+        """
+        try:
+            self._callback_parser.feed(data)
+            return True
+        except LimitRequestLine as e:
+            self._send_error_response(414, str(e))  # URI Too Long
+            self._close_transport()
+            return False
+        except LimitRequestHeaders as e:
+            self._send_error_response(431, str(e))  # Request Header Fields Too Large
+            self._close_transport()
+            return False
+        except (InvalidChunkExtension, ParseError) as e:
+            self._send_error_response(400, str(e))
+            self._close_transport()
+            return False
+        except Exception as e:
+            # Handle gunicorn_h1c exceptions (different class hierarchy)
+            if self._handle_h1c_exception(e):
+                return False
+            raise
 
     def _is_buffer_full(self):
         """Check if internal buffer is full (HTTP/2 only)."""
