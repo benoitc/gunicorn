@@ -606,6 +606,18 @@ class Arbiter:
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
                 else:
+                    # Check if this is a known worker process first.
+                    # When running as PID 1 (e.g. in containers), the
+                    # arbiter inherits orphaned child processes and reaps
+                    # them via waitpid(-1). These are not gunicorn workers
+                    # and should not be reported as worker errors.
+                    worker = self.WORKERS.pop(wpid, None)
+                    if not worker:
+                        self.log.debug(
+                            "Reaped unknown child process (pid:%s, "
+                            "status:%s). Not a gunicorn worker.", wpid, status)
+                        continue
+
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
@@ -643,9 +655,6 @@ class Arbiter:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:

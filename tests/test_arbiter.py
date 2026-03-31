@@ -432,6 +432,75 @@ class TestReapWorkers:
         log_messages = ' '.join(str(call) for call in mock_log.call_args_list)
         assert 'out of memory' in log_messages.lower()
 
+    @mock.patch('os.waitpid')
+    def test_reap_non_worker_child_no_error_log(self, mock_waitpid):
+        """Verify that non-worker child processes are reaped silently.
+
+        When gunicorn runs as PID 1 (e.g. in containers), it inherits
+        orphaned child processes. These should be reaped to prevent
+        zombies but must not be reported as worker errors.
+        """
+        # pid 30740 exits with code 23 (status = 23 << 8 = 5888)
+        # but is NOT in WORKERS dict
+        mock_waitpid.side_effect = [(30740, 23 << 8), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}  # no workers registered
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error, \
+             mock.patch.object(arbiter.log, 'debug') as mock_debug:
+            arbiter.reap_workers()
+
+        # Should NOT log any error
+        mock_error.assert_not_called()
+        # Should log at debug level
+        assert any('30740' in str(call) for call in mock_debug.call_args_list)
+        # child_exit should NOT be called for non-worker processes
+        arbiter.cfg.child_exit.assert_not_called()
+
+    @mock.patch('os.waitpid')
+    def test_reap_non_worker_child_with_signal_no_error_log(self, mock_waitpid):
+        """Verify that non-worker child killed by signal is not reported."""
+        # pid 12345 killed by SIGKILL, but not a worker
+        mock_waitpid.side_effect = [(12345, signal.SIGKILL), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error:
+            arbiter.reap_workers()
+
+        # Should NOT log OOM hint or any error for non-worker
+        mock_error.assert_not_called()
+
+    @mock.patch('os.waitpid')
+    def test_reap_mixed_worker_and_non_worker(self, mock_waitpid):
+        """Verify correct handling when both worker and non-worker exit."""
+        # First: non-worker pid 99999 with error exit
+        # Second: real worker pid 42 with normal exit
+        mock_waitpid.side_effect = [
+            (99999, 1 << 8),  # non-worker, exit code 1
+            (42, 0),          # real worker, normal exit
+            (0, 0),           # end
+        ]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error:
+            arbiter.reap_workers()
+
+        # Should NOT log error for pid 99999
+        assert not any('99999' in str(call) for call in mock_error.call_args_list)
+        # Worker 42 should be properly cleaned up
+        mock_worker.tmp.close.assert_called_once()
+        arbiter.cfg.child_exit.assert_called_once_with(arbiter, mock_worker)
+        assert 42 not in arbiter.WORKERS
+
 
 # ============================================================================
 # SIGHUP Reload Tests
