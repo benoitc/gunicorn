@@ -998,13 +998,7 @@ class TestHTTP2ProtocolErrorHandling:
 
 
 class TestHTTP2StreamEndedBodyComplete:
-    """Test that _handle_stream_ended sets _body_complete on the stream.
-
-    Regression tests for https://github.com/benoitc/gunicorn/discussions/3567
-    Without this fix, the receive() closure in protocol.py never sees
-    _body_complete=True, so the fast-path re-reads already-consumed data
-    from BytesIO and doubles the request body.
-    """
+    """Test that _handle_stream_ended sets _body_complete on the stream."""
 
     def test_stream_ended_sets_body_complete(self):
         """_handle_stream_ended must set stream._body_complete = True."""
