@@ -278,7 +278,14 @@ class AsyncHTTP2Connection:
         if stream is None:
             return None
 
+        # Mark stream as request complete and body complete so the
+        # receive() closure's _body_complete guard fires, preventing
+        # the fast path from re-reading already-consumed data from BytesIO.
         stream.request_complete = True
+        stream._body_complete = True
+        if stream._body_event:
+            stream._body_event.set()
+
         return HTTP2Request(stream, self.cfg, self.client_addr)
 
     def _handle_stream_reset(self, event):
