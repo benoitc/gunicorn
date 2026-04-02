@@ -201,8 +201,14 @@ class BodyReceiver:
 
     async def receive(self):  # pylint: disable=too-many-return-statements
         """ASGI receive callable - returns body chunks or disconnect."""
-        # Already disconnected or body finished
-        if self._closed or self._body_finished:
+        # Already disconnected
+        if self._closed:
+            return {"type": "http.disconnect"}
+
+        # Body finished but not disconnected - wait for actual disconnect
+        # This is needed for frameworks like Django that listen for disconnect
+        if self._body_finished:
+            await self._wait_for_disconnect()
             return {"type": "http.disconnect"}
 
         # Fast path: chunk already available
@@ -269,6 +275,33 @@ class BodyReceiver:
             pass
         finally:
             self._waiter = None
+
+    async def _wait_for_disconnect(self):
+        """Wait for connection to close after body is finished.
+
+        This is needed for ASGI apps (like Django) that call receive()
+        to listen for client disconnect after the request body is consumed.
+        """
+        if self._closed:
+            return
+
+        # Check protocol closed state first
+        if self.protocol._closed:
+            self._closed = True
+            return
+
+        # Create a new waiter to wait for disconnect
+        loop = asyncio.get_event_loop()
+        self._waiter = loop.create_future()
+
+        try:
+            # Wait indefinitely for disconnect (or until cancelled)
+            await self._waiter
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self._waiter = None
+            self._closed = True
 
 
 class ASGIProtocol(asyncio.Protocol):
@@ -942,10 +975,15 @@ class ASGIProtocol(asyncio.Protocol):
             self.log.debug("Request cancelled (client disconnected)")
             return False
         except Exception:
-            self.log.exception("Error in ASGI application")
-            if not response_started:
-                self._send_error_response(500, "Internal Server Error")
-                response_status = 500
+            # If response was already completely sent, this is likely a
+            # disconnect-related exception (e.g. Django's RequestAborted)
+            if response_complete:
+                self.log.debug("Exception after response complete (client disconnected)")
+            else:
+                self.log.exception("Error in ASGI application")
+                if not response_started:
+                    self._send_error_response(500, "Internal Server Error")
+                    response_status = 500
             return False
         finally:
             # Clear the body receiver reference
