@@ -915,7 +915,9 @@ class ASGIProtocol(asyncio.Protocol):
                 )
 
                 # Use chunked encoding for HTTP/1.1 streaming responses without Content-Length
-                if not has_content_length and request.version >= (1, 1):
+                # Skip for 1xx informational responses (RFC 9110)
+                is_informational = 100 <= response_status < 200
+                if not has_content_length and request.version >= (1, 1) and not is_informational:
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 
