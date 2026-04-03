@@ -907,17 +907,22 @@ class ASGIProtocol(asyncio.Protocol):
                 response_status = message["status"]
                 response_headers = message.get("headers", [])
 
-                # Check if Content-Length is present
-                has_content_length = any(
-                    (name.lower() if isinstance(name, str) else name.lower()) == b"content-length"
-                    or (name.lower() if isinstance(name, str) else name.lower()) == "content-length"
-                    for name, _ in response_headers
-                )
+                # Check if Content-Length or Transfer-Encoding is present
+                has_content_length = False
+                has_transfer_encoding = False
+                for name, _ in response_headers:
+                    name_lower = name.lower() if isinstance(name, str) else name.lower()
+                    if name_lower in (b"content-length", "content-length"):
+                        has_content_length = True
+                    elif name_lower in (b"transfer-encoding", "transfer-encoding"):
+                        has_transfer_encoding = True
+                        use_chunked = True  # Framework already set chunked encoding
 
                 # Use chunked encoding for HTTP/1.1 streaming responses without Content-Length
                 # Skip for 1xx informational responses (RFC 9110)
+                # Skip if Transfer-Encoding already set by framework
                 is_informational = 100 <= response_status < 200
-                if not has_content_length and request.version >= (1, 1) and not is_informational:
+                if not has_content_length and not has_transfer_encoding and request.version >= (1, 1) and not is_informational:
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 
