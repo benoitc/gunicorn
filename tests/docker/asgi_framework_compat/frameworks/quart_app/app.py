@@ -95,7 +95,8 @@ async def echo():
 @app.route("/headers")
 async def headers_endpoint():
     """Return request headers as JSON."""
-    headers_dict = dict(request.headers)
+    # Normalize header keys to lowercase for consistency
+    headers_dict = {k.lower(): v for k, v in request.headers.items()}
     return headers_dict
 
 
