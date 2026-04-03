@@ -17,8 +17,8 @@ x-healthcheck: &healthcheck
 services:
   django:
     build:
-      context: ./frameworks/django_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/django_app/Dockerfile
     ports:
       - "8001:8000"
     command: ["gunicorn", "asgi:application", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
@@ -28,8 +28,8 @@ services:
 
   fastapi:
     build:
-      context: ./frameworks/fastapi_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/fastapi_app/Dockerfile
     ports:
       - "8002:8000"
     command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
@@ -39,8 +39,8 @@ services:
 
   starlette:
     build:
-      context: ./frameworks/starlette_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/starlette_app/Dockerfile
     ports:
       - "8003:8000"
     command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
@@ -50,8 +50,8 @@ services:
 
   quart:
     build:
-      context: ./frameworks/quart_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/quart_app/Dockerfile
     ports:
       - "8004:8000"
     command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
@@ -61,8 +61,8 @@ services:
 
   litestar:
     build:
-      context: ./frameworks/litestar_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/litestar_app/Dockerfile
     ports:
       - "8005:8000"
     command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
@@ -72,8 +72,8 @@ services:
 
   blacksheep:
     build:
-      context: ./frameworks/blacksheep_app
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: tests/docker/asgi_framework_compat/frameworks/blacksheep_app/Dockerfile
     ports:
       - "8006:8000"
     command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]

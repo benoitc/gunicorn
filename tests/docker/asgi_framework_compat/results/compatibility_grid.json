@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-03T11:06:45.300191",
+  "generated": "2026-04-03T21:49:07.476946",
   "worker": "gunicorn.workers.gasgi.ASGIWorker",
   "frameworks": {
     "django": {
@@ -16,8 +16,8 @@
           "total": 19
         },
         "websocket": {
-          "passed": 13,
-          "failed": 6,
+          "passed": 19,
+          "failed": 0,
           "total": 19
         },
         "lifespan": {
@@ -31,7 +31,7 @@
           "total": 9
         }
       },
-      "total_passed": 66,
+      "total_passed": 72,
       "total_tests": 74
     },
     "fastapi": {
@@ -186,12 +186,12 @@
           "total": 8
         },
         "streaming": {
-          "passed": 1,
-          "failed": 8,
+          "passed": 9,
+          "failed": 0,
           "total": 9
         }
       },
-      "total_passed": 65,
+      "total_passed": 73,
       "total_tests": 74
     }
   }

@@ -922,7 +922,13 @@ class ASGIProtocol(asyncio.Protocol):
                 # Skip for 1xx informational responses (RFC 9110)
                 # Skip if Transfer-Encoding already set by framework
                 is_informational = 100 <= response_status < 200
-                if not has_content_length and not has_transfer_encoding and request.version >= (1, 1) and not is_informational:
+                needs_chunked = (
+                    not has_content_length
+                    and not has_transfer_encoding
+                    and request.version >= (1, 1)
+                    and not is_informational
+                )
+                if needs_chunked:
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 

@@ -1,4 +1,4 @@
-gunicorn @ git+https://github.com/benoitc/gunicorn.git@master
+# gunicorn is installed from local source in Dockerfile
 Django>=5.0
 channels>=4.0.0
 uvloop>=0.19.0
