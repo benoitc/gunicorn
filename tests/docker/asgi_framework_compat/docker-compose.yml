@@ -1,0 +1,86 @@
+# ASGI Framework Compatibility Test Suite
+# Tests gunicorn's native ASGI worker with multiple frameworks
+#
+# Usage:
+#   docker compose up -d --build
+#   ASGI_LOOP=asyncio docker compose up -d --build
+#   ASGI_LOOP=uvloop docker compose up -d --build
+
+x-healthcheck: &healthcheck
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+    start_period: 10s
+
+services:
+  django:
+    build:
+      context: ./frameworks/django_app
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    command: ["gunicorn", "asgi:application", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+  fastapi:
+    build:
+      context: ./frameworks/fastapi_app
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+  starlette:
+    build:
+      context: ./frameworks/starlette_app
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+  quart:
+    build:
+      context: ./frameworks/quart_app
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+  litestar:
+    build:
+      context: ./frameworks/litestar_app
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8000"
+    command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+  blacksheep:
+    build:
+      context: ./frameworks/blacksheep_app
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8000"
+    command: ["gunicorn", "app:app", "-k", "asgi", "-b", "0.0.0.0:8000", "--workers", "1", "--worker-connections", "100", "--asgi-loop", "${ASGI_LOOP:-auto}"]
+    networks:
+      - asgi_test_network
+    <<: *healthcheck
+
+networks:
+  asgi_test_network:
+    driver: bridge
