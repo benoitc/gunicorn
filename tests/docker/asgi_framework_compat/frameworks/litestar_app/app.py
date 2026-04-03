@@ -85,7 +85,7 @@ async def echo(request: Request) -> Response:
     """Echo request body back."""
     body = await request.body()
     content_type = request.headers.get("content-type", "application/octet-stream")
-    return Response(content=body, media_type=content_type)
+    return Response(content=body, media_type=content_type, status_code=200)
 
 
 @get("/headers")
@@ -97,6 +97,9 @@ async def headers_endpoint(request: Request) -> Dict[str, str]:
 @get("/status/{code:int}")
 async def status_endpoint(code: int) -> Response:
     """Return specific HTTP status code."""
+    # HTTP 204 No Content cannot have a body
+    if code == 204:
+        return Response(content=b"", status_code=204)
     return Response(content=f"Status: {code}", status_code=code)
 
 
