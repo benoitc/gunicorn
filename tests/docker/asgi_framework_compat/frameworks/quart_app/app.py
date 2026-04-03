@@ -206,5 +206,5 @@ async def ws_close():
         if param.startswith("code="):
             code = int(param.split("=")[1])
             break
-    # Quart uses a different close mechanism
+    await websocket.accept()
     await websocket.close(code)
