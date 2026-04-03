@@ -163,6 +163,9 @@ class WebSocketProtocol:
                 self.closed = True
                 self._close_event.set()
 
+            # Close the transport after close handshake
+            self.transport.close()
+
     async def _send_accept(self, message):
         """Send WebSocket handshake accept response."""
         # Get Sec-WebSocket-Key from headers
