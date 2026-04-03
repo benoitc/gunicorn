@@ -145,10 +145,13 @@ class WebSocketProtocol:
             if self.closed:
                 raise RuntimeError("WebSocket closed")
 
-            if "text" in message:
-                await self._send_frame(OPCODE_TEXT, message["text"].encode("utf-8"))
-            elif "bytes" in message:
-                await self._send_frame(OPCODE_BINARY, message["bytes"])
+            # Check for truthy values since both keys may be present with None
+            text = message.get("text")
+            bytes_data = message.get("bytes")
+            if text is not None:
+                await self._send_frame(OPCODE_TEXT, text.encode("utf-8"))
+            elif bytes_data is not None:
+                await self._send_frame(OPCODE_BINARY, bytes_data)
 
         elif msg_type == "websocket.close":
             code = message.get("code", CLOSE_NORMAL)
