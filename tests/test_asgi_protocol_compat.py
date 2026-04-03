@@ -441,6 +441,16 @@ class TestWebSocketAcceptThenCloseE2E:
         written_data = []
         transport.write = mock.Mock(side_effect=lambda d: written_data.append(d))
 
+        protocol = WebSocketProtocol(
+            transport=transport,
+            scope={
+                "type": "websocket",
+                "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")],
+            },
+            app=None,  # Will be replaced
+            log=mock.Mock(),
+        )
+
         # App that accepts then immediately closes (Django pattern)
         async def close_app(scope, receive, send):
             # Wait for connect message
@@ -453,19 +463,32 @@ class TestWebSocketAcceptThenCloseE2E:
             # Immediately close with code
             await send({"type": "websocket.close", "code": 1000})
 
-        protocol = WebSocketProtocol(
-            transport=transport,
-            scope={
-                "type": "websocket",
-                "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")],
-            },
-            app=close_app,
-            log=mock.Mock(),
-        )
+        protocol.app = close_app
+
+        # Helper to simulate client close frame response after server sends close
+        async def feed_client_close_after_delay():
+            # Wait for server to send close frame
+            await asyncio.sleep(0.1)
+            # Masked close frame with code 1000: FIN=1, opcode=8, masked, len=2
+            # Mask key: 0x00000000 for simplicity, payload: 0x03E8 (1000)
+            client_close = bytes([
+                0x88,  # FIN + opcode 8 (close)
+                0x82,  # Masked + length 2
+                0x00, 0x00, 0x00, 0x00,  # Mask key
+                0x03, 0xE8,  # Close code 1000 (masked with 0s = unchanged)
+            ])
+            protocol.feed_data(client_close)
+
+        # Run both concurrently
+        async def run_with_client_response():
+            await asyncio.gather(
+                protocol.run(),
+                feed_client_close_after_delay(),
+            )
 
         # Run the WebSocket - this should complete without timeout
         try:
-            await asyncio.wait_for(protocol.run(), timeout=2.0)
+            await asyncio.wait_for(run_with_client_response(), timeout=2.0)
         except asyncio.TimeoutError:
             pytest.fail("WebSocket run() timed out - close frame likely not sent")
 
@@ -490,6 +513,16 @@ class TestWebSocketAcceptThenCloseE2E:
         written_data = []
         transport.write = mock.Mock(side_effect=lambda d: written_data.append(d))
 
+        protocol = WebSocketProtocol(
+            transport=transport,
+            scope={
+                "type": "websocket",
+                "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")],
+            },
+            app=None,  # Will be replaced
+            log=mock.Mock(),
+        )
+
         async def close_app(scope, receive, send):
             message = await receive()
             assert message["type"] == "websocket.connect"
@@ -497,17 +530,27 @@ class TestWebSocketAcceptThenCloseE2E:
             await send({"type": "websocket.accept"})
             await send({"type": "websocket.close", "code": 1008})
 
-        protocol = WebSocketProtocol(
-            transport=transport,
-            scope={
-                "type": "websocket",
-                "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")],
-            },
-            app=close_app,
-            log=mock.Mock(),
-        )
+        protocol.app = close_app
 
-        await asyncio.wait_for(protocol.run(), timeout=2.0)
+        # Helper to simulate client close frame response
+        async def feed_client_close_after_delay():
+            await asyncio.sleep(0.1)
+            # Masked close frame with code 1008
+            client_close = bytes([
+                0x88,  # FIN + opcode 8 (close)
+                0x82,  # Masked + length 2
+                0x00, 0x00, 0x00, 0x00,  # Mask key
+                0x03, 0xF0,  # Close code 1008 (masked with 0s = unchanged)
+            ])
+            protocol.feed_data(client_close)
+
+        async def run_with_client_response():
+            await asyncio.gather(
+                protocol.run(),
+                feed_client_close_after_delay(),
+            )
+
+        await asyncio.wait_for(run_with_client_response(), timeout=2.0)
 
         combined = b"".join(written_data)
 

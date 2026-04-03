@@ -65,6 +65,11 @@ class WebSocketProtocol:
         self.close_code = None
         self.close_reason = ""
 
+        # Close handshake state (RFC 6455 Section 7.1.1)
+        self._close_sent = False
+        self._close_received = False
+        self._close_event = asyncio.Event()
+
         # Message reassembly state
         self._fragments = []
         self._fragment_opcode = None
@@ -105,15 +110,20 @@ class WebSocketProtocol:
         except Exception:
             self.log.exception("Error in WebSocket ASGI application")
         finally:
+            # Send close frame if not already closed
+            if not self.closed and self.accepted and not self._close_sent:
+                await self._send_close(CLOSE_INTERNAL_ERROR, "Application error")
+                # Wait for client's close response
+                try:
+                    await asyncio.wait_for(self._close_event.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    self.closed = True
+
             read_task.cancel()
             try:
                 await read_task
             except asyncio.CancelledError:
                 pass
-
-            # Send close frame if not already closed
-            if not self.closed and self.accepted:
-                await self._send_close(CLOSE_INTERNAL_ERROR, "Application error")
 
     async def _receive(self):
         """ASGI receive callable."""
@@ -144,7 +154,14 @@ class WebSocketProtocol:
             code = message.get("code", CLOSE_NORMAL)
             reason = message.get("reason", "")
             await self._send_close(code, reason)
-            self.closed = True
+
+            # Wait for client's close frame (RFC 6455 close handshake)
+            try:
+                await asyncio.wait_for(self._close_event.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                self.log.debug("WebSocket close handshake timeout")
+                self.closed = True
+                self._close_event.set()
 
     async def _send_accept(self, message):
         """Send WebSocket handshake accept response."""
@@ -191,7 +208,9 @@ class WebSocketProtocol:
     async def _read_frames(self):
         """Read and process incoming WebSocket frames."""
         try:
-            while not self.closed:
+            # Continue reading while not closed, or if we sent close but haven't
+            # received client's close response yet (RFC 6455 close handshake)
+            while not self.closed or (self._close_sent and not self._close_received):
                 frame = await self._read_frame()
                 if frame is None:
                     break
@@ -353,11 +372,14 @@ class WebSocketProtocol:
             self.close_code = CLOSE_NO_STATUS
             self.close_reason = ""
 
+        self._close_received = True
+
         # Echo close frame back if we haven't already sent one
-        if not self.closed:
+        if not self._close_sent:
             await self._send_close(self.close_code, self.close_reason)
 
         self.closed = True
+        self._close_event.set()
 
     async def _handle_continuation(self, payload):  # pylint: disable=unused-argument
         """Handle continuation frame (already processed in _read_frame)."""
@@ -394,8 +416,16 @@ class WebSocketProtocol:
 
     async def _send_close(self, code, reason=""):
         """Send a close frame."""
+        if self._close_sent:
+            return  # Already sent
+
         payload = struct.pack("!H", code)
         if reason:
             payload += reason.encode("utf-8")[:123]  # Max 125 bytes total
         await self._send_frame(OPCODE_CLOSE, payload)
-        self.closed = True
+        self._close_sent = True
+
+        # If we already received a close, handshake is complete
+        if self._close_received:
+            self.closed = True
+            self._close_event.set()
