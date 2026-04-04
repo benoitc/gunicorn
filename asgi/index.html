@@ -1074,6 +1074,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#framework-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Framework Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2451,6 +2462,83 @@ more workers with <code>--workers</code>.</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>uvloop
 gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--asgi-loop<span class="w"> </span>uvloop
 </code></pre></div>
+<h2 id="framework-compatibility">Framework Compatibility<a class="headerlink" href="#framework-compatibility" title="Permanent link">&para;</a></h2>
+<p>The ASGI worker has been tested for compatibility with major ASGI frameworks.</p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>HTTP Scope</th>
+<th>HTTP Messages</th>
+<th>WebSocket</th>
+<th>Lifespan</th>
+<th>Streaming</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Django + Channels</td>
+<td>19/19</td>
+<td>18/19</td>
+<td>13/19</td>
+<td>7/8</td>
+<td>9/9</td>
+<td>66/74</td>
+</tr>
+<tr>
+<td>FastAPI</td>
+<td>19/19</td>
+<td>18/19</td>
+<td>19/19</td>
+<td>8/8</td>
+<td>9/9</td>
+<td>73/74</td>
+</tr>
+<tr>
+<td>Starlette</td>
+<td>19/19</td>
+<td>18/19</td>
+<td>19/19</td>
+<td>8/8</td>
+<td>9/9</td>
+<td>73/74</td>
+</tr>
+<tr>
+<td>Quart</td>
+<td>18/19</td>
+<td>17/19</td>
+<td>11/19</td>
+<td>8/8</td>
+<td>9/9</td>
+<td>63/74</td>
+</tr>
+<tr>
+<td>Litestar</td>
+<td>18/19</td>
+<td>11/19</td>
+<td>17/19</td>
+<td>8/8</td>
+<td>9/9</td>
+<td>63/74</td>
+</tr>
+<tr>
+<td>BlackSheep</td>
+<td>19/19</td>
+<td>18/19</td>
+<td>19/19</td>
+<td>8/8</td>
+<td>1/9</td>
+<td>65/74</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Overall:</strong> 403/444 tests passed (90%)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The compatibility test suite is located in <code>tests/docker/asgi_framework_compat/</code>.
+Run <code>docker compose up -d --build</code> followed by <code>pytest tests/ -v</code> to execute the tests.</p>
+</div>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../reference/settings/#asgi_loop">Settings Reference</a> - All ASGI-related settings</li>
