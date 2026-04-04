@@ -1,0 +1,198 @@
+{
+  "generated": "2026-04-04T03:00:27.482294",
+  "worker": "gunicorn.workers.gasgi.ASGIWorker",
+  "frameworks": {
+    "django": {
+      "name": "Django + Channels",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    },
+    "fastapi": {
+      "name": "FastAPI",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    },
+    "starlette": {
+      "name": "Starlette",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    },
+    "quart": {
+      "name": "Quart",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    },
+    "litestar": {
+      "name": "Litestar",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    },
+    "blacksheep": {
+      "name": "BlackSheep",
+      "categories": {
+        "http_scope": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "http_messages": {
+          "passed": 18,
+          "failed": 0,
+          "total": 19
+        },
+        "websocket": {
+          "passed": 19,
+          "failed": 0,
+          "total": 19
+        },
+        "lifespan": {
+          "passed": 8,
+          "failed": 0,
+          "total": 8
+        },
+        "streaming": {
+          "passed": 9,
+          "failed": 0,
+          "total": 9
+        }
+      },
+      "total_passed": 73,
+      "total_tests": 74
+    }
+  }
+}
