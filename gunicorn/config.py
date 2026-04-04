@@ -52,6 +52,8 @@ class Config:
         self.usage = usage
         self.prog = prog or os.path.basename(sys.argv[0])
         self.env_orig = os.environ.copy()
+        self._certificate_mtimes = {}
+        self._init_certificate_mtimes()
 
     def __str__(self):
         lines = []
@@ -203,6 +205,18 @@ class Config:
             if value.section == 'SSL':
                 opts[name] = value.get()
         return opts
+
+    def _init_certificate_mtimes(self):
+        for name in ('certfile', 'keyfile', 'ca_certs'):
+            mtime = 0
+            setting = self.settings[name].get()
+            if setting:
+                mtime = os.path.getmtime(setting)
+            self._certificate_mtimes[name] = mtime
+
+    @property
+    def certificate_mtimes(self):
+        return self._certificate_mtimes
 
     @property
     def env(self):
