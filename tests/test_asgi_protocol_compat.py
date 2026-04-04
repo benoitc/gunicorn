@@ -89,7 +89,7 @@ class TestHttp100ContinueViaResponseStart:
     def test_100_status_should_not_add_transfer_encoding(self):
         """1xx responses MUST NOT have Transfer-Encoding header.
 
-        RFC 9110 Section 15.2: A server MUST NOT send a Content-Length
+        RFC 9110 Section 8.6: A server MUST NOT send a Content-Length
         header field in any response with a status code of 1xx.
         """
         # Test the actual protocol logic for 1xx responses
