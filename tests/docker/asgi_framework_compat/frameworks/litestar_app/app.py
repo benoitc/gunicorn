@@ -83,15 +83,29 @@ async def scope_endpoint(request: Request) -> Dict[str, Any]:
 @post("/echo")
 async def echo(request: Request) -> Response:
     """Echo request body back."""
-    body = await request.body()
-    content_type = request.headers.get("content-type", "application/octet-stream")
+    # Read body using the receive callable to avoid Litestar's internal caching
+    body_parts = []
+    while True:
+        message = await request.receive()
+        body = message.get("body", b"")
+        if body:
+            body_parts.append(body)
+        if not message.get("more_body", False):
+            break
+    body = b"".join(body_parts)
+    # Access headers directly from scope to avoid Litestar's caching
+    scope_headers = {name.decode("latin-1"): value.decode("latin-1")
+                     for name, value in request.scope.get("headers", [])}
+    content_type = scope_headers.get("content-type", "application/octet-stream")
     return Response(content=body, media_type=content_type, status_code=200)
 
 
 @get("/headers")
 async def headers_endpoint(request: Request) -> Dict[str, str]:
     """Return request headers as JSON."""
-    return dict(request.headers)
+    # Access headers directly from scope to avoid Litestar's caching
+    scope_headers = request.scope.get("headers", [])
+    return {name.decode("latin-1"): value.decode("latin-1") for name, value in scope_headers}
 
 
 @get("/status/{code:int}")
