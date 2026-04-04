@@ -7,8 +7,7 @@ request = {
     "uri": uri("/stuff/here?foo=bar"),
     "version": (1, 0),
     "headers": [
-        ("IF-MATCH", "bazinga!"),
-        ("IF-MATCH", "large-sound")
+        ("IF-MATCH", "bazinga!,large-sound")
     ],
     "body": b""
 }
