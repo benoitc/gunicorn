@@ -613,9 +613,24 @@ class Arbiter:
                     # and should not be reported as worker errors.
                     worker = self.WORKERS.pop(wpid, None)
                     if not worker:
-                        self.log.debug(
-                            "Reaped unknown child process (pid:%s, "
-                            "status:%s). Not a gunicorn worker.", wpid, status)
+                        if os.WIFEXITED(status):
+                            self.log.debug(
+                                "Reaped non-worker child (pid:%s) "
+                                "exited with code %s.", wpid,
+                                os.WEXITSTATUS(status))
+                        elif os.WIFSIGNALED(status):
+                            sig = os.WTERMSIG(status)
+                            try:
+                                sig_name = signal.Signals(sig).name
+                            except ValueError:
+                                sig_name = "signal {}".format(sig)
+                            self.log.debug(
+                                "Reaped non-worker child (pid:%s) "
+                                "received %s.", wpid, sig_name)
+                        else:
+                            self.log.debug(
+                                "Reaped non-worker child (pid:%s, "
+                                "status:%s).", wpid, status)
                         continue
 
                     # A worker was terminated. If the termination reason was
