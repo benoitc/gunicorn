@@ -230,6 +230,7 @@ class TestAsyncWorkerAlpnHandshake:
         worker.wsgi = mock.MagicMock()
         worker.nr = 0
         worker.max_requests = 1000
+        worker.max_worker_memory = 0
 
         return worker
 
@@ -326,6 +327,7 @@ class TestGeventWorkerAlpn:
         worker.wsgi = mock.MagicMock()
         worker.nr = 0
         worker.max_requests = 1000
+        worker.max_worker_memory = 0
         worker.worker_connections = 1000
 
         return worker
@@ -377,6 +379,7 @@ class TestEventletWorkerAlpn:
         worker.wsgi = mock.MagicMock()
         worker.nr = 0
         worker.max_requests = 1000
+        worker.max_worker_memory = 0
         worker.worker_connections = 1000
 
         return worker

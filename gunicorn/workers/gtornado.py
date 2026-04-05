@@ -41,6 +41,7 @@ class TornadoWorker(Worker):
         if self.alive and self.nr >= self.max_requests:
             self.log.info("Autorestarting worker after current request.")
             self.alive = False
+        self._check_memory_usage()
 
     def watchdog(self):
         if self.alive:

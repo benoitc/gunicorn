@@ -40,6 +40,7 @@ class MockConfig:
         self.keepalive = 2
         self.max_requests = 0
         self.max_requests_jitter = 0
+        self.max_worker_memory = 0
         self.worker_connections = 1000
         self.preload_app = False
         self.daemon = False
