@@ -816,6 +816,30 @@ class MaxRequestsJitter(Setting):
         """
 
 
+class MaxWorkerMemory(Setting):
+    name = "max_worker_memory"
+    section = "Worker Processes"
+    cli = ["--max-worker-memory"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        The maximum resident memory (in MB) a worker may use before being
+        recycled.
+
+        When a worker's RSS exceeds this value, it will be gracefully
+        restarted after the current request completes. This provides a
+        hard safety net against memory leaks that ``max_requests`` alone
+        cannot catch.
+
+        If this is set to zero (the default) then memory-based worker
+        recycling is disabled.
+
+        Motivated by discussion in GitHub issues #124 and #1299.
+        """
+
+
 class Timeout(Setting):
     name = "timeout"
     section = "Worker Processes"

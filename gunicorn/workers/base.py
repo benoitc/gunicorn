@@ -4,6 +4,7 @@
 
 import io
 import os
+import resource
 import signal
 import sys
 import time
@@ -60,12 +61,57 @@ class Worker:
         else:
             self.max_requests = sys.maxsize
 
+        # max_worker_memory is in MB; convert to bytes for comparison.
+        if cfg.max_worker_memory > 0:
+            self.max_worker_memory = cfg.max_worker_memory * 1024 * 1024
+        else:
+            self.max_worker_memory = 0
+
         self.alive = True
         self.log = log
         self.tmp = WorkerTmp(cfg)
 
     def __str__(self):
         return "<Worker %s>" % self.pid
+
+    def _check_memory_usage(self):
+        """Check worker RSS against max_worker_memory and initiate graceful
+        shutdown when the limit is exceeded."""
+        if not self.max_worker_memory:
+            return
+        rss = self._get_rss()
+        if rss > self.max_worker_memory:
+            self.log.warning(
+                "Worker %s exceeded memory limit "
+                "(%d MB > %d MB), restarting.",
+                self.pid,
+                rss // (1024 * 1024),
+                self.max_worker_memory // (1024 * 1024),
+            )
+            self.alive = False
+
+    @staticmethod
+    def _get_rss():
+        """Return the current process RSS in bytes.
+
+        Uses /proc/self/status on Linux for accuracy.  Falls back to
+        resource.getrusage on other platforms; note that ru_maxrss is the
+        *peak* RSS (high-water mark), not the current RSS, so the fallback
+        may recycle workers more eagerly than intended."""
+        try:
+            with open("/proc/self/status", "r") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        # VmRSS is reported in kB
+                        return int(line.split()[1]) * 1024
+        except (OSError, ValueError, IndexError):
+            pass
+        # Fallback: getrusage reports ru_maxrss in kB on Linux,
+        # bytes on macOS — normalize to bytes.
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        if sys.platform == "darwin":
+            return usage.ru_maxrss  # already in bytes
+        return usage.ru_maxrss * 1024  # kB → bytes
 
     def notify(self):
         """\

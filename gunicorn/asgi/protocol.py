@@ -747,6 +747,7 @@ class ASGIProtocol(asyncio.Protocol):
                     self.log.info("Autorestarting worker after current request.")
                     self.worker.alive = False
                     keepalive = False
+                self.worker._check_memory_usage()
 
                 if not keepalive or not self.worker.alive:
                     break
@@ -815,6 +816,7 @@ class ASGIProtocol(asyncio.Protocol):
                 self.log.info("Autorestarting worker after current request.")
                 self.worker.alive = False
                 keepalive = False
+            self.worker._check_memory_usage()
 
             if not keepalive or not self.worker.alive:
                 break
@@ -1356,6 +1358,7 @@ class ASGIProtocol(asyncio.Protocol):
                     self.log.info("Autorestarting worker after current request.")
                     self.worker.alive = False
                     break
+                self.worker._check_memory_usage()
 
         except asyncio.CancelledError:
             pass
