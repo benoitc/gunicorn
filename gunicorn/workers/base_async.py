@@ -159,6 +159,7 @@ class AsyncWorker(base.Worker):
                 if self.alive:
                     self.log.info("Autorestarting worker after current request.")
                     self.alive = False
+            self._check_memory_usage()
 
             # Run WSGI app
             respiter = self.wsgi(environ, resp.start_response)
@@ -210,6 +211,7 @@ class AsyncWorker(base.Worker):
                 if self.alive:
                     self.log.info("Autorestarting worker after current request.")
                     self.alive = False
+            self._check_memory_usage()
 
             if not self.alive or not self.cfg.keepalive:
                 resp.force_close()

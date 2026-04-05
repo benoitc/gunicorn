@@ -195,6 +195,7 @@ class SyncWorker(base.Worker):
                 self.log.access(resp, req, environ, request_time)
                 if hasattr(respiter, "close"):
                     respiter.close()
+            self._check_memory_usage()
         except OSError:
             # pass to next try-except level
             util.reraise(*sys.exc_info())

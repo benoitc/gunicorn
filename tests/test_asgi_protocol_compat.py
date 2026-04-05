@@ -59,6 +59,7 @@ class TestHttp100ContinueViaResponseStart:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -152,6 +153,7 @@ class TestHttp100ContinueViaResponseStart:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -857,6 +859,7 @@ class TestTransferEncodingChunked:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -901,6 +904,7 @@ class TestTransferEncodingChunked:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -966,6 +970,7 @@ class TestTransferEncodingChunked:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -1029,6 +1034,7 @@ class TestTransferEncodingChunked:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
@@ -1088,6 +1094,7 @@ class TestTransferEncodingChunked:
         worker.asgi = mock.Mock()
         worker.nr = 0
         worker.max_requests = 10000
+        worker.max_worker_memory = 0
         worker.alive = True
         worker.state = {}
 
