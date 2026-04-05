@@ -171,6 +171,7 @@ class SyncWorker(base.Worker):
         resp = None
         try:
             self.cfg.pre_request(self, req)
+            self.busy.value = True
             request_start = datetime.now()
             resp, environ = wsgi.create(req, client, addr,
                                         listener.getsockname(), self.cfg)
@@ -212,6 +213,7 @@ class SyncWorker(base.Worker):
             raise
         finally:
             try:
+                self.busy.value = False
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
