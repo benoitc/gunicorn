@@ -184,8 +184,14 @@ class EOFReader:
 
 
 class Body:
-    def __init__(self, reader):
+    def __init__(self, reader, buf_read_size=1024):
+        if not isinstance(buf_read_size, int):
+            raise TypeError("buf_read_size must be an integral type")
+        if buf_read_size <= 0:
+            raise ValueError("buf_read_size must be greater than zero")
+
         self.reader = reader
+        self.buf_read_size = buf_read_size
         self.buf = io.BytesIO()
 
     def __iter__(self):
@@ -221,7 +227,7 @@ class Body:
             return ret
 
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self.reader.read(self.buf_read_size)
             if not data:
                 break
             self.buf.write(data)
@@ -251,7 +257,7 @@ class Body:
 
             ret.append(data)
             size -= len(data)
-            data = self.reader.read(min(1024, size))
+            data = self.reader.read(min(self.buf_read_size, size))
             if not data:
                 break
 

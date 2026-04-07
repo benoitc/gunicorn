@@ -222,7 +222,7 @@ class UWSGIRequest:
             except ValueError:
                 content_length = 0
 
-        self.body = Body(LengthReader(self.unreader, content_length))
+        self.body = Body(LengthReader(self.unreader, content_length), self.cfg.buf_read_size)
 
     def should_close(self):
         """Determine if the connection should be closed after this request."""

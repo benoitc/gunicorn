@@ -81,6 +81,33 @@ def test_readline_buffer_loaded_with_size():
     assert body.readline(2) == b"f"
 
 
+def test_body_read_uses_configured_buf_read_size():
+    reader = mock.MagicMock()
+    reader.read.side_effect = [b"abcd", b"ef", b""]
+
+    body = Body(reader, buf_read_size=4)
+
+    assert body.read(6) == b"abcdef"
+    assert reader.read.call_args_list == [mock.call(4), mock.call(4)]
+
+
+def test_body_readline_uses_configured_buf_read_size():
+    reader = mock.MagicMock()
+    reader.read.side_effect = [b"abcd", b"ef\n", b""]
+
+    body = Body(reader, buf_read_size=4)
+
+    assert body.readline() == b"abcdef\n"
+    assert reader.read.call_args_list == [mock.call(4), mock.call(4)]
+
+
+def test_body_invalid_buf_read_size():
+    with pytest.raises(TypeError):
+        Body(io.BytesIO(b""), buf_read_size="1024")
+    with pytest.raises(ValueError):
+        Body(io.BytesIO(b""), buf_read_size=0)
+
+
 def test_http_header_encoding():
     """ tests whether http response headers are USASCII encoded """
 
