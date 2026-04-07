@@ -389,6 +389,17 @@ def validate_pos_int(val):
     return val
 
 
+def validate_strict_pos_int(val):
+    if not isinstance(val, int):
+        val = int(val, 0)
+    else:
+        # Booleans are ints!
+        val = int(val)
+    if val <= 0:
+        raise ValueError("Value must be greater than zero: %s" % val)
+    return val
+
+
 def validate_http2_frame_size(val):
     """Validate HTTP/2 max frame size per RFC 7540."""
     if not isinstance(val, int):
@@ -1189,6 +1200,30 @@ class WorkerTmpDir(Setting):
 
            See :ref:`blocking-os-fchmod` for more detailed information
            and a solution for avoiding this problem.
+        """
+
+
+class BufReadSize(Setting):
+    name = "buf_read_size"
+    section = "Server Mechanics"
+    cli = ["--buf-read-size"]
+    meta = "INT"
+    validator = validate_strict_pos_int
+    type = int
+    default = 1024
+    desc = """\
+        Buffer size for reading request data from the socket.
+
+        This controls the block size used while buffering request bodies for
+        ``wsgi.input``. Larger values can reduce Python loop overhead for large
+        requests, while smaller values keep per-request buffering tighter.
+
+        .. note::
+              Benchmarks show that, with WSGI workers, increased values up to
+              64 kB can improve bandwidth performance when transferring
+              large bodies, typically larger than 5 MB.
+
+        The value must be greater than zero.
         """
 
 

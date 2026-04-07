@@ -1286,6 +1286,25 @@ If not set, the default temporary directory will be used.
     See [blocking-os-fchmod](#blocking_os_fchmod) for more detailed information
     and a solution for avoiding this problem.
 
+### `buf_read_size`
+
+**Command line:** `--buf-read-size INT`
+
+**Default:** `1024`
+
+Buffer size for reading request data from the socket.
+
+This controls the block size used while buffering request bodies for
+``wsgi.input``. Larger values can reduce Python loop overhead for large
+requests, while smaller values keep per-request buffering tighter.
+
+!!! note
+    Benchmarks show that, with WSGI workers, increased values up to
+    64 kB can improve bandwidth performance when transferring
+    large bodies, typically larger than 5 MB.
+
+The value must be greater than zero.
+
 ### `user`
 
 **Command line:** `-u USER`, `--user USER`
