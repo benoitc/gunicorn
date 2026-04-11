@@ -53,6 +53,7 @@ class MockConfig:
     def __init__(self, is_ssl=False, uwsgi_allow_ips=None):
         self.is_ssl = is_ssl
         self.uwsgi_allow_ips = uwsgi_allow_ips or ['127.0.0.1', '::1']
+        self.buf_read_size = 1024
 
 
 class TestUWSGIPacketConstruction:
