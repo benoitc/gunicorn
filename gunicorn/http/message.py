@@ -121,7 +121,8 @@ class Message:
 
     def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
-        headers = {}
+        headers = []
+        headers_seen = set()
 
         # Split lines on \r\n
         lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
@@ -229,14 +230,13 @@ class Message:
                     # fail-safe fallthrough: refuse
                     raise InvalidHeaderName(name)
 
-            if name in headers:
-                if name in SINGLETON_FIELDS:
-                    raise InvalidHeader(name)
-                headers[name] = "%s,%s" % (headers[name], value)
-            else:
-                headers[name] = value
+            if name in SINGLETON_FIELDS and name in headers_seen:
+                raise InvalidHeader(name)
 
-        return list(headers.items())
+            headers_seen.add(name)
+            headers.append((name, value))
+
+        return headers
 
     def set_body_reader(self):
         chunked = False
