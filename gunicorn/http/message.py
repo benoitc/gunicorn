@@ -58,7 +58,7 @@ METHOD_BADCHAR_RE = re.compile("[a-z#]")
 VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\0\r\n]")
 # https://datatracker.ietf.org/doc/html/rfc9110#section-5.3-3
-SINGLETON_FIELDS = {"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"}
+SINGLETON_FIELDS = frozenset({"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"})
 
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
