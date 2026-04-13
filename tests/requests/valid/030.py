@@ -12,7 +12,7 @@ request = {
     "version": (1, 1),
     "headers": [
         ('TRANSFER-ENCODING', 'identity'),
-        ('TRANSFER-ENCODING', 'chunked'),
+        ('TRANSFER-ENCODING', 'chunked')
     ],
     "body": b"hello"
 }
