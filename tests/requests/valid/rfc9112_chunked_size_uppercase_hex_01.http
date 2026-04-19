@@ -1,0 +1,8 @@
+POST /upload HTTP/1.1\r\n
+Host: example.com\r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+A\r\n
+0123456789\r\n
+0\r\n
+\r\n

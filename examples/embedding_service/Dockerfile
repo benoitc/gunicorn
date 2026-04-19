@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
@@ -6,7 +6,9 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     sentence-transformers \
     fastapi \
-    pydantic
+    pydantic \
+    pytest \
+    requests
 
 # Copy gunicorn source
 COPY . /app/gunicorn-src

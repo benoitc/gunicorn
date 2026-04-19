@@ -47,7 +47,7 @@ Or in a configuration file:
 
 ```python
 # gunicorn.conf.py
-http_protocols = ["h2", "h1"]
+http_protocols = "h2, h1"
 ```
 
 The order matters for ALPN negotiation - protocols are tried in order of preference.
@@ -77,7 +77,7 @@ Or in a configuration file:
 # gunicorn.conf.py
 certfile = "/path/to/server.crt"
 keyfile = "/path/to/server.key"
-http_protocols = ["h2", "h1"]
+http_protocols = "h2, h1"
 ```
 
 ### HTTP/2 Settings
@@ -95,7 +95,7 @@ Example configuration:
 
 ```python
 # gunicorn.conf.py
-http_protocols = ["h2", "h1"]
+http_protocols = "h2, h1"
 http2_max_concurrent_streams = 200
 http2_initial_window_size = 1048576  # 1MB
 ```
@@ -391,7 +391,7 @@ certfile = "/etc/letsencrypt/live/example.com/fullchain.pem"
 keyfile = "/etc/letsencrypt/live/example.com/privkey.pem"
 
 # HTTP/2
-http_protocols = ["h2", "h1"]
+http_protocols = "h2, h1"
 http2_max_concurrent_streams = 100
 ```
 
@@ -412,7 +412,7 @@ keyfile = "/path/to/server.key"
 ssl_version = "TLSv1_2"  # Minimum TLS 1.2 for HTTP/2
 
 # HTTP/2
-http_protocols = ["h2", "h1"]
+http_protocols = "h2, h1"
 http2_max_concurrent_streams = 100
 http2_initial_window_size = 65535
 ```

@@ -6,7 +6,7 @@ import io
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
-                                  InvalidChunkSize)
+                                  InvalidChunkSize, InvalidChunkExtension)
 
 
 class ChunkedReader:
@@ -90,6 +90,9 @@ class ChunkedReader:
         # RFC9112 7.1.1: BWS before chunk-ext - but ONLY then
         chunk_size, *chunk_ext = line.split(b";", 1)
         if chunk_ext:
+            # RFC 9112: chunk-ext must not contain bare CR
+            if b'\r' in chunk_ext[0]:
+                raise InvalidChunkExtension("bare CR not allowed")
             chunk_size = chunk_size.rstrip(b" \t")
         if any(n not in b"0123456789abcdefABCDEF" for n in chunk_size):
             raise InvalidChunkSize(chunk_size)

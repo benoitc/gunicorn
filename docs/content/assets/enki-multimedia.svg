@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="500" height="100" viewBox="0 0 500 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="hGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#ff6b6b;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#ff8c42;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="hGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#ffa502;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#ff8c42;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#fd79a8;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="hGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#c0392b;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#e74c3c;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+
+    <!-- Butterfly Icon -->
+    <g transform="translate(50, 50)">
+        <!-- Left wing -->
+        <g>
+            <path d="M 0,0 L -20,-25 L -30,-25 L -35,-15 L -25,-10 L -15,-8 Z"
+                  fill="url(#hGrad1)" opacity="0.9"/>
+            <path d="M 0,0 L -15,-8 L -20,-5 L -15,-2 Z"
+                  fill="url(#hGrad3)" opacity="0.7"/>
+            <path d="M 0,0 L -20,25 L -30,25 L -35,15 L -25,10 L -15,8 Z"
+                  fill="url(#hGrad2)" opacity="0.9"/>
+            <path d="M 0,0 L -15,8 L -20,5 L -15,2 Z"
+                  fill="#ff8c42" opacity="0.7"/>
+        </g>
+
+        <!-- Right wing -->
+        <g>
+            <path d="M 0,0 L 20,-25 L 30,-25 L 35,-15 L 25,-10 L 15,-8 Z"
+                  fill="url(#hGrad1)" opacity="0.9"/>
+            <path d="M 0,0 L 15,-8 L 20,-5 L 15,-2 Z"
+                  fill="url(#hGrad3)" opacity="0.7"/>
+            <path d="M 0,0 L 20,25 L 30,25 L 35,15 L 25,10 L 15,8 Z"
+                  fill="url(#hGrad2)" opacity="0.9"/>
+            <path d="M 0,0 L 15,8 L 20,5 L 15,2 Z"
+                  fill="#ff8c42" opacity="0.7"/>
+        </g>
+
+        <!-- Central body -->
+        <ellipse cx="0" cy="0" rx="2" ry="6" fill="#c0392b" opacity="0.9"/>
+
+        <!-- Network nodes -->
+        <circle cx="-20" cy="-15" r="1.5" fill="#e74c3c" opacity="0.8"/>
+        <circle cx="20" cy="-15" r="1.5" fill="#e74c3c" opacity="0.8"/>
+        <circle cx="-20" cy="15" r="1.5" fill="#ffa502" opacity="0.8"/>
+        <circle cx="20" cy="15" r="1.5" fill="#ffa502" opacity="0.8"/>
+    </g>
+
+    <!-- Text -->
+    <text x="100" y="55" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#000000">
+        ENKI MULTIMEDIA
+    </text>
+    <text x="100" y="75" font-family="Arial, sans-serif" font-size="13" fill="#666666">
+        Distributed Systems Engineering
+    </text>
+</svg>

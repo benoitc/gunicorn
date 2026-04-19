@@ -406,3 +406,35 @@ class TestHTTP2Direct:
         response = http_client.get(f"{gunicorn_ssl_url}/stream/streaming?chunks=3")
         assert response.status_code == 200
         assert "Chunk" in response.text
+
+    def test_direct_https_post_echo(self, http_client, gunicorn_ssl_url):
+        """Test POST echo directly to gunicorn over HTTPS."""
+        body = b"HTTP/2 direct echo test"
+        response = http_client.post(
+            f"{gunicorn_ssl_url}/http/echo",
+            content=body
+        )
+        assert response.status_code == 200
+        assert response.content == body
+
+    def test_direct_https_post_json(self, http_client, gunicorn_ssl_url):
+        """Test POST JSON directly to gunicorn over HTTPS."""
+        data = {"message": "http2 direct post", "number": 42}
+        response = http_client.post(
+            f"{gunicorn_ssl_url}/http/post-json",
+            json=data
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result["received"]["message"] == "http2 direct post"
+        assert result["received"]["number"] == 42
+
+    def test_direct_https_post_large_body(self, http_client, gunicorn_ssl_url):
+        """Test large POST body directly to gunicorn over HTTPS."""
+        body = b"x" * 100000  # 100KB, spans multiple HTTP/2 DATA frames
+        response = http_client.post(
+            f"{gunicorn_ssl_url}/http/echo",
+            content=body
+        )
+        assert response.status_code == 200
+        assert len(response.content) == 100000

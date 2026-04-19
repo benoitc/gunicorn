@@ -15,7 +15,6 @@ import errno
 import os
 import queue
 import selectors
-import socket
 import ssl
 import sys
 import time
@@ -121,8 +120,12 @@ class TConn:
         finally:
             sel.close()
 
-    def close(self):
-        util.close(self.sock)
+    def close(self, graceful=False):
+        if graceful:
+            self.sock.setblocking(True)
+            util.close_graceful(self.sock)
+        else:
+            util.close(self.sock)
 
 
 class PollableMethodQueue:
@@ -435,7 +438,7 @@ class ThreadWorker(base.Worker):
                                      partial(self.on_client_socket_readable, conn))
             else:
                 self.nr_conns -= 1
-                conn.close()
+                conn.close(graceful=True)
         except Exception:
             self.nr_conns -= 1
             conn.close()
@@ -693,11 +696,7 @@ class ThreadWorker(base.Worker):
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
                 self.log.exception("Error handling request")
-                try:
-                    conn.sock.shutdown(socket.SHUT_RDWR)
-                    conn.sock.close()
-                except OSError:
-                    pass
+                util.close_graceful(conn.sock)
                 raise StopIteration()
             raise
         finally:

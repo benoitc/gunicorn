@@ -33,19 +33,26 @@ def uri(data):
     return ret
 
 
-def load_py(fname):
+def load_py(fname, http_parser='python'):
+    """Load test configuration from Python file.
+
+    Args:
+        fname: Path to the .py configuration file
+        http_parser: Parser to use - 'python' or 'fast'
+    """
     module_name = '__config__'
     mod = types.ModuleType(module_name)
     setattr(mod, 'uri', uri)
     setattr(mod, 'cfg', Config())
     loader = importlib.machinery.SourceFileLoader(module_name, fname)
     loader.exec_module(mod)
+    # Set parser after loading so test-specific configs don't override
+    mod.cfg.set('http_parser', http_parser)
     return vars(mod)
 
 
 def decode_hex_escapes(data):
     """Decode hex escape sequences like \\xAB in test data."""
-    import re
     result = bytearray()
     i = 0
     while i < len(data):
@@ -299,13 +306,14 @@ class badrequest:
         self.fname = fname
         self.name = os.path.basename(fname)
 
-        with open(self.fname) as handle:
+        with open(self.fname, 'rb') as handle:
             self.data = handle.read()
-        self.data = self.data.replace("\n", "").replace("\\r\\n", "\r\n")
-        self.data = self.data.replace("\\0", "\000").replace("\\n", "\n").replace("\\t", "\t")
-        if "\\" in self.data:
-            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL and CRLF")
-        self.data = self.data.encode('latin1')
+        self.data = self.data.replace(b"\n", b"").replace(b"\\r\\n", b"\r\n")
+        self.data = self.data.replace(b"\\0", b"\000").replace(b"\\n", b"\n").replace(b"\\t", b"\t")
+        # Handle hex escape sequences for binary data (e.g., \x0D for bare CR)
+        self.data = decode_hex_escapes(self.data)
+        if b"\\" in self.data:
+            raise AssertionError("Unexpected backslash in test data - only handling HTAB, NUL, CRLF, and hex escapes")
 
     def send(self):
         maxs = round(len(self.data) / 10)

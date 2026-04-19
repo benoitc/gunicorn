@@ -14,3 +14,5 @@ Link to approved discussion:
 
 ---
 
+<!-- Gunicorn is volunteer-maintained. If it powers your production, consider sponsoring: https://gunicorn.org/sponsor/ -->
+

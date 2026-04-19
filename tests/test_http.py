@@ -9,7 +9,7 @@ from unittest import mock
 
 from gunicorn import util
 from gunicorn.http.body import Body, LengthReader, EOFReader
-from gunicorn.http.wsgi import Response
+from gunicorn.http.wsgi import FileWrapper, Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, InvalidHTTPVersion
 from gunicorn.http.message import TOKEN_RE
@@ -253,3 +253,27 @@ def test_eof_reader_read_invalid_size():
 def test_invalid_http_version_error():
     assert str(InvalidHTTPVersion('foo')) == "Invalid HTTP Version: 'foo'"
     assert str(InvalidHTTPVersion((2, 1))) == 'Invalid HTTP Version: (2, 1)'
+
+
+def test_file_wrapper_iterable():
+    """FileWrapper should support the iterator protocol per PEP 3333."""
+    filelike = io.BytesIO(b"hello world")
+    wrapper = FileWrapper(filelike, blksize=5)
+
+    # Should be iterable
+    assert hasattr(wrapper, '__iter__')
+    assert hasattr(wrapper, '__next__')
+    assert iter(wrapper) is wrapper
+
+    # Should yield chunks via next()
+    assert next(wrapper) == b"hello"
+    assert next(wrapper) == b" worl"
+    assert next(wrapper) == b"d"
+    with pytest.raises(StopIteration):
+        next(wrapper)
+
+    # Also works with for loop
+    filelike2 = io.BytesIO(b"abc")
+    wrapper2 = FileWrapper(filelike2, blksize=2)
+    chunks = list(wrapper2)
+    assert chunks == [b"ab", b"c"]

@@ -165,6 +165,10 @@ class TestSignalHandlingIntegration:
             proc.kill()
             pytest.fail("Gunicorn did not exit within timeout after SIGTERM")
 
+    @pytest.mark.skipif(
+        hasattr(sys, 'pypy_version_info'),
+        reason="SIGINT handling differs on PyPy, use SIGTERM test instead"
+    )
     def test_graceful_shutdown_sigint(self, gunicorn_server):
         """Verify SIGINT causes graceful shutdown."""
         proc, port = gunicorn_server

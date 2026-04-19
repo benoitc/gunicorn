@@ -2,8 +2,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import io
-
 from gunicorn.http.body import LengthReader, Body
 from gunicorn.uwsgi.errors import (
     InvalidUWSGIHeader,
@@ -117,23 +115,7 @@ class UWSGIRequest:
 
     def _read_exact(self, unreader, size):
         """Read exactly size bytes from the unreader."""
-        buf = io.BytesIO()
-        remaining = size
-
-        while remaining > 0:
-            data = unreader.read()
-            if not data:
-                break
-            buf.write(data)
-            remaining = size - buf.tell()
-
-        result = buf.getvalue()
-        # Put back any extra bytes
-        if len(result) > size:
-            unreader.unread(result[size:])
-            result = result[:size]
-
-        return result
+        return unreader.read(size)
 
     def _parse_vars(self, data):
         """Parse uWSGI vars block into key-value pairs.

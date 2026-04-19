@@ -19,6 +19,7 @@ except ImportError:
     H2_AVAILABLE = False
 
 from gunicorn.http import wsgi
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName
 
 
 class MockConfig:
@@ -224,6 +225,75 @@ class TestWSGIEarlyHints:
         sent_data = sock.get_sent_data()
         # Should still send 103 response with no headers
         assert sent_data == b"HTTP/1.1 103 Early Hints\r\n\r\n"
+
+    def test_early_hints_rejects_crlf_in_header_value(self):
+        """Test that CRLF in header values is rejected (response splitting)."""
+        cfg = MockConfig()
+        req = MockRequest(version=(1, 1))
+        sock = MockSocket()
+
+        resp, environ = wsgi.create(req, sock, ('127.0.0.1', 12345),
+                                    ('127.0.0.1', 8000), cfg)
+
+        # Attempt CRLF injection in header value
+        with pytest.raises(InvalidHeader):
+            environ['wsgi.early_hints']([
+                ('Link', '</evil>; rel=preload\r\nX-Injected: true'),
+            ])
+
+        # Nothing should have been sent
+        assert sock.get_sent_data() == b""
+
+    def test_early_hints_rejects_crlf_in_header_name(self):
+        """Test that CRLF in header names is rejected."""
+        cfg = MockConfig()
+        req = MockRequest(version=(1, 1))
+        sock = MockSocket()
+
+        resp, environ = wsgi.create(req, sock, ('127.0.0.1', 12345),
+                                    ('127.0.0.1', 8000), cfg)
+
+        with pytest.raises(InvalidHeaderName):
+            environ['wsgi.early_hints']([
+                ('Link\r\nX-Injected', '</evil>'),
+            ])
+
+        assert sock.get_sent_data() == b""
+
+    def test_early_hints_rejects_invalid_header_name(self):
+        """Test that invalid token characters in header name are rejected."""
+        cfg = MockConfig()
+        req = MockRequest(version=(1, 1))
+        sock = MockSocket()
+
+        resp, environ = wsgi.create(req, sock, ('127.0.0.1', 12345),
+                                    ('127.0.0.1', 8000), cfg)
+
+        # Space is not allowed in header names
+        with pytest.raises(InvalidHeaderName):
+            environ['wsgi.early_hints']([
+                ('Invalid Header', '</style.css>'),
+            ])
+
+    def test_early_hints_valid_headers_pass_validation(self):
+        """Test that valid headers still work after adding validation."""
+        cfg = MockConfig()
+        req = MockRequest(version=(1, 1))
+        sock = MockSocket()
+
+        resp, environ = wsgi.create(req, sock, ('127.0.0.1', 12345),
+                                    ('127.0.0.1', 8000), cfg)
+
+        # These should all pass validation
+        environ['wsgi.early_hints']([
+            ('Link', '</style.css>; rel=preload; as=style'),
+            ('Link', '</app.js>; rel=preload; as=script'),
+            ('X-Custom-Header', 'some-value'),
+        ])
+
+        sent_data = sock.get_sent_data()
+        assert b"HTTP/1.1 103 Early Hints\r\n" in sent_data
+        assert b"Link: </style.css>; rel=preload; as=style\r\n" in sent_data
 
 
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")

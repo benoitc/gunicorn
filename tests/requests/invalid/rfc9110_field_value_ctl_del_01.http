@@ -1,0 +1,4 @@
+GET /foo HTTP/1.1\r\n
+Host: example.com\r\n
+X-Value: plain\x7finjected\r\n
+\r\n

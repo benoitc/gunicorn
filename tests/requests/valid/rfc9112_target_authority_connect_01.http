@@ -1,0 +1,3 @@
+CONNECT example.com:443 HTTP/1.1\r\n
+Host: example.com:443\r\n
+\r\n

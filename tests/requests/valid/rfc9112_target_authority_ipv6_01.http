@@ -1,0 +1,3 @@
+CONNECT [::1]:443 HTTP/1.1\r\n
+Host: [::1]:443\r\n
+\r\n

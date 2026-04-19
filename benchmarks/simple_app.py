@@ -4,12 +4,18 @@
 
 # Simple WSGI app for benchmarking
 
+import time
+
+
 def application(environ, start_response):
     """Basic hello world response."""
     path = environ.get('PATH_INFO', '/')
 
     if path == '/large':
         body = b'X' * 65536  # 64KB
+    elif path == '/slow':
+        time.sleep(0.01)  # 10ms simulated I/O
+        body = b'Slow response'
     else:
         body = b'Hello, World!'
 

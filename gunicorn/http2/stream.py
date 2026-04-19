@@ -71,6 +71,11 @@ class HTTP2Stream:
         self.priority_depends_on = 0
         self.priority_exclusive = False
 
+        # Streaming body support (avoids buffering entire uploads)
+        self._body_chunks = []
+        self._body_event = None  # Lazy-init asyncio.Event
+        self._body_complete = False
+
     @property
     def is_client_stream(self):
         """Check if this is a client-initiated stream (odd stream ID)."""
@@ -122,7 +127,7 @@ class HTTP2Stream:
             self.request_complete = True
 
     def receive_data(self, data, end_stream=False):
-        """Process received DATA frame.
+        """Process received DATA frame with streaming support.
 
         Args:
             data: Bytes received
@@ -137,11 +142,21 @@ class HTTP2Stream:
                 f"Cannot receive data in state {self.state.name}"
             )
 
+        # Add to chunks queue for streaming reads
+        if data:
+            self._body_chunks.append(data)
+            if self._body_event:
+                self._body_event.set()
+
+        # Also write to legacy BytesIO for compatibility
         self.request_body.write(data)
 
         if end_stream:
             self._half_close_remote()
             self.request_complete = True
+            self._body_complete = True
+            if self._body_event:
+                self._body_event.set()
 
     def receive_trailers(self, trailers):
         """Process received trailing headers.
@@ -282,6 +297,35 @@ class HTTP2Stream:
             bytes: The request body data
         """
         return self.request_body.getvalue()
+
+    async def read_body_chunk(self):
+        """Read next body chunk asynchronously for streaming.
+
+        Returns:
+            bytes: Next chunk of body data, or None if body is complete.
+        """
+        import asyncio
+
+        # Initialize event lazily (avoids event loop issues at construction)
+        if self._body_event is None:
+            self._body_event = asyncio.Event()
+            # If data already arrived before event existed, set it now
+            # This prevents race where DATA frames arrive before first read
+            if self._body_chunks or self._body_complete:
+                self._body_event.set()
+
+        while True:
+            # Return chunk if available
+            if self._body_chunks:
+                return self._body_chunks.pop(0)
+
+            # No more data expected
+            if self._body_complete:
+                return None
+
+            # Wait for more data
+            self._body_event.clear()
+            await self._body_event.wait()
 
     def get_pseudo_headers(self):
         """Extract HTTP/2 pseudo-headers from request headers.

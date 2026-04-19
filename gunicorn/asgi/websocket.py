@@ -40,20 +40,22 @@ WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
 class WebSocketProtocol:
-    """WebSocket connection handler for ASGI applications."""
+    """WebSocket connection handler for ASGI applications.
 
-    def __init__(self, transport, reader, scope, app, log):
+    Uses callback-based data feeding instead of StreamReader for efficiency.
+    Data is fed via feed_data() from the parent protocol's data_received().
+    """
+
+    def __init__(self, transport, scope, app, log):
         """Initialize WebSocket protocol handler.
 
         Args:
             transport: asyncio transport for writing
-            reader: asyncio StreamReader for reading
             scope: ASGI WebSocket scope dict
             app: ASGI application callable
             log: Logger instance
         """
         self.transport = transport
-        self.reader = reader
         self.scope = scope
         self.app = app
         self.log = log
@@ -63,12 +65,37 @@ class WebSocketProtocol:
         self.close_code = None
         self.close_reason = ""
 
+        # Close handshake state (RFC 6455 Section 7.1.1)
+        self._close_sent = False
+        self._close_received = False
+        self._close_event = asyncio.Event()
+
         # Message reassembly state
         self._fragments = []
         self._fragment_opcode = None
 
         # Receive queue for incoming messages
         self._receive_queue = asyncio.Queue()
+
+        # Callback-based data reception (replaces StreamReader)
+        self._buffer = bytearray()
+        self._data_event = asyncio.Event()
+        self._eof = False
+
+    def feed_data(self, data):
+        """Feed incoming data from the parent protocol's data_received().
+
+        Args:
+            data: bytes received on the connection
+        """
+        if data:
+            self._buffer.extend(data)
+            self._data_event.set()
+
+    def feed_eof(self):
+        """Signal that the connection has been closed."""
+        self._eof = True
+        self._data_event.set()
 
     async def run(self):
         """Run the WebSocket ASGI application."""
@@ -83,15 +110,20 @@ class WebSocketProtocol:
         except Exception:
             self.log.exception("Error in WebSocket ASGI application")
         finally:
+            # Send close frame if not already closed
+            if not self.closed and self.accepted and not self._close_sent:
+                await self._send_close(CLOSE_INTERNAL_ERROR, "Application error")
+                # Wait for client's close response
+                try:
+                    await asyncio.wait_for(self._close_event.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    self.closed = True
+
             read_task.cancel()
             try:
                 await read_task
             except asyncio.CancelledError:
                 pass
-
-            # Send close frame if not already closed
-            if not self.closed and self.accepted:
-                await self._send_close(CLOSE_INTERNAL_ERROR, "Application error")
 
     async def _receive(self):
         """ASGI receive callable."""
@@ -113,16 +145,29 @@ class WebSocketProtocol:
             if self.closed:
                 raise RuntimeError("WebSocket closed")
 
-            if "text" in message:
-                await self._send_frame(OPCODE_TEXT, message["text"].encode("utf-8"))
-            elif "bytes" in message:
-                await self._send_frame(OPCODE_BINARY, message["bytes"])
+            # Check for truthy values since both keys may be present with None
+            text = message.get("text")
+            bytes_data = message.get("bytes")
+            if text is not None:
+                await self._send_frame(OPCODE_TEXT, text.encode("utf-8"))
+            elif bytes_data is not None:
+                await self._send_frame(OPCODE_BINARY, bytes_data)
 
         elif msg_type == "websocket.close":
             code = message.get("code", CLOSE_NORMAL)
             reason = message.get("reason", "")
             await self._send_close(code, reason)
-            self.closed = True
+
+            # Wait for client's close frame (RFC 6455 close handshake)
+            try:
+                await asyncio.wait_for(self._close_event.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                self.log.debug("WebSocket close handshake timeout")
+                self.closed = True
+                self._close_event.set()
+
+            # Close the transport after close handshake
+            self.transport.close()
 
     async def _send_accept(self, message):
         """Send WebSocket handshake accept response."""
@@ -169,7 +214,9 @@ class WebSocketProtocol:
     async def _read_frames(self):
         """Read and process incoming WebSocket frames."""
         try:
-            while not self.closed:
+            # Continue reading while not closed, or if we sent close but haven't
+            # received client's close response yet (RFC 6455 close handshake)
+            while not self.closed or (self._close_sent and not self._close_received):
                 frame = await self._read_frame()
                 if frame is None:
                     break
@@ -295,14 +342,25 @@ class WebSocketProtocol:
             return (opcode, payload)
 
     async def _read_exact(self, n):
-        """Read exactly n bytes from the reader."""
-        try:
-            data = await self.reader.readexactly(n)
-            return data
-        except asyncio.IncompleteReadError:
-            return None
-        except Exception:
-            return None
+        """Read exactly n bytes from internal buffer.
+
+        Waits for data via the callback-fed buffer instead of StreamReader.
+        """
+        while len(self._buffer) < n:
+            if self._eof:
+                return None
+            self._data_event.clear()
+            # Critical: check buffer AGAIN after clearing to avoid race
+            # condition where data arrives between clear() and wait()
+            if len(self._buffer) >= n:
+                break
+            await self._data_event.wait()
+            if self._eof and len(self._buffer) < n:
+                return None
+
+        data = bytes(self._buffer[:n])
+        del self._buffer[:n]
+        return data
 
     def _unmask(self, payload, masking_key):
         """Unmask WebSocket payload data."""
@@ -320,11 +378,14 @@ class WebSocketProtocol:
             self.close_code = CLOSE_NO_STATUS
             self.close_reason = ""
 
+        self._close_received = True
+
         # Echo close frame back if we haven't already sent one
-        if not self.closed:
+        if not self._close_sent:
             await self._send_close(self.close_code, self.close_reason)
 
         self.closed = True
+        self._close_event.set()
 
     async def _handle_continuation(self, payload):  # pylint: disable=unused-argument
         """Handle continuation frame (already processed in _read_frame)."""
@@ -361,8 +422,16 @@ class WebSocketProtocol:
 
     async def _send_close(self, code, reason=""):
         """Send a close frame."""
+        if self._close_sent:
+            return  # Already sent
+
         payload = struct.pack("!H", code)
         if reason:
             payload += reason.encode("utf-8")[:123]  # Max 125 bytes total
         await self._send_frame(OPCODE_CLOSE, payload)
-        self.closed = True
+        self._close_sent = True
+
+        # If we already received a close, handshake is complete
+        if self._close_received:
+            self.closed = True
+            self._close_event.set()

@@ -12,11 +12,7 @@ that actually start the server and make HTTP requests.
 import asyncio
 import errno
 import os
-import signal
 import socket
-import sys
-import time
-import threading
 from unittest import mock
 
 import pytest
@@ -120,7 +116,7 @@ class FakeListener:
 def _has_uvloop():
     """Check if uvloop is available."""
     try:
-        import uvloop
+        import uvloop  # noqa: F401
         return True
     except ImportError:
         return False
@@ -337,9 +333,9 @@ class TestLifespanManager:
         async def app(scope, receive, send):
             assert "state" in scope
             scope["state"]["db"] = "connected"
-            message = await receive()
+            _ = await receive()
             await send({"type": "lifespan.startup.complete"})
-            message = await receive()
+            _ = await receive()
             await send({"type": "lifespan.shutdown.complete"})
 
         manager = LifespanManager(app, mock.Mock(), state)
@@ -393,7 +389,7 @@ class TestWebSocketProtocol:
         from gunicorn.asgi.websocket import WebSocketProtocol
 
         # Create a minimal protocol instance
-        protocol = WebSocketProtocol(None, None, {}, None, mock.Mock())
+        protocol = WebSocketProtocol(None, {}, None, mock.Mock())
 
         # Test unmasking (XOR operation)
         masking_key = bytes([0x37, 0xfa, 0x21, 0x3d])
@@ -406,7 +402,7 @@ class TestWebSocketProtocol:
         """Test WebSocket frame unmasking with empty payload."""
         from gunicorn.asgi.websocket import WebSocketProtocol
 
-        protocol = WebSocketProtocol(None, None, {}, None, mock.Mock())
+        protocol = WebSocketProtocol(None, {}, None, mock.Mock())
 
         masking_key = bytes([0x37, 0xfa, 0x21, 0x3d])
         unmasked = protocol._unmask(b"", masking_key)
@@ -555,7 +551,6 @@ class TestASGIProtocol:
     def test_scope_building(self):
         """Test HTTP scope building."""
         from gunicorn.asgi.protocol import ASGIProtocol
-        from gunicorn.asgi.message import AsyncRequest
 
         worker = mock.Mock()
         worker.cfg = Config()
@@ -729,10 +724,11 @@ class TestASGIHTTP2Priority:
         protocol = ASGIProtocol(worker)
 
         # Create mock HTTP/1.1 request (no priority attributes)
-        request = mock.Mock(spec=['method', 'path', 'query', 'version',
+        request = mock.Mock(spec=['method', 'path', 'raw_path', 'query', 'version',
                                    'scheme', 'headers'])
         request.method = "GET"
         request.path = "/test"
+        request.raw_path = b"/test"
         request.query = ""
         request.version = (1, 1)
         request.scheme = "http"

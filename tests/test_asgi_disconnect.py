@@ -50,41 +50,58 @@ class TestASGIGracefulDisconnect:
 
         assert protocol._closed is True
 
-    def test_disconnect_sends_message_to_queue(self, mock_worker):
-        """Test that connection_lost sends http.disconnect to receive queue."""
+    def test_disconnect_signals_body_receiver(self, mock_worker):
+        """Test that connection_lost signals the body receiver."""
+        from gunicorn.asgi.protocol import BodyReceiver
+
         protocol = ASGIProtocol(mock_worker)
         protocol.reader = mock.Mock()
         mock_worker.nr_conns = 1
 
-        # Create a receive queue (simulating active request)
-        protocol._receive_queue = asyncio.Queue()
+        # Create a mock request for the body receiver
+        mock_request = mock.Mock()
+        mock_request.content_length = 100
+        mock_request.chunked = False
+
+        # Create a body receiver (simulating active request)
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
+
+        # Verify disconnect flag is not set initially
+        assert not body_receiver._closed
 
         # Simulate connection lost
         protocol.connection_lost(None)
 
-        # Check that disconnect message was sent
-        assert not protocol._receive_queue.empty()
-        msg = protocol._receive_queue.get_nowait()
-        assert msg == {"type": "http.disconnect"}
+        # Check that disconnect flag was set
+        assert body_receiver._closed
 
     def test_disconnect_is_idempotent(self, mock_worker):
         """Test that connection_lost can be called multiple times safely."""
+        from gunicorn.asgi.protocol import BodyReceiver
+
         protocol = ASGIProtocol(mock_worker)
         protocol.reader = mock.Mock()
         mock_worker.nr_conns = 2  # Start with 2 so we can verify only 1 is decremented
 
-        protocol._receive_queue = asyncio.Queue()
+        # Create a mock request for the body receiver
+        mock_request = mock.Mock()
+        mock_request.content_length = 100
+        mock_request.chunked = False
+
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
 
         # First call should work
         protocol.connection_lost(None)
         assert protocol._closed is True
         assert mock_worker.nr_conns == 1
-        assert protocol._receive_queue.qsize() == 1
+        assert body_receiver._closed
 
         # Second call should be a no-op
         protocol.connection_lost(None)
         assert mock_worker.nr_conns == 1  # Should not decrement again
-        assert protocol._receive_queue.qsize() == 1  # Should not add another message
+        # Closed flag is still set
 
     def test_disconnect_does_not_cancel_immediately(self, mock_worker):
         """Test that connection_lost doesn't cancel task immediately."""
@@ -156,41 +173,26 @@ class TestASGIGracefulDisconnect:
     @pytest.mark.asyncio
     async def test_receive_returns_disconnect_when_closed(self, mock_worker):
         """Test that receive() returns http.disconnect when connection is closed."""
+        from gunicorn.asgi.protocol import BodyReceiver
+
         protocol = ASGIProtocol(mock_worker)
         protocol._closed = True
 
-        # Create receive queue with body complete
-        receive_queue = asyncio.Queue()
-        protocol._receive_queue = receive_queue
+        # Create a mock request with no body
+        mock_request = mock.Mock()
+        mock_request.content_length = 0
+        mock_request.chunked = False
 
-        # Add initial body message
-        await receive_queue.put({
-            "type": "http.request",
-            "body": b"",
-            "more_body": False,
-        })
+        body_receiver = BodyReceiver(mock_request, protocol)
+        protocol._body_receiver = body_receiver
 
-        # Simulate what happens in _handle_http_request
-        body_complete = False
-
-        async def receive():
-            nonlocal body_complete
-            if protocol._closed and body_complete:
-                return {"type": "http.disconnect"}
-
-            msg = await receive_queue.get()
-
-            if msg.get("type") == "http.request" and not msg.get("more_body", True):
-                body_complete = True
-
-            return msg
-
-        # First receive gets the body
-        msg1 = await receive()
+        # First receive gets the body (empty)
+        msg1 = await body_receiver.receive()
         assert msg1["type"] == "http.request"
+        assert msg1["more_body"] is False
 
-        # Second receive should get disconnect
-        msg2 = await receive()
+        # Second receive should get disconnect (body complete)
+        msg2 = await body_receiver.receive()
         assert msg2["type"] == "http.disconnect"
 
 

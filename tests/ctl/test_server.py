@@ -361,3 +361,59 @@ class TestControlSocketServerPermissions:
                 assert mode == 0o660
             finally:
                 server.stop()
+
+
+class TestControlSocketServerDirectoryCreation:
+    """Tests for automatic directory creation."""
+
+    def test_creates_parent_directory(self):
+        """Test that server creates parent directory if it doesn't exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a path with a non-existent subdirectory
+            subdir = os.path.join(tmpdir, '.gunicorn')
+            socket_path = os.path.join(subdir, 'gunicorn.ctl')
+
+            assert not os.path.exists(subdir)
+
+            arbiter = MockArbiter()
+            server = ControlSocketServer(arbiter, socket_path)
+
+            server.start()
+
+            # Wait for socket to exist
+            for _ in range(50):
+                if os.path.exists(socket_path):
+                    break
+                time.sleep(0.1)
+
+            try:
+                # Directory should have been created
+                assert os.path.isdir(subdir)
+                # Directory should have restricted permissions (0o700)
+                mode = os.stat(subdir).st_mode & 0o777
+                assert mode == 0o700
+                # Socket should exist
+                assert os.path.exists(socket_path)
+            finally:
+                server.stop()
+
+    def test_works_with_existing_directory(self):
+        """Test that server works when parent directory already exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, 'gunicorn.ctl')
+
+            arbiter = MockArbiter()
+            server = ControlSocketServer(arbiter, socket_path)
+
+            server.start()
+
+            # Wait for socket to exist
+            for _ in range(50):
+                if os.path.exists(socket_path):
+                    break
+                time.sleep(0.1)
+
+            try:
+                assert os.path.exists(socket_path)
+            finally:
+                server.stop()

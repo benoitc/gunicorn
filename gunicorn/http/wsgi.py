@@ -38,6 +38,15 @@ class FileWrapper:
             return data
         raise IndexError
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        data = self.filelike.read(self.blksize)
+        if data:
+            return data
+        raise StopIteration
+
 
 class WSGIErrorsWrapper(io.RawIOBase):
 
@@ -134,6 +143,10 @@ def _make_early_hints_callback(req, sock, resp):
         Args:
             headers: List of (name, value) header tuples, typically Link headers
                      Example: [('Link', '</style.css>; rel=preload; as=style')]
+
+        Raises:
+            InvalidHeaderName: If a header name is not a valid HTTP token.
+            InvalidHeader: If a header value contains invalid characters.
         """
         # Don't send after response has started - would break framing
         if resp.headers_sent:
@@ -150,6 +163,20 @@ def _make_early_hints_callback(req, sock, resp):
                 name = name.decode('latin-1')
             if isinstance(value, bytes):
                 value = value.decode('latin-1')
+
+            # Validate header name and value using the same checks as
+            # Response.process_headers — defense-in-depth against
+            # HTTP response splitting via CRLF injection.
+            if not TOKEN_RE.fullmatch(name):
+                raise InvalidHeaderName('%r' % name)
+            if not HEADER_VALUE_RE.fullmatch(value):
+                # Pass only the name — the invalid value may contain
+                # sensitive data that shouldn't cross security boundaries
+                # via exception propagation (browsers/proxies may forward
+                # it to untrusted parties).
+                raise InvalidHeader('%r' % name)
+
+            value = value.strip(" \t")
             response += f"{name}: {value}\r\n".encode('latin-1')
         response += b"\r\n"
 

@@ -7,7 +7,7 @@
 # - Celery: Needs separate web + worker containers + Redis/RabbitMQ
 # - Dirty: Single container handles both HTTP and background tasks
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app

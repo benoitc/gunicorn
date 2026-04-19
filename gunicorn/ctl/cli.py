@@ -13,6 +13,7 @@ import json
 import os
 import sys
 
+from gunicorn.config import _get_default_control_socket
 from gunicorn.ctl.client import ControlClient, ControlClientError, parse_command
 
 
@@ -405,8 +406,8 @@ Examples:
 
     parser.add_argument(
         '-s', '--socket',
-        default='gunicorn.ctl',
-        help='Control socket path (default: gunicorn.ctl in current directory)'
+        default=_get_default_control_socket(),
+        help='Control socket path (default: auto-detected based on XDG_RUNTIME_DIR or ~/.gunicorn/)'
     )
 
     parser.add_argument(

@@ -1,13 +1,75 @@
 <span id="news"></span>
 # Changelog
 
-## unreleased
+## 25.3.0 - 2026-03-26
+
+### Bug Fixes
+
+- **HTTP/2 ASGI Body Duplication**: Fix request body being received twice in HTTP/2
+  ASGI requests, causing JSON parsing errors with "Extra data" messages
+  ([#3558](https://github.com/benoitc/gunicorn/issues/3558))
+
+- **ASGI Chunked EOF Handling**: Add `finish()` method to callback parser to handle
+  chunked encoding edge case where connection closes before final CRLF after zero-chunk
+
+- **HTTP/2 Documentation**: Fix `http_protocols` examples to use comma-separated string
+  instead of list syntax ([#3561](https://github.com/benoitc/gunicorn/issues/3561))
+
+- **Chunked Encoding**: Reject chunk extensions containing bare CR bytes per RFC 9112
+  ([#3556](https://github.com/benoitc/gunicorn/discussions/3556))
+
+- **Request Line Limit**: Fix `--limit-request-line 0` to mean unlimited as documented,
+  instead of using default maximum. Works with both Python and fast C parser.
+  ([#3563](https://github.com/benoitc/gunicorn/issues/3563))
+
+### Security
+
+- **ASGI Parser Header Validation**: Add security checks per RFC 9110/9112:
+  - Reject duplicate Content-Length headers
+  - Reject requests with both Content-Length and Transfer-Encoding
+  - Reject chunked transfer encoding in HTTP/1.0
+  - Reject stacked chunked encoding
+  - Validate Transfer-Encoding values
+  - Strict chunk size validation
+
+### Changes
+
+- **Fast HTTP Parser**: Update to gunicorn_h1c >= 0.6.3 for `asgi_headers` property
+  and `InvalidChunkExtension` validation for bare CR rejection
+
+- **ASGI PROXY Protocol**: Add PROXY protocol v1/v2 support to callback parser
+
+- **Docker Images**: Update to Python 3.14
+
+---
+
+## 25.2.0 - 2026-03-24
+
+### New Features
+
+- **Fast HTTP Parser (gunicorn_h1c 0.6.0)**: Integrate new exception types and limit
+  parameters from gunicorn_h1c 0.6.0 for both WSGI and ASGI workers
+  - Requires gunicorn_h1c >= 0.6.0 for `http_parser='fast'`
+  - Falls back to Python parser in `auto` mode if version not met
+  - Proper HTTP status codes for limit errors (414, 431)
+
+### Bug Fixes
+
+- **uWSGI Async Workers**: Fix `InvalidUWSGIHeader: incomplete header` error
+  when using gevent or gthread workers with uwsgi protocol behind nginx.
+  ([#3552](https://github.com/benoitc/gunicorn/issues/3552),
+  [PR #3554](https://github.com/benoitc/gunicorn/pull/3554))
+
+- **FileWrapper Iterator Protocol**: Add `__iter__` and `__next__` methods to
+  `FileWrapper` for full PEP 3333 compliance. Previously only supported old-style
+  `__getitem__` iteration which broke code explicitly using `iter()` or `next()`.
+  ([#3396](https://github.com/benoitc/gunicorn/issues/3396),
+  [PR #3550](https://github.com/benoitc/gunicorn/pull/3550))
 
 ### Performance
 
 - **ASGI HTTP Parser Optimizations**: Improve ASGI worker HTTP parsing performance
-  - Read chunks in 64-byte blocks instead of 1 byte at a time for chunk size lines and trailers
-  - Reuse BytesIO buffers with truncate/seek instead of creating new objects (reduces GC pressure)
+  - Callback-based parsing with direct `bytearray` buffer operations
   - Use `bytearray.find()` directly instead of converting to bytes first
   - Use index-based iteration for header parsing instead of `list.pop(0)` (O(1) vs O(n))
 

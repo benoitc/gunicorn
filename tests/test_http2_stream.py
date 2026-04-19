@@ -477,6 +477,41 @@ class TestGetRequestBody:
         assert stream.get_request_body() == b"Test body content"
 
 
+class TestReadBodyChunk:
+    """Test read_body_chunk method."""
+
+    @pytest.mark.asyncio
+    async def test_read_body_chunk_returns_data(self):
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+
+        stream.receive_data(b"chunk1", end_stream=True)
+
+        chunk = await stream.read_body_chunk()
+        assert chunk == b"chunk1"
+
+    @pytest.mark.asyncio
+    async def test_read_body_chunk_multi_frame(self):
+        """Multiple DATA frames should each be returned as separate chunks."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+
+        stream.receive_data(b"part1")
+        stream.receive_data(b"part2")
+        stream.receive_data(b"part3", end_stream=True)
+
+        chunks = []
+        for _ in range(3):
+            chunk = await stream.read_body_chunk()
+            if chunk is None:
+                break
+            chunks.append(chunk)
+
+        assert b"".join(chunks) == b"part1part2part3"
+
+
 class TestGetPseudoHeaders:
     """Test get_pseudo_headers method."""
 
