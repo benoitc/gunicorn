@@ -48,7 +48,7 @@ class WSGIApplication(Application):
 
     def load_pasteapp(self):
         from .pasterapp import get_wsgi_app
-        return get_wsgi_app(self.app_uri, defaults=self.cfg.paste_global_conf)
+        return get_wsgi_app(self.app_uri, defaults=self.cfg.paste_global_conf or {})
 
     def load(self):
         if self.cfg.paste is not None:
@@ -63,7 +63,7 @@ def run(prog=None):
     generic WSGI applications.
     """
     from gunicorn.app.wsgiapp import WSGIApplication
-    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+    WSGIApplication(f"{prog} [OPTIONS] [APP_MODULE]", prog=prog).run()
 
 
 if __name__ == '__main__':

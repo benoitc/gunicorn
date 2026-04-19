@@ -46,9 +46,9 @@ def serve(app, global_conf, **local_conf):
     host = local_conf.pop('host', '')
     port = local_conf.pop('port', '')
     if host and port:
-        local_conf['bind'] = '%s:%s' % (host, port)
+        local_conf['bind'] = f'{host}:{port}'
     elif host:
-        local_conf['bind'] = host.split(',')
+        local_conf['bind'] = [h.strip() for h in host.split(',')]
 
     class PasterServerApplication(WSGIApplication):
         def load_config(self):
