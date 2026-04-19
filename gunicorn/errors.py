@@ -9,20 +9,28 @@
 # pylint: disable=super-init-not-called
 
 
-# we inherit from BaseException here to make sure to not be caught
-# at application level
 class HaltServer(BaseException):
+    """Exception to halt the Gunicorn server gracefully.
+
+    This exception inherits from BaseException to ensure it is not
+    caught by application-level exception handlers. Used to signal
+    that the server should stop running.
+
+    Args:
+        reason: The reason for halting the server.
+        exit_status: The exit status code to use when stopping.
+    """
     def __init__(self, reason, exit_status=1):
         self.reason = reason
         self.exit_status = exit_status
 
     def __str__(self):
-        return "<HaltServer %r %d>" % (self.reason, self.exit_status)
+        return f"<HaltServer {self.reason!r} {self.exit_status}>"
 
 
 class ConfigError(Exception):
-    """ Exception raised on config error """
+    """Exception raised when there is a configuration error."""
 
 
 class AppImportError(Exception):
-    """ Exception raised when loading an application """
+    """Exception raised when there is an error loading an application."""
