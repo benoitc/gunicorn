@@ -147,7 +147,7 @@ RFC9110_6_5_1_FORBIDDEN_TRAILER = frozenset((
     "TE",
 ))
 # https://datatracker.ietf.org/doc/html/rfc9110#section-5.3-3
-SINGLETON_FIELDS = frozenset({"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"})
+RFC9110_5_3_SINGLETON_FIELDS = frozenset({"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"})
 
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
@@ -323,7 +323,7 @@ class Message:
                     # fail-safe fallthrough: refuse
                     raise InvalidHeaderName(name)
 
-            if name in SINGLETON_FIELDS and name in headers_seen:
+            if name in RFC9110_5_3_SINGLETON_FIELDS and name in headers_seen:
                 raise InvalidHeader(name)
 
             headers_seen.add(name)
