@@ -146,6 +146,8 @@ RFC9110_6_5_1_FORBIDDEN_TRAILER = frozenset((
     "AUTHORIZATION",
     "TE",
 ))
+# https://datatracker.ietf.org/doc/html/rfc9110#section-5.3-3
+RFC9110_5_3_SINGLETON_FIELDS = frozenset({"HOST", "CONTENT-TYPE", "CONTENT-LENGTH"})
 
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
@@ -209,6 +211,7 @@ class Message:
     def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
         headers = []
+        headers_seen = set()
 
         # Split lines on \r\n
         lines = [bytes_to_str(line) for line in data.split(b"\r\n")]
@@ -320,6 +323,10 @@ class Message:
                     # fail-safe fallthrough: refuse
                     raise InvalidHeaderName(name)
 
+            if name in RFC9110_5_3_SINGLETON_FIELDS and name in headers_seen:
+                raise InvalidHeader(name)
+
+            headers_seen.add(name)
             headers.append((name, value))
 
         return headers
