@@ -6,8 +6,8 @@
   <a href="https://checkout.revolut.com/pay/ac271e5e-172a-408b-947b-2f9f79d3a88a"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
 </p>
 
-[![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.python.org/pypi/gunicorn)
+[![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.org/project/gunicorn/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.org/project/gunicorn/)
 [![Build Status](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml)
 
 Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
@@ -39,7 +39,7 @@ gunicorn myapp:app --worker-class asgi
 - uWSGI binary protocol for nginx integration
 - Multiple worker types: sync, gthread, gevent, eventlet, asgi
 - Graceful worker process management
-- Compatible with Python 3.9+
+- Compatible with Python 3.10+
 
 ## Documentation
 
