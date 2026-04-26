@@ -159,14 +159,15 @@ def test_pos_int_validation():
 
 def test_strict_pos_int_validation():
     c = config.Config()
-    assert c.buf_read_size == 1024
-    c.set("buf_read_size", 4096)
-    assert c.buf_read_size == 4096
-    c.set("buf_read_size", "8192")
-    assert c.buf_read_size == 8192
-    pytest.raises(ValueError, c.set, "buf_read_size", 0)
-    pytest.raises(ValueError, c.set, "buf_read_size", -1)
-    pytest.raises(TypeError, c.set, "buf_read_size", c)
+    assert c.wsgi_input_block_size == 1024
+    c.set("wsgi_input_block_size", 4096)
+    assert c.wsgi_input_block_size == 4096
+    c.set("wsgi_input_block_size", "8192")
+    assert c.wsgi_input_block_size == 8192
+    pytest.raises(ValueError, c.set, "wsgi_input_block_size", 0)
+    pytest.raises(ValueError, c.set, "wsgi_input_block_size", -1)
+    pytest.raises(ValueError, c.set, "wsgi_input_block_size", 32 * 1024 * 1024 + 1)
+    pytest.raises(TypeError, c.set, "wsgi_input_block_size", c)
 
 
 def test_str_validation():
@@ -264,9 +265,9 @@ def test_cmd_line():
     with AltArgs(["prog_name", "-w", "3"]):
         app = NoConfigApp()
         assert app.cfg.workers == 3
-    with AltArgs(["prog_name", "--buf-read-size", "4096"]):
+    with AltArgs(["prog_name", "--wsgi-input-block-size", "4096"]):
         app = NoConfigApp()
-        assert app.cfg.buf_read_size == 4096
+        assert app.cfg.wsgi_input_block_size == 4096
     with AltArgs(["prog_name", "--preload"]):
         app = NoConfigApp()
         assert app.cfg.preload_app

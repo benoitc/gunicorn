@@ -367,7 +367,7 @@ class Message:
                 # we cannot be certain the message framing we understood matches proxy intent
                 #  -> whatever happens next, remaining input must not be trusted
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
-            self.body = Body(ChunkedReader(self, self.unreader), self.cfg.buf_read_size)
+            self.body = Body(ChunkedReader(self, self.unreader), self.cfg.wsgi_input_block_size)
         elif content_length is not None:
             try:
                 if str(content_length).isnumeric():
@@ -380,9 +380,11 @@ class Message:
             if content_length < 0:
                 raise InvalidHeader("CONTENT-LENGTH", req=self)
 
-            self.body = Body(LengthReader(self.unreader, content_length), self.cfg.buf_read_size)
+            self.body = Body(
+                LengthReader(self.unreader, content_length), self.cfg.wsgi_input_block_size
+            )
         else:
-            self.body = Body(EOFReader(self.unreader), self.cfg.buf_read_size)
+            self.body = Body(EOFReader(self.unreader), self.cfg.wsgi_input_block_size)
 
     def should_close(self):
         if self.must_close:
@@ -860,4 +862,4 @@ class Request(Message):
     def set_body_reader(self):
         super().set_body_reader()
         if isinstance(self.body.reader, EOFReader):
-            self.body = Body(LengthReader(self.unreader, 0), self.cfg.buf_read_size)
+            self.body = Body(LengthReader(self.unreader, 0), self.cfg.wsgi_input_block_size)

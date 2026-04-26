@@ -400,6 +400,13 @@ def validate_strict_pos_int(val):
     return val
 
 
+def validate_wsgi_input_block_size(val):
+    val = validate_strict_pos_int(val)
+    if val > 32 * 1024 * 1024:
+        raise ValueError("Value must not exceed 32 MB (33554432): %s" % val)
+    return val
+
+
 def validate_http2_frame_size(val):
     """Validate HTTP/2 max frame size per RFC 7540."""
     if not isinstance(val, int):
@@ -1203,12 +1210,12 @@ class WorkerTmpDir(Setting):
         """
 
 
-class BufReadSize(Setting):
-    name = "buf_read_size"
+class WsgiInputBlockSize(Setting):
+    name = "wsgi_input_block_size"
     section = "Server Mechanics"
-    cli = ["--buf-read-size"]
+    cli = ["--wsgi-input-block-size"]
     meta = "INT"
-    validator = validate_strict_pos_int
+    validator = validate_wsgi_input_block_size
     type = int
     default = 1024
     desc = """\
@@ -1218,12 +1225,12 @@ class BufReadSize(Setting):
         ``wsgi.input``. Larger values can reduce Python loop overhead for large
         requests, while smaller values keep per-request buffering tighter.
 
+        The value must be greater than zero and at most 32 MB (33554432).
+
         .. note::
               Benchmarks show that, with WSGI workers, increased values up to
               64 kB can improve bandwidth performance when transferring
               large bodies, typically larger than 5 MB.
-
-        The value must be greater than zero.
         """
 
 
