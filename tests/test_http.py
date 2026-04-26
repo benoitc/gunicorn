@@ -81,27 +81,55 @@ def test_readline_buffer_loaded_with_size():
     assert body.readline(2) == b"f"
 
 
-def test_body_read_uses_configured_wsgi_input_block_size():
+@pytest.mark.parametrize("read_kwargs,chunks,expected", [
+    # bounded read: requested size spans two blocks
+    ({"size": 6}, [b"abcd", b"ef"], b"abcdef"),
+    # unbounded read: body is exactly three blocks
+    ({}, [b"abcd", b"efgh", b"ijkl", b""], b"abcdefghijkl"),
+])
+def test_body_read_uses_block_size(read_kwargs, chunks, expected):
+    """read() calls the reader with exactly wsgi_input_block_size each time."""
     reader = mock.MagicMock()
-    reader.read.side_effect = [b"abcd", b"ef", b""]
-
+    reader.read.side_effect = chunks
     body = Body(reader, wsgi_input_block_size=4)
+    assert body.read(**read_kwargs) == expected
+    assert all(c == mock.call(4) for c in reader.read.call_args_list)
 
-    assert body.read(6) == b"abcdef"
-    assert reader.read.call_args_list == [mock.call(4), mock.call(4)]
+
+def test_body_read_prefetches_full_block_and_buffers_remainder():
+    """read(n) with n < block_size fetches a whole block; leftover stays
+    buffered so the next read() needs no additional reader call."""
+    reader = mock.MagicMock()
+    reader.read.side_effect = [b"abcdefgh", b""]
+    body = Body(reader, wsgi_input_block_size=8)
+
+    assert body.read(3) == b"abc"
+    assert reader.read.call_args_list == [mock.call(8)]
+    assert body.read(5) == b"defgh"
+    assert len(reader.read.call_args_list) == 1  # no second reader call
 
 
-def test_body_readline_uses_configured_wsgi_input_block_size():
+def test_body_readline_uses_block_size():
+    """readline() calls the reader with exactly wsgi_input_block_size each time."""
     reader = mock.MagicMock()
     reader.read.side_effect = [b"abcd", b"ef\n", b""]
-
     body = Body(reader, wsgi_input_block_size=4)
-
     assert body.readline() == b"abcdef\n"
     assert reader.read.call_args_list == [mock.call(4), mock.call(4)]
 
 
+def test_body_readline_size_clamps_reader_to_requested_size():
+    """readline(n) with n < block_size reads at most n bytes per call,
+    not a full block (exercises the min(wsgi_input_block_size, size) path)."""
+    reader = mock.MagicMock()
+    reader.read.side_effect = [b"abcde", b""]
+    body = Body(reader, wsgi_input_block_size=8)
+    assert body.readline(5) == b"abcde"
+    assert reader.read.call_args_list == [mock.call(5)]
+
+
 def test_body_invalid_wsgi_input_block_size():
+    """Non-integer wsgi_input_block_size raises TypeError at construction."""
     with pytest.raises(TypeError):
         Body(io.BytesIO(b""), wsgi_input_block_size="1024")
 

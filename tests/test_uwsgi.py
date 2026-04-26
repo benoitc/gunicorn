@@ -434,3 +434,19 @@ class TestUWSGIBody:
 
         # Negative content length should default to 0
         assert req.body.read() == b''
+
+    def test_wsgi_input_block_size_propagates(self):
+        """wsgi_input_block_size flows through to body.wsgi_input_block_size on uWSGI requests."""
+        body = b'hello uwsgi'
+        packet = make_uwsgi_packet_with_body({
+            'REQUEST_METHOD': 'POST',
+            'PATH_INFO': '/',
+            'CONTENT_LENGTH': str(len(body)),
+        }, body)
+        cfg = MockConfig()
+        cfg.wsgi_input_block_size = 4096
+
+        req = UWSGIRequest(cfg, IterUnreader([packet]), ('127.0.0.1', 12345))
+
+        assert req.body.wsgi_input_block_size == 4096
+        assert req.body.read() == body
