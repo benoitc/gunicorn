@@ -206,6 +206,16 @@ class Message:
     def parse(self, unreader):
         raise NotImplementedError()
 
+    def _source_is_trusted_proxy(self):
+        return (
+            not isinstance(self.peer_addr, tuple)
+            or _ip_in_allow_list(
+                self.peer_addr[0],
+                self.cfg.forwarded_allow_ips,
+                self.cfg.forwarded_allow_networks(),
+            )
+        )
+
     def parse_headers(self, data, from_trailer=False):
         cfg = self.cfg
         headers = []
@@ -221,9 +231,7 @@ class Message:
             # nonsense. either a request is https from the beginning
             #  .. or we are just behind a proxy who does not remove conflicting trailers
             pass
-        elif (not isinstance(self.peer_addr, tuple)
-              or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips,
-                                   cfg.forwarded_allow_networks())):
+        elif self._source_is_trusted_proxy():
             secure_scheme_headers = cfg.secure_scheme_headers
             forwarder_headers = cfg.forwarder_headers
 
@@ -518,13 +526,15 @@ class Request(Message):
         # gunicorn_h1c returns headers as (bytes, bytes) tuples
         # Header name/value validation done by C parser
         self.headers = []
+        forwarder_headers = []
+        if self._source_is_trusted_proxy():
+            forwarder_headers = self.cfg.forwarder_headers
         for name_bytes, value_bytes in result['headers']:
             name = bytes_to_str(name_bytes).upper()
             value = bytes_to_str(value_bytes)
 
             # Handle underscore in header names (policy decision, not validation)
             if "_" in name:
-                forwarder_headers = self.cfg.forwarder_headers
                 if name in forwarder_headers or "*" in forwarder_headers:
                     pass
                 elif self.cfg.header_map == "dangerous":
