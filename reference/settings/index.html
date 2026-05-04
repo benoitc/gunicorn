@@ -4716,7 +4716,6 @@ libraries may be installed using setuptools' <code>extras_require</code> feature
 <p>A string referring to one of the following bundled classes:</p>
 <ul>
 <li><code>sync</code></li>
-<li><code>eventlet</code> - <strong>DEPRECATED: will be removed in 26.0</strong>. Requires eventlet &gt;= 0.40.3</li>
 <li><code>gevent</code>   - Requires gevent &gt;= 24.10.1 (or install it via
   <code>pip install gunicorn[gevent]</code>)</li>
 <li><code>tornado</code>  - Requires tornado &gt;= 6.5.0 (or install it via
@@ -4748,7 +4747,7 @@ instead.</p>
 <p><strong>Command line:</strong> <code>--worker-connections INT</code></p>
 <p><strong>Default:</strong> <code>1000</code></p>
 <p>The maximum number of simultaneous clients.</p>
-<p>This setting only affects the <code>gthread</code>, <code>eventlet</code> and <code>gevent</code> worker types.</p>
+<p>This setting only affects the <code>gthread</code> and <code>gevent</code> worker types.</p>
 <h3 id="max_requests"><code>max_requests</code><a class="headerlink" href="#max_requests" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--max-requests INT</code></p>
 <p><strong>Default:</strong> <code>0</code></p>

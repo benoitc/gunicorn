@@ -1660,10 +1660,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#deprecations" class="md-nav__link">
+  <a href="#removals" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deprecations
+        Removals
       
     </span>
   </a>
@@ -2638,7 +2638,7 @@
 <h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Fix HTTP/2 ALPN negotiation for gevent and eventlet workers when
+<p>Fix HTTP/2 ALPN negotiation for the gevent worker when
   <code>do_handshake_on_connect</code> is False (the default). The TLS handshake is now
   explicitly performed before checking <code>selected_alpn_protocol()</code>.</p>
 </li>
@@ -2665,11 +2665,12 @@
 <p>Fix ASGI: quick shutdown on SIGINT/SIGQUIT, graceful on SIGTERM</p>
 </li>
 </ul>
-<h3 id="deprecations">Deprecations<a class="headerlink" href="#deprecations" title="Permanent link">&para;</a></h3>
+<h3 id="removals">Removals<a class="headerlink" href="#removals" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Eventlet Worker</strong>: The <code>eventlet</code> worker is deprecated and will be removed in
-  Gunicorn 26.0. Eventlet itself is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>.
-  Please migrate to <code>gevent</code>, <code>gthread</code>, or another supported worker type.</li>
+<li><strong>Eventlet Worker</strong>: The <code>eventlet</code> worker has been removed.  Eventlet itself
+  is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>;
+  the worker was deprecated in 25.x and is now gone.  Migrate to <code>gevent</code>,
+  <code>gthread</code>, or one of the ASGI workers.</li>
 </ul>
 <h3 id="changes_4">Changes<a class="headerlink" href="#changes_4" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2750,7 +2751,6 @@
 </ul>
 <h3 id="security_1">Security<a class="headerlink" href="#security_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>eventlet</strong>: Require eventlet &gt;= 0.40.3 (CVE-2021-21419, CVE-2025-58068)</li>
 <li><strong>gevent</strong>: Require gevent &gt;= 24.10.1 (CVE-2023-41419, CVE-2024-3219)</li>
 <li><strong>tornado</strong>: Require tornado &gt;= 6.5.0 (CVE-2025-47287)</li>
 </ul>
