@@ -29,7 +29,7 @@ class Parser:
         self.mesg = None
         self.source_addr = source_addr
 
-        # request counter (for keepalive connetions)
+        # request counter (for keepalive connections)
         self.req_count = 0
 
     def __iter__(self):
