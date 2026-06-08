@@ -382,7 +382,7 @@ def _make_response(method="GET", version=(1, 1)):
     cfg = mock.MagicMock()
     cfg.is_ssl = False
     cfg.sendfile = False
-    return Response(req, sock, cfg), sock
+    return Response(req, sock, cfg)
 
 
 @pytest.mark.parametrize("status,method,expect_cl", [
@@ -394,7 +394,7 @@ def _make_response(method="GET", version=(1, 1)):
 ])
 def test_no_body_response_strips_framing(status, method, expect_cl):
     """1xx/204 strip Content-Length; HEAD/304 keep app-supplied Content-Length."""
-    resp, _ = _make_response(method=method)
+    resp = _make_response(method=method)
     body_len = 12
     resp.start_response(status, [
         ("Content-Type", "text/plain"),
@@ -412,7 +412,7 @@ def test_no_body_response_strips_framing(status, method, expect_cl):
 
 
 def test_no_body_response_drops_body_and_warns(caplog):
-    resp, _ = _make_response(method="GET")
+    resp = _make_response(method="GET")
     resp.start_response("204 No Content", [
         ("Content-Type", "text/plain"),
         ("Content-Length", "5"),
@@ -428,7 +428,7 @@ def test_no_body_response_drops_body_and_warns(caplog):
 
 
 def test_normal_response_unaffected():
-    resp, _ = _make_response(method="GET")
+    resp = _make_response(method="GET")
     resp.start_response("200 OK", [
         ("Content-Type", "text/plain"),
         ("Content-Length", "5"),
