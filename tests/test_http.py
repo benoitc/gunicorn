@@ -412,7 +412,7 @@ def test_no_body_response_strips_framing(status, method, expect_cl):
 
 
 def test_no_body_response_drops_body_and_warns(caplog):
-    resp, sock = _make_response(method="GET")
+    resp, _ = _make_response(method="GET")
     resp.start_response("204 No Content", [
         ("Content-Type", "text/plain"),
         ("Content-Length", "5"),
