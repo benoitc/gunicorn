@@ -184,8 +184,12 @@ class EOFReader:
 
 
 class Body:
-    def __init__(self, reader):
+    def __init__(self, reader, wsgi_input_block_size=1024):
+        if not isinstance(wsgi_input_block_size, int):
+            raise TypeError("wsgi_input_block_size must be an integral type")
+
         self.reader = reader
+        self.wsgi_input_block_size = wsgi_input_block_size
         self.buf = io.BytesIO()
 
     def __iter__(self):
@@ -221,7 +225,7 @@ class Body:
             return ret
 
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self.reader.read(self.wsgi_input_block_size)
             if not data:
                 break
             self.buf.write(data)
@@ -251,7 +255,7 @@ class Body:
 
             ret.append(data)
             size -= len(data)
-            data = self.reader.read(min(1024, size))
+            data = self.reader.read(min(self.wsgi_input_block_size, size))
             if not data:
                 break
 

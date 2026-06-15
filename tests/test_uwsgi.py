@@ -53,6 +53,7 @@ class MockConfig:
     def __init__(self, is_ssl=False, uwsgi_allow_ips=None):
         self.is_ssl = is_ssl
         self.uwsgi_allow_ips = uwsgi_allow_ips or ['127.0.0.1', '::1']
+        self.wsgi_input_block_size = 1024
 
 
 class TestUWSGIPacketConstruction:
@@ -433,3 +434,19 @@ class TestUWSGIBody:
 
         # Negative content length should default to 0
         assert req.body.read() == b''
+
+    def test_wsgi_input_block_size_propagates(self):
+        """wsgi_input_block_size flows through to body.wsgi_input_block_size on uWSGI requests."""
+        body = b'hello uwsgi'
+        packet = make_uwsgi_packet_with_body({
+            'REQUEST_METHOD': 'POST',
+            'PATH_INFO': '/',
+            'CONTENT_LENGTH': str(len(body)),
+        }, body)
+        cfg = MockConfig()
+        cfg.wsgi_input_block_size = 4096
+
+        req = UWSGIRequest(cfg, IterUnreader([packet]), ('127.0.0.1', 12345))
+
+        assert req.body.wsgi_input_block_size == 4096
+        assert req.body.read() == body
