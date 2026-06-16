@@ -293,6 +293,51 @@ class ThreadWorker(base.Worker):
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED, errno.EWOULDBLOCK):
                 raise
 
+    def _drain_accept_queues(self, close_listeners=False):
+        """Drain pending connections from listener accept queues.
+
+        After the main loop exits, connections may have completed the TCP
+        handshake and are sitting in the kernel's accept queue. Each call
+        to accept() in the event loop only dequeues one connection, so
+        when self.alive becomes False, remaining connections in the queue
+        are never accepted. They receive a TCP RST when the listening
+        socket is later closed.
+
+        This method accepts all such pending connections and submits them
+        to the thread pool so they receive a proper HTTP response. The
+        listeners are already in non-blocking mode, so accept() raises
+        OSError (EAGAIN) when the queue is empty.
+
+        When *close_listeners* is True, each listener socket is closed
+        immediately after its queue is drained. A two-pass drain with a
+        brief pause catches TCP handshakes that were in-flight during the
+        first pass, minimising the window for RSTs. After the close, new
+        clients get a clean ECONNREFUSED instead.
+        """
+        for listener in self.sockets:
+            self._drain_listener(listener)
+            if close_listeners:
+                # Brief pause for TCP handshakes that are in-flight
+                # (SYN-ACK sent but ACK not yet received). On localhost
+                # this completes in under 1 ms; 10 ms covers cross-host.
+                time.sleep(0.01)
+                # Second pass catches stragglers, then close immediately.
+                self._drain_listener(listener)
+                listener.close()
+
+    def _drain_listener(self, listener):
+        """Accept all pending connections from a single listener."""
+        while True:
+            try:
+                client_sock, client_addr = listener.accept()
+            except OSError:
+                break
+            self.nr_conns += 1
+            client_sock.setblocking(True)
+            conn = TConn(self.cfg, client_sock, client_addr,
+                         listener.getsockname())
+            self.enqueue_req(conn)
+
     def on_client_socket_readable(self, conn, client):
         """Handle a keepalive connection becoming readable."""
         self.poller.unregister(client)
@@ -394,8 +439,18 @@ class ThreadWorker(base.Worker):
             self.murder_keepalived()
             self.murder_pending()
 
-        # Graceful shutdown: stop accepting but handle existing connections
+        # Graceful shutdown: stop accepting new connections via the poller.
         self.set_accept_enabled(False)
+
+        # Drain pending connections from listener accept queues and close
+        # listener sockets immediately after each drain.  Drain + close
+        # must be back-to-back per listener so the kernel cannot
+        # TCP-accept new connections between the last application-level
+        # accept() and the socket close.  Connections that completed the
+        # TCP handshake are dispatched to the thread pool; new clients
+        # arriving after the close get a clean ECONNREFUSED instead of a
+        # RST.
+        self._drain_accept_queues(close_listeners=True)
 
         # Wait for in-flight connections within grace period
         graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
@@ -411,9 +466,6 @@ class ThreadWorker(base.Worker):
         self.tpool.shutdown(wait=False)
         self.poller.close()
         self.method_queue.close()
-
-        for s in self.sockets:
-            s.close()
 
     def finish_request(self, conn, fs):
         """Handle completion of a request (called via method_queue on main thread)."""
