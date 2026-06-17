@@ -49,7 +49,8 @@ class AsyncWorker(base.Worker):
             parser = http.get_parser(self.cfg, client, addr)
             try:
                 listener_name = listener.getsockname()
-                if not self.cfg.keepalive:
+                # do not allow keepalive if the worker is about to be restarted
+                if not self.cfg.keepalive or not self.alive:
                     req = next(parser)
                     self.handle_request(listener_name, req, client, addr)
                 else:
