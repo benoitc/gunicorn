@@ -1,5 +1,6 @@
 gevent
 coverage
+packaging
 pytest>=7.2.0
 pytest-cov
 pytest-asyncio
