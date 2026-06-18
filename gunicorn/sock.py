@@ -200,29 +200,50 @@ def create_sockets(conf, log, fds=None):
 
     # no sockets is bound, first initialization of gunicorn in this env.
     for addr in laddr:
-        sock_type = _sock_type(addr)
-        sock = None
-        for i in range(5):
-            try:
-                sock = sock_type(addr, conf, log)
-            except OSError as e:
-                if e.args[0] == errno.EADDRINUSE:
-                    log.error("Connection in use: %s", str(addr))
-                if e.args[0] == errno.EADDRNOTAVAIL:
-                    log.error("Invalid address: %s", str(addr))
-                msg = "connection to {addr} failed: {error}"
-                log.error(msg.format(addr=str(addr), error=str(e)))
-                if i < 5:
-                    log.debug("Retrying in 1 second.")
-                    time.sleep(1)
+        some_sock_succeeded = False
+        try:
+            if isinstance(addr, tuple):
+                addrinfos = socket.getaddrinfo(addr[0], addr[1], type=socket.SOCK_STREAM)
             else:
-                break
+                addrinfos = [(socket.AF_UNIX, None, None, None, addr)]
+        except (ValueError, OSError) as e:
+            log.error("Failed getaddrinfo for %s: %s", str(addr), str(e))
+            addrinfos = []
 
-        if sock is None:
+        for sock_family, _, _, _, sock_addr in addrinfos:
+            if sock_family == socket.AF_INET:
+                sock_type = TCPSocket
+            elif sock_family == socket.AF_INET6:
+                sock_type = TCP6Socket
+            elif sock_family == socket.AF_UNIX:
+                sock_type = UnixSocket
+            else:
+                log.warning("Ignoring unknown socket family: %s", str(sock_family))
+                continue
+            sock = None
+            for i in range(5):
+                try:
+                    sock = sock_type(sock_addr, conf, log)
+                except OSError as e:
+                    if e.args[0] == errno.EADDRINUSE:
+                        log.error("Connection in use: %s", str(sock_addr))
+                    if e.args[0] == errno.EADDRNOTAVAIL:
+                        log.error("Invalid address: %s", str(sock_addr))
+                    msg = "connection to {addr} failed: {error}"
+                    log.error(msg.format(addr=str(sock_addr), error=str(e)))
+                    if i < 5:
+                        log.debug("Retrying in 1 second.")
+                        time.sleep(1)
+                else:
+                    break
+
+            if sock is not None:
+                listeners.append(sock)
+                some_sock_succeeded = True
+
+        if not some_sock_succeeded:
             log.error("Can't connect to %s", str(addr))
             sys.exit(1)
-
-        listeners.append(sock)
 
     return listeners
 
