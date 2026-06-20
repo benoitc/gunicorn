@@ -1062,13 +1062,17 @@ class TestBodyReceiverDisconnect:
 
     @pytest.mark.asyncio
     async def test_body_receiver_cancellation_during_wait(self):
-        """Test that receive() handles cancellation while waiting for disconnect.
+        """receive() must propagate CancelledError, not mask it as disconnect.
 
-        When the ASGI task is cancelled (e.g., timeout), the waiting receive()
-        catches the CancelledError, marks itself as closed, and the cancellation
-        propagates up from the await. The body receiver is marked as closed
-        to ensure subsequent calls return disconnect immediately.
+        When the ASGI task is cancelled while receive() waits for a disconnect
+        (eg a framework cancels its disconnect listener once the response is
+        done), the cancellation has to propagate. Returning http.disconnect
+        instead makes Django raise RequestAborted in place of running
+        response.close(), skipping request_finished and leaking DB
+        connections (#3627).
         """
+        import asyncio
+
         from gunicorn.asgi.protocol import BodyReceiver
 
         protocol = self._create_protocol()
@@ -1079,10 +1083,8 @@ class TestBodyReceiverDisconnect:
 
         body_receiver = BodyReceiver(mock_request, protocol)
 
-        # Consume body
+        # Consume body so the next receive() waits for disconnect
         await body_receiver.receive()
-
-        import asyncio
 
         receive_task = asyncio.create_task(body_receiver.receive())
 
@@ -1090,18 +1092,8 @@ class TestBodyReceiverDisconnect:
         await asyncio.sleep(0.01)
         assert not receive_task.done()
 
-        # Cancel the task
+        # Cancel the task: the cancellation must propagate, not be swallowed
         receive_task.cancel()
 
-        # Wait for the task to finish - it may raise CancelledError
-        # or return disconnect depending on timing
-        try:
-            msg = await receive_task
-            # If it returns, it should be a disconnect message
-            assert msg == {"type": "http.disconnect"}
-        except asyncio.CancelledError:
-            # Cancellation propagated - this is also valid
-            pass
-
-        # Body receiver should be marked as closed after cancellation
-        assert body_receiver._closed is True
+        with pytest.raises(asyncio.CancelledError):
+            await receive_task
