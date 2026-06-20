@@ -496,32 +496,31 @@ Disable redirect access logs to syslog.
 
 The access log format.
 
-===========  ===========
-Identifier   Description
-===========  ===========
-h            remote address
-l            ``'-'``
-u            user name (if HTTP Basic auth used)
-t            date of the request
-r            status line (e.g. ``GET / HTTP/1.1``)
-m            request method
-U            URL path without query string
-q            query string
-H            protocol
-s            status
-B            response length
-b            response length or ``'-'`` (CLF format)
-f            referrer (note: header is ``referer``)
-a            user agent
-T            request time in seconds
-M            request time in milliseconds
-D            request time in microseconds
-L            request time in decimal seconds
-p            process ID
-{header}i    request header
-{header}o    response header
-{variable}e  environment variable
-===========  ===========
+| Identifier  | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| h           | remote client IP address (not overridden by proxy headers like X-Real-IP)   |
+| l           | `'-'` for compatibility with Common Log Format (CLF)                        |
+| u           | user name (if HTTP Basic auth used)                                         |
+| t           | date of the request at logging time in CLF format                           |
+| r           | status line (e.g. `GET / HTTP/1.1`)                                         |
+| m           | request method                                                              |
+| U           | URL path without query string                                               |
+| q           | query string without a leading '?'                                          |
+| H           | protocol                                                                    |
+| s           | status                                                                      |
+| B           | response length                                                             |
+| b           | response length or `'-'` (CLF format)                                       |
+| f           | referrer (note: header is `referer`)                                        |
+| a           | user agent                                                                  |
+| T           | request duration in seconds                                                 |
+| M           | request duration in milliseconds                                            |
+| D           | request duration in microseconds                                            |
+| L           | request duration in decimal seconds                                         |
+| p           | process ID                                                                  |
+| {header}i   | request header                                                              |
+| {header}o   | response header                                                             |
+| {variable}e | environment variable                                                        |
+
 
 Use lowercase for header and environment variable names, and put
 ``{...}x`` names inside ``%(...)s``. For example::
