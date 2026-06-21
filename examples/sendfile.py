@@ -8,7 +8,9 @@ import os
 from wsgiref.validate import validator
 
 
-# @validator  # breaks sendfile
+# Note: do not use @validator here - it wraps the FileWrapper return value
+# in another iterable, causing isinstance() check in the worker to fail,
+# which prevents the sendfile optimization from being used.
 def app(environ, start_response):
     """Simplest possible application object"""
     status = '200 OK'
