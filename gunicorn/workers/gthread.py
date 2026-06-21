@@ -29,13 +29,16 @@ from .. import sock
 from ..http import wsgi
 
 
-# Sentinel value to indicate connection should be deferred back to poller
-_DEFER = object()
+# Default minimum timeout (in seconds) for waiting for request data after accept connection.
+# This value serves as a lower bound: the worker uses the larger of this default and the keep-alive timeout.
+# If no data arrives within the effective wait period, the connection is closed to avoid holding resources indefinitely.
+DEFAULT_PENDING_REQUEST_MIN_WAIT_TIMEOUT = 5.0
 
-# Default timeout (in seconds) for waiting for request data in worker thread.
-# If no data arrives within this timeout, the connection is deferred back to
-# the main poller to prevent thread pool exhaustion from slow clients.
-DEFAULT_WORKER_DATA_TIMEOUT = 5.0
+# Default timeout (in seconds) allowed for fully draining any unread request body
+# before reusing the connection in keep-alive mode.
+# If the body cannot be drained within this time (for example, due to a stalled client),
+# keep-alive is abandoned and the connection is closed, so that the worker thread is not blocked indefinitely.
+DEFAULT_KEEPALIVE_BODY_DRAIN_TIMEOUT = 5.0
 
 
 class TConn:
@@ -50,8 +53,6 @@ class TConn:
         self.parser = None
         self.initialized = False
         self.is_http2 = False
-        # Track if we've already waited for data (to avoid waiting again after defer)
-        self.data_ready = False
 
         # set the socket to non blocking
         self.sock.setblocking(False)
@@ -88,37 +89,6 @@ class TConn:
     def set_timeout(self):
         # Use monotonic clock for reliability (time.time() can jump due to NTP)
         self.timeout = time.monotonic() + self.cfg.keepalive
-
-    def wait_for_data(self, timeout):
-        """Wait for data to be available on the socket.
-
-        Uses selectors to wait for the socket to become readable within
-        the given timeout. This prevents slow clients from blocking
-        thread pool slots indefinitely.
-
-        Args:
-            timeout: Maximum time to wait in seconds.
-
-        Returns:
-            True if data is available, False if timeout expired.
-        """
-        if self.data_ready:
-            return True
-
-        # Use a temporary selector to wait for data
-        sel = selectors.DefaultSelector()
-        try:
-            sel.register(self.sock, selectors.EVENT_READ)
-            events = sel.select(timeout=timeout)
-            if events:
-                self.data_ready = True
-                return True
-            return False
-        except (OSError, ValueError):
-            # Socket closed or invalid
-            return False
-        finally:
-            sel.close()
 
     def close(self, graceful=False):
         if graceful:
@@ -283,12 +253,18 @@ class ThreadWorker(base.Worker):
         try:
             client_sock, client_addr = listener.accept()
             self.nr_conns += 1
-            client_sock.setblocking(True)
 
             conn = TConn(self.cfg, client_sock, client_addr, listener.getsockname())
 
-            # Submit directly to thread pool for processing
-            self.enqueue_req(conn)
+            conn.timeout = time.monotonic() + max(DEFAULT_PENDING_REQUEST_MIN_WAIT_TIMEOUT, self.cfg.keepalive)
+
+            self.pending_conns.append(conn)
+            self.poller.register(
+                conn.sock,
+                selectors.EVENT_READ,
+                partial(self.on_pending_socket_readable, conn),
+            )
+
         except OSError as e:
             if e.errno not in (errno.EAGAIN, errno.ECONNABORTED, errno.EWOULDBLOCK):
                 raise
@@ -305,9 +281,6 @@ class ThreadWorker(base.Worker):
         """Handle a pending (deferred) connection becoming readable."""
         self.poller.unregister(client)
         self.pending_conns.remove(conn)
-
-        # Mark data as ready so we don't wait again in handle()
-        conn.data_ready = True
 
         # Submit to thread pool for processing
         self.enqueue_req(conn)
@@ -418,18 +391,9 @@ class ThreadWorker(base.Worker):
     def finish_request(self, conn, fs):
         """Handle completion of a request (called via method_queue on main thread)."""
         try:
-            result = fs.result() if not fs.cancelled() else False
+            keepalive = not fs.cancelled() and fs.result()
 
-            if result is _DEFER and self.alive:
-                # Connection deferred - no data arrived within timeout.
-                # Put it on the poller to wait for data without consuming a thread.
-                conn.sock.setblocking(False)
-                # Use keepalive timeout for pending connections too
-                conn.timeout = time.monotonic() + self.cfg.keepalive
-                self.pending_conns.append(conn)
-                self.poller.register(conn.sock, selectors.EVENT_READ,
-                                     partial(self.on_pending_socket_readable, conn))
-            elif result and self.alive:
+            if keepalive and self.alive:
                 # Keepalive - put connection back in the poller
                 conn.sock.setblocking(False)
                 conn.set_timeout()
@@ -447,16 +411,6 @@ class ThreadWorker(base.Worker):
         """Handle a request on a connection. Runs in a worker thread."""
         req = None
         try:
-            # For new connections (not yet initialized), wait for data with timeout
-            # to prevent slow clients from blocking thread pool slots indefinitely.
-            # Skip this for already-initialized connections (keepalive, deferred)
-            # since they're coming from the poller and data is already available.
-            if not conn.initialized and not conn.data_ready:
-                # Wait for data with timeout before committing this thread
-                if not conn.wait_for_data(DEFAULT_WORKER_DATA_TIMEOUT):
-                    # No data within timeout - defer to poller
-                    return _DEFER
-
             # Always ensure blocking mode in worker thread.
             # Critical for keepalive connections: the socket is set to non-blocking
             # for the selector in finish_request(), but must be blocking for
@@ -480,9 +434,9 @@ class ThreadWorker(base.Worker):
             if keepalive:
                 # Discard any unread request body before keepalive to prevent
                 # the socket from appearing readable due to leftover bytes.
-                # Bound the drain by the worker data timeout: a stalled client
+                # Bound the drain by the worker drain timeout: a stalled client
                 # must not keep this thread blocked.
-                drain_deadline = time.monotonic() + DEFAULT_WORKER_DATA_TIMEOUT
+                drain_deadline = time.monotonic() + DEFAULT_KEEPALIVE_BODY_DRAIN_TIMEOUT
                 if not conn.parser.finish_body(deadline=drain_deadline):
                     # Abandon keepalive when the body could not be fully drained.
                     return False
