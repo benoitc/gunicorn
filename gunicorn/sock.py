@@ -39,10 +39,13 @@ class BaseSocket:
     def __getattr__(self, name):
         return getattr(self.sock, name)
 
+    def supports_reuseport(self):
+        return hasattr(socket, 'SO_REUSEPORT')
+
     def set_options(self, sock, bound=False):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if (self.conf.reuse_port
-                and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
+                and self.supports_reuseport()):  # pragma: no cover
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except OSError as err:
@@ -141,6 +144,9 @@ class UnixSocket(BaseSocket):
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
+
+    def supports_reuseport(self):
+        return False
 
     def bind(self, sock):
         old_umask = os.umask(self.conf.umask)
