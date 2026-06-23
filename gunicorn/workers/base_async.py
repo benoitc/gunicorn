@@ -144,7 +144,7 @@ class AsyncWorker(base.Worker):
     def handle_http2_request(self, listener_name, req, sock, addr, h2_conn):
         """Handle a single HTTP/2 request."""
         stream_id = req.stream.stream_id
-        request_start = datetime.now()
+        request_start = time.monotonic_ns()
         environ = {}
         resp = None
 
@@ -184,7 +184,7 @@ class AsyncWorker(base.Worker):
                 response_body
             )
 
-            request_time = datetime.now() - request_start
+            request_time = time.monotonic_ns() - request_start
             self.log.access(resp, req, environ, request_time)
 
         except Exception:

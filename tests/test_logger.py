@@ -2,7 +2,6 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +11,7 @@ from gunicorn.glogging import Logger
 
 
 ONE_SECOND_IN_NS = 1_000_000_000
+
 
 def test_atoms_defaults():
     response = SimpleNamespace(
@@ -37,6 +37,7 @@ def test_atoms_defaults():
     assert atoms['{accept}i'] == 'application/json'
     assert atoms['{content-type}o'] == 'application/json'
     assert atoms['N'] == ONE_SECOND_IN_NS
+
 
 def test_atoms_zero_bytes():
     response = SimpleNamespace(
