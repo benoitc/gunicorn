@@ -854,6 +854,33 @@ class GracefulTimeout(Setting):
         """
 
 
+class WorkerAbortTimeout(Setting):
+    name = "worker_abort_timeout"
+    section = "Worker Processes"
+    cli = ["--worker-abort-timeout"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 0
+    desc = """\
+        Extra seconds to wait for a worker to finish coredumping after SIGABRT,
+        before sending SIGKILL.
+
+        When a worker times out, gunicorn sends SIGABRT which may trigger a
+        core dump. On the next heartbeat check the worker is normally killed
+        with SIGKILL, which can truncate an in-progress core dump.
+
+        Setting this to a positive value enables a Linux-specific check via
+        ``/proc/<pid>/status``: if the worker is still dumping core and the
+        time since SIGABRT was sent is within this limit, gunicorn will skip
+        sending SIGKILL and check again on the next heartbeat. Once the core
+        dump finishes or this limit is exceeded, SIGKILL is sent as usual.
+
+        The default value of 0 disables this check and preserves the original
+        behaviour.
+        """
+
+
 class Keepalive(Setting):
     name = "keepalive"
     section = "Worker Processes"

@@ -553,6 +553,99 @@ class TestWorkerLifecycle:
 
         mock_kill.assert_called_once_with(42, signal.SIGKILL)
 
+    def test_murder_workers_records_abort_time(self):
+        """Verify abort_time is set on the worker when SIGABRT is sent."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = False
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=100), \
+             mock.patch.object(arbiter, 'kill_worker'):
+            arbiter.murder_workers()
+
+        assert mock_worker.abort_time == 100
+
+    def test_murder_workers_coredump_wait_skips_sigkill_while_dumping(self):
+        """SIGKILL is withheld while the worker is coredumping and within the extra timeout."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+        arbiter.cfg.set('worker_abort_timeout', 60)
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = True
+        mock_worker.abort_time = 90  # SIGABRT sent 5 seconds ago (monotonic=95)
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=95), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill, \
+             mock.patch.object(gunicorn.arbiter.Arbiter, '_is_coredumping', return_value=True):
+            arbiter.murder_workers()
+
+        mock_kill.assert_not_called()
+
+    def test_murder_workers_coredump_wait_sends_sigkill_when_not_dumping(self):
+        """SIGKILL is sent immediately when the worker is aborted but not coredumping."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+        arbiter.cfg.set('worker_abort_timeout', 60)
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = True
+        mock_worker.abort_time = 90
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=95), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill, \
+             mock.patch.object(gunicorn.arbiter.Arbiter, '_is_coredumping', return_value=False):
+            arbiter.murder_workers()
+
+        mock_kill.assert_called_once_with(42, signal.SIGKILL)
+
+    def test_murder_workers_coredump_wait_sends_sigkill_after_extra_timeout(self):
+        """SIGKILL is sent once the extra timeout is exceeded, even if still coredumping."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+        arbiter.cfg.set('worker_abort_timeout', 60)
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = True
+        mock_worker.abort_time = 0  # SIGABRT sent 200 seconds ago (monotonic=200)
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=200), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill, \
+             mock.patch.object(gunicorn.arbiter.Arbiter, '_is_coredumping', return_value=True):
+            arbiter.murder_workers()
+
+        mock_kill.assert_called_once_with(42, signal.SIGKILL)
+
+    def test_murder_workers_coredump_wait_zero_disables_check(self):
+        """worker_abort_timeout=0 sends SIGKILL without checking /proc (default behaviour)."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.timeout = 30
+        arbiter.cfg.set('worker_abort_timeout', 0)
+
+        mock_worker = mock.Mock()
+        mock_worker.aborted = True
+        mock_worker.abort_time = 95
+        mock_worker.tmp.last_update.return_value = 0
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch('time.monotonic', return_value=96), \
+             mock.patch.object(arbiter, 'kill_worker') as mock_kill, \
+             mock.patch.object(gunicorn.arbiter.Arbiter, '_is_coredumping') as mock_coredump:
+            arbiter.murder_workers()
+
+        mock_kill.assert_called_once_with(42, signal.SIGKILL)
+        mock_coredump.assert_not_called()
+
 
 # ============================================================================
 # Dirty Arbiter Orphan Cleanup Tests

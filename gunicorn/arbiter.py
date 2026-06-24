@@ -590,9 +590,36 @@ class Arbiter:
             if not worker.aborted:
                 self.log.critical("WORKER TIMEOUT (pid:%s)", pid)
                 worker.aborted = True
+                worker.abort_time = time.monotonic()
                 self.kill_worker(pid, signal.SIGABRT)
+            elif self._should_wait_for_coredump(pid, worker):
+                continue
             else:
                 self.kill_worker(pid, signal.SIGKILL)
+
+    def _should_wait_for_coredump(self, pid: int, worker) -> bool:
+        """Return True if SIGKILL should be held because the worker is still coredumping."""
+        if not self.cfg.worker_abort_timeout:
+            return False
+        elapsed = time.monotonic() - getattr(worker, 'abort_time', 0)
+        if elapsed > self.cfg.worker_abort_timeout:
+            return False
+        if self._is_coredumping(pid):
+            self.log.debug("Worker (pid:%d) is coredumping, waiting up to %ss", pid, self.cfg.worker_abort_timeout)
+            return True
+        return False
+
+    @staticmethod
+    def _is_coredumping(pid: int) -> bool:
+        """Check whether a process is actively dumping core (Linux only, via /proc)."""
+        try:
+            with open(f"/proc/{pid}/status") as f:
+                for line in f:
+                    if line.startswith("CoreDumping:"):
+                        return line.split()[1] == "1"
+        except OSError:
+            pass
+        return False
 
     def reap_workers(self):
         """\
