@@ -27,7 +27,7 @@ jobs:
             python-version: '3.13'
             python-pkg: 'python313 py313-sqlite3'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Test on FreeBSD
         uses: vmactions/freebsd-vm@v1
