@@ -6,6 +6,7 @@
 
 import argparse
 import copy
+import glob
 import grp
 import inspect
 import ipaddress
@@ -436,7 +437,13 @@ def validate_list_string(val):
 
 
 def validate_list_of_existing_files(val):
-    return [validate_file_exists(v) for v in validate_list_string(val)]
+    files = []
+    for pattern in validate_list_string(val):
+        if glob.has_magic(pattern):
+            files.extend(sorted(glob.glob(pattern)))
+        else:
+            files.append(validate_file_exists(pattern))
+    return files
 
 
 def validate_string_to_addr_list(val):
@@ -1002,7 +1009,14 @@ class ReloadExtraFiles(Setting):
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
+        Glob patterns (e.g., ``*.json``) are supported and are expanded to the
+        files matching them when gunicorn starts. Files created after startup
+        that match a pattern are not picked up until gunicorn is restarted.
+
         .. versionadded:: 19.8
+
+        .. versionchanged:: 26.0.0
+           Glob patterns are now supported.
         """
 
 
