@@ -37,6 +37,14 @@ _DEFER = object()
 # the main poller to prevent thread pool exhaustion from slow clients.
 DEFAULT_WORKER_DATA_TIMEOUT = 5.0
 
+# HTTP/2 connection preface sent by clients using prior-knowledge h2c
+# (RFC 9113 section 3.4).
+H2C_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+
+# How long (in seconds) to wait for the full connection preface once the
+# first bytes of a candidate h2c connection have arrived.
+H2C_PREFACE_TIMEOUT = 1.0
+
 
 class TConn:
 
@@ -82,8 +90,61 @@ class TConn:
                     self.parser.initiate_connection()
                     return
 
+            elif (
+                self.cfg.h2c
+                and "h2" in self.cfg.http_protocols
+                and getattr(self.cfg, "protocol", "http") == "http"
+            ):
+                # HTTP/2 cleartext (h2c) with prior knowledge (RFC 9113
+                # section 3.4): the client opens a plain TCP connection and
+                # immediately sends the HTTP/2 connection preface.
+                matched, buf = self._read_h2c_preface()
+                if matched:
+                    self.is_http2 = True
+                    self.parser = http.get_parser(
+                        self.cfg, self.sock, self.client, http2_connection=True
+                    )
+                    self.parser.initiate_connection()
+                    # The consumed preface bytes still need to reach the
+                    # HTTP/2 state machine. The preface alone cannot
+                    # complete a request, so nothing is dropped here.
+                    self.parser.receive_data(buf)
+                    return
+                if buf:
+                    # Not an HTTP/2 preface: serve as HTTP/1.x, returning
+                    # the consumed bytes to the parser.
+                    self.parser = http.get_parser(self.cfg, self.sock, self.client)
+                    self.parser.unreader.unread(buf)
+                    return
+
             # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)
+
+    def _read_h2c_preface(self):
+        """Read up to the length of the HTTP/2 connection preface.
+
+        Consumes bytes from the socket until the preface is complete, a
+        byte diverges from it, the peer closes, or the preface timeout
+        expires. Returns a tuple ``(matched, consumed_bytes)``; on a
+        non-match the consumed bytes must be handed back to the HTTP/1.x
+        parser by the caller.
+        """
+        buf = b""
+        self.sock.settimeout(H2C_PREFACE_TIMEOUT)
+        try:
+            while len(buf) < len(H2C_PREFACE):
+                try:
+                    chunk = self.sock.recv(len(H2C_PREFACE) - len(buf))
+                except TimeoutError:
+                    return False, buf
+                if not chunk:
+                    return False, buf
+                buf += chunk
+                if not H2C_PREFACE.startswith(buf):
+                    return False, buf
+            return True, buf
+        finally:
+            self.sock.settimeout(None)
 
     def set_timeout(self):
         # Use monotonic clock for reliability (time.time() can jump due to NTP)
