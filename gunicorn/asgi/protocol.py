@@ -1461,6 +1461,7 @@ class ASGIProtocol(asyncio.Protocol):
                 self.transport.close()
             except Exception:
                 pass
+            self.worker.nr_conns -= 1
             self._closed = True
 
     async def _handle_http2_connection(self, transport, ssl_object):
