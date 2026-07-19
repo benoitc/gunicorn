@@ -27,6 +27,8 @@ from .. import http
 from .. import util
 from .. import sock
 from ..http import wsgi
+from ..http.errors import InvalidH2CPreface
+from ..http.message import _ip_in_allow_list
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -91,13 +93,16 @@ class TConn:
                     return
 
             elif (
-                self.cfg.h2c
+                self.cfg.http2_prior_knowledge
                 and "h2" in self.cfg.http_protocols
                 and getattr(self.cfg, "protocol", "http") == "http"
+                and self._peer_trusted_for_h2c()
             ):
                 # HTTP/2 cleartext (h2c) with prior knowledge (RFC 9113
                 # section 3.4): the client opens a plain TCP connection and
-                # immediately sends the HTTP/2 connection preface.
+                # immediately sends the HTTP/2 connection preface. Peers
+                # outside forwarded_allow_ips never reach this branch and
+                # are served HTTP/1.x as if the setting were off.
                 matched, buf = self._read_h2c_preface()
                 if matched:
                     self.is_http2 = True
@@ -110,24 +115,37 @@ class TConn:
                     # complete a request, so nothing is dropped here.
                     self.parser.receive_data(buf)
                     return
-                if buf:
-                    # Not an HTTP/2 preface: serve as HTTP/1.x, returning
-                    # the consumed bytes to the parser.
-                    self.parser = http.get_parser(self.cfg, self.sock, self.client)
-                    self.parser.unreader.unread(buf)
-                    return
+                # A trusted peer on a prior-knowledge port must speak
+                # HTTP/2. Anything else (an HTTP/1.x request, a malformed
+                # or stalled preface) is rejected with a 400 rather than
+                # silently downgraded.
+                raise InvalidH2CPreface(buf)
 
             # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)
+
+    def _peer_trusted_for_h2c(self):
+        """Whether the peer may speak prior-knowledge h2c.
+
+        Reuses the ``forwarded_allow_ips`` trust list: h2c is only ever
+        expected from the TLS-terminating proxy in front of Gunicorn,
+        which is the same peer trusted to set forwarded headers. Unix
+        socket peers are trusted, matching the forwarded-header policy.
+        """
+        if not isinstance(self.client, tuple):
+            return True
+        return _ip_in_allow_list(
+            self.client[0],
+            self.cfg.forwarded_allow_ips,
+            self.cfg.forwarded_allow_networks(),
+        )
 
     def _read_h2c_preface(self):
         """Read up to the length of the HTTP/2 connection preface.
 
         Consumes bytes from the socket until the preface is complete, a
         byte diverges from it, the peer closes, or the preface timeout
-        expires. Returns a tuple ``(matched, consumed_bytes)``; on a
-        non-match the consumed bytes must be handed back to the HTTP/1.x
-        parser by the caller.
+        expires. Returns a tuple ``(matched, consumed_bytes)``.
         """
         buf = b""
         self.sock.settimeout(H2C_PREFACE_TIMEOUT)

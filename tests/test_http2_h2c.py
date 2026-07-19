@@ -19,11 +19,17 @@ except ImportError:
     H2_AVAILABLE = False
 
 from gunicorn.config import Config
+from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http.parser import RequestParser
 from gunicorn.workers import gthread
 
+# An address inside the default forwarded_allow_ips ("127.0.0.1,::1").
+TRUSTED_ADDR = ("127.0.0.1", 0)
+# TEST-NET-3 (RFC 5737), never inside the default trust list.
+UNTRUSTED_ADDR = ("203.0.113.7", 0)
 
-def make_conn(cfg, client_data=None):
+
+def make_conn(cfg, client_data=None, addr=TRUSTED_ADDR):
     """Build a TConn around one end of a socketpair.
 
     Returns (conn, client_sock). Bytes in client_data are sent before
@@ -32,25 +38,25 @@ def make_conn(cfg, client_data=None):
     server_sock, client_sock = socket.socketpair()
     if client_data:
         client_sock.sendall(client_data)
-    conn = gthread.TConn(cfg, server_sock, ("127.0.0.1", 0), None)
+    conn = gthread.TConn(cfg, server_sock, addr, None)
     return conn, client_sock
 
 
 def h2c_config():
     cfg = Config()
     cfg.set("http_protocols", "h2,h1")
-    cfg.set("h2c", True)
+    cfg.set("http2_prior_knowledge", True)
     return cfg
 
 
 class TestH2CConfig:
     def test_disabled_by_default(self):
-        assert Config().h2c is False
+        assert Config().http2_prior_knowledge is False
 
     def test_can_be_enabled(self):
         cfg = Config()
-        cfg.set("h2c", True)
-        assert cfg.h2c is True
+        cfg.set("http2_prior_knowledge", True)
+        assert cfg.http2_prior_knowledge is True
 
 
 class TestH2CDisabled:
@@ -70,7 +76,8 @@ class TestH2CDisabled:
     def test_no_peek_when_h2_not_in_protocols(self):
         """h2c flag alone is not enough; h2 must be an enabled protocol."""
         cfg = Config()
-        cfg.set("h2c", True)  # http_protocols left at default "h1"
+        # http_protocols left at default "h1"
+        cfg.set("http2_prior_knowledge", True)
         conn, client = make_conn(cfg, gthread.H2C_PREFACE)
         try:
             conn.init()
@@ -113,12 +120,67 @@ class TestH2CPriorKnowledge:
             client.close()
 
 
-class TestH2CFallback:
-    def test_http1_request_falls_back_and_parses(self):
-        """A plain HTTP/1.1 request must be served untouched, including
-        the bytes consumed while sniffing the preface."""
+class TestH2CTrustedPeerRejection:
+    """A trusted peer on a prior-knowledge port must speak HTTP/2.
+
+    Anything else is rejected with InvalidH2CPreface (mapped to a 400 by
+    the worker) instead of being silently downgraded to HTTP/1.x.
+    """
+
+    def test_http1_request_rejected(self):
         request = b"GET /ping HTTP/1.1\r\nHost: example.com\r\n\r\n"
         conn, client = make_conn(h2c_config(), request)
+        try:
+            with pytest.raises(InvalidH2CPreface):
+                conn.init()
+        finally:
+            conn.sock.close()
+            client.close()
+
+    def test_diverging_bytes_rejected_immediately(self):
+        """First byte differs from the preface: no waiting occurs."""
+        request = b"XGET /nope HTTP/1.1\r\n"
+        conn, client = make_conn(h2c_config(), request)
+        try:
+            start = time.monotonic()
+            with pytest.raises(InvalidH2CPreface):
+                conn.init()
+            assert time.monotonic() - start < gthread.H2C_PREFACE_TIMEOUT
+        finally:
+            conn.sock.close()
+            client.close()
+
+    def test_partial_preface_times_out_rejected(self, monkeypatch):
+        """A client that stalls mid-preface is rejected, not downgraded."""
+        monkeypatch.setattr(gthread, "H2C_PREFACE_TIMEOUT", 0.05)
+        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE[:10])
+        try:
+            with pytest.raises(InvalidH2CPreface):
+                conn.init()
+        finally:
+            conn.sock.close()
+            client.close()
+
+
+class TestH2CUntrustedPeer:
+    """Peers outside forwarded_allow_ips never get the preface sniffed."""
+
+    def test_preface_from_untrusted_peer_gets_http1(self):
+        conn, client = make_conn(
+            h2c_config(), gthread.H2C_PREFACE, addr=UNTRUSTED_ADDR
+        )
+        try:
+            conn.init()
+            assert conn.is_http2 is False
+            assert isinstance(conn.parser, RequestParser)
+        finally:
+            conn.sock.close()
+            client.close()
+
+    def test_http1_from_untrusted_peer_parses(self):
+        """Untrusted h1 traffic is byte-for-byte unaffected by the flag."""
+        request = b"GET /ping HTTP/1.1\r\nHost: example.com\r\n\r\n"
+        conn, client = make_conn(h2c_config(), request, addr=UNTRUSTED_ADDR)
         try:
             conn.init()
             assert conn.is_http2 is False
@@ -129,32 +191,32 @@ class TestH2CFallback:
             conn.sock.close()
             client.close()
 
-    def test_diverging_bytes_fall_back_immediately(self):
-        """First byte differs from the preface: no waiting occurs."""
-        request = b"XGET /nope HTTP/1.1\r\n"
-        conn, client = make_conn(h2c_config(), request)
+    @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+    def test_wildcard_allow_list_trusts_any_peer(self):
+        cfg = h2c_config()
+        cfg.set("forwarded_allow_ips", "*")
+        conn, client = make_conn(cfg, gthread.H2C_PREFACE, addr=UNTRUSTED_ADDR)
         try:
-            start = time.monotonic()
             conn.init()
-            assert time.monotonic() - start < gthread.H2C_PREFACE_TIMEOUT
-            assert conn.is_http2 is False
+            assert conn.is_http2 is True
         finally:
             conn.sock.close()
             client.close()
 
-    def test_partial_preface_times_out_to_http1(self, monkeypatch):
-        """A client that stalls mid-preface ends up on HTTP/1.x."""
-        monkeypatch.setattr(gthread, "H2C_PREFACE_TIMEOUT", 0.05)
-        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE[:10])
+    @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+    def test_unix_socket_peer_is_trusted(self):
+        """Non-tuple peer addresses (unix sockets) follow the
+        forwarded-header policy and are trusted."""
+        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE, addr="")
         try:
             conn.init()
-            assert conn.is_http2 is False
-            # The consumed bytes were handed back to the HTTP/1.x parser
-            assert conn.parser.unreader.buf.getvalue() == gthread.H2C_PREFACE[:10]
+            assert conn.is_http2 is True
         finally:
             conn.sock.close()
             client.close()
 
+
+class TestH2CProtocolGuard:
     def test_uwsgi_protocol_not_sniffed(self):
         """The uwsgi protocol has its own parser; h2c must not touch it."""
         cfg = h2c_config()

@@ -172,3 +172,11 @@ class ForbiddenProxyRequest(ParseException):
 class InvalidSchemeHeaders(ParseException):
     def __str__(self):
         return "Contradictory scheme headers"
+
+
+class InvalidH2CPreface(ParseException):
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return "Expected HTTP/2 connection preface, got %r" % (self.data,)
