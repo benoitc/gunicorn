@@ -62,6 +62,7 @@ testing = [
     "pytest-asyncio",
     "uvloop>=0.19.0",
     "httpx[http2]",
+    "inotify>=0.2.10; sys_platform == 'linux'",
 ]
 
 [project.scripts]

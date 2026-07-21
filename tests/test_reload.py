@@ -4,6 +4,8 @@
 
 import unittest.mock as mock
 
+import pytest
+
 from gunicorn.app.base import Application
 from gunicorn.workers.base import Worker
 from gunicorn.reloader import reloader_engines
@@ -70,3 +72,32 @@ def test_start_reloader_after_load_wsgi():
         mock.call.load_wsgi(),
         mock.call.reloader_start(),
     ])
+
+
+def test_inotify_extra_file_current_dir():
+    """Relative extra files in the cwd should not crash the inotify reloader."""
+    pytest.importorskip("inotify", reason="inotify reloader requires the inotify package")
+
+    from gunicorn import reloader as reloader_mod
+
+    if not reloader_mod.has_inotify:
+        pytest.skip("inotify reloader is only available on Linux")
+
+    calls = []
+
+    # Build a reloader and force the dirname('') path through add_extra_file.
+    r = reloader_mod.InotifyReloader(callback=lambda f: None)
+
+    # Replace watcher with a mock-like object that records add_watch dirs.
+    class FakeWatcher:
+        def add_watch(self, dirname, mask=None):
+            calls.append(dirname)
+
+        def event_gen(self):
+            return []
+
+    r._watcher = FakeWatcher()
+    r.add_extra_file('.env')
+    assert calls == ['.']
+    assert '.env' in r._extra_files
+    assert '.' in r._dirs
