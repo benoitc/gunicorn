@@ -193,30 +193,40 @@ class Logger:
         self.setup(cfg)
 
     def setup(self, cfg):
+        self.cfg = cfg
         self.loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(self.loglevel)
         self.access_log.setLevel(logging.INFO)
 
         # set gunicorn.error handler
-        if self.cfg.capture_output and cfg.errorlog != "-":
+        if cfg.capture_output and cfg.errorlog != "-":
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
 
-            self.logfile = open(cfg.errorlog, 'a+')
-            os.dup2(self.logfile.fileno(), sys.stdout.fileno())
-            os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+            with self.lock:
+                if self.logfile is not None:
+                    self.logfile.close()
+                self.logfile = open(cfg.errorlog, 'a+')
+                os.dup2(self.logfile.fileno(), sys.stdout.fileno())
+                os.dup2(self.logfile.fileno(), sys.stderr.fileno())
+        elif self.logfile is not None:
+            with self.lock:
+                self.logfile.close()
+                self.logfile = None
 
         self._set_handler(self.error_log, cfg.errorlog,
                           logging.Formatter(self.error_fmt, self.datefmt))
 
-        # set gunicorn.access handler
-        if cfg.accesslog is not None:
-            self._set_handler(
-                self.access_log, cfg.accesslog,
-                fmt=logging.Formatter(self.access_fmt), stream=sys.stdout
-            )
+        # set gunicorn.access handler (None removes a previous gunicorn handler)
+        self._set_handler(
+            self.access_log,
+            cfg.accesslog,
+            fmt=logging.Formatter(self.access_fmt),
+            stream=sys.stdout,
+        )
 
-        # set syslog handler
+        # set syslog handler (idempotent: _set_handler already cleared gunicorn
+        # handlers on error/access; only re-add syslog when still enabled)
         if cfg.syslog:
             self._set_syslog_handler(
                 self.error_log, cfg, self.syslog_fmt, "error"
@@ -378,6 +388,13 @@ class Logger:
         return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
 
     def reopen_files(self):
+        """Reopen existing log files (logrotate / SIGUSR1).
+
+        This must not re-seed default gunicorn handlers: configs that use
+        ``logconfig`` / ``logconfig_dict`` may have replaced them, and
+        re-adding here would dual-emit on every USR1/HUP. Path changes on
+        SIGHUP are handled by ``Logger.setup()`` from ``Arbiter.reload``.
+        """
         if self.cfg.capture_output and self.cfg.errorlog != "-":
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
@@ -396,7 +413,10 @@ class Logger:
                     try:
                         if handler.stream:
                             handler.close()
+                            # close() marks the handler closed; re-open and clear
+                            # the flag so emit() keeps working on modern Python.
                             handler.stream = handler._open()
+                            handler._closed = False
                     finally:
                         handler.release()
 
@@ -416,11 +436,19 @@ class Logger:
             if getattr(h, "_gunicorn", False):
                 return h
 
+    def _remove_gunicorn_handlers(self, log):
+        """Drop all handlers owned by gunicorn on ``log`` (file and syslog)."""
+        for h in list(log.handlers):
+            if getattr(h, "_gunicorn", False):
+                log.handlers.remove(h)
+                try:
+                    h.close()
+                except Exception:
+                    pass
+
     def _set_handler(self, log, output, fmt, stream=None):
-        # remove previous gunicorn log handler
-        h = self._get_gunicorn_handler(log)
-        if h:
-            log.handlers.remove(h)
+        # remove previous gunicorn log handlers (file and/or syslog)
+        self._remove_gunicorn_handlers(log)
 
         if output is not None:
             if output == "-":

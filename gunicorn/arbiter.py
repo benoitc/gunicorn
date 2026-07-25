@@ -112,6 +112,10 @@ class Arbiter:
 
         if self.log is None:
             self.log = self.cfg.logger_class(app.cfg)
+        else:
+            # HUP reload reuses the logger; keep it pointed at the reloaded cfg
+            # so reopen_files()/setup() use the current errorlog/accesslog paths.
+            self.log.cfg = self.cfg
 
         # reopen files
         if 'GUNICORN_PID' in os.environ:
@@ -523,7 +527,11 @@ class Arbiter:
         self.app.reload()
         self.setup(self.app)
 
-        # reopen log files
+        # Re-apply logging against the reloaded cfg, then reopen files.
+        # setup() alone does not recreate logger handlers when self.log exists;
+        # without this, HUP keeps stale FileHandlers and post-reload worker
+        # boot lines vanish from --error-logfile (see #3401).
+        self.log.setup(self.cfg)
         self.log.reopen_files()
 
         # do we need to change listener ?
