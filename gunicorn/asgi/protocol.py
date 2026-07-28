@@ -1454,6 +1454,8 @@ class ASGIProtocol(asyncio.Protocol):
         which helps ensure buffered data is flushed before closing.
         """
         if self.transport and not self._closed:
+            self._closed = True
+            self.worker.nr_conns -= 1
             try:
                 # Signal end of writing to help flush buffers
                 if self.transport.can_write_eof():
@@ -1461,8 +1463,6 @@ class ASGIProtocol(asyncio.Protocol):
                 self.transport.close()
             except Exception:
                 pass
-            self.worker.nr_conns -= 1
-            self._closed = True
 
     async def _handle_http2_connection(self, transport, ssl_object):
         """Handle an HTTP/2 connection."""

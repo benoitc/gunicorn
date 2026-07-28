@@ -103,6 +103,23 @@ class TestASGIGracefulDisconnect:
         assert mock_worker.nr_conns == 1  # Should not decrement again
         # Closed flag is still set
 
+    def test_close_transport_decrements_connection_count_once(self, mock_worker):
+        """Closing the transport should not leak or double-decrement connections."""
+        protocol = ASGIProtocol(mock_worker)
+        protocol.transport = mock.Mock()
+        protocol.transport.can_write_eof.return_value = False
+        mock_worker.nr_conns = 1
+
+        protocol._close_transport()
+
+        assert protocol._closed is True
+        assert mock_worker.nr_conns == 0
+        protocol.transport.close.assert_called_once()
+
+        # asyncio calls connection_lost after transport.close(); it must be a no-op.
+        protocol.connection_lost(None)
+        assert mock_worker.nr_conns == 0
+
     def test_disconnect_does_not_cancel_immediately(self, mock_worker):
         """Test that connection_lost doesn't cancel task immediately."""
         protocol = ASGIProtocol(mock_worker)
