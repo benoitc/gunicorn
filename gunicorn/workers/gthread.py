@@ -439,7 +439,7 @@ class ThreadWorker(base.Worker):
             else:
                 self.nr_conns -= 1
                 conn.close(graceful=True)
-        except Exception:
+        except BaseException:
             self.nr_conns -= 1
             conn.close()
 
