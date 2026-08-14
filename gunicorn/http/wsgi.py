@@ -480,17 +480,6 @@ class Response:
         if self.cfg.is_ssl or not self.can_sendfile():
             return False
 
-        if self._omits_body:
-            self.send_headers()
-            if not self._omits_body_warned:
-                log.warning(
-                    "WSGI app sent body bytes on a no-body response "
-                    "(method=%s status=%s); dropping per RFC 9110.",
-                    self.req.method, self.status_code,
-                )
-                self._omits_body_warned = True
-            return True
-
         if not util.has_fileno(respiter.filelike):
             return False
 
@@ -504,6 +493,19 @@ class Response:
                 nbytes = self.response_length
         except (OSError, io.UnsupportedOperation):
             return False
+
+        if self._omits_body:
+            self.send_headers()
+            # Only complain when there really are body bytes to drop, the
+            # same way write() only warns for a non-empty argument.
+            if nbytes > 0 and not self._omits_body_warned:
+                log.warning(
+                    "WSGI app sent body bytes on a no-body response "
+                    "(method=%s status=%s); dropping per RFC 9110.",
+                    self.req.method, self.status_code,
+                )
+                self._omits_body_warned = True
+            return True
 
         self.send_headers()
 
