@@ -618,19 +618,19 @@ class Arbiter:
                             sig_name = signal.Signals(sig).name
                         except ValueError:
                             sig_name = "signal {}".format(sig)
-                        msg = "Worker (pid:{}) was sent {}!".format(
-                            wpid, sig_name)
+                        msg = "Worker (pid:%s) was sent %s!"
+                        msg_args = [wpid, sig_name]
 
                         # SIGKILL suggests OOM, log as error
                         if sig == signal.SIGKILL:
                             msg += " Perhaps out of memory?"
-                            self.log.error(msg)
+                            self.log.error(msg, *msg_args)
                         elif sig == signal.SIGTERM:
                             # SIGTERM is expected during graceful shutdown
-                            self.log.info(msg)
+                            self.log.info(msg, *msg_args)
                         else:
                             # Other signals are unexpected
-                            self.log.warning(msg)
+                            self.log.warning(msg, *msg_args)
 
                     if exitcode is not None and exitcode != 0:
                         self.log.error("Worker (pid:%s) exited with code %s.",
