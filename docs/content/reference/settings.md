@@ -153,7 +153,14 @@ Valid engines are:
 Extends [reload](#reload) option to also watch and reload on additional files
 (e.g., templates, configurations, specifications, etc.).
 
+Glob patterns (e.g., ``*.json``) are supported and are expanded to the
+files matching them when gunicorn starts. Files created after startup
+that match a pattern are not picked up until gunicorn is restarted.
+
 !!! info "Added in 19.8"
+
+!!! info "Changed in 26.0.0"
+    Glob patterns are now supported.
 
 ### `spew`
 

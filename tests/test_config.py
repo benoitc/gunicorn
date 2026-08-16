@@ -215,6 +215,35 @@ def test_callable_validation():
     pytest.raises(TypeError, c.set, "pre_fork", lambda x: True)
 
 
+def test_reload_extra_files_glob(tmp_path):
+    c = config.Config()
+
+    plain_file = tmp_path / "plain.txt"
+    plain_file.write_text("plain")
+
+    json_dir = tmp_path / "views"
+    json_dir.mkdir()
+    view_configs = [json_dir / "a.json", json_dir / "b.json"]
+    for view_config in view_configs:
+        view_config.write_text("{}")
+    (json_dir / "c.yaml").write_text("")
+
+    c.set("reload_extra_files", [str(plain_file), str(json_dir / "*.json")])
+    assert sorted(c.reload_extra_files) == sorted(
+        [str(plain_file)] + [str(p) for p in view_configs]
+    )
+
+    # A glob pattern that doesn't match anything simply expands to nothing,
+    # it shouldn't raise like a missing literal file path would.
+    c.set("reload_extra_files", [str(json_dir / "*.does-not-exist")])
+    assert c.reload_extra_files == []
+
+    # Non-glob paths must still exist.
+    pytest.raises(
+        ValueError, c.set, "reload_extra_files", [str(tmp_path / "missing.txt")]
+    )
+
+
 def test_reload_engine_validation():
     c = config.Config()
 
