@@ -6,3 +6,4 @@ pytest-asyncio
 gunicorn_h1c>=0.6.5
 h2>=4.1.0
 uvloop>=0.19.0
+inotify>=0.2.10; sys_platform == 'linux'

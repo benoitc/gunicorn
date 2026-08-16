@@ -81,7 +81,7 @@ if has_inotify:
         def add_extra_file(self, filename):
             super().add_extra_file(filename)
 
-            dirname = os.path.dirname(filename)
+            dirname = os.path.dirname(filename) or '.'
             if dirname in self._dirs:
                 return
 
