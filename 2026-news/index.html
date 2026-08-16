@@ -2435,6 +2435,16 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>ASGI connection count leaked on server-initiated close</strong>: <code>nr_conns</code> was
+  only decremented in <code>connection_lost()</code>, behind a guard keyed on the same
+  flag <code>_close_transport()</code> sets first. Every close the server started (a
+  <code>Connection: close</code> response, a keepalive timeout, an error abort) leaked one
+  count, so <code>ASGIWorker._shutdown()</code> ran the full <code>graceful_timeout</code> and warned
+  about connections that were already gone. The guard now uses its own flag, so
+  the decrement and the rest of the cleanup run exactly once whichever side
+  closes first (<a href="https://github.com/benoitc/gunicorn/issues/3661">#3661</a>).</p>
+</li>
+<li>
 <p><strong>Inotify reloader on cwd-relative extra files</strong>: <code>reload_extra_files</code> entries
   with no directory part (for example <code>.env</code>) produced an empty dirname, and
   watching it raised <code>InotifyError</code> with <code>ENOENT</code>. The current directory is now
