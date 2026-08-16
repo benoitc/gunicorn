@@ -1409,6 +1409,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#refactoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refactoring
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1471,7 +1482,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#refactoring" class="md-nav__link">
+  <a href="#refactoring_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Refactoring
@@ -2424,6 +2435,30 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Inotify reloader on cwd-relative extra files</strong>: <code>reload_extra_files</code> entries
+  with no directory part (for example <code>.env</code>) produced an empty dirname, and
+  watching it raised <code>InotifyError</code> with <code>ENOENT</code>. The current directory is now
+  watched as <code>.</code> (<a href="https://github.com/benoitc/gunicorn/issues/3377">#3377</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3667">#3667</a>).</p>
+</li>
+<li>
+<p><strong>StatsD zero-valued metrics</strong>: gauges, counters, histograms and timers
+  reporting <code>0</code> were silently dropped because the value was tested for
+  truthiness. Only <code>None</code> is skipped now
+  (<a href="https://github.com/benoitc/gunicorn/pull/3676">#3676</a>).</p>
+</li>
+<li>
+<p><strong>Spurious no-body warning from <code>sendfile()</code></strong>: a HEAD, 204 or 304 response
+  served through <code>sendfile()</code> warned about dropped body bytes even when the
+  file was empty and nothing was dropped. It now warns only when there are
+  bytes to drop, matching <code>write()</code>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3684">#3684</a>).</p>
+</li>
+<li>
+<p><strong>Bare <code>except</code> in the gevent websocket example</strong>: narrowed to
+  <code>except Exception</code> (<a href="https://github.com/benoitc/gunicorn/pull/3683">#3683</a>).</p>
+</li>
+<li>
 <p><strong>ASGI <code>receive()</code> cancellation</strong>: Let <code>asyncio.CancelledError</code> propagate
   from <code>BodyReceiver</code> instead of swallowing it and returning
   <code>http.disconnect</code>. Frameworks that cancel their disconnect listener after
@@ -2448,6 +2483,12 @@
   both <code>write()</code> and <code>sendfile()</code>, and a single warning is logged per request
   (<a href="https://github.com/benoitc/gunicorn/issues/3413">#3413</a>).</p>
 </li>
+</ul>
+<h3 id="refactoring">Refactoring<a class="headerlink" href="#refactoring" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Pass log arguments to the logger instead of pre-formatting the worker
+  termination message in <code>Arbiter.reap_workers()</code>
+  (<a href="https://github.com/benoitc/gunicorn/pull/3678">#3678</a>).</li>
 </ul>
 <h2 id="2600-2026-05-05">26.0.0 - 2026-05-05<a class="headerlink" href="#2600-2026-05-05" title="Permanent link">&para;</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
@@ -2546,7 +2587,7 @@
 <li>Fix Quart WebSocket close test app (missing <code>accept()</code>)</li>
 <li>Fix duplicate <code>Transfer-Encoding</code> header for BlackSheep streaming</li>
 </ul>
-<h3 id="refactoring">Refactoring<a class="headerlink" href="#refactoring" title="Permanent link">&para;</a></h3>
+<h3 id="refactoring_1">Refactoring<a class="headerlink" href="#refactoring_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Split <code>BodyReceiver._closed</code> into separate transport and body-wait flags
   for clearer keepalive/EOF semantics.</li>
