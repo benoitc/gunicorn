@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/gunicorn.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1387,6 +1387,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2600-2026-05-05" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1432,7 +1460,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes" class="md-nav__link">
+  <a href="#bug-fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1482,7 +1510,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_1" class="md-nav__link">
+  <a href="#bug-fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1543,7 +1571,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_2" class="md-nav__link">
+  <a href="#bug-fixes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1632,7 +1660,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_3" class="md-nav__link">
+  <a href="#bug-fixes_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1660,7 +1688,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_4" class="md-nav__link">
+  <a href="#bug-fixes_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1699,7 +1727,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_5" class="md-nav__link">
+  <a href="#bug-fixes_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1760,7 +1788,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_6" class="md-nav__link">
+  <a href="#bug-fixes_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1810,7 +1838,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_7" class="md-nav__link">
+  <a href="#bug-fixes_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1849,7 +1877,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_8" class="md-nav__link">
+  <a href="#bug-fixes_9" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -2392,6 +2420,35 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>ASGI <code>receive()</code> cancellation</strong>: Let <code>asyncio.CancelledError</code> propagate
+  from <code>BodyReceiver</code> instead of swallowing it and returning
+  <code>http.disconnect</code>. Frameworks that cancel their disconnect listener after
+  the response completes (Django) no longer see the cancel masked, so
+  <code>request_finished</code> fires and <code>close_old_connections()</code> runs. Fixes idle
+  database connections leaking since 25.1.0
+  (<a href="https://github.com/benoitc/gunicorn/issues/3627">#3627</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3654">#3654</a>).</p>
+</li>
+<li>
+<p><strong>Control socket leak on SIGHUP reload</strong>: The control thread is now marked
+  ready once its loop and server are live, and the stop paths wait on that
+  readiness before scheduling shutdown. Reloads no longer leak one thread and
+  its selector fd plus unix socket per worker, which eventually raised
+  "too many open files"
+  (<a href="https://github.com/benoitc/gunicorn/issues/3648">#3648</a>).</p>
+</li>
+<li>
+<p><strong>WSGI body framing on HEAD/1xx/204/304</strong>: Mirror the ASGI strip-and-warn
+  behavior on the WSGI path. <code>Content-Length</code> is stripped on 1xx/204 per
+  RFC 9110 section 6.4.2, body bytes are dropped for no-body responses in
+  both <code>write()</code> and <code>sendfile()</code>, and a single warning is logged per request
+  (<a href="https://github.com/benoitc/gunicorn/issues/3413">#3413</a>).</p>
+</li>
+</ul>
 <h2 id="2600-2026-05-05">26.0.0 - 2026-05-05<a class="headerlink" href="#2600-2026-05-05" title="Permanent link">&para;</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2444,7 +2501,7 @@
   section 9.6 to prevent reset-on-close truncation.</p>
 </li>
 </ul>
-<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Body Framing on HEAD/204/304</strong>:</li>
 <li>Keep <code>Content-Length</code> on HEAD and 304 responses
@@ -2514,7 +2571,7 @@
 </ul>
 <hr />
 <h2 id="2530-2026-03-26">25.3.0 - 2026-03-26<a class="headerlink" href="#2530-2026-03-26" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>HTTP/2 ASGI Body Duplication</strong>: Fix request body being received twice in HTTP/2
@@ -2564,7 +2621,7 @@
 <li>Falls back to Python parser in <code>auto</code> mode if version not met</li>
 <li>Proper HTTP status codes for limit errors (414, 431)</li>
 </ul>
-<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>uWSGI Async Workers</strong>: Fix <code>InvalidUWSGIHeader: incomplete header</code> error
@@ -2643,7 +2700,7 @@
 </ul>
 <hr />
 <h2 id="2503-2026-02-07">25.0.3 - 2026-02-07<a class="headerlink" href="#2503-2026-02-07" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix RuntimeError when StopIteration is raised inside ASGI response body
@@ -2656,7 +2713,7 @@
 </ul>
 <hr />
 <h2 id="2502-2026-02-06">25.0.2 - 2026-02-06<a class="headerlink" href="#2502-2026-02-06" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix ASGI concurrent request failures through nginx proxy by normalizing
@@ -2689,7 +2746,7 @@
 </ul>
 <hr />
 <h2 id="2501-2026-02-02">25.0.1 - 2026-02-02<a class="headerlink" href="#2501-2026-02-02" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_6">Bug Fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix ASGI streaming responses (SSE) hanging: add chunked transfer encoding for
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
@@ -2765,7 +2822,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3467">PR #3467</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes_6">Bug Fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_7">Bug Fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix HTTP/2 ALPN negotiation for gevent and eventlet workers when
@@ -2805,7 +2862,7 @@
 </ul>
 <hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_7">Bug Fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_8">Bug Fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix <code>forwarded_allow_ips</code> and <code>proxy_allow_ips</code> to remain as strings for backward
   compatibility with external tools like uvicorn. Network validation now uses strict
@@ -2851,7 +2908,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3447">PR #3447</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes_8">Bug Fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_9">Bug Fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix signal handling regression where SIGCLD alias caused "Unhandled signal: cld"
@@ -3049,7 +3106,7 @@ may change in future releases. Please report any issues on GitHub.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.path", "search.highlight", "search.suggest", "search.share", "toc.follow", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../assets/javascripts/toc-collapse.js"></script>
       
