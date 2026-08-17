@@ -34,9 +34,6 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 requires-python = ">=3.10"
-dependencies = [
-    "packaging",
-]
 dynamic = ["version"]
 
 [project.urls]
@@ -47,7 +44,10 @@ Documentation = "https://gunicorn.org"
 Changelog = "https://gunicorn.org/news/"
 
 [project.optional-dependencies]
-gevent = ["gevent>=24.10.1"]
+gevent = [
+    "gevent>=24.10.1",
+    "packaging",
+]
 tornado = ["tornado>=6.5.0"]
 gthread = []
 setproctitle = ["setproctitle"]
@@ -57,6 +57,7 @@ testing = [
     "gevent>=24.10.1",
     "h2>=4.1.0",
     "coverage",
+    "packaging",
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
