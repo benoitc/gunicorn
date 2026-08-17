@@ -115,7 +115,28 @@ class Arbiter:
         else:
             # reload the logger configuration as well, so that changes
             # to the logconfig* and loglevel settings take effect
-            self.log.setup(app.cfg)
+            prev_cfg = self.log.cfg
+            try:
+                self.log.setup(app.cfg)
+            except Exception:
+                # an invalid log configuration must not kill the master on
+                # reload: the logger may be left in a broken state, so the
+                # failure goes to stderr, the previous working configuration
+                # is restored and the master keeps running with it
+                print("\nError: reloading the logger configuration failed, "
+                      "keeping the previous one", file=sys.stderr)
+                traceback.print_exc()
+                sys.stderr.flush()
+                try:
+                    self.log.setup(prev_cfg)
+                except Exception:
+                    print("Error: restoring the previous logger "
+                          "configuration failed", file=sys.stderr)
+                    traceback.print_exc()
+                    sys.stderr.flush()
+                else:
+                    self.log.error("reloading the logger configuration "
+                                   "failed, keeping the previous one")
 
         # reopen files
         if 'GUNICORN_PID' in os.environ:
