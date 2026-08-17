@@ -654,6 +654,40 @@ class TestSighupReload:
             for handler in list(arbiter.log.error_log.handlers):
                 arbiter.log.error_log.removeHandler(handler)
 
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_invalid_logconfig_keeps_previous(self, mock_manage,
+                                                     mock_spawn, capsys):
+        """An invalid logconfig on reload is not fatal: the error is reported
+        and the previous logger configuration is kept (#3353)."""
+        app = ReloadableConfigApplication()
+        arbiter = gunicorn.arbiter.Arbiter(app)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        logger = arbiter.log
+        assert logger.loglevel == logging.INFO
+
+        app.settings_override = {
+            'loglevel': 'debug',
+            'logconfig_dict': {
+                'version': 1,
+                'handlers': {'broken': {'class': 'no.such.Handler'}},
+            },
+        }
+        with mock.patch.object(logger, 'error') as mock_error:
+            arbiter.reload()
+
+        # the master survived and still uses the previous logger configuration
+        assert arbiter.log is logger
+        assert arbiter.log.cfg is not arbiter.cfg
+        assert logger.loglevel == logging.INFO
+        assert logger.error_log.level == logging.INFO
+        # the failure is reported on stderr and through the restored logger
+        assert 'reloading the logger configuration failed' in \
+            capsys.readouterr().err
+        assert any('reloading the logger configuration failed' in str(call)
+                   for call in mock_error.call_args_list)
+
 
 # ============================================================================
 # Worker Lifecycle Tests
