@@ -2457,6 +2457,26 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Non-worker children reported as failed workers</strong>: <code>reap_workers()</code> reaps
+  every child through <code>waitpid(-1)</code>, including processes the kernel reparented
+  onto gunicorn when it runs as PID 1 in a container, but it logged the exit
+  status before checking whether the pid was ever a worker. An unrelated process
+  produced <code>Worker (pid:N) exited with code M</code> and triggered alerts. More
+  seriously, such a process exiting with code 3 or 4 raised <code>HaltServer</code> and shut
+  the server down. Ownership is now established first: the dirty arbiter is
+  reported as itself, unknown children are reaped silently at debug level, and
+  only real workers can halt the server
+  (<a href="https://github.com/benoitc/gunicorn/issues/3220">#3220</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3566">#3566</a>).</p>
+</li>
+<li>
+<p><strong>Dirty arbiter exits were invisible on SIGCHLD</strong>: <code>handle_chld()</code> called
+  <code>reap_workers()</code> first, whose <code>waitpid(-1)</code> claimed the dirty arbiter before
+  <code>reap_dirty_arbiter()</code> could identify it, so the latter always hit <code>ECHILD</code> and
+  its reporting never ran. The dirty arbiter is now reaped first, and
+  <code>reap_workers()</code> recognises it if it exits mid-loop.</p>
+</li>
+<li>
 <p><strong>Dirty arbiter returned stale responses after a worker timeout</strong>: when a
   request reached <code>dirty_timeout</code> the arbiter answered the client with a timeout
   error but kept the worker connection open. The worker's late response was then
