@@ -46,7 +46,7 @@ def generate_self_signed_cert(certs_dir: Path) -> None:
     key_file.chmod(0o644)
 
 
-def wait_for_service(url: str, timeout: int = 60) -> bool:
+def wait_for_service(url: str, timeout: int = 180) -> bool:
     """Wait for a service to become available."""
     import ssl
     import socket
@@ -123,8 +123,8 @@ def docker_services(docker_compose_file, certs_dir):
         )
 
         # Wait for services to be healthy
-        gunicorn_ready = wait_for_service("https://127.0.0.1:8443", timeout=60)
-        nginx_ready = wait_for_service("https://127.0.0.1:8444", timeout=60)
+        gunicorn_ready = wait_for_service("https://127.0.0.1:8443", timeout=180)
+        nginx_ready = wait_for_service("https://127.0.0.1:8444", timeout=180)
 
         if not gunicorn_ready:
             # Get logs for debugging

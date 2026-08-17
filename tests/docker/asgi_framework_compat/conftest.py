@@ -75,7 +75,7 @@ def docker_compose_file():
     return os.path.join(os.path.dirname(__file__), "docker-compose.yml")
 
 
-def wait_for_service(url: str, timeout: int = 60) -> bool:
+def wait_for_service(url: str, timeout: int = 180) -> bool:
     """Wait for a service to become healthy."""
     start = time.time()
     while time.time() - start < timeout:
