@@ -44,7 +44,13 @@ class ChunkedReader:
         idx = buf.getvalue().find(b"\r\n\r\n")
         done = buf.getvalue()[:2] == b"\r\n"
         while idx < 0 and not done:
-            self.get_data(unreader, buf)
+            try:
+                self.get_data(unreader, buf)
+            except NoMoreData:
+                # RFC 9112 7.1.2: the last chunk (0 CRLF) must be followed by
+                # a CRLF-terminated trailer section. Hitting EOF before that
+                # means the chunked body was truncated, not cleanly ended.
+                raise ChunkMissingTerminator(b"") from None
             idx = buf.getvalue().find(b"\r\n\r\n")
             done = buf.getvalue()[:2] == b"\r\n"
         if done:
@@ -101,10 +107,7 @@ class ChunkedReader:
         chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
-            try:
-                self.parse_trailers(unreader, rest_chunk)
-            except NoMoreData:
-                pass
+            self.parse_trailers(unreader, rest_chunk)
             return (0, None)
         return (chunk_size, rest_chunk)
 
