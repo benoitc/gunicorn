@@ -2040,17 +2040,31 @@ millions of times per month and runs in production at companies of all sizes.</p
 that is what sets how fast it moves. Sponsorship changes that directly: it buys
 days that would otherwise go to client work.</p>
 <h2 id="what-your-sponsorship-funds">What your sponsorship funds<a class="headerlink" href="#what-your-sponsorship-funds" title="Permanent link">&para;</a></h2>
-<p>Current priorities, in order:</p>
+<p>Where the time goes, in priority order:</p>
 <ul>
-<li><strong>HTTP/2</strong>: take the beta to stable, including h2c across every HTTP/2-capable
-  worker</li>
-<li><strong>ASGI</strong>: keep the worker tracking the spec as FastAPI, Starlette and Quart move</li>
-<li><strong>Security</strong>: fast turnaround on reported vulnerabilities</li>
-<li><strong>Python compatibility</strong>: support new releases before they reach the
-  distributions</li>
-<li><strong>Dirty arbiters</strong>: take per-app worker allocation from beta to stable</li>
-<li><strong>Documentation</strong>: keep the guides and the settings reference current</li>
+<li><strong>Release stabilization</strong>: working through the open reports and pull requests,
+  reviewing contributions and getting the fixes people are waiting on into a
+  release. This is the bulk of it, and it is the part that goes undone when
+  there is no time</li>
+<li><strong>Security</strong>: responding to reported vulnerabilities</li>
+<li><strong>HTTP/2</strong>: h2c support across the HTTP/2-capable workers, and hardening what
+  shipped as beta</li>
+<li><strong>ASGI</strong>: tracking the spec as FastAPI, Starlette and Quart move</li>
+<li><strong>Python compatibility</strong>: keeping up with new Python releases</li>
+<li><strong>Documentation</strong>: keeping the guides and the settings reference current</li>
 </ul>
+<p>Two larger pieces of new work, neither started:</p>
+<ul>
+<li><strong>Serving AI workloads</strong>: dirty arbiters already give a model its own process
+  pool, with per-app worker allocation and streaming responses. The work ahead
+  is what a model server needs on top of that: batching requests so a single
+  forward pass serves many of them, backpressure when the queue outgrows the
+  workers, and pinning workers to specific GPUs</li>
+<li><strong>HTTP/3</strong>: QUIC support, alongside finishing HTTP/2. The protocol is already
+  reserved in the configuration and does nothing yet</li>
+</ul>
+<p>This is what gets worked on, in the order it gets worked on. It is not a
+schedule, and nothing here carries a date.</p>
 <p>Sustained sponsorship funds full-time months rather than evenings. When it does,
 what it paid for goes in the <a href="../news/">release notes</a>, so you can see what your
 money bought.</p>
