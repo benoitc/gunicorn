@@ -925,8 +925,10 @@ class CallbackRequest:
         ]
 
         # RFC 9110 section 5.3, enforced here because this is where both
-        # parsers converge: PythonProtocol also checks in _finalize_headers(),
-        # but H1CProtocol validates internally and does not cover these two.
+        # parsers converge. Both reject these on their own now (PythonProtocol
+        # in _finalize_headers(), H1CProtocol since 0.6.6), so this is a
+        # backstop: the pip requirement is not enforced at runtime, and an
+        # older gunicorn_h1c would otherwise let duplicates through.
         seen_singletons = set()
         for name, _value in parser.headers:
             lowered = name.lower()
