@@ -432,6 +432,96 @@ class TestReapWorkers:
         log_messages = ' '.join(str(call) for call in mock_log.call_args_list)
         assert 'out of memory' in log_messages.lower()
 
+    @mock.patch('os.waitpid')
+    def test_reap_unknown_child_is_not_reported_as_worker(self, mock_waitpid):
+        """An orphan reparented onto gunicorn is not a worker exit."""
+        # pid 30740 exits with code 23, and was never a worker
+        mock_waitpid.side_effect = [(30740, 23 << 8), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error, \
+             mock.patch.object(arbiter.log, 'debug') as mock_debug:
+            arbiter.reap_workers()
+
+        mock_error.assert_not_called()
+        arbiter.cfg.child_exit.assert_not_called()
+        debug_messages = ' '.join(str(call) for call in mock_debug.call_args_list)
+        assert '30740' in debug_messages
+
+    @mock.patch('os.waitpid')
+    def test_reap_unknown_child_killed_by_signal(self, mock_waitpid):
+        """An orphan killed by SIGKILL does not get the OOM hint."""
+        mock_waitpid.side_effect = [(12345, signal.SIGKILL), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error:
+            arbiter.reap_workers()
+
+        mock_error.assert_not_called()
+
+    @mock.patch('os.waitpid')
+    def test_reap_unknown_child_boot_error_does_not_halt(self, mock_waitpid):
+        """An orphan exiting with WORKER_BOOT_ERROR must not stop the server."""
+        boot_error = gunicorn.arbiter.Arbiter.WORKER_BOOT_ERROR
+        mock_waitpid.side_effect = [(30740, boot_error << 8), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}
+
+        arbiter.reap_workers()
+
+    @mock.patch('os.waitpid')
+    def test_reap_mixed_worker_and_unknown_child(self, mock_waitpid):
+        """A real worker is still reported when an orphan is reaped first."""
+        mock_waitpid.side_effect = [
+            (99999, 1 << 8),   # orphan, exit code 1
+            (42, 1 << 8),      # real worker, exit code 1
+            (0, 0),
+        ]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        mock_worker = mock.Mock()
+        arbiter.WORKERS = {42: mock_worker}
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error:
+            arbiter.reap_workers()
+
+        errors = ' '.join(str(call) for call in mock_error.call_args_list)
+        assert '99999' not in errors
+        assert '42' in errors
+        mock_worker.tmp.close.assert_called_once()
+        arbiter.cfg.child_exit.assert_called_once_with(arbiter, mock_worker)
+        assert 42 not in arbiter.WORKERS
+
+    @mock.patch('os.waitpid')
+    def test_reap_dirty_arbiter_is_reported_as_itself(self, mock_waitpid):
+        """The dirty arbiter is not a worker and not an unknown child."""
+        mock_waitpid.side_effect = [(777, 23 << 8), (0, 0)]
+
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.settings['child_exit'] = mock.Mock()
+        arbiter.WORKERS = {}
+        arbiter.dirty_arbiter_pid = 777
+        arbiter.dirty_arbiter = mock.Mock()
+
+        with mock.patch.object(arbiter.log, 'error') as mock_error:
+            arbiter.reap_workers()
+
+        errors = ' '.join(str(call) for call in mock_error.call_args_list)
+        assert 'Dirty arbiter' in errors
+        assert 'Worker' not in errors
+        assert arbiter.dirty_arbiter_pid == 0
+        assert arbiter.dirty_arbiter is None
+        arbiter.cfg.child_exit.assert_not_called()
+
 
 # ============================================================================
 # SIGHUP Reload Tests
