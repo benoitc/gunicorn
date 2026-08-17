@@ -9,16 +9,31 @@ days that would otherwise go to client work.
 
 ## What your sponsorship funds
 
-Current priorities, in order:
+Where the time goes, in priority order:
 
-- **HTTP/2**: take the beta to stable, including h2c across every HTTP/2-capable
-  worker
-- **ASGI**: keep the worker tracking the spec as FastAPI, Starlette and Quart move
-- **Security**: fast turnaround on reported vulnerabilities
-- **Python compatibility**: support new releases before they reach the
-  distributions
-- **Dirty arbiters**: take per-app worker allocation from beta to stable
-- **Documentation**: keep the guides and the settings reference current
+- **Release stabilization**: working through the open reports and pull requests,
+  reviewing contributions and getting the fixes people are waiting on into a
+  release. This is the bulk of it, and it is the part that goes undone when
+  there is no time
+- **Security**: responding to reported vulnerabilities
+- **HTTP/2**: h2c support across the HTTP/2-capable workers, and hardening what
+  shipped as beta
+- **ASGI**: tracking the spec as FastAPI, Starlette and Quart move
+- **Python compatibility**: keeping up with new Python releases
+- **Documentation**: keeping the guides and the settings reference current
+
+Two larger pieces of new work, neither started:
+
+- **Serving AI workloads**: dirty arbiters already give a model its own process
+  pool, with per-app worker allocation and streaming responses. The work ahead
+  is what a model server needs on top of that: batching requests so a single
+  forward pass serves many of them, backpressure when the queue outgrows the
+  workers, and pinning workers to specific GPUs
+- **HTTP/3**: QUIC support, alongside finishing HTTP/2. The protocol is already
+  reserved in the configuration and does nothing yet
+
+This is what gets worked on, in the order it gets worked on. It is not a
+schedule, and nothing here carries a date.
 
 Sustained sponsorship funds full-time months rather than evenings. When it does,
 what it paid for goes in the [release notes](news.md), so you can see what your
