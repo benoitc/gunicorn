@@ -2228,7 +2228,7 @@ docker<span class="w"> </span>rm<span class="w"> </span>myapp
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">9000</span>:9000<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_PORT</span><span class="o">=</span><span class="m">9000</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_WORKERS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_ARGS</span><span class="o">=</span><span class="s2">&quot;--timeout 120 --access-logfile -&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">GUNICORN_ARGS</span><span class="o">=</span><span class="s2">"--timeout 120 --access-logfile -"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>ghcr.io/benoitc/gunicorn<span class="w"> </span>app:app
 </code></pre></div>
 <h3 id="as-base-image-recommended-for-production">As Base Image (Recommended for Production)<a class="headerlink" href="#as-base-image-recommended-for-production" title="Permanent link">&para;</a></h3>
@@ -2241,17 +2241,17 @@ docker<span class="w"> </span>rm<span class="w"> </span>myapp
 <span class="c"># Copy application</span>
 <span class="k">COPY</span><span class="w"> </span>--chown<span class="o">=</span>gunicorn:gunicorn<span class="w"> </span>.<span class="w"> </span>.
 
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;myapp:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--workers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;4&quot;</span><span class="p">]</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"myapp:app"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--workers"</span><span class="p">,</span><span class="w"> </span><span class="s2">"4"</span><span class="p">]</span>
 </code></pre></div>
 <h3 id="with-docker-compose">With Docker Compose<a class="headerlink" href="#with-docker-compose" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">web</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/benoitc/gunicorn:latest</span>
 <span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8000:8000&quot;</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"8000:8000"</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./app:/app</span>
-<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;myapp:app&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--workers&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;4&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"myapp:app"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"--workers"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"4"</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h3 id="available-tags">Available Tags<a class="headerlink" href="#available-tags" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2275,7 +2275,7 @@ docker<span class="w"> </span>rm<span class="w"> </span>myapp
 <span class="k">COPY</span><span class="w"> </span>.<span class="w"> </span>.
 
 <span class="c"># Run gunicorn</span>
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;gunicorn&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;app:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--bind&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0.0.0.0:8000&quot;</span><span class="p">]</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"gunicorn"</span><span class="p">,</span><span class="w"> </span><span class="s2">"app:app"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--bind"</span><span class="p">,</span><span class="w"> </span><span class="s2">"0.0.0.0:8000"</span><span class="p">]</span>
 </code></pre></div>
 <p>Build and run:</p>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>myapp<span class="w"> </span>.
@@ -2302,8 +2302,8 @@ docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </sp
 <span class="w">    </span>--bind<span class="w"> </span><span class="si">${</span><span class="nv">GUNICORN_BIND</span><span class="si">}</span>
 </code></pre></div>
 <p>Or use <code>GUNICORN_CMD_ARGS</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">ENV</span><span class="w"> </span><span class="nv">GUNICORN_CMD_ARGS</span><span class="o">=</span><span class="s2">&quot;--workers=4 --bind=0.0.0.0:8000&quot;</span>
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;gunicorn&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;app:app&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><span class="k">ENV</span><span class="w"> </span><span class="nv">GUNICORN_CMD_ARGS</span><span class="o">=</span><span class="s2">"--workers=4 --bind=0.0.0.0:8000"</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"gunicorn"</span><span class="p">,</span><span class="w"> </span><span class="s2">"app:app"</span><span class="p">]</span>
 </code></pre></div>
 <h3 id="worker-count">Worker Count<a class="headerlink" href="#worker-count" title="Permanent link">&para;</a></h3>
 <p>In containers, determine workers based on available CPU:</p>
@@ -2311,7 +2311,7 @@ docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </sp
 <span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span>
 
 <span class="n">workers</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
-<span class="n">bind</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0:8000&quot;</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="s2">"0.0.0.0:8000"</span>
 </code></pre></div>
 <p>Or let Kubernetes/Docker limit CPU and calculate accordingly:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># At runtime</span>
@@ -2332,7 +2332,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 
 <span class="k">USER</span><span class="w"> </span><span class="s">appuser</span>
 
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;gunicorn&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;app:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--bind&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0.0.0.0:8000&quot;</span><span class="p">]</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"gunicorn"</span><span class="p">,</span><span class="w"> </span><span class="s2">"app:app"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--bind"</span><span class="p">,</span><span class="w"> </span><span class="s2">"0.0.0.0:8000"</span><span class="p">]</span>
 </code></pre></div>
 <h3 id="health-checks">Health Checks<a class="headerlink" href="#health-checks" title="Permanent link">&para;</a></h3>
 <p>Add a health check endpoint and Docker health check:</p>
@@ -2359,7 +2359,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 
 <span class="k">COPY</span><span class="w"> </span>.<span class="w"> </span>.
 
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;gunicorn&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;app:app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--bind&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0.0.0.0:8000&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;--workers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;4&quot;</span><span class="p">]</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"gunicorn"</span><span class="p">,</span><span class="w"> </span><span class="s2">"app:app"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--bind"</span><span class="p">,</span><span class="w"> </span><span class="s2">"0.0.0.0:8000"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--workers"</span><span class="p">,</span><span class="w"> </span><span class="s2">"4"</span><span class="p">]</span>
 </code></pre></div>
 <h2 id="docker-compose">Docker Compose<a class="headerlink" href="#docker-compose" title="Permanent link">&para;</a></h2>
 <p>Example <code>docker-compose.yml</code>:</p>
@@ -2367,7 +2367,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <span class="w">  </span><span class="nt">web</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">build</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
 <span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8000:8000&quot;</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"8000:8000"</span>
 <span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATABASE_URL=postgres://db:5432/myapp</span>
 <span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span>
@@ -2375,7 +2375,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <span class="w">    </span><span class="nt">deploy</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">resources</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">limits</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">cpus</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;2&#39;</span>
+<span class="w">          </span><span class="nt">cpus</span><span class="p">:</span><span class="w"> </span><span class="s">'2'</span>
 <span class="w">          </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512M</span>
 
 <span class="w">  </span><span class="nt">db</span><span class="p">:</span>
@@ -2389,7 +2389,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <span class="w">  </span><span class="nt">nginx</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx:alpine</span>
 <span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;80:80&quot;</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"80:80"</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./nginx.conf:/etc/nginx/nginx.conf:ro</span>
 <span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span>
@@ -2421,14 +2421,14 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8000</span>
 <span class="w">        </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GUNICORN_WORKERS</span>
-<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4&quot;</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">"4"</span>
 <span class="w">        </span><span class="nt">resources</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">limits</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
-<span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;512Mi&quot;</span>
+<span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">"1"</span>
+<span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">"512Mi"</span>
 <span class="w">          </span><span class="nt">requests</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span>
-<span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;256Mi&quot;</span>
+<span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">"500m"</span>
+<span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">"256Mi"</span>
 <span class="w">        </span><span class="nt">livenessProbe</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">httpGet</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/health</span>
@@ -2455,10 +2455,10 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 </code></pre></div>
 <h2 id="graceful-shutdown">Graceful Shutdown<a class="headerlink" href="#graceful-shutdown" title="Permanent link">&para;</a></h2>
 <p>Gunicorn handles <code>SIGTERM</code> gracefully by default. Configure the timeout:</p>
-<div class="highlight"><pre><span></span><code><span class="k">CMD</span><span class="w"> </span><span class="o">[</span><span class="s2">&quot;gunicorn&quot;</span>,<span class="w"> </span><span class="s2">&quot;app:app&quot;</span>,<span class="w"> </span><span class="se">\</span>
-<span class="w">     </span><span class="s2">&quot;--bind&quot;</span>,<span class="w"> </span><span class="s2">&quot;0.0.0.0:8000&quot;</span>,<span class="w"> </span><span class="se">\</span>
-<span class="w">     </span><span class="s2">&quot;--graceful-timeout&quot;</span>,<span class="w"> </span><span class="s2">&quot;30&quot;</span>,<span class="w"> </span><span class="se">\</span>
-<span class="w">     </span><span class="s2">&quot;--timeout&quot;</span>,<span class="w"> </span><span class="s2">&quot;120&quot;</span><span class="o">]</span>
+<div class="highlight"><pre><span></span><code><span class="k">CMD</span><span class="w"> </span><span class="o">[</span><span class="s2">"gunicorn"</span>,<span class="w"> </span><span class="s2">"app:app"</span>,<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span><span class="s2">"--bind"</span>,<span class="w"> </span><span class="s2">"0.0.0.0:8000"</span>,<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span><span class="s2">"--graceful-timeout"</span>,<span class="w"> </span><span class="s2">"30"</span>,<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span><span class="s2">"--timeout"</span>,<span class="w"> </span><span class="s2">"120"</span><span class="o">]</span>
 </code></pre></div>
 <p>Match Docker's stop timeout:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># docker-compose.yml</span>
@@ -2469,9 +2469,9 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <p>Log to stdout/stderr for Docker log collection:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">accesslog</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
-<span class="n">errorlog</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
-<span class="n">loglevel</span> <span class="o">=</span> <span class="s2">&quot;info&quot;</span>
+<span class="n">accesslog</span> <span class="o">=</span> <span class="s2">"-"</span>
+<span class="n">errorlog</span> <span class="o">=</span> <span class="s2">"-"</span>
+<span class="n">loglevel</span> <span class="o">=</span> <span class="s2">"info"</span>
 </code></pre></div>
 <p>Use JSON logging for log aggregation:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
@@ -2481,26 +2481,26 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--workers<span cl
 <span class="k">class</span><span class="w"> </span><span class="nc">JsonFormatter</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
-            <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">levelname</span><span class="p">,</span>
-            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">getMessage</span><span class="p">(),</span>
+            <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"level"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">levelname</span><span class="p">,</span>
+            <span class="s2">"message"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">getMessage</span><span class="p">(),</span>
         <span class="p">})</span>
 
 <span class="n">logconfig_dict</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s2">&quot;formatters&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;json&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;()&quot;</span><span class="p">:</span> <span class="n">JsonFormatter</span><span class="p">}</span>
+    <span class="s2">"version"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">"formatters"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"json"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"()"</span><span class="p">:</span> <span class="n">JsonFormatter</span><span class="p">}</span>
     <span class="p">},</span>
-    <span class="s2">&quot;handlers&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;console&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;logging.StreamHandler&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;formatter&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;stream&quot;</span><span class="p">:</span> <span class="s2">&quot;ext://sys.stdout&quot;</span>
+    <span class="s2">"handlers"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"console"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"logging.StreamHandler"</span><span class="p">,</span>
+            <span class="s2">"formatter"</span><span class="p">:</span> <span class="s2">"json"</span><span class="p">,</span>
+            <span class="s2">"stream"</span><span class="p">:</span> <span class="s2">"ext://sys.stdout"</span>
         <span class="p">}</span>
     <span class="p">},</span>
-    <span class="s2">&quot;root&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;handlers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;console&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="s2">&quot;INFO&quot;</span>
+    <span class="s2">"root"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"handlers"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"console"</span><span class="p">],</span>
+        <span class="s2">"level"</span><span class="p">:</span> <span class="s2">"INFO"</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>

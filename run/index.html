@@ -1994,12 +1994,12 @@ module.</p>
 </div>
 <p>Example test application:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simplest possible application object&quot;&quot;&quot;</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;Hello, World!</span><span class="se">\n</span><span class="s2">&quot;</span>
-    <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;200 OK&quot;</span>
+<span class="w">    </span><span class="sd">"""Simplest possible application object"""</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"Hello, World!</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="s2">"200 OK"</span>
     <span class="n">response_headers</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;Content-type&quot;</span><span class="p">,</span> <span class="s2">&quot;text/plain&quot;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
+        <span class="p">(</span><span class="s2">"Content-type"</span><span class="p">,</span> <span class="s2">"text/plain"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"Content-Length"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
     <span class="p">]</span>
     <span class="n">start_response</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">response_headers</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">data</span><span class="p">])</span>
@@ -2013,7 +2013,7 @@ module.</p>
     <span class="o">...</span>
     <span class="k">return</span> <span class="n">app</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--workers<span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="s1">&#39;test:create_app()&#39;</span>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--workers<span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="s1">'test:create_app()'</span>
 </code></pre></div>
 <p>Passing positional and keyword arguments is supported but prefer
 configuration files or environment variables for anything beyond quick tests.</p>

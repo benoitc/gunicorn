@@ -2571,7 +2571,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 </code></pre></div>
 <p>Or in a configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 </code></pre></div>
 <p>The order matters for ALPN negotiation - protocols are tried in order of preference.</p>
 <table>
@@ -2605,9 +2605,9 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 </code></pre></div>
 <p>Or in a configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">certfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.crt&quot;</span>
-<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.key&quot;</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
+<span class="n">certfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.crt"</span>
+<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.key"</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 </code></pre></div>
 <h3 id="http2-settings">HTTP/2 Settings<a class="headerlink" href="#http2-settings" title="Permanent link">&para;</a></h3>
 <p>Fine-tune HTTP/2 behavior with these settings:</p>
@@ -2644,7 +2644,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 </table>
 <p>Example configuration:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">200</span>
 <span class="n">http2_initial_window_size</span> <span class="o">=</span> <span class="mi">1048576</span>  <span class="c1"># 1MB</span>
 </code></pre></div>
@@ -2706,38 +2706,38 @@ CSS, JavaScript, and other assets in parallel.</p>
 <p>Use the <code>wsgi.early_hints</code> callback in your WSGI application:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
     <span class="c1"># Send early hints if available</span>
-    <span class="k">if</span> <span class="s1">&#39;wsgi.early_hints&#39;</span> <span class="ow">in</span> <span class="n">environ</span><span class="p">:</span>
-        <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.early_hints&#39;</span><span class="p">]([</span>
-            <span class="p">(</span><span class="s1">&#39;Link&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;/style.css&gt;; rel=preload; as=style&#39;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;Link&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;/app.js&gt;; rel=preload; as=script&#39;</span><span class="p">),</span>
+    <span class="k">if</span> <span class="s1">'wsgi.early_hints'</span> <span class="ow">in</span> <span class="n">environ</span><span class="p">:</span>
+        <span class="n">environ</span><span class="p">[</span><span class="s1">'wsgi.early_hints'</span><span class="p">]([</span>
+            <span class="p">(</span><span class="s1">'Link'</span><span class="p">,</span> <span class="s1">'&lt;/style.css&gt;; rel=preload; as=style'</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">'Link'</span><span class="p">,</span> <span class="s1">'&lt;/app.js&gt;; rel=preload; as=script'</span><span class="p">),</span>
         <span class="p">])</span>
 
     <span class="c1"># Continue with the actual response</span>
-    <span class="n">start_response</span><span class="p">(</span><span class="s1">&#39;200 OK&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;text/html&#39;</span><span class="p">)])</span>
-    <span class="k">return</span> <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;&lt;html&gt;...&lt;/html&gt;&#39;</span><span class="p">]</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="s1">'200 OK'</span><span class="p">,</span> <span class="p">[(</span><span class="s1">'Content-Type'</span><span class="p">,</span> <span class="s1">'text/html'</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="p">[</span><span class="sa">b</span><span class="s1">'&lt;html&gt;...&lt;/html&gt;'</span><span class="p">]</span>
 </code></pre></div>
 <h3 id="asgi-applications">ASGI Applications<a class="headerlink" href="#asgi-applications" title="Permanent link">&para;</a></h3>
 <p>Use the <code>http.response.informational</code> message type:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
     <span class="c1"># Send early hints</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.informational&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="mi">103</span><span class="p">,</span>
-        <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[</span>
-            <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&lt;/style.css&gt;; rel=preload; as=style&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&lt;/app.js&gt;; rel=preload; as=script&quot;</span><span class="p">),</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.informational"</span><span class="p">,</span>
+        <span class="s2">"status"</span><span class="p">:</span> <span class="mi">103</span><span class="p">,</span>
+        <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s2">"link"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"&lt;/style.css&gt;; rel=preload; as=style"</span><span class="p">),</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s2">"link"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"&lt;/app.js&gt;; rel=preload; as=script"</span><span class="p">),</span>
         <span class="p">],</span>
     <span class="p">})</span>
 
     <span class="c1"># Send the actual response</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.start&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
-        <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="sa">b</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;text/html&quot;</span><span class="p">)],</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.start"</span><span class="p">,</span>
+        <span class="s2">"status"</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[(</span><span class="sa">b</span><span class="s2">"content-type"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"text/html"</span><span class="p">)],</span>
     <span class="p">})</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.body&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;&lt;html&gt;...&lt;/html&gt;&quot;</span><span class="p">,</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.body"</span><span class="p">,</span>
+        <span class="s2">"body"</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"&lt;html&gt;...&lt;/html&gt;"</span><span class="p">,</span>
     <span class="p">})</span>
 </code></pre></div>
 <div class="admonition note">
@@ -2753,16 +2753,16 @@ WSGI and ASGI applications.</p>
 <p>Priority information is available in the WSGI environ for HTTP/2 requests:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
     <span class="c1"># Access stream priority (HTTP/2 only)</span>
-    <span class="n">weight</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gunicorn.http2.priority_weight&#39;</span><span class="p">)</span>
-    <span class="n">depends_on</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gunicorn.http2.priority_depends_on&#39;</span><span class="p">)</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'gunicorn.http2.priority_weight'</span><span class="p">)</span>
+    <span class="n">depends_on</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'gunicorn.http2.priority_depends_on'</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># This is an HTTP/2 request with priority info</span>
         <span class="c1"># Higher weight = client considers this more important</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Request priority: weight=</span><span class="si">{</span><span class="n">weight</span><span class="si">}</span><span class="s2">, depends_on=</span><span class="si">{</span><span class="n">depends_on</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Request priority: weight=</span><span class="si">{</span><span class="n">weight</span><span class="si">}</span><span class="s2">, depends_on=</span><span class="si">{</span><span class="n">depends_on</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-    <span class="n">start_response</span><span class="p">(</span><span class="s1">&#39;200 OK&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;text/plain&#39;</span><span class="p">)])</span>
-    <span class="k">return</span> <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;OK&#39;</span><span class="p">]</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="s1">'200 OK'</span><span class="p">,</span> <span class="p">[(</span><span class="s1">'Content-Type'</span><span class="p">,</span> <span class="s1">'text/plain'</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="p">[</span><span class="sa">b</span><span class="s1">'OK'</span><span class="p">]</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2791,24 +2791,24 @@ WSGI and ASGI applications.</p>
 <h3 id="accessing-priority-in-asgi">Accessing Priority in ASGI<a class="headerlink" href="#accessing-priority-in-asgi" title="Permanent link">&para;</a></h3>
 <p>For ASGI applications, priority is available in the scope's <code>extensions</code> dict:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;http&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">scope</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"http"</span><span class="p">:</span>
         <span class="c1"># Check for HTTP/2 priority extension</span>
-        <span class="n">extensions</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extensions&quot;</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">priority</span> <span class="o">=</span> <span class="n">extensions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http.response.priority&quot;</span><span class="p">)</span>
+        <span class="n">extensions</span> <span class="o">=</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"extensions"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">priority</span> <span class="o">=</span> <span class="n">extensions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"http.response.priority"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">priority</span><span class="p">:</span>
-            <span class="n">weight</span> <span class="o">=</span> <span class="n">priority</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>        <span class="c1"># 1-256</span>
-            <span class="n">depends_on</span> <span class="o">=</span> <span class="n">priority</span><span class="p">[</span><span class="s2">&quot;depends_on&quot;</span><span class="p">]</span>  <span class="c1"># Parent stream ID</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Request priority: weight=</span><span class="si">{</span><span class="n">weight</span><span class="si">}</span><span class="s2">, depends_on=</span><span class="si">{</span><span class="n">depends_on</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="n">priority</span><span class="p">[</span><span class="s2">"weight"</span><span class="p">]</span>        <span class="c1"># 1-256</span>
+            <span class="n">depends_on</span> <span class="o">=</span> <span class="n">priority</span><span class="p">[</span><span class="s2">"depends_on"</span><span class="p">]</span>  <span class="c1"># Parent stream ID</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Request priority: weight=</span><span class="si">{</span><span class="n">weight</span><span class="si">}</span><span class="s2">, depends_on=</span><span class="si">{</span><span class="n">depends_on</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.start&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
-            <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="sa">b</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;text/plain&quot;</span><span class="p">)],</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.start"</span><span class="p">,</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+            <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[(</span><span class="sa">b</span><span class="s2">"content-type"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"text/plain"</span><span class="p">)],</span>
         <span class="p">})</span>
         <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.body&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;OK&quot;</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.body"</span><span class="p">,</span>
+            <span class="s2">"body"</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"OK"</span><span class="p">,</span>
         <span class="p">})</span>
 </code></pre></div>
 <table>
@@ -2851,23 +2851,23 @@ This is commonly used for gRPC status codes, checksums, and timing information.<
 <p>For WSGI applications, use the <code>gunicorn.http2.send_trailers</code> callback in the environ:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
     <span class="c1"># Get trailer callback (HTTP/2 only)</span>
-    <span class="n">send_trailers</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gunicorn.http2.send_trailers&#39;</span><span class="p">)</span>
+    <span class="n">send_trailers</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'gunicorn.http2.send_trailers'</span><span class="p">)</span>
 
     <span class="c1"># Announce trailers in response headers</span>
     <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/grpc&#39;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;Trailer&#39;</span><span class="p">,</span> <span class="s1">&#39;grpc-status, grpc-message&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">'Content-Type'</span><span class="p">,</span> <span class="s1">'application/grpc'</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">'Trailer'</span><span class="p">,</span> <span class="s1">'grpc-status, grpc-message'</span><span class="p">),</span>
     <span class="p">]</span>
-    <span class="n">start_response</span><span class="p">(</span><span class="s1">&#39;200 OK&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="s1">'200 OK'</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
 
     <span class="c1"># Yield response body</span>
-    <span class="k">yield</span> <span class="sa">b</span><span class="s1">&#39;response data&#39;</span>
+    <span class="k">yield</span> <span class="sa">b</span><span class="s1">'response data'</span>
 
     <span class="c1"># Send trailers after body (if available)</span>
     <span class="k">if</span> <span class="n">send_trailers</span><span class="p">:</span>
         <span class="n">send_trailers</span><span class="p">([</span>
-            <span class="p">(</span><span class="s1">&#39;grpc-status&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;grpc-message&#39;</span><span class="p">,</span> <span class="s1">&#39;OK&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">'grpc-status'</span><span class="p">,</span> <span class="s1">'0'</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">'grpc-message'</span><span class="p">,</span> <span class="s1">'OK'</span><span class="p">),</span>
         <span class="p">])</span>
 </code></pre></div>
 <h3 id="asgi-applications_1">ASGI Applications<a class="headerlink" href="#asgi-applications_1" title="Permanent link">&para;</a></h3>
@@ -2875,28 +2875,28 @@ This is commonly used for gRPC status codes, checksums, and timing information.<
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
     <span class="c1"># Send response with trailers flag</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.start&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
-        <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[</span>
-            <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;application/grpc&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;trailer&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;grpc-status, grpc-message&quot;</span><span class="p">),</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.start"</span><span class="p">,</span>
+        <span class="s2">"status"</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s2">"content-type"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"application/grpc"</span><span class="p">),</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s2">"trailer"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"grpc-status, grpc-message"</span><span class="p">),</span>
         <span class="p">],</span>
     <span class="p">})</span>
 
     <span class="c1"># Send body</span>
     <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.body&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;response data&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;more_body&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.body"</span><span class="p">,</span>
+        <span class="s2">"body"</span><span class="p">:</span> <span class="sa">b</span><span class="s2">"response data"</span><span class="p">,</span>
+        <span class="s2">"more_body"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">})</span>
 
     <span class="c1"># Send trailers (HTTP/2 only)</span>
-    <span class="k">if</span> <span class="s2">&quot;http.response.trailers&quot;</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extensions&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+    <span class="k">if</span> <span class="s2">"http.response.trailers"</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"extensions"</span><span class="p">,</span> <span class="p">{}):</span>
         <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;http.response.trailers&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;grpc-status&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
-                <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;grpc-message&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http.response.trailers"</span><span class="p">,</span>
+            <span class="s2">"headers"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"grpc-status"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"0"</span><span class="p">),</span>
+                <span class="p">(</span><span class="sa">b</span><span class="s2">"grpc-message"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"OK"</span><span class="p">),</span>
             <span class="p">],</span>
         <span class="p">})</span>
 </code></pre></div>
@@ -2973,34 +2973,34 @@ and the <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#early_
 <h3 id="direct-tls-termination">Direct TLS Termination<a class="headerlink" href="#direct-tls-termination" title="Permanent link">&para;</a></h3>
 <p>For simpler deployments, Gunicorn can terminate TLS directly:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">bind</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0:443&quot;</span>
-<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">&quot;gthread&quot;</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="s2">"0.0.0.0:443"</span>
+<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">"gthread"</span>
 <span class="n">threads</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
 
 <span class="c1"># SSL</span>
-<span class="n">certfile</span> <span class="o">=</span> <span class="s2">&quot;/etc/letsencrypt/live/example.com/fullchain.pem&quot;</span>
-<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">&quot;/etc/letsencrypt/live/example.com/privkey.pem&quot;</span>
+<span class="n">certfile</span> <span class="o">=</span> <span class="s2">"/etc/letsencrypt/live/example.com/fullchain.pem"</span>
+<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">"/etc/letsencrypt/live/example.com/privkey.pem"</span>
 
 <span class="c1"># HTTP/2</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">100</span>
 </code></pre></div>
 <h3 id="recommended-settings">Recommended Settings<a class="headerlink" href="#recommended-settings" title="Permanent link">&para;</a></h3>
 <p>For production HTTP/2 deployments:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">&quot;gthread&quot;</span>
+<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">"gthread"</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">threads</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">keepalive</span> <span class="o">=</span> <span class="mi">120</span>  <span class="c1"># HTTP/2 connections are long-lived</span>
 
 <span class="c1"># SSL/TLS</span>
-<span class="n">certfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.crt&quot;</span>
-<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">&quot;/path/to/server.key&quot;</span>
-<span class="n">ssl_version</span> <span class="o">=</span> <span class="s2">&quot;TLSv1_2&quot;</span>  <span class="c1"># Minimum TLS 1.2 for HTTP/2</span>
+<span class="n">certfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.crt"</span>
+<span class="n">keyfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.key"</span>
+<span class="n">ssl_version</span> <span class="o">=</span> <span class="s2">"TLSv1_2"</span>  <span class="c1"># Minimum TLS 1.2 for HTTP/2</span>
 
 <span class="c1"># HTTP/2</span>
-<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">&quot;h2, h1&quot;</span>
+<span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">http2_initial_window_size</span> <span class="o">=</span> <span class="mi">65535</span>
 </code></pre></div>
@@ -3035,7 +3035,7 @@ This section covers different tuning profiles and their trade-offs.</p>
 <p>Best for: Low to moderate traffic, memory-constrained environments.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py - Conservative profile</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">&quot;gthread&quot;</span>
+<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">"gthread"</span>
 <span class="n">threads</span> <span class="o">=</span> <span class="mi">4</span>
 
 <span class="n">http2_max_concurrent_streams</span> <span class="o">=</span> <span class="mi">100</span>
@@ -3068,7 +3068,7 @@ This section covers different tuning profiles and their trade-offs.</p>
 <p>Best for: Moderate traffic, general production use.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py - Balanced profile</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">&quot;gthread&quot;</span>
+<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">"gthread"</span>
 <span class="n">threads</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">backlog</span> <span class="o">=</span> <span class="mi">2048</span>
 
@@ -3102,7 +3102,7 @@ This section covers different tuning profiles and their trade-offs.</p>
 <p>Best for: High traffic APIs, microservices, load testing.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py - High concurrency profile</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">&quot;gthread&quot;</span>
+<span class="n">worker_class</span> <span class="o">=</span> <span class="s2">"gthread"</span>
 <span class="n">threads</span> <span class="o">=</span> <span class="mi">8</span>
 <span class="n">backlog</span> <span class="o">=</span> <span class="mi">2048</span>
 <span class="n">worker_connections</span> <span class="o">=</span> <span class="mi">10000</span>
@@ -3349,8 +3349,8 @@ curl<span class="w"> </span>--http2-prior-knowledge<span class="w"> </span>https
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
 
 <span class="k">with</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">http2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;https://localhost:8443/&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HTTP Version: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">http_version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"https://localhost:8443/"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"HTTP Version: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">http_version</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
 <p>A complete HTTP/2 example demonstrating priority and trailers is available in the

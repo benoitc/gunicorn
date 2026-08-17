@@ -3408,7 +3408,7 @@ regenerated during every documentation build.</p>
 <p class="admonition-title">Note</p>
 <p>Settings can be provided through the <code>GUNICORN_CMD_ARGS</code> environment
 variable. For example:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">$ </span><span class="nv">GUNICORN_CMD_ARGS</span><span class="o">=</span><span class="s2">&quot;--bind=127.0.0.1 --workers=3&quot;</span><span class="w"> </span>gunicorn<span class="w"> </span>app:app
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span><span class="nv">GUNICORN_CMD_ARGS</span><span class="o">=</span><span class="s2">"--bind=127.0.0.1 --workers=3"</span><span class="w"> </span>gunicorn<span class="w"> </span>app:app
 </code></pre></div>
 <p><em>Added in 19.7.</em></p>
 </div>
@@ -3586,9 +3586,9 @@ DirtyArbiter and the exiting DirtyWorker.</p>
 and implements the <code>init()</code>, <code>__call__()</code>, and <code>close()</code> methods.</p>
 <p>Example::</p>
 <div class="highlight"><pre><span></span><code>dirty_apps = [
-    &quot;myapp.ml:MLApp&quot;,           # All workers load this
-    &quot;myapp.images:ImageApp&quot;,    # All workers load this
-    &quot;myapp.heavy:HugeModel:2&quot;,  # Only 2 workers load this
+    "myapp.ml:MLApp",           # All workers load this
+    "myapp.images:ImageApp",    # All workers load this
+    "myapp.heavy:HugeModel:2",  # Only 2 workers load this
 ]
 </code></pre></div>
 <p>The per-app worker limit is useful for memory-intensive applications
@@ -4130,7 +4130,7 @@ Worker.</p>
 <h3 id="pre_request"><code>pre_request</code><a class="headerlink" href="#pre_request" title="Permanent link">&para;</a></h3>
 <p><strong>Default:</strong></p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pre_request</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
-    <span class="n">worker</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">worker</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
 </code></pre></div>
 <p>Called just before a worker processes the request.</p>
 <p>The callable needs to accept two instance variables for the Worker and
@@ -4256,7 +4256,7 @@ background.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>gunicorn<span class="w"> </span>-b<span class="w"> </span><span class="m">127</span>.0.0.1:8000<span class="w"> </span>--env<span class="w"> </span><span class="nv">FOO</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>test:app
 </code></pre></div>
 <p>Or in the configuration file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">raw_env</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;FOO=1&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><span class="n">raw_env</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"FOO=1"</span><span class="p">]</span>
 </code></pre></div>
 <h3 id="pidfile"><code>pidfile</code><a class="headerlink" href="#pidfile" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>-p FILE</code>, <code>--pid FILE</code></p>
@@ -4359,9 +4359,9 @@ an IP address are treated as allowed, unconditionally.</p>
 In each case, we have a request from the remote address 134.213.44.18, and the default value of
 <code>secure_scheme_headers</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">secure_scheme_headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;X-FORWARDED-PROTOCOL&#39;</span><span class="p">:</span> <span class="s1">&#39;ssl&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;X-FORWARDED-PROTO&#39;</span><span class="p">:</span> <span class="s1">&#39;https&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;X-FORWARDED-SSL&#39;</span><span class="p">:</span> <span class="s1">&#39;on&#39;</span>
+    <span class="s1">'X-FORWARDED-PROTOCOL'</span><span class="p">:</span> <span class="s1">'ssl'</span><span class="p">,</span>
+    <span class="s1">'X-FORWARDED-PROTO'</span><span class="p">:</span> <span class="s1">'https'</span><span class="p">,</span>
+    <span class="s1">'X-FORWARDED-SSL'</span><span class="p">:</span> <span class="s1">'on'</span>
 <span class="p">}</span>
 </code></pre></div>
 <table>

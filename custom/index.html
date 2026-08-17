@@ -1915,11 +1915,11 @@ def number_of_workers():
 
 
 def handler_app(environ, start_response):
-    response_body = b&#39;Works fine&#39;
-    status = &#39;200 OK&#39;
+    response_body = b'Works fine'
+    status = '200 OK'
 
     response_headers = [
-        (&#39;Content-Type&#39;, &#39;text/plain&#39;),
+        ('Content-Type', 'text/plain'),
     ]
 
     start_response(status, response_headers)
@@ -1944,10 +1944,10 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-if __name__ == &#39;__main__&#39;:
+if __name__ == '__main__':
     options = {
-        &#39;bind&#39;: &#39;%s:%s&#39; % (&#39;127.0.0.1&#39;, &#39;8080&#39;),
-        &#39;workers&#39;: number_of_workers(),
+        'bind': '%s:%s' % ('127.0.0.1', '8080'),
+        'workers': number_of_workers(),
     }
     StandaloneApplication(handler_app, options).run()
 </code></pre></div>
@@ -1955,13 +1955,13 @@ if __name__ == &#39;__main__&#39;:
 <p>Provide hooks through configuration, just like a standard Gunicorn deployment.
 For example, a <code>pre_fork</code> hook:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pre_fork</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pre-fork server </span><span class="si">{</span><span class="n">server</span><span class="si">}</span><span class="s2"> worker </span><span class="si">{</span><span class="n">worker</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"pre-fork server </span><span class="si">{</span><span class="n">server</span><span class="si">}</span><span class="s2"> worker </span><span class="si">{</span><span class="n">worker</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;bind&quot;</span><span class="p">:</span> <span class="s2">&quot;127.0.0.1:8080&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;workers&quot;</span><span class="p">:</span> <span class="n">number_of_workers</span><span class="p">(),</span>
-        <span class="s2">&quot;pre_fork&quot;</span><span class="p">:</span> <span class="n">pre_fork</span><span class="p">,</span>
+        <span class="s2">"bind"</span><span class="p">:</span> <span class="s2">"127.0.0.1:8080"</span><span class="p">,</span>
+        <span class="s2">"workers"</span><span class="p">:</span> <span class="n">number_of_workers</span><span class="p">(),</span>
+        <span class="s2">"pre_fork"</span><span class="p">:</span> <span class="n">pre_fork</span><span class="p">,</span>
     <span class="p">}</span>
 </code></pre></div>
 <h2 id="direct-usage-of-existing-wsgi-apps">Direct usage of existing WSGI apps<a class="headerlink" href="#direct-usage-of-existing-wsgi-apps" title="Permanent link">&para;</a></h2>

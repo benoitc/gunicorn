@@ -2126,7 +2126,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 </code></pre></div>
 <p>Or in a configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">protocol</span> <span class="o">=</span> <span class="s2">&quot;uwsgi&quot;</span>
+<span class="n">protocol</span> <span class="o">=</span> <span class="s2">"uwsgi"</span>
 </code></pre></div>
 <h3 id="allowed-ips">Allowed IPs<a class="headerlink" href="#allowed-ips" title="Permanent link">&para;</a></h3>
 <p>By default, uWSGI protocol requests are only accepted from localhost
@@ -2136,7 +2136,7 @@ requests directly to Gunicorn.</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--uwsgi-allow-from<span class="w"> </span><span class="m">10</span>.0.0.1,10.0.0.2
 </code></pre></div>
 <p>To allow all IPs (not recommended for production):</p>
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--uwsgi-allow-from<span class="w"> </span><span class="s1">&#39;*&#39;</span>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--protocol<span class="w"> </span>uwsgi<span class="w"> </span>--uwsgi-allow-from<span class="w"> </span><span class="s1">'*'</span>
 </code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>

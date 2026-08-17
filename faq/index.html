@@ -2195,7 +2195,7 @@ ulimit</code> is ineffective—switch to root, adjust the limit, then launch Gun
 Consider managing limits via systemd service units or init scripts.</p>
 <h3 id="how-can-i-increase-the-maximum-socket-backlog">How can I increase the maximum socket backlog?<a class="headerlink" href="#how-can-i-increase-the-maximum-socket-backlog" title="Permanent link">&para;</a></h3>
 <p>Increase the queue of pending connections:</p>
-<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.core.somaxconn<span class="o">=</span><span class="s2">&quot;2048&quot;</span>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.core.somaxconn<span class="o">=</span><span class="s2">"2048"</span>
 </code></pre></div>
 <h3 id="how-can-i-disable-the-use-of-sendfile">How can I disable the use of <code>sendfile()</code>?<a class="headerlink" href="#how-can-i-disable-the-use-of-sendfile" title="Permanent link">&para;</a></h3>
 <p>Pass <code>--no-sendfile</code> or set the <code>SENDFILE=0</code> environment variable.</p>
@@ -2213,7 +2213,7 @@ filesystem fills up. Mount a <code>tmpfs</code> and point <code>--worker-tmp-dir
 <p>If not, create a new <code>tmpfs</code> mount:</p>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>cp<span class="w"> </span>/etc/fstab<span class="w"> </span>/etc/fstab.orig
 sudo<span class="w"> </span>mkdir<span class="w"> </span>/mem
-<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;tmpfs       /mem tmpfs defaults,size=64m,mode=1777,noatime,comment=for-gunicorn 0 0&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/fstab
+<span class="nb">echo</span><span class="w"> </span><span class="s1">'tmpfs       /mem tmpfs defaults,size=64m,mode=1777,noatime,comment=for-gunicorn 0 0'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/fstab
 sudo<span class="w"> </span>mount<span class="w"> </span>/mem
 </code></pre></div>
 <p>Verify the result:</p>

@@ -2040,20 +2040,20 @@ attacks. Use <a href="https://github.com/rakyll/hey">Hey</a> to verify proxy beh
 <div class="highlight"><span class="filename">nginx.conf</span><pre><span></span><code><span class="k">worker_processes</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 
 <span class="k">user</span><span class="w"> </span><span class="s">nobody</span><span class="w"> </span><span class="s">nogroup</span><span class="p">;</span>
-<span class="c1"># &#39;user nobody nobody;&#39; for systems with &#39;nobody&#39; as a group instead</span>
+<span class="c1"># 'user nobody nobody;' for systems with 'nobody' as a group instead</span>
 <span class="k">error_log</span><span class="w">  </span><span class="s">/var/log/nginx/error.log</span><span class="w"> </span><span class="s">warn</span><span class="p">;</span>
 <span class="k">pid</span><span class="w"> </span><span class="s">/var/run/nginx.pid</span><span class="p">;</span>
 
 <span class="k">events</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kn">worker_connections</span><span class="w"> </span><span class="mi">1024</span><span class="p">;</span><span class="w"> </span><span class="c1"># increase if you have lots of clients</span>
-<span class="w">  </span><span class="kn">accept_mutex</span><span class="w"> </span><span class="no">off</span><span class="p">;</span><span class="w"> </span><span class="c1"># set to &#39;on&#39; if nginx worker_processes &gt; 1</span>
-<span class="w">  </span><span class="c1"># &#39;use epoll;&#39; to enable for Linux 2.6+</span>
-<span class="w">  </span><span class="c1"># &#39;use kqueue;&#39; to enable for FreeBSD, OSX</span>
+<span class="w">  </span><span class="kn">accept_mutex</span><span class="w"> </span><span class="no">off</span><span class="p">;</span><span class="w"> </span><span class="c1"># set to 'on' if nginx worker_processes &gt; 1</span>
+<span class="w">  </span><span class="c1"># 'use epoll;' to enable for Linux 2.6+</span>
+<span class="w">  </span><span class="c1"># 'use kqueue;' to enable for FreeBSD, OSX</span>
 <span class="p">}</span>
 
 <span class="k">http</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kn">include</span><span class="w"> </span><span class="s">mime.types</span><span class="p">;</span>
-<span class="w">  </span><span class="c1"># fallback in case we can&#39;t determine a type</span>
+<span class="w">  </span><span class="c1"># fallback in case we can't determine a type</span>
 <span class="w">  </span><span class="kn">default_type</span><span class="w"> </span><span class="s">application/octet-stream</span><span class="p">;</span>
 <span class="w">  </span><span class="kn">access_log</span><span class="w"> </span><span class="s">/var/log/nginx/access.log</span><span class="w"> </span><span class="s">combined</span><span class="p">;</span>
 <span class="w">  </span><span class="kn">sendfile</span><span class="w"> </span><span class="no">on</span><span class="p">;</span>
@@ -2076,8 +2076,8 @@ attacks. Use <a href="https://github.com/rakyll/hey">Hey</a> to verify proxy beh
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="kn">server</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1"># use &#39;listen 80 deferred;&#39; for Linux</span>
-<span class="w">    </span><span class="c1"># use &#39;listen 80 accept_filter=httpready;&#39; for FreeBSD</span>
+<span class="w">    </span><span class="c1"># use 'listen 80 deferred;' for Linux</span>
+<span class="w">    </span><span class="c1"># use 'listen 80 accept_filter=httpready;' for FreeBSD</span>
 <span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span>
 <span class="w">    </span><span class="kn">client_max_body_size</span><span class="w"> </span><span class="s">4G</span><span class="p">;</span>
 
@@ -2098,7 +2098,7 @@ attacks. Use <a href="https://github.com/rakyll/hey">Hey</a> to verify proxy beh
 <span class="w">      </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Forwarded-For</span><span class="w"> </span><span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
 <span class="w">      </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Forwarded-Proto</span><span class="w"> </span><span class="nv">$scheme</span><span class="p">;</span>
 <span class="w">      </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Host</span><span class="w"> </span><span class="nv">$http_host</span><span class="p">;</span>
-<span class="w">      </span><span class="c1"># we don&#39;t want nginx trying to do something clever with</span>
+<span class="w">      </span><span class="c1"># we don't want nginx trying to do something clever with</span>
 <span class="w">      </span><span class="c1"># redirects, we set the Host: header above already.</span>
 <span class="w">      </span><span class="kn">proxy_redirect</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
 <span class="w">      </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://app_server</span><span class="p">;</span>
@@ -2140,7 +2140,7 @@ URLs. Add this header to your <code>location</code> block:</p>
 </code></pre></div>
 <p>If Nginx runs on a different host, tell Gunicorn which proxies are trusted so it
 accepts the <code>X-Forwarded-*</code> headers:</p>
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-w<span class="w"> </span><span class="m">3</span><span class="w"> </span>--forwarded-allow-ips<span class="o">=</span><span class="s2">&quot;10.170.3.217,10.170.3.220&quot;</span><span class="w"> </span>test:app
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-w<span class="w"> </span><span class="m">3</span><span class="w"> </span>--forwarded-allow-ips<span class="o">=</span><span class="s2">"10.170.3.217,10.170.3.220"</span><span class="w"> </span>test:app
 </code></pre></div>
 <p>When all traffic comes from trusted proxies (for example Heroku) you can set
 <code>--forwarded-allow-ips='*'</code>. This is <strong>dangerous</strong> if untrusted clients can
@@ -2150,7 +2150,7 @@ serve secure content over plain HTTP.</p>
 <a href="https://www.rfc-editor.org/rfc/rfc3875">RFC 3875</a>, meaning it now records the
 proxy IP rather than the upstream client. To log the real client address, set
 <a href="../reference/settings/#access_log_format"><code>access_log_format</code></a> to include <code>X-Forwarded-For</code>:</p>
-<div class="highlight"><pre><span></span><code>%({x-forwarded-for}i)s %(l.md)s %(u.md)s %(t.md)s &quot;%(r.md)s&quot; %(s.md)s %(b.md)s &quot;%(f.md)s&quot; &quot;%(a.md)s&quot;
+<div class="highlight"><pre><span></span><code>%({x-forwarded-for}i)s %(l.md)s %(u.md)s %(t.md)s "%(r.md)s" %(s.md)s %(b.md)s "%(f.md)s" "%(a.md)s"
 </code></pre></div>
 <p>When binding Gunicorn to a UNIX socket <code>REMOTE_ADDR</code> will be empty.</p>
 <h2 id="proxy-protocol">PROXY Protocol<a class="headerlink" href="#proxy-protocol" title="Permanent link">&para;</a></h2>
@@ -2210,7 +2210,7 @@ headers to forwarded connections.</p>
 <p>AWS Network Load Balancers (NLB) and Application Load Balancers (ALB) support
 PROXY protocol v2. Enable it in the target group settings, then configure
 Gunicorn:</p>
-<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>v2<span class="w"> </span>--proxy-allow-from<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="w"> </span>app:app
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--proxy-protocol<span class="w"> </span>v2<span class="w"> </span>--proxy-allow-from<span class="w"> </span><span class="s1">'*'</span><span class="w"> </span>app:app
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2286,7 +2286,7 @@ script (see the
 <p>Sample Upstart config (logs go to <code>/var/log/upstart/myapp.log</code>):</p>
 <div class="highlight"><pre><span></span><code># /etc/init/myapp.conf
 
-description &quot;myapp&quot;
+description "myapp"
 
 start on (filesystem.md)
 stop on runlevel [016]

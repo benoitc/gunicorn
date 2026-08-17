@@ -2180,16 +2180,16 @@ gunicornc
 gunicornc<span class="w"> </span>-s<span class="w"> </span>/tmp/myapp.ctl
 
 <span class="c1"># Run a single command</span>
-gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show workers&quot;</span>
+gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">"show workers"</span>
 
 <span class="c1"># Output as JSON (for scripting)</span>
-gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show stats&quot;</span><span class="w"> </span>-j
+gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">"show stats"</span><span class="w"> </span>-j
 </code></pre></div>
 <h2 id="interactive-mode">Interactive Mode<a class="headerlink" href="#interactive-mode" title="Permanent link">&para;</a></h2>
 <p>When run without the <code>-c</code> flag, gunicornc enters interactive mode with readline support:</p>
 <div class="highlight"><pre><span></span><code>$ gunicornc
 Connected to gunicorn.ctl
-Type &#39;help&#39; for available commands, &#39;quit&#39; to exit.
+Type 'help' for available commands, 'quit' to exit.
 
 gunicorn&gt; show workers
 PID        AGE    BOOTED   LAST_BEAT
@@ -2202,9 +2202,9 @@ Total: 3 workers
 
 gunicorn&gt; worker add 2
 {
-  &quot;added&quot;: 2,
-  &quot;previous&quot;: 3,
-  &quot;total&quot;: 5
+  "added": 2,
+  "previous": 3,
+  "total": 5
 }
 
 gunicorn&gt; quit
@@ -2323,7 +2323,7 @@ The response will include a <code>reason</code> field explaining this.</p>
 <h2 id="example-session">Example Session<a class="headerlink" href="#example-session" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>$ gunicornc
 Connected to gunicorn.ctl
-Type &#39;help&#39; for available commands, &#39;quit&#39; to exit.
+Type 'help' for available commands, 'quit' to exit.
 
 gunicorn&gt; show all
 ARBITER (master)
@@ -2358,19 +2358,19 @@ Reloads:          1
 
 gunicorn&gt; worker add
 {
-  &quot;added&quot;: 1,
-  &quot;previous&quot;: 4,
-  &quot;total&quot;: 5
+  "added": 1,
+  "previous": 4,
+  "total": 5
 }
 
 gunicorn&gt; dirty add 1
 {
-  &quot;success&quot;: true,
-  &quot;operation&quot;: &quot;add&quot;,
-  &quot;requested&quot;: 1,
-  &quot;spawned&quot;: 1,
-  &quot;total_workers&quot;: 3,
-  &quot;target_workers&quot;: 3
+  "success": true,
+  "operation": "add",
+  "requested": 1,
+  "spawned": 1,
+  "total_workers": 3,
+  "target_workers": 3
 }
 
 gunicorn&gt; quit
@@ -2409,11 +2409,11 @@ gunicorn&gt; quit
 </table>
 <h3 id="example-configuration">Example Configuration<a class="headerlink" href="#example-configuration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
-<span class="n">bind</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0:8000&quot;</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="s2">"0.0.0.0:8000"</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
 
 <span class="c1"># Control socket settings</span>
-<span class="n">control_socket</span> <span class="o">=</span> <span class="s2">&quot;/var/run/gunicorn/myapp.ctl&quot;</span>
+<span class="n">control_socket</span> <span class="o">=</span> <span class="s2">"/var/run/gunicorn/myapp.ctl"</span>
 <span class="n">control_socket_mode</span> <span class="o">=</span> <span class="mo">0o660</span>  <span class="c1"># Allow group access</span>
 </code></pre></div>
 <h2 id="scripting">Scripting<a class="headerlink" href="#scripting" title="Permanent link">&para;</a></h2>
@@ -2421,12 +2421,12 @@ gunicorn&gt; quit
 <div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
 
 <span class="c1"># Get current worker count</span>
-<span class="nv">workers</span><span class="o">=</span><span class="k">$(</span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show stats&quot;</span><span class="w"> </span>-j<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.workers_current&#39;</span><span class="k">)</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current workers: </span><span class="nv">$workers</span><span class="s2">&quot;</span>
+<span class="nv">workers</span><span class="o">=</span><span class="k">$(</span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">"show stats"</span><span class="w"> </span>-j<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'.workers_current'</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Current workers: </span><span class="nv">$workers</span><span class="s2">"</span>
 
 <span class="c1"># Scale up if needed</span>
-<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$workers</span><span class="s2">&quot;</span><span class="w"> </span>-lt<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
-<span class="w">    </span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;worker add </span><span class="k">$((</span><span class="m">8</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">workers</span><span class="k">))</span><span class="s2">&quot;</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$workers</span><span class="s2">"</span><span class="w"> </span>-lt<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>gunicornc<span class="w"> </span>-c<span class="w"> </span><span class="s2">"worker add </span><span class="k">$((</span><span class="m">8</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">workers</span><span class="k">))</span><span class="s2">"</span>
 <span class="k">fi</span>
 </code></pre></div>
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
@@ -2450,22 +2450,22 @@ gunicorn&gt; quit
 </code></pre></div>
 <h3 id="request-format">Request Format<a class="headerlink" href="#request-format" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;show workers&quot;</span>
+<span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"show workers"</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="response-format">Response Format<a class="headerlink" href="#response-format" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Unknown command: foo&quot;</span>
+<span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"error"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Unknown command: foo"</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>

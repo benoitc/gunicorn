@@ -2435,6 +2435,16 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Dirty arbiter returned stale responses after a worker timeout</strong>: when a
+  request reached <code>dirty_timeout</code> the arbiter answered the client with a timeout
+  error but kept the worker connection open. The worker's late response was then
+  the first message waiting on that socket, so the next request routed to the
+  same worker received the previous request's result, and every request after it
+  stayed one response behind. The connection is now closed on timeout, so the
+  late answer is discarded with it
+  (<a href="https://github.com/benoitc/gunicorn/pull/3626">#3626</a>).</p>
+</li>
+<li>
 <p><strong>ASGI connection count leaked on server-initiated close</strong>: <code>nr_conns</code> was
   only decremented in <code>connection_lost()</code>, behind a guard keyed on the same
   flag <code>_close_transport()</code> sets first. Every close the server started (a

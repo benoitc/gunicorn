@@ -1953,9 +1953,9 @@
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">hello</span><span class="p">():</span>
-    <span class="k">return</span> <span class="s2">&quot;Hello, World!&quot;</span>
+    <span class="k">return</span> <span class="s2">"Hello, World!"</span>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -1963,9 +1963,9 @@
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">hello</span><span class="p">():</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello, World!&quot;</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"message"</span><span class="p">:</span> <span class="s2">"Hello, World!"</span><span class="p">}</span>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -1974,10 +1974,10 @@ No additional code is needed.</p>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;Hello, World!&quot;</span>
-    <span class="n">start_response</span><span class="p">(</span><span class="s2">&quot;200 OK&quot;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">,</span> <span class="s2">&quot;text/plain&quot;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"Hello, World!"</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="s2">"200 OK"</span><span class="p">,</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"Content-Type"</span><span class="p">,</span> <span class="s2">"text/plain"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"Content-Length"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
     <span class="p">])</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
 </code></pre></div>
@@ -2004,9 +2004,9 @@ No additional code is needed.</p>
 </code></pre></div>
 <h2 id="configuration-file">Configuration File<a class="headerlink" href="#configuration-file" title="Permanent link">&para;</a></h2>
 <p>Create <code>gunicorn.conf.py</code> for reusable settings:</p>
-<div class="highlight"><pre><span></span><code><span class="n">bind</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0:8000&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="n">bind</span> <span class="o">=</span> <span class="s2">"0.0.0.0:8000"</span>
 <span class="n">workers</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">accesslog</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+<span class="n">accesslog</span> <span class="o">=</span> <span class="s2">"-"</span>
 </code></pre></div>
 <p>Then run:</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>app:app

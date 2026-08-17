@@ -2109,7 +2109,7 @@ gunicorn<span class="w"> </span>app:app<span class="w"> </span>--worker-class<sp
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--version
 </code></pre></div>
 <p>Test with a simple application:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;def app(e, s): s(&quot;200 OK&quot;, []); return [b&quot;OK&quot;]&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>test_app.py
+<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s1">'def app(e, s): s("200 OK", []); return [b"OK"]'</span><span class="w"> </span>&gt;<span class="w"> </span>test_app.py
 gunicorn<span class="w"> </span>test_app:app
 <span class="c1"># Visit http://127.0.0.1:8000</span>
 </code></pre></div>

@@ -2793,8 +2793,8 @@ the API and behavior may change in future releases. Please report any issues on
 <p>Add these settings to your Gunicorn configuration file or command line:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
 <span class="n">dirty_apps</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
+    <span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span>
+    <span class="s2">"myapp.images:ImageApp"</span><span class="p">,</span>
 <span class="p">]</span>
 <span class="n">dirty_workers</span> <span class="o">=</span> <span class="mi">2</span>          <span class="c1"># Number of dirty workers</span>
 <span class="n">dirty_timeout</span> <span class="o">=</span> <span class="mi">300</span>        <span class="c1"># Task timeout in seconds</span>
@@ -2875,9 +2875,9 @@ the API and behavior may change in future releases. Please report any issues on
 <p>Use the <code>module:class:N</code> format in your config:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
 <span class="n">dirty_apps</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;myapp.light:LightApp&quot;</span><span class="p">,</span>           <span class="c1"># All workers (default)</span>
-    <span class="s2">&quot;myapp.heavy:HeavyModelApp:2&quot;</span><span class="p">,</span>    <span class="c1"># Only 2 workers</span>
-    <span class="s2">&quot;myapp.single:SingletonApp:1&quot;</span><span class="p">,</span>    <span class="c1"># Only 1 worker</span>
+    <span class="s2">"myapp.light:LightApp"</span><span class="p">,</span>           <span class="c1"># All workers (default)</span>
+    <span class="s2">"myapp.heavy:HeavyModelApp:2"</span><span class="p">,</span>    <span class="c1"># Only 2 workers</span>
+    <span class="s2">"myapp.single:SingletonApp:1"</span><span class="p">,</span>    <span class="c1"># Only 1 worker</span>
 <span class="p">]</span>
 <span class="n">dirty_workers</span> <span class="o">=</span> <span class="mi">4</span>
 </code></pre></div>
@@ -2899,13 +2899,13 @@ Worker 4: [LightApp]
 <div class="highlight"><pre><span></span><code><span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
 
 <span class="c1"># Goes to any of 4 workers (round-robin)</span>
-<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.light:LightApp&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.light:LightApp"</span><span class="p">,</span> <span class="s2">"action"</span><span class="p">)</span>
 
 <span class="c1"># Goes to worker 1 or 2 only (round-robin between those)</span>
-<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.heavy:HeavyModelApp&quot;</span><span class="p">,</span> <span class="s2">&quot;predict&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.heavy:HeavyModelApp"</span><span class="p">,</span> <span class="s2">"predict"</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
 <span class="c1"># Always goes to worker 1</span>
-<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.single:SingletonApp&quot;</span><span class="p">,</span> <span class="s2">&quot;process&quot;</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.single:SingletonApp"</span><span class="p">,</span> <span class="s2">"process"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
 <p>If no workers have the requested app loaded, a <code>DirtyNoWorkersAvailableError</code> is raised:</p>
@@ -2915,10 +2915,10 @@ Worker 4: [LightApp]
 <span class="k">def</span><span class="w"> </span><span class="nf">my_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.heavy:HeavyModelApp&quot;</span><span class="p">,</span> <span class="s2">&quot;predict&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.heavy:HeavyModelApp"</span><span class="p">,</span> <span class="s2">"predict"</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">DirtyNoWorkersAvailableError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># All workers with this app are down or app not configured</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Service temporarily unavailable&quot;</span><span class="p">,</span> <span class="s2">&quot;app&quot;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"Service temporarily unavailable"</span><span class="p">,</span> <span class="s2">"app"</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="p">}</span>
 </code></pre></div>
 <h3 id="worker-crash-recovery">Worker Crash Recovery<a class="headerlink" href="#worker-crash-recovery" title="Permanent link">&para;</a></h3>
 <p>When a worker crashes, its replacement gets the <strong>same apps</strong> as the dead worker:</p>
@@ -2948,43 +2948,43 @@ Worker 4: [LightApp]
 <span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">MLApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dirty application for ML workloads.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Dirty application for ML workloads."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Called once at dirty worker startup.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Called once at dirty worker startup."""</span>
         <span class="c1"># Pre-load commonly used models</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="s1">&#39;base-model&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="s1">'default'</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="s1">'base-model'</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch to action methods.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Dispatch to action methods."""</span>
         <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown action: </span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown action: </span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a model into memory.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Load a model into memory."""</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;loaded&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"loaded"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">input_text</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run inference on loaded model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Run inference on loaded model."""</span>
         <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model not loaded: </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Model not loaded: </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">input_text</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;models/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.pt&quot;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">"models/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.pt"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleanup on shutdown.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Cleanup on shutdown."""</span>
         <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="k">del</span> <span class="n">model</span>
 </code></pre></div>
@@ -3039,13 +3039,13 @@ Worker 4: [LightApp]
     <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
 
     <span class="c1"># Load a model</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;load_model&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt-4&quot;</span><span class="p">)</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span> <span class="s2">"load_model"</span><span class="p">,</span> <span class="s2">"gpt-4"</span><span class="p">)</span>
 
     <span class="c1"># Run inference</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-        <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;inference&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
+        <span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span>
+        <span class="s2">"inference"</span><span class="p">,</span>
+        <span class="s2">"gpt-4"</span><span class="p">,</span>
         <span class="n">input_text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">data</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -3057,12 +3057,12 @@ Worker 4: [LightApp]
     <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
 
     <span class="c1"># Non-blocking execution</span>
-    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">execute_async</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;load_model&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt-4&quot;</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">execute_async</span><span class="p">(</span><span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span> <span class="s2">"load_model"</span><span class="p">,</span> <span class="s2">"gpt-4"</span><span class="p">)</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">execute_async</span><span class="p">(</span>
-        <span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;inference&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
+        <span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span>
+        <span class="s2">"inference"</span><span class="p">,</span>
+        <span class="s2">"gpt-4"</span><span class="p">,</span>
         <span class="n">input_text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">data</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -3077,20 +3077,20 @@ Worker 4: [LightApp]
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">&quot;text-generation&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt2&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"text-generation"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"gpt2"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sync streaming - yields tokens.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Sync streaming - yields tokens."""</span>
         <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="n">token</span><span class="p">[</span><span class="s2">&quot;generated_text&quot;</span><span class="p">]</span>
+            <span class="k">yield</span> <span class="n">token</span><span class="p">[</span><span class="s2">"generated_text"</span><span class="p">]</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Async streaming - yields tokens.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Async streaming - yields tokens."""</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">openai</span>
         <span class="n">client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">AsyncOpenAI</span><span class="p">()</span>
         <span class="n">stream</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
-            <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+            <span class="n">model</span><span class="o">=</span><span class="s2">"gpt-4"</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
             <span class="n">stream</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
         <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
@@ -3109,7 +3109,7 @@ Worker 4: [LightApp]
     <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">generate_response</span><span class="p">():</span>
-        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">"myapp.llm:LLMApp"</span><span class="p">,</span> <span class="s2">"generate"</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">chunk</span>
 
     <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">generate_response</span><span class="p">())</span>
@@ -3121,7 +3121,7 @@ Worker 4: [LightApp]
     <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_response</span><span class="p">():</span>
-        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">"myapp.llm:LLMApp"</span><span class="p">,</span> <span class="s2">"generate"</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">prompt</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">chunk</span>
 
     <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">generate_response</span><span class="p">())</span>
@@ -3135,9 +3135,9 @@ Worker 4: [LightApp]
 </ol>
 <p>Example message flow:
 <div class="highlight"><pre><span></span><code>Client -&gt; Arbiter -&gt; Worker: request
-Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot;Hello&quot;)
-Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot; &quot;)
-Worker -&gt; Arbiter -&gt; Client: chunk (data: &quot;World&quot;)
+Worker -&gt; Arbiter -&gt; Client: chunk (data: "Hello")
+Worker -&gt; Arbiter -&gt; Client: chunk (data: " ")
+Worker -&gt; Arbiter -&gt; Client: chunk (data: "World")
 Worker -&gt; Arbiter -&gt; Client: end
 </code></pre></div></p>
 <h2 id="binary-protocol">Binary Protocol<a class="headerlink" href="#binary-protocol" title="Permanent link">&para;</a></h2>
@@ -3213,17 +3213,17 @@ Worker -&gt; Arbiter -&gt; Client: end
 <p>The binary protocol allows passing raw bytes directly without encoding:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Image processing with binary data</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resize an image - image_data is raw bytes.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Resize an image - image_data is raw bytes."""</span>
     <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
     <span class="n">resized</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
     <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
-    <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PNG&#39;</span><span class="p">)</span>
+    <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">'PNG'</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>  <span class="c1"># Returns raw bytes</span>
 
 <span class="c1"># Called from HTTP worker</span>
 <span class="n">thumbnail</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-    <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
+    <span class="s2">"myapp.images:ImageApp"</span><span class="p">,</span>
+    <span class="s2">"thumbnail"</span><span class="p">,</span>
     <span class="n">raw_image_bytes</span><span class="p">,</span>  <span class="c1"># No base64 encoding needed</span>
     <span class="n">size</span><span class="o">=</span><span class="mi">256</span>
 <span class="p">)</span>
@@ -3234,11 +3234,11 @@ Worker -&gt; Arbiter -&gt; Client: end
     <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">"myapp.llm:LLMApp"</span><span class="p">,</span> <span class="s2">"generate"</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">chunk</span>
     <span class="k">except</span> <span class="n">DirtyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># Error occurred mid-stream</span>
-        <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">]&quot;</span>
+        <span class="k">yield</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">]"</span>
 </code></pre></div>
 <h3 id="best-practices-for-streaming">Best Practices for Streaming<a class="headerlink" href="#best-practices-for-streaming" title="Permanent link">&para;</a></h3>
 <ol>
@@ -3286,33 +3286,33 @@ Worker -&gt; Arbiter -&gt; Client: end
 
 <span class="c1"># Store a value (table auto-created)</span>
 <span class="c1"># This sends a message to arbiter, which stores it</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span><span class="p">,</span> <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span><span class="p">})</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="s2">"user:123"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Alice"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"admin"</span><span class="p">})</span>
 
 <span class="c1"># Retrieve a value</span>
 <span class="c1"># This sends a request to arbiter, which returns the value</span>
-<span class="n">user</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">)</span>
+<span class="n">user</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="s2">"user:123"</span><span class="p">)</span>
 
 <span class="c1"># Delete a key</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="s2">"user:123"</span><span class="p">)</span>
 
 <span class="c1"># Check existence</span>
-<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;user:123&quot;</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Session exists&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="s2">"user:123"</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Session exists"</span><span class="p">)</span>
 
 <span class="c1"># List keys with pattern matching</span>
-<span class="n">keys</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;user:*&quot;</span><span class="p">)</span>
+<span class="n">keys</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">"user:*"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="dict-like-interface">Dict-like Interface<a class="headerlink" href="#dict-like-interface" title="Permanent link">&para;</a></h3>
 <p>For more Pythonic access, use the table interface:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
 
 <span class="c1"># Get a table reference</span>
-<span class="n">sessions</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+<span class="n">sessions</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
 
 <span class="c1"># Dict-like operations (each is an IPC message)</span>
-<span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alice&quot;</span><span class="p">}</span>
-<span class="n">user</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span>
-<span class="k">del</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">&quot;user:123&quot;</span><span class="p">]</span>
+<span class="n">sessions</span><span class="p">[</span><span class="s2">"user:123"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Alice"</span><span class="p">}</span>
+<span class="n">user</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">"user:123"</span><span class="p">]</span>
+<span class="k">del</span> <span class="n">sessions</span><span class="p">[</span><span class="s2">"user:123"</span><span class="p">]</span>
 
 <span class="c1"># Iteration</span>
 <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
@@ -3325,17 +3325,17 @@ Worker -&gt; Arbiter -&gt; Client: end
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
 
 <span class="c1"># Explicit table creation (idempotent)</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">ensure</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">ensure</span><span class="p">(</span><span class="s2">"cache"</span><span class="p">)</span>
 
 <span class="c1"># Get table info</span>
-<span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table has </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> entries&quot;</span><span class="p">)</span>
+<span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Table has </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'size'</span><span class="p">]</span><span class="si">}</span><span class="s2"> entries"</span><span class="p">)</span>
 
 <span class="c1"># Clear all entries in a table</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
 
 <span class="c1"># Delete entire table</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">delete_table</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">delete_table</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">)</span>
 
 <span class="c1"># List all tables</span>
 <span class="n">tables</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">tables</span><span class="p">()</span>
@@ -3346,30 +3346,30 @@ Worker -&gt; Arbiter -&gt; Client: end
 
 <span class="k">class</span><span class="w"> </span><span class="nc">SessionApp</span><span class="p">(</span><span class="n">DirtyApp</span><span class="p">):</span>
     <span class="c1"># Tables declared here are auto-created on startup</span>
-    <span class="n">stashes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="s2">&quot;counters&quot;</span><span class="p">]</span>
+    <span class="n">stashes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="s2">"counters"</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Initialize counter if needed</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">):</span>
-            <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stash</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="s2">"requests"</span><span class="p">):</span>
+            <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="s2">"requests"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">user_data</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store session - any worker can read it via arbiter.&quot;&quot;&quot;</span>
-        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">user_data</span><span class="p">,</span>
-            <span class="s2">&quot;logged_in_at&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+<span class="w">        </span><span class="sd">"""Store session - any worker can read it via arbiter."""</span>
+        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s2">"data"</span><span class="p">:</span> <span class="n">user_data</span><span class="p">,</span>
+            <span class="s2">"logged_in_at"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
         <span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_increment_counter</span><span class="p">()</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get session - request goes to arbiter.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Get session - request goes to arbiter."""</span>
+        <span class="k">return</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_increment_counter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Increment global counter via arbiter.&quot;&quot;&quot;</span>
-        <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="s2">&quot;requests&quot;</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Increment global counter via arbiter."""</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="s2">"requests"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="s2">"requests"</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
@@ -3432,38 +3432,38 @@ Worker -&gt; Arbiter -&gt; Client: end
 <h3 id="patterns-and-use-cases">Patterns and Use Cases<a class="headerlink" href="#patterns-and-use-cases" title="Permanent link">&para;</a></h3>
 <p><strong>Session Storage:</strong>
 <div class="highlight"><pre><span></span><code><span class="c1"># Store session on login (worker 1)</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span>
 
 <span class="c1"># Check session on request (may be worker 2)</span>
-<span class="n">session</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sessions"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"user:</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="n">AuthError</span><span class="p">(</span><span class="s2">&quot;Not logged in&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="n">AuthError</span><span class="p">(</span><span class="s2">"Not logged in"</span><span class="p">)</span>
 </code></pre></div></p>
 <p><strong>Shared Cache:</strong>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_expensive_result</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="c1"># Check cache first (via arbiter)</span>
-    <span class="n">cached</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cache"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">cached</span>
 
     <span class="c1"># Compute and cache</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">expensive_computation</span><span class="p">()</span>
-    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"cache"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></p>
 <p><strong>Global Counters:</strong>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">increment_counter</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
     <span class="c1"># Note: not atomic - two workers could read same value</span>
-    <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;counters&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"counters"</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">current</span> <span class="o">+</span> <span class="mi">1</span>
 </code></pre></div></p>
 <p><strong>Feature Flags:</strong>
 <div class="highlight"><pre><span></span><code><span class="c1"># Set flag (from admin endpoint)</span>
-<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="s2">&quot;new_feature&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">stash</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"flags"</span><span class="p">,</span> <span class="s2">"new_feature"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Check flag (from any worker)</span>
-<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="s2">&quot;new_feature&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+<span class="k">if</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"flags"</span><span class="p">,</span> <span class="s2">"new_feature"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
     <span class="n">enable_new_feature</span><span class="p">()</span>
 </code></pre></div></p>
 <h3 id="error-handling_1">Error Handling<a class="headerlink" href="#error-handling_1" title="Permanent link">&para;</a></h3>
@@ -3474,12 +3474,12 @@ Worker -&gt; Arbiter -&gt; Client: end
 <span class="p">)</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nonexistent&quot;</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"nonexistent"</span><span class="p">)</span>
 <span class="k">except</span> <span class="n">StashTableNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table not found: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Table not found: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># Using get() with default avoids KeyNotFoundError</span>
-<span class="n">value</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;table&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;fallback&quot;</span><span class="p">)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">stash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"table"</span><span class="p">,</span> <span class="s2">"key"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"fallback"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="best-practices_1">Best Practices<a class="headerlink" href="#best-practices_1" title="Permanent link">&para;</a></h3>
 <ol>
@@ -3513,16 +3513,16 @@ Worker -&gt; Arbiter -&gt; Client: end
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/chat&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/chat"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">chat</span><span class="p">():</span>
-    <span class="n">prompt</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prompt&quot;</span><span class="p">)</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"prompt"</span><span class="p">)</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">get_dirty_client</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">():</span>
-        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">"myapp.llm:LLMApp"</span><span class="p">,</span> <span class="s2">"generate"</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="sa">f</span><span class="s2">"data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span>
 
-    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;text/event-stream&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">"text/event-stream"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="fastapi-example">FastAPI Example<a class="headerlink" href="#fastapi-example" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
@@ -3531,35 +3531,35 @@ Worker -&gt; Arbiter -&gt; Client: end
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/chat&quot;</span><span class="p">)</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/chat"</span><span class="p">)</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">chat</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="n">client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_dirty_client_async</span><span class="p">()</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">():</span>
-        <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">&quot;myapp.llm:LLMApp&quot;</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">stream_async</span><span class="p">(</span><span class="s2">"myapp.llm:LLMApp"</span><span class="p">,</span> <span class="s2">"generate"</span><span class="p">,</span> <span class="n">prompt</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="sa">f</span><span class="s2">"data: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span>
 
-    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;text/event-stream&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span><span class="n">stream</span><span class="p">(),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"text/event-stream"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="lifecycle-hooks">Lifecycle Hooks<a class="headerlink" href="#lifecycle-hooks" title="Permanent link">&para;</a></h2>
 <p>Dirty Arbiters provide hooks for customization:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gunicorn.conf.py</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_dirty_starting</span><span class="p">(</span><span class="n">arbiter</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called just before the dirty arbiter starts.&quot;&quot;&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dirty arbiter starting...&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Called just before the dirty arbiter starts."""</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Dirty arbiter starting..."</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">dirty_post_fork</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called just after a dirty worker is forked.&quot;&quot;&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> forked&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Called just after a dirty worker is forked."""</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> forked"</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_init</span><span class="p">(</span><span class="n">worker</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called after a dirty worker initializes all apps.&quot;&quot;&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> initialized&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Called after a dirty worker initializes all apps."""</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> initialized"</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">dirty_worker_exit</span><span class="p">(</span><span class="n">arbiter</span><span class="p">,</span> <span class="n">worker</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called when a dirty worker exits.&quot;&quot;&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> exiting&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Called when a dirty worker exits."""</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dirty worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> exiting"</span><span class="p">)</span>
 
 <span class="n">on_dirty_starting</span> <span class="o">=</span> <span class="n">on_dirty_starting</span>
 <span class="n">dirty_post_fork</span> <span class="o">=</span> <span class="n">dirty_post_fork</span>
@@ -3702,7 +3702,7 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <span class="k">for</span> <span class="n">worker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">:</span>
     <span class="n">mtime</span> <span class="o">=</span> <span class="n">worker</span><span class="o">.</span><span class="n">tmp</span><span class="o">.</span><span class="n">last_update</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">mtime</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">dirty_timeout</span><span class="p">:</span>
-        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> timed out, killing&quot;</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> timed out, killing"</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">worker</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
 </code></pre></div>
 <p>When a worker is killed:</p>
@@ -3714,9 +3714,9 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 </ol>
 <h3 id="parent-death-detection">Parent Death Detection<a class="headerlink" href="#parent-death-detection" title="Permanent link">&para;</a></h3>
 <p>Dirty arbiters monitor their parent process (the main arbiter) to detect orphaning:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># In the dirty arbiter&#39;s main loop</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># In the dirty arbiter's main loop</span>
 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_pid</span><span class="p">:</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parent died, shutting down&quot;</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Parent died, shutting down"</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div>
 <p>This check runs every iteration of the event loop (typically sub-millisecond). When parent death is detected:</p>
@@ -3773,10 +3773,10 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <li><strong>Metrics</strong> - Track respawn frequency to detect unstable workers</li>
 </ol>
 <div class="highlight"><pre><span></span><code><span class="c1"># Check for recent worker timeouts</span>
-grep<span class="w"> </span><span class="s2">&quot;Worker.*timed out&quot;</span><span class="w"> </span>/var/log/gunicorn.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+grep<span class="w"> </span><span class="s2">"Worker.*timed out"</span><span class="w"> </span>/var/log/gunicorn.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
 
 <span class="c1"># Monitor process tree</span>
-watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s1">&#39;pstree -p $(cat gunicorn.pid)&#39;</span>
+watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s1">'pstree -p $(cat gunicorn.pid)'</span>
 </code></pre></div>
 <h2 id="error-handling_2">Error Handling<a class="headerlink" href="#error-handling_2" title="Permanent link">&para;</a></h2>
 <p>The dirty client raises specific exceptions:</p>
@@ -3790,7 +3790,7 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
 <span class="p">)</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;myapp.ml:MLApp&quot;</span><span class="p">,</span> <span class="s2">&quot;inference&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.ml:MLApp"</span><span class="p">,</span> <span class="s2">"inference"</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 <span class="k">except</span> <span class="n">DirtyTimeoutError</span><span class="p">:</span>
     <span class="c1"># Operation timed out</span>
     <span class="k">pass</span>
@@ -3799,10 +3799,10 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
     <span class="k">pass</span>
 <span class="k">except</span> <span class="n">DirtyNoWorkersAvailableError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
     <span class="c1"># No workers have this app (all crashed or app limited to 0 workers)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No workers for app: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No workers for app: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">except</span> <span class="n">DirtyAppError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
     <span class="c1"># Error during app execution</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;App error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">, traceback: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">traceback</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"App error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">, traceback: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">traceback</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">except</span> <span class="n">DirtyConnectionError</span><span class="p">:</span>
     <span class="c1"># Connection to dirty arbiter failed</span>
     <span class="k">pass</span>
@@ -3818,7 +3818,7 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
 <h2 id="monitoring">Monitoring<a class="headerlink" href="#monitoring" title="Permanent link">&para;</a></h2>
 <p>Monitor dirty workers using standard process monitoring:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Check dirty arbiter and workers</span>
-ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;dirty&quot;</span>
+ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">"dirty"</span>
 
 <span class="c1"># View logs</span>
 tail<span class="w"> </span>-f<span class="w"> </span>gunicorn.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>dirty
@@ -3836,19 +3836,19 @@ tail<span class="w"> </span>-f<span class="w"> </span>gunicorn.log<span class="w
         <span class="bp">self</span><span class="o">.</span><span class="n">cv2</span> <span class="o">=</span> <span class="n">cv2</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resize an image.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Resize an image."""</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
         <span class="n">resized</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
         <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
-        <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PNG&#39;</span><span class="p">)</span>
+        <span class="n">resized</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">'PNG'</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">thumbnail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_data</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a thumbnail.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Create a thumbnail."""</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">image_data</span><span class="p">))</span>
         <span class="n">img</span><span class="o">.</span><span class="n">thumbnail</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
         <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
-        <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;JPEG&#39;</span><span class="p">)</span>
+        <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">'JPEG'</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3862,9 +3862,9 @@ tail<span class="w"> </span>-f<span class="w"> </span>gunicorn.log<span class="w
 
     <span class="c1"># Create thumbnail in dirty worker</span>
     <span class="n">thumbnail</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-        <span class="s2">&quot;myapp.images:ImageApp&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
-        <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+        <span class="s2">"myapp.images:ImageApp"</span><span class="p">,</span>
+        <span class="s2">"thumbnail"</span><span class="p">,</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">'image'</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
         <span class="n">size</span><span class="o">=</span><span class="mi">256</span>
     <span class="p">)</span>
 
