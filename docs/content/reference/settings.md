@@ -153,7 +153,26 @@ Valid engines are:
 Extends [reload](#reload) option to also watch and reload on additional files
 (e.g., templates, configurations, specifications, etc.).
 
+Entries containing ``*``, ``?`` or ``[`` are treated as glob patterns and
+are re-expanded on every reload check, so a file created after startup
+starts being watched without restarting gunicorn. Note that it is the
+first edit to that file which triggers a reload, not its creation. Use
+``**`` to recurse, and keep patterns narrow: a recursive pattern over a
+large tree is walked once per check.
+
+Two things behave the way glob does, not the way a path does. ``*`` does
+not match dotfiles, so list ``.env`` literally rather than expecting
+``*`` to find it. And a literal path that happens to contain ``*``, ``?``
+or ``[`` is read as a pattern, so it warns and matches nothing instead of
+failing outright the way a missing plain path does.
+
+Patterns are relative to the directory gunicorn is started from, not to
+chdir, which is applied later.
+
 !!! info "Added in 19.8"
+
+!!! info "Changed in 26.1.0"
+    Glob patterns are supported.
 
 ### `spew`
 
