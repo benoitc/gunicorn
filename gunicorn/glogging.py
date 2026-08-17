@@ -193,9 +193,19 @@ class Logger:
         self.setup(cfg)
 
     def setup(self, cfg):
+        # the cfg object is replaced on each configuration reload, so
+        # follow the one we are given instead of the startup one
+        self.cfg = cfg
         self.loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(self.loglevel)
         self.access_log.setLevel(logging.INFO)
+
+        # drop our own handlers from a previous setup so that re-running
+        # it on configuration reload does not stack duplicates
+        for log in (self.error_log, self.access_log):
+            for handler in list(log.handlers):
+                if getattr(handler, "_gunicorn", False):
+                    log.removeHandler(handler)
 
         # set gunicorn.error handler
         if self.cfg.capture_output and cfg.errorlog != "-":

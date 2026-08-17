@@ -112,6 +112,10 @@ class Arbiter:
 
         if self.log is None:
             self.log = self.cfg.logger_class(app.cfg)
+        else:
+            # reload the logger configuration as well, so that changes
+            # to the logconfig* and loglevel settings take effect
+            self.log.setup(app.cfg)
 
         # reopen files
         if 'GUNICORN_PID' in os.environ:
