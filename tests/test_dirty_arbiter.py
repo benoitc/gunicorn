@@ -751,18 +751,21 @@ class TestDirtyArbiterTimeoutConnection:
         slow_id, fast_id = 1, 2
 
         async def handle_worker(reader, writer):
+            # One request per connection: a handler parked in a read keeps the
+            # server alive on 3.12, where wait_closed() waits for handlers.
             try:
-                while True:
-                    message = await DirtyProtocol.read_message_async(reader)
-                    request_id = message.get("id")
-                    if request_id == slow_id:
-                        # Answer only after the arbiter has given up.
-                        await asyncio.sleep(1.5)
-                    await DirtyProtocol.write_message_async(
-                        writer, make_response(request_id, {"for": request_id})
-                    )
+                message = await DirtyProtocol.read_message_async(reader)
+                request_id = message.get("id")
+                if request_id == slow_id:
+                    # Answer only after the arbiter has given up.
+                    await asyncio.sleep(1.5)
+                await DirtyProtocol.write_message_async(
+                    writer, make_response(request_id, {"for": request_id})
+                )
             except Exception:
-                return
+                pass
+            finally:
+                writer.close()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             socket_path = os.path.join(tmpdir, "worker.sock")
@@ -800,7 +803,10 @@ class TestDirtyArbiterTimeoutConnection:
                 # connection keeps its handler alive and wait_closed() blocks.
                 arbiter._close_worker_connection(fake_pid)
                 server.close()
-                await server.wait_closed()
+                try:
+                    await asyncio.wait_for(server.wait_closed(), timeout=10)
+                except (asyncio.TimeoutError, TimeoutError):
+                    pass
 
         arbiter._cleanup_sync()
 
