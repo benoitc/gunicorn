@@ -101,3 +101,49 @@ def test_inotify_extra_file_current_dir():
     assert calls == ['.']
     assert '.env' in r._extra_files
     assert '.' in r._dirs
+
+
+def test_extra_patterns_expand_on_every_call(tmp_path):
+    """Files created after startup are picked up without a restart."""
+    from gunicorn.reloader import Reloader
+
+    views = tmp_path / "views"
+    views.mkdir()
+    first = views / "a.json"
+    first.write_text("{}")
+
+    r = Reloader(extra_files=[str(views / "*.json")])
+
+    assert r._extra_files == set()
+    assert str(first) in r.get_files()
+
+    second = views / "b.json"
+    second.write_text("{}")
+
+    assert str(second) in r.get_files()
+
+
+def test_extra_files_and_patterns_are_separated(tmp_path):
+    from gunicorn.reloader import Reloader
+
+    plain = tmp_path / "plain.txt"
+    plain.write_text("plain")
+    pattern = str(tmp_path / "*.json")
+
+    r = Reloader(extra_files=[str(plain), pattern])
+
+    assert r._extra_files == {str(plain)}
+    assert r._extra_patterns == {pattern}
+
+
+def test_recursive_pattern_matches_nested_files(tmp_path):
+    from gunicorn.reloader import Reloader
+
+    nested = tmp_path / "ui" / "deep" / "deeper"
+    nested.mkdir(parents=True)
+    target = nested / "config.json"
+    target.write_text("{}")
+
+    r = Reloader(extra_files=[str(tmp_path / "**" / "config.json")])
+
+    assert str(target) in r.get_files()
