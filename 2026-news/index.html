@@ -1399,6 +1399,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#bug-fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1449,7 +1460,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#new-features" class="md-nav__link">
+  <a href="#new-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1571,7 +1582,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_1" class="md-nav__link">
+  <a href="#new-features_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1621,7 +1632,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_2" class="md-nav__link">
+  <a href="#new-features_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1788,7 +1799,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_3" class="md-nav__link">
+  <a href="#new-features_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1877,7 +1888,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_4" class="md-nav__link">
+  <a href="#new-features_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -1916,7 +1927,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-features_5" class="md-nav__link">
+  <a href="#new-features_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         New Features
@@ -2432,6 +2443,17 @@
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Glob patterns in <code>reload_extra_files</code></strong>: entries containing <code>*</code>, <code>?</code> or <code>[</code>
+  are treated as patterns, so <code>ui/*/config.json</code> watches every view's config
+  without listing them one by one. Patterns are re-expanded on every reload
+  check rather than once at startup, so a file created later starts being
+  watched without restarting gunicorn, and <code>**</code> recurses. A pattern matching
+  nothing warns instead of failing, since with live expansion it may match later
+  (<a href="https://github.com/benoitc/gunicorn/issues/1643">#1643</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3662">#3662</a>).</li>
+</ul>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
@@ -2516,7 +2538,7 @@
 <li><strong>Eventlet worker removed</strong>: The <code>eventlet</code> worker class has been dropped.
   Migrate to <code>gevent</code>, <code>gthread</code>, or <code>tornado</code>.</li>
 </ul>
-<h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>ASGI Framework Compatibility Suite</strong>: New end-to-end compatibility test
@@ -2674,7 +2696,7 @@
 </ul>
 <hr />
 <h2 id="2520-2026-03-24">25.2.0 - 2026-03-24<a class="headerlink" href="#2520-2026-03-24" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_1">New Features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Fast HTTP Parser (gunicorn_h1c 0.6.0)</strong>: Integrate new exception types and limit
   parameters from gunicorn_h1c 0.6.0 for both WSGI and ASGI workers</li>
@@ -2708,7 +2730,7 @@
 </ul>
 <hr />
 <h2 id="2510-2026-02-13">25.1.0 - 2026-02-13<a class="headerlink" href="#2510-2026-02-13" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_2">New Features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Control Interface (gunicornc)</strong>: Add interactive control interface for managing
   running Gunicorn instances, similar to birdc for BIRD routing daemon
@@ -2826,7 +2848,7 @@
 </ul>
 <hr />
 <h2 id="2500-2026-02-01">25.0.0 - 2026-02-01<a class="headerlink" href="#2500-2026-02-01" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_3">New Features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_4">New Features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Dirty Arbiters</strong>: Separate process pool for executing long-running, blocking
   operations (AI model loading, heavy computation) without blocking HTTP workers
@@ -2933,7 +2955,7 @@
 </ul>
 <hr />
 <h2 id="2410-2026-01-23">24.1.0 - 2026-01-23<a class="headerlink" href="#2410-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_4">New Features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_5">New Features<a class="headerlink" href="#new-features_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Official Docker Image</strong>: Gunicorn now publishes official Docker images to GitHub
   Container Registry at <code>ghcr.io/benoitc/gunicorn</code></li>
@@ -3015,7 +3037,7 @@
 </ul>
 <hr />
 <h2 id="2400-2026-01-23">24.0.0 - 2026-01-23<a class="headerlink" href="#2400-2026-01-23" title="Permanent link">&para;</a></h2>
-<h3 id="new-features_5">New Features<a class="headerlink" href="#new-features_5" title="Permanent link">&para;</a></h3>
+<h3 id="new-features_6">New Features<a class="headerlink" href="#new-features_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker (Beta)</strong>: Native asyncio-based ASGI support for running async Python
   frameworks like FastAPI, Starlette, and Quart without external dependencies
