@@ -6,6 +6,7 @@
 
 import argparse
 import copy
+import glob
 import grp
 import inspect
 import ipaddress
@@ -16,6 +17,7 @@ import shlex
 import ssl
 import sys
 import textwrap
+import warnings
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
@@ -435,8 +437,25 @@ def validate_list_string(val):
     return [validate_string(v) for v in val]
 
 
-def validate_list_of_existing_files(val):
-    return [validate_file_exists(v) for v in validate_list_string(val)]
+def validate_list_of_files_or_patterns(val):
+    """Validate literal paths, and pass glob patterns through unexpanded.
+
+    Patterns are kept as-is so that the reloader can re-expand them on every
+    cycle and pick up files created after startup. A pattern matching nothing
+    is legitimate for that reason, so it only warns.
+    """
+    entries = []
+    for entry in validate_list_string(val):
+        if not util.is_glob_pattern(entry):
+            entries.append(validate_file_exists(entry))
+            continue
+        if not glob.glob(entry, recursive=True):
+            warnings.warn(
+                "Pattern %s currently matches no files." % entry,
+                RuntimeWarning, stacklevel=2,
+            )
+        entries.append(entry)
+    return entries
 
 
 def validate_string_to_addr_list(val):
@@ -996,13 +1015,32 @@ class ReloadExtraFiles(Setting):
     section = "Debugging"
     cli = ["--reload-extra-file"]
     meta = "FILES"
-    validator = validate_list_of_existing_files
+    validator = validate_list_of_files_or_patterns
     default = []
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
+        Entries containing ``*``, ``?`` or ``[`` are treated as glob patterns and
+        are re-expanded on every reload check, so a file created after startup
+        starts being watched without restarting gunicorn. Note that it is the
+        first edit to that file which triggers a reload, not its creation. Use
+        ``**`` to recurse, and keep patterns narrow: a recursive pattern over a
+        large tree is walked once per check.
+
+        Two things behave the way glob does, not the way a path does. ``*`` does
+        not match dotfiles, so list ``.env`` literally rather than expecting
+        ``*`` to find it. And a literal path that happens to contain ``*``, ``?``
+        or ``[`` is read as a pattern, so it warns and matches nothing instead of
+        failing outright the way a missing plain path does.
+
+        Patterns are relative to the directory gunicorn is started from, not to
+        :ref:`chdir`, which is applied later.
+
         .. versionadded:: 19.8
+
+        .. versionchanged:: 26.1.0
+           Glob patterns are supported.
         """
 
 
