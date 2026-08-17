@@ -18,6 +18,7 @@ from gunicorn.http.errors import (
     ObsoleteFolding,
 )
 import treq_asgi
+from gunicorn.asgi.parser import CallbackRequest
 
 dirname = os.path.dirname(__file__)
 reqdir = os.path.join(dirname, "requests", "invalid")
@@ -49,6 +50,12 @@ FAST_PARSER_SKIP_TESTS = {
     '024.http',      # InvalidHeader - fast parser accepts
     'prefix_03.http',  # InvalidHeader - fast parser accepts
     'prefix_04.http',  # InvalidHeader - fast parser accepts
+    # Duplicate singleton fields: H1CProtocol accepts them, and gunicorn
+    # rejects them in CallbackRequest.from_parser(), which this harness
+    # bypasses by driving the parser directly. Covered instead by
+    # TestSingletonHeadersFromParser below, which exercises that path.
+    '041.http',
+    '042.http',
 }
 
 
@@ -85,3 +92,47 @@ def test_asgi_parser(fname, http_parser):
 
     req = treq_asgi.badrequest(fname)
     req.check(cfg, expect, http_parser=http_parser)
+
+
+class TestSingletonHeadersFromParser:
+    """Duplicate singleton fields are rejected where both parsers converge.
+
+    The corpus harness above drives the parser directly, so it never reaches
+    CallbackRequest.from_parser(). Production does, via
+    ASGIProtocol._on_headers_complete(), and H1CProtocol accepts duplicate Host
+    and Content-Type on its own, so this is the only place the fast path is
+    covered.
+    """
+
+    DUPLICATES = [
+        pytest.param(
+            b"GET / HTTP/1.1\r\nHost: a\r\nHost: b\r\n\r\n", "host", id="host"
+        ),
+        pytest.param(
+            b"GET / HTTP/1.1\r\nHost: a\r\n"
+            b"Content-Type: application/json\r\n"
+            b"Content-Type: text/html\r\n\r\n",
+            "content-type", id="content-type",
+        ),
+    ]
+
+    @pytest.mark.parametrize("raw,field", DUPLICATES)
+    def test_duplicate_rejected(self, raw, field, http_parser):
+        parser_class = treq_asgi.get_parser_class(http_parser)
+        parser = parser_class()
+        try:
+            parser.feed(raw)
+        except Exception as exc:  # parser rejected it outright, also fine
+            assert field in str(exc).lower()
+            return
+
+        with pytest.raises(Exception) as exc_info:
+            CallbackRequest.from_parser(parser)
+        assert field in str(exc_info.value).lower()
+
+    def test_single_occurrence_accepted(self, http_parser):
+        parser_class = treq_asgi.get_parser_class(http_parser)
+        parser = parser_class()
+        parser.feed(b"GET / HTTP/1.1\r\nHost: a\r\nContent-Type: text/html\r\n\r\n")
+        req = CallbackRequest.from_parser(parser)
+        assert req.get_header("HOST") == "a"
