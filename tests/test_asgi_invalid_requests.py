@@ -50,12 +50,6 @@ FAST_PARSER_SKIP_TESTS = {
     '024.http',      # InvalidHeader - fast parser accepts
     'prefix_03.http',  # InvalidHeader - fast parser accepts
     'prefix_04.http',  # InvalidHeader - fast parser accepts
-    # Duplicate singleton fields: H1CProtocol accepts them, and gunicorn
-    # rejects them in CallbackRequest.from_parser(), which this harness
-    # bypasses by driving the parser directly. Covered instead by
-    # TestSingletonHeadersFromParser below, which exercises that path.
-    '041.http',
-    '042.http',
 }
 
 
@@ -97,11 +91,11 @@ def test_asgi_parser(fname, http_parser):
 class TestSingletonHeadersFromParser:
     """Duplicate singleton fields are rejected where both parsers converge.
 
-    The corpus harness above drives the parser directly, so it never reaches
-    CallbackRequest.from_parser(). Production does, via
-    ASGIProtocol._on_headers_complete(), and H1CProtocol accepts duplicate Host
-    and Content-Type on its own, so this is the only place the fast path is
-    covered.
+    The corpus cases above cover rejection during parsing. This covers the
+    backstop in CallbackRequest.from_parser(), which production reaches via
+    ASGIProtocol._on_headers_complete() and the corpus harness never does,
+    since it drives the parser directly. Either outcome is accepted: the
+    parser refusing the bytes outright, or from_parser() catching it.
     """
 
     DUPLICATES = [
