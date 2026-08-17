@@ -2457,6 +2457,16 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Duplicate <code>Host</code> and <code>Content-Type</code> headers accepted</strong>: RFC 9110 section 5.3
+  allows only one of each, and a repeat cannot be merged into a list, so the
+  message means different things to gunicorn and to anything downstream. Both
+  are now rejected with <code>InvalidHeader</code>. The check lives in the policy hook
+  shared by both parsers, so the pure-Python and fast parsers agree. Duplicate
+  <code>Content-Length</code> was already rejected and is unchanged
+  (<a href="https://github.com/benoitc/gunicorn/issues/3366">#3366</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3548">#3548</a>).</p>
+</li>
+<li>
 <p><strong>Non-worker children reported as failed workers</strong>: <code>reap_workers()</code> reaps
   every child through <code>waitpid(-1)</code>, including processes the kernel reparented
   onto gunicorn when it runs as PID 1 in a container, but it logged the exit
