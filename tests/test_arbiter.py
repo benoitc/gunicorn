@@ -575,6 +575,24 @@ class TestSighupReload:
         assert any('Hang up' in str(call) for call in mock_log.call_args_list)
 
 
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_calls_logger_setup(self, mock_manage, mock_spawn):
+        """HUP reload must re-setup logger so errorlog path stays live (#3401)."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.cfg.set('workers', 1)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        arbiter.app.reload = mock.Mock()
+        # Keep real setup for cfg/log wiring, but avoid env side effects.
+        with mock.patch.object(arbiter.log, 'setup', wraps=arbiter.log.setup) as mock_setup, \
+                mock.patch.object(arbiter.log, 'reopen_files', wraps=arbiter.log.reopen_files) as mock_reopen:
+            arbiter.reload()
+            mock_setup.assert_called()
+            mock_reopen.assert_called()
+            # setup called with reloaded cfg
+            assert mock_setup.call_args[0][0] is arbiter.cfg
+
 # ============================================================================
 # Worker Lifecycle Tests
 # ============================================================================
