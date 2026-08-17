@@ -268,8 +268,11 @@ class Arbiter:
 
     def handle_chld(self):
         """SIGCHLD handling - called from main loop, safe to log."""
-        self.reap_workers()
+        # Reap the dirty arbiter first: its targeted waitpid identifies the
+        # process, whereas reap_workers() uses waitpid(-1) and would claim it
+        # as an unknown child.
         self.reap_dirty_arbiter()
+        self.reap_workers()
 
     # SIGCLD is an alias for SIGCHLD on Linux. The SIG_NAMES dict may map
     # to either "chld" or "cld" depending on iteration order of dir(signal).
@@ -605,7 +608,22 @@ class Arbiter:
                     break
                 if self.reexec_pid == wpid:
                     self.reexec_pid = 0
+                elif self.dirty_arbiter_pid == wpid:
+                    # Normally claimed by reap_dirty_arbiter(), but it can exit
+                    # while this loop is running.
+                    self.handle_dirty_arbiter_exit(wpid, status)
                 else:
+                    # waitpid(-1) reaps every child, and when gunicorn runs as
+                    # PID 1 the kernel reparents orphans onto it. Those are not
+                    # ours: reap them so they do not linger as zombies, but do
+                    # not report them as workers or let them halt the server.
+                    worker = self.WORKERS.pop(wpid, None)
+                    if worker is None:
+                        self.log.debug(
+                            "Reaped unknown child process (pid:%s, status:%s)",
+                            wpid, status)
+                        continue
+
                     # A worker was terminated. If the termination reason was
                     # that it could not boot, we'll shut it down to avoid
                     # infinite start/stop cycles.
@@ -643,9 +661,6 @@ class Arbiter:
                         reason = "App failed to load."
                         raise HaltServer(reason, self.APP_LOAD_ERROR)
 
-                    worker = self.WORKERS.pop(wpid, None)
-                    if not worker:
-                        continue
                     worker.tmp.close()
                     self.cfg.child_exit(self, worker)
         except OSError as e:
@@ -897,6 +912,28 @@ class Arbiter:
                 self.dirty_arbiter_pid = 0
                 self.dirty_arbiter = None
 
+    def handle_dirty_arbiter_exit(self, wpid, status):
+        """\
+        Report the dirty arbiter exit status and forget the process.
+
+        Called from both reaping paths: the targeted waitpid below, and
+        reap_workers() when its waitpid(-1) claims the process first.
+        """
+        if os.WIFEXITED(status):
+            exitcode = os.WEXITSTATUS(status)
+            if exitcode != 0:
+                self.log.error("Dirty arbiter (pid:%s) exited with code %s",
+                               wpid, exitcode)
+            else:
+                self.log.info("Dirty arbiter (pid:%s) exited", wpid)
+        elif os.WIFSIGNALED(status):
+            sig = os.WTERMSIG(status)
+            self.log.warning("Dirty arbiter (pid:%s) killed by signal %s",
+                             wpid, sig)
+
+        self.dirty_arbiter_pid = 0
+        self.dirty_arbiter = None
+
     def reap_dirty_arbiter(self):
         """\
         Reap the dirty arbiter process if it has exited.
@@ -909,20 +946,7 @@ class Arbiter:
             if not wpid:
                 return
 
-            if os.WIFEXITED(status):
-                exitcode = os.WEXITSTATUS(status)
-                if exitcode != 0:
-                    self.log.error("Dirty arbiter (pid:%s) exited with code %s",
-                                   wpid, exitcode)
-                else:
-                    self.log.info("Dirty arbiter (pid:%s) exited", wpid)
-            elif os.WIFSIGNALED(status):
-                sig = os.WTERMSIG(status)
-                self.log.warning("Dirty arbiter (pid:%s) killed by signal %s",
-                                 wpid, sig)
-
-            self.dirty_arbiter_pid = 0
-            self.dirty_arbiter = None
+            self.handle_dirty_arbiter_exit(wpid, status)
         except OSError as e:
             if e.errno == errno.ECHILD:
                 self.dirty_arbiter_pid = 0
