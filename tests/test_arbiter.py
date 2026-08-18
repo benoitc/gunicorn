@@ -4,6 +4,7 @@
 
 import os
 import signal
+import logging
 from unittest import mock
 
 import pytest
@@ -27,6 +28,18 @@ class DummyApplication(gunicorn.app.base.BaseApplication):
 
     def load_config(self):
         """No-op"""
+
+
+class ReloadableConfigApplication(DummyApplication):
+    """
+    Application applying `settings_override` on every (re)load, so tests can
+    change the configuration between reloads like an edited config file.
+    """
+    settings_override = {}
+
+    def load_config(self):
+        for key, value in self.settings_override.items():
+            self.cfg.set(key, value)
 
 
 @mock.patch('gunicorn.sock.close_sockets')
@@ -573,6 +586,107 @@ class TestSighupReload:
 
         # Check that "Hang up" was logged
         assert any('Hang up' in str(call) for call in mock_log.call_args_list)
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_reapplies_logger_config(self, mock_manage, mock_spawn):
+        """Verify that reload re-applies the logger configuration (#3353)."""
+        app = ReloadableConfigApplication()
+        arbiter = gunicorn.arbiter.Arbiter(app)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        logger = arbiter.log
+        assert logger.loglevel == logging.INFO
+
+        app.settings_override = {'loglevel': 'debug'}
+        arbiter.reload()
+
+        # the logger object is kept, its configuration is refreshed
+        assert arbiter.log is logger
+        assert arbiter.log.loglevel == logging.DEBUG
+        assert arbiter.log.error_log.level == logging.DEBUG
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_reapplies_logconfig_dict(self, mock_manage, mock_spawn,
+                                             tmp_path):
+        """Verify that reload re-reads logconfig_dict (#3353)."""
+        app = ReloadableConfigApplication()
+        arbiter = gunicorn.arbiter.Arbiter(app)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        try:
+            app.settings_override = {
+                'logconfig_dict': {
+                    'version': 1,
+                    'disable_existing_loggers': False,
+                    'root': {'level': 'WARNING', 'handlers': ['console']},
+                    'formatters': {'fmt': {'format': '[RELOADED] %(message)s'}},
+                    'handlers': {
+                        'console': {
+                            'class': 'logging.StreamHandler',
+                            'formatter': 'fmt',
+                            'stream': 'ext://sys.stderr',
+                        },
+                        'error_file': {
+                            'class': 'logging.FileHandler',
+                            'filename': str(tmp_path / 'error.log'),
+                            'formatter': 'fmt',
+                        },
+                    },
+                    'loggers': {
+                        'gunicorn.error': {
+                            'handlers': ['error_file'],
+                            'level': 'DEBUG',
+                            'propagate': False,
+                        },
+                    },
+                },
+            }
+
+            arbiter.reload()
+            arbiter.log.error('after reload')
+
+            contents = (tmp_path / 'error.log').read_text()
+            assert '[RELOADED] after reload' in contents
+        finally:
+            # don't leak the dictConfig handlers into other tests
+            for handler in list(arbiter.log.error_log.handlers):
+                arbiter.log.error_log.removeHandler(handler)
+
+    @mock.patch('gunicorn.arbiter.Arbiter.spawn_worker')
+    @mock.patch('gunicorn.arbiter.Arbiter.manage_workers')
+    def test_reload_invalid_logconfig_keeps_previous(self, mock_manage,
+                                                     mock_spawn, capsys):
+        """An invalid logconfig on reload is not fatal: the error is reported
+        and the previous logger configuration is kept (#3353)."""
+        app = ReloadableConfigApplication()
+        arbiter = gunicorn.arbiter.Arbiter(app)
+        arbiter.LISTENERS = [mock.Mock()]
+        arbiter.pidfile = None
+        logger = arbiter.log
+        assert logger.loglevel == logging.INFO
+
+        app.settings_override = {
+            'loglevel': 'debug',
+            'logconfig_dict': {
+                'version': 1,
+                'handlers': {'broken': {'class': 'no.such.Handler'}},
+            },
+        }
+        with mock.patch.object(logger, 'error') as mock_error:
+            arbiter.reload()
+
+        # the master survived and still uses the previous logger configuration
+        assert arbiter.log is logger
+        assert arbiter.log.cfg is not arbiter.cfg
+        assert logger.loglevel == logging.INFO
+        assert logger.error_log.level == logging.INFO
+        # the failure is reported on stderr and through the restored logger
+        assert 'reloading the logger configuration failed' in \
+            capsys.readouterr().err
+        assert any('reloading the logger configuration failed' in str(call)
+                   for call in mock_error.call_args_list)
 
 
 # ============================================================================
