@@ -46,3 +46,21 @@ Start with the
 [contributing guide](https://github.com/benoitc/gunicorn/blob/master/CONTRIBUTING.md)
 for development workflow, code style, and review expectations. New contributors
 are welcome—open a draft pull request early to gather feedback.
+
+## Funding from outside the project
+
+A cryptocurrency token called $GUNICORN trades on
+[pump.fun](https://pump.fun/coin/4xMegMRMd2TFQEXxv39vtMP1r5fFVuA7VcaSmAhLpump).
+It is not operated by, affiliated with, or endorsed by the Gunicorn project, and
+holding it gives you no stake in Gunicorn, no say in its direction and no claim
+on anything. I receive a share of its creator rewards, and that money goes toward
+my work on Gunicorn.
+
+It is named here because it exists and because I benefit from it, not as a
+recommendation. Tokens of this kind are highly speculative and commonly lose all
+of their value. Do not buy it expecting a return, and do not buy it as a way to
+support this project: [sponsorship](sponsor.md) does that directly, and every
+euro of it reaches the work.
+
+Other tokens using the Gunicorn name exist and have no connection to the project
+or to me.
