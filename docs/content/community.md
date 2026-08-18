@@ -16,10 +16,18 @@ GitHub is used for:
 - [Feature planning](https://github.com/benoitc/gunicorn/issues) — development
   and project management topics.
 
-## IRC
+## Chat
 
-Join the Gunicorn channel on [Libera Chat](https://libera.chat/) at
-[`#gunicorn`](https://web.libera.chat/?channels=#gunicorn).
+[**Open the chat in your browser**](https://web.libera.chat/?channels=%23gunicorn)
+— no account, no install, pick a nickname and you are in.
+
+It is the `#gunicorn` channel on [Libera.Chat](https://libera.chat/), so any IRC
+client works too: `irc.libera.chat:6697` over TLS.
+
+Chat is for quick questions and hallway conversation. Nobody is guaranteed to be
+watching, and nothing said there is recorded, so anything worth keeping belongs
+in a [discussion](https://github.com/benoitc/gunicorn/discussions) or an
+[issue](https://github.com/benoitc/gunicorn/issues).
 
 ## Issue tracking
 
