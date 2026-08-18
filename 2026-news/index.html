@@ -1387,15 +1387,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#2610-2026-08-18" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        26.1.0 - 2026-08-18
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Unreleased">
+    <nav class="md-nav" aria-label="26.1.0 - 2026-08-18">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1403,6 +1403,17 @@
     <span class="md-ellipsis">
       
         New Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
       
     </span>
   </a>
@@ -1482,7 +1493,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
+  <a href="#security_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Security
@@ -1554,7 +1565,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security_1" class="md-nav__link">
+  <a href="#security_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Security
@@ -1949,7 +1960,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security_2" class="md-nav__link">
+  <a href="#security_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Security
@@ -2453,7 +2464,7 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
-<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="2610-2026-08-18">26.1.0 - 2026-08-18<a class="headerlink" href="#2610-2026-08-18" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Glob patterns in <code>reload_extra_files</code></strong>: entries containing <code>*</code>, <code>?</code> or <code>[</code>
@@ -2464,6 +2475,16 @@
   nothing warns instead of failing, since with live expansion it may match later
   (<a href="https://github.com/benoitc/gunicorn/issues/1643">#1643</a>,
   <a href="https://github.com/benoitc/gunicorn/pull/3662">#3662</a>).</li>
+</ul>
+<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Dependency floors raised past known advisories</strong>: every declared floor was
+  checked against the advisory database. <code>tornado</code>, <code>h2</code>, <code>setuptools</code> and
+  <code>pymdown-extensions</code> permitted vulnerable versions and now require the first
+  clean release; <code>pytest</code> and <code>httpx</code> were unpinned and now carry floors. The
+  <code>tornado</code> example pinned <code>tornado&lt;6</code>, which was both the source of several
+  advisories and older than the <code>&gt;=6.5.0</code> the tornado worker needs, so the
+  example could not run as pinned.</li>
 </ul>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2480,6 +2501,25 @@
   error is reported on stderr, the previous working configuration is restored
   and the master keeps running with it
   (<a href="https://github.com/benoitc/gunicorn/issues/3353">#3353</a>).</p>
+</li>
+<li>
+<p><strong>Truncated chunked bodies accepted</strong>: RFC 9112 section 7.1.2 ends a chunked
+  body with <code>0 CRLF CRLF</code>, the second CRLF being the mandatory empty trailer
+  section. <code>ChunkedReader.parse_chunk_size()</code> swallowed the <code>NoMoreData</code> raised
+  while scanning for it, so a body cut short right after the last chunk line was
+  treated as complete instead of rejected. It now raises
+  <code>ChunkMissingTerminator</code>
+  (<a href="https://github.com/benoitc/gunicorn/issues/3382">#3382</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3685">#3685</a>).</p>
+</li>
+<li>
+<p><strong><code>--spew</code> crashed on dynamically generated code</strong>: the trace hook indexed the
+  2-tuple returned by <code>inspect.getsourcelines()</code> by line number rather than
+  indexing the list of lines, so a frame with no <code>__file__</code> raised
+  <code>AttributeError: 'int' object has no attribute 'rstrip'</code> on line 1 and
+  <code>IndexError</code> beyond it. The tuple is now unpacked and offset by the source's
+  starting line (<a href="https://github.com/benoitc/gunicorn/issues/3344">#3344</a>,
+  <a href="https://github.com/benoitc/gunicorn/pull/3495">#3495</a>).</p>
 </li>
 <li>
 <p><strong>Duplicate <code>Host</code> and <code>Content-Type</code> headers accepted</strong>: RFC 9110 section 5.3
@@ -2589,11 +2629,19 @@
 </ul>
 <h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Fast HTTP Parser</strong>: Require <code>gunicorn_h1c &gt;= 0.6.6</code>, which rejects duplicate
+<li>
+<p><strong><code>packaging</code> is no longer a runtime dependency</strong>: it was only ever imported by
+  the gevent worker, to compare gevent's version. It moved to the <code>gevent</code> and
+  <code>testing</code> extras, so a plain <code>pip install gunicorn</code> pulls in nothing
+  (<a href="https://github.com/benoitc/gunicorn/pull/3643">#3643</a>).</p>
+</li>
+<li>
+<p><strong>Fast HTTP Parser</strong>: Require <code>gunicorn_h1c &gt;= 0.6.6</code>, which rejects duplicate
   <code>Host</code> and <code>Content-Type</code> headers in the C parser itself. Gunicorn already
   refuses them on both the WSGI and ASGI paths, so this changes nothing that is
   reachable; it moves the rejection to where the bytes are read and lets the
-  ASGI corpus exercise those cases against the fast parser directly.</li>
+  ASGI corpus exercise those cases against the fast parser directly.</p>
+</li>
 </ul>
 <h2 id="2600-2026-05-05">26.0.0 - 2026-05-05<a class="headerlink" href="#2600-2026-05-05" title="Permanent link">&para;</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
@@ -2613,7 +2661,7 @@
   protocol semantics, lifespan, websockets, and chunked framing.</p>
 </li>
 </ul>
-<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<h3 id="security_1">Security<a class="headerlink" href="#security_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>HTTP/1.1 Request-Target Validation</strong> (RFC 9112 sections 3.2.3, 3.2.4):</li>
 <li>Reject <code>authority-form</code> request-target outside <code>CONNECT</code></li>
@@ -2737,7 +2785,7 @@
   (<a href="https://github.com/benoitc/gunicorn/discussions/3556">#3556</a>)</p>
 </li>
 </ul>
-<h3 id="security_1">Security<a class="headerlink" href="#security_1" title="Permanent link">&para;</a></h3>
+<h3 id="security_2">Security<a class="headerlink" href="#security_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Parser Header Validation</strong>: Add security checks per RFC 9110/9112:</li>
 <li>Reject duplicate Content-Length headers</li>
@@ -3126,7 +3174,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3426">PR #3426</a>)</p>
 </li>
 </ul>
-<h3 id="security_2">Security<a class="headerlink" href="#security_2" title="Permanent link">&para;</a></h3>
+<h3 id="security_3">Security<a class="headerlink" href="#security_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>eventlet</strong>: Require eventlet &gt;= 0.40.3 to address CVE-2021-21419 (websocket
