@@ -32,7 +32,7 @@ with the compatibility suite as the check on that.
 
 ## Next
 
-Larger pieces of work that are planned but not started.
+Larger pieces of work that are planned, or begun but not landed.
 
 **Serving AI workloads.** Dirty arbiters already give a model its own process
 pool, with per-app worker allocation and streaming responses. The work ahead is
@@ -42,6 +42,17 @@ pinning workers to specific GPUs.
 
 **HTTP/3.** QUIC support, alongside finishing HTTP/2. The protocol is already
 reserved in the configuration and does nothing yet.
+
+**FastCGI.** A FastCGI responder alongside the existing
+[uWSGI protocol](uwsgi.md) support, so gunicorn can sit behind nginx or Apache
+over FCGI instead of HTTP proxying. A working branch exists in
+[#3466](https://github.com/benoitc/gunicorn/pull/3466); it needs finishing and
+review.
+
+None of these are settled. If you have a use case, a design opinion or a
+constraint any of them would break, say so in
+[Ideas](https://github.com/benoitc/gunicorn/discussions/categories/ideas) —
+that is what shapes the order and the shape of the work.
 
 ## Not planned
 
@@ -57,6 +68,6 @@ The ordering is not fixed. Things that move it:
 - [Sponsorship](sponsor.md) converts evenings into days, which is what
   determines how much of the "Next" section happens at all.
 
-Open a [discussion](https://github.com/benoitc/gunicorn/discussions) if
-something important to you is missing here, or come
-[ask in chat](https://web.libera.chat/?channels=%23gunicorn).
+If something important to you is missing here, open an
+[Idea](https://github.com/benoitc/gunicorn/discussions/categories/ideas), or
+come [ask in chat](https://web.libera.chat/?channels=%23gunicorn).
