@@ -3,11 +3,12 @@
 # setuptools v68.0 fails hard on invalid pyproject.toml
 # which a developer would want to know
 # otherwise, oldest known-working version is 61.2
-setuptools>=68.0
+# floor raised past GHSA-h35f-9h28-mq5c and PYSEC-2026-3447
+setuptools>=84.0.0
 
 mkdocs>=1.6
 mkdocs-material>=9.5
 mkdocs-gen-files>=0.5
 markdown-grid-tables>=0.6
 mkdocs-macros-plugin>=1.0
-pymdown-extensions>=10.0
+pymdown-extensions>=11.0.1

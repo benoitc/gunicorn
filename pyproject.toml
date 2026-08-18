@@ -48,21 +48,21 @@ gevent = [
     "gevent>=24.10.1",
     "packaging",
 ]
-tornado = ["tornado>=6.5.0"]
+tornado = ["tornado>=6.5.7"]
 gthread = []
 setproctitle = ["setproctitle"]
-http2 = ["h2>=4.1.0"]
+http2 = ["h2>=4.4.1"]
 fast = ["gunicorn_h1c>=0.6.6"]
 testing = [
     "gevent>=24.10.1",
-    "h2>=4.1.0",
+    "h2>=4.4.1",
     "coverage",
     "packaging",
-    "pytest",
+    "pytest>=9.0.3",
     "pytest-cov",
     "pytest-asyncio",
     "uvloop>=0.19.0",
-    "httpx[http2]",
+    "httpx[http2]>=0.23.0",
     "inotify>=0.2.10; sys_platform == 'linux'",
 ]
 
