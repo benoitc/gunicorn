@@ -26,6 +26,19 @@
 
 ### Bug Fixes
 
+- **SIGHUP did not reload the logger configuration**: `Arbiter.reload()`
+  re-read the configuration file but kept using the logger built at startup,
+  calling only `reopen_files()` on its existing handlers. Changes to
+  `logconfig`, `logconfig_dict`, `logconfig_json` and `loglevel` were ignored
+  until a full restart, which in containers meant replacing the pod. The
+  existing logger now re-runs its setup on reload, so new handlers, formats
+  and levels take effect while the process identity and its listeners are
+  preserved, and re-running the setup no longer stacks duplicate syslog
+  handlers. An invalid log configuration on reload is not fatal either: the
+  error is reported on stderr, the previous working configuration is restored
+  and the master keeps running with it
+  ([#3353](https://github.com/benoitc/gunicorn/issues/3353)).
+
 - **Truncated chunked bodies accepted**: RFC 9112 section 7.1.2 ends a chunked
   body with `0 CRLF CRLF`, the second CRLF being the mandatory empty trailer
   section. `ChunkedReader.parse_chunk_size()` swallowed the `NoMoreData` raised
