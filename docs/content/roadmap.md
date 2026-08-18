@@ -45,14 +45,8 @@ reserved in the configuration and does nothing yet.
 
 ## Not planned
 
-Saying no is part of a direction.
-
-- **Windows support.** Gunicorn is a pre-fork UNIX server. The process model is
-  the product, and it does not port.
-- **Becoming an application framework.** Gunicorn runs your app; it does not
-  want to be your router, your ORM or your task queue.
-- **Replacing a reverse proxy.** Run gunicorn behind nginx or similar. TLS
-  termination, static files and request buffering belong there.
+**Windows support.** Gunicorn is a pre-fork UNIX server. The process model is
+the product, and it does not port.
 
 ## Influencing this
 
