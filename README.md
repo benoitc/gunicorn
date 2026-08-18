@@ -53,7 +53,7 @@ Full documentation at https://gunicorn.org
 ## Community
 
 - Report bugs on [GitHub Issues](https://github.com/benoitc/gunicorn/issues)
-- Chat in [#gunicorn](https://web.libera.chat/?channels=#gunicorn) on [Libera.chat](https://libera.chat/)
+- [Chat with us in your browser](https://web.libera.chat/?channels=%23gunicorn) (`#gunicorn` on Libera.Chat, no account needed)
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
 
 ## Support
