@@ -1431,6 +1431,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1504,7 +1515,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes" class="md-nav__link">
+  <a href="#changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1554,7 +1565,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_1" class="md-nav__link">
+  <a href="#changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1643,7 +1654,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_2" class="md-nav__link">
+  <a href="#changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1721,7 +1732,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_3" class="md-nav__link">
+  <a href="#changes_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1760,7 +1771,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_4" class="md-nav__link">
+  <a href="#changes_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1832,7 +1843,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_5" class="md-nav__link">
+  <a href="#changes_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1949,7 +1960,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_6" class="md-nav__link">
+  <a href="#changes_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -2457,6 +2468,20 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>SIGHUP did not reload the logger configuration</strong>: <code>Arbiter.reload()</code>
+  re-read the configuration file but kept using the logger built at startup,
+  calling only <code>reopen_files()</code> on its existing handlers. Changes to
+  <code>logconfig</code>, <code>logconfig_dict</code>, <code>logconfig_json</code> and <code>loglevel</code> were ignored
+  until a full restart, which in containers meant replacing the pod. The
+  existing logger now re-runs its setup on reload, so new handlers, formats
+  and levels take effect while the process identity and its listeners are
+  preserved, and re-running the setup no longer stacks duplicate syslog
+  handlers. An invalid log configuration on reload is not fatal either: the
+  error is reported on stderr, the previous working configuration is restored
+  and the master keeps running with it
+  (<a href="https://github.com/benoitc/gunicorn/issues/3353">#3353</a>).</p>
+</li>
+<li>
 <p><strong>Duplicate <code>Host</code> and <code>Content-Type</code> headers accepted</strong>: RFC 9110 section 5.3
   allows only one of each, and a repeat cannot be merged into a list, so the
   message means different things to gunicorn and to anything downstream. Both
@@ -2562,6 +2587,14 @@
   termination message in <code>Arbiter.reap_workers()</code>
   (<a href="https://github.com/benoitc/gunicorn/pull/3678">#3678</a>).</li>
 </ul>
+<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Fast HTTP Parser</strong>: Require <code>gunicorn_h1c &gt;= 0.6.6</code>, which rejects duplicate
+  <code>Host</code> and <code>Content-Type</code> headers in the C parser itself. Gunicorn already
+  refuses them on both the WSGI and ASGI paths, so this changes nothing that is
+  reachable; it moves the rejection to where the bytes are read and lets the
+  ASGI corpus exercise those cases against the fast parser directly.</li>
+</ul>
 <h2 id="2600-2026-05-05">26.0.0 - 2026-05-05<a class="headerlink" href="#2600-2026-05-05" title="Permanent link">&para;</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2664,7 +2697,7 @@
 <li>Split <code>BodyReceiver._closed</code> into separate transport and body-wait flags
   for clearer keepalive/EOF semantics.</li>
 </ul>
-<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>Fast HTTP Parser</strong>: Require <code>gunicorn_h1c &gt;= 0.6.5</code>. Drop the last
@@ -2714,7 +2747,7 @@
 <li>Validate Transfer-Encoding values</li>
 <li>Strict chunk size validation</li>
 </ul>
-<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>Fast HTTP Parser</strong>: Update to gunicorn_h1c &gt;= 0.6.2 for <code>asgi_headers</code> property
@@ -2802,7 +2835,7 @@
 <li>Send SIGTTOU to decrease dirty workers</li>
 <li>Respects minimum worker constraints from app configurations</li>
 </ul>
-<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
+<h3 id="changes_3">Changes<a class="headerlink" href="#changes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker</strong>: Promoted from beta to stable</li>
 <li><strong>Dirty Arbiters</strong>: Now marked as beta feature</li>
@@ -2844,7 +2877,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3483">PR #3483</a>)</p>
 </li>
 </ul>
-<h3 id="changes_3">Changes<a class="headerlink" href="#changes_3" title="Permanent link">&para;</a></h3>
+<h3 id="changes_4">Changes<a class="headerlink" href="#changes_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Refactor: Extract <code>_normalize_sockaddr</code> utility function for consistent
@@ -2865,7 +2898,7 @@
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
   clients wait for connection close to determine end-of-response.</li>
 </ul>
-<h3 id="changes_4">Changes<a class="headerlink" href="#changes_4" title="Permanent link">&para;</a></h3>
+<h3 id="changes_5">Changes<a class="headerlink" href="#changes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Update celery_alternative example to use FastAPI with native ASGI worker and
   uvloop for async task execution</li>
@@ -2968,7 +3001,7 @@
   Gunicorn 26.0. Eventlet itself is <a href="https://eventlet.readthedocs.io/en/latest/asyncio/migration.html">no longer actively maintained</a>.
   Please migrate to <code>gevent</code>, <code>gthread</code>, or another supported worker type.</li>
 </ul>
-<h3 id="changes_5">Changes<a class="headerlink" href="#changes_5" title="Permanent link">&para;</a></h3>
+<h3 id="changes_6">Changes<a class="headerlink" href="#changes_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Remove obsolete Makefile targets
   (<a href="https://github.com/benoitc/gunicorn/pull/3471">PR #3471</a>)</li>
@@ -3111,7 +3144,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3445">PR #3445</a>)</p>
 </li>
 </ul>
-<h3 id="changes_6">Changes<a class="headerlink" href="#changes_6" title="Permanent link">&para;</a></h3>
+<h3 id="changes_7">Changes<a class="headerlink" href="#changes_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Documentation now hosted at <a href="https://gunicorn.org">https://gunicorn.org</a></li>
 <li>Updated license configuration to PEP 639 format for uv compatibility</li>
