@@ -47,7 +47,7 @@ def generate_self_signed_cert(certs_dir: Path) -> None:
     key_file.chmod(0o644)
 
 
-def wait_for_http_service(host: str, port: int, timeout: int = 60) -> bool:
+def wait_for_http_service(host: str, port: int, timeout: int = 180) -> bool:
     """Wait for an HTTP service to become available."""
     start_time = time.time()
     while time.time() - start_time < timeout:
@@ -59,7 +59,7 @@ def wait_for_http_service(host: str, port: int, timeout: int = 60) -> bool:
     return False
 
 
-def wait_for_https_service(host: str, port: int, timeout: int = 60) -> bool:
+def wait_for_https_service(host: str, port: int, timeout: int = 180) -> bool:
     """Wait for an HTTPS service to become available."""
     import ssl
 
@@ -130,10 +130,10 @@ def docker_services(docker_compose_file, certs_dir):
         )
 
         # Wait for services to be healthy
-        gunicorn_http_ready = wait_for_http_service("127.0.0.1", 8000, timeout=60)
-        gunicorn_https_ready = wait_for_https_service("127.0.0.1", 8445, timeout=60)
-        nginx_http_ready = wait_for_http_service("127.0.0.1", 8080, timeout=60)
-        nginx_https_ready = wait_for_https_service("127.0.0.1", 8444, timeout=60)
+        gunicorn_http_ready = wait_for_http_service("127.0.0.1", 8000, timeout=180)
+        gunicorn_https_ready = wait_for_https_service("127.0.0.1", 8445, timeout=180)
+        nginx_http_ready = wait_for_http_service("127.0.0.1", 8080, timeout=180)
+        nginx_https_ready = wait_for_https_service("127.0.0.1", 8444, timeout=180)
 
         if not gunicorn_http_ready:
             result = subprocess.run(

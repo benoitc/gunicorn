@@ -1,6 +1,167 @@
 <span id="news"></span>
 # Changelog
 
+## 26.1.0 - 2026-08-18
+
+### New Features
+
+- **Glob patterns in `reload_extra_files`**: entries containing `*`, `?` or `[`
+  are treated as patterns, so `ui/*/config.json` watches every view's config
+  without listing them one by one. Patterns are re-expanded on every reload
+  check rather than once at startup, so a file created later starts being
+  watched without restarting gunicorn, and `**` recurses. A pattern matching
+  nothing warns instead of failing, since with live expansion it may match later
+  ([#1643](https://github.com/benoitc/gunicorn/issues/1643),
+  [#3662](https://github.com/benoitc/gunicorn/pull/3662)).
+
+### Security
+
+- **Dependency floors raised past known advisories**: every declared floor was
+  checked against the advisory database. `tornado`, `h2`, `setuptools` and
+  `pymdown-extensions` permitted vulnerable versions and now require the first
+  clean release; `pytest` and `httpx` were unpinned and now carry floors. The
+  `tornado` example pinned `tornado<6`, which was both the source of several
+  advisories and older than the `>=6.5.0` the tornado worker needs, so the
+  example could not run as pinned.
+
+### Bug Fixes
+
+- **SIGHUP did not reload the logger configuration**: `Arbiter.reload()`
+  re-read the configuration file but kept using the logger built at startup,
+  calling only `reopen_files()` on its existing handlers. Changes to
+  `logconfig`, `logconfig_dict`, `logconfig_json` and `loglevel` were ignored
+  until a full restart, which in containers meant replacing the pod. The
+  existing logger now re-runs its setup on reload, so new handlers, formats
+  and levels take effect while the process identity and its listeners are
+  preserved, and re-running the setup no longer stacks duplicate syslog
+  handlers. An invalid log configuration on reload is not fatal either: the
+  error is reported on stderr, the previous working configuration is restored
+  and the master keeps running with it
+  ([#3353](https://github.com/benoitc/gunicorn/issues/3353)).
+
+- **Truncated chunked bodies accepted**: RFC 9112 section 7.1.2 ends a chunked
+  body with `0 CRLF CRLF`, the second CRLF being the mandatory empty trailer
+  section. `ChunkedReader.parse_chunk_size()` swallowed the `NoMoreData` raised
+  while scanning for it, so a body cut short right after the last chunk line was
+  treated as complete instead of rejected. It now raises
+  `ChunkMissingTerminator`
+  ([#3382](https://github.com/benoitc/gunicorn/issues/3382),
+  [#3685](https://github.com/benoitc/gunicorn/pull/3685)).
+
+- **`--spew` crashed on dynamically generated code**: the trace hook indexed the
+  2-tuple returned by `inspect.getsourcelines()` by line number rather than
+  indexing the list of lines, so a frame with no `__file__` raised
+  `AttributeError: 'int' object has no attribute 'rstrip'` on line 1 and
+  `IndexError` beyond it. The tuple is now unpacked and offset by the source's
+  starting line ([#3344](https://github.com/benoitc/gunicorn/issues/3344),
+  [#3495](https://github.com/benoitc/gunicorn/pull/3495)).
+
+- **Duplicate `Host` and `Content-Type` headers accepted**: RFC 9110 section 5.3
+  allows only one of each, and a repeat cannot be merged into a list, so the
+  message means different things to gunicorn and to anything downstream. Both
+  are now rejected with `InvalidHeader`. The check lives in the policy hook
+  shared by both parsers, so the pure-Python and fast parsers agree. Duplicate
+  `Content-Length` was already rejected and is unchanged
+  ([#3366](https://github.com/benoitc/gunicorn/issues/3366),
+  [#3548](https://github.com/benoitc/gunicorn/pull/3548)).
+
+- **Non-worker children reported as failed workers**: `reap_workers()` reaps
+  every child through `waitpid(-1)`, including processes the kernel reparented
+  onto gunicorn when it runs as PID 1 in a container, but it logged the exit
+  status before checking whether the pid was ever a worker. An unrelated process
+  produced `Worker (pid:N) exited with code M` and triggered alerts. More
+  seriously, such a process exiting with code 3 or 4 raised `HaltServer` and shut
+  the server down. Ownership is now established first: the dirty arbiter is
+  reported as itself, unknown children are reaped silently at debug level, and
+  only real workers can halt the server
+  ([#3220](https://github.com/benoitc/gunicorn/issues/3220),
+  [#3566](https://github.com/benoitc/gunicorn/pull/3566)).
+
+- **Dirty arbiter exits were invisible on SIGCHLD**: `handle_chld()` called
+  `reap_workers()` first, whose `waitpid(-1)` claimed the dirty arbiter before
+  `reap_dirty_arbiter()` could identify it, so the latter always hit `ECHILD` and
+  its reporting never ran. The dirty arbiter is now reaped first, and
+  `reap_workers()` recognises it if it exits mid-loop.
+
+- **Dirty arbiter returned stale responses after a worker timeout**: when a
+  request reached `dirty_timeout` the arbiter answered the client with a timeout
+  error but kept the worker connection open. The worker's late response was then
+  the first message waiting on that socket, so the next request routed to the
+  same worker received the previous request's result, and every request after it
+  stayed one response behind. The connection is now closed on timeout, so the
+  late answer is discarded with it
+  ([#3626](https://github.com/benoitc/gunicorn/pull/3626)).
+
+- **ASGI connection count leaked on server-initiated close**: `nr_conns` was
+  only decremented in `connection_lost()`, behind a guard keyed on the same
+  flag `_close_transport()` sets first. Every close the server started (a
+  `Connection: close` response, a keepalive timeout, an error abort) leaked one
+  count, so `ASGIWorker._shutdown()` ran the full `graceful_timeout` and warned
+  about connections that were already gone. The guard now uses its own flag, so
+  the decrement and the rest of the cleanup run exactly once whichever side
+  closes first ([#3661](https://github.com/benoitc/gunicorn/issues/3661)).
+
+- **Inotify reloader on cwd-relative extra files**: `reload_extra_files` entries
+  with no directory part (for example `.env`) produced an empty dirname, and
+  watching it raised `InotifyError` with `ENOENT`. The current directory is now
+  watched as `.` ([#3377](https://github.com/benoitc/gunicorn/issues/3377),
+  [#3667](https://github.com/benoitc/gunicorn/pull/3667)).
+
+- **StatsD zero-valued metrics**: gauges, counters, histograms and timers
+  reporting `0` were silently dropped because the value was tested for
+  truthiness. Only `None` is skipped now
+  ([#3676](https://github.com/benoitc/gunicorn/pull/3676)).
+
+- **Spurious no-body warning from `sendfile()`**: a HEAD, 204 or 304 response
+  served through `sendfile()` warned about dropped body bytes even when the
+  file was empty and nothing was dropped. It now warns only when there are
+  bytes to drop, matching `write()`
+  ([#3684](https://github.com/benoitc/gunicorn/pull/3684)).
+
+- **Bare `except` in the gevent websocket example**: narrowed to
+  `except Exception` ([#3683](https://github.com/benoitc/gunicorn/pull/3683)).
+
+- **ASGI `receive()` cancellation**: Let `asyncio.CancelledError` propagate
+  from `BodyReceiver` instead of swallowing it and returning
+  `http.disconnect`. Frameworks that cancel their disconnect listener after
+  the response completes (Django) no longer see the cancel masked, so
+  `request_finished` fires and `close_old_connections()` runs. Fixes idle
+  database connections leaking since 25.1.0
+  ([#3627](https://github.com/benoitc/gunicorn/issues/3627),
+  [#3654](https://github.com/benoitc/gunicorn/pull/3654)).
+
+- **Control socket leak on SIGHUP reload**: The control thread is now marked
+  ready once its loop and server are live, and the stop paths wait on that
+  readiness before scheduling shutdown. Reloads no longer leak one thread and
+  its selector fd plus unix socket per worker, which eventually raised
+  "too many open files"
+  ([#3648](https://github.com/benoitc/gunicorn/issues/3648)).
+
+- **WSGI body framing on HEAD/1xx/204/304**: Mirror the ASGI strip-and-warn
+  behavior on the WSGI path. `Content-Length` is stripped on 1xx/204 per
+  RFC 9110 section 6.4.2, body bytes are dropped for no-body responses in
+  both `write()` and `sendfile()`, and a single warning is logged per request
+  ([#3413](https://github.com/benoitc/gunicorn/issues/3413)).
+
+### Refactoring
+
+- Pass log arguments to the logger instead of pre-formatting the worker
+  termination message in `Arbiter.reap_workers()`
+  ([#3678](https://github.com/benoitc/gunicorn/pull/3678)).
+
+### Changes
+
+- **`packaging` is no longer a runtime dependency**: it was only ever imported by
+  the gevent worker, to compare gevent's version. It moved to the `gevent` and
+  `testing` extras, so a plain `pip install gunicorn` pulls in nothing
+  ([#3643](https://github.com/benoitc/gunicorn/pull/3643)).
+
+- **Fast HTTP Parser**: Require `gunicorn_h1c >= 0.6.6`, which rejects duplicate
+  `Host` and `Content-Type` headers in the C parser itself. Gunicorn already
+  refuses them on both the WSGI and ASGI paths, so this changes nothing that is
+  reachable; it moves the rejection to where the bytes are read and lets the
+  ASGI corpus exercise those cases against the fast parser directly.
+
 ## 26.0.0 - 2026-05-05
 
 ### Breaking Changes
