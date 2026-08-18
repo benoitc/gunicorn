@@ -62,5 +62,5 @@ If gunicorn is part of your infrastructure:
 ## Sponsors
 
 <a href="https://enki-multimedia.eu" target="_blank" rel="noopener">
-  <img src="assets/enki-multimedia.svg" alt="Enki Multimedia" style="height: 50px;" />
+  <img src="../assets/enki-multimedia.svg" alt="Enki Multimedia" style="height: 50px;" />
 </a>
