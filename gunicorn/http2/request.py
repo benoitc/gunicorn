@@ -11,6 +11,11 @@ Provides a Request-compatible interface for HTTP/2 streams.
 
 from io import BytesIO
 
+from gunicorn.http.message import (
+    HeaderPolicy,
+    RFC9110_5_5_INVALID_AND_DANGEROUS,
+)
+from gunicorn.http.errors import InvalidHeader
 from gunicorn.util import split_request_uri
 
 
@@ -80,13 +85,17 @@ class HTTP2Body:
         self._data.close()
 
 
-class HTTP2Request:
+class HTTP2Request(HeaderPolicy):
     """HTTP/2 request wrapper compatible with gunicorn Request interface.
 
     Wraps an HTTP2Stream to provide the same interface as the HTTP/1.x
     Request class, allowing workers to handle HTTP/2 requests using
     existing code paths.
     """
+
+    #: HTTP/2 carries no 100-continue handshake gunicorn can answer: the
+    #: response would be written as HTTP/1 bytes onto an HTTP/2 connection.
+    _policy_expect_continue = False
 
     def __init__(self, stream, cfg, peer_addr):
         """Initialize from an HTTP/2 stream.
@@ -107,7 +116,14 @@ class HTTP2Request:
         # Parse pseudo-headers
         pseudo = stream.get_pseudo_headers()
         self.method = pseudo.get(':method', 'GET')
-        self.scheme = pseudo.get(':scheme', 'https')
+        # Derive the scheme from the transport, as HTTP/1 does. A client
+        # supplied :scheme is honoured only from a peer allowed to speak for
+        # the connection; otherwise it is ignored rather than rejected, which
+        # mirrors how an untrusted X-Forwarded-Proto is treated on HTTP/1.
+        self.scheme = "https" if cfg.is_ssl else "http"
+        claimed_scheme = pseudo.get(':scheme')
+        if claimed_scheme and self._peer_is_trusted_proxy():
+            self.scheme = claimed_scheme
         authority = pseudo.get(':authority', '')
         path = pseudo.get(':path', '/')
 
@@ -126,15 +142,30 @@ class HTTP2Request:
         # Store authority for Host header equivalent
         self._authority = authority
 
-        # Convert HTTP/2 headers to HTTP/1.1 style
-        # HTTP/2 headers are lowercase, convert to uppercase for WSGI
+        # Convert HTTP/2 headers to HTTP/1.1 style and put them through the
+        # same policy as HTTP/1, so a rule cannot hold on one protocol and be
+        # skipped on the other.
         self.headers = []
+        scheme_state = [False]
+        seen = set()
+        secure_scheme_headers, forwarder_headers = \
+            self._peer_trusted_for_forwarded()
         for name, value in stream.get_regular_headers():
             # Convert to uppercase for WSGI compatibility
-            self.headers.append((name.upper(), value))
+            name = name.upper()
+            if RFC9110_5_5_INVALID_AND_DANGEROUS.search(value):
+                raise InvalidHeader(name, req=self)
+            kept = self._apply_header_policy(
+                name, value, scheme_state, seen,
+                secure_scheme_headers, forwarder_headers,
+            )
+            if kept is None:
+                continue
+            self.headers.append(kept)
 
         # Set Host header from :authority (RFC 9113 section 8.3.1)
-        # :authority MUST take precedence over Host header
+        # :authority MUST take precedence over Host header. Runs after the
+        # policy so a duplicate Host is still rejected rather than replaced.
         if authority:
             self.headers = [(n, v) for n, v in self.headers if n != 'HOST']
             self.headers.append(('HOST', authority))
@@ -153,6 +184,8 @@ class HTTP2Request:
 
         # Connection state
         self.must_close = False
+        # Never set on HTTP/2: gunicorn answers it with HTTP/1 bytes written
+        # straight to the socket, which would corrupt the connection.
         self._expected_100_continue = False
 
         # Request numbering (for logging)

@@ -7,6 +7,8 @@
 
 import asyncio
 import pytest
+
+from gunicorn.config import Config
 from unittest import mock
 from io import BytesIO
 
@@ -27,14 +29,19 @@ from gunicorn.http2.errors import (
 pytestmark = pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
 
 
-class MockConfig:
-    """Mock gunicorn configuration for HTTP/2."""
+def MockConfig():
+    """Real gunicorn configuration with the HTTP/2 defaults these tests want.
 
-    def __init__(self):
-        self.http2_max_concurrent_streams = 100
-        self.http2_initial_window_size = 65535
-        self.http2_max_frame_size = 16384
-        self.http2_max_header_list_size = 65536
+    HTTP2Request applies the same header policy as HTTP/1, which reads
+    forwarded_allow_ips, header_map and friends, so a stub with only the
+    http2_* attributes would not exercise the real defaults.
+    """
+    cfg = Config()
+    cfg.set("http2_max_concurrent_streams", 100)
+    cfg.set("http2_initial_window_size", 65535)
+    cfg.set("http2_max_frame_size", 16384)
+    cfg.set("http2_max_header_list_size", 65536)
+    return cfg
 
 
 class MockAsyncReader:
@@ -118,7 +125,7 @@ class TestAsyncHTTP2ConnectionInit:
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
-        cfg.http2_max_concurrent_streams = 50
+        cfg.set("http2_max_concurrent_streams", 50)
 
         reader = MockAsyncReader()
         writer = MockAsyncWriter()
