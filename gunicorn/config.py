@@ -2496,10 +2496,48 @@ class HTTPProtocols(Setting):
         * ALPN-capable TLS client
 
         .. note::
-           HTTP/2 cleartext (h2c) is not supported due to security concerns
-           and lack of browser support.
+           HTTP/2 cleartext (h2c) is disabled by default. Deployments behind
+           a TLS-terminating proxy can enable prior-knowledge h2c with
+           :ref:`http2-prior-knowledge`.
 
         .. versionadded:: 25.0.0
+        """
+
+
+class HTTP2PriorKnowledge(Setting):
+    name = "http2_prior_knowledge"
+    section = "HTTP/2"
+    cli = ["--http2-prior-knowledge"]
+    validator = validate_bool
+    action = "store_true"
+    default = False
+    desc = """\
+        Accept HTTP/2 over cleartext TCP (h2c) with prior knowledge.
+
+        When enabled and no TLS is configured, connections from peers in
+        :ref:`forwarded-allow-ips` that start with the HTTP/2 connection
+        preface (``PRI * HTTP/2.0``) are served as HTTP/2. Anything else
+        from a trusted peer (an HTTP/1.x request, a malformed or stalled
+        preface) is rejected with a 400 response: a peer on a
+        prior-knowledge port is expected to speak HTTP/2, and a silent
+        downgrade would only hide misconfiguration. Peers outside
+        ``forwarded_allow_ips`` are served HTTP/1.1 exactly as if this
+        setting were off.
+
+        Only the RFC 9113 prior-knowledge form is supported. The HTTP/1.1
+        ``Upgrade: h2c`` mechanism was deprecated by RFC 9113 and is not
+        implemented.
+
+        This is intended for deployments where TLS is terminated by a
+        trusted proxy that speaks HTTP/2 to the upstream (e.g. Cloud Run,
+        fly.io, or a service-mesh sidecar). Do not expose a cleartext
+        HTTP/2 port directly to the internet.
+
+        Requires ``h2`` in :ref:`http-protocols` and the h2 library
+        (``pip install gunicorn[http2]``). Ignored when TLS is configured;
+        with TLS, HTTP/2 is negotiated via ALPN instead.
+
+        .. versionadded:: 26.0.0
         """
 
 
