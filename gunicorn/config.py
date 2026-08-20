@@ -2,7 +2,8 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-# Please remember to run "make -C docs html" after update "desc" attributes.
+# Please remember to run "python scripts/build_settings_doc.py"
+# after update "desc" attributes.
 
 import argparse
 import copy
