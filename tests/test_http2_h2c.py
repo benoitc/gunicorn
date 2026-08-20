@@ -21,6 +21,7 @@ except ImportError:
 from gunicorn.config import Config
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http.parser import RequestParser
+from gunicorn.http2 import negotiation
 from gunicorn.workers import gthread
 
 # An address inside the default forwarded_allow_ips ("127.0.0.1,::1").
@@ -45,18 +46,18 @@ def make_conn(cfg, client_data=None, addr=TRUSTED_ADDR):
 def h2c_config():
     cfg = Config()
     cfg.set("http_protocols", "h2,h1")
-    cfg.set("http2_prior_knowledge", True)
+    cfg.set("http2_cleartext", "prior-knowledge")
     return cfg
 
 
 class TestH2CConfig:
     def test_disabled_by_default(self):
-        assert Config().http2_prior_knowledge is False
+        assert Config().http2_cleartext == "off"
 
     def test_can_be_enabled(self):
         cfg = Config()
-        cfg.set("http2_prior_knowledge", True)
-        assert cfg.http2_prior_knowledge is True
+        cfg.set("http2_cleartext", "prior-knowledge")
+        assert cfg.http2_cleartext == "prior-knowledge"
 
 
 class TestH2CDisabled:
@@ -64,7 +65,7 @@ class TestH2CDisabled:
         """Without the flag, a preface-sending client gets HTTP/1.x."""
         cfg = Config()
         cfg.set("http_protocols", "h2,h1")
-        conn, client = make_conn(cfg, gthread.H2C_PREFACE)
+        conn, client = make_conn(cfg, negotiation.H2C_PREFACE)
         try:
             conn.init()
             assert conn.is_http2 is False
@@ -77,8 +78,8 @@ class TestH2CDisabled:
         """h2c flag alone is not enough; h2 must be an enabled protocol."""
         cfg = Config()
         # http_protocols left at default "h1"
-        cfg.set("http2_prior_knowledge", True)
-        conn, client = make_conn(cfg, gthread.H2C_PREFACE)
+        cfg.set("http2_cleartext", "prior-knowledge")
+        conn, client = make_conn(cfg, negotiation.H2C_PREFACE)
         try:
             conn.init()
             assert conn.is_http2 is False
@@ -92,7 +93,7 @@ class TestH2CPriorKnowledge:
     def test_preface_selects_http2(self):
         from gunicorn.http2.connection import HTTP2ServerConnection
 
-        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE)
+        conn, client = make_conn(h2c_config(), negotiation.H2C_PREFACE)
         try:
             conn.init()
             assert conn.is_http2 is True
@@ -106,9 +107,9 @@ class TestH2CPriorKnowledge:
 
     def test_split_preface_selects_http2(self):
         """Preface arriving in two segments is still recognized."""
-        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE[:10])
+        conn, client = make_conn(h2c_config(), negotiation.H2C_PREFACE[:10])
         sender = threading.Timer(
-            0.05, client.sendall, args=(gthread.H2C_PREFACE[10:],)
+            0.05, client.sendall, args=(negotiation.H2C_PREFACE[10:],)
         )
         sender.start()
         try:
@@ -145,15 +146,15 @@ class TestH2CTrustedPeerRejection:
             start = time.monotonic()
             with pytest.raises(InvalidH2CPreface):
                 conn.init()
-            assert time.monotonic() - start < gthread.H2C_PREFACE_TIMEOUT
+            assert time.monotonic() - start < negotiation.H2C_PREFACE_TIMEOUT
         finally:
             conn.sock.close()
             client.close()
 
     def test_partial_preface_times_out_rejected(self, monkeypatch):
         """A client that stalls mid-preface is rejected, not downgraded."""
-        monkeypatch.setattr(gthread, "H2C_PREFACE_TIMEOUT", 0.05)
-        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE[:10])
+        monkeypatch.setattr(negotiation, "H2C_PREFACE_TIMEOUT", 0.05)
+        conn, client = make_conn(h2c_config(), negotiation.H2C_PREFACE[:10])
         try:
             with pytest.raises(InvalidH2CPreface):
                 conn.init()
@@ -167,7 +168,7 @@ class TestH2CUntrustedPeer:
 
     def test_preface_from_untrusted_peer_gets_http1(self):
         conn, client = make_conn(
-            h2c_config(), gthread.H2C_PREFACE, addr=UNTRUSTED_ADDR
+            h2c_config(), negotiation.H2C_PREFACE, addr=UNTRUSTED_ADDR
         )
         try:
             conn.init()
@@ -195,7 +196,7 @@ class TestH2CUntrustedPeer:
     def test_wildcard_allow_list_trusts_any_peer(self):
         cfg = h2c_config()
         cfg.set("forwarded_allow_ips", "*")
-        conn, client = make_conn(cfg, gthread.H2C_PREFACE, addr=UNTRUSTED_ADDR)
+        conn, client = make_conn(cfg, negotiation.H2C_PREFACE, addr=UNTRUSTED_ADDR)
         try:
             conn.init()
             assert conn.is_http2 is True
@@ -207,7 +208,7 @@ class TestH2CUntrustedPeer:
     def test_unix_socket_peer_is_trusted(self):
         """Non-tuple peer addresses (unix sockets) follow the
         forwarded-header policy and are trusted."""
-        conn, client = make_conn(h2c_config(), gthread.H2C_PREFACE, addr="")
+        conn, client = make_conn(h2c_config(), negotiation.H2C_PREFACE, addr="")
         try:
             conn.init()
             assert conn.is_http2 is True
@@ -221,10 +222,104 @@ class TestH2CProtocolGuard:
         """The uwsgi protocol has its own parser; h2c must not touch it."""
         cfg = h2c_config()
         cfg.set("protocol", "uwsgi")
-        conn, client = make_conn(cfg, gthread.H2C_PREFACE)
+        conn, client = make_conn(cfg, negotiation.H2C_PREFACE)
         try:
             conn.init()
             assert conn.is_http2 is False
         finally:
             conn.sock.close()
             client.close()
+
+
+class TestPrefaceMatch:
+    """The pure matcher, shared by the blocking and push-based paths."""
+
+    def test_complete_preface(self):
+        assert negotiation.preface_match(negotiation.H2C_PREFACE) == negotiation.MATCH
+
+    def test_prefix_is_partial(self):
+        for n in range(1, len(negotiation.H2C_PREFACE)):
+            assert negotiation.preface_match(
+                negotiation.H2C_PREFACE[:n]) == negotiation.PARTIAL
+
+    def test_empty_is_partial(self):
+        assert negotiation.preface_match(b"") == negotiation.PARTIAL
+
+    def test_divergence_is_mismatch(self):
+        assert negotiation.preface_match(b"GET / HT") == negotiation.MISMATCH
+
+    def test_trailing_bytes_after_preface_still_match(self):
+        assert negotiation.preface_match(
+            negotiation.H2C_PREFACE + b"\x00\x00\x00\x04") == negotiation.MATCH
+
+
+class TestNegotiationPredicates:
+    """Prior knowledge and upgrade are enabled separately."""
+
+    def _cfg(self, mode):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", mode)
+        return cfg
+
+    TRUSTED = ("127.0.0.1", 1234)
+
+    def test_prior_knowledge_only(self):
+        cfg = self._cfg("prior-knowledge")
+        assert negotiation.prior_knowledge_allowed(cfg, self.TRUSTED)
+        assert not negotiation.upgrade_allowed(cfg, self.TRUSTED)
+
+    def test_upgrade_only(self):
+        cfg = self._cfg("upgrade")
+        assert not negotiation.prior_knowledge_allowed(cfg, self.TRUSTED)
+        assert negotiation.upgrade_allowed(cfg, self.TRUSTED)
+
+    def test_both(self):
+        cfg = self._cfg("both")
+        assert negotiation.prior_knowledge_allowed(cfg, self.TRUSTED)
+        assert negotiation.upgrade_allowed(cfg, self.TRUSTED)
+
+    def test_off(self):
+        cfg = self._cfg("off")
+        assert not negotiation.prior_knowledge_allowed(cfg, self.TRUSTED)
+        assert not negotiation.upgrade_allowed(cfg, self.TRUSTED)
+
+    def test_untrusted_peer_never_negotiates(self):
+        cfg = self._cfg("both")
+        untrusted = ("203.0.113.9", 4444)
+        assert not negotiation.prior_knowledge_allowed(cfg, untrusted)
+        assert not negotiation.upgrade_allowed(cfg, untrusted)
+
+
+class TestPrefaceDeadline:
+    """The preface budget covers the whole preface, not each read."""
+
+    def test_trickling_client_cannot_extend_the_budget(self, monkeypatch):
+        monkeypatch.setattr(negotiation, "H2C_PREFACE_TIMEOUT", 0.25)
+        server, client = socket.socketpair()
+        stop = threading.Event()
+
+        def trickle():
+            # One byte every 0.1s: each read alone stays inside the budget,
+            # so a per-read timeout would let this run for 24 intervals.
+            for byte in negotiation.H2C_PREFACE:
+                if stop.is_set():
+                    return
+                try:
+                    client.sendall(bytes([byte]))
+                except OSError:
+                    return
+                time.sleep(0.1)
+
+        t = threading.Thread(target=trickle, daemon=True)
+        t.start()
+        try:
+            started = time.monotonic()
+            matched, _ = negotiation.read_preface_blocking(server)
+            elapsed = time.monotonic() - started
+            assert matched is False
+            assert elapsed < 1.0, "budget was applied per read, not overall"
+        finally:
+            stop.set()
+            server.close()
+            client.close()
+            t.join(timeout=2)

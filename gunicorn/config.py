@@ -358,6 +358,20 @@ class Setting:
 Setting = SettingMeta('Setting', (Setting,), {})
 
 
+def validate_http2_cleartext(val):
+    if val is None:
+        return "off"
+    if isinstance(val, bool):
+        # keeps `http2_cleartext = True` in a config file meaning something
+        return "prior-knowledge" if val else "off"
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    val = val.lower().strip()
+    if val in ("off", "prior-knowledge", "upgrade", "both"):
+        return val
+    raise ValueError("Invalid http2_cleartext: %s" % val)
+
+
 def validate_bool(val):
     if val is None:
         return
@@ -2504,40 +2518,43 @@ class HTTPProtocols(Setting):
         """
 
 
-class HTTP2PriorKnowledge(Setting):
-    name = "http2_prior_knowledge"
+class HTTP2Cleartext(Setting):
+    name = "http2_cleartext"
     section = "HTTP/2"
-    cli = ["--http2-prior-knowledge"]
-    validator = validate_bool
-    action = "store_true"
-    default = False
+    cli = ["--http2-cleartext"]
+    meta = "STRING"
+    validator = validate_http2_cleartext
+    default = "off"
     desc = """\
-        Accept HTTP/2 over cleartext TCP (h2c) with prior knowledge.
+        Accept HTTP/2 over cleartext TCP (h2c), and by which mechanism.
 
-        When enabled and no TLS is configured, connections from peers in
-        :ref:`forwarded-allow-ips` that start with the HTTP/2 connection
-        preface (``PRI * HTTP/2.0``) are served as HTTP/2. Anything else
-        from a trusted peer (an HTTP/1.x request, a malformed or stalled
-        preface) is rejected with a 400 response: a peer on a
-        prior-knowledge port is expected to speak HTTP/2, and a silent
-        downgrade would only hide misconfiguration. Peers outside
-        ``forwarded_allow_ips`` are served HTTP/1.1 exactly as if this
-        setting were off.
+        Valid values are:
 
-        Only the RFC 9113 prior-knowledge form is supported. The HTTP/1.1
-        ``Upgrade: h2c`` mechanism was deprecated by RFC 9113 and is not
-        implemented.
+        * ``off`` (default) - no cleartext HTTP/2
+        * ``prior-knowledge`` - serve connections that open with the HTTP/2
+          connection preface (``PRI * HTTP/2.0``), RFC 9113 section 3.4
+        * ``upgrade`` - honour an HTTP/1.1 ``Upgrade: h2c`` request
+        * ``both`` - accept either
 
-        This is intended for deployments where TLS is terminated by a
-        trusted proxy that speaks HTTP/2 to the upstream (e.g. Cloud Run,
-        fly.io, or a service-mesh sidecar). Do not expose a cleartext
-        HTTP/2 port directly to the internet.
+        The mechanisms are listed separately on purpose: enabling one does not
+        enable the other.
+
+        Only peers in :ref:`forwarded-allow-ips` are considered. Everyone else
+        is served HTTP/1.x exactly as if this were ``off``. Anything else from
+        a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
+        malformed or stalled preface) is rejected with a 400: such a peer is
+        expected to speak HTTP/2, and a silent downgrade would only hide a
+        misconfiguration.
+
+        This is meant for deployments where TLS is terminated by a trusted
+        proxy that speaks HTTP/2 upstream (Cloud Run, fly.io, a service-mesh
+        sidecar). Do not expose a cleartext HTTP/2 port to the internet.
 
         Requires ``h2`` in :ref:`http-protocols` and the h2 library
         (``pip install gunicorn[http2]``). Ignored when TLS is configured;
-        with TLS, HTTP/2 is negotiated via ALPN instead.
+        there HTTP/2 is negotiated by ALPN.
 
-        .. versionadded:: 26.0.0
+        .. versionadded:: 26.2.0
         """
 
 

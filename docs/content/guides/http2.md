@@ -85,12 +85,16 @@ http_protocols = "h2, h1"
 
 When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
 service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
-plain TCP. Enable it with the `--http2-prior-knowledge` flag (gthread
-worker):
+plain TCP. Enable it with `--http2-cleartext` (gthread worker):
 
 ```bash
-gunicorn myapp:app -k gthread --http-protocols h2,h1 --http2-prior-knowledge
+gunicorn myapp:app -k gthread --http-protocols h2,h1 \
+    --http2-cleartext prior-knowledge
 ```
+
+The value selects which mechanism is accepted: `prior-knowledge`,
+`upgrade`, `both`, or `off` (the default). Each mechanism is enabled
+separately, so turning one on does not turn the other on.
 
 h2c is only accepted from peers in `forwarded_allow_ips` - the same
 trust list used for forwarded headers, which in this deployment shape is
@@ -101,8 +105,11 @@ preface) is rejected with a 400 rather than silently downgraded, so a
 misconfigured proxy fails loudly instead of quietly losing HTTP/2.
 Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
 
-Only the RFC 9113 prior-knowledge form is supported - the deprecated
-`Upgrade: h2c` handshake is not. Test with:
+Streams on an HTTP/2 connection are handled one after another, not
+concurrently, so a slow handler holds up the other streams on that
+connection.
+
+Test prior knowledge with:
 
 ```bash
 curl --http2-prior-knowledge http://localhost:8000/

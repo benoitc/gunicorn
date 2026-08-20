@@ -414,10 +414,47 @@ HTTP/2 requires:
 * ALPN-capable TLS client
 
 !!! note
-    HTTP/2 cleartext (h2c) is not supported due to security concerns
-    and lack of browser support.
+    HTTP/2 cleartext (h2c) is disabled by default. Deployments behind
+    a TLS-terminating proxy can enable prior-knowledge h2c with
+    http2-prior-knowledge.
 
 !!! info "Added in 25.0.0"
+
+### `http2_cleartext`
+
+**Command line:** `--http2-cleartext STRING`
+
+**Default:** `'off'`
+
+Accept HTTP/2 over cleartext TCP (h2c), and by which mechanism.
+
+Valid values are:
+
+* ``off`` (default) - no cleartext HTTP/2
+* ``prior-knowledge`` - serve connections that open with the HTTP/2
+  connection preface (``PRI * HTTP/2.0``), RFC 9113 section 3.4
+* ``upgrade`` - honour an HTTP/1.1 ``Upgrade: h2c`` request
+* ``both`` - accept either
+
+The mechanisms are listed separately on purpose: enabling one does not
+enable the other.
+
+Only peers in [forwarded-allow-ips](#forwarded_allow_ips) are considered. Everyone else
+is served HTTP/1.x exactly as if this were ``off``. Anything else from
+a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
+malformed or stalled preface) is rejected with a 400: such a peer is
+expected to speak HTTP/2, and a silent downgrade would only hide a
+misconfiguration.
+
+This is meant for deployments where TLS is terminated by a trusted
+proxy that speaks HTTP/2 upstream (Cloud Run, fly.io, a service-mesh
+sidecar). Do not expose a cleartext HTTP/2 port to the internet.
+
+Requires ``h2`` in http-protocols and the h2 library
+(``pip install gunicorn[http2]``). Ignored when TLS is configured;
+there HTTP/2 is negotiated by ALPN.
+
+!!! info "Added in 26.2.0"
 
 ### `http2_max_concurrent_streams`
 
