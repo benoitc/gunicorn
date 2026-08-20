@@ -7,6 +7,8 @@
 
 import pytest
 
+from gunicorn.config import Config
+from gunicorn.http.errors import InvalidHeader
 from gunicorn.http2.request import HTTP2Request, HTTP2Body
 from gunicorn.http2.stream import HTTP2Stream
 
@@ -18,11 +20,14 @@ class MockConnection:
         self.initial_window_size = initial_window_size
 
 
-class MockConfig:
-    """Mock gunicorn configuration."""
+def MockConfig():
+    """Real gunicorn configuration.
 
-    def __init__(self):
-        pass
+    HTTP2Request applies the same header policy as HTTP/1, which reads
+    forwarded_allow_ips, header_map and friends, so a stub with no
+    attributes would not exercise the real defaults.
+    """
+    return Config()
 
 
 class TestHTTP2Body:
@@ -556,6 +561,23 @@ class TestHTTP2RequestDefaults:
         cfg = MockConfig()
         req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
 
+        # Derived from the transport, not assumed to be https.
+        assert req.scheme == 'http'
+
+    def test_default_scheme_over_tls(self):
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.receive_headers([
+            (':method', 'GET'),
+            (':path', '/'),
+            (':authority', 'example.com'),
+        ], end_stream=True)
+
+        cfg = MockConfig()
+        cfg.set('certfile', __file__)
+        cfg.set('keyfile', __file__)
+        req = HTTP2Request(stream, cfg, ('127.0.0.1', 12345))
+
         assert req.scheme == 'https'
 
     def test_default_path(self):
@@ -719,3 +741,67 @@ class TestHTTP2RequestWSGIEnviron:
         # HTTP/1 requests should not have priority keys
         assert 'gunicorn.http2.priority_weight' not in environ
         assert 'gunicorn.http2.priority_depends_on' not in environ
+
+
+class TestHTTP2HeaderPolicy:
+    """HTTP/2 requests go through the same header policy as HTTP/1."""
+
+    UNTRUSTED = ('203.0.113.9', 4444)
+    TRUSTED = ('127.0.0.1', 5555)
+
+    def _request(self, headers, peer, cfg=None):
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.receive_headers(headers, end_stream=True)
+        return HTTP2Request(stream, cfg or MockConfig(), peer)
+
+    def _base(self, **extra):
+        headers = [
+            (':method', 'GET'), (':path', '/admin/x'),
+            (':scheme', 'https'), (':authority', 'example.com'),
+        ]
+        headers.extend(extra.items())
+        return headers
+
+    def test_underscore_header_dropped_for_untrusted_peer(self):
+        req = self._request(self._base(script_name='/admin'), self.UNTRUSTED)
+        assert not any(n == 'SCRIPT_NAME' for n, _ in req.headers)
+
+    def test_underscore_header_kept_for_trusted_forwarder(self):
+        cfg = MockConfig()
+        cfg.set('forwarded_allow_ips', '127.0.0.1')
+        cfg.set('forwarder_headers', 'SCRIPT_NAME')
+        req = self._request(self._base(script_name='/admin'), self.TRUSTED, cfg)
+        assert ('SCRIPT_NAME', '/admin') in req.headers
+
+    def test_duplicate_content_type_rejected(self):
+        headers = [
+            (':method', 'GET'), (':path', '/'), (':scheme', 'http'),
+            (':authority', 'a'),
+            ('content-type', 'application/json'),
+            ('content-type', 'text/html'),
+        ]
+        with pytest.raises(InvalidHeader):
+            self._request(headers, self.UNTRUSTED)
+
+    def test_control_character_in_value_rejected(self):
+        with pytest.raises(InvalidHeader):
+            self._request(self._base(**{'x-thing': 'a\x00b'}), self.UNTRUSTED)
+
+    def test_untrusted_scheme_claim_ignored(self):
+        req = self._request(self._base(), self.UNTRUSTED)
+        assert req.scheme == 'http'
+
+    def test_trusted_scheme_claim_honoured(self):
+        cfg = MockConfig()
+        cfg.set('forwarded_allow_ips', '127.0.0.1')
+        req = self._request(self._base(), self.TRUSTED, cfg)
+        assert req.scheme == 'https'
+
+    def test_expect_continue_never_set_on_http2(self):
+        req = self._request(self._base(expect='100-continue'), self.UNTRUSTED)
+        assert req._expected_100_continue is False
+
+    def test_authority_precedence_after_policy(self):
+        req = self._request(self._base(host='attacker.example'), self.UNTRUSTED)
+        assert [v for n, v in req.headers if n == 'HOST'] == ['example.com']
