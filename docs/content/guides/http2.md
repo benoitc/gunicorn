@@ -29,7 +29,8 @@ gunicorn myapp:app \
 HTTP/2 support requires:
 
 - **SSL/TLS**: HTTP/2 uses ALPN (Application-Layer Protocol Negotiation) which
-  requires an encrypted connection
+  requires an encrypted connection (see [Cleartext HTTP/2](#cleartext-http2-h2c)
+  for the proxy-only exception)
 - **h2 library**: Install with `pip install gunicorn[http2]` or `pip install h2`
 - **Compatible worker**: gthread, gevent, or ASGI workers
 
@@ -79,6 +80,44 @@ certfile = "/path/to/server.crt"
 keyfile = "/path/to/server.key"
 http_protocols = "h2, h1"
 ```
+
+### Cleartext HTTP/2 (h2c)
+
+When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
+service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
+plain TCP. Enable it with `--http2-cleartext` (gthread worker):
+
+```bash
+gunicorn myapp:app -k gthread --http-protocols h2,h1 \
+    --http2-cleartext prior-knowledge
+```
+
+The value selects which mechanism is accepted: `prior-knowledge`,
+`upgrade`, `both`, or `off` (the default). Each mechanism is enabled
+separately, so turning one on does not turn the other on.
+
+h2c is only accepted from peers in `forwarded_allow_ips` - the same
+trust list used for forwarded headers, which in this deployment shape is
+exactly the TLS-terminating proxy. A trusted peer that opens a
+connection with the HTTP/2 connection preface is served HTTP/2; anything
+else from a trusted peer (an HTTP/1.x request, a malformed or stalled
+preface) is rejected with a 400 rather than silently downgraded, so a
+misconfigured proxy fails loudly instead of quietly losing HTTP/2.
+Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
+
+Streams on an HTTP/2 connection are handled one after another, not
+concurrently, so a slow handler holds up the other streams on that
+connection.
+
+Test prior knowledge with:
+
+```bash
+curl --http2-prior-knowledge http://localhost:8000/
+```
+
+!!! warning
+    h2c is cleartext. Only enable it behind a trusted, TLS-terminating
+    proxy. Never expose an h2c port directly to the internet.
 
 ### HTTP/2 Settings
 

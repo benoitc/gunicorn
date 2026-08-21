@@ -27,6 +27,8 @@ from .. import http
 from .. import util
 from .. import sock
 from ..http import wsgi
+from ..http.errors import InvalidH2CPreface
+from ..http2 import negotiation
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -81,6 +83,28 @@ class TConn:
                     )
                     self.parser.initiate_connection()
                     return
+
+            elif negotiation.prior_knowledge_allowed(self.cfg, self.client):
+                # HTTP/2 cleartext with prior knowledge (RFC 9113 section
+                # 3.4): the client opens a plain TCP connection and sends the
+                # connection preface immediately. Peers outside
+                # forwarded_allow_ips never reach here and are served HTTP/1.x
+                # as if the setting were off.
+                matched, buf = negotiation.read_preface_blocking(self.sock)
+                if matched:
+                    self.is_http2 = True
+                    self.parser = http.get_parser(
+                        self.cfg, self.sock, self.client, http2_connection=True
+                    )
+                    self.parser.initiate_connection()
+                    # The consumed preface bytes still need to reach the
+                    # HTTP/2 state machine. The preface alone cannot complete
+                    # a request, so nothing is dropped here.
+                    self.parser.receive_data(buf)
+                    return
+                # A trusted peer on a prior-knowledge port must speak HTTP/2.
+                # Anything else is rejected rather than silently downgraded.
+                raise InvalidH2CPreface(buf)
 
             # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)

@@ -21,6 +21,7 @@ from gunicorn.http.errors import (
     LimitRequestHeaders, LimitRequestLine,
     UnsupportedTransferCoding, ExpectationFailed,
     ConfigurationProblem, ObsoleteFolding,
+    InvalidH2CPreface,
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
@@ -207,7 +208,7 @@ class Worker:
             InvalidProxyLine, ForbiddenProxyRequest,
             InvalidSchemeHeaders, UnsupportedTransferCoding,
             ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
-            SSLError,
+            InvalidH2CPreface, SSLError,
         )):
 
             status_int = 400
@@ -248,6 +249,8 @@ class Worker:
                 mesg = "Request forbidden"
                 status_int = 403
             elif isinstance(exc, InvalidSchemeHeaders):
+                mesg = "%s" % str(exc)
+            elif isinstance(exc, InvalidH2CPreface):
                 mesg = "%s" % str(exc)
             elif isinstance(exc, SSLError):
                 reason = "Forbidden"
