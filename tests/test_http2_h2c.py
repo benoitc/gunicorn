@@ -5,8 +5,10 @@
 
 """Tests for HTTP/2 cleartext (h2c) prior-knowledge support."""
 
+import contextlib
 import socket
 import threading
+from unittest import mock
 import time
 
 import pytest
@@ -22,6 +24,7 @@ from gunicorn.config import Config
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http.parser import RequestParser
 from gunicorn.http2 import negotiation
+from gunicorn.workers import base_async
 from gunicorn.workers import gthread
 
 # An address inside the default forwarded_allow_ips ("127.0.0.1,::1").
@@ -323,3 +326,96 @@ class TestPrefaceDeadline:
             server.close()
             client.close()
             t.join(timeout=2)
+
+
+class _StubAsyncWorker(base_async.AsyncWorker):
+    """AsyncWorker with everything but handle() stubbed out.
+
+    handle() is the only method under test here; the rest would need a
+    running arbiter.
+    """
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.alive = True
+        self.nr = 0
+        self.log = mock.Mock()
+        self.http2_calls = []
+        self.errors = []
+
+    def handle_http2(self, listener, client, addr, preface=b""):
+        self.http2_calls.append(preface)
+
+    def handle_request(self, listener_name, req, sock, addr):
+        pass
+
+    def handle_error(self, req, client, addr, exc):
+        self.errors.append(exc)
+
+    def timeout_ctx(self):
+        return contextlib.nullcontext()
+
+
+def run_async_handle(cfg, client_data, addr=TRUSTED_ADDR):
+    """Drive AsyncWorker.handle() over a socketpair. Returns the worker."""
+    server_sock, client_sock = socket.socketpair()
+    listener = mock.Mock()
+    listener.getsockname.return_value = ("127.0.0.1", 8000)
+    worker = _StubAsyncWorker(cfg)
+    try:
+        if client_data:
+            client_sock.sendall(client_data)
+        client_sock.close()          # EOF, so the HTTP/1 path terminates
+        worker.handle(listener, server_sock, addr)
+    finally:
+        server_sock.close()
+        try:
+            client_sock.close()
+        except OSError:
+            pass
+    return worker
+
+
+class TestH2CGevent:
+    """The gevent/async worker negotiates the same way as gthread."""
+
+    def test_preface_selects_http2(self):
+        worker = run_async_handle(h2c_config(), negotiation.H2C_PREFACE)
+        assert worker.http2_calls == [negotiation.H2C_PREFACE]
+        assert worker.errors == []
+
+    def test_http1_from_trusted_peer_rejected(self):
+        worker = run_async_handle(h2c_config(), b"GET / HTTP/1.1\r\n\r\n")
+        assert worker.http2_calls == []
+        assert len(worker.errors) == 1
+        assert isinstance(worker.errors[0], InvalidH2CPreface)
+
+    def test_untrusted_peer_is_not_sniffed(self):
+        # Not negotiated, so the preface reaches the HTTP/1 parser and is
+        # refused there as a bad version: exactly what happens with the
+        # feature off, and not the h2c rejection.
+        worker = run_async_handle(
+            h2c_config(), negotiation.H2C_PREFACE, addr=UNTRUSTED_ADDR)
+        assert worker.http2_calls == []
+        assert not any(isinstance(e, InvalidH2CPreface) for e in worker.errors)
+
+    def test_untrusted_peer_still_serves_http1(self):
+        worker = run_async_handle(
+            h2c_config(), b"GET / HTTP/1.1\r\nHost: a\r\n\r\n",
+            addr=UNTRUSTED_ADDR)
+        assert worker.http2_calls == []
+        assert worker.errors == []
+
+    def test_disabled_by_default_changes_nothing(self):
+        cfg = Config()
+        cfg.set("http_protocols", "h2,h1")
+        worker = run_async_handle(cfg, negotiation.H2C_PREFACE)
+        assert worker.http2_calls == []
+        assert not any(isinstance(e, InvalidH2CPreface) for e in worker.errors)
+
+    def test_trusted_peer_serves_http1_when_disabled(self):
+        cfg = Config()
+        cfg.set("http_protocols", "h2,h1")
+        worker = run_async_handle(cfg, b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert worker.http2_calls == []
+        assert worker.errors == []
