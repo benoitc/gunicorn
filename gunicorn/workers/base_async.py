@@ -14,6 +14,7 @@ from gunicorn import util
 from gunicorn import sock as gunicorn_sock
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http2 import negotiation
+from gunicorn.http2.response import HTTP2Response
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -173,7 +174,13 @@ class AsyncWorker(base.Worker):
 
         try:
             self.cfg.pre_request(self, req)
-            resp, environ = wsgi.create(req, sock, addr, listener_name, self.cfg)
+            # The response frames itself as HTTP/2, so the body streams out
+            # instead of being collected first, and the no-body and sendfile
+            # rules come from Response unchanged.
+            resp, environ = wsgi.create(req, sock, addr, listener_name,
+                                        self.cfg,
+                                        response_class=HTTP2Response,
+                                        response_args=(h2_conn, stream_id))
             environ["wsgi.multithread"] = True
             environ["HTTP_VERSION"] = "2"
 
@@ -188,24 +195,14 @@ class AsyncWorker(base.Worker):
             if self.is_already_handled(respiter):
                 return
 
-            # Collect response body
-            response_body = b''
+            # Stream each chunk as the application produces it
             try:
-                if hasattr(respiter, '__iter__'):
-                    for item in respiter:
-                        if item:
-                            response_body += item
+                for item in respiter:
+                    resp.write(item)
+                resp.close()
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
-
-            # Send response via HTTP/2
-            h2_conn.send_response(
-                stream_id,
-                resp.status_code,
-                resp.headers,
-                response_body
-            )
 
             request_time = datetime.now() - request_start
             self.log.access(resp, req, environ, request_time)

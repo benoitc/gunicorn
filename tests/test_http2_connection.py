@@ -1200,3 +1200,92 @@ class TestHTTP2NotAvailable:
         # Test that HTTP2NotAvailable can be raised
         with pytest.raises(errors.HTTP2NotAvailable):
             raise errors.HTTP2NotAvailable()
+
+
+class TestDeferredFlowControlEvents:
+    """Events arriving during a flow-control wait must not be lost."""
+
+    def _conn(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        return HTTP2ServerConnection(MockConfig(), MockSocket(),
+                                     ('127.0.0.1', 12345))
+
+    def test_deferred_events_are_drained_by_receive_data(self):
+        conn = self._conn()
+        marker = mock.Mock(name="RequestReceived")
+        conn._deferred_events.append(marker)
+
+        seen = []
+        conn._handle_event = lambda e: seen.append(e) or None
+        conn.h2_conn = mock.Mock()
+        conn.h2_conn.receive_data.return_value = ["later"]
+        conn._send_pending_data = lambda: None
+
+        conn.receive_data(b"some bytes")
+
+        # the deferred event is processed, and before the new one
+        assert seen == [marker, "later"]
+        assert not conn._deferred_events
+
+    def test_queue_starts_empty(self):
+        assert not self._conn()._deferred_events
+
+    def test_events_during_a_window_wait_are_captured(self):
+        """The real bug: events read while blocked must not be discarded."""
+        import socket as _socket
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        server, client = _socket.socketpair()
+        try:
+            conn = HTTP2ServerConnection(MockConfig(), server,
+                                         ('127.0.0.1', 12345))
+            # a request arriving alongside the WINDOW_UPDATE we are waiting on
+            arriving = mock.Mock(name="RequestReceived")
+            windows = iter([0, 65535])
+            conn.h2_conn = mock.Mock()
+            conn.h2_conn.local_flow_control_window.side_effect = \
+                lambda sid: next(windows)
+            conn.h2_conn.receive_data.return_value = [arriving]
+            conn._send_pending_data = lambda: None
+
+            client.sendall(b"frame bytes")
+            conn._wait_for_flow_control_window(1)
+
+            assert list(conn._deferred_events) == [arriving], \
+                "event read during the wait was dropped"
+        finally:
+            server.close()
+            client.close()
+
+
+class TestEndStream:
+    """Ending a stream must actually put END_STREAM on the wire."""
+
+    def _conn(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        conn = HTTP2ServerConnection(MockConfig(), MockSocket(),
+                                     ('127.0.0.1', 12345))
+        conn.h2_conn = mock.Mock()
+        conn.streams[1] = mock.Mock()
+        conn._send_pending_data = lambda: None
+        return conn
+
+    def test_end_stream_sets_the_flag(self):
+        # Regression: routing this through send_data() sent nothing, because
+        # send_data loops on the payload and an empty one skips the loop. The
+        # client then waited forever for a response that had already finished.
+        conn = self._conn()
+        conn.end_stream(1)
+        conn.h2_conn.send_data.assert_called_once()
+        assert conn.h2_conn.send_data.call_args.kwargs["end_stream"] is True
+
+    def test_end_stream_with_trailers_sends_trailers(self):
+        conn = self._conn()
+        conn.send_trailers = mock.Mock()
+        conn.end_stream(1, trailers=[("x-sum", "1")])
+        conn.send_trailers.assert_called_once_with(1, [("x-sum", "1")])
+        conn.h2_conn.send_data.assert_not_called()
+
+    def test_end_stream_on_unknown_stream(self):
+        conn = self._conn()
+        assert conn.end_stream(999) is False
