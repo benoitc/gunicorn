@@ -5,6 +5,7 @@
 
 """Tests for HTTP/2 cleartext (h2c) prior-knowledge support."""
 
+import asyncio
 import contextlib
 import socket
 import threading
@@ -419,3 +420,156 @@ class TestH2CGevent:
         worker = run_async_handle(cfg, b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
         assert worker.http2_calls == []
         assert worker.errors == []
+
+
+class _FakeTransport:
+    """Minimal asyncio transport for driving ASGIProtocol directly."""
+
+    def __init__(self, peername=TRUSTED_ADDR):
+        self.written = b""
+        self.closed = False
+        self._peername = peername
+
+    def get_extra_info(self, name, default=None):
+        if name == "peername":
+            return self._peername
+        if name == "sockname":
+            return ("127.0.0.1", 8000)
+        return default
+
+    def write(self, data):
+        self.written += data
+
+    def close(self):
+        self.closed = True
+
+    def is_closing(self):
+        return self.closed
+
+    def can_write_eof(self):
+        return True
+
+    def write_eof(self):
+        pass
+
+    def set_write_buffer_limits(self, high=None, low=None):
+        pass
+
+    def pause_reading(self):
+        pass
+
+    def resume_reading(self):
+        pass
+
+
+def make_asgi_protocol(cfg, loop):
+    from gunicorn.asgi.protocol import ASGIProtocol
+
+    worker = mock.Mock()
+    worker.cfg = cfg
+    worker.log = mock.Mock()
+    worker.asgi = mock.Mock()
+    worker.loop = loop
+    worker.nr_conns = 0
+    return ASGIProtocol(worker)
+
+
+class TestH2CASGI:
+    """The ASGI worker cannot read in connection_made, so it buffers."""
+
+    def _connect(self, cfg, peername=TRUSTED_ADDR):
+        loop = asyncio.new_event_loop()
+        # StreamReader and create_task need the loop to be current, which it
+        # is in production because data_received runs inside it.
+        asyncio.set_event_loop(loop)
+        proto = make_asgi_protocol(cfg, loop)
+        transport = _FakeTransport(peername)
+        proto.connection_made(transport)
+        return proto, transport, loop
+
+    def test_undecided_until_the_preface_resolves(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            assert proto._h2c_buffer == b""
+            assert proto._callback_parser is None
+            assert proto.reader is None
+            # a prefix keeps it undecided, nothing is committed
+            proto.data_received(negotiation.H2C_PREFACE[:8])
+            assert proto._h2c_buffer == negotiation.H2C_PREFACE[:8]
+            assert proto.reader is None
+            assert not transport.closed
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_full_preface_commits_to_http2(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            proto.data_received(negotiation.H2C_PREFACE)
+            assert proto._h2c_buffer is None
+            assert proto.reader is not None
+            assert not transport.closed
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_preface_split_across_reads(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            for byte in negotiation.H2C_PREFACE:
+                proto.data_received(bytes([byte]))
+            assert proto.reader is not None
+            assert not transport.closed
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_http1_from_trusted_peer_is_refused(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            proto.data_received(b"GET / HTTP/1.1\r\n")
+            assert proto.reader is None
+            assert b"400" in transport.written
+            assert transport.closed
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_untrusted_peer_takes_the_http1_path(self):
+        proto, transport, loop = self._connect(
+            h2c_config(), peername=UNTRUSTED_ADDR)
+        try:
+            assert proto._h2c_buffer is None
+            assert proto._callback_parser is not None
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_disabled_takes_the_http1_path(self):
+        cfg = Config()
+        cfg.set("http_protocols", "h2,h1")
+        proto, transport, loop = self._connect(cfg)
+        try:
+            assert proto._h2c_buffer is None
+            assert proto._callback_parser is not None
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_stalled_preface_times_out(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            proto.data_received(negotiation.H2C_PREFACE[:4])
+            assert proto._h2c_buffer is not None
+            proto._h2c_undecided_timeout()          # what call_later would do
+            assert proto.reader is None
+            assert b"400" in transport.written
+            assert transport.closed
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)

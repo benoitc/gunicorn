@@ -21,6 +21,7 @@ from gunicorn.asgi.parser import (
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
+from gunicorn.http2 import negotiation
 from gunicorn.uwsgi.errors import UWSGIParseException
 
 
@@ -359,6 +360,10 @@ class ASGIProtocol(asyncio.Protocol):
 
         self.transport = None
         self.reader = None  # Only used for HTTP/2
+        # Set to a bytes buffer while sniffing for the cleartext HTTP/2
+        # connection preface, before either protocol has been committed to.
+        self._h2c_buffer = None
+        self._h2c_timer = None
         self.writer = None
         self._task = None
         self.req_count = 0
@@ -410,6 +415,21 @@ class ASGIProtocol(asyncio.Protocol):
                     self._handle_http2_connection(transport, ssl_object)
                 )
                 return
+
+        peername = transport.get_extra_info('peername')
+        if negotiation.prior_knowledge_allowed(self.cfg, peername):
+            # Cleartext HTTP/2 with prior knowledge. Unlike the sync workers
+            # we cannot read here, so commit to neither protocol yet: buffer
+            # in data_received() until the preface either matches or cannot.
+            self._is_ssl = False
+            self.writer = transport
+            self._flow_control = FlowControl(transport)
+            transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
+            self._h2c_buffer = b""
+            self._h2c_timer = self.worker.loop.call_later(
+                negotiation.H2C_PREFACE_TIMEOUT, self._h2c_undecided_timeout
+            )
+            return
 
         # HTTP/1.x connection - always use callback parser
         self._is_ssl = ssl_object is not None
@@ -595,6 +615,9 @@ class ASGIProtocol(asyncio.Protocol):
             # WebSocket path - forward to WebSocket protocol
             self._websocket.feed_data(data)
             return
+        if self._h2c_buffer is not None:
+            self._h2c_feed(data)
+            return
         if self.reader:
             # HTTP/2 path - use StreamReader
             self.reader.feed_data(data)
@@ -606,6 +629,45 @@ class ASGIProtocol(asyncio.Protocol):
         # Backpressure: pause reading if buffer is too large
         if not self._reading_paused and self._is_buffer_full():
             self._pause_reading()
+
+    def _h2c_feed(self, data):
+        """Accumulate bytes until the connection preface resolves."""
+        self._h2c_buffer += data
+        state = negotiation.preface_match(self._h2c_buffer)
+        if state is negotiation.PARTIAL:
+            return
+        buffered, self._h2c_buffer = self._h2c_buffer, None
+        self._h2c_cancel_timer()
+        if state is negotiation.MATCH:
+            self._h2c_start(buffered)
+            return
+        # A trusted peer on a prior-knowledge port must speak HTTP/2.
+        # Anything else is refused rather than silently downgraded.
+        self._send_error_response(400, "Invalid HTTP/2 connection preface")
+        self._close_transport()
+
+    def _h2c_start(self, buffered):
+        """Commit to HTTP/2 and replay the bytes read while undecided."""
+        self.reader = asyncio.StreamReader()
+        self._task = self.worker.loop.create_task(
+            # No ssl_object: this is cleartext. The handler does not use it.
+            self._handle_http2_connection(self.transport, None)
+        )
+        self.reader.feed_data(buffered)
+
+    def _h2c_undecided_timeout(self):
+        """A client that stalls mid-preface is refused, not downgraded."""
+        self._h2c_timer = None
+        if self._h2c_buffer is None:
+            return
+        self._h2c_buffer = None
+        self._send_error_response(400, "Invalid HTTP/2 connection preface")
+        self._close_transport()
+
+    def _h2c_cancel_timer(self):
+        if self._h2c_timer is not None:
+            self._h2c_timer.cancel()
+            self._h2c_timer = None
 
     def _feed_callback_parser(self, data):
         """Feed data to callback parser, handling parse errors.
@@ -696,6 +758,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._conn_lost_handled = True
         self._closed = True
+        self._h2c_cancel_timer()
         self.worker.nr_conns -= 1
 
         # Cancel keepalive timer
