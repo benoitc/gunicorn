@@ -63,8 +63,8 @@ Make sure you include relevant updates or additions to documentation
 when creating or modifying features.
 
 If you are adding a new configuration option or updating an existing one,
-please do it in `gunicorn/config.py`, then run `make -C docs html` to update
-`docs/source/settings.rst`.
+please do it in `gunicorn/config.py`, then run `make docs` to update
+the settings reference documentation.
 
 Write clean code.
 
