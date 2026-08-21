@@ -1628,6 +1628,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#http2_cleartext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        http2_cleartext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#http2_max_concurrent_streams" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3732,11 +3743,41 @@ are force killed.</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>HTTP/2 cleartext (h2c) is not supported due to security concerns
-and lack of browser support.</p>
+<p>HTTP/2 cleartext (h2c) is disabled by default. Deployments behind
+a TLS-terminating proxy can enable prior-knowledge h2c with
+http2-prior-knowledge.</p>
 </div>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="http2_cleartext"><code>http2_cleartext</code><a class="headerlink" href="#http2_cleartext" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--http2-cleartext STRING</code></p>
+<p><strong>Default:</strong> <code>'off'</code></p>
+<p>Accept HTTP/2 over cleartext TCP (h2c), and by which mechanism.</p>
+<p>Valid values are:</p>
+<ul>
+<li><code>off</code> (default) - no cleartext HTTP/2</li>
+<li><code>prior-knowledge</code> - serve connections that open with the HTTP/2
+  connection preface (<code>PRI * HTTP/2.0</code>), RFC 9113 section 3.4</li>
+<li><code>upgrade</code> - honour an HTTP/1.1 <code>Upgrade: h2c</code> request</li>
+<li><code>both</code> - accept either</li>
+</ul>
+<p>The mechanisms are listed separately on purpose: enabling one does not
+enable the other.</p>
+<p>Only peers in <a href="#forwarded_allow_ips">forwarded-allow-ips</a> are considered. Everyone else
+is served HTTP/1.x exactly as if this were <code>off</code>. Anything else from
+a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
+malformed or stalled preface) is rejected with a 400: such a peer is
+expected to speak HTTP/2, and a silent downgrade would only hide a
+misconfiguration.</p>
+<p>This is meant for deployments where TLS is terminated by a trusted
+proxy that speaks HTTP/2 upstream (Cloud Run, fly.io, a service-mesh
+sidecar). Do not expose a cleartext HTTP/2 port to the internet.</p>
+<p>Requires <code>h2</code> in http-protocols and the h2 library
+(<code>pip install gunicorn[http2]</code>). Ignored when TLS is configured;
+there HTTP/2 is negotiated by ALPN.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 26.2.0</p>
 </div>
 <h3 id="http2_max_concurrent_streams"><code>http2_max_concurrent_streams</code><a class="headerlink" href="#http2_max_concurrent_streams" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--http2-max-concurrent-streams INT</code></p>

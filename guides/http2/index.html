@@ -847,6 +847,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cleartext-http2-h2c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cleartext HTTP/2 (h2c)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#http2-settings" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2588,7 +2599,8 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <p>HTTP/2 support requires:</p>
 <ul>
 <li><strong>SSL/TLS</strong>: HTTP/2 uses ALPN (Application-Layer Protocol Negotiation) which
-  requires an encrypted connection</li>
+  requires an encrypted connection (see <a href="#cleartext-http2-h2c">Cleartext HTTP/2</a>
+  for the proxy-only exception)</li>
 <li><strong>h2 library</strong>: Install with <code>pip install gunicorn[http2]</code> or <code>pip install h2</code></li>
 <li><strong>Compatible worker</strong>: gthread, gevent, or ASGI workers</li>
 </ul>
@@ -2637,6 +2649,35 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <span class="n">keyfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.key"</span>
 <span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
 </code></pre></div>
+<h3 id="cleartext-http2-h2c">Cleartext HTTP/2 (h2c)<a class="headerlink" href="#cleartext-http2-h2c" title="Permanent link">&para;</a></h3>
+<p>When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
+service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
+plain TCP. Enable it with <code>--http2-cleartext</code> (gthread worker):</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="w"> </span>gthread<span class="w"> </span>--http-protocols<span class="w"> </span>h2,h1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--http2-cleartext<span class="w"> </span>prior-knowledge
+</code></pre></div>
+<p>The value selects which mechanism is accepted: <code>prior-knowledge</code>,
+<code>upgrade</code>, <code>both</code>, or <code>off</code> (the default). Each mechanism is enabled
+separately, so turning one on does not turn the other on.</p>
+<p>h2c is only accepted from peers in <code>forwarded_allow_ips</code> - the same
+trust list used for forwarded headers, which in this deployment shape is
+exactly the TLS-terminating proxy. A trusted peer that opens a
+connection with the HTTP/2 connection preface is served HTTP/2; anything
+else from a trusted peer (an HTTP/1.x request, a malformed or stalled
+preface) is rejected with a 400 rather than silently downgraded, so a
+misconfigured proxy fails loudly instead of quietly losing HTTP/2.
+Untrusted peers are served HTTP/1.1 exactly as if the flag were off.</p>
+<p>Streams on an HTTP/2 connection are handled one after another, not
+concurrently, so a slow handler holds up the other streams on that
+connection.</p>
+<p>Test prior knowledge with:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>--http2-prior-knowledge<span class="w"> </span>http://localhost:8000/
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>h2c is cleartext. Only enable it behind a trusted, TLS-terminating
+proxy. Never expose an h2c port directly to the internet.</p>
+</div>
 <h3 id="http2-settings">HTTP/2 Settings<a class="headerlink" href="#http2-settings" title="Permanent link">&para;</a></h3>
 <p>Fine-tune HTTP/2 behavior with these settings:</p>
 <table>
