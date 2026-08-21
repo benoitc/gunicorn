@@ -758,6 +758,8 @@ class ASGIProtocol(asyncio.Protocol):
 
         self._conn_lost_handled = True
         self._closed = True
+        # Drop any half-read preface with the connection it belonged to.
+        self._h2c_buffer = None
         self._h2c_cancel_timer()
         self.worker.nr_conns -= 1
 

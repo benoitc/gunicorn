@@ -573,3 +573,42 @@ class TestH2CASGI:
             proto._h2c_cancel_timer()
             loop.close()
             asyncio.set_event_loop(None)
+
+    def test_buffer_cannot_grow_past_the_preface(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            # A large first chunk that is not a preface is refused at once,
+            # it is never accumulated.
+            proto.data_received(b"x" * 100_000)
+            assert proto._h2c_buffer is None
+            assert b"400" in transport.written
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_bytes_after_the_preface_reach_http2(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            trailing = b"\x00\x00\x00\x04\x00\x00\x00\x00\x00"   # SETTINGS
+            proto.data_received(negotiation.H2C_PREFACE + trailing)
+            assert proto._h2c_buffer is None
+            assert proto.reader is not None
+            # everything read while undecided is handed on, not dropped
+            assert proto.reader._buffer == negotiation.H2C_PREFACE + trailing
+        finally:
+            proto._h2c_cancel_timer()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_connection_lost_while_undecided_clears_state(self):
+        proto, transport, loop = self._connect(h2c_config())
+        try:
+            proto.data_received(negotiation.H2C_PREFACE[:6])
+            assert proto._h2c_buffer is not None
+            proto.connection_lost(None)
+            assert proto._h2c_buffer is None
+            assert proto._h2c_timer is None
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
