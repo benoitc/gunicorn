@@ -12,6 +12,8 @@ from gunicorn import http
 from gunicorn.http import wsgi
 from gunicorn import util
 from gunicorn import sock as gunicorn_sock
+from gunicorn.http.errors import InvalidH2CPreface
+from gunicorn.http2 import negotiation
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -45,6 +47,19 @@ class AsyncWorker(base.Worker):
                 # Handle HTTP/2 connection
                 self.handle_http2(listener, client, addr)
                 return
+
+            if negotiation.prior_knowledge_allowed(self.cfg, addr):
+                # HTTP/2 cleartext with prior knowledge (RFC 9113 section
+                # 3.4). Peers outside forwarded_allow_ips never reach here
+                # and are served HTTP/1.x as if the setting were off.
+                matched, buf = negotiation.read_preface_blocking(client)
+                if matched:
+                    self.handle_http2(listener, client, addr, preface=buf)
+                    return
+                # A trusted peer on a prior-knowledge port must speak
+                # HTTP/2. Anything else is rejected rather than silently
+                # downgraded, so a misconfigured proxy fails loudly.
+                raise InvalidH2CPreface(buf)
 
             parser = http.get_parser(self.cfg, client, addr)
             try:
@@ -100,16 +115,24 @@ class AsyncWorker(base.Worker):
         finally:
             util.close(client)
 
-    def handle_http2(self, listener, client, addr):
+    def handle_http2(self, listener, client, addr, preface=b""):
         """Handle an HTTP/2 connection.
 
         Processes multiplexed HTTP/2 streams until the connection closes.
+
+        ``preface`` carries connection preface bytes already read off the
+        socket during cleartext negotiation. They have left the socket, so
+        they have to be replayed into the HTTP/2 state machine here.
         """
         listener_name = listener.getsockname()
 
         try:
             h2_conn = http.get_parser(self.cfg, client, addr, http2_connection=True)
             h2_conn.initiate_connection()
+            if preface:
+                # The preface alone cannot complete a request, so replaying
+                # it yields no requests and nothing is dropped.
+                h2_conn.receive_data(preface)
 
             while not h2_conn.is_closed and self.alive:
                 try:
