@@ -751,6 +751,212 @@ class TestUpgradeWithBody:
         assert not worker.errors
 
 
+UPGRADE_HEADERS = (
+    b"Host: x\r\nUpgrade: h2c\r\n"
+    b"Connection: Upgrade, HTTP2-Settings\r\n"
+    b"HTTP2-Settings: AAMAAABkAAQAoAAAAAIAAAAA\r\n"
+)
+
+
+def upgrade_request(body=b"", chunked=False):
+    """An Upgrade: h2c request, optionally carrying a payload."""
+    if chunked:
+        framing = b"Transfer-Encoding: chunked\r\n"
+        payload = b"%x\r\n%s\r\n0\r\n\r\n" % (len(body), body) if body else b"0\r\n\r\n"
+    elif body:
+        framing = b"Content-Length: %d\r\n" % len(body)
+        payload = body
+    else:
+        framing = b""
+        payload = b""
+    method = b"POST" if body else b"GET"
+    return (method + b" /p HTTP/1.1\r\n" + UPGRADE_HEADERS + framing
+            + b"\r\n" + payload)
+
+
+def asgi_upgrade_config(parser="fast", mode="upgrade"):
+    cfg = h2c_config()
+    cfg.set("http2_cleartext", mode)
+    cfg.set("http_parser", parser)
+    return cfg
+
+
+@pytest.mark.parametrize("parser", ["fast", "python"])
+class TestH2CASGIUpgrade:
+    """Upgrade: h2c on the ASGI worker, over either callback parser.
+
+    The two parsers split an upgrade request differently: the Python one
+    delivers the payload through on_body, the fast one stops at the end of
+    the headers and leaves it in front of the bytes that follow. The worker
+    has to end up in the same place either way.
+    """
+
+    def _connect(self, cfg, peername=TRUSTED_ADDR):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = make_asgi_protocol(cfg, loop)
+        transport = _FakeTransport(peername)
+        proto.connection_made(transport)
+        return proto, transport, loop
+
+    @contextlib.contextmanager
+    def _protocol(self, cfg, peername=TRUSTED_ADDR):
+        proto, transport, loop = self._connect(cfg, peername)
+        try:
+            yield proto, transport
+        finally:
+            proto._h2c_cancel_timer()
+            if proto._task is not None:
+                proto._task.cancel()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_handover_takes_the_frames_and_leaves_nothing_behind(self, parser):
+        with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
+            proto.data_received(upgrade_request() + negotiation.H2C_PREFACE)
+            assert proto._h2c_upgrade_settings == b"AAMAAABkAAQAoAAAAAIAAAAA"
+            # the HTTP/1 parser is out of the way before the frames arrive
+            assert proto._callback_parser is None
+            assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
+            assert not transport.closed
+
+    def test_payload_is_body_not_frames(self, parser):
+        with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
+            proto.data_received(
+                upgrade_request(b"hello=world") + negotiation.H2C_PREFACE)
+            assert bytes(proto._h2c_upgrade_body) == b"hello=world"
+            assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
+
+    def test_waits_for_the_whole_payload(self, parser):
+        with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
+            whole = upgrade_request(b"hello=world") + negotiation.H2C_PREFACE
+            proto.data_received(whole[:-30])
+            # payload still incomplete: nothing may be handed over yet
+            assert proto._callback_parser is not None
+            assert proto.reader is None
+            proto.data_received(whole[-30:])
+            assert bytes(proto._h2c_upgrade_body) == b"hello=world"
+            assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
+
+    def test_chunked_stays_on_http1(self, parser):
+        # the fast parser hands a chunked payload back still encoded and
+        # mixed into the tail, so there is no safe boundary to upgrade at
+        with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
+            proto.data_received(upgrade_request(b"hello", chunked=True))
+            assert proto._h2c_upgrade_settings is None
+            assert proto._callback_parser is not None
+
+    def test_ordinary_request_is_untouched(self, parser):
+        with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
+            proto.data_received(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+            assert proto._h2c_upgrade_settings is None
+            assert proto._callback_parser is not None
+            assert proto.reader is None
+
+    def test_untrusted_peer_is_not_upgraded(self, parser):
+        with self._protocol(asgi_upgrade_config(parser),
+                            peername=UNTRUSTED_ADDR) as (proto, transport):
+            assert proto._h2c_upgrade_ok is False
+            proto.data_received(upgrade_request() + negotiation.H2C_PREFACE)
+            assert proto._h2c_upgrade_settings is None
+            assert proto._callback_parser is not None
+
+    def test_disabled_does_not_upgrade(self, parser):
+        cfg = asgi_upgrade_config(parser, mode="prior-knowledge")
+        # prior-knowledge alone: sniffing is on, upgrade is not
+        with self._protocol(cfg) as (proto, transport):
+            assert proto._h2c_upgrade_ok is False
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+@pytest.mark.parametrize("parser", ["fast", "python"])
+class TestH2CASGIUpgradeEndToEnd:
+    """Drive the whole handover and read the answer back as an h2 client.
+
+    The unit tests above stop at the handover. This one runs the event loop
+    and decodes what actually goes on the wire, because a mocked application
+    will happily report success while the server answers 500.
+    """
+
+    def _run(self, parser, body=b""):
+        import h2.config
+        import h2.connection
+        import h2.events
+
+        echoed = []
+
+        async def app(scope, receive, send):
+            payload = b""
+            while True:
+                message = await receive()
+                payload += message.get("body", b"")
+                if not message.get("more_body"):
+                    break
+            echoed.append((scope["type"], scope["http_version"],
+                           scope["method"], scope["path"], payload))
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": [(b"content-type", b"text/plain")]})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            cfg = asgi_upgrade_config(parser)
+            worker = mock.Mock()
+            worker.cfg = cfg
+            worker.log = mock.Mock()
+            # assigned before construction: ASGIProtocol captures worker.asgi
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1000
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_upgrade_connection()
+
+            proto.data_received(upgrade_request(body) + client.data_to_send())
+
+            async def until_answered():
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(until_answered(), timeout=5))
+
+            assert not worker.log.exception.called
+            assert transport.written.startswith(negotiation.UPGRADE_101)
+            events = client.receive_data(
+                transport.written[len(negotiation.UPGRADE_101):])
+            return echoed, events
+        finally:
+            if proto._task is not None:
+                proto._task.cancel()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_upgraded_request_is_served_over_http2(self, parser):
+        import h2.events
+        echoed, events = self._run(parser)
+
+        assert echoed == [("http", "2", "GET", "/p", b"")]
+        statuses = [dict(e.headers)[":status"] for e in events
+                    if isinstance(e, h2.events.ResponseReceived)]
+        assert statuses == ["200"]
+        data = b"".join(e.data for e in events
+                        if isinstance(e, h2.events.DataReceived))
+        assert data == b"BODY"
+
+    def test_payload_reaches_the_application(self, parser):
+        echoed, _events = self._run(parser, body=b"hello=world")
+        assert echoed == [("http", "2", "POST", "/p", b"hello=world")]
+
+
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
 class TestUpgradeSynthesis:
     """The upgraded request becomes stream 1."""

@@ -106,11 +106,11 @@ preface) is rejected with a 400 rather than silently downgraded, so a
 misconfigured proxy fails loudly instead of quietly losing HTTP/2.
 Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
 
-`Upgrade: h2c` is served by the `gthread` and `gevent` workers; the
-`asgi` worker accepts prior knowledge only. Note that with
-`prior-knowledge` alone a trusted peer sending anything else is refused
-with 400, while with `upgrade` or `both` an ordinary HTTP/1 request is
-served normally, because that is how an upgrade starts.
+Both mechanisms are served by the `gthread`, `gevent` and `asgi`
+workers. Note that with `prior-knowledge` alone a trusted peer sending
+anything else is refused with 400, while with `upgrade` or `both` an
+ordinary HTTP/1 request is served normally, because that is how an
+upgrade starts.
 
 Streams on an HTTP/2 connection are handled one after another, not
 concurrently, so a slow handler holds up the other streams on that

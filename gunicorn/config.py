@@ -2539,10 +2539,6 @@ class HTTP2Cleartext(Setting):
         The mechanisms are listed separately on purpose: enabling one does not
         enable the other.
 
-        ``upgrade`` is served by the gthread and gevent workers. The ASGI
-        worker accepts prior knowledge only; an upgrade request there stays
-        on HTTP/1.1.
-
         With ``prior-knowledge`` alone, a trusted peer that does not send the
         preface is refused with 400, since it is expected to speak HTTP/2.
         With ``upgrade`` or ``both`` an HTTP/1 request is how an upgrade
