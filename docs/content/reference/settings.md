@@ -439,6 +439,10 @@ Valid values are:
 The mechanisms are listed separately on purpose: enabling one does not
 enable the other.
 
+Only ``prior-knowledge`` is implemented so far. ``upgrade`` and
+``both`` are accepted, but the ``Upgrade: h2c`` handshake is not
+honoured yet and those connections stay on HTTP/1.1.
+
 Only peers in [forwarded-allow-ips](#forwarded_allow_ips) are considered. Everyone else
 is served HTTP/1.x exactly as if this were ``off``. Anything else from
 a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
