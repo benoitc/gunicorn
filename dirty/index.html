@@ -2707,49 +2707,71 @@
 <h1 id="dirty-arbiters">Dirty Arbiters<a class="headerlink" href="#dirty-arbiters" title="Permanent link">&para;</a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Beta Feature</p>
-<p>Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it has been tested,
-the API and behavior may change in future releases. Please report any issues on
-<a href="https://github.com/benoitc/gunicorn/issues">GitHub</a>.</p>
+<p>Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it
+has been tested, the API and behavior may change in future releases. Please
+report any issues on <a href="https://github.com/benoitc/gunicorn/issues">GitHub</a>.</p>
 </div>
-<p>Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.</p>
+<p>Dirty Arbiters provide a separate process pool for executing long-running,
+blocking operations (AI model loading, heavy computation) without blocking HTTP
+workers. This feature is inspired by Erlang's dirty schedulers.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Traditional Gunicorn workers are designed to handle HTTP requests quickly. Long-running operations like loading ML models or performing heavy computation can block these workers, reducing the server's ability to handle concurrent requests.</p>
+<p>Traditional Gunicorn workers are designed to handle HTTP requests quickly.
+Long-running operations like loading ML models or performing heavy computation
+can block these workers, reducing the server's ability to handle concurrent
+requests.</p>
 <p>Dirty Arbiters solve this by providing:</p>
 <ul>
-<li><strong>Separate worker pool</strong> - Completely separate from HTTP workers, can be killed/restarted independently</li>
+<li><strong>Separate worker pool</strong> - Completely separate from HTTP workers, can be
+  killed/restarted independently</li>
 <li><strong>Stateful workers</strong> - Loaded resources persist in dirty worker memory</li>
-<li><strong>Message-passing IPC</strong> - Communication via Unix sockets with binary TLV protocol</li>
+<li><strong>Message-passing IPC</strong> - Communication via Unix sockets with binary TLV
+  protocol</li>
 <li><strong>Explicit API</strong> - Clear <code>execute()</code> calls (no hidden IPC)</li>
 <li><strong>Asyncio-based</strong> - Clean concurrent handling with streaming support</li>
 </ul>
 <h2 id="design-philosophy">Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permanent link">&para;</a></h2>
 <p>Dirty Arbiters follow several key design principles:</p>
 <h3 id="separate-process-hierarchy">Separate Process Hierarchy<a class="headerlink" href="#separate-process-hierarchy" title="Permanent link">&para;</a></h3>
-<p>Unlike threads or in-process pools, Dirty Arbiters use a fully separate process tree:</p>
+<p>Unlike threads or in-process pools, Dirty Arbiters use a fully separate process
+tree:</p>
 <ul>
-<li><strong>Isolation</strong> - A crash or memory leak in a dirty worker cannot affect HTTP workers</li>
-<li><strong>Independent lifecycle</strong> - Dirty workers can be killed/restarted without affecting request handling</li>
+<li><strong>Isolation</strong> - A crash or memory leak in a dirty worker cannot affect HTTP
+  workers</li>
+<li><strong>Independent lifecycle</strong> - Dirty workers can be killed/restarted without
+  affecting request handling</li>
 <li><strong>Resource accounting</strong> - OS-level memory limits can be applied per-process</li>
-<li><strong>Clean shutdown</strong> - Each process tree can be signaled and terminated independently</li>
+<li><strong>Clean shutdown</strong> - Each process tree can be signaled and terminated
+  independently</li>
 </ul>
 <h3 id="erlang-inspiration">Erlang Inspiration<a class="headerlink" href="#erlang-inspiration" title="Permanent link">&para;</a></h3>
-<p>The name and concept come from Erlang's "dirty schedulers" - special schedulers that handle operations that would block normal schedulers. In Erlang, dirty schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly, Gunicorn's Dirty Arbiters handle Python operations that would block HTTP workers.</p>
+<p>The name and concept come from Erlang's "dirty schedulers" - special schedulers
+that handle operations that would block normal schedulers. In Erlang, dirty
+schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly,
+Gunicorn's Dirty Arbiters handle Python operations that would block HTTP
+workers.</p>
 <h3 id="why-asyncio">Why Asyncio<a class="headerlink" href="#why-asyncio" title="Permanent link">&para;</a></h3>
-<p>The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's select-based approach:</p>
+<p>The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's
+select-based approach:</p>
 <ul>
-<li><strong>Non-blocking IPC</strong> - Can handle many concurrent client connections efficiently</li>
-<li><strong>Concurrent request routing</strong> - Multiple requests can be dispatched to workers simultaneously</li>
+<li><strong>Non-blocking IPC</strong> - Can handle many concurrent client connections
+  efficiently</li>
+<li><strong>Concurrent request routing</strong> - Multiple requests can be dispatched to
+  workers simultaneously</li>
 <li><strong>Streaming support</strong> - Native async generators for streaming responses</li>
-<li><strong>Clean signal handling</strong> - Signals integrate cleanly via <code>loop.add_signal_handler()</code></li>
+<li><strong>Clean signal handling</strong> - Signals integrate cleanly via
+  <code>loop.add_signal_handler()</code></li>
 </ul>
 <h3 id="stateful-applications">Stateful Applications<a class="headerlink" href="#stateful-applications" title="Permanent link">&para;</a></h3>
-<p>Traditional WSGI apps are request-scoped - they're invoked per-request and don't maintain state between requests. Dirty apps are different:</p>
+<p>Traditional WSGI apps are request-scoped - they're invoked per-request and
+don't maintain state between requests. Dirty apps are different:</p>
 <ul>
 <li><strong>Long-lived</strong> - Apps persist in worker memory for the worker's lifetime</li>
 <li><strong>Pre-loaded resources</strong> - Models, connections, and caches stay loaded</li>
-<li><strong>Explicit state management</strong> - Apps control their own lifecycle via <code>init()</code> and <code>close()</code></li>
+<li><strong>Explicit state management</strong> - Apps control their own lifecycle via <code>init()</code>
+  and <code>close()</code></li>
 </ul>
-<p>This makes dirty apps ideal for ML inference, where loading a model once and reusing it for many requests is essential.</p>
+<p>This makes dirty apps ideal for ML inference, where loading a model once and
+reusing it for many requests is essential.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>                         +-------------------+
                          |   Main Arbiter    |
@@ -2874,7 +2896,9 @@ the API and behavior may change in future releases. Please report any issues on
 </tbody>
 </table>
 <h2 id="per-app-worker-allocation">Per-App Worker Allocation<a class="headerlink" href="#per-app-worker-allocation" title="Permanent link">&para;</a></h2>
-<p>By default, all dirty workers load all configured apps. For apps that consume significant memory (like large ML models), you can limit how many workers load a specific app.</p>
+<p>By default, all dirty workers load all configured apps. For apps that consume
+significant memory (like large ML models), you can limit how many workers load
+a specific app.</p>
 <h3 id="why-per-app-allocation">Why Per-App Allocation?<a class="headerlink" href="#why-per-app-allocation" title="Permanent link">&para;</a></h3>
 <p>Consider a scenario with a 10GB ML model and 8 dirty workers:</p>
 <ul>
@@ -2936,7 +2960,8 @@ Worker 4: [LightApp]
 <span class="n">client</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"myapp.single:SingletonApp"</span><span class="p">,</span> <span class="s2">"process"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
-<p>If no workers have the requested app loaded, a <code>DirtyNoWorkersAvailableError</code> is raised:</p>
+<p>If no workers have the requested app loaded, a <code>DirtyNoWorkersAvailableError</code>
+is raised:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyNoWorkersAvailableError</span>
 
@@ -2949,7 +2974,8 @@ Worker 4: [LightApp]
         <span class="k">return</span> <span class="p">{</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"Service temporarily unavailable"</span><span class="p">,</span> <span class="s2">"app"</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">app_path</span><span class="p">}</span>
 </code></pre></div>
 <h3 id="worker-crash-recovery">Worker Crash Recovery<a class="headerlink" href="#worker-crash-recovery" title="Permanent link">&para;</a></h3>
-<p>When a worker crashes, its replacement gets the <strong>same apps</strong> as the dead worker:</p>
+<p>When a worker crashes, its replacement gets the <strong>same apps</strong> as the dead
+worker:</p>
 <div class="highlight"><pre><span></span><code>Timeline:
   t=0: Worker 1 crashes (had HeavyModelApp)
   t=1: Arbiter detects crash, queues respawn
@@ -2964,11 +2990,14 @@ Worker 4: [LightApp]
 </ul>
 <h3 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h3>
 <ol>
-<li><strong>Set realistic limits</strong> - Don't set <code>workers=1</code> unless truly necessary (single point of failure)</li>
+<li><strong>Set realistic limits</strong> - Don't set <code>workers=1</code> unless truly necessary
+   (single point of failure)</li>
 <li><strong>Monitor memory</strong> - Track per-worker memory to tune allocation</li>
 <li><strong>Handle unavailability</strong> - Catch <code>DirtyNoWorkersAvailableError</code> gracefully</li>
-<li><strong>Use class attributes for app-specific limits</strong> - Makes the limit part of the app definition</li>
-<li><strong>Use config for deployment-specific overrides</strong> - Different limits for dev vs prod</li>
+<li><strong>Use class attributes for app-specific limits</strong> - Makes the limit part of
+   the app definition</li>
+<li><strong>Use config for deployment-specific overrides</strong> - Different limits for dev
+   vs prod</li>
 </ol>
 <h2 id="creating-a-dirty-app">Creating a Dirty App<a class="headerlink" href="#creating-a-dirty-app" title="Permanent link">&para;</a></h2>
 <p>Dirty apps inherit from <code>DirtyApp</code> and implement three methods:</p>
@@ -3049,7 +3078,8 @@ Worker 4: [LightApp]
 <li><strong>Fork</strong> - Worker process is forked from dirty arbiter</li>
 <li><strong><code>dirty_post_fork(arbiter, worker)</code></strong> - Hook called immediately after fork</li>
 <li><strong>App instantiation</strong> - Each dirty app class is instantiated (<code>__init__</code>)</li>
-<li><strong><code>app.init()</code></strong> - Called for each app after instantiation (load models, resources)</li>
+<li><strong><code>app.init()</code></strong> - Called for each app after instantiation (load models,
+   resources)</li>
 <li><strong><code>dirty_worker_init(worker)</code></strong> - Hook called after ALL apps are initialized</li>
 <li><strong>Run loop</strong> - Worker starts accepting requests from HTTP workers</li>
 </ol>
@@ -3057,7 +3087,8 @@ Worker 4: [LightApp]
 <ul>
 <li>Use <code>__init__</code> for basic setup (initialize empty containers, store config)</li>
 <li>Use <code>init()</code> for heavy loading (ML models, database connections, large files)</li>
-<li>The <code>dirty_worker_init</code> hook fires only after all apps have completed their <code>init()</code> calls</li>
+<li>The <code>dirty_worker_init</code> hook fires only after all apps have completed their
+  <code>init()</code> calls</li>
 </ul>
 <h2 id="using-from-http-workers">Using from HTTP Workers<a class="headerlink" href="#using-from-http-workers" title="Permanent link">&para;</a></h2>
 <h3 id="sync-workers-sync-gthread">Sync Workers (sync, gthread)<a class="headerlink" href="#sync-workers-sync-gthread" title="Permanent link">&para;</a></h3>
@@ -3096,9 +3127,12 @@ Worker 4: [LightApp]
     <span class="k">return</span> <span class="n">result</span>
 </code></pre></div>
 <h2 id="streaming">Streaming<a class="headerlink" href="#streaming" title="Permanent link">&para;</a></h2>
-<p>Dirty Arbiters support streaming responses for use cases like LLM token generation, where data is produced incrementally. This enables real-time delivery of results without waiting for complete execution.</p>
+<p>Dirty Arbiters support streaming responses for use cases like LLM token
+generation, where data is produced incrementally. This enables real-time
+delivery of results without waiting for complete execution.</p>
 <h3 id="streaming-with-generators">Streaming with Generators<a class="headerlink" href="#streaming-with-generators" title="Permanent link">&para;</a></h3>
-<p>Any dirty app action that returns a generator (sync or async) automatically streams chunks to the client:</p>
+<p>Any dirty app action that returns a generator (sync or async) automatically
+streams chunks to the client:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># myapp/llm.py</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirtyApp</span>
 
@@ -3169,7 +3203,9 @@ Worker -&gt; Arbiter -&gt; Client: chunk (data: "World")
 Worker -&gt; Arbiter -&gt; Client: end
 </code></pre></div></p>
 <h2 id="binary-protocol">Binary Protocol<a class="headerlink" href="#binary-protocol" title="Permanent link">&para;</a></h2>
-<p>The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd for efficient data transfer. This eliminates base64 encoding overhead for binary data like images, audio, or model weights.</p>
+<p>The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd
+for efficient data transfer. This eliminates base64 encoding overhead for
+binary data like images, audio, or model weights.</p>
 <h3 id="header-format-16-bytes">Header Format (16 bytes)<a class="headerlink" href="#header-format-16-bytes" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>+--------+--------+--------+--------+--------+--------+--------+--------+
 |  Magic (2B)     | Ver(1) | MType  |        Payload Length (4B)        |
@@ -3180,7 +3216,8 @@ Worker -&gt; Arbiter -&gt; Client: end
 <ul>
 <li><strong>Magic</strong>: <code>0x47 0x44</code> ("GD" for Gunicorn Dirty)</li>
 <li><strong>Version</strong>: <code>0x01</code></li>
-<li><strong>MType</strong>: Message type (<code>0x01</code>=REQUEST, <code>0x02</code>=RESPONSE, <code>0x03</code>=ERROR, <code>0x04</code>=CHUNK, <code>0x05</code>=END)</li>
+<li><strong>MType</strong>: Message type (<code>0x01</code>=REQUEST, <code>0x02</code>=RESPONSE, <code>0x03</code>=ERROR,
+  <code>0x04</code>=CHUNK, <code>0x05</code>=END)</li>
 <li><strong>Length</strong>: Payload size (big-endian uint32, max 64MB)</li>
 <li><strong>Request ID</strong>: uint64 identifier</li>
 </ul>
@@ -3270,14 +3307,20 @@ Worker -&gt; Arbiter -&gt; Client: end
 </code></pre></div>
 <h3 id="best-practices-for-streaming">Best Practices for Streaming<a class="headerlink" href="#best-practices-for-streaming" title="Permanent link">&para;</a></h3>
 <ol>
-<li><strong>Use async generators for I/O-bound streaming</strong> - e.g., API calls to external services</li>
-<li><strong>Use sync generators for CPU-bound streaming</strong> - e.g., local model inference</li>
-<li><strong>Yield frequently</strong> - Heartbeats are sent during streaming to keep workers alive</li>
+<li><strong>Use async generators for I/O-bound streaming</strong> - e.g., API calls to
+   external services</li>
+<li><strong>Use sync generators for CPU-bound streaming</strong> - e.g., local model
+   inference</li>
+<li><strong>Yield frequently</strong> - Heartbeats are sent during streaming to keep workers
+   alive</li>
 <li><strong>Keep chunks small</strong> - Smaller chunks provide better perceived latency</li>
-<li><strong>Handle client disconnection</strong> - Streams continue even if client disconnects; design accordingly</li>
+<li><strong>Handle client disconnection</strong> - Streams continue even if client
+   disconnects; design accordingly</li>
 </ol>
 <h2 id="stash-shared-state-via-message-passing">Stash (Shared State via Message Passing)<a class="headerlink" href="#stash-shared-state-via-message-passing" title="Permanent link">&para;</a></h2>
-<p>Stash provides shared state between dirty workers, similar to Erlang's ETS (Erlang Term Storage). Workers remain fully isolated - all state access goes through message passing to the arbiter.</p>
+<p>Stash provides shared state between dirty workers, similar to Erlang's ETS
+(Erlang Term Storage). Workers remain fully isolated - all state access goes
+through message passing to the arbiter.</p>
 <h3 id="architecture_1">Architecture<a class="headerlink" href="#architecture_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>                    +------------------+
                     |   Dirty Arbiter  |
@@ -3308,7 +3351,9 @@ Worker -&gt; Arbiter -&gt; Client: end
 <li>Arbiter sends response back to worker</li>
 <li>Worker receives confirmation</li>
 </ol>
-<p>This is <strong>not</strong> shared memory - workers remain fully isolated. The arbiter acts as a centralized store that workers communicate with via message passing. This matches Erlang's model where ETS tables are owned by a process.</p>
+<p>This is <strong>not</strong> shared memory - workers remain fully isolated. The arbiter acts
+as a centralized store that workers communicate with via message passing. This
+matches Erlang's model where ETS tables are owned by a process.</p>
 <h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">stash</span>
 
@@ -3534,7 +3579,8 @@ Worker -&gt; Arbiter -&gt; Client: end
 <li><strong>IPC overhead</strong> - Each operation is a network round-trip</li>
 <li><strong>Single arbiter</strong> - Not distributed across multiple machines</li>
 </ul>
-<p>For persistent or distributed state, use Redis, PostgreSQL, or similar external systems.</p>
+<p>For persistent or distributed state, use Redis, PostgreSQL, or similar external
+systems.</p>
 <h3 id="flask-example">Flask Example<a class="headerlink" href="#flask-example" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">Response</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gunicorn.dirty</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_dirty_client</span>
@@ -3595,7 +3641,9 @@ Worker -&gt; Arbiter -&gt; Client: end
 <span class="n">dirty_worker_exit</span> <span class="o">=</span> <span class="n">dirty_worker_exit</span>
 </code></pre></div>
 <h2 id="signal-handling">Signal Handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h2>
-<p>Dirty Arbiters integrate with the main arbiter's signal handling. Signals are forwarded from the main arbiter to the dirty arbiter, which then propagates them to workers.</p>
+<p>Dirty Arbiters integrate with the main arbiter's signal handling. Signals are
+forwarded from the main arbiter to the dirty arbiter, which then propagates
+them to workers.</p>
 <h3 id="signal-flow">Signal Flow<a class="headerlink" href="#signal-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>  Main Arbiter                    Dirty Arbiter                 Dirty Workers
        |                                |                             |
@@ -3670,7 +3718,8 @@ Worker -&gt; Arbiter -&gt; Client: end
 </tbody>
 </table>
 <h3 id="dynamic-scaling-with-ttinttou">Dynamic Scaling with TTIN/TTOU<a class="headerlink" href="#dynamic-scaling-with-ttinttou" title="Permanent link">&para;</a></h3>
-<p>You can dynamically scale the number of dirty workers at runtime using signals, without restarting gunicorn:</p>
+<p>You can dynamically scale the number of dirty workers at runtime using signals,
+without restarting gunicorn:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Find the dirty arbiter process</span>
 ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>dirty-arbiter
 <span class="c1"># Or use the PID file (location depends on your app name)</span>
@@ -3682,7 +3731,10 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <span class="c1"># Decrease dirty workers by 1</span>
 <span class="nb">kill</span><span class="w"> </span>-TTOU<span class="w"> </span>&lt;dirty-arbiter-pid&gt;
 </code></pre></div>
-<p><strong>Minimum Worker Constraint:</strong> The dirty arbiter will not decrease below the minimum number of workers required by your app configurations. For example, if you have an app with <code>workers = 3</code>, you cannot scale below 3 dirty workers. When this limit is reached, a warning is logged:</p>
+<p><strong>Minimum Worker Constraint:</strong> The dirty arbiter will not decrease below the
+minimum number of workers required by your app configurations. For example, if
+you have an app with <code>workers = 3</code>, you cannot scale below 3 dirty workers.
+When this limit is reached, a warning is logged:</p>
 <div class="highlight"><pre><span></span><code>WARNING: SIGTTOU: Cannot decrease below 3 workers (required by app specs)
 </code></pre></div>
 <p><strong>Use Cases:</strong></p>
@@ -3695,11 +3747,13 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <p>The main arbiter forwards these signals to the dirty arbiter process:</p>
 <ul>
 <li><strong>SIGTERM</strong> - Graceful shutdown of entire process tree</li>
-<li><strong>SIGHUP</strong> - Worker reload (main arbiter reloads HTTP workers, dirty arbiter reloads dirty workers)</li>
+<li><strong>SIGHUP</strong> - Worker reload (main arbiter reloads HTTP workers, dirty arbiter
+  reloads dirty workers)</li>
 <li><strong>SIGUSR1</strong> - Log rotation across all processes</li>
 </ul>
 <h3 id="async-signal-handling">Async Signal Handling<a class="headerlink" href="#async-signal-handling" title="Permanent link">&para;</a></h3>
-<p>The dirty arbiter uses asyncio's signal integration for safe handling in the event loop:</p>
+<p>The dirty arbiter uses asyncio's signal integration for safe handling in the
+event loop:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Signals are registered with the event loop</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">add_signal_handler</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_handler</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
 
@@ -3707,11 +3761,14 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
     <span class="c1"># Use call_soon_threadsafe for thread-safe event loop integration</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">call_soon_threadsafe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_signal</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
 </code></pre></div>
-<p>This pattern ensures signals don't interrupt asyncio operations mid-execution, preventing race conditions and partial state updates.</p>
+<p>This pattern ensures signals don't interrupt asyncio operations mid-execution,
+preventing race conditions and partial state updates.</p>
 <h2 id="liveness-and-health-monitoring">Liveness and Health Monitoring<a class="headerlink" href="#liveness-and-health-monitoring" title="Permanent link">&para;</a></h2>
-<p>Dirty Arbiters implement multiple layers of health monitoring to ensure workers remain responsive and orphaned processes are cleaned up.</p>
+<p>Dirty Arbiters implement multiple layers of health monitoring to ensure workers
+remain responsive and orphaned processes are cleaned up.</p>
 <h3 id="heartbeat-mechanism">Heartbeat Mechanism<a class="headerlink" href="#heartbeat-mechanism" title="Permanent link">&para;</a></h3>
-<p>Each dirty worker maintains a "worker tmp" file whose mtime serves as a heartbeat:</p>
+<p>Each dirty worker maintains a "worker tmp" file whose mtime serves as a
+heartbeat:</p>
 <div class="highlight"><pre><span></span><code>Worker Lifecycle:
   1. Worker spawns, creates WorkerTmp file
   2. Worker touches file every (dirty_timeout / 2) seconds
@@ -3720,9 +3777,11 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 </code></pre></div>
 <p>This file-based heartbeat has several advantages:</p>
 <ul>
-<li><strong>OS-level tracking</strong> - No IPC required, works even if worker is stuck in C code</li>
+<li><strong>OS-level tracking</strong> - No IPC required, works even if worker is stuck in C
+  code</li>
 <li><strong>Crash detection</strong> - Arbiter notices immediately when worker stops updating</li>
-<li><strong>Graceful recovery</strong> - Worker killed with SIGKILL, arbiter spawns replacement</li>
+<li><strong>Graceful recovery</strong> - Worker killed with SIGKILL, arbiter spawns
+  replacement</li>
 </ul>
 <h3 id="timeout-detection">Timeout Detection<a class="headerlink" href="#timeout-detection" title="Permanent link">&para;</a></h3>
 <p>The arbiter's monitoring loop checks worker health every second:</p>
@@ -3741,13 +3800,15 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <li>A new worker is spawned to maintain <code>dirty_workers</code> count</li>
 </ol>
 <h3 id="parent-death-detection">Parent Death Detection<a class="headerlink" href="#parent-death-detection" title="Permanent link">&para;</a></h3>
-<p>Dirty arbiters monitor their parent process (the main arbiter) to detect orphaning:</p>
+<p>Dirty arbiters monitor their parent process (the main arbiter) to detect
+orphaning:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># In the dirty arbiter's main loop</span>
 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_pid</span><span class="p">:</span>
     <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Parent died, shutting down"</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div>
-<p>This check runs every iteration of the event loop (typically sub-millisecond). When parent death is detected:</p>
+<p>This check runs every iteration of the event loop (typically sub-millisecond).
+When parent death is detected:</p>
 <ol>
 <li>Arbiter sets <code>self.alive = False</code></li>
 <li>All workers are sent SIGTERM</li>
@@ -3756,7 +3817,8 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <li>Arbiter exits</li>
 </ol>
 <h3 id="orphan-cleanup">Orphan Cleanup<a class="headerlink" href="#orphan-cleanup" title="Permanent link">&para;</a></h3>
-<p>To handle edge cases where the dirty arbiter itself crashes, a well-known PID file is used:</p>
+<p>To handle edge cases where the dirty arbiter itself crashes, a well-known PID
+file is used:</p>
 <p><strong>PID file location</strong>: <code>/tmp/gunicorn_dirty_&lt;main_arbiter_pid&gt;.pid</code></p>
 <p>On startup, the dirty arbiter:</p>
 <ol>
@@ -3766,7 +3828,8 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 <li>Writes its own PID to the file</li>
 <li>On exit, removes the PID file</li>
 </ol>
-<p>This ensures that if a dirty arbiter crashes and the main arbiter restarts it, the old orphaned process is terminated.</p>
+<p>This ensures that if a dirty arbiter crashes and the main arbiter restarts it,
+the old orphaned process is terminated.</p>
 <h3 id="respawn-behavior">Respawn Behavior<a class="headerlink" href="#respawn-behavior" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3789,15 +3852,18 @@ cat<span class="w"> </span>/tmp/gunicorn-dirty-myapp.pid
 </tr>
 </tbody>
 </table>
-<p>The dirty arbiter maintains a target worker count and continuously spawns workers until the target is reached:</p>
+<p>The dirty arbiter maintains a target worker count and continuously spawns
+workers until the target is reached:</p>
 <div class="highlight"><pre><span></span><code><span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_workers</span><span class="p">:</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spawn_worker</span><span class="p">()</span>
 </code></pre></div>
 <h3 id="monitoring-recommendations">Monitoring Recommendations<a class="headerlink" href="#monitoring-recommendations" title="Permanent link">&para;</a></h3>
 <p>For production deployments, consider:</p>
 <ol>
-<li><strong>Log monitoring</strong> - Watch for "Worker timed out" messages indicating hung workers</li>
-<li><strong>Process monitoring</strong> - Use systemd or supervisord to monitor the main arbiter</li>
+<li><strong>Log monitoring</strong> - Watch for "Worker timed out" messages indicating hung
+   workers</li>
+<li><strong>Process monitoring</strong> - Use systemd or supervisord to monitor the main
+   arbiter</li>
 <li><strong>Metrics</strong> - Track respawn frequency to detect unstable workers</li>
 </ol>
 <div class="highlight"><pre><span></span><code><span class="c1"># Check for recent worker timeouts</span>
@@ -3841,7 +3907,8 @@ watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><
 <li><strong>Set appropriate timeouts</strong> based on your workload</li>
 <li><strong>Handle errors gracefully</strong> - dirty workers may restart</li>
 <li><strong>Use meaningful action names</strong> for easier debugging</li>
-<li><strong>Keep responses serializable</strong> - results are passed via binary IPC (supports bytes directly)</li>
+<li><strong>Keep responses serializable</strong> - results are passed via binary IPC
+   (supports bytes directly)</li>
 </ol>
 <h2 id="monitoring">Monitoring<a class="headerlink" href="#monitoring" title="Permanent link">&para;</a></h2>
 <p>Monitor dirty workers using standard process monitoring:</p>
@@ -3901,8 +3968,14 @@ tail<span class="w"> </span>-f<span class="w"> </span>gunicorn.log<span class="w
 <h2 id="complete-examples">Complete Examples<a class="headerlink" href="#complete-examples" title="Permanent link">&para;</a></h2>
 <p>For full working examples with Docker deployment, see:</p>
 <ul>
-<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service">Embedding Service Example</a> - FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.</li>
-<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat">Streaming Chat Example</a> - Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty worker generators and real-time response delivery.</li>
+<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service">Embedding Service
+  Example</a></li>
+<li>FastAPI-based text embedding API using sentence-transformers with dirty
+  workers for ML model management.</li>
+<li><a href="https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat">Streaming Chat
+  Example</a></li>
+<li>Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty
+  worker generators and real-time response delivery.</li>
 </ul>
 
 

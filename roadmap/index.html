@@ -1957,11 +1957,19 @@ with the compatibility suite as the check on that.</p>
 <p><strong>Documentation.</strong> Keeping the guides and the settings reference current.</p>
 <h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
 <p>Larger pieces of work that are planned, or begun but not landed.</p>
-<p><strong>Serving AI workloads.</strong> Dirty arbiters already give a model its own process
-pool, with per-app worker allocation and streaming responses. The work ahead is
-what a model server needs on top of that: batching requests so a single forward
-pass serves many of them, backpressure when the queue outgrows the workers, and
-pinning workers to specific GPUs.</p>
+<p><strong>Serving AI workloads</strong> (resource-aware, lifecycle-aware workers). Dirty
+arbiters already give heavy applications such as ML models their own process
+pools, with per-app worker allocation and streaming responses. The next step is
+to make those workers resource-aware and lifecycle-aware without turning
+Gunicorn into an inference engine.</p>
+<p>Applications will be able to request operator-defined resource slots, initially
+targeting GPU-backed workloads, while Gunicorn manages allocation, readiness,
+backpressure and graceful worker replacement. Resource slots are virtual
+allocation tokens: the application and its inference engine remain responsible
+for the physical device, model memory, batching and parallelism.</p>
+<p>The goal is for Gunicorn to complement engines such as vLLM, SGLang, llama.cpp
+or PyTorch by managing their application lifecycle cleanly, rather than
+replacing them.</p>
 <p><strong>HTTP/3.</strong> QUIC support, alongside finishing HTTP/2. The protocol is already
 reserved in the configuration and does nothing yet.</p>
 <p><strong>FastCGI.</strong> A FastCGI responder alongside the existing
