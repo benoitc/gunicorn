@@ -683,10 +683,15 @@ class ASGIProtocol(asyncio.Protocol):
         if state is negotiation.MATCH:
             self._h2c_start(buffered)
             return
-        # A trusted peer on a prior-knowledge port must speak HTTP/2.
-        # Anything else is refused rather than silently downgraded.
-        self._send_error_response(400, "Invalid HTTP/2 connection preface")
-        self._close_transport()
+        if negotiation.mismatch_is_error(self.cfg):
+            # A trusted peer on a prior-knowledge-only port must speak
+            # HTTP/2. Anything else is refused rather than downgraded.
+            self._send_error_response(400, "Invalid HTTP/2 connection preface")
+            self._close_transport()
+            return
+        # Upgrade is enabled too, so this may be the HTTP/1 request that
+        # carries it; carry on with the bytes preserved.
+        self._start_http1(buffered)
 
     def _h2c_start(self, buffered):
         """Commit to HTTP/2 and replay the bytes read while undecided."""
@@ -698,11 +703,20 @@ class ASGIProtocol(asyncio.Protocol):
         self.reader.feed_data(buffered)
 
     def _h2c_undecided_timeout(self):
-        """A client that stalls mid-preface is refused, not downgraded."""
+        """Nothing conclusive arrived in time.
+
+        With prior knowledge alone the peer is expected to speak HTTP/2, so
+        stalling mid-preface is refused rather than downgraded. Where an
+        upgrade is also on offer, a quiet client is just a quiet client and
+        the ordinary HTTP/1 timeouts apply.
+        """
         self._h2c_timer = None
         if self._h2c_buffer is None:
             return
-        self._h2c_buffer = None
+        buffered, self._h2c_buffer = self._h2c_buffer, None
+        if not negotiation.mismatch_is_error(self.cfg):
+            self._start_http1(buffered)
+            return
         self._send_error_response(400, "Invalid HTTP/2 connection preface")
         self._close_transport()
 

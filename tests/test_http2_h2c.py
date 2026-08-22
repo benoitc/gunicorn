@@ -868,6 +868,71 @@ class TestH2CASGIUpgrade:
             assert proto._h2c_upgrade_ok is False
 
 
+class TestH2CASGIBothModes:
+    """With both mechanisms on, a non-preface is not an error.
+
+    The sniffer sees the HTTP/1 request that carries the upgrade before
+    anything else does, so refusing every non-preface would reject exactly
+    what ``both`` exists to accept.
+    """
+
+    def _connect(self, mode, peername=TRUSTED_ADDR):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", mode)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = make_asgi_protocol(cfg, loop)
+        transport = _FakeTransport(peername)
+        proto.connection_made(transport)
+        return proto, transport, loop
+
+    @contextlib.contextmanager
+    def _protocol(self, mode):
+        proto, transport, loop = self._connect(mode)
+        try:
+            yield proto, transport
+        finally:
+            proto._h2c_cancel_timer()
+            if proto._task is not None:
+                proto._task.cancel()
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    def test_upgrade_request_survives_the_sniffer(self):
+        with self._protocol("both") as (proto, transport):
+            proto.data_received(
+                upgrade_request() + negotiation.H2C_PREFACE)
+            assert b"400" not in transport.written
+            assert proto._h2c_upgrade_settings is not None
+            assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
+
+    def test_plain_http1_is_served(self):
+        with self._protocol("both") as (proto, transport):
+            proto.data_received(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+            assert b"400" not in transport.written
+            assert not transport.closed
+            assert proto._current_request is not None
+
+    def test_prior_knowledge_alone_still_refuses(self):
+        with self._protocol("prior-knowledge") as (proto, transport):
+            proto.data_received(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+            assert b"400" in transport.written
+            assert transport.closed
+
+    def test_quiet_client_is_not_refused(self):
+        with self._protocol("both") as (proto, transport):
+            proto._h2c_undecided_timeout()
+            assert b"400" not in transport.written
+            assert not transport.closed
+            assert proto._callback_parser is not None
+
+    def test_quiet_client_is_refused_under_prior_knowledge(self):
+        with self._protocol("prior-knowledge") as (proto, transport):
+            proto._h2c_undecided_timeout()
+            assert b"400" in transport.written
+            assert transport.closed
+
+
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
 @pytest.mark.parametrize("parser", ["fast", "python"])
 class TestH2CASGIUpgradeEndToEnd:
