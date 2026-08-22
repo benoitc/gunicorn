@@ -2539,6 +2539,11 @@ class HTTP2Cleartext(Setting):
         The mechanisms are listed separately on purpose: enabling one does not
         enable the other.
 
+        With ``prior-knowledge`` alone, a trusted peer that does not send the
+        preface is refused with 400, since it is expected to speak HTTP/2.
+        With ``upgrade`` or ``both`` an HTTP/1 request is how an upgrade
+        begins, so it is served normally.
+
         Only peers in :ref:`forwarded-allow-ips` are considered. Everyone else
         is served HTTP/1.x exactly as if this were ``off``. Anything else from
         a trusted peer on a prior-knowledge port (an HTTP/1.x request, a

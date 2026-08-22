@@ -231,6 +231,23 @@ class PythonProtocol:
             else:
                 break
 
+    def remaining(self):
+        """Bytes fed after the completed message (b'' if none or not complete).
+
+        Matches the accessor H1CProtocol gained in 0.6.8, so a caller does not
+        have to know which parser it holds. Nothing extra is buffered here:
+        feed() leaves the state loop once the message completes, and both the
+        content-length and chunked paths delete what they consume.
+        """
+        if not self.is_complete:
+            return b''
+        return bytes(self._buffer)
+
+    @property
+    def remaining_truncated(self):
+        """Always False: this parser keeps the whole tail, uncapped."""
+        return False
+
     @property
     def proxy_protocol_info(self):
         """Return proxy protocol info if parsed."""

@@ -85,7 +85,8 @@ http_protocols = "h2, h1"
 
 When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
 service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
-plain TCP. Enable it with `--http2-cleartext` (gthread worker):
+plain TCP. Enable it with `--http2-cleartext`, on the `gthread`, `gevent`
+or `asgi` worker:
 
 ```bash
 gunicorn myapp:app -k gthread --http-protocols h2,h1 \
@@ -105,9 +106,21 @@ preface) is rejected with a 400 rather than silently downgraded, so a
 misconfigured proxy fails loudly instead of quietly losing HTTP/2.
 Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
 
+Both mechanisms are served by the `gthread`, `gevent` and `asgi`
+workers. Note that with `prior-knowledge` alone a trusted peer sending
+anything else is refused with 400, while with `upgrade` or `both` an
+ordinary HTTP/1 request is served normally, because that is how an
+upgrade starts.
+
 Streams on an HTTP/2 connection are handled one after another, not
 concurrently, so a slow handler holds up the other streams on that
-connection.
+connection. Response bodies are streamed as the application produces
+them rather than collected first, so a large response does not sit in
+worker memory.
+
+As on HTTP/1, responses that cannot carry a body (HEAD, 1xx, 204, 304)
+send none, and `sendfile()` does not apply to HTTP/2 responses: raw file
+bytes would bypass HTTP/2 framing.
 
 Test prior knowledge with:
 
