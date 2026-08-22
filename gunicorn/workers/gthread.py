@@ -103,9 +103,15 @@ class TConn:
                     # a request, so nothing is dropped here.
                     self.parser.receive_data(buf)
                     return
-                # A trusted peer on a prior-knowledge port must speak HTTP/2.
-                # Anything else is rejected rather than silently downgraded.
-                raise InvalidH2CPreface(buf)
+                if negotiation.mismatch_is_error(self.cfg):
+                    # A trusted peer on a prior-knowledge-only port must
+                    # speak HTTP/2; anything else is a misconfiguration.
+                    raise InvalidH2CPreface(buf)
+                # Upgrade is enabled too, so this may be the HTTP/1 request
+                # that carries it. Give the bytes back and carry on.
+                self.parser = http.get_parser(self.cfg, self.sock, self.client)
+                self.parser.unreader.unread(buf)
+                return
 
             # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)
@@ -500,18 +506,14 @@ class ThreadWorker(base.Worker):
             if not req:
                 return False
 
+            settings = None
+            if negotiation.upgrade_allowed(self.cfg, conn.client):
+                settings = negotiation.upgrade_settings(req)
+            if settings is not None:
+                return self.handle_h2c_upgrade(conn, req, settings)
+
             # Handle the request
-            keepalive = self.handle_request(req, conn)
-            if keepalive:
-                # Discard any unread request body before keepalive to prevent
-                # the socket from appearing readable due to leftover bytes.
-                # Bound the drain by the worker data timeout: a stalled client
-                # must not keep this thread blocked.
-                drain_deadline = time.monotonic() + DEFAULT_WORKER_DATA_TIMEOUT
-                if not conn.parser.finish_body(deadline=drain_deadline):
-                    # Abandon keepalive when the body could not be fully drained.
-                    return False
-                return True
+            return self._keepalive_after(conn, self.handle_request(req, conn))
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
@@ -537,6 +539,40 @@ class ThreadWorker(base.Worker):
             self.handle_error(req, conn.sock, conn.client, e)
 
         return False
+
+    def _keepalive_after(self, conn, keepalive):
+        """Whether the connection can be reused for another request.
+
+        A body the application did not read leaves bytes on the socket, which
+        would make it look readable again, so it is drained first. The drain
+        is bounded by the worker data timeout: a stalled client must not keep
+        this thread blocked.
+        """
+        if not keepalive:
+            return False
+        drain_deadline = time.monotonic() + DEFAULT_WORKER_DATA_TIMEOUT
+        return bool(conn.parser.finish_body(deadline=drain_deadline))
+
+    def handle_h2c_upgrade(self, conn, req, settings):
+        """Switch this connection to HTTP/2 and serve the upgraded request.
+
+        The client may already have sent HTTP/2 frames behind the upgrade
+        request. Those bytes are sitting in the parser's unreader, so they
+        are handed to the HTTP/2 connection rather than dropped.
+        """
+        pending = conn.parser.unreader.take_buffered()
+        util.write(conn.sock, negotiation.UPGRADE_101)
+
+        h2_conn = http.get_parser(self.cfg, conn.sock, conn.client,
+                                  http2_connection=True)
+        upgraded = h2_conn.initiate_upgrade(settings, req)
+        conn.parser = h2_conn
+        conn.is_http2 = True
+        if pending:
+            h2_conn.receive_data(pending)
+
+        self.handle_http2_request(upgraded, conn, h2_conn)
+        return self.handle_http2(conn)
 
     def handle_http2(self, conn):
         """Handle an HTTP/2 connection. Runs in a worker thread.

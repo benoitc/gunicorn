@@ -612,3 +612,104 @@ class TestH2CASGI:
         finally:
             loop.close()
             asyncio.set_event_loop(None)
+
+
+class TestUpgradeDetection:
+    """RFC 7540 3.2: what counts as an upgrade request."""
+
+    def _req(self, headers):
+        r = mock.Mock()
+        r.headers = headers
+        return r
+
+    VALID = [("UPGRADE", "h2c"), ("HTTP2-SETTINGS", "AAMAAABk"),
+             ("CONNECTION", "Upgrade, HTTP2-Settings")]
+
+    def test_valid_upgrade(self):
+        assert negotiation.upgrade_settings(self._req(self.VALID)) == b"AAMAAABk"
+
+    def test_case_insensitive(self):
+        headers = [("UPGRADE", "H2C"), ("HTTP2-SETTINGS", "AAMAAABk"),
+                   ("CONNECTION", "upgrade, http2-settings")]
+        assert negotiation.upgrade_settings(self._req(headers)) == b"AAMAAABk"
+
+    def test_no_upgrade_header(self):
+        assert negotiation.upgrade_settings(
+            self._req([("CONNECTION", "keep-alive")])) is None
+
+    def test_wrong_protocol(self):
+        headers = [("UPGRADE", "websocket")] + self.VALID[1:]
+        assert negotiation.upgrade_settings(self._req(headers)) is None
+
+    def test_two_settings_headers_are_ambiguous(self):
+        headers = [("UPGRADE", "h2c"), ("HTTP2-SETTINGS", "a"),
+                   ("HTTP2-SETTINGS", "b"),
+                   ("CONNECTION", "Upgrade, HTTP2-Settings")]
+        assert negotiation.upgrade_settings(self._req(headers)) is None
+
+    def test_settings_not_named_in_connection(self):
+        headers = [("UPGRADE", "h2c"), ("HTTP2-SETTINGS", "a"),
+                   ("CONNECTION", "Upgrade")]
+        assert negotiation.upgrade_settings(self._req(headers)) is None
+
+
+class TestMismatchPolicy:
+    """A non-preface is only an error when prior knowledge stands alone."""
+
+    def _cfg(self, mode):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", mode)
+        return cfg
+
+    def test_prior_knowledge_only_refuses(self):
+        assert negotiation.mismatch_is_error(self._cfg("prior-knowledge"))
+
+    def test_both_allows_http1_through(self):
+        # otherwise the HTTP/1 request carrying an upgrade would be refused
+        assert not negotiation.mismatch_is_error(self._cfg("both"))
+
+    def test_upgrade_allows_http1_through(self):
+        assert not negotiation.mismatch_is_error(self._cfg("upgrade"))
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestUpgradeSynthesis:
+    """The upgraded request becomes stream 1."""
+
+    def _connection(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+        server, client = socket.socketpair()
+        cfg = h2c_config()
+        conn = HTTP2ServerConnection(cfg, server, TRUSTED_ADDR)
+        return conn, server, client
+
+    def test_request_is_carried_over(self):
+        import base64
+        conn, server, client = self._connection()
+        try:
+            req = mock.Mock()
+            req.method = "POST"
+            req.uri = "/upgraded?x=1"
+            req.scheme = "http"
+            req.body = None
+            req.headers = [("HOST", "example.com"), ("UPGRADE", "h2c"),
+                           ("HTTP2-SETTINGS", "AAMAAABk"),
+                           ("CONNECTION", "Upgrade, HTTP2-Settings"),
+                           ("X-KEPT", "yes")]
+            settings = base64.urlsafe_b64encode(
+                b"\x00\x03\x00\x00\x00\x64").rstrip(b"=")
+            h2req = conn.initiate_upgrade(settings, req)
+
+            assert h2req.method == "POST"
+            assert h2req.path == "/upgraded"
+            assert h2req.query == "x=1"
+            assert 1 in conn.streams
+            names = [n for n, _ in h2req.headers]
+            # hop-by-hop upgrade headers do not travel to HTTP/2
+            assert "UPGRADE" not in names
+            assert "HTTP2-SETTINGS" not in names
+            assert "CONNECTION" not in names
+            assert "X-KEPT" in names
+        finally:
+            server.close()
+            client.close()

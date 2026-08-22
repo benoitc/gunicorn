@@ -2539,9 +2539,14 @@ class HTTP2Cleartext(Setting):
         The mechanisms are listed separately on purpose: enabling one does not
         enable the other.
 
-        Only ``prior-knowledge`` is implemented so far. ``upgrade`` and
-        ``both`` are accepted, but the ``Upgrade: h2c`` handshake is not
-        honoured yet and those connections stay on HTTP/1.1.
+        ``upgrade`` is served by the gthread and gevent workers. The ASGI
+        worker accepts prior knowledge only; an upgrade request there stays
+        on HTTP/1.1.
+
+        With ``prior-knowledge`` alone, a trusted peer that does not send the
+        preface is refused with 400, since it is expected to speak HTTP/2.
+        With ``upgrade`` or ``both`` an HTTP/1 request is how an upgrade
+        begins, so it is served normally.
 
         Only peers in :ref:`forwarded-allow-ips` are considered. Everyone else
         is served HTTP/1.x exactly as if this were ``off``. Anything else from

@@ -125,6 +125,51 @@ class HTTP2ServerConnection:
         self._send_pending_data()
         self._initialized = True
 
+    def initiate_upgrade(self, settings_header, http1_req):
+        """Switch a connection to HTTP/2 after an Upgrade: h2c request.
+
+        The upgraded request becomes stream 1 (RFC 7540 section 3.2). h2
+        opens it in the state machine; the matching gunicorn stream is built
+        here from the HTTP/1 request that carried the upgrade, so the worker
+        sees an ordinary HTTP/2 request.
+
+        Returns the HTTP2Request for stream 1.
+        """
+        self.h2_conn.update_settings({
+            _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
+            _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
+            _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
+            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+        })
+        self.h2_conn.initiate_upgrade_connection(settings_header=settings_header)
+        self._send_pending_data()
+        self._initialized = True
+
+        stream = HTTP2Stream(stream_id=1, connection=self)
+        authority = ""
+        for name, value in http1_req.headers:
+            if name == "HOST":
+                authority = value
+                break
+        pseudo = [
+            (':method', http1_req.method),
+            (':path', http1_req.uri),
+            (':scheme', http1_req.scheme),
+        ]
+        if authority:
+            pseudo.append((':authority', authority))
+        regular = [(name.lower(), value) for name, value in http1_req.headers
+                   if name not in ("CONNECTION", "UPGRADE", "HTTP2-SETTINGS")]
+
+        body = b""
+        if http1_req.body is not None:
+            body = http1_req.body.read() or b""
+        stream.receive_headers(pseudo + regular, end_stream=not body)
+        if body:
+            stream.receive_data(body, end_stream=True)
+        self.streams[1] = stream
+        return HTTP2Request(stream, self.cfg, self.client_addr)
+
     def receive_data(self, data=None):
         """Process received data and return completed requests.
 

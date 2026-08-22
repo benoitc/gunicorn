@@ -106,9 +106,11 @@ preface) is rejected with a 400 rather than silently downgraded, so a
 misconfigured proxy fails loudly instead of quietly losing HTTP/2.
 Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
 
-Only the RFC 9113 prior-knowledge mechanism is implemented so far.
-Setting `upgrade` or `both` is accepted by the configuration but the
-`Upgrade: h2c` handshake is not honoured yet.
+`Upgrade: h2c` is served by the `gthread` and `gevent` workers; the
+`asgi` worker accepts prior knowledge only. Note that with
+`prior-knowledge` alone a trusted peer sending anything else is refused
+with 400, while with `upgrade` or `both` an ordinary HTTP/1 request is
+served normally, because that is how an upgrade starts.
 
 Streams on an HTTP/2 connection are handled one after another, not
 concurrently, so a slow handler holds up the other streams on that

@@ -73,6 +73,17 @@ def prior_knowledge_allowed(cfg, peer_addr):
     return _h2c_available(cfg) and peer_trusted_for_h2c(cfg, peer_addr)
 
 
+def mismatch_is_error(cfg):
+    """Whether a trusted peer failing to send the preface is a 400.
+
+    Only when prior knowledge is the sole mechanism: such a peer is expected
+    to speak HTTP/2 and a silent downgrade would hide a misconfiguration.
+    When upgrade is also enabled, an HTTP/1 request is not a mistake, it is
+    how an upgrade begins, so it has to be allowed through.
+    """
+    return cfg.http2_cleartext == "prior-knowledge"
+
+
 def upgrade_allowed(cfg, peer_addr):
     """Whether to honour an ``Upgrade: h2c`` request from this peer."""
     if cfg.http2_cleartext not in ("upgrade", "both"):
@@ -119,3 +130,41 @@ def read_preface_blocking(sock, timeout=None):
                 return False, buf
     finally:
         sock.settimeout(original)
+
+
+#: Sent before switching an HTTP/1.1 connection over to HTTP/2.
+UPGRADE_101 = (
+    b"HTTP/1.1 101 Switching Protocols\r\n"
+    b"Connection: Upgrade\r\n"
+    b"Upgrade: h2c\r\n"
+    b"\r\n"
+)
+
+
+def upgrade_settings(req):
+    """Return the HTTP2-Settings payload if this request asks for h2c.
+
+    RFC 7540 section 3.2: the request must name ``h2c`` in Upgrade and carry
+    exactly one HTTP2-Settings header, itself named in Connection. Returns
+    None when the request is not a well-formed upgrade attempt, so the caller
+    simply carries on with HTTP/1.
+    """
+    upgrade = None
+    settings = []
+    connection = ""
+    for name, value in req.headers:
+        if name == "UPGRADE":
+            upgrade = value.strip().lower()
+        elif name == "HTTP2-SETTINGS":
+            settings.append(value.strip())
+        elif name == "CONNECTION":
+            connection = value.lower()
+
+    if upgrade != "h2c":
+        return None
+    # Exactly one, per RFC 7540 3.2.1: a second one is ambiguous.
+    if len(settings) != 1:
+        return None
+    if "http2-settings" not in connection or "upgrade" not in connection:
+        return None
+    return settings[0].encode("latin-1")
