@@ -1636,6 +1636,8 @@ class ASGIProtocol(asyncio.Protocol):
         response_started = False
         response_complete = False
         headers_sent = False
+        omits_body = False
+        omits_body_warned = False
         exc_to_raise = None
         response_status = 500
         response_headers = []
@@ -1690,6 +1692,7 @@ class ASGIProtocol(asyncio.Protocol):
         async def send(message):
             nonlocal response_started, response_complete, headers_sent
             nonlocal response_status, response_headers, response_sent, exc_to_raise
+            nonlocal omits_body, omits_body_warned
 
             msg_type = message["type"]
 
@@ -1707,6 +1710,10 @@ class ASGIProtocol(asyncio.Protocol):
                     return
                 response_started = True
                 response_status = message["status"]
+                # RFC 9110: HEAD, 1xx, 204 and 304 carry no body. The HTTP/1
+                # handler has always applied this; HTTP/2 did not.
+                omits_body = self._response_omits_body(
+                    request.method, response_status)
                 response_headers = message.get("headers", [])
                 # Don't send headers yet - wait for first body chunk
 
@@ -1720,6 +1727,16 @@ class ASGIProtocol(asyncio.Protocol):
 
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
+
+                if omits_body:
+                    if body and not omits_body_warned:
+                        self.log.warning(
+                            "ASGI app sent body bytes on a no-body response "
+                            "(method=%s status=%s); dropping per RFC 9110.",
+                            request.method, response_status,
+                        )
+                        omits_body_warned = True
+                    body = b""
 
                 # Send headers with first body chunk
                 if not headers_sent:

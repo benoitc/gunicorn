@@ -11,6 +11,7 @@ asyncio for non-blocking I/O.
 """
 
 import asyncio
+import collections
 
 from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,
@@ -76,6 +77,10 @@ class AsyncHTTP2Connection:
 
         # Active streams indexed by stream ID
         self.streams = {}
+        # Events pulled off the wire while blocked on a flow-control window.
+        # They have left the h2 state machine already, so they are held here
+        # for the main receive loop rather than discarded.
+        self._deferred_events = collections.deque()
 
         # Queue of completed requests for the worker
         self._request_queue = asyncio.Queue()
@@ -179,8 +184,12 @@ class AsyncHTTP2Connection:
             await self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
             raise HTTP2ProtocolError(str(e))
 
-        # Process events
+        # Process events, oldest first: anything set aside during a
+        # flow-control wait arrived before this batch.
         completed_requests = []
+        if self._deferred_events:
+            events = list(self._deferred_events) + list(events)
+            self._deferred_events.clear()
         for event in events:
             request = self._handle_event(event)
             if request is not None:
@@ -425,6 +434,12 @@ class AsyncHTTP2Connection:
                         elif isinstance(event, _h2_events.ConnectionTerminated):
                             self._closed = True
                             return -1
+                        else:
+                            # Anything else arriving alongside the
+                            # WINDOW_UPDATE belongs to the main loop. It has
+                            # already left the h2 state machine, so dropping
+                            # it here loses a request or its body for good.
+                            self._deferred_events.append(event)
                     await self._send_pending_data()
                 else:
                     # Connection closed
