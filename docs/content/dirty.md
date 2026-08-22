@@ -8,21 +8,28 @@ menu:
 # Dirty Arbiters
 
 !!! warning "Beta Feature"
-    Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it has been tested,
-    the API and behavior may change in future releases. Please report any issues on
-    [GitHub](https://github.com/benoitc/gunicorn/issues).
+    Dirty Arbiters is a beta feature introduced in Gunicorn 25.0.0. While it
+    has been tested, the API and behavior may change in future releases. Please
+    report any issues on [GitHub](https://github.com/benoitc/gunicorn/issues).
 
-Dirty Arbiters provide a separate process pool for executing long-running, blocking operations (AI model loading, heavy computation) without blocking HTTP workers. This feature is inspired by Erlang's dirty schedulers.
+Dirty Arbiters provide a separate process pool for executing long-running,
+blocking operations (AI model loading, heavy computation) without blocking HTTP
+workers. This feature is inspired by Erlang's dirty schedulers.
 
 ## Overview
 
-Traditional Gunicorn workers are designed to handle HTTP requests quickly. Long-running operations like loading ML models or performing heavy computation can block these workers, reducing the server's ability to handle concurrent requests.
+Traditional Gunicorn workers are designed to handle HTTP requests quickly.
+Long-running operations like loading ML models or performing heavy computation
+can block these workers, reducing the server's ability to handle concurrent
+requests.
 
 Dirty Arbiters solve this by providing:
 
-- **Separate worker pool** - Completely separate from HTTP workers, can be killed/restarted independently
+- **Separate worker pool** - Completely separate from HTTP workers, can be
+  killed/restarted independently
 - **Stateful workers** - Loaded resources persist in dirty worker memory
-- **Message-passing IPC** - Communication via Unix sockets with binary TLV protocol
+- **Message-passing IPC** - Communication via Unix sockets with binary TLV
+  protocol
 - **Explicit API** - Clear `execute()` calls (no hidden IPC)
 - **Asyncio-based** - Clean concurrent handling with streaming support
 
@@ -32,35 +39,50 @@ Dirty Arbiters follow several key design principles:
 
 ### Separate Process Hierarchy
 
-Unlike threads or in-process pools, Dirty Arbiters use a fully separate process tree:
+Unlike threads or in-process pools, Dirty Arbiters use a fully separate process
+tree:
 
-- **Isolation** - A crash or memory leak in a dirty worker cannot affect HTTP workers
-- **Independent lifecycle** - Dirty workers can be killed/restarted without affecting request handling
+- **Isolation** - A crash or memory leak in a dirty worker cannot affect HTTP
+  workers
+- **Independent lifecycle** - Dirty workers can be killed/restarted without
+  affecting request handling
 - **Resource accounting** - OS-level memory limits can be applied per-process
-- **Clean shutdown** - Each process tree can be signaled and terminated independently
+- **Clean shutdown** - Each process tree can be signaled and terminated
+  independently
 
 ### Erlang Inspiration
 
-The name and concept come from Erlang's "dirty schedulers" - special schedulers that handle operations that would block normal schedulers. In Erlang, dirty schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly, Gunicorn's Dirty Arbiters handle Python operations that would block HTTP workers.
+The name and concept come from Erlang's "dirty schedulers" - special schedulers
+that handle operations that would block normal schedulers. In Erlang, dirty
+schedulers run NIFs (Native Implemented Functions) that can't yield. Similarly,
+Gunicorn's Dirty Arbiters handle Python operations that would block HTTP
+workers.
 
 ### Why Asyncio
 
-The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's select-based approach:
+The Dirty Arbiter uses asyncio for its core loop rather than the main arbiter's
+select-based approach:
 
-- **Non-blocking IPC** - Can handle many concurrent client connections efficiently
-- **Concurrent request routing** - Multiple requests can be dispatched to workers simultaneously
+- **Non-blocking IPC** - Can handle many concurrent client connections
+  efficiently
+- **Concurrent request routing** - Multiple requests can be dispatched to
+  workers simultaneously
 - **Streaming support** - Native async generators for streaming responses
-- **Clean signal handling** - Signals integrate cleanly via `loop.add_signal_handler()`
+- **Clean signal handling** - Signals integrate cleanly via
+  `loop.add_signal_handler()`
 
 ### Stateful Applications
 
-Traditional WSGI apps are request-scoped - they're invoked per-request and don't maintain state between requests. Dirty apps are different:
+Traditional WSGI apps are request-scoped - they're invoked per-request and
+don't maintain state between requests. Dirty apps are different:
 
 - **Long-lived** - Apps persist in worker memory for the worker's lifetime
 - **Pre-loaded resources** - Models, connections, and caches stay loaded
-- **Explicit state management** - Apps control their own lifecycle via `init()` and `close()`
+- **Explicit state management** - Apps control their own lifecycle via `init()`
+  and `close()`
 
-This makes dirty apps ideal for ML inference, where loading a model once and reusing it for many requests is essential.
+This makes dirty apps ideal for ML inference, where loading a model once and
+reusing it for many requests is essential.
 
 ## Architecture
 
@@ -147,7 +169,9 @@ gunicorn myapp:app \
 
 ## Per-App Worker Allocation
 
-By default, all dirty workers load all configured apps. For apps that consume significant memory (like large ML models), you can limit how many workers load a specific app.
+By default, all dirty workers load all configured apps. For apps that consume
+significant memory (like large ML models), you can limit how many workers load
+a specific app.
 
 ### Why Per-App Allocation?
 
@@ -231,7 +255,8 @@ client.execute("myapp.single:SingletonApp", "process")
 
 ### Error Handling
 
-If no workers have the requested app loaded, a `DirtyNoWorkersAvailableError` is raised:
+If no workers have the requested app loaded, a `DirtyNoWorkersAvailableError`
+is raised:
 
 ```python
 from gunicorn.dirty import get_dirty_client
@@ -248,7 +273,8 @@ def my_view(request):
 
 ### Worker Crash Recovery
 
-When a worker crashes, its replacement gets the **same apps** as the dead worker:
+When a worker crashes, its replacement gets the **same apps** as the dead
+worker:
 
 ```
 Timeline:
@@ -266,11 +292,14 @@ This ensures:
 
 ### Best Practices
 
-1. **Set realistic limits** - Don't set `workers=1` unless truly necessary (single point of failure)
+1. **Set realistic limits** - Don't set `workers=1` unless truly necessary
+   (single point of failure)
 2. **Monitor memory** - Track per-worker memory to tune allocation
 3. **Handle unavailability** - Catch `DirtyNoWorkersAvailableError` gracefully
-4. **Use class attributes for app-specific limits** - Makes the limit part of the app definition
-5. **Use config for deployment-specific overrides** - Different limits for dev vs prod
+4. **Use class attributes for app-specific limits** - Makes the limit part of
+   the app definition
+5. **Use config for deployment-specific overrides** - Different limits for dev
+   vs prod
 
 ## Creating a Dirty App
 
@@ -338,7 +367,8 @@ When a dirty worker starts, initialization happens in this order:
 1. **Fork** - Worker process is forked from dirty arbiter
 2. **`dirty_post_fork(arbiter, worker)`** - Hook called immediately after fork
 3. **App instantiation** - Each dirty app class is instantiated (`__init__`)
-4. **`app.init()`** - Called for each app after instantiation (load models, resources)
+4. **`app.init()`** - Called for each app after instantiation (load models,
+   resources)
 5. **`dirty_worker_init(worker)`** - Hook called after ALL apps are initialized
 6. **Run loop** - Worker starts accepting requests from HTTP workers
 
@@ -346,7 +376,8 @@ This means:
 
 - Use `__init__` for basic setup (initialize empty containers, store config)
 - Use `init()` for heavy loading (ML models, database connections, large files)
-- The `dirty_worker_init` hook fires only after all apps have completed their `init()` calls
+- The `dirty_worker_init` hook fires only after all apps have completed their
+  `init()` calls
 
 ## Using from HTTP Workers
 
@@ -393,11 +424,14 @@ async def my_view(request):
 
 ## Streaming
 
-Dirty Arbiters support streaming responses for use cases like LLM token generation, where data is produced incrementally. This enables real-time delivery of results without waiting for complete execution.
+Dirty Arbiters support streaming responses for use cases like LLM token
+generation, where data is produced incrementally. This enables real-time
+delivery of results without waiting for complete execution.
 
 ### Streaming with Generators
 
-Any dirty app action that returns a generator (sync or async) automatically streams chunks to the client:
+Any dirty app action that returns a generator (sync or async) automatically
+streams chunks to the client:
 
 ```python
 # myapp/llm.py
@@ -483,7 +517,9 @@ Worker -> Arbiter -> Client: end
 
 ## Binary Protocol
 
-The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd for efficient data transfer. This eliminates base64 encoding overhead for binary data like images, audio, or model weights.
+The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd
+for efficient data transfer. This eliminates base64 encoding overhead for
+binary data like images, audio, or model weights.
 
 ### Header Format (16 bytes)
 
@@ -497,7 +533,8 @@ The dirty worker IPC uses a binary protocol inspired by OpenBSD msgctl/msgsnd fo
 
 - **Magic**: `0x47 0x44` ("GD" for Gunicorn Dirty)
 - **Version**: `0x01`
-- **MType**: Message type (`0x01`=REQUEST, `0x02`=RESPONSE, `0x03`=ERROR, `0x04`=CHUNK, `0x05`=END)
+- **MType**: Message type (`0x01`=REQUEST, `0x02`=RESPONSE, `0x03`=ERROR,
+  `0x04`=CHUNK, `0x05`=END)
 - **Length**: Payload size (big-endian uint32, max 64MB)
 - **Request ID**: uint64 identifier
 
@@ -557,15 +594,21 @@ def generate_view(request):
 
 ### Best Practices for Streaming
 
-1. **Use async generators for I/O-bound streaming** - e.g., API calls to external services
-2. **Use sync generators for CPU-bound streaming** - e.g., local model inference
-3. **Yield frequently** - Heartbeats are sent during streaming to keep workers alive
+1. **Use async generators for I/O-bound streaming** - e.g., API calls to
+   external services
+2. **Use sync generators for CPU-bound streaming** - e.g., local model
+   inference
+3. **Yield frequently** - Heartbeats are sent during streaming to keep workers
+   alive
 4. **Keep chunks small** - Smaller chunks provide better perceived latency
-5. **Handle client disconnection** - Streams continue even if client disconnects; design accordingly
+5. **Handle client disconnection** - Streams continue even if client
+   disconnects; design accordingly
 
 ## Stash (Shared State via Message Passing)
 
-Stash provides shared state between dirty workers, similar to Erlang's ETS (Erlang Term Storage). Workers remain fully isolated - all state access goes through message passing to the arbiter.
+Stash provides shared state between dirty workers, similar to Erlang's ETS
+(Erlang Term Storage). Workers remain fully isolated - all state access goes
+through message passing to the arbiter.
 
 ### Architecture
 
@@ -600,7 +643,9 @@ Stash provides shared state between dirty workers, similar to Erlang's ETS (Erla
 4. Arbiter sends response back to worker
 5. Worker receives confirmation
 
-This is **not** shared memory - workers remain fully isolated. The arbiter acts as a centralized store that workers communicate with via message passing. This matches Erlang's model where ETS tables are owned by a process.
+This is **not** shared memory - workers remain fully isolated. The arbiter acts
+as a centralized store that workers communicate with via message passing. This
+matches Erlang's model where ETS tables are owned by a process.
 
 ### Basic Usage
 
@@ -814,7 +859,8 @@ value = stash.get("table", "key", default="fallback")
 - **IPC overhead** - Each operation is a network round-trip
 - **Single arbiter** - Not distributed across multiple machines
 
-For persistent or distributed state, use Redis, PostgreSQL, or similar external systems.
+For persistent or distributed state, use Redis, PostgreSQL, or similar external
+systems.
 
 ### Flask Example
 
@@ -887,7 +933,9 @@ dirty_worker_exit = dirty_worker_exit
 
 ## Signal Handling
 
-Dirty Arbiters integrate with the main arbiter's signal handling. Signals are forwarded from the main arbiter to the dirty arbiter, which then propagates them to workers.
+Dirty Arbiters integrate with the main arbiter's signal handling. Signals are
+forwarded from the main arbiter to the dirty arbiter, which then propagates
+them to workers.
 
 ### Signal Flow
 
@@ -919,7 +967,8 @@ Dirty Arbiters integrate with the main arbiter's signal handling. Signals are fo
 
 ### Dynamic Scaling with TTIN/TTOU
 
-You can dynamically scale the number of dirty workers at runtime using signals, without restarting gunicorn:
+You can dynamically scale the number of dirty workers at runtime using signals,
+without restarting gunicorn:
 
 ```bash
 # Find the dirty arbiter process
@@ -934,7 +983,10 @@ kill -TTIN <dirty-arbiter-pid>
 kill -TTOU <dirty-arbiter-pid>
 ```
 
-**Minimum Worker Constraint:** The dirty arbiter will not decrease below the minimum number of workers required by your app configurations. For example, if you have an app with `workers = 3`, you cannot scale below 3 dirty workers. When this limit is reached, a warning is logged:
+**Minimum Worker Constraint:** The dirty arbiter will not decrease below the
+minimum number of workers required by your app configurations. For example, if
+you have an app with `workers = 3`, you cannot scale below 3 dirty workers.
+When this limit is reached, a warning is logged:
 
 ```
 WARNING: SIGTTOU: Cannot decrease below 3 workers (required by app specs)
@@ -951,12 +1003,14 @@ WARNING: SIGTTOU: Cannot decrease below 3 workers (required by app specs)
 The main arbiter forwards these signals to the dirty arbiter process:
 
 - **SIGTERM** - Graceful shutdown of entire process tree
-- **SIGHUP** - Worker reload (main arbiter reloads HTTP workers, dirty arbiter reloads dirty workers)
+- **SIGHUP** - Worker reload (main arbiter reloads HTTP workers, dirty arbiter
+  reloads dirty workers)
 - **SIGUSR1** - Log rotation across all processes
 
 ### Async Signal Handling
 
-The dirty arbiter uses asyncio's signal integration for safe handling in the event loop:
+The dirty arbiter uses asyncio's signal integration for safe handling in the
+event loop:
 
 ```python
 # Signals are registered with the event loop
@@ -967,15 +1021,18 @@ def signal_handler(self, sig):
     self.loop.call_soon_threadsafe(self.handle_signal, sig)
 ```
 
-This pattern ensures signals don't interrupt asyncio operations mid-execution, preventing race conditions and partial state updates.
+This pattern ensures signals don't interrupt asyncio operations mid-execution,
+preventing race conditions and partial state updates.
 
 ## Liveness and Health Monitoring
 
-Dirty Arbiters implement multiple layers of health monitoring to ensure workers remain responsive and orphaned processes are cleaned up.
+Dirty Arbiters implement multiple layers of health monitoring to ensure workers
+remain responsive and orphaned processes are cleaned up.
 
 ### Heartbeat Mechanism
 
-Each dirty worker maintains a "worker tmp" file whose mtime serves as a heartbeat:
+Each dirty worker maintains a "worker tmp" file whose mtime serves as a
+heartbeat:
 
 ```
 Worker Lifecycle:
@@ -987,9 +1044,11 @@ Worker Lifecycle:
 
 This file-based heartbeat has several advantages:
 
-- **OS-level tracking** - No IPC required, works even if worker is stuck in C code
+- **OS-level tracking** - No IPC required, works even if worker is stuck in C
+  code
 - **Crash detection** - Arbiter notices immediately when worker stops updating
-- **Graceful recovery** - Worker killed with SIGKILL, arbiter spawns replacement
+- **Graceful recovery** - Worker killed with SIGKILL, arbiter spawns
+  replacement
 
 ### Timeout Detection
 
@@ -1013,7 +1072,8 @@ When a worker is killed:
 
 ### Parent Death Detection
 
-Dirty arbiters monitor their parent process (the main arbiter) to detect orphaning:
+Dirty arbiters monitor their parent process (the main arbiter) to detect
+orphaning:
 
 ```python
 # In the dirty arbiter's main loop
@@ -1022,7 +1082,8 @@ if os.getppid() != self.parent_pid:
     self.alive = False
 ```
 
-This check runs every iteration of the event loop (typically sub-millisecond). When parent death is detected:
+This check runs every iteration of the event loop (typically sub-millisecond).
+When parent death is detected:
 
 1. Arbiter sets `self.alive = False`
 2. All workers are sent SIGTERM
@@ -1032,7 +1093,8 @@ This check runs every iteration of the event loop (typically sub-millisecond). W
 
 ### Orphan Cleanup
 
-To handle edge cases where the dirty arbiter itself crashes, a well-known PID file is used:
+To handle edge cases where the dirty arbiter itself crashes, a well-known PID
+file is used:
 
 **PID file location**: `/tmp/gunicorn_dirty_<main_arbiter_pid>.pid`
 
@@ -1044,7 +1106,8 @@ On startup, the dirty arbiter:
 4. Writes its own PID to the file
 5. On exit, removes the PID file
 
-This ensures that if a dirty arbiter crashes and the main arbiter restarts it, the old orphaned process is terminated.
+This ensures that if a dirty arbiter crashes and the main arbiter restarts it,
+the old orphaned process is terminated.
 
 ### Respawn Behavior
 
@@ -1053,7 +1116,8 @@ This ensures that if a dirty arbiter crashes and the main arbiter restarts it, t
 | Dirty Worker | Exit, timeout, or crash | Immediate respawn to maintain `dirty_workers` count |
 | Dirty Arbiter | Exit or crash | Main arbiter respawns if not shutting down |
 
-The dirty arbiter maintains a target worker count and continuously spawns workers until the target is reached:
+The dirty arbiter maintains a target worker count and continuously spawns
+workers until the target is reached:
 
 ```python
 while len(self.workers) < self.num_workers:
@@ -1064,8 +1128,10 @@ while len(self.workers) < self.num_workers:
 
 For production deployments, consider:
 
-1. **Log monitoring** - Watch for "Worker timed out" messages indicating hung workers
-2. **Process monitoring** - Use systemd or supervisord to monitor the main arbiter
+1. **Log monitoring** - Watch for "Worker timed out" messages indicating hung
+   workers
+2. **Process monitoring** - Use systemd or supervisord to monitor the main
+   arbiter
 3. **Metrics** - Track respawn frequency to detect unstable workers
 
 ```bash
@@ -1115,7 +1181,8 @@ except DirtyConnectionError:
 2. **Set appropriate timeouts** based on your workload
 3. **Handle errors gracefully** - dirty workers may restart
 4. **Use meaningful action names** for easier debugging
-5. **Keep responses serializable** - results are passed via binary IPC (supports bytes directly)
+5. **Keep responses serializable** - results are passed via binary IPC
+   (supports bytes directly)
 
 ## Monitoring
 
@@ -1186,5 +1253,11 @@ def upload_image(request):
 
 For full working examples with Docker deployment, see:
 
-- [Embedding Service Example](https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service) - FastAPI-based text embedding API using sentence-transformers with dirty workers for ML model management.
-- [Streaming Chat Example](https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat) - Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty worker generators and real-time response delivery.
+- [Embedding Service
+  Example](https://github.com/benoitc/gunicorn/tree/master/examples/embedding_service)
+  - FastAPI-based text embedding API using sentence-transformers with dirty
+  workers for ML model management.
+- [Streaming Chat
+  Example](https://github.com/benoitc/gunicorn/tree/master/examples/streaming_chat)
+  - Simulated LLM chat with token-by-token SSE streaming, demonstrating dirty
+  worker generators and real-time response delivery.

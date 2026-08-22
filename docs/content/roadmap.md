@@ -34,11 +34,21 @@ with the compatibility suite as the check on that.
 
 Larger pieces of work that are planned, or begun but not landed.
 
-**Serving AI workloads.** Dirty arbiters already give a model its own process
-pool, with per-app worker allocation and streaming responses. The work ahead is
-what a model server needs on top of that: batching requests so a single forward
-pass serves many of them, backpressure when the queue outgrows the workers, and
-pinning workers to specific GPUs.
+**Serving AI workloads** (resource-aware, lifecycle-aware workers). Dirty
+arbiters already give heavy applications such as ML models their own process
+pools, with per-app worker allocation and streaming responses. The next step is
+to make those workers resource-aware and lifecycle-aware without turning
+Gunicorn into an inference engine.
+
+Applications will be able to request operator-defined resource slots, initially
+targeting GPU-backed workloads, while Gunicorn manages allocation, readiness,
+backpressure and graceful worker replacement. Resource slots are virtual
+allocation tokens: the application and its inference engine remain responsible
+for the physical device, model memory, batching and parallelism.
+
+The goal is for Gunicorn to complement engines such as vLLM, SGLang, llama.cpp
+or PyTorch by managing their application lifecycle cleanly, rather than
+replacing them.
 
 **HTTP/3.** QUIC support, alongside finishing HTTP/2. The protocol is already
 reserved in the configuration and does nothing yet.
