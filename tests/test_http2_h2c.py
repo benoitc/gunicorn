@@ -21,6 +21,19 @@ try:
 except ImportError:
     H2_AVAILABLE = False
 
+# The fast parser is an optional extra; FreeBSD CI has no wheel for it.
+try:
+    import gunicorn_h1c  # pylint: disable=unused-import
+    H1C_AVAILABLE = True
+except ImportError:
+    H1C_AVAILABLE = False
+
+PARSERS = [
+    pytest.param("fast", marks=pytest.mark.skipif(
+        not H1C_AVAILABLE, reason="gunicorn_h1c not available")),
+    "python",
+]
+
 from gunicorn.config import Config
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http.parser import RequestParser
@@ -781,7 +794,7 @@ def asgi_upgrade_config(parser="fast", mode="upgrade"):
     return cfg
 
 
-@pytest.mark.parametrize("parser", ["fast", "python"])
+@pytest.mark.parametrize("parser", PARSERS)
 class TestH2CASGIUpgrade:
     """Upgrade: h2c on the ASGI worker, over either callback parser.
 
@@ -934,7 +947,7 @@ class TestH2CASGIBothModes:
 
 
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
-@pytest.mark.parametrize("parser", ["fast", "python"])
+@pytest.mark.parametrize("parser", PARSERS)
 class TestH2CASGIUpgradeEndToEnd:
     """Drive the whole handover and read the answer back as an h2 client.
 
