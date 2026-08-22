@@ -342,10 +342,12 @@ class _StubAsyncWorker(base_async.AsyncWorker):
         self.nr = 0
         self.log = mock.Mock()
         self.http2_calls = []
+        self.upgrades = []
         self.errors = []
 
-    def handle_http2(self, listener, client, addr, preface=b""):
+    def handle_http2(self, listener, client, addr, preface=b"", upgrade=None):
         self.http2_calls.append(preface)
+        self.upgrades.append(upgrade)
 
     def handle_request(self, listener_name, req, sock, addr):
         pass
@@ -357,8 +359,13 @@ class _StubAsyncWorker(base_async.AsyncWorker):
         return contextlib.nullcontext()
 
 
-def run_async_handle(cfg, client_data, addr=TRUSTED_ADDR):
-    """Drive AsyncWorker.handle() over a socketpair. Returns the worker."""
+def run_async_handle(cfg, client_data, addr=TRUSTED_ADDR, close_client=True):
+    """Drive AsyncWorker.handle() over a socketpair. Returns the worker.
+
+    ``close_client`` gives the HTTP/1 path an EOF to stop on. An upgrade
+    needs the peer left open: the 101 is written before the handover, and a
+    closed peer turns that write into an EPIPE.
+    """
     server_sock, client_sock = socket.socketpair()
     listener = mock.Mock()
     listener.getsockname.return_value = ("127.0.0.1", 8000)
@@ -366,7 +373,8 @@ def run_async_handle(cfg, client_data, addr=TRUSTED_ADDR):
     try:
         if client_data:
             client_sock.sendall(client_data)
-        client_sock.close()          # EOF, so the HTTP/1 path terminates
+        if close_client:
+            client_sock.close()
         worker.handle(listener, server_sock, addr)
     finally:
         server_sock.close()
@@ -670,6 +678,77 @@ class TestMismatchPolicy:
 
     def test_upgrade_allows_http1_through(self):
         assert not negotiation.mismatch_is_error(self._cfg("upgrade"))
+
+
+class _StubThreadWorker(gthread.ThreadWorker):
+    """Enough of a gthread worker to drive handle_h2c_upgrade()."""
+
+    def __init__(self, cfg):  # pylint: disable=super-init-not-called
+        self.cfg = cfg
+        self.log = mock.Mock()
+        self.alive = True
+        self.nr = 0
+        self.max_requests = 1000
+        self.served = []
+
+    def handle_http2_request(self, req, conn, h2_conn):
+        self.served.append(req)
+
+    def handle_http2(self, conn):
+        return False
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestUpgradeWithBody:
+    """A payload on the upgrade request is body, not HTTP/2 frames.
+
+    The payload and the frames behind it share one buffer. Collecting the
+    frames before draining the payload hands it to the HTTP/2 state machine,
+    which rejects it as a bad preamble.
+    """
+
+    REQUEST = (
+        b"POST /p HTTP/1.1\r\nHost: x\r\nUpgrade: h2c\r\n"
+        b"Connection: Upgrade, HTTP2-Settings\r\n"
+        b"HTTP2-Settings: AAMAAABkAAQAoAAAAAIAAAAA\r\n"
+        b"Content-Length: 11\r\n\r\nhello=world" + negotiation.H2C_PREFACE
+    )
+
+    def test_gthread(self):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", "upgrade")
+        conn, client = make_conn(cfg, self.REQUEST)
+        try:
+            conn.init()
+            # Without the fix the payload is collected as frames and the body
+            # read blocks on a socket that will never carry it again. Fail
+            # instead of hanging CI.
+            conn.sock.settimeout(5)
+            req = next(conn.parser)
+            settings = negotiation.upgrade_settings(req)
+            assert settings is not None
+
+            worker = _StubThreadWorker(cfg)
+            worker.handle_h2c_upgrade(conn, req, settings)
+
+            assert len(worker.served) == 1
+            assert worker.served[0].body.read() == b"hello=world"
+            assert not worker.log.exception.called
+        finally:
+            client.close()
+            conn.sock.close()
+
+    def test_gevent(self):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", "upgrade")
+        worker = run_async_handle(cfg, self.REQUEST, close_client=False)
+
+        assert len(worker.upgrades) == 1
+        _settings, _req, body = worker.upgrades[0]
+        assert body == b"hello=world"
+        # only the frames are replayed into HTTP/2, never the payload
+        assert worker.http2_calls == [negotiation.H2C_PREFACE]
+        assert not worker.errors
 
 
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")

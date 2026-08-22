@@ -134,6 +134,10 @@ class AsyncWorker(base.Worker):
         Returns True when the connection has been taken over. Any HTTP/2
         bytes the client pipelined behind the upgrade request are still in
         the parser's unreader, so they are handed on rather than dropped.
+
+        The request body has to come out first: it shares that buffer, and
+        taking the buffer before draining it would feed the payload to the
+        HTTP/2 state machine as if it were frames.
         """
         if not negotiation.upgrade_allowed(self.cfg, addr):
             return False
@@ -141,10 +145,13 @@ class AsyncWorker(base.Worker):
         if settings is None:
             return False
 
+        body = b""
+        if req.body is not None:
+            body = req.body.read() or b""
         pending = parser.unreader.take_buffered()
         util.write(client, negotiation.UPGRADE_101)
         self.handle_http2(listener, client, addr, preface=pending,
-                          upgrade=(settings, req))
+                          upgrade=(settings, req, body))
         return True
 
     def handle_http2(self, listener, client, addr, preface=b"",
@@ -162,8 +169,8 @@ class AsyncWorker(base.Worker):
         try:
             h2_conn = http.get_parser(self.cfg, client, addr, http2_connection=True)
             if upgrade is not None:
-                settings, http1_req = upgrade
-                upgraded = h2_conn.initiate_upgrade(settings, http1_req)
+                settings, http1_req, body = upgrade
+                upgraded = h2_conn.initiate_upgrade(settings, http1_req, body)
             else:
                 upgraded = None
                 h2_conn.initiate_connection()

@@ -559,13 +559,20 @@ class ThreadWorker(base.Worker):
         The client may already have sent HTTP/2 frames behind the upgrade
         request. Those bytes are sitting in the parser's unreader, so they
         are handed to the HTTP/2 connection rather than dropped.
+
+        The request body has to come out first: it shares that buffer, and
+        taking the buffer before draining it would feed the payload to the
+        HTTP/2 state machine as if it were frames.
         """
+        body = b""
+        if req.body is not None:
+            body = req.body.read() or b""
         pending = conn.parser.unreader.take_buffered()
         util.write(conn.sock, negotiation.UPGRADE_101)
 
         h2_conn = http.get_parser(self.cfg, conn.sock, conn.client,
                                   http2_connection=True)
-        upgraded = h2_conn.initiate_upgrade(settings, req)
+        upgraded = h2_conn.initiate_upgrade(settings, req, body)
         conn.parser = h2_conn
         conn.is_http2 = True
         if pending:
