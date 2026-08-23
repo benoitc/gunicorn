@@ -851,13 +851,12 @@ class TestH2CASGIUpgrade:
             assert bytes(proto._h2c_upgrade_body) == b"hello=world"
             assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
 
-    def test_chunked_stays_on_http1(self, parser):
-        # the fast parser hands a chunked payload back still encoded and
-        # mixed into the tail, so there is no safe boundary to upgrade at
+    def test_chunked_payload_is_decoded(self, parser):
         with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
-            proto.data_received(upgrade_request(b"hello", chunked=True))
-            assert proto._h2c_upgrade_settings is None
-            assert proto._callback_parser is not None
+            proto.data_received(upgrade_request(b"hello", chunked=True)
+                                + negotiation.H2C_PREFACE)
+            assert bytes(proto._h2c_upgrade_body) == b"hello"
+            assert bytes(proto.reader._buffer) == negotiation.H2C_PREFACE
 
     def test_ordinary_request_is_untouched(self, parser):
         with self._protocol(asgi_upgrade_config(parser)) as (proto, transport):
@@ -956,7 +955,7 @@ class TestH2CASGIUpgradeEndToEnd:
     will happily report success while the server answers 500.
     """
 
-    def _run(self, parser, body=b""):
+    def _run(self, parser, body=b"", chunked=False):
         import h2.config
         import h2.connection
         import h2.events
@@ -999,7 +998,8 @@ class TestH2CASGIUpgradeEndToEnd:
                     client_side=True, header_encoding="utf-8"))
             client.initiate_upgrade_connection()
 
-            proto.data_received(upgrade_request(body) + client.data_to_send())
+            proto.data_received(upgrade_request(body, chunked)
+                                + client.data_to_send())
 
             async def until_answered():
                 while b"BODY" not in transport.written:
@@ -1032,6 +1032,10 @@ class TestH2CASGIUpgradeEndToEnd:
 
     def test_payload_reaches_the_application(self, parser):
         echoed, _events = self._run(parser, body=b"hello=world")
+        assert echoed == [("http", "2", "POST", "/p", b"hello=world")]
+
+    def test_chunked_payload_reaches_the_application(self, parser):
+        echoed, _events = self._run(parser, body=b"hello=world", chunked=True)
         assert echoed == [("http", "2", "POST", "/p", b"hello=world")]
 
 

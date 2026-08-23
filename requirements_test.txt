@@ -4,7 +4,7 @@ packaging
 pytest>=9.0.3
 pytest-cov
 pytest-asyncio
-gunicorn_h1c>=0.6.8
+gunicorn_h1c>=0.6.9
 h2>=4.4.1
 uvloop>=0.19.0
 inotify>=0.2.10; sys_platform == 'linux'

@@ -456,7 +456,7 @@ class ASGIProtocol(asyncio.Protocol):
         peername = self.transport.get_extra_info('peername')
         # Decided once per connection: upgrade needs a parser that can hand
         # back the bytes pipelined behind the request, which gunicorn_h1c
-        # gained in 0.6.8. The pip floor is not enforced at runtime, so an
+        # gained in 0.6.9. The pip floor is not enforced at runtime, so an
         # older parser means no upgrade rather than silently dropped frames.
         self._h2c_upgrade_ok = (
             negotiation.upgrade_allowed(self.cfg, peername)
@@ -591,11 +591,7 @@ class ASGIProtocol(asyncio.Protocol):
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
 
-        if self._h2c_upgrade_ok and not self._current_request.chunked:
-            # Chunked is excluded: the fast parser hands an upgrade request's
-            # payload back still chunk-encoded, mixed into the bytes that
-            # follow it, with no framing left to tell them apart. Such a
-            # request is served over HTTP/1.1 instead.
+        if self._h2c_upgrade_ok:
             self._h2c_upgrade_settings = negotiation.upgrade_settings(
                 self._current_request)
             if self._h2c_upgrade_settings is not None:
@@ -780,21 +776,6 @@ class ASGIProtocol(asyncio.Protocol):
             self._request_ready.set()
             return False
         pending = parser.remaining()
-
-        # The two parsers disagree about where an upgrade request's payload
-        # goes: the Python one delivers it through _on_body, the fast one
-        # stops at the end of the headers and leaves it at the front of the
-        # tail. Take whatever is missing off that front so both end up here.
-        missing = (self._current_request.content_length or 0) - len(
-            self._h2c_upgrade_body)
-        if missing > 0:
-            if len(pending) < missing:
-                # Still arriving. remaining() accumulates across feeds, so
-                # nothing is consumed until the whole payload is in.
-                return True
-            self._h2c_upgrade_body += pending[:missing]
-            pending = pending[missing:]
-
         self._callback_parser = None
         self.reader = asyncio.StreamReader()
         if pending:
