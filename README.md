@@ -39,7 +39,7 @@ gunicorn myapp:app --worker-class asgi
 - uWSGI binary protocol for nginx integration
 - Multiple worker types: sync, gthread, gevent, asgi
 - Graceful worker process management
-- Compatible with Python 3.9+
+- Compatible with Python 3.10+
 
 ## Documentation
 
