@@ -307,6 +307,21 @@ class TestNegotiationPredicates:
         assert not negotiation.upgrade_allowed(cfg, untrusted)
 
 
+class TestPrefaceDisconnect:
+    """A peer that closes mid-preface is not a match, and does not hang."""
+
+    def test_eof_before_the_preface_completes(self):
+        server, client = socket.socketpair()
+        try:
+            client.sendall(negotiation.H2C_PREFACE[:8])
+            client.close()
+            matched, buf = negotiation.read_preface_blocking(server)
+            assert not matched
+            assert buf == negotiation.H2C_PREFACE[:8]
+        finally:
+            server.close()
+
+
 class TestPrefaceDeadline:
     """The preface budget covers the whole preface, not each read."""
 
@@ -481,6 +496,21 @@ class _FakeTransport:
 
     def resume_reading(self):
         pass
+
+
+def drain_task(loop, task):
+    """Cancel a protocol task and let the loop deliver the cancellation.
+
+    Closing the loop on a task suspended mid-await leaves the coroutine to be
+    collected later, which surfaces as an unraisable GeneratorExit.
+    """
+    if task is None or task.done():
+        return
+    task.cancel()
+    # Bounded: the HTTP/2 receive loop runs against a mock worker whose
+    # `alive` is always truthy, so it need not stop, only observe the cancel.
+    with contextlib.suppress(BaseException):
+        loop.run_until_complete(asyncio.wait([task], timeout=0.5))
 
 
 def make_asgi_protocol(cfg, loop):
@@ -751,6 +781,14 @@ class TestUpgradeWithBody:
             client.close()
             conn.sock.close()
 
+    def test_gevent_ignores_a_plain_request(self):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", "upgrade")
+        worker = run_async_handle(cfg, b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+        assert worker.upgrades == []
+        assert worker.http2_calls == []
+        assert not worker.errors
+
     def test_gevent(self):
         cfg = h2c_config()
         cfg.set("http2_cleartext", "upgrade")
@@ -819,8 +857,7 @@ class TestH2CASGIUpgrade:
             yield proto, transport
         finally:
             proto._h2c_cancel_timer()
-            if proto._task is not None:
-                proto._task.cancel()
+            drain_task(loop, proto._task)
             loop.close()
             asyncio.set_event_loop(None)
 
@@ -905,8 +942,7 @@ class TestH2CASGIBothModes:
             yield proto, transport
         finally:
             proto._h2c_cancel_timer()
-            if proto._task is not None:
-                proto._task.cancel()
+            drain_task(loop, proto._task)
             loop.close()
             asyncio.set_event_loop(None)
 
@@ -938,11 +974,149 @@ class TestH2CASGIBothModes:
             assert not transport.closed
             assert proto._callback_parser is not None
 
+    def test_timer_after_the_decision_does_nothing(self):
+        with self._protocol("both") as (proto, transport):
+            proto.data_received(negotiation.H2C_PREFACE)
+            assert proto._h2c_buffer is None
+            proto._h2c_undecided_timeout()      # late timer, already resolved
+            assert not transport.closed
+            assert b"400" not in transport.written
+
     def test_quiet_client_is_refused_under_prior_knowledge(self):
         with self._protocol("prior-knowledge") as (proto, transport):
             proto._h2c_undecided_timeout()
             assert b"400" in transport.written
             assert transport.closed
+
+
+@pytest.mark.parametrize("parser", PARSERS)
+class TestRemainingContract:
+    """Both callback parsers answer remaining() the same way."""
+
+    def _parser(self, parser):
+        if parser == "fast":
+            from gunicorn_h1c import H1CProtocol
+            return H1CProtocol()
+        from gunicorn.asgi.parser import PythonProtocol
+        return PythonProtocol()
+
+    def test_empty_before_the_message_completes(self, parser):
+        p = self._parser(parser)
+        p.feed(b"POST / HTTP/1.1\r\nHost: a\r\nContent-Length: 4\r\n\r\nab")
+        assert not p.is_complete
+        assert p.remaining() == b""
+
+    def test_tail_after_the_body(self, parser):
+        p = self._parser(parser)
+        p.feed(b"POST / HTTP/1.1\r\nHost: a\r\nContent-Length: 4\r\n\r\nabcdTAIL")
+        assert p.is_complete
+        assert p.remaining() == b"TAIL"
+
+    def test_reset_clears_it(self, parser):
+        p = self._parser(parser)
+        p.feed(b"GET / HTTP/1.1\r\nHost: a\r\n\r\nTAIL")
+        assert p.remaining() == b"TAIL"
+        p.reset()
+        assert p.remaining() == b""
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIPriorKnowledgeEndToEnd:
+    """Prior knowledge, driven end to end like the upgrade case.
+
+    Covers the other half of _handle_http2_connection: the connection is
+    initiated rather than upgraded, and every request comes off the receive
+    loop instead of being synthesised as stream 1.
+    """
+
+    def test_request_is_served(self):
+        import h2.config
+        import h2.connection
+        import h2.events
+
+        seen = []
+
+        async def app(scope, receive, send):
+            await receive()
+            seen.append((scope["http_version"], scope["method"], scope["path"]))
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": [(b"content-type", b"text/plain")]})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = None
+        try:
+            cfg = h2c_config()          # prior-knowledge
+            worker = mock.Mock()
+            worker.cfg = cfg
+            worker.log = mock.Mock()
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1000
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_connection()
+            client.send_headers(1, [
+                (":method", "GET"), (":path", "/pk"),
+                (":scheme", "http"), (":authority", "x"),
+            ], end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_answered():
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(until_answered(), timeout=5))
+
+            assert not worker.log.exception.called
+            assert seen == [("2", "GET", "/pk")]
+            events = client.receive_data(transport.written)
+            statuses = [dict(e.headers)[":status"] for e in events
+                        if isinstance(e, h2.events.ResponseReceived)]
+            assert statuses == ["200"]
+        finally:
+            if proto is not None:
+                proto._h2c_cancel_timer()
+                drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+@pytest.mark.skipif(not H1C_AVAILABLE, reason="gunicorn_h1c not available")
+class TestH2CASGIUpgradeOversizedTail:
+    """The fast parser caps remaining(); past the cap the tail is gone.
+
+    Only that parser has a cap, so this is not parametrised. Handing h2 a
+    tail with a hole in it would start the connection mid-frame, so the
+    upgrade is refused instead.
+    """
+
+    def test_refused(self):
+        cfg = asgi_upgrade_config("fast")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = make_asgi_protocol(cfg, loop)
+        transport = _FakeTransport()
+        proto.connection_made(transport)
+        try:
+            # one feed: the tail has to be capped before the handover runs
+            proto.data_received(upgrade_request() + b"\x00" * (64 * 1024 + 1))
+            assert proto.reader is None
+            assert b"400" in transport.written
+            assert transport.closed
+        finally:
+            drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
 
 
 @pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
@@ -955,7 +1129,7 @@ class TestH2CASGIUpgradeEndToEnd:
     will happily report success while the server answers 500.
     """
 
-    def _run(self, parser, body=b"", chunked=False):
+    def _run(self, parser, body=b"", chunked=False, raising=False):
         import h2.config
         import h2.connection
         import h2.events
@@ -971,6 +1145,8 @@ class TestH2CASGIUpgradeEndToEnd:
                     break
             echoed.append((scope["type"], scope["http_version"],
                            scope["method"], scope["path"], payload))
+            if raising:
+                raise RuntimeError("boom")
             await send({"type": "http.response.start", "status": 200,
                         "headers": [(b"content-type", b"text/plain")]})
             await send({"type": "http.response.body", "body": b"BODY"})
@@ -1002,19 +1178,25 @@ class TestH2CASGIUpgradeEndToEnd:
                                 + client.data_to_send())
 
             async def until_answered():
-                while b"BODY" not in transport.written:
+                while True:
+                    if raising and worker.log.exception.called:
+                        # the 500 is sent right after the log call
+                        await asyncio.sleep(0.05)
+                        return
+                    if not raising and b"BODY" in transport.written:
+                        return
                     await asyncio.sleep(0.005)
             loop.run_until_complete(
                 asyncio.wait_for(until_answered(), timeout=5))
 
-            assert not worker.log.exception.called
+            if not raising:
+                assert not worker.log.exception.called
             assert transport.written.startswith(negotiation.UPGRADE_101)
             events = client.receive_data(
                 transport.written[len(negotiation.UPGRADE_101):])
             return echoed, events
         finally:
-            if proto._task is not None:
-                proto._task.cancel()
+            drain_task(loop, proto._task)
             loop.close()
             asyncio.set_event_loop(None)
 
@@ -1033,6 +1215,15 @@ class TestH2CASGIUpgradeEndToEnd:
     def test_payload_reaches_the_application(self, parser):
         echoed, _events = self._run(parser, body=b"hello=world")
         assert echoed == [("http", "2", "POST", "/p", b"hello=world")]
+
+    def test_application_error_answers_500(self, parser):
+        # answered by _handle_http2_request's own handler; the outer net in
+        # _serve_http2_request only catches that handler itself failing
+        import h2.events
+        _echoed, events = self._run(parser, raising=True)
+        statuses = [dict(e.headers)[":status"] for e in events
+                    if isinstance(e, h2.events.ResponseReceived)]
+        assert statuses == ["500"]
 
     def test_chunked_payload_reaches_the_application(self, parser):
         echoed, _events = self._run(parser, body=b"hello=world", chunked=True)
@@ -1077,6 +1268,26 @@ class TestUpgradeSynthesis:
             assert "HTTP2-SETTINGS" not in names
             assert "CONNECTION" not in names
             assert "X-KEPT" in names
+        finally:
+            server.close()
+            client.close()
+
+    def test_body_is_read_off_the_request_when_not_passed(self):
+        import base64
+        from io import BytesIO
+        conn, server, client = self._connection()
+        try:
+            req = mock.Mock()
+            req.method = "POST"
+            req.uri = "/upgraded"
+            req.scheme = "http"
+            req.body = BytesIO(b"payload")
+            req.headers = [("HOST", "example.com")]
+            settings = base64.urlsafe_b64encode(
+                b"\x00\x03\x00\x00\x00\x64").rstrip(b"=")
+            # no body argument: the caller has not drained it yet
+            h2req = conn.initiate_upgrade(settings, req)
+            assert h2req.body.read() == b"payload"
         finally:
             server.close()
             client.close()
