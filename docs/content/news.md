@@ -1,6 +1,97 @@
 <span id="news"></span>
 # Changelog
 
+## 26.2.0 - 2026-08-24
+
+### New Features
+
+- **Cleartext HTTP/2 (h2c)**: `http2_cleartext` accepts `prior-knowledge`,
+  `upgrade`, `both` or `off` (the default). With `prior-knowledge`, a connection
+  opening with the HTTP/2 preface is served as HTTP/2, which is what a
+  TLS-terminating proxy in front of gunicorn needs to avoid dropping to HTTP/1.1
+  upstream. `upgrade` honours an HTTP/1.1 `Upgrade: h2c` request. Both work on
+  the gthread, gevent and ASGI workers. Only peers in `forwarded_allow_ips` are
+  considered; anything else from such a peer is refused with 400 rather than
+  silently downgraded. Each mechanism is enabled separately, so turning one on
+  does not turn the other on
+  ([#3489](https://github.com/benoitc/gunicorn/issues/3489),
+  [#3663](https://github.com/benoitc/gunicorn/pull/3663),
+  [#3711](https://github.com/benoitc/gunicorn/pull/3711)).
+
+### Security
+
+- **HTTP/2 bypassed the header policy**: `HTTP2Request` built its headers
+  straight from the stream, so nothing the HTTP/1 path enforces applied over
+  HTTP/2: the underscore and `header_map` policy, duplicate `Host` and
+  `Content-Type`, control characters in values, and the `forwarded_allow_ips`
+  trust gate. An untrusted client could set `SCRIPT_NAME` and forge `HTTP_*`
+  entries in the WSGI environ, and decide `wsgi.url_scheme` through `:scheme`.
+  The policy now lives on a mixin both request classes share, and the scheme is
+  derived from the transport
+  ([#3705](https://github.com/benoitc/gunicorn/pull/3705)).
+
+### Bug Fixes
+
+- **WSGI HTTP/2 responses were buffered whole**: both WSGI workers collected the
+  entire body in memory before sending anything. They write through an
+  `HTTP2Response` now, so the body leaves as it is produced
+  ([#3709](https://github.com/benoitc/gunicorn/pull/3709)).
+
+- **No-body responses carried a body over HTTP/2**: HEAD, 204 and 304 sent
+  application body bytes on all three workers, while the HTTP/1 path had always
+  dropped them per RFC 9110. They no longer do
+  ([#3709](https://github.com/benoitc/gunicorn/pull/3709),
+  [#3710](https://github.com/benoitc/gunicorn/pull/3710)).
+
+- **Events lost during flow-control waits**: while blocked waiting for a
+  WINDOW_UPDATE, both HTTP/2 connections read from the socket and discarded
+  every event that was not a stream reset or connection termination, losing
+  requests and body data outright. They are queued for the main loop now
+  ([#3709](https://github.com/benoitc/gunicorn/pull/3709),
+  [#3710](https://github.com/benoitc/gunicorn/pull/3710)).
+
+- **`sendfile()` on HTTP/2**: it was guarded by `cfg.is_ssl`, which covered
+  HTTP/2 only for as long as HTTP/2 implied TLS. It is refused on HTTP/2
+  responses directly, so cleartext cannot bypass HTTP/2 framing
+  ([#3709](https://github.com/benoitc/gunicorn/pull/3709)).
+
+- **Request bodies dropped on `Upgrade` requests**: on the ASGI worker with the
+  fast parser, any request carrying an `Upgrade` header reached the application
+  with an empty body, whatever the header's value and with HTTP/2 switched off.
+  The parser treated the header as meaning the rest of the connection was no
+  longer HTTP/1, so it never read the body it had just been told the length of.
+  Fixed in `gunicorn_h1c` 0.6.9, which the requirement below now pins
+  ([#3711](https://github.com/benoitc/gunicorn/pull/3711)).
+
+### Changes
+
+- **Fast HTTP Parser**: require `gunicorn_h1c >= 0.6.9`, which adds
+  `remaining()` for recovering bytes pipelined behind a completed message, and
+  stops an `Upgrade` header from suppressing body parsing
+  ([#3711](https://github.com/benoitc/gunicorn/pull/3711)).
+
+### Documentation
+
+- Describe `http_parser` in its own terms rather than as an ASGI-only setting;
+  it applies to the WSGI workers too. Thanks to
+  [@methane](https://github.com/methane)
+  ([#3704](https://github.com/benoitc/gunicorn/pull/3704)).
+
+- Correct the default control socket path in the `gunicorn.c` guide. Thanks to
+  [@cormier](https://github.com/cormier)
+  ([#3703](https://github.com/benoitc/gunicorn/pull/3703)).
+
+- State the supported Python version as 3.10+ in the README, matching
+  `requires-python`. Thanks to [@Rotzbua](https://github.com/Rotzbua)
+  ([#3712](https://github.com/benoitc/gunicorn/pull/3712)).
+
+- Point CONTRIBUTING at the mkdocs settings reference instead of the retired
+  Sphinx path. Thanks to [@melbinjp](https://github.com/melbinjp)
+  ([#3690](https://github.com/benoitc/gunicorn/pull/3690)).
+
+- Fix the sponsor logo path on the sponsor page
+  ([#3700](https://github.com/benoitc/gunicorn/pull/3700)).
+
 ## 26.1.0 - 2026-08-18
 
 ### New Features
