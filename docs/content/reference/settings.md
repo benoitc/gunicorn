@@ -153,7 +153,26 @@ Valid engines are:
 Extends [reload](#reload) option to also watch and reload on additional files
 (e.g., templates, configurations, specifications, etc.).
 
+Entries containing ``*``, ``?`` or ``[`` are treated as glob patterns and
+are re-expanded on every reload check, so a file created after startup
+starts being watched without restarting gunicorn. Note that it is the
+first edit to that file which triggers a reload, not its creation. Use
+``**`` to recurse, and keep patterns narrow: a recursive pattern over a
+large tree is walked once per check.
+
+Two things behave the way glob does, not the way a path does. ``*`` does
+not match dotfiles, so list ``.env`` literally rather than expecting
+``*`` to find it. And a literal path that happens to contain ``*``, ``?``
+or ``[`` is read as a pattern, so it warns and matches nothing instead of
+failing outright the way a missing plain path does.
+
+Patterns are relative to the directory gunicorn is started from, not to
+chdir, which is applied later.
+
 !!! info "Added in 19.8"
+
+!!! info "Changed in 26.1.0"
+    Glob patterns are supported.
 
 ### `spew`
 
@@ -395,10 +414,52 @@ HTTP/2 requires:
 * ALPN-capable TLS client
 
 !!! note
-    HTTP/2 cleartext (h2c) is not supported due to security concerns
-    and lack of browser support.
+    HTTP/2 cleartext (h2c) is disabled by default. Deployments behind
+    a TLS-terminating proxy can enable prior-knowledge h2c with
+    http2-prior-knowledge.
 
 !!! info "Added in 25.0.0"
+
+### `http2_cleartext`
+
+**Command line:** `--http2-cleartext STRING`
+
+**Default:** `'off'`
+
+Accept HTTP/2 over cleartext TCP (h2c), and by which mechanism.
+
+Valid values are:
+
+* ``off`` (default) - no cleartext HTTP/2
+* ``prior-knowledge`` - serve connections that open with the HTTP/2
+  connection preface (``PRI * HTTP/2.0``), RFC 9113 section 3.4
+* ``upgrade`` - honour an HTTP/1.1 ``Upgrade: h2c`` request
+* ``both`` - accept either
+
+The mechanisms are listed separately on purpose: enabling one does not
+enable the other.
+
+With ``prior-knowledge`` alone, a trusted peer that does not send the
+preface is refused with 400, since it is expected to speak HTTP/2.
+With ``upgrade`` or ``both`` an HTTP/1 request is how an upgrade
+begins, so it is served normally.
+
+Only peers in [forwarded-allow-ips](#forwarded_allow_ips) are considered. Everyone else
+is served HTTP/1.x exactly as if this were ``off``. Anything else from
+a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
+malformed or stalled preface) is rejected with a 400: such a peer is
+expected to speak HTTP/2, and a silent downgrade would only hide a
+misconfiguration.
+
+This is meant for deployments where TLS is terminated by a trusted
+proxy that speaks HTTP/2 upstream (Cloud Run, fly.io, a service-mesh
+sidecar). Do not expose a cleartext HTTP/2 port to the internet.
+
+Requires ``h2`` in http-protocols and the h2 library
+(``pip install gunicorn[http2]``). Ignored when TLS is configured;
+there HTTP/2 is negotiated by ALPN.
+
+!!! info "Added in 26.2.0"
 
 ### `http2_max_concurrent_streams`
 
@@ -1979,15 +2040,14 @@ This setting only affects the ``asgi`` worker type.
 
 **Default:** `'auto'`
 
-HTTP parser implementation for ASGI workers.
+HTTP parser implementation.
 
-- auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)
-- fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)
-- python: Force pure Python PythonProtocol parser
+- auto: Use gunicorn_h1c if it is available, else use the pure Python parser (default)
+- fast: Require gunicorn_h1c (fail if unavailable)
+- python: Force pure Python parser
 
-ASGI workers use callback-based parsing in data_received() for efficient
-incremental parsing. The gunicorn_h1c C extension provides significantly
-faster HTTP parsing using picohttpparser with SIMD optimizations.
+The gunicorn_h1c C extension provides significantly faster HTTP parsing
+using picohttpparser with SIMD optimizations.
 
 Install it with: pip install gunicorn[fast]
 

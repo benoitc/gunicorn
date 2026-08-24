@@ -373,7 +373,7 @@ def test_file_wrapper_iterable():
     assert chunks == [b"ab", b"c"]
 
 
-def _make_response(method="GET", version=(1, 1)):
+def _make_response(method="GET", version=(1, 1), sendfile=False):
     sock = mock.MagicMock()
     req = mock.MagicMock()
     req.method = method
@@ -381,7 +381,7 @@ def _make_response(method="GET", version=(1, 1)):
     req.should_close.return_value = False
     cfg = mock.MagicMock()
     cfg.is_ssl = False
-    cfg.sendfile = False
+    cfg.sendfile = sendfile
     return Response(req, sock, cfg), sock
 
 
@@ -412,7 +412,7 @@ def test_no_body_response_strips_framing(status, method, expect_cl):
 
 
 def test_no_body_response_drops_body_and_warns(caplog):
-    resp, sock = _make_response(method="GET")
+    resp, _ = _make_response(method="GET")
     resp.start_response("204 No Content", [
         ("Content-Type", "text/plain"),
         ("Content-Length", "5"),
@@ -421,6 +421,49 @@ def test_no_body_response_drops_body_and_warns(caplog):
         resp.write(b"hello")
         resp.write(b"again")
     assert resp.sent == 0
+    assert sum(
+        1 for r in caplog.records
+        if "no-body response" in r.getMessage()
+    ) == 1
+
+
+@pytest.mark.parametrize("status,method,extra_headers", [
+    ("200 OK", "HEAD", [("Content-Length", "0")]),
+    ("204 No Content", "GET", []),
+    ("304 Not Modified", "GET", []),
+])
+def test_no_body_sendfile_empty_file_does_not_warn(
+        caplog, tmp_path, status, method, extra_headers):
+    """An empty file wrapper has no body bytes to drop, so no warning."""
+    path = tmp_path / "empty.txt"
+    path.write_bytes(b"")
+    resp, sock = _make_response(method=method, sendfile=True)
+    resp.start_response(status, [("Content-Type", "text/plain")] + extra_headers)
+    with open(path, "rb") as filelike:
+        with caplog.at_level("WARNING", logger="gunicorn.http.wsgi"):
+            resp.write_file(FileWrapper(filelike))
+    assert resp.sent == 0
+    sock.sendfile.assert_not_called()
+    assert [
+        r for r in caplog.records if "no-body response" in r.getMessage()
+    ] == []
+
+
+def test_no_body_sendfile_non_empty_file_warns_once(caplog, tmp_path):
+    """A non-empty file wrapper really loses bytes, so it still warns once."""
+    path = tmp_path / "data.txt"
+    path.write_bytes(b"hello")
+    resp, sock = _make_response(method="HEAD", sendfile=True)
+    resp.start_response("200 OK", [
+        ("Content-Type", "text/plain"),
+        ("Content-Length", "5"),
+    ])
+    with open(path, "rb") as filelike:
+        with caplog.at_level("WARNING", logger="gunicorn.http.wsgi"):
+            resp.write_file(FileWrapper(filelike))
+            resp.write_file(FileWrapper(filelike))
+    assert resp.sent == 0
+    sock.sendfile.assert_not_called()
     assert sum(
         1 for r in caplog.records
         if "no-body response" in r.getMessage()

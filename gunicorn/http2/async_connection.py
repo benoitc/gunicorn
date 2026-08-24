@@ -11,6 +11,7 @@ asyncio for non-blocking I/O.
 """
 
 import asyncio
+import collections
 
 from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,
@@ -76,6 +77,10 @@ class AsyncHTTP2Connection:
 
         # Active streams indexed by stream ID
         self.streams = {}
+        # Events pulled off the wire while blocked on a flow-control window.
+        # They have left the h2 state machine already, so they are held here
+        # for the main receive loop rather than discarded.
+        self._deferred_events = collections.deque()
 
         # Queue of completed requests for the worker
         self._request_queue = asyncio.Queue()
@@ -118,6 +123,52 @@ class AsyncHTTP2Connection:
         self.h2_conn.initiate_connection()
         await self._send_pending_data()
         self._initialized = True
+
+    async def initiate_upgrade(self, settings_header, http1_req, body=b""):
+        """Switch a connection to HTTP/2 after an Upgrade: h2c request.
+
+        The async twin of HTTP2Connection.initiate_upgrade. The upgraded
+        request becomes stream 1 (RFC 7540 section 3.2): h2 opens it in the
+        state machine, and the matching gunicorn stream is built here from the
+        HTTP/1 request that carried the upgrade, so the worker sees an
+        ordinary HTTP/2 request.
+
+        The body is passed in rather than read off the request: the callback
+        parser hands body chunks to the protocol, not to the request object.
+
+        Returns the HTTP2Request for stream 1.
+        """
+        self.h2_conn.update_settings({
+            _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
+            _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
+            _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
+            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+        })
+        self.h2_conn.initiate_upgrade_connection(settings_header=settings_header)
+        await self._send_pending_data()
+        self._initialized = True
+
+        stream = HTTP2Stream(stream_id=1, connection=self)
+        authority = ""
+        for name, value in http1_req.headers:
+            if name == "HOST":
+                authority = value
+                break
+        pseudo = [
+            (':method', http1_req.method),
+            (':path', http1_req.uri),
+            (':scheme', http1_req.scheme),
+        ]
+        if authority:
+            pseudo.append((':authority', authority))
+        regular = [(name.lower(), value) for name, value in http1_req.headers
+                   if name not in ("CONNECTION", "UPGRADE", "HTTP2-SETTINGS")]
+
+        stream.receive_headers(pseudo + regular, end_stream=not body)
+        if body:
+            stream.receive_data(body, end_stream=True)
+        self.streams[1] = stream
+        return HTTP2Request(stream, self.cfg, self.client_addr)
 
     async def receive_data(self, timeout=None):
         """Receive data and return completed requests.
@@ -179,8 +230,12 @@ class AsyncHTTP2Connection:
             await self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
             raise HTTP2ProtocolError(str(e))
 
-        # Process events
+        # Process events, oldest first: anything set aside during a
+        # flow-control wait arrived before this batch.
         completed_requests = []
+        if self._deferred_events:
+            events = list(self._deferred_events) + list(events)
+            self._deferred_events.clear()
         for event in events:
             request = self._handle_event(event)
             if request is not None:
@@ -425,6 +480,12 @@ class AsyncHTTP2Connection:
                         elif isinstance(event, _h2_events.ConnectionTerminated):
                             self._closed = True
                             return -1
+                        else:
+                            # Anything else arriving alongside the
+                            # WINDOW_UPDATE belongs to the main loop. It has
+                            # already left the h2 state machine, so dropping
+                            # it here loses a request or its body for good.
+                            self._deferred_events.append(event)
                     await self._send_pending_data()
                 else:
                     # Connection closed

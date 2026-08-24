@@ -12,6 +12,9 @@ from gunicorn import http
 from gunicorn.http import wsgi
 from gunicorn import util
 from gunicorn import sock as gunicorn_sock
+from gunicorn.http.errors import InvalidH2CPreface
+from gunicorn.http2 import negotiation
+from gunicorn.http2.response import HTTP2Response
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -32,6 +35,7 @@ class AsyncWorker(base.Worker):
 
     def handle(self, listener, client, addr):
         req = None
+        unread_preface = b""
         try:
             # Complete the handshake to ensure ALPN negotiation is done
             # (needed if do_handshake_on_connect is False)
@@ -46,11 +50,32 @@ class AsyncWorker(base.Worker):
                 self.handle_http2(listener, client, addr)
                 return
 
+            if negotiation.prior_knowledge_allowed(self.cfg, addr):
+                # HTTP/2 cleartext with prior knowledge (RFC 9113 section
+                # 3.4). Peers outside forwarded_allow_ips never reach here
+                # and are served HTTP/1.x as if the setting were off.
+                matched, buf = negotiation.read_preface_blocking(client)
+                if matched:
+                    self.handle_http2(listener, client, addr, preface=buf)
+                    return
+                if negotiation.mismatch_is_error(self.cfg):
+                    # A trusted peer on a prior-knowledge-only port must
+                    # speak HTTP/2; anything else is a misconfiguration.
+                    raise InvalidH2CPreface(buf)
+                # Upgrade is enabled too, so this may be the HTTP/1 request
+                # that carries it; fall through with the bytes preserved.
+                unread_preface = buf
+
             parser = http.get_parser(self.cfg, client, addr)
+            if unread_preface:
+                parser.unreader.unread(unread_preface)
             try:
                 listener_name = listener.getsockname()
                 if not self.cfg.keepalive:
                     req = next(parser)
+                    if self._try_h2c_upgrade(listener, req, parser, client,
+                                             addr):
+                        return
                     self.handle_request(listener_name, req, client, addr)
                 else:
                     # keepalive loop
@@ -61,6 +86,9 @@ class AsyncWorker(base.Worker):
                             req = next(parser)
                         if not req:
                             break
+                        if self._try_h2c_upgrade(listener, req, parser, client,
+                                                 addr):
+                            return
                         if req.proxy_protocol_info:
                             proxy_protocol_info = req.proxy_protocol_info
                         else:
@@ -100,16 +128,61 @@ class AsyncWorker(base.Worker):
         finally:
             util.close(client)
 
-    def handle_http2(self, listener, client, addr):
+    def _try_h2c_upgrade(self, listener, req, parser, client, addr):
+        """Switch to HTTP/2 if this request asks to upgrade.
+
+        Returns True when the connection has been taken over. Any HTTP/2
+        bytes the client pipelined behind the upgrade request are still in
+        the parser's unreader, so they are handed on rather than dropped.
+
+        The request body has to come out first: it shares that buffer, and
+        taking the buffer before draining it would feed the payload to the
+        HTTP/2 state machine as if it were frames.
+        """
+        if not negotiation.upgrade_allowed(self.cfg, addr):
+            return False
+        settings = negotiation.upgrade_settings(req)
+        if settings is None:
+            return False
+
+        body = b""
+        if req.body is not None:
+            body = req.body.read() or b""
+        pending = parser.unreader.take_buffered()
+        util.write(client, negotiation.UPGRADE_101)
+        self.handle_http2(listener, client, addr, preface=pending,
+                          upgrade=(settings, req, body))
+        return True
+
+    def handle_http2(self, listener, client, addr, preface=b"",
+                     upgrade=None):
         """Handle an HTTP/2 connection.
 
         Processes multiplexed HTTP/2 streams until the connection closes.
+
+        ``preface`` carries connection preface bytes already read off the
+        socket during cleartext negotiation. They have left the socket, so
+        they have to be replayed into the HTTP/2 state machine here.
         """
         listener_name = listener.getsockname()
 
         try:
             h2_conn = http.get_parser(self.cfg, client, addr, http2_connection=True)
-            h2_conn.initiate_connection()
+            if upgrade is not None:
+                settings, http1_req, body = upgrade
+                upgraded = h2_conn.initiate_upgrade(settings, http1_req, body)
+            else:
+                upgraded = None
+                h2_conn.initiate_connection()
+            if preface:
+                # The preface alone cannot complete a request, so replaying
+                # it yields no requests and nothing is dropped.
+                h2_conn.receive_data(preface)
+
+            if upgraded is not None:
+                # The upgraded request is stream 1; serve it before the loop.
+                self.handle_http2_request(listener.getsockname(), upgraded,
+                                          client, addr, h2_conn)
 
             while not h2_conn.is_closed and self.alive:
                 try:
@@ -150,7 +223,13 @@ class AsyncWorker(base.Worker):
 
         try:
             self.cfg.pre_request(self, req)
-            resp, environ = wsgi.create(req, sock, addr, listener_name, self.cfg)
+            # The response frames itself as HTTP/2, so the body streams out
+            # instead of being collected first, and the no-body and sendfile
+            # rules come from Response unchanged.
+            resp, environ = wsgi.create(req, sock, addr, listener_name,
+                                        self.cfg,
+                                        response_class=HTTP2Response,
+                                        response_args=(h2_conn, stream_id))
             environ["wsgi.multithread"] = True
             environ["HTTP_VERSION"] = "2"
 
@@ -165,24 +244,14 @@ class AsyncWorker(base.Worker):
             if self.is_already_handled(respiter):
                 return
 
-            # Collect response body
-            response_body = b''
+            # Stream each chunk as the application produces it
             try:
-                if hasattr(respiter, '__iter__'):
-                    for item in respiter:
-                        if item:
-                            response_body += item
+                for item in respiter:
+                    resp.write(item)
+                resp.close()
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
-
-            # Send response via HTTP/2
-            h2_conn.send_response(
-                stream_id,
-                resp.status_code,
-                resp.headers,
-                response_body
-            )
 
             request_time = datetime.now() - request_start
             self.log.access(resp, req, environ, request_time)

@@ -542,6 +542,10 @@ class DirtyArbiter:
                         timeout=self.cfg.dirty_timeout
                     )
                 except asyncio.TimeoutError:
+                    # The worker may still write its response later. Drop the
+                    # connection so that response is not read as the answer to
+                    # the next request routed to this worker.
+                    self._close_worker_connection(worker_pid)
                     response = make_error_response(
                         request_id,
                         DirtyTimeoutError("Worker timeout", self.cfg.dirty_timeout)

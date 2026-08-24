@@ -89,12 +89,13 @@ def app_module(tmp_path):
     return str(app_file.parent), "app:application"
 
 
-def start_gunicorn(app_dir, app_name, worker_class, port, control_socket_path):
+def start_gunicorn(app_dir, app_name, worker_class, port, control_socket_path,
+                   workers=2):
     """Start a gunicorn server with specified worker class and control socket."""
     cmd = [
         sys.executable, '-m', 'gunicorn',
         '--bind', f'127.0.0.1:{port}',
-        '--workers', '2',
+        '--workers', str(workers),
         '--worker-class', worker_class,
         '--access-logfile', '-',
         '--error-logfile', '-',
@@ -390,6 +391,77 @@ class TestControlSocketAfterReload:
             # poll for it instead of asserting on a fixed sleep.
             assert wait_for_socket(control_socket, timeout=10), \
                 "Control socket was not re-created after reload"
+
+        finally:
+            cleanup_gunicorn(proc)
+            if os.path.exists(control_socket):
+                os.unlink(control_socket)
+
+
+def _proc_fd_count(pid):
+    """Number of open fds for a process (Linux /proc)."""
+    return len(os.listdir(f"/proc/{pid}/fd"))
+
+
+def _proc_thread_count(pid):
+    """Number of threads for a process (Linux /proc)."""
+    return len(os.listdir(f"/proc/{pid}/task"))
+
+
+@pytest.mark.skipif(
+    not os.path.isdir("/proc/self/fd"),
+    reason="fd/thread counting needs Linux /proc",
+)
+class TestControlSocketReloadLeak:
+    """Regression test for the SIGHUP fd/thread leak (#3648)."""
+
+    def test_repeated_sighup_does_not_leak_fds_or_threads(self, app_module):
+        n_workers = 6  # more workers widens the back-to-back fork race window
+        app_dir, app_name = app_module
+        port = find_free_port()
+        control_socket = get_short_socket_path("leak")
+
+        proc = start_gunicorn(app_dir, app_name, 'sync', port, control_socket,
+                              workers=n_workers)
+        master = proc.pid
+
+        def reload_once():
+            proc.send_signal(signal.SIGHUP)
+            time.sleep(2)  # let the reload complete
+            assert proc.poll() is None, "master died during reload"
+            assert b'Hello, World!' in make_request('127.0.0.1', port)
+
+        try:
+            assert wait_for_server('127.0.0.1', port, timeout=15), \
+                "server failed to start"
+            assert wait_for_socket(control_socket, timeout=5), \
+                "control socket was not created"
+            time.sleep(1)  # let things settle after boot
+
+            base_threads = _proc_thread_count(master)
+
+            # A couple of reloads to reach steady state. PyPy has no refcounting
+            # GC, so a small constant number of already-closed fds (log reopen,
+            # asyncio self-pipe) can linger until the next collection; measuring
+            # after warmup absorbs that bounded offset.
+            for _ in range(2):
+                reload_once()
+            time.sleep(1)
+            warm_fds = _proc_fd_count(master)
+
+            # The leak orphaned a thread plus its selector/socket fds on every
+            # worker fork, so a regression keeps climbing by ~workers per reload.
+            # Many more reloads must not grow the counts; a GC offset does not.
+            for _ in range(8):
+                reload_once()
+            time.sleep(1)
+            final_fds = _proc_fd_count(master)
+            final_threads = _proc_thread_count(master)
+
+            assert final_threads <= base_threads + 1, (
+                f"thread leak: {base_threads} -> {final_threads}")
+            assert final_fds <= warm_fds + n_workers, (
+                f"fd leak: warm {warm_fds} -> final {final_fds} over 8 reloads")
 
         finally:
             cleanup_gunicorn(proc)

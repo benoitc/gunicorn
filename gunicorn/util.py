@@ -32,6 +32,10 @@ import urllib.parse
 
 REDIRECT_TO = getattr(os, 'devnull', '/dev/null')
 
+# Characters that make a path a glob pattern rather than a literal path.
+# glob.has_magic() does the same thing but is absent from glob.__all__.
+GLOB_MAGIC_RE = re.compile(r'[*?[]')
+
 # Server and Date aren't technically hop-by-hop
 # headers, but they are in the purview of the
 # origin server which the WSGI spec says we should
@@ -65,6 +69,11 @@ else:
     except ImportError:
         def _setproctitle(title):
             pass
+
+
+def is_glob_pattern(value):
+    """Return True if the string should be treated as a glob pattern."""
+    return GLOB_MAGIC_RE.search(value) is not None
 
 
 def load_entry_point(distribution, group, name):

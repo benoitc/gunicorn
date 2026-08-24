@@ -275,7 +275,7 @@ class WebSocket:
         if base64 and f['opcode'] in [1, 2]:
             try:
                 f['payload'] = b64decode(f['payload'])
-            except:
+            except Exception:
                 print("Exception while b64decoding buffer: %s" %
                         repr(buf))
                 raise

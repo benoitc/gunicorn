@@ -164,6 +164,56 @@ class TestControlSocketServerLifecycle:
         server.stop()
 
 
+class TestControlSocketServerForkLeak:
+    """Regression tests for the SIGHUP fd/thread leak (#3648)."""
+
+    def test_stop_for_fork_joins_thread_started_immediately(self):
+        """_stop_for_fork must stop the thread even with no startup delay.
+
+        Calling _stop_for_fork right after start() lands in the window before
+        the loop thread has set _loop/_server. Before the fix this skipped the
+        shutdown, join() timed out, and the thread was orphaned while still
+        holding its selector fd and the unix socket.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+            server = ControlSocketServer(MockArbiter(), socket_path)
+
+            server.start()
+            thread = server._thread  # capture before stop drops the reference
+            try:
+                server._stop_for_fork()
+
+                assert not thread.is_alive(), "control thread leaked after fork"
+                assert server._thread is None
+                assert server._loop is None
+                assert server._server is None
+            finally:
+                server.stop()
+
+    def test_repeated_fork_cycles_do_not_leak_threads(self):
+        """A reload spawns workers back to back; no cycle may orphan a thread."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+            server = ControlSocketServer(MockArbiter(), socket_path)
+
+            threads = []
+            server.start()
+            threads.append(server._thread)
+            try:
+                # Mimic the tight spawn_worker() loop in Arbiter.reload().
+                for _ in range(8):
+                    server._stop_for_fork()
+                    server._restart_after_fork()
+                    threads.append(server._thread)
+            finally:
+                server.stop()
+
+            time.sleep(0.2)
+            alive = [t for t in threads if t is not None and t.is_alive()]
+            assert not alive, f"{len(alive)} control thread(s) leaked"
+
+
 class TestControlSocketServerIntegration:
     """Integration tests for server with client."""
 

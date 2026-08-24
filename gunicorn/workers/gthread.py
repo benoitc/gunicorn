@@ -27,6 +27,9 @@ from .. import http
 from .. import util
 from .. import sock
 from ..http import wsgi
+from ..http.errors import InvalidH2CPreface
+from ..http2 import negotiation
+from ..http2.response import HTTP2Response
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -81,6 +84,34 @@ class TConn:
                     )
                     self.parser.initiate_connection()
                     return
+
+            elif negotiation.prior_knowledge_allowed(self.cfg, self.client):
+                # HTTP/2 cleartext with prior knowledge (RFC 9113 section
+                # 3.4): the client opens a plain TCP connection and sends the
+                # connection preface immediately. Peers outside
+                # forwarded_allow_ips never reach here and are served HTTP/1.x
+                # as if the setting were off.
+                matched, buf = negotiation.read_preface_blocking(self.sock)
+                if matched:
+                    self.is_http2 = True
+                    self.parser = http.get_parser(
+                        self.cfg, self.sock, self.client, http2_connection=True
+                    )
+                    self.parser.initiate_connection()
+                    # The consumed preface bytes still need to reach the
+                    # HTTP/2 state machine. The preface alone cannot complete
+                    # a request, so nothing is dropped here.
+                    self.parser.receive_data(buf)
+                    return
+                if negotiation.mismatch_is_error(self.cfg):
+                    # A trusted peer on a prior-knowledge-only port must
+                    # speak HTTP/2; anything else is a misconfiguration.
+                    raise InvalidH2CPreface(buf)
+                # Upgrade is enabled too, so this may be the HTTP/1 request
+                # that carries it. Give the bytes back and carry on.
+                self.parser = http.get_parser(self.cfg, self.sock, self.client)
+                self.parser.unreader.unread(buf)
+                return
 
             # initialize the HTTP/1.x parser
             self.parser = http.get_parser(self.cfg, self.sock, self.client)
@@ -475,18 +506,14 @@ class ThreadWorker(base.Worker):
             if not req:
                 return False
 
+            settings = None
+            if negotiation.upgrade_allowed(self.cfg, conn.client):
+                settings = negotiation.upgrade_settings(req)
+            if settings is not None:
+                return self.handle_h2c_upgrade(conn, req, settings)
+
             # Handle the request
-            keepalive = self.handle_request(req, conn)
-            if keepalive:
-                # Discard any unread request body before keepalive to prevent
-                # the socket from appearing readable due to leftover bytes.
-                # Bound the drain by the worker data timeout: a stalled client
-                # must not keep this thread blocked.
-                drain_deadline = time.monotonic() + DEFAULT_WORKER_DATA_TIMEOUT
-                if not conn.parser.finish_body(deadline=drain_deadline):
-                    # Abandon keepalive when the body could not be fully drained.
-                    return False
-                return True
+            return self._keepalive_after(conn, self.handle_request(req, conn))
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
         except StopIteration as e:
@@ -512,6 +539,47 @@ class ThreadWorker(base.Worker):
             self.handle_error(req, conn.sock, conn.client, e)
 
         return False
+
+    def _keepalive_after(self, conn, keepalive):
+        """Whether the connection can be reused for another request.
+
+        A body the application did not read leaves bytes on the socket, which
+        would make it look readable again, so it is drained first. The drain
+        is bounded by the worker data timeout: a stalled client must not keep
+        this thread blocked.
+        """
+        if not keepalive:
+            return False
+        drain_deadline = time.monotonic() + DEFAULT_WORKER_DATA_TIMEOUT
+        return bool(conn.parser.finish_body(deadline=drain_deadline))
+
+    def handle_h2c_upgrade(self, conn, req, settings):
+        """Switch this connection to HTTP/2 and serve the upgraded request.
+
+        The client may already have sent HTTP/2 frames behind the upgrade
+        request. Those bytes are sitting in the parser's unreader, so they
+        are handed to the HTTP/2 connection rather than dropped.
+
+        The request body has to come out first: it shares that buffer, and
+        taking the buffer before draining it would feed the payload to the
+        HTTP/2 state machine as if it were frames.
+        """
+        body = b""
+        if req.body is not None:
+            body = req.body.read() or b""
+        pending = conn.parser.unreader.take_buffered()
+        util.write(conn.sock, negotiation.UPGRADE_101)
+
+        h2_conn = http.get_parser(self.cfg, conn.sock, conn.client,
+                                  http2_connection=True)
+        upgraded = h2_conn.initiate_upgrade(settings, req, body)
+        conn.parser = h2_conn
+        conn.is_http2 = True
+        if pending:
+            h2_conn.receive_data(pending)
+
+        self.handle_http2_request(upgraded, conn, h2_conn)
+        return self.handle_http2(conn)
 
     def handle_http2(self, conn):
         """Handle an HTTP/2 connection. Runs in a worker thread.
@@ -572,9 +640,13 @@ class ThreadWorker(base.Worker):
             self.cfg.pre_request(self, req)
             request_start = datetime.now()
 
-            # Create WSGI environ
+            # Create WSGI environ. The response frames itself as HTTP/2,
+            # so the body streams out instead of being collected first, and
+            # the no-body and sendfile rules come from Response unchanged.
             resp, environ = wsgi.create(req, conn.sock, conn.client,
-                                        conn.server, self.cfg)
+                                        conn.server, self.cfg,
+                                        response_class=HTTP2Response,
+                                        response_args=(h2_conn, stream_id))
             environ["wsgi.multithread"] = True
             environ["HTTP_VERSION"] = "2"  # Indicate HTTP/2
 
@@ -585,12 +657,9 @@ class ThreadWorker(base.Worker):
 
             environ["wsgi.early_hints"] = send_early_hints_h2
 
-            # Add HTTP/2 trailer support
-            pending_trailers = []
-
             def send_trailers_h2(trailers):
-                """Queue trailers to be sent after response body."""
-                pending_trailers.extend(trailers)
+                """Queue trailers to be sent when the stream ends."""
+                resp.trailers = list(trailers)
 
             environ["gunicorn.http2.send_trailers"] = send_trailers_h2
 
@@ -600,50 +669,15 @@ class ThreadWorker(base.Worker):
                     self.log.info("Autorestarting worker after current request.")
                     self.alive = False
 
-            # Run WSGI app
+            # Run WSGI app, streaming each chunk as it is produced
             respiter = self.wsgi(environ, resp.start_response)
-
-            # Collect response body
-            response_body = b''
             try:
-                if hasattr(respiter, '__iter__'):
-                    for item in respiter:
-                        if item:
-                            response_body += item
+                for item in respiter:
+                    resp.write(item)
+                resp.close()
             finally:
                 if hasattr(respiter, "close"):
                     respiter.close()
-
-            # Send response via HTTP/2
-            if pending_trailers:
-                # Send headers, body, then trailers separately
-                # Build response headers with :status pseudo-header
-                response_headers = [(':status', str(resp.status_code))]
-                for name, value in resp.headers:
-                    response_headers.append((name.lower(), str(value)))
-
-                # Send headers without ending stream
-                h2_conn.h2_conn.send_headers(stream_id, response_headers, end_stream=False)
-                stream = h2_conn.streams[stream_id]
-                stream.send_headers(response_headers, end_stream=False)
-                h2_conn._send_pending_data()
-
-                # Send body without ending stream
-                if response_body:
-                    h2_conn.h2_conn.send_data(stream_id, response_body, end_stream=False)
-                    stream.send_data(response_body, end_stream=False)
-                    h2_conn._send_pending_data()
-
-                # Send trailers (ends stream)
-                h2_conn.send_trailers(stream_id, pending_trailers)
-            else:
-                # No trailers, use standard response
-                h2_conn.send_response(
-                    stream_id,
-                    resp.status_code,
-                    resp.headers,
-                    response_body
-                )
 
             request_time = datetime.now() - request_start
             self.log.access(resp, req, environ, request_time)

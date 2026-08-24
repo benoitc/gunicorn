@@ -96,6 +96,10 @@ class ControlSocketServer:
         self._thread = None
         self._running = False
         self._was_running_before_fork = False
+        # Set by the loop thread once self._loop and self._server are live.
+        # The stop paths wait on it so a shutdown is never scheduled against a
+        # not-yet-initialized loop (which would leak the thread + its fds).
+        self._ready = threading.Event()
 
         # Ensure fork handlers are registered
         _register_fork_handlers()
@@ -106,6 +110,7 @@ class ControlSocketServer:
             return
 
         self._running = True
+        self._ready = threading.Event()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
 
@@ -122,7 +127,9 @@ class ControlSocketServer:
 
         self._running = False
 
-        if self._loop and self._server:
+        # Wait until the loop is live so the shutdown is actually delivered.
+        self._ready.wait(timeout=2.0)
+        if self._loop is not None:
             # Schedule server close in the loop
             self._loop.call_soon_threadsafe(self._shutdown)
 
@@ -146,7 +153,12 @@ class ControlSocketServer:
         self._was_running_before_fork = True
         self._running = False
 
-        if self._loop and self._server:
+        # Wait until the loop is live before scheduling shutdown. Without this,
+        # a fork that lands while the thread is still starting up skips the
+        # shutdown, join() times out, and the thread is dropped while still
+        # holding its selector fd and the unix socket (the #3648 leak).
+        self._ready.wait(timeout=2.0)
+        if self._loop is not None:
             try:
                 self._loop.call_soon_threadsafe(self._shutdown)
             except RuntimeError:
@@ -155,6 +167,9 @@ class ControlSocketServer:
 
         if self._thread:
             self._thread.join(timeout=2.0)
+            if self._thread.is_alive() and self.arbiter.log:
+                self.arbiter.log.warning(
+                    "control socket thread did not stop before fork")
             self._thread = None
 
         self._loop = None
@@ -167,6 +182,7 @@ class ControlSocketServer:
 
         self._was_running_before_fork = False
         self._running = True
+        self._ready = threading.Event()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
 
@@ -182,6 +198,10 @@ class ControlSocketServer:
         except Exception as e:
             if self._running and self.arbiter.log:
                 self.arbiter.log.error("Control server error: %s", e)
+        finally:
+            # Release any stop path waiting on readiness, even if the thread
+            # never became ready (eg the server failed to bind).
+            self._ready.set()
 
     async def _serve(self):
         """Main async server loop."""
@@ -208,6 +228,9 @@ class ControlSocketServer:
         if self.arbiter.log:
             self.arbiter.log.info("Control socket listening at %s",
                                   self.socket_path)
+
+        # Loop and server are live; let the stop paths schedule shutdown.
+        self._ready.set()
 
         try:
             async with self._server:

@@ -3,6 +3,8 @@
 # See the NOTICE for more information.
 
 import datetime
+import logging
+import logging.handlers
 from types import SimpleNamespace
 
 import pytest
@@ -93,3 +95,103 @@ def test_get_username_handles_malformed_basic_auth_header():
 
     atoms = logger.atoms(response, request, environ, datetime.timedelta(seconds=1))
     assert atoms['u'] == '-'
+
+
+def _logconfig(path, fmt):
+    return {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'root': {'level': 'WARNING', 'handlers': ['console']},
+        'formatters': {'fmt': {'format': fmt}},
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'fmt',
+                'stream': 'ext://sys.stderr',
+            },
+            'error_file': {
+                'class': 'logging.FileHandler',
+                'filename': str(path),
+                'formatter': 'fmt',
+            },
+        },
+        'loggers': {
+            'gunicorn.error': {
+                'handlers': ['error_file'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        },
+    }
+
+
+def test_setup_reapplies_loglevel():
+    """Re-running setup picks up loglevel changes (#3353)."""
+    cfg = Config()
+    logger = Logger(cfg)
+    assert logger.loglevel == logging.INFO
+
+    cfg.set('loglevel', 'debug')
+    logger.setup(cfg)
+
+    assert logger.loglevel == logging.DEBUG
+    assert logger.error_log.level == logging.DEBUG
+
+
+def test_setup_reapplies_logconfig_dict(tmp_path):
+    """Re-running setup re-reads logconfig_dict, switching handlers (#3353)."""
+    cfg = Config()
+    cfg.set('logconfig_dict', _logconfig(tmp_path / 'v1.log', '[V1] %(message)s'))
+    logger = Logger(cfg)
+    try:
+        cfg.set('logconfig_dict',
+                _logconfig(tmp_path / 'v2.log', '[V2] %(message)s'))
+        logger.setup(cfg)
+
+        logger.error('after reload')
+
+        v1_log = tmp_path / 'v1.log'
+        v1 = v1_log.read_text() if v1_log.exists() else ''
+        assert 'after reload' not in v1
+        assert '[V2] after reload' in (tmp_path / 'v2.log').read_text()
+    finally:
+        # don't leak the dictConfig handlers into other tests
+        for handler in list(logger.error_log.handlers):
+            logger.error_log.removeHandler(handler)
+
+
+def test_setup_twice_does_not_stack_handlers(tmp_path):
+    """Re-running setup replaces our handlers instead of stacking them."""
+    cfg = Config()
+    cfg.set('errorlog', str(tmp_path / 'error.log'))
+    logger = Logger(cfg)
+
+    logger.setup(cfg)
+
+    gunicorn_handlers = [
+        h for h in logger.error_log.handlers
+        if getattr(h, '_gunicorn', False)
+    ]
+    assert len(gunicorn_handlers) == 1
+
+
+def test_setup_twice_does_not_stack_syslog_handlers():
+    """Re-running setup with syslog enabled must not duplicate handlers."""
+    cfg = Config()
+    cfg.set('syslog', True)
+    cfg.set('syslog_addr', 'udp://127.0.0.1:514')
+    logger = Logger(cfg)
+    try:
+        logger.setup(cfg)
+
+        for log in (logger.error_log, logger.access_log):
+            syslog_handlers = [
+                h for h in log.handlers
+                if isinstance(h, logging.handlers.SysLogHandler)
+            ]
+            assert len(syslog_handlers) == 1
+    finally:
+        # don't leak the syslog handlers into other tests
+        for log in (logger.error_log, logger.access_log):
+            for handler in list(log.handlers):
+                log.removeHandler(handler)

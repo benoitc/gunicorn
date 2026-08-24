@@ -74,7 +74,7 @@ class Statsd(Logger):
                 metric = extra.get(METRIC_VAR, None)
                 value = extra.get(VALUE_VAR, None)
                 typ = extra.get(MTYPE_VAR, None)
-                if metric and value and typ:
+                if metric and value is not None and typ:
                     if typ == GAUGE_TYPE:
                         self.gauge(metric, value)
                     elif typ == COUNTER_TYPE:

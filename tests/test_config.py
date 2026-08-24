@@ -215,6 +215,39 @@ def test_callable_validation():
     pytest.raises(TypeError, c.set, "pre_fork", lambda x: True)
 
 
+def test_reload_extra_files_keeps_patterns_unexpanded(tmp_path):
+    c = config.Config()
+
+    plain = tmp_path / "plain.txt"
+    plain.write_text("plain")
+    views = tmp_path / "views"
+    views.mkdir()
+    (views / "a.json").write_text("{}")
+
+    pattern = str(views / "*.json")
+    c.set("reload_extra_files", [str(plain), pattern])
+
+    assert c.reload_extra_files == [str(plain), pattern]
+
+
+def test_reload_extra_files_pattern_without_match_warns(tmp_path):
+    c = config.Config()
+    pattern = str(tmp_path / "*.nothing")
+
+    with pytest.warns(RuntimeWarning, match="matches no files"):
+        c.set("reload_extra_files", [pattern])
+
+    assert c.reload_extra_files == [pattern]
+
+
+def test_reload_extra_files_plain_path_must_exist(tmp_path):
+    c = config.Config()
+
+    pytest.raises(
+        ValueError, c.set, "reload_extra_files", [str(tmp_path / "missing.txt")]
+    )
+
+
 def test_reload_engine_validation():
     c = config.Config()
 
