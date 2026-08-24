@@ -4937,15 +4937,14 @@ need to increase this value.</p>
 <h3 id="http_parser"><code>http_parser</code><a class="headerlink" href="#http_parser" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--http-parser STRING</code></p>
 <p><strong>Default:</strong> <code>'auto'</code></p>
-<p>HTTP parser implementation for ASGI workers.</p>
+<p>HTTP parser implementation.</p>
 <ul>
-<li>auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)</li>
-<li>fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)</li>
-<li>python: Force pure Python PythonProtocol parser</li>
+<li>auto: Use gunicorn_h1c if it is available, else use the pure Python parser (default)</li>
+<li>fast: Require gunicorn_h1c (fail if unavailable)</li>
+<li>python: Force pure Python parser</li>
 </ul>
-<p>ASGI workers use callback-based parsing in data_received() for efficient
-incremental parsing. The gunicorn_h1c C extension provides significantly
-faster HTTP parsing using picohttpparser with SIMD optimizations.</p>
+<p>The gunicorn_h1c C extension provides significantly faster HTTP parsing
+using picohttpparser with SIMD optimizations.</p>
 <p>Install it with: pip install gunicorn[fast]</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
