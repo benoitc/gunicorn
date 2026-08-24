@@ -3764,6 +3764,10 @@ http2-prior-knowledge.</p>
 </ul>
 <p>The mechanisms are listed separately on purpose: enabling one does not
 enable the other.</p>
+<p>With <code>prior-knowledge</code> alone, a trusted peer that does not send the
+preface is refused with 400, since it is expected to speak HTTP/2.
+With <code>upgrade</code> or <code>both</code> an HTTP/1 request is how an upgrade
+begins, so it is served normally.</p>
 <p>Only peers in <a href="#forwarded_allow_ips">forwarded-allow-ips</a> are considered. Everyone else
 is served HTTP/1.x exactly as if this were <code>off</code>. Anything else from
 a trusted peer on a prior-knowledge port (an HTTP/1.x request, a

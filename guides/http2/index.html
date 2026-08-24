@@ -2652,7 +2652,8 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span><span class="se
 <h3 id="cleartext-http2-h2c">Cleartext HTTP/2 (h2c)<a class="headerlink" href="#cleartext-http2-h2c" title="Permanent link">&para;</a></h3>
 <p>When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
 service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
-plain TCP. Enable it with <code>--http2-cleartext</code> (gthread worker):</p>
+plain TCP. Enable it with <code>--http2-cleartext</code>, on the <code>gthread</code>, <code>gevent</code>
+or <code>asgi</code> worker:</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>-k<span class="w"> </span>gthread<span class="w"> </span>--http-protocols<span class="w"> </span>h2,h1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--http2-cleartext<span class="w"> </span>prior-knowledge
 </code></pre></div>
@@ -2667,9 +2668,19 @@ else from a trusted peer (an HTTP/1.x request, a malformed or stalled
 preface) is rejected with a 400 rather than silently downgraded, so a
 misconfigured proxy fails loudly instead of quietly losing HTTP/2.
 Untrusted peers are served HTTP/1.1 exactly as if the flag were off.</p>
+<p>Both mechanisms are served by the <code>gthread</code>, <code>gevent</code> and <code>asgi</code>
+workers. Note that with <code>prior-knowledge</code> alone a trusted peer sending
+anything else is refused with 400, while with <code>upgrade</code> or <code>both</code> an
+ordinary HTTP/1 request is served normally, because that is how an
+upgrade starts.</p>
 <p>Streams on an HTTP/2 connection are handled one after another, not
 concurrently, so a slow handler holds up the other streams on that
-connection.</p>
+connection. Response bodies are streamed as the application produces
+them rather than collected first, so a large response does not sit in
+worker memory.</p>
+<p>As on HTTP/1, responses that cannot carry a body (HEAD, 1xx, 204, 304)
+send none, and <code>sendfile()</code> does not apply to HTTP/2 responses: raw file
+bytes would bypass HTTP/2 framing.</p>
 <p>Test prior knowledge with:</p>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>--http2-prior-knowledge<span class="w"> </span>http://localhost:8000/
 </code></pre></div>
