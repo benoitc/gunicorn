@@ -2194,7 +2194,7 @@
 </ol>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <h3 id="start-gunicorn-with-control-socket">Start Gunicorn with Control Socket<a class="headerlink" href="#start-gunicorn-with-control-socket" title="Permanent link">&para;</a></h3>
-<p>By default, Gunicorn creates a control socket at <code>gunicorn.ctl</code> in the current directory:</p>
+<p>By default, Gunicorn creates the control socket at <code>$XDG_RUNTIME_DIR/gunicorn.ctl</code>. If <code>XDG_RUNTIME_DIR</code> is unset or does not point to an existing directory, it falls back to <code>$HOME/.gunicorn/gunicorn.ctl</code>:</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>-w<span class="w"> </span><span class="m">4</span><span class="w"> </span>myapp:app
 </code></pre></div>
 <p>Or specify a custom path:</p>
@@ -2516,7 +2516,7 @@ gunicorn&gt; quit
 <div class="highlight"><pre><span></span><code>Error: No such file or directory
 </code></pre></div>
 <ul>
-<li>Gunicorn creates the socket relative to the working directory by default</li>
+<li>By default, Gunicorn creates the socket at <code>$XDG_RUNTIME_DIR/gunicorn.ctl</code> or falls back to <code>$HOME/.gunicorn/gunicorn.ctl</code>.</li>
 <li>Use an absolute path with <code>--control-socket /path/to/socket.ctl</code></li>
 <li>Check if <code>--no-control-socket</code> was specified</li>
 </ul>
