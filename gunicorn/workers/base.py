@@ -106,16 +106,8 @@ class Worker:
         self.PIPE = os.pipe()
         for p in self.PIPE:
             util.set_non_blocking(p)
-            util.close_on_exec(p)
-
-        # Prevent fd inheritance
-        for s in self.sockets:
-            util.close_on_exec(s)
-        util.close_on_exec(self.tmp.fileno())
 
         self.wait_fds = self.sockets + [self.PIPE[0]]
-
-        self.log.close_on_exec()
 
         self.init_signals()
 
