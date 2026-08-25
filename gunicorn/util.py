@@ -271,6 +271,8 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
+    if not isinstance(fd, int):
+        fd = fd.fileno()
     os.set_inheritable(fd, False)
 
 
