@@ -10,7 +10,6 @@ Each HTTP/2 stream represents a single request/response exchange.
 """
 
 from enum import Enum, auto
-from io import BytesIO
 
 from .errors import HTTP2StreamError
 
@@ -49,7 +48,6 @@ class HTTP2Stream:
 
         # Request data
         self.request_headers = []
-        self.request_body = BytesIO()
         self.request_complete = False
 
         # Response data
@@ -71,8 +69,12 @@ class HTTP2Stream:
         self.priority_depends_on = 0
         self.priority_exclusive = False
 
-        # Streaming body support (avoids buffering entire uploads)
+        # Request body: one list of DATA payloads, in arrival order. It
+        # is the only copy kept; get_request_body() joins it once and
+        # read_body_chunk() drains it. body_size counts every byte that
+        # arrived so the connection can bound what a stream may hold.
         self._body_chunks = []
+        self.body_size = 0
         self._body_event = None  # Lazy-init asyncio.Event
         self._body_complete = False
 
@@ -142,14 +144,11 @@ class HTTP2Stream:
                 f"Cannot receive data in state {self.state.name}"
             )
 
-        # Add to chunks queue for streaming reads
         if data:
             self._body_chunks.append(data)
+            self.body_size += len(data)
             if self._body_event:
                 self._body_event.set()
-
-        # Also write to legacy BytesIO for compatibility
-        self.request_body.write(data)
 
         if end_stream:
             self._half_close_remote()
@@ -296,7 +295,9 @@ class HTTP2Stream:
         Returns:
             bytes: The request body data
         """
-        return self.request_body.getvalue()
+        if len(self._body_chunks) == 1:
+            return self._body_chunks[0]
+        return b"".join(self._body_chunks)
 
     async def read_body_chunk(self):
         """Read next body chunk asynchronously for streaming.

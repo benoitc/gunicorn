@@ -17,6 +17,7 @@ try:
     import h2.connection
     import h2.config
     import h2.events
+    import h2.errors
     H2_AVAILABLE = True
 except ImportError:
     H2_AVAILABLE = False
@@ -228,6 +229,86 @@ class TestAsyncHTTP2ConnectionReceiveData:
         assert len(requests) == 1
         assert requests[0].method == 'GET'
         assert requests[0].path == '/async-test'
+
+    async def _post_over_limit(self, cfg_limit=1000):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        cfg.set("http2_max_request_body_size", cfg_limit)
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        writer.clear()
+
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/upload'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False
+        )
+        client.send_data(stream_id=1, data=b"a" * 600, end_stream=False)
+        client.send_data(stream_id=1, data=b"b" * 600, end_stream=False)
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        return conn, client, reader, writer, requests
+
+    @pytest.mark.asyncio
+    async def test_body_over_limit_gets_413_and_reset_before_dispatch(self):
+        conn, client, reader, writer, requests = await self._post_over_limit()
+
+        assert requests == []
+        assert 1 not in conn.streams
+        assert conn.is_closed is False
+
+        events = client.receive_data(writer.get_written_data())
+        statuses = [
+            dict(e.headers)[b':status'] for e in events
+            if isinstance(e, h2.events.ResponseReceived)
+        ]
+        assert statuses == [b'413']
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert len(resets) == 1
+        assert resets[0].stream_id == 1
+        assert resets[0].error_code == h2.errors.ErrorCodes.NO_ERROR
+
+    @pytest.mark.asyncio
+    async def test_body_over_limit_later_frames_are_ignored(self):
+        conn, client, reader, writer, requests = await self._post_over_limit()
+
+        # The client has not seen the reset yet and finishes the upload.
+        client.send_data(stream_id=1, data=b"c" * 600, end_stream=True)
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        assert requests == []
+        assert 1 not in conn.streams
+        assert conn.is_closed is False
+
+        # The next stream on the connection is served normally.
+        client.receive_data(writer.get_written_data())
+        client.send_headers(
+            stream_id=3,
+            headers=[
+                (':method', 'GET'),
+                (':path', '/'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=True
+        )
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        assert len(requests) == 1
+        assert requests[0].stream.stream_id == 3
 
     @pytest.mark.asyncio
     async def test_receive_with_timeout(self):

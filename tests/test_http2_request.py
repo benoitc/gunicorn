@@ -10,7 +10,7 @@ import pytest
 from gunicorn.config import Config
 from gunicorn.http.errors import InvalidHeader
 from gunicorn.http2.request import HTTP2Request, HTTP2Body
-from gunicorn.http2.stream import HTTP2Stream
+from gunicorn.http2.stream import HTTP2Stream, StreamState
 
 
 class MockConnection:
@@ -163,8 +163,8 @@ class TestHTTP2Request:
         stream = HTTP2Stream(stream_id=1, connection=conn)
         stream.receive_headers(headers, end_stream=(len(body) == 0))
         if body:
-            stream.request_body.write(body)
-            stream.request_complete = True
+            stream.state = StreamState.OPEN
+            stream.receive_data(body, end_stream=True)
         return stream
 
     def test_basic_get_request(self):

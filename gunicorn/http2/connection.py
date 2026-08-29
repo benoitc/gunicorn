@@ -87,6 +87,7 @@ class HTTP2ServerConnection:
         # Connection settings from config
         self.initial_window_size = cfg.http2_initial_window_size
         self.max_concurrent_streams = cfg.http2_max_concurrent_streams
+        self.max_request_body_size = cfg.http2_max_request_body_size
         self.max_frame_size = cfg.http2_max_frame_size
         self.max_header_list_size = cfg.http2_max_header_list_size
 
@@ -317,6 +318,14 @@ class HTTP2ServerConnection:
             # Stream was reset or doesn't exist
             return None
 
+        limit = self.max_request_body_size
+        if limit and stream.body_size + len(data) > limit:
+            self._refuse_body_too_large(stream_id)
+            # The frame still consumed connection-level window credit.
+            if len(data) > 0:
+                self.h2_conn.increment_flow_control_window(len(data), stream_id=None)
+            return None
+
         stream.receive_data(data, end_stream=False)
 
         # Increment flow control windows (only if data received)
@@ -333,6 +342,27 @@ class HTTP2ServerConnection:
                 self.close(error_code=HTTP2ErrorCode.FLOW_CONTROL_ERROR)
 
         return None
+
+    def _refuse_body_too_large(self, stream_id):
+        """Answer 413 and reset a stream whose body outgrew the limit.
+
+        The request never reaches the application. The stream is dropped
+        so its buffered body is released and later frames on it are
+        ignored. RST_STREAM carries NO_ERROR: the response is complete
+        and the client is only asked to stop sending (RFC 9113 8.1).
+        """
+        stream = self.streams.pop(stream_id, None)
+        if stream is not None:
+            stream.reset(HTTP2ErrorCode.NO_ERROR)
+        try:
+            self.h2_conn.send_headers(
+                stream_id,
+                [(':status', '413'), ('content-length', '0')],
+                end_stream=True,
+            )
+            self.h2_conn.reset_stream(stream_id, error_code=HTTP2ErrorCode.NO_ERROR)
+        except _h2_exceptions.ProtocolError:
+            pass
 
     def _handle_stream_ended(self, event):
         """Handle StreamEnded event.

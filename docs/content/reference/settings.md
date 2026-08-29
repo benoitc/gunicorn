@@ -527,6 +527,25 @@ Default is 65536 (64KB). Set to 0 for unlimited (not recommended).
 
 !!! info "Added in 25.0.0"
 
+### `http2_max_request_body_size`
+
+**Command line:** `--http2-max-request-body-size INT`
+
+**Default:** `104857600`
+
+Maximum HTTP/2 request body size in bytes.
+
+The body of an HTTP/2 request is held in memory until the stream
+ends and the request is handed to the application. A stream whose
+body grows past this limit is answered with `413` and reset
+before the application is called, so the memory held per stream
+is bounded.
+
+Default is 104857600 (100MB). Set to 0 for unlimited (not
+recommended).
+
+!!! info "Added in 26.3.0"
+
 ## Logging
 
 ### `accesslog`

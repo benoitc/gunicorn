@@ -2650,6 +2650,30 @@ class HTTP2MaxHeaderListSize(Setting):
         """
 
 
+class HTTP2MaxRequestBodySize(Setting):
+    name = "http2_max_request_body_size"
+    section = "HTTP/2"
+    cli = ["--http2-max-request-body-size"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 104857600
+    desc = """\
+        Maximum HTTP/2 request body size in bytes.
+
+        The body of an HTTP/2 request is held in memory until the stream
+        ends and the request is handed to the application. A stream whose
+        body grows past this limit is answered with ``413`` and reset
+        before the application is called, so the memory held per stream
+        is bounded.
+
+        Default is 104857600 (100MB). Set to 0 for unlimited (not
+        recommended).
+
+        .. versionadded:: 26.3.0
+        """
+
+
 class PasteGlobalConf(Setting):
     name = "raw_paste_global_conf"
     action = "append"

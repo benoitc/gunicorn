@@ -45,6 +45,7 @@ class MockConfig:
         self.http2_initial_window_size = 65535
         self.http2_max_frame_size = 16384
         self.http2_max_header_list_size = 65536
+        self.http2_max_request_body_size = 104857600
 
     def forwarded_allow_networks(self):
         return []

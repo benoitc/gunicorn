@@ -222,7 +222,7 @@ class TestReceiveData:
 
         stream.receive_data(b"Hello, World!", end_stream=False)
 
-        assert stream.request_body.getvalue() == b"Hello, World!"
+        assert stream.get_request_body() == b"Hello, World!"
         assert stream.request_complete is False
 
     def test_receive_data_with_end_stream(self):
@@ -244,7 +244,8 @@ class TestReceiveData:
         stream.receive_data(b"Part2")
         stream.receive_data(b"Part3", end_stream=True)
 
-        assert stream.request_body.getvalue() == b"Part1Part2Part3"
+        assert stream.get_request_body() == b"Part1Part2Part3"
+        assert stream.body_size == 15
 
     def test_receive_data_in_half_closed_local(self):
         conn = MockConnection()
@@ -252,7 +253,7 @@ class TestReceiveData:
         stream.state = StreamState.HALF_CLOSED_LOCAL
 
         stream.receive_data(b"data", end_stream=False)
-        assert stream.request_body.getvalue() == b"data"
+        assert stream.get_request_body() == b"data"
 
     def test_receive_data_in_invalid_state(self):
         conn = MockConnection()
@@ -475,6 +476,19 @@ class TestGetRequestBody:
         stream.receive_data(b"Test body content")
 
         assert stream.get_request_body() == b"Test body content"
+
+
+    def test_single_copy_is_kept(self):
+        """One DATA frame is handed back as-is: no join, no second buffer."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+        payload = b"x" * 1024
+        stream.receive_data(payload, end_stream=True)
+
+        assert stream.get_request_body() is payload
+        assert stream.body_size == 1024
+        assert not hasattr(stream, "request_body")
 
 
 class TestReadBodyChunk:

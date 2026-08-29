@@ -142,6 +142,7 @@ Fine-tune HTTP/2 behavior with these settings:
 | `http2_initial_window_size` | 65535 | Initial flow control window size (bytes) |
 | `http2_max_frame_size` | 16384 | Maximum frame size (bytes) |
 | `http2_max_header_list_size` | 65536 | Maximum header list size (bytes) |
+| `http2_max_request_body_size` | 104857600 | Maximum request body held per stream (bytes), 413 above it |
 
 Example configuration:
 
@@ -775,6 +776,7 @@ protections against known vulnerabilities.
 |--------|------------|---------|
 | Stream Multiplexing Abuse | Limit concurrent streams | `http2_max_concurrent_streams` (default: 100) |
 | HPACK Bomb | Header size limits | `http2_max_header_list_size` (default: 65536) |
+| Unbounded Upload | Request body limit, 413 and RST_STREAM before dispatch | `http2_max_request_body_size` (default: 104857600) |
 | Large Frame Attack | Frame size limits | `http2_max_frame_size` (validated: 16384-16777215) |
 | Resource Exhaustion | Flow control windows | `http2_initial_window_size` (default: 65535) |
 | Slow Read (Slowloris) | Connection timeouts | `timeout` and `keepalive` settings |
@@ -789,6 +791,9 @@ http2_max_concurrent_streams = 100
 
 # Limit header size to prevent HPACK bomb attacks
 http2_max_header_list_size = 65536  # 64KB
+
+# Bound the body buffered per stream before the app sees the request
+http2_max_request_body_size = 104857600  # 100MB
 
 # Standard frame size (RFC minimum)
 http2_max_frame_size = 16384

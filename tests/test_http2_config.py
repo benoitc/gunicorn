@@ -341,3 +341,26 @@ class TestValidateHttp2FrameSize:
         """Negative values should raise ValueError."""
         with pytest.raises(ValueError):
             config.validate_http2_frame_size(-1)
+
+
+class TestHttp2MaxRequestBodySizeConfig:
+    """Test http2_max_request_body_size configuration setting."""
+
+    def test_default(self):
+        c = Config()
+        assert c.http2_max_request_body_size == 104857600
+
+    def test_set_value(self):
+        c = Config()
+        c.set("http2_max_request_body_size", "1048576")
+        assert c.http2_max_request_body_size == 1048576
+
+    def test_zero_is_allowed(self):
+        c = Config()
+        c.set("http2_max_request_body_size", 0)
+        assert c.http2_max_request_body_size == 0
+
+    def test_negative_rejected(self):
+        c = Config()
+        with pytest.raises(ValueError):
+            c.set("http2_max_request_body_size", -1)

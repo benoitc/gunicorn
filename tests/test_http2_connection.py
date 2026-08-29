@@ -17,6 +17,7 @@ try:
     import h2.config
     import h2.events
     import h2.exceptions
+    import h2.errors
     H2_AVAILABLE = True
 except ImportError:
     H2_AVAILABLE = False
@@ -258,6 +259,107 @@ class TestHTTP2ServerConnectionReceiveData:
         req = requests[0]
         assert req.method == 'POST'
         assert req.body.read() == b'{"key":"val"}'
+
+    def _post_without_end_stream(self, body_limit, chunks):
+        """Send DATA frames on stream 1 and never END_STREAM.
+
+        Returns (conn, client, sock, all requests produced).
+        """
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("http2_max_request_body_size", body_limit)
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/upload'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False
+        )
+        requests = list(conn.receive_data(client.data_to_send()))
+        sent_before = len(sock.get_sent_data())
+        for chunk in chunks:
+            client.send_data(stream_id=1, data=chunk, end_stream=False)
+            requests += conn.receive_data(client.data_to_send())
+        return conn, client, sock, requests, sent_before
+
+    def test_body_over_limit_gets_413_and_reset_before_dispatch(self):
+        conn, client, sock, requests, sent_before = self._post_without_end_stream(
+            body_limit=1000, chunks=[b"a" * 600, b"b" * 600])
+
+        assert requests == []
+        assert 1 not in conn.streams
+
+        events = client.receive_data(sock.get_sent_data()[sent_before:])
+        statuses = [
+            dict(e.headers)[b':status'].decode() for e in events
+            if isinstance(e, h2.events.ResponseReceived)
+        ]
+        assert statuses == ['413']
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert len(resets) == 1
+        assert resets[0].stream_id == 1
+        assert resets[0].error_code == h2.errors.ErrorCodes.NO_ERROR
+        assert resets[0].remote_reset is True
+
+    def test_body_over_limit_later_frames_are_ignored(self):
+        conn, client, sock, requests, _ = self._post_without_end_stream(
+            body_limit=1000, chunks=[b"a" * 600, b"b" * 600])
+
+        # Client keeps sending before it sees the reset. Nothing is kept,
+        # no request is produced, the connection stays open.
+        client.send_data(stream_id=1, data=b"c" * 600, end_stream=False)
+        client.send_data(stream_id=1, data=b"d" * 600, end_stream=True)
+        requests = conn.receive_data(client.data_to_send())
+
+        assert requests == []
+        assert 1 not in conn.streams
+        assert conn.is_closed is False
+
+        # A new stream on the same connection still works.
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(
+            stream_id=3,
+            headers=[
+                (':method', 'GET'),
+                (':path', '/'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=True
+        )
+        requests = conn.receive_data(client.data_to_send())
+        assert len(requests) == 1
+        assert requests[0].stream.stream_id == 3
+
+    def test_body_at_limit_is_accepted(self):
+        conn, client, sock, requests, _ = self._post_without_end_stream(
+            body_limit=1200, chunks=[b"a" * 600, b"b" * 600])
+
+        assert requests == []
+        assert 1 in conn.streams
+        client.send_data(stream_id=1, data=b"", end_stream=True)
+        requests = conn.receive_data(client.data_to_send())
+        assert len(requests) == 1
+        assert requests[0].body.read() == b"a" * 600 + b"b" * 600
+
+    def test_body_limit_zero_is_unlimited(self):
+        conn, client, sock, requests, _ = self._post_without_end_stream(
+            body_limit=0, chunks=[b"a" * 16000, b"b" * 16000, b"c" * 16000])
+
+        assert 1 in conn.streams
+        assert conn.streams[1].body_size == 48000
 
     def test_socket_error_raises_connection_error(self):
         from gunicorn.http2.connection import HTTP2ServerConnection
