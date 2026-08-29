@@ -17,7 +17,7 @@ from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,
     HTTP2NotAvailable, HTTP2ErrorCode,
 )
-from .stream import HTTP2Stream
+from .stream import HTTP2Stream, StreamState
 from .request import HTTP2Request
 
 
@@ -81,6 +81,13 @@ class AsyncHTTP2Connection:
         # They have left the h2 state machine already, so they are held here
         # for the main receive loop rather than discarded.
         self._deferred_events = collections.deque()
+        # Set by the receive loop whenever the peer widens a window, so
+        # a response task can wait for credit without touching the
+        # reader the loop owns.
+        self._window_event = None
+        self._write_lock = None
+        # Peer sent a graceful GOAWAY: finish open streams, take no new ones
+        self.draining = False
 
         # Queue of completed requests for the worker
         self._request_queue = asyncio.Queue()
@@ -167,6 +174,8 @@ class AsyncHTTP2Connection:
         stream.receive_headers(pseudo + regular, end_stream=not body)
         if body:
             stream.receive_data(body, end_stream=True)
+            # That body came over HTTP/1, so no window credit is owed.
+            stream.acked_size = stream.body_size
         self.streams[1] = stream
         return HTTP2Request(stream, self.cfg, self.client_addr)
 
@@ -191,6 +200,10 @@ class AsyncHTTP2Connection:
                 )
             else:
                 data = await self.reader.read(self.READ_BUFFER_SIZE)
+        except asyncio.TimeoutError:
+            # A subclass of OSError since Python 3.11; the caller's
+            # timeout is not a socket failure.
+            raise
         except (OSError, IOError) as e:
             raise HTTP2ConnectionError(f"Socket read error: {e}")
 
@@ -233,6 +246,7 @@ class AsyncHTTP2Connection:
         # Process events, oldest first: anything set aside during a
         # flow-control wait arrived before this batch.
         completed_requests = []
+        was_draining = self.draining
         if self._deferred_events:
             events = list(self._deferred_events) + list(events)
             self._deferred_events.clear()
@@ -240,6 +254,17 @@ class AsyncHTTP2Connection:
             request = self._handle_event(event)
             if request is not None:
                 completed_requests.append(request)
+
+        if was_draining:
+            # Streams opened after the peer's GOAWAY are refused.
+            for request in completed_requests:
+                stream_id = request.stream.stream_id
+                self.streams.pop(stream_id, None)
+                try:
+                    self.h2_conn.reset_stream(stream_id, error_code=HTTP2ErrorCode.REFUSED_STREAM)
+                except _h2_exceptions.ProtocolError:
+                    pass
+            completed_requests = []
 
         # Send any pending data (WINDOW_UPDATE, etc.)
         await self._send_pending_data()
@@ -268,7 +293,7 @@ class AsyncHTTP2Connection:
             self._handle_stream_reset(event)
 
         elif isinstance(event, _h2_events.WindowUpdated):
-            pass  # Flow control update, handled by h2
+            self._signal_window()
 
         elif isinstance(event, _h2_events.PriorityUpdated):
             self._handle_priority_updated(event)
@@ -276,8 +301,12 @@ class AsyncHTTP2Connection:
         elif isinstance(event, _h2_events.SettingsAcknowledged):
             pass  # Settings ACK received
 
+        elif isinstance(event, _h2_events.RemoteSettingsChanged):
+            self._signal_window()
+
         elif isinstance(event, _h2_events.ConnectionTerminated):
             self._handle_connection_terminated(event)
+            self._signal_window()
 
         elif isinstance(event, _h2_events.TrailersReceived):
             return self._handle_trailers_received(event)
@@ -296,34 +325,58 @@ class AsyncHTTP2Connection:
         # Process headers
         stream.receive_headers(headers, end_stream=False)
 
-    def _handle_data_received(self, event):
-        """Handle DataReceived event."""
-        stream_id = event.stream_id
-        data = event.data
+        # Dispatch on headers: the body streams in behind the request.
+        return HTTP2Request(stream, self.cfg, self.client_addr)
 
-        stream = self.streams.get(stream_id)
+    def _handle_data_received(self, event):
+        """Handle DataReceived event.
+
+        The payload is held on the stream until the application takes it;
+        window credit goes back through acknowledge_data() at that point.
+        """
+        stream = self.streams.get(event.stream_id)
         if stream is None:
             return None
 
-        stream.receive_data(data, end_stream=False)
+        stream.receive_data(event.data, end_stream=False)
 
-        # Increment flow control windows (only if data received)
-        if len(data) > 0:
-            try:
-                # Update stream-level window
-                self.h2_conn.increment_flow_control_window(len(data), stream_id=stream_id)
-                # Update connection-level window
-                self.h2_conn.increment_flow_control_window(len(data), stream_id=None)
-            except (ValueError, _h2_exceptions.FlowControlError):
-                # Window overflow - prepare GOAWAY with FLOW_CONTROL_ERROR
-                # (will be sent by receive_data's _send_pending_data call)
-                self._closed = True
-                try:
-                    self.h2_conn.close_connection(error_code=HTTP2ErrorCode.FLOW_CONTROL_ERROR)
-                except Exception:
-                    pass
-
+        # Connection-level credit goes straight back so a stream that is
+        # waiting its turn can never starve the one being served; the
+        # stream-level window is credited only as the body is consumed.
+        # Padding is never buffered, so its credit goes back now too.
+        length = event.flow_controlled_length
+        padding = length - len(event.data)
+        try:
+            if length:
+                self.h2_conn.increment_flow_control_window(length, stream_id=None)
+            if padding:
+                self.h2_conn.increment_flow_control_window(padding, stream_id=event.stream_id)
+        except (ValueError, _h2_exceptions.ProtocolError):
+            pass
         return None
+
+    def acknowledge_data(self, stream_id, size):
+        """Credit ``size`` consumed bytes back to the peer.
+
+        Called by the stream as the application takes body data. The
+        WINDOW_UPDATE frames are written without waiting on drain: they
+        are small and the reader must not be blocked behind them.
+        """
+        if size <= 0 or self._closed:
+            return
+        try:
+            self.h2_conn.increment_flow_control_window(size, stream_id=stream_id)
+        except (ValueError, _h2_exceptions.ProtocolError):
+            return
+        self._write_pending_nowait()
+
+    def _write_pending_nowait(self):
+        data = self.h2_conn.data_to_send()
+        if data:
+            try:
+                self.writer.write(data)
+            except (OSError, IOError):
+                self._closed = True
 
     def _handle_stream_ended(self, event):
         """Handle StreamEnded event."""
@@ -333,15 +386,12 @@ class AsyncHTTP2Connection:
         if stream is None:
             return None
 
-        # Mark stream as request complete and body complete so the
-        # receive() closure's _body_complete guard fires, preventing
-        # the fast path from re-reading already-consumed data from BytesIO.
+        # The request went out on its headers; only mark the body complete.
         stream.request_complete = True
         stream._body_complete = True
         if stream._body_event:
             stream._body_event.set()
-
-        return HTTP2Request(stream, self.cfg, self.client_addr)
+        return None
 
     def _handle_stream_reset(self, event):
         """Handle StreamReset event."""
@@ -352,7 +402,22 @@ class AsyncHTTP2Connection:
             stream.reset(event.error_code)
 
     def _handle_connection_terminated(self, event):
-        """Handle ConnectionTerminated event."""
+        """Handle ConnectionTerminated event (GOAWAY frame).
+
+        A graceful GOAWAY (NO_ERROR) only forbids new streams; the ones
+        already established finish (RFC 9113 section 6.8). h2 closes its
+        connection state on receipt and would refuse to send anything,
+        so its state is put back to open while those streams drain, and
+        the connection closes once they are done. Any other error code
+        closes at once.
+
+        Args:
+            event: ConnectionTerminated event
+        """
+        if event.error_code == HTTP2ErrorCode.NO_ERROR and self.streams:
+            self.draining = True
+            self.h2_conn.state_machine.state = _h2.ConnectionState.SERVER_OPEN
+            return
         self._closed = True
 
     def _handle_trailers_received(self, event):
@@ -364,7 +429,9 @@ class AsyncHTTP2Connection:
             return None
 
         stream.receive_trailers(event.headers)
-        return HTTP2Request(stream, self.cfg, self.client_addr)
+        if stream._body_event:
+            stream._body_event.set()
+        return None
 
     def _handle_priority_updated(self, event):
         """Handle PriorityUpdated event (PRIORITY frame).
@@ -409,8 +476,30 @@ class AsyncHTTP2Connection:
             response_headers.append((name.lower(), str(value)))
 
         # Send headers with end_stream=False (informational, more to follow)
-        self.h2_conn.send_headers(stream_id, response_headers, end_stream=False)
-        await self._send_pending_data()
+        await self._send(lambda: self.h2_conn.send_headers(
+            stream_id, response_headers, end_stream=False))
+
+    async def send_response_headers(self, stream_id, headers, end_stream=False):
+        """Send response HEADERS already carrying ``:status``.
+
+        Returns:
+            bool: True if sent, False if the stream is gone
+        """
+        stream = self.streams.get(stream_id)
+        if stream is None:
+            return False
+
+        def queue():
+            self.h2_conn.send_headers(stream_id, headers, end_stream=end_stream)
+            stream.send_headers(headers, end_stream=end_stream)
+
+        try:
+            await self._send(queue)
+        except _h2_exceptions.StreamClosedError:
+            stream.close()
+            self.cleanup_stream(stream_id)
+            return False
+        return True
 
     async def send_response(self, stream_id, status, headers, body=None):
         """Send a response on a stream.
@@ -438,9 +527,11 @@ class AsyncHTTP2Connection:
 
         try:
             # Send headers
-            self.h2_conn.send_headers(stream_id, response_headers, end_stream=end_stream)
-            stream.send_headers(response_headers, end_stream=end_stream)
-            await self._send_pending_data()
+            def queue():
+                self.h2_conn.send_headers(stream_id, response_headers, end_stream=end_stream)
+                stream.send_headers(response_headers, end_stream=end_stream)
+
+            await self._send(queue)
 
             # Send body if present
             if body and len(body) > 0:
@@ -452,49 +543,38 @@ class AsyncHTTP2Connection:
             self.cleanup_stream(stream_id)
             return False
 
+    def _signal_window(self):
+        """Wake response tasks waiting for send credit."""
+        if self._window_event is not None:
+            self._window_event.set()
+
     async def _wait_for_flow_control_window(self, stream_id):
         """Wait for flow control window to become positive.
+
+        The receive loop owns the reader; it processes the peer's
+        WINDOW_UPDATE and SETTINGS frames and signals here. Waiting on
+        that signal instead of reading keeps two tasks off one reader.
 
         Returns:
             int: Available window size, or -1 if waiting failed
         """
+        if self._window_event is None:
+            self._window_event = asyncio.Event()
         max_wait_attempts = 50  # ~5 seconds at 100ms per attempt
         for _ in range(max_wait_attempts):
             available = self.h2_conn.local_flow_control_window(stream_id)
             if available > 0:
                 return available
-
-            # Read more data from connection (may receive WINDOW_UPDATE)
+            if self._closed:
+                return -1
+            stream = self.streams.get(stream_id)
+            if stream is not None and stream.state is StreamState.CLOSED:
+                return -1
+            self._window_event.clear()
             try:
-                incoming = await asyncio.wait_for(
-                    self.reader.read(self.READ_BUFFER_SIZE),
-                    timeout=0.1
-                )
-                if incoming:
-                    events = self.h2_conn.receive_data(incoming)
-                    # Process events but don't create new requests
-                    for event in events:
-                        if isinstance(event, _h2_events.StreamReset):
-                            if event.stream_id == stream_id:
-                                return -1
-                        elif isinstance(event, _h2_events.ConnectionTerminated):
-                            self._closed = True
-                            return -1
-                        else:
-                            # Anything else arriving alongside the
-                            # WINDOW_UPDATE belongs to the main loop. It has
-                            # already left the h2 state machine, so dropping
-                            # it here loses a request or its body for good.
-                            self._deferred_events.append(event)
-                    await self._send_pending_data()
-                else:
-                    # Connection closed
-                    self._closed = True
-                    return -1
+                await asyncio.wait_for(self._window_event.wait(), timeout=0.1)
             except asyncio.TimeoutError:
                 continue
-            except _h2_exceptions.ProtocolError:
-                return -1
 
         return self.h2_conn.local_flow_control_window(stream_id)
 
@@ -516,25 +596,27 @@ class AsyncHTTP2Connection:
         data_to_send = data
         try:
             while data_to_send:
-                available = self.h2_conn.local_flow_control_window(stream_id)
-                chunk_size = min(available, self.max_frame_size, len(data_to_send))
-
+                # The window is read and the frame queued under the lock,
+                # so another stream cannot spend the credit in between.
+                async with self._lock():
+                    available = self.h2_conn.local_flow_control_window(stream_id)
+                    chunk_size = min(available, self.max_frame_size, len(data_to_send))
+                    if chunk_size > 0:
+                        chunk = data_to_send[:chunk_size]
+                        data_to_send = data_to_send[chunk_size:]
+                        is_final = end_stream and len(data_to_send) == 0
+                        self.h2_conn.send_data(stream_id, chunk, end_stream=is_final)
+                        # Bookkeeping goes with the frame, before the
+                        # drain: a reset processed meanwhile closes the
+                        # stream and must not turn into a send error.
+                        stream.send_data(chunk, end_stream=is_final)
+                        await self._flush_locked()
                 if chunk_size <= 0:
                     # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
-                    await self._send_pending_data()
                     available = await self._wait_for_flow_control_window(stream_id)
                     if available <= 0:
                         return False
-                    chunk_size = min(available, self.max_frame_size, len(data_to_send))
 
-                chunk = data_to_send[:chunk_size]
-                data_to_send = data_to_send[chunk_size:]
-                is_final = end_stream and len(data_to_send) == 0
-
-                self.h2_conn.send_data(stream_id, chunk, end_stream=is_final)
-                await self._send_pending_data()
-
-            stream.send_data(data, end_stream=end_stream)
             return True
         except (_h2_exceptions.StreamClosedError, _h2_exceptions.FlowControlError):
             stream.close()
@@ -575,9 +657,11 @@ class AsyncHTTP2Connection:
 
         try:
             # Send trailers with end_stream=True
-            self.h2_conn.send_headers(stream_id, trailer_headers, end_stream=True)
-            stream.send_trailers(trailer_headers)
-            await self._send_pending_data()
+            def queue():
+                self.h2_conn.send_headers(stream_id, trailer_headers, end_stream=True)
+                stream.send_trailers(trailer_headers)
+
+            await self._send(queue)
             return True
         except _h2_exceptions.StreamClosedError:
             # Stream was reset by client - clean up gracefully
@@ -600,8 +684,8 @@ class AsyncHTTP2Connection:
         if stream is not None:
             stream.reset(error_code)
 
-        self.h2_conn.reset_stream(stream_id, error_code=error_code)
-        await self._send_pending_data()
+        await self._send(lambda: self.h2_conn.reset_stream(
+            stream_id, error_code=error_code))
 
     async def close(self, error_code=0x0, last_stream_id=None):
         """Close the connection gracefully with GOAWAY."""
@@ -614,19 +698,40 @@ class AsyncHTTP2Connection:
             last_stream_id = max(self.streams.keys()) if self.streams else 0
 
         try:
-            self.h2_conn.close_connection(error_code=error_code)
-            await self._send_pending_data()
+            await self._send(lambda: self.h2_conn.close_connection(error_code=error_code))
         except Exception:
             pass
 
+        # Not awaited: the writer's protocol is a stand-in that never
+        # sees connection_lost, so wait_closed() would never return.
         try:
             self.writer.close()
-            await self.writer.wait_closed()
         except Exception:
             pass
 
+    def _lock(self):
+        if self._write_lock is None:
+            self._write_lock = asyncio.Lock()
+        return self._write_lock
+
+    async def _send(self, queue_frames):
+        """Queue frames on h2 and put them on the wire.
+
+        Streams are served by concurrent tasks, so both steps happen
+        under one lock with no await between them: the receive loop
+        cannot parse a GOAWAY (which clears h2's outbound buffer) in
+        between, and HEADERS leave in the order they were encoded.
+        """
+        async with self._lock():
+            queue_frames()
+            await self._flush_locked()
+
     async def _send_pending_data(self):
-        """Send any pending data from h2 to the socket."""
+        """Send whatever h2 already has queued."""
+        async with self._lock():
+            await self._flush_locked()
+
+    async def _flush_locked(self):
         data = self.h2_conn.data_to_send()
         if data:
             try:
@@ -642,8 +747,22 @@ class AsyncHTTP2Connection:
         return self._closed
 
     def cleanup_stream(self, stream_id):
-        """Remove a stream after processing is complete."""
-        self.streams.pop(stream_id, None)
+        """Remove a stream after processing is complete.
+
+        A body the application did not finish reading is cut off with
+        RST_STREAM(NO_ERROR) (RFC 9113 section 8.1).
+        """
+        stream = self.streams.pop(stream_id, None)
+        if stream is None:
+            return
+        if not stream.body_complete and stream.state is not StreamState.CLOSED:
+            stream.reset(HTTP2ErrorCode.NO_ERROR)
+            try:
+                self.h2_conn.reset_stream(stream_id, error_code=HTTP2ErrorCode.NO_ERROR)
+            except _h2_exceptions.ProtocolError:
+                pass
+        if not self._closed:
+            self._write_pending_nowait()
 
     def __repr__(self):
         return (

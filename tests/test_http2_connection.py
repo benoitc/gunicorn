@@ -17,12 +17,13 @@ try:
     import h2.config
     import h2.events
     import h2.exceptions
+    import h2.errors
     H2_AVAILABLE = True
 except ImportError:
     H2_AVAILABLE = False
 
 from gunicorn.http2.errors import (
-    HTTP2Error, HTTP2ConnectionError
+    HTTP2Error, HTTP2ConnectionError, HTTP2ProtocolError
 )
 
 
@@ -927,42 +928,45 @@ class TestHTTP2StreamClosedHandling:
 
 
 class TestHTTP2WindowOverflowHandling:
-    """Test window overflow handling."""
+    """A peer sending past the receive window gets GOAWAY(FLOW_CONTROL_ERROR)."""
 
     def test_window_overflow_sends_goaway(self):
-        """Test that window overflow results in GOAWAY with FLOW_CONTROL_ERROR."""
+        from hyperframe.frame import DataFrame
         from gunicorn.http2.connection import HTTP2ServerConnection
-        from gunicorn.http2.errors import HTTP2ErrorCode
 
         cfg = MockConfig()
         sock = MockSocket()
         conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
         conn.initiate_connection()
 
-        # Create client and send preface
         client_conn = create_client_connection()
         conn.receive_data(client_conn.data_to_send())
-
-        # Mock increment_flow_control_window to raise ValueError (overflow)
-        original_increment = conn.h2_conn.increment_flow_control_window
-
-        def raise_overflow(increment, stream_id=None):
-            raise ValueError("Flow control window too large")
-
-        conn.h2_conn.increment_flow_control_window = raise_overflow
-
-        # Send a request with data to trigger the overflow
+        client_conn.receive_data(sock.get_sent_data())
         client_conn.send_headers(1, [
             (':method', 'POST'),
             (':path', '/'),
             (':scheme', 'https'),
             (':authority', 'localhost'),
         ], end_stream=False)
-        client_conn.send_data(1, b'test data', end_stream=True)
         conn.receive_data(client_conn.data_to_send())
 
-        # Connection should be closed with FLOW_CONTROL_ERROR
+        # Nothing is credited back until the application reads, so five
+        # full frames overrun the 65535 byte window. Serialized by hand
+        # because a well-behaved client would refuse to send them.
+        frames = b""
+        for _ in range(5):
+            f = DataFrame(1, data=b"x" * 16384)
+            frames += f.serialize()
+        before = len(sock.get_sent_data())
+        with pytest.raises(HTTP2ProtocolError):
+            conn.receive_data(frames)
+
         assert conn.is_closed is True
+        events = client_conn.receive_data(sock.get_sent_data()[before:])
+        goaway = [e for e in events if isinstance(e, h2.events.ConnectionTerminated)]
+        # h2 sends one GOAWAY itself before raising; close() sends another.
+        assert goaway
+        assert {g.error_code for g in goaway} == {h2.errors.ErrorCodes.FLOW_CONTROL_ERROR}
 
 
 class TestHTTP2ProtocolErrorHandling:
@@ -1289,3 +1293,418 @@ class TestEndStream:
     def test_end_stream_on_unknown_stream(self):
         conn = self._conn()
         assert conn.end_stream(999) is False
+
+
+class TestStreamingRequestBody:
+    """The request goes out on its headers; the body follows as it arrives."""
+
+    def _open_post(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/upload'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+        requests = conn.receive_data(client.data_to_send())
+        return conn, client, sock, requests
+
+    def _drain(self, client, sock, since):
+        """Feed the client what the server wrote since ``since``."""
+        data = sock.get_sent_data()
+        client.receive_data(data[since:])
+        return len(data)
+
+    def test_request_is_dispatched_before_the_body_arrives(self):
+        conn, client, sock, requests = self._open_post()
+        assert len(requests) == 1
+        req = requests[0]
+        assert req.method == 'POST'
+        assert req.stream.body_complete is False
+
+    def test_body_is_pulled_off_the_socket_as_the_app_reads(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+
+        client.send_data(1, b"a" * 600, end_stream=False)
+        client.send_data(1, b"b" * 600, end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+
+        # Nothing has been read from the socket yet.
+        assert req.stream.body_size == 0
+        assert req.body.read(700) == b"a" * 600 + b"b" * 100
+        assert req.body.read() == b"b" * 500
+        assert req.body.read() == b""
+        assert req.stream.body_complete is True
+
+    def test_stream_credit_returns_only_for_what_the_app_read(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+
+        # Fill most of the stream window without ending the stream.
+        for _ in range(3):
+            client.send_data(1, b"x" * 16384, end_stream=False)
+        before = len(sock.get_sent_data())
+        conn.receive_data(client.data_to_send())
+
+        assert req.stream.body_size == 3 * 16384
+        assert req.stream.unacked_size == 3 * 16384
+        # Connection-level credit comes straight back...
+        before = self._drain(client, sock, before)
+        assert client.outbound_flow_control_window == 65535
+        # ...the stream window only once the application reads.
+        assert client.local_flow_control_window(1) == 65535 - 3 * 16384
+
+        req.body.read(2 * 16384)
+        assert req.stream.unacked_size == 16384
+        self._drain(client, sock, before)
+        assert client.local_flow_control_window(1) == 65535 - 16384
+
+    def test_queued_stream_cannot_starve_the_one_being_served(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+        client.send_headers(
+            stream_id=3,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/other'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+        # Stream 3 uses up a whole connection window while stream 1 is
+        # the one being served.
+        for _ in range(4):
+            client.send_data(3, b"y" * 16383, end_stream=False)
+        before = len(sock.get_sent_data())
+        later = conn.receive_data(client.data_to_send())
+        assert [r.stream.stream_id for r in later] == [3]
+        before = self._drain(client, sock, before)
+
+        assert client.outbound_flow_control_window == 65535
+        assert client.local_flow_control_window(1) == 65535
+        client.send_data(1, b"rest", end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+        assert req.body.read() == b"rest"
+
+    def test_peer_past_the_window_gets_flow_control_error(self):
+        from hyperframe.frame import DataFrame
+        conn, client, sock, requests = self._open_post()
+        frames = b"".join(DataFrame(1, data=b"x" * 16384).serialize() for _ in range(5))
+        with pytest.raises(HTTP2ProtocolError):
+            conn.receive_data(frames)
+        assert conn.is_closed is True
+
+    def test_unread_body_is_reset_with_no_error_on_cleanup(self):
+        conn, client, sock, requests = self._open_post()
+        for _ in range(3):
+            client.send_data(1, b"a" * 16384, end_stream=False)
+        before = len(sock.get_sent_data())
+        conn.receive_data(client.data_to_send())
+        before = self._drain(client, sock, before)
+
+        conn.cleanup_stream(1)
+
+        assert 1 not in conn.streams
+        events = client.receive_data(sock.get_sent_data()[before:])
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert len(resets) == 1
+        assert resets[0].error_code == h2.errors.ErrorCodes.NO_ERROR
+        # The unread bytes never cost connection-level credit.
+        assert client.outbound_flow_control_window == 65535
+        assert conn.is_closed is False
+
+    def test_complete_body_cleanup_sends_no_reset(self):
+        conn, client, sock, requests = self._open_post()
+        client.send_data(1, b"a" * 10, end_stream=True)
+        conn.receive_data(client.data_to_send())
+        assert requests[0].body.read() == b"a" * 10
+        before = len(sock.get_sent_data())
+        conn.cleanup_stream(1)
+        events = client.receive_data(sock.get_sent_data()[before:])
+        assert not [e for e in events if isinstance(e, h2.events.StreamReset)]
+
+    def test_requests_arriving_during_a_body_read_are_queued(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+
+        client.send_headers(
+            stream_id=3,
+            headers=[
+                (':method', 'GET'),
+                (':path', '/other'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=True,
+        )
+        client.send_data(1, b"body", end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+
+        assert req.body.read() == b"body"
+        queued = conn.receive_data()
+        assert [r.stream.stream_id for r in queued] == [3]
+        assert queued[0].path == '/other'
+        assert conn.receive_data(b"") == []
+
+    def test_peer_reset_during_a_body_read_raises_stream_error(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+        client.send_data(1, b"a" * 10, end_stream=False)
+        client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+        sock.set_recv_data(client.data_to_send())
+
+        assert req.body.read(10) == b"a" * 10
+        with pytest.raises(HTTP2StreamError):
+            req.body.read()
+
+    def test_trailers_are_visible_after_the_body(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+        client.send_data(1, b"payload", end_stream=False)
+        client.send_headers(1, [('x-checksum', 'abc')], end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+
+        assert req.trailers == []
+        assert req.body.read() == b"payload"
+        assert req.trailers == [('X-CHECKSUM', 'abc')]
+
+    def test_readline_across_frames(self):
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+        client.send_data(1, b"line one\nli", end_stream=False)
+        client.send_data(1, b"ne two\nlast", end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+
+        assert req.body.readline() == b"line one\n"
+        assert req.body.readline(3) == b"lin"
+        assert list(req.body) == [b"e two\n", b"last"]
+
+    def test_padding_is_credited_back(self):
+        from hyperframe.frame import DataFrame
+        conn, client, sock, requests = self._open_post()
+        req = requests[0]
+
+        frames = b""
+        for _ in range(255):
+            f = DataFrame(1, data=b"x", pad_length=255)
+            f.flags.add("PADDED")
+            frames += f.serialize()
+        conn.receive_data(frames)
+        assert req.body.read(255) == b"x" * 255
+
+        # Every flow-controlled byte, padding included, is back.
+        assert conn.h2_conn.remote_flow_control_window(1) == 65535
+
+
+def frame_types(data):
+    """Frame type names in ``data``, parsed without an h2 state machine."""
+    from hyperframe.frame import Frame
+    kinds = []
+    while data:
+        frame, length = Frame.parse_frame_header(memoryview(data[:9]))
+        frame.parse_body(memoryview(data[9:9 + length]))
+        kinds.append(type(frame).__name__)
+        data = data[9 + length:]
+    return kinds
+
+
+class TestGracefulGoAway:
+    """GOAWAY(NO_ERROR) drains established streams; other codes close."""
+
+    def _open(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        return conn, client, sock
+
+    def _get(self, client, stream_id, path="/"):
+        client.send_headers(
+            stream_id=stream_id,
+            headers=[
+                (':method', 'GET'),
+                (':path', path),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=True,
+        )
+
+    def test_established_stream_is_answered_then_connection_closes(self):
+        conn, client, sock = self._open()
+        self._get(client, 1)
+        client.close_connection()
+        requests = conn.receive_data(client.data_to_send())
+
+        assert [r.stream.stream_id for r in requests] == [1]
+        assert conn.draining is True
+        assert conn.is_closed is False
+
+        before = len(sock.get_sent_data())
+        assert conn.send_response(1, 200, [], b"hello") is True
+        conn.cleanup_stream(1)
+        assert conn.is_closed is True
+
+        # The h2 client is closed once it has sent GOAWAY, so the frames
+        # are checked raw, as a real client would still read them.
+        kinds = frame_types(sock.get_sent_data()[before:])
+        assert "HeadersFrame" in kinds
+        assert "DataFrame" in kinds
+        assert kinds[-1] == "GoAwayFrame"
+
+    def test_stream_opened_after_goaway_is_refused(self):
+        conn, client, sock = self._open()
+        self._get(client, 1)
+        client.close_connection()
+        conn.receive_data(client.data_to_send())
+
+        # h2 forbids the client from opening streams after its GOAWAY;
+        # a raw HEADERS frame stands in for a misbehaving peer.
+        from hyperframe.frame import HeadersFrame
+        encoder = client.encoder
+        f = HeadersFrame(3, data=encoder.encode([
+            (':method', 'GET'), (':path', '/late'),
+            (':scheme', 'https'), (':authority', 'localhost')]))
+        f.flags.add('END_HEADERS')
+        f.flags.add('END_STREAM')
+        before = len(sock.get_sent_data())
+        assert conn.receive_data(f.serialize()) == []
+        assert 3 not in conn.streams
+        assert 1 in conn.streams
+        assert "RstStreamFrame" in frame_types(sock.get_sent_data()[before:])
+
+    def test_goaway_with_error_closes_at_once(self):
+        conn, client, sock = self._open()
+        self._get(client, 1)
+        client.close_connection(error_code=h2.errors.ErrorCodes.PROTOCOL_ERROR)
+        conn.receive_data(client.data_to_send())
+        assert conn.is_closed is True
+        assert conn.draining is False
+
+    def test_goaway_with_nothing_in_flight_closes(self):
+        conn, client, sock = self._open()
+        client.close_connection()
+        conn.receive_data(client.data_to_send())
+        assert conn.is_closed is True
+
+
+class TestStreamingEdgeCases:
+    """Frames for unknown streams and failures while crediting or resetting."""
+
+    def _open(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        return conn, client, sock
+
+    def _post(self, client, stream_id=1):
+        client.send_headers(
+            stream_id=stream_id,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+
+    def test_data_and_trailers_for_a_cleaned_up_stream_are_ignored(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        requests = conn.receive_data(client.data_to_send())
+        conn.cleanup_stream(1)
+        client.send_data(1, b"late", end_stream=False)
+        client.send_headers(1, [('x-t', '1')], end_stream=True)
+        assert conn.receive_data(client.data_to_send()) == []
+        assert conn.is_closed is False
+
+    def test_credit_after_close_is_dropped(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        req = conn.receive_data(client.data_to_send())[0]
+        client.send_data(1, b"abc", end_stream=True)
+        conn.receive_data(client.data_to_send())
+        conn.close()
+        conn.h2_conn.increment_flow_control_window = mock.Mock()
+        assert req.body.read() == b"abc"
+        conn.h2_conn.increment_flow_control_window.assert_not_called()
+
+    def test_credit_failure_is_swallowed(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        req = conn.receive_data(client.data_to_send())[0]
+        client.send_data(1, b"abc", end_stream=True)
+        conn.receive_data(client.data_to_send())
+        conn.h2_conn.increment_flow_control_window = mock.Mock(
+            side_effect=h2.exceptions.StreamClosedError(1))
+        assert req.body.read() == b"abc"
+
+    def test_cleanup_survives_reset_and_write_failures(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        conn.receive_data(client.data_to_send())
+        conn.h2_conn.reset_stream = mock.Mock(
+            side_effect=h2.exceptions.StreamClosedError(1))
+        sock.close()
+        conn.cleanup_stream(1)
+        assert 1 not in conn.streams
+
+    def test_acknowledge_rejects_non_positive(self):
+        conn, client, sock = self._open()
+        conn.h2_conn.increment_flow_control_window = mock.Mock()
+        conn.acknowledge_data(1, 0)
+        conn.h2_conn.increment_flow_control_window.assert_not_called()
+
+    def test_frames_for_a_stream_we_dropped_are_ignored(self):
+        """h2 still tracks the stream; gunicorn no longer does."""
+        conn, client, sock = self._open()
+        self._post(client)
+        conn.receive_data(client.data_to_send())
+        conn.streams.pop(1)
+        client.send_data(1, b"late", end_stream=False)
+        client.send_headers(1, [('x-t', '1')], end_stream=True)
+        assert conn.receive_data(client.data_to_send()) == []
+        assert conn.is_closed is False
+
+    def test_cleanup_write_failure_is_swallowed(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        conn.receive_data(client.data_to_send())
+        sock.close()
+        conn.cleanup_stream(1)
+        assert 1 not in conn.streams
+        assert conn.is_closed is True
+
+    def test_arrival_credit_failure_is_swallowed(self):
+        conn, client, sock = self._open()
+        self._post(client)
+        req = conn.receive_data(client.data_to_send())[0]
+        conn.h2_conn.increment_flow_control_window = mock.Mock(
+            side_effect=h2.exceptions.ProtocolError("nope"))
+        client.send_data(1, b"abc", end_stream=True)
+        conn.receive_data(client.data_to_send())
+        assert req.body.read() == b"abc"

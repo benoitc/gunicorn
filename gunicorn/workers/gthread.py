@@ -30,6 +30,7 @@ from ..http import wsgi
 from ..http.errors import InvalidH2CPreface
 from ..http2 import negotiation
 from ..http2.response import HTTP2Response
+from ..http2.errors import HTTP2StreamError
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -600,6 +601,10 @@ class ThreadWorker(base.Worker):
                 for req in requests:
                     try:
                         self.handle_http2_request(req, conn, h2_conn)
+                    except HTTP2StreamError as e:
+                        # The peer reset the stream while its body was
+                        # being read; there is no one left to answer.
+                        self.log.debug("HTTP/2 stream closed: %s", e)
                     except Exception as e:
                         self.log.exception("Error handling HTTP/2 request")
                         try:

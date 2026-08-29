@@ -775,6 +775,7 @@ protections against known vulnerabilities.
 |--------|------------|---------|
 | Stream Multiplexing Abuse | Limit concurrent streams | `http2_max_concurrent_streams` (default: 100) |
 | HPACK Bomb | Header size limits | `http2_max_header_list_size` (default: 65536) |
+| Unbounded Upload | Body streams to the app; window credit returns as it reads | `http2_initial_window_size` (default: 65535) |
 | Large Frame Attack | Frame size limits | `http2_max_frame_size` (validated: 16384-16777215) |
 | Resource Exhaustion | Flow control windows | `http2_initial_window_size` (default: 65535) |
 | Slow Read (Slowloris) | Connection timeouts | `timeout` and `keepalive` settings |

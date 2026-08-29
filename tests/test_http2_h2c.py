@@ -14,6 +14,8 @@ import time
 
 import pytest
 
+from test_http2_connection import frame_types
+
 # Check if h2 is available
 try:
     import h2.connection  # pylint: disable=unused-import
@@ -1089,6 +1091,620 @@ class TestH2CASGIPriorKnowledgeEndToEnd:
                 drain_task(loop, proto._task)
             loop.close()
             asyncio.set_event_loop(None)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIMaxRequests:
+    """The request that trips max_requests is still served.
+
+    Streams run as tasks; stopping the receive loop the moment the
+    counter trips would cancel them before they ran.
+    """
+
+    def test_last_request_is_served(self):
+        import h2.config
+        import h2.connection
+        import h2.events
+
+        seen = []
+
+        async def app(scope, receive, send):
+            msg = await receive()
+            seen.append(msg["body"])
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = None
+        try:
+            cfg = h2c_config()
+            worker = mock.Mock()
+            worker.cfg = cfg
+            worker.log = mock.Mock()
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1
+            worker.alive = True
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_connection()
+            client.send_headers(1, [
+                (":method", "POST"), (":path", "/last"),
+                (":scheme", "http"), (":authority", "x"),
+            ], end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def body_later():
+                # The body arrives after the counter has tripped; the
+                # loop must still be reading for it to reach the app.
+                await asyncio.sleep(0.05)
+                client.send_data(1, b"payload", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(body_later(), timeout=5))
+
+            assert worker.nr == 1
+            assert worker.alive is False
+            assert seen == [b"payload"]
+            assert not worker.log.exception.called
+        finally:
+            if proto is not None:
+                proto._h2c_cancel_timer()
+                drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIBodyArrivesInOneBatch:
+    """END_STREAM landing with frames still queued must not cut the body."""
+
+    def test_every_frame_reaches_the_app(self):
+        import h2.config
+        import h2.connection
+
+        got = []
+
+        async def app(scope, receive, send):
+            while True:
+                msg = await receive()
+                got.append(msg["body"])
+                if not msg.get("more_body"):
+                    break
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = None
+        try:
+            worker = mock.Mock()
+            worker.cfg = h2c_config()
+            worker.log = mock.Mock()
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1000
+            worker.alive = True
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_connection()
+            client.send_headers(1, [
+                (":method", "POST"), (":path", "/batch"),
+                (":scheme", "http"), (":authority", "x"),
+            ], end_stream=False)
+            for i in range(3):
+                client.send_data(1, bytes([65 + i]) * 1000, end_stream=False)
+            client.send_data(1, b"", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_answered():
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(until_answered(), timeout=5))
+
+            assert b"".join(got) == b"A" * 1000 + b"B" * 1000 + b"C" * 1000
+            assert not worker.log.exception.called
+        finally:
+            if proto is not None:
+                proto._h2c_cancel_timer()
+                drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIResetMidBody:
+    """A peer reset while the app awaits the body yields http.disconnect."""
+
+    def test_app_sees_disconnect(self):
+        import h2.config
+        import h2.connection
+        import h2.errors
+
+        got = []
+
+        async def app(scope, receive, send):
+            got.append((await receive())["type"])
+            got.append((await receive())["type"])
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = None
+        try:
+            worker = mock.Mock()
+            worker.cfg = h2c_config()
+            worker.log = mock.Mock()
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1000
+            worker.alive = True
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_connection()
+            client.send_headers(1, [
+                (":method", "POST"), (":path", "/reset"),
+                (":scheme", "http"), (":authority", "x"),
+            ], end_stream=False)
+            client.send_data(1, b"first", end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def reset_later():
+                while len(got) < 1:
+                    await asyncio.sleep(0.005)
+                client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+                proto.data_received(client.data_to_send())
+                while len(got) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(reset_later(), timeout=5))
+
+            assert got == ["http.request", "http.disconnect"]
+            assert not worker.log.exception.called
+        finally:
+            if proto is not None:
+                proto._h2c_cancel_timer()
+                drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIGoAwayWithRequest:
+    """Graceful GOAWAY finishes established streams (RFC 9113 6.8)."""
+
+    def test_request_is_served_then_connection_closes(self):
+        import h2.config
+        import h2.connection
+
+        seen = []
+
+        async def app(scope, receive, send):
+            await receive()
+            seen.append(scope["path"])
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        proto = None
+        try:
+            worker = mock.Mock()
+            worker.cfg = h2c_config()
+            worker.log = mock.Mock()
+            worker.asgi = app
+            worker.loop = loop
+            worker.nr_conns = 0
+            worker.nr = 0
+            worker.max_requests = 1000
+            worker.alive = True
+            from gunicorn.asgi.protocol import ASGIProtocol
+            proto = ASGIProtocol(worker)
+            transport = _FakeTransport()
+            proto.connection_made(transport)
+
+            client = h2.connection.H2Connection(
+                config=h2.config.H2Configuration(
+                    client_side=True, header_encoding="utf-8"))
+            client.initiate_connection()
+            client.send_headers(1, [
+                (":method", "GET"), (":path", "/bye"),
+                (":scheme", "http"), (":authority", "x"),
+            ], end_stream=True)
+            client.close_connection()
+            proto.data_received(client.data_to_send())
+
+            async def until_closed():
+                while not transport.closed:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(
+                asyncio.wait_for(until_closed(), timeout=5))
+
+            assert seen == ["/bye"]
+            assert worker.nr == 1
+            assert not worker.log.exception.called
+            # The h2 client is closed once it has sent GOAWAY, so the
+            # response is checked as raw frames.
+            kinds = frame_types(transport.written)
+            assert "HeadersFrame" in kinds
+            assert b"BODY" in transport.written
+            assert kinds[-1] == "GoAwayFrame"
+        finally:
+            if proto is not None:
+                proto._h2c_cancel_timer()
+                drain_task(loop, proto._task)
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+def _asgi_h2_session(app, max_requests=1000):
+    """An ASGIProtocol on a fake transport with an h2 client aimed at it."""
+    import h2.config
+    import h2.connection
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    worker = mock.Mock()
+    worker.cfg = h2c_config()
+    worker.log = mock.Mock()
+    worker.asgi = app
+    worker.loop = loop
+    worker.nr_conns = 0
+    worker.nr = 0
+    worker.max_requests = max_requests
+    worker.alive = True
+    from gunicorn.asgi.protocol import ASGIProtocol
+    proto = ASGIProtocol(worker)
+    transport = _FakeTransport()
+    proto.connection_made(transport)
+    client = h2.connection.H2Connection(
+        config=h2.config.H2Configuration(
+            client_side=True, header_encoding="utf-8"))
+    client.initiate_connection()
+    return loop, worker, proto, transport, client
+
+
+def _asgi_h2_teardown(loop, proto):
+    proto._h2c_cancel_timer()
+    drain_task(loop, proto._task)
+    loop.close()
+    asyncio.set_event_loop(None)
+
+
+def _post_headers(client, stream_id, path, end_stream=False):
+    client.send_headers(stream_id, [
+        (":method", "POST"), (":path", path),
+        (":scheme", "http"), (":authority", "x"),
+    ], end_stream=end_stream)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIStreamingPaths:
+    """The remaining receive() and dispatch paths, driven end to end."""
+
+    def test_stream_opened_after_max_requests_is_refused(self):
+        import h2.events
+
+        seen = []
+
+        async def app(scope, receive, send):
+            while (await receive()).get("more_body"):
+                pass
+            seen.append(scope["path"])
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app, max_requests=1)
+        try:
+            _post_headers(client, 1, "/first")
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                await asyncio.sleep(0.05)
+                # The counter has tripped; a second stream is refused while
+                # the first still gets its body and its answer.
+                _post_headers(client, 3, "/second", end_stream=True)
+                client.send_data(1, b"payload", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+                await asyncio.sleep(0.05)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+
+            assert seen == ["/first"]
+            assert worker.nr == 1
+            events = client.receive_data(transport.written)
+            resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+            assert [(r.stream_id, r.error_code) for r in resets] == \
+                [(3, h2.errors.ErrorCodes.REFUSED_STREAM)]
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_empty_end_stream_frame_after_a_read(self):
+        got = []
+
+        async def app(scope, receive, send):
+            while True:
+                msg = await receive()
+                got.append((msg["body"], msg.get("more_body")))
+                if not msg.get("more_body"):
+                    break
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/late-end")
+            client.send_data(1, b"part", end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                while not got:
+                    await asyncio.sleep(0.005)
+                client.send_data(1, b"", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while b"BODY" not in transport.written:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+
+            assert got == [(b"part", True), (b"", False)]
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_receive_after_the_stream_was_reset(self):
+        import h2.errors
+
+        got = []
+        reset_seen = asyncio.Event()
+
+        async def app(scope, receive, send):
+            got.append((await receive())["type"])
+            await reset_seen.wait()
+            got.append((await receive())["type"])
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/reset")
+            client.send_data(1, b"first", end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                while not got:
+                    await asyncio.sleep(0.005)
+                client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+                proto.data_received(client.data_to_send())
+                await asyncio.sleep(0.05)
+                reset_seen.set()
+                while len(got) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+            assert got == ["http.request", "http.disconnect"]
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_receive_after_the_body_is_complete(self):
+        got = []
+
+        async def app(scope, receive, send):
+            got.append(await receive())
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+            got.append(await receive())
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/done", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_done():
+                while len(got) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(until_done(), timeout=5))
+            assert [m["type"] for m in got] == ["http.request", "http.request"]
+            assert got[1]["body"] == b"" and got[1]["more_body"] is False
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_app_failure_mid_stream_answers_500(self):
+        import h2.events
+
+        async def app(scope, receive, send):
+            await receive()
+            raise RuntimeError("boom")
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/boom")
+            client.send_data(1, b"x", end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def until_answered():
+                while not transport.written or \
+                        b"500" not in transport.written and \
+                        not [e for e in client.receive_data(b"")]:
+                    await asyncio.sleep(0.005)
+                    if worker.log.exception.called and \
+                            len(transport.written) > 0:
+                        break
+                await asyncio.sleep(0.05)
+            loop.run_until_complete(asyncio.wait_for(until_answered(), timeout=5))
+
+            events = client.receive_data(transport.written)
+            statuses = [dict(e.headers)[":status"] for e in events
+                        if isinstance(e, h2.events.ResponseReceived)]
+            assert statuses == ["500"]
+            resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+            assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.NO_ERROR]
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+
+    def test_protocol_error_mid_body_cancels_the_app(self):
+        got = []
+
+        async def app(scope, receive, send):
+            got.append((await receive())["type"])
+            try:
+                await receive()
+            except asyncio.CancelledError:
+                got.append("cancelled")
+                raise
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/broken")
+            client.send_data(1, b"first", end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                while not got:
+                    await asyncio.sleep(0.005)
+                # DATA on stream 0 is a connection error; hyperframe will
+                # not build one, so the frame is spelled out by hand.
+                proto.data_received(b"\x00\x00\x01\x00\x00\x00\x00\x00\x00x")
+                while len(got) < 2 or not transport.closed:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+
+            assert got == ["http.request", "cancelled"]
+            assert transport.closed
+            assert not worker.log.exception.called
+            assert "GoAwayFrame" in frame_types(transport.written)
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIResponseSendIsAtomic:
+    """The ASGI send path queues HEADERS under the writer lock.
+
+    With the lock held by someone else, http.response.start must not
+    leave HEADERS sitting in h2's buffer where a GOAWAY erases them.
+    """
+
+    def _run(self, body):
+        started = asyncio.Event()
+
+        async def app(scope, receive, send):
+            await receive()
+            started.set()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            if body:
+                await send({"type": "http.response.body", "body": body})
+            else:
+                await send({"type": "http.response.body", "body": b""})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/atomic", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def race():
+                while not hasattr(proto, "_h2_conn"):
+                    await asyncio.sleep(0.005)
+                async with proto._h2_conn._lock():
+                    await started.wait()
+                    await asyncio.sleep(0.02)   # app is now blocked on the lock
+                    client.close_connection()
+                    proto.data_received(client.data_to_send())
+                    await asyncio.sleep(0.02)   # loop parses the GOAWAY
+                while not transport.closed:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(race(), timeout=5))
+            assert not worker.log.exception.called
+            return frame_types(transport.written)
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_headers_survive_with_a_body(self):
+        kinds = self._run(b"BODY")
+        assert "HeadersFrame" in kinds
+        assert kinds.index("HeadersFrame") < kinds.index("DataFrame")
+
+    def test_headers_survive_without_a_body(self):
+        kinds = self._run(b"")
+        assert "HeadersFrame" in kinds
+
+    def test_reset_during_drain_is_not_an_app_error(self):
+        """Every send after the peer's reset stays inert, trailers included."""
+        import h2.errors
+
+        started = asyncio.Event()
+
+        async def app(scope, receive, send):
+            await receive()
+            started.set()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            for chunk in (b"one", b"two", b"three"):
+                await send({"type": "http.response.body", "body": chunk,
+                            "more_body": True})
+            await send({"type": "http.response.body", "body": b""})
+            await send({"type": "http.response.trailers",
+                        "headers": [(b"x-t", b"1")]})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/cancel", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def race():
+                while not hasattr(proto, "_h2_conn"):
+                    await asyncio.sleep(0.005)
+                async with proto._h2_conn._lock():
+                    await started.wait()
+                    await asyncio.sleep(0.02)
+                    client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+                    proto.data_received(client.data_to_send())
+                    await asyncio.sleep(0.02)
+                while proto._h2_tasks:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(race(), timeout=5))
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_asgi_path_never_touches_h2_directly(self):
+        import inspect
+        from gunicorn.asgi.protocol import ASGIProtocol
+        src = inspect.getsource(ASGIProtocol._handle_http2_request)
+        assert "h2_conn.h2_conn." not in src
+        assert "_send_pending_data" not in src
 
 
 @pytest.mark.skipif(not H1C_AVAILABLE, reason="gunicorn_h1c not available")
