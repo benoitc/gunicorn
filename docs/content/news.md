@@ -1,6 +1,15 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- Worker timeout used to dump a 500 response onto a body that had already
+  started, because `sys.exit()` from the abort handler is a `BaseException`.
+  Once headers are out we just close the connection.
+  ([#3410](https://github.com/benoitc/gunicorn/issues/3410)).
+
 ## 26.2.0 - 2026-08-24
 
 ### New Features
