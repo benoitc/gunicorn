@@ -109,16 +109,11 @@ class TestHttp2MaxConcurrentStreams:
         with pytest.raises(ValueError):
             c.set("http2_max_concurrent_streams", -1)
 
-    def test_zero_value(self):
-        # Zero is technically valid for positive int validator
-        # It may have special meaning (use h2 default)
+    def test_zero_value_is_rejected(self):
+        """0 would advertise a connection that can open no streams."""
         c = Config()
-        c.set("http2_max_concurrent_streams", 0)
-        assert c.http2_max_concurrent_streams == 0
-
-
-class TestHttp2InitialWindowSize:
-    """Test http2_initial_window_size configuration setting."""
+        with pytest.raises(ValueError):
+            c.set("http2_max_concurrent_streams", 0)
 
     def test_default_value(self):
         c = Config()
@@ -341,3 +336,20 @@ class TestValidateHttp2FrameSize:
         """Negative values should raise ValueError."""
         with pytest.raises(ValueError):
             config.validate_http2_frame_size(-1)
+
+
+class TestHttp2WindowValidation:
+    def test_window_above_2_31_is_rejected(self):
+        c = Config()
+        with pytest.raises(ValueError):
+            c.set("http2_initial_window_size", 2 ** 31)
+
+    def test_window_at_the_limit_is_accepted(self):
+        c = Config()
+        c.set("http2_initial_window_size", 2 ** 31 - 1)
+        assert c.http2_initial_window_size == 2 ** 31 - 1
+
+    def test_h3_is_rejected(self):
+        c = Config()
+        with pytest.raises(ValueError):
+            c.set("http_protocols", "h2,h3")

@@ -12,6 +12,7 @@ asyncio for non-blocking I/O.
 
 import asyncio
 import collections
+import time
 
 from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,
@@ -20,6 +21,7 @@ from .errors import (
 from .stream import HTTP2Stream, StreamState
 from .h2conn import server_connection_class
 from .request import HTTP2Request
+from gunicorn.http.errors import ParseException
 
 
 # Import h2 lazily to allow graceful fallback
@@ -45,6 +47,13 @@ def _import_h2():
         import h2.settings as _h2_settings
     except ImportError:
         raise HTTP2NotAvailable()
+
+
+# RST_STREAM frames a peer may send per window before the connection is
+# closed with ENHANCE_YOUR_CALM (CVE-2023-44487 style floods). A client
+# cancelling requests never comes close.
+RST_STREAM_RATE_LIMIT = 200
+RST_STREAM_RATE_WINDOW = 10.0
 
 
 class AsyncHTTP2Connection:
@@ -82,6 +91,7 @@ class AsyncHTTP2Connection:
         # They have left the h2 state machine already, so they are held here
         # for the main receive loop rather than discarded.
         self._deferred_events = collections.deque()
+        self._reset_times = collections.deque()
         # Set by the receive loop whenever the peer widens a window, so
         # a response task can wait for credit without touching the
         # reader the loop owns.
@@ -126,7 +136,8 @@ class AsyncHTTP2Connection:
             _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
             _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
             _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
-            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+            **({_h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size}
+               if self.max_header_list_size else {}),
         })
 
         self.h2_conn.initiate_connection()
@@ -151,7 +162,8 @@ class AsyncHTTP2Connection:
             _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
             _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
             _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
-            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+            **({_h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size}
+               if self.max_header_list_size else {}),
         })
         self.h2_conn.initiate_upgrade_connection(settings_header=settings_header)
         await self._send_pending_data()
@@ -242,6 +254,10 @@ class AsyncHTTP2Connection:
             # Send GOAWAY with REFUSED_STREAM
             await self.close(error_code=HTTP2ErrorCode.REFUSED_STREAM)
             raise HTTP2ProtocolError(str(e))
+        except UnicodeDecodeError as e:
+            # Header bytes h2 could not decode
+            await self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
+            raise HTTP2ProtocolError(f"Undecodable header: {e}")
         except _h2_exceptions.ProtocolError as e:
             # Send GOAWAY with PROTOCOL_ERROR before raising
             await self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
@@ -331,7 +347,14 @@ class AsyncHTTP2Connection:
         stream.receive_headers(headers, end_stream=False)
 
         # Dispatch on headers: the body streams in behind the request.
-        return HTTP2Request(stream, self.cfg, self.client_addr)
+        try:
+            return HTTP2Request(stream, self.cfg, self.client_addr)
+        except (ParseException, ValueError):
+            # A bad request is a stream error, not a connection error
+            # (RFC 9113 section 8.1.1).
+            self.streams.pop(stream_id, None)
+            self._reset_quietly(stream_id, HTTP2ErrorCode.PROTOCOL_ERROR)
+            return None
 
     def _handle_data_received(self, event):
         """Handle DataReceived event.
@@ -400,6 +423,7 @@ class AsyncHTTP2Connection:
 
     def _handle_stream_reset(self, event):
         """Handle StreamReset event."""
+        self._count_reset()
         stream_id = event.stream_id
         stream = self.streams.get(stream_id)
 
@@ -424,6 +448,22 @@ class AsyncHTTP2Connection:
             return
         self._closed = True
         self._abort_all_streams()
+
+    def _count_reset(self):
+        """Close the connection when the peer resets streams at flood rate."""
+        now = time.monotonic()
+        self._reset_times.append(now)
+        while self._reset_times and now - self._reset_times[0] > RST_STREAM_RATE_WINDOW:
+            self._reset_times.popleft()
+        if len(self._reset_times) > RST_STREAM_RATE_LIMIT:
+            self._closed = True
+            try:
+                self.h2_conn.close_connection(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                self._write_pending_nowait()
+            except Exception:
+                pass
+            self._abort_all_streams()
+            raise HTTP2ProtocolError("RST_STREAM rate exceeded")
 
     def _abort_all_streams(self):
         """The connection is gone: wake every stream still waiting on it."""
@@ -648,7 +688,7 @@ class AsyncHTTP2Connection:
                 # so another stream cannot spend the credit in between.
                 async with self._lock():
                     available = self.h2_conn.local_flow_control_window(stream_id)
-                    chunk_size = min(available, self.max_frame_size, len(data_to_send))
+                    chunk_size = min(available, self.h2_conn.max_outbound_frame_size, len(data_to_send))
                     if chunk_size > 0:
                         chunk = data_to_send[:chunk_size]
                         data_to_send = data_to_send[chunk_size:]

@@ -2040,3 +2040,80 @@ class TestUpgradeSynthesis:
         finally:
             server.close()
             client.close()
+
+
+class TestUpgradeSettingsValidation:
+    """A bad HTTP2-Settings value must be refused before any 101 goes out."""
+
+    def _req(self, settings="AAMAAABkAAQCAAAAAAIAAAAA", connection="Upgrade, HTTP2-Settings",
+             version=(1, 1), extra=()):
+        from unittest import mock
+        req = mock.Mock()
+        req.version = version
+        req.headers = [("UPGRADE", "h2c"), ("CONNECTION", connection),
+                       ("HTTP2-SETTINGS", settings)] + list(extra)
+        return req
+
+    def test_valid_payload_is_returned(self):
+        from gunicorn.http2 import negotiation
+        assert negotiation.upgrade_settings(self._req()) == b"AAMAAABkAAQCAAAAAAIAAAAA"
+
+    def test_bad_base64_is_refused(self):
+        from gunicorn.http2 import negotiation
+        assert negotiation.upgrade_settings(self._req(settings="!!!")) is None
+
+    def test_wrong_length_is_refused(self):
+        from gunicorn.http2 import negotiation
+        assert negotiation.upgrade_settings(self._req(settings="AAMAAABkAAE")) is None
+
+    def test_window_above_2_31_is_refused(self):
+        import base64
+        from gunicorn.http2 import negotiation
+        raw = (4).to_bytes(2, "big") + (2 ** 31).to_bytes(4, "big")
+        payload = base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+        assert negotiation.upgrade_settings(self._req(settings=payload)) is None
+
+    def test_connection_tokens_are_matched_whole(self):
+        from gunicorn.http2 import negotiation
+        assert negotiation.upgrade_settings(
+            self._req(connection="keep-alive, x-upgrade-foo, http2-settings")) is None
+
+    def test_http_1_0_is_not_upgraded(self):
+        from gunicorn.http2 import negotiation
+        assert negotiation.upgrade_settings(self._req(version=(1, 0))) is None
+
+    def test_large_declared_body_is_not_upgraded(self):
+        from gunicorn.http2 import negotiation
+        big = str(negotiation.H2C_UPGRADE_BODY_LIMIT + 1)
+        assert negotiation.upgrade_settings(self._req(extra=[("CONTENT-LENGTH", big)])) is None
+        assert negotiation.upgrade_settings(self._req(extra=[("CONTENT-LENGTH", "10")])) is not None
+
+
+class TestStartupCheck:
+    def test_h2_without_the_package_is_a_config_error(self):
+        from unittest import mock
+        from gunicorn.errors import ConfigError
+        from gunicorn import http2
+        cfg = h2c_config()
+        with mock.patch.object(http2, "is_http2_available", return_value=False):
+            with pytest.raises(ConfigError):
+                http2.check_config(cfg, mock.Mock())
+
+    def test_h2_without_tls_or_cleartext_warns(self):
+        from unittest import mock
+        from gunicorn.config import Config
+        from gunicorn import http2
+        cfg = Config()
+        cfg.set("http_protocols", "h2,h1")
+        log = mock.Mock()
+        with mock.patch.object(http2, "is_http2_available", return_value=True):
+            http2.check_config(cfg, log)
+        assert log.warning.called
+
+    def test_h1_only_is_silent(self):
+        from unittest import mock
+        from gunicorn.config import Config
+        from gunicorn import http2
+        log = mock.Mock()
+        http2.check_config(Config(), log)
+        assert not log.warning.called

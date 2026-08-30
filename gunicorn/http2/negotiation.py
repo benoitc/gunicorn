@@ -55,10 +55,13 @@ def peer_trusted_for_h2c(cfg, peer_addr):
 
 def _h2c_available(cfg):
     """Whether cleartext HTTP/2 could apply to this server at all."""
+    from . import is_http2_available
+
     return (
         "h2" in cfg.http_protocols
         and getattr(cfg, "protocol", "http") == "http"
         and not cfg.is_ssl
+        and is_http2_available()
     )
 
 
@@ -141,7 +144,7 @@ UPGRADE_101 = (
 )
 
 
-def upgrade_settings(req):
+def upgrade_settings(req):  # pylint: disable=too-many-return-statements
     """Return the HTTP2-Settings payload if this request asks for h2c.
 
     RFC 7540 section 3.2: the request must name ``h2c`` in Upgrade and carry
@@ -165,6 +168,57 @@ def upgrade_settings(req):
     # Exactly one, per RFC 7540 3.2.1: a second one is ambiguous.
     if len(settings) != 1:
         return None
-    if "http2-settings" not in connection or "upgrade" not in connection:
+    tokens = {t.strip() for t in connection.split(",")}
+    if "http2-settings" not in tokens or "upgrade" not in tokens:
         return None
-    return settings[0].encode("latin-1")
+    version = getattr(req, "version", None)
+    if isinstance(version, tuple) and version < (1, 1):
+        # RFC 7540 3.2 describes the upgrade for HTTP/1.1 requests.
+        return None
+    if _upgrade_body_too_large(req):
+        return None
+    payload = settings[0].encode("latin-1")
+    if not _settings_payload_valid(payload):
+        # RFC 7540 3.2.1: a server that cannot use the settings does not
+        # upgrade; refusing here keeps the 101 from going out first.
+        return None
+    return payload
+
+
+#: Largest HTTP/1 body accepted on an upgrade request. It is held in
+#: memory until the HTTP/2 stream is built; nothing needs a large one.
+H2C_UPGRADE_BODY_LIMIT = 65536
+
+
+def _upgrade_body_too_large(req):
+    for name, value in req.headers:
+        if name == "CONTENT-LENGTH":
+            try:
+                return int(value) > H2C_UPGRADE_BODY_LIMIT
+            except ValueError:
+                return True
+    return False
+
+
+def _settings_payload_valid(payload):
+    """Decode the base64url HTTP2-Settings payload and check its values."""
+    import base64
+    import binascii
+
+    try:
+        raw = base64.b64decode(payload + b"=" * (-len(payload) % 4),
+                               altchars=b"-_", validate=True)
+    except (binascii.Error, ValueError):
+        return False
+    if len(raw) % 6:
+        return False
+    for i in range(0, len(raw), 6):
+        code = int.from_bytes(raw[i:i + 2], "big")
+        value = int.from_bytes(raw[i + 2:i + 6], "big")
+        if code == 2 and value not in (0, 1):
+            return False
+        if code == 4 and value > 2 ** 31 - 1:
+            return False
+        if code == 5 and not 16384 <= value <= 16777215:
+            return False
+    return True

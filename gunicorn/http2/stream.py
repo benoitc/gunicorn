@@ -84,6 +84,8 @@ class HTTP2Stream:
         # wait_disconnect() lets an ASGI receive() block on it.
         self.disconnected = False
         self._disconnect_waiter = None
+        # Request carried Expect: 100-continue and no 100 went out yet
+        self.expect_continue = False
 
     @property
     def is_client_stream(self):
@@ -356,7 +358,8 @@ class HTTP2Stream:
 
     def _acknowledge(self, size):
         """Return flow-control credit for ``size`` consumed bytes."""
-        if size <= 0:
+        if size <= 0 or self.acked_size >= self.body_size:
+            # Nothing owed: an h2c upgrade body came over HTTP/1
             return
         self.acked_size += size
         ack = getattr(self.connection, "acknowledge_data", None)

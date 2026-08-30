@@ -10,10 +10,13 @@ Provides a Request-compatible interface for HTTP/2 streams.
 """
 
 from gunicorn.http.message import (
+    RFC9110_6_5_1_FORBIDDEN_TRAILER, TOKEN_RE,
     HeaderPolicy,
     RFC9110_5_5_INVALID_AND_DANGEROUS,
 )
-from gunicorn.http.errors import InvalidHeader
+from gunicorn.http.errors import (
+    InvalidHeader, InvalidRequestMethod, LimitRequestHeaders, LimitRequestLine,
+)
 from gunicorn.http2.errors import HTTP2StreamError
 from gunicorn.http2.stream import StreamState
 from gunicorn.util import split_request_uri
@@ -60,6 +63,10 @@ class HTTP2Body:
                     stream.stream_id,
                     "stream closed before its request body was complete")
             pump = getattr(connection, "pump", None)
+            if stream.expect_continue and not stream.response_headers_sent:
+                # The client is waiting for a 100 before sending the body.
+                stream.expect_continue = False
+                connection.send_informational(stream.stream_id, 100, [])
             if pump is None:
                 # Nothing here can wait for frames; the caller reads via
                 # read_body_chunk() instead.
@@ -201,6 +208,8 @@ class HTTP2Request(HeaderPolicy):
         # Parse pseudo-headers
         pseudo = stream.get_pseudo_headers()
         self.method = pseudo.get(':method', 'GET')
+        if not TOKEN_RE.fullmatch(self.method):
+            raise InvalidRequestMethod(self.method)
         # Derive the scheme from the transport, as HTTP/1 does. A client
         # supplied :scheme is honoured only from a peer allowed to speak for
         # the connection; otherwise it is ignored rather than rejected, which
@@ -211,6 +220,16 @@ class HTTP2Request(HeaderPolicy):
             self.scheme = claimed_scheme
         authority = pseudo.get(':authority', '')
         path = pseudo.get(':path', '/')
+        # The same limits HTTP/1 applies to the request line and fields.
+        if cfg.limit_request_line and len(path) > cfg.limit_request_line:
+            raise LimitRequestLine(len(path), cfg.limit_request_line)
+        regular = stream.get_regular_headers()
+        if cfg.limit_request_fields and len(regular) > cfg.limit_request_fields:
+            raise LimitRequestHeaders("limit request headers fields")
+        if cfg.limit_request_field_size:
+            for name, value in regular:
+                if len(name) + len(value) + 2 > cfg.limit_request_field_size:
+                    raise LimitRequestHeaders("limit request headers fields size")
 
         # Parse the path into components
         self.uri = path
@@ -257,6 +276,8 @@ class HTTP2Request(HeaderPolicy):
 
         # Body: read from the stream as it arrives.
         self.body = HTTP2Body(stream)
+        expect = self.get_header('EXPECT')
+        stream.expect_continue = bool(expect) and expect.strip().lower() == '100-continue'
 
         # Connection state
         self.must_close = False
@@ -282,6 +303,8 @@ class HTTP2Request(HeaderPolicy):
         return [
             (name.upper(), value)
             for name, value in self.stream.trailers
+            if name.upper() not in RFC9110_6_5_1_FORBIDDEN_TRAILER
+            and not name.startswith(':')
         ]
 
     def force_close(self):

@@ -928,3 +928,16 @@ class TestDisconnectWaiter:
         stream = HTTP2Stream(stream_id=1, connection=MockConnection())
         stream.close()
         assert stream.disconnected is False
+
+
+class TestUpgradeBodyCredit:
+    def test_no_credit_for_a_body_that_came_over_http1(self):
+        conn = MockConnection()
+        conn.acknowledge_data = mock.Mock()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+        stream.receive_data(b"hello", end_stream=True)
+        stream.acked_size = stream.body_size
+        assert stream.pop_chunk() == b"hello"
+        conn.acknowledge_data.assert_not_called()
+        assert stream.acked_size == stream.body_size

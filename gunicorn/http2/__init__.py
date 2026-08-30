@@ -84,3 +84,22 @@ __all__ = [
     'get_async_http2_connection_class',
     'H2_MIN_VERSION',
 ]
+
+
+def check_config(cfg, log):
+    """Refuse or warn at startup when ``h2`` in http_protocols cannot work.
+
+    Raises:
+        gunicorn.errors.ConfigError: h2 requested without the h2 package
+    """
+    from gunicorn.errors import ConfigError
+
+    if "h2" not in cfg.http_protocols:
+        return
+    if not is_http2_available():
+        raise ConfigError(
+            "http_protocols includes h2 but the h2 package is not installed; "
+            "install gunicorn[http2] or drop h2 from http_protocols")
+    if not cfg.is_ssl and cfg.http2_cleartext == "off":
+        log.warning("http_protocols includes h2 but there is no TLS and "
+                    "http2_cleartext is off, so HTTP/2 cannot be negotiated")

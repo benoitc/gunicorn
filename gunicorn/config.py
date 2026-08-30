@@ -406,6 +406,21 @@ def validate_pos_int(val):
     return val
 
 
+def validate_http2_window_size(val):
+    """Flow control windows are at most 2^31-1 (RFC 9113 section 6.9.1)."""
+    val = validate_pos_int(val)
+    if val > 2 ** 31 - 1:
+        raise ValueError("HTTP/2 window size must be at most 2147483647: %s" % val)
+    return val
+
+
+def validate_http2_stream_limit(val):
+    val = validate_pos_int(val)
+    if val < 1:
+        raise ValueError("HTTP/2 max concurrent streams must be at least 1: %s" % val)
+    return val
+
+
 def validate_http2_frame_size(val):
     """Validate HTTP/2 max frame size per RFC 7540."""
     if not isinstance(val, int):
@@ -2447,12 +2462,11 @@ class Ciphers(Setting):
 # HTTP/2 Protocol Settings
 
 # Valid protocol identifiers
-VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2", "h3"])
+VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2"])
 # Map protocol identifiers to ALPN protocol names
 ALPN_PROTOCOL_MAP = {
     "h1": "http/1.1",
     "h2": "h2",
-    "h3": "h3",  # Future: HTTP/3 over QUIC
 }
 
 
@@ -2460,7 +2474,7 @@ def validate_http_protocols(val):
     """Validate http_protocols setting.
 
     Accepts comma-separated list of protocol identifiers.
-    Valid values: h1 (HTTP/1.1), h2 (HTTP/2), h3 (HTTP/3 - future)
+    Valid values: h1 (HTTP/1.1), h2 (HTTP/2)
     Order indicates preference (first = most preferred).
     """
     if val is None:
@@ -2504,8 +2518,7 @@ class HTTPProtocols(Setting):
         Valid protocols:
 
         * ``h1`` - HTTP/1.1 (default)
-        * ``h2`` - HTTP/2 (requires TLS with ALPN)
-        * ``h3`` - HTTP/3 (future, not yet implemented)
+        * ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
         Examples::
 
@@ -2515,7 +2528,8 @@ class HTTPProtocols(Setting):
             # Prefer HTTP/2, fallback to HTTP/1.1
             --http-protocols=h2,h1
 
-            # HTTP/2 only (reject HTTP/1.1 clients)
+            # Offer HTTP/2 only. A client that does not select it over ALPN
+            # is still served HTTP/1.1; there is no rejection.
             --http-protocols=h2
 
         HTTP/2 requires:
@@ -2583,7 +2597,7 @@ class HTTP2MaxConcurrentStreams(Setting):
     section = "HTTP/2"
     cli = ["--http2-max-concurrent-streams"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_stream_limit
     type = int
     default = 100
     desc = """\
@@ -2605,7 +2619,7 @@ class HTTP2InitialWindowSize(Setting):
     section = "HTTP/2"
     cli = ["--http2-initial-window-size"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_window_size
     type = int
     default = 65535
     desc = """\
