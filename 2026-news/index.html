@@ -2596,6 +2596,14 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Chunked framing lines were read without a bound</strong>: a chunk-size line or
+  trailer section that never terminates was reread in full on every socket read
+  with no size limit, so one request could keep a worker busy without ever
+  reaching the application. These lines are now bounded by the existing request
+  limits and scanned incrementally, and a malformed chunked body answers
+  <code>400 Bad Request</code> with one log line instead of a traceback.</p>
+</li>
+<li>
 <p><strong>HTTP/2 follow-up to the review</strong>: a bad request now resets its own
   stream instead of the connection; the request line and field limits and
   the method token rule apply to HTTP/2 requests; forbidden trailers are
