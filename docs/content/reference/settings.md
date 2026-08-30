@@ -393,8 +393,7 @@ HTTP protocol versions to support (comma-separated, order = preference).
 Valid protocols:
 
 * ``h1`` - HTTP/1.1 (default)
-* ``h2`` - HTTP/2 (requires TLS with ALPN)
-* ``h3`` - HTTP/3 (future, not yet implemented)
+* ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
 Examples::
 
@@ -404,7 +403,8 @@ Examples::
     # Prefer HTTP/2, fallback to HTTP/1.1
     --http-protocols=h2,h1
 
-    # HTTP/2 only (reject HTTP/1.1 clients)
+    # Offer HTTP/2 only. A client that does not select it over ALPN
+    # is still served HTTP/1.1; there is no rejection.
     --http-protocols=h2
 
 HTTP/2 requires:

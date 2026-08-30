@@ -83,6 +83,29 @@ class Config:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
 
+    def validate(self):
+        """Check settings against each other once everything is loaded.
+
+        Individual values are checked by their own validator as they are
+        set; this is for combinations that only make sense as a whole.
+
+        Raises:
+            gunicorn.errors.ConfigError: the configuration cannot be served
+        """
+        if "h2" in self.http_protocols:
+            from gunicorn.http2 import is_http2_available
+
+            if not is_http2_available():
+                raise ConfigError(
+                    "http_protocols includes h2 but the h2 package is not "
+                    "installed. Install gunicorn[http2], or drop h2 from "
+                    "http_protocols.")
+            if not self.is_ssl and self.http2_cleartext == "off":
+                sys.stderr.write(
+                    "Warning: http_protocols includes h2 but there is no TLS "
+                    "and http2_cleartext is off, so HTTP/2 will never be "
+                    "negotiated.\n")
+
     def get_cmd_args_from_env(self):
         if 'GUNICORN_CMD_ARGS' in self.env_orig:
             return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])
@@ -403,6 +426,21 @@ def validate_pos_int(val):
         val = int(val)
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
+    return val
+
+
+def validate_http2_window_size(val):
+    """Flow control windows are at most 2^31-1 (RFC 9113 section 6.9.1)."""
+    val = validate_pos_int(val)
+    if val > 2 ** 31 - 1:
+        raise ValueError("HTTP/2 window size must be at most 2147483647: %s" % val)
+    return val
+
+
+def validate_http2_stream_limit(val):
+    val = validate_pos_int(val)
+    if val < 1:
+        raise ValueError("HTTP/2 max concurrent streams must be at least 1: %s" % val)
     return val
 
 
@@ -2447,12 +2485,11 @@ class Ciphers(Setting):
 # HTTP/2 Protocol Settings
 
 # Valid protocol identifiers
-VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2", "h3"])
+VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2"])
 # Map protocol identifiers to ALPN protocol names
 ALPN_PROTOCOL_MAP = {
     "h1": "http/1.1",
     "h2": "h2",
-    "h3": "h3",  # Future: HTTP/3 over QUIC
 }
 
 
@@ -2460,7 +2497,7 @@ def validate_http_protocols(val):
     """Validate http_protocols setting.
 
     Accepts comma-separated list of protocol identifiers.
-    Valid values: h1 (HTTP/1.1), h2 (HTTP/2), h3 (HTTP/3 - future)
+    Valid values: h1 (HTTP/1.1), h2 (HTTP/2)
     Order indicates preference (first = most preferred).
     """
     if val is None:
@@ -2504,8 +2541,7 @@ class HTTPProtocols(Setting):
         Valid protocols:
 
         * ``h1`` - HTTP/1.1 (default)
-        * ``h2`` - HTTP/2 (requires TLS with ALPN)
-        * ``h3`` - HTTP/3 (future, not yet implemented)
+        * ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
         Examples::
 
@@ -2515,7 +2551,8 @@ class HTTPProtocols(Setting):
             # Prefer HTTP/2, fallback to HTTP/1.1
             --http-protocols=h2,h1
 
-            # HTTP/2 only (reject HTTP/1.1 clients)
+            # Offer HTTP/2 only. A client that does not select it over ALPN
+            # is still served HTTP/1.1; there is no rejection.
             --http-protocols=h2
 
         HTTP/2 requires:
@@ -2583,7 +2620,7 @@ class HTTP2MaxConcurrentStreams(Setting):
     section = "HTTP/2"
     cli = ["--http2-max-concurrent-streams"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_stream_limit
     type = int
     default = 100
     desc = """\
@@ -2605,7 +2642,7 @@ class HTTP2InitialWindowSize(Setting):
     section = "HTTP/2"
     cli = ["--http2-initial-window-size"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_window_size
     type = int
     default = 65535
     desc = """\

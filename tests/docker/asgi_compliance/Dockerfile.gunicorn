@@ -33,6 +33,7 @@ if [ "$USE_SSL" = "1" ]; then\n\
         --worker-connections 1000 \\\n\
         --certfile "/certs/server.crt" \\\n\
         --keyfile "/certs/server.key" \\\n\
+        --http-protocols "h2,h1" \\\n\
         --asgi-disconnect-grace-period 0 \\\n\
         --log-level "debug" \\\n\
         --access-logfile "-" \\\n\

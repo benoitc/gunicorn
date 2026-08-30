@@ -2049,16 +2049,33 @@ class TestStreamFloods:
         assert 3 not in conn.streams
         assert conn.receive_data(b"") == []
 
-    def test_flood_of_reset_pairs_leaves_nothing_behind(self):
+    def test_reset_pairs_below_the_rate_limit_leave_nothing_behind(self):
+        from gunicorn.http2 import connection as connmod
         conn, client, sock, req = self._open_post()
-        for sid in range(3, 3 + 2 * 500, 2):
+        for sid in range(3, 3 + 2 * (connmod.RST_STREAM_RATE_LIMIT - 1), 2):
             self._get(client, sid)
             client.reset_stream(sid, error_code=h2.errors.ErrorCodes.CANCEL)
         data = client.data_to_send()
         for i in range(0, len(data), 65536):
-            conn.pump(1) if False else conn.receive_data(data[i:i + 65536])
+            conn.receive_data(data[i:i + 65536])
         assert list(conn.streams) == [1]
         assert not conn.pending_requests
+        assert conn.is_closed is False
+
+    def test_reset_flood_gets_enhance_your_calm(self):
+        from gunicorn.http2 import connection as connmod
+        conn, client, sock, req = self._open_post()
+        for sid in range(3, 3 + 2 * (connmod.RST_STREAM_RATE_LIMIT + 1), 2):
+            self._get(client, sid)
+            client.reset_stream(sid, error_code=h2.errors.ErrorCodes.CANCEL)
+        data = client.data_to_send()
+        before = len(sock.get_sent_data())
+        with pytest.raises(HTTP2ProtocolError):
+            for i in range(0, len(data), 65536):
+                conn.receive_data(data[i:i + 65536])
+        assert conn.is_closed is True
+        kinds = frame_types(sock.get_sent_data()[before:])
+        assert "GoAwayFrame" in kinds
 
 
 class TestEmptyFinalChunk:
@@ -2105,3 +2122,130 @@ class TestEmptyFinalChunk:
         assert conn.end_stream(1) is True
         events = client.receive_data(sock.get_sent_data()[before:])
         assert "StreamEnded" in [type(e).__name__ for e in events]
+
+
+class TestBadRequestsAreStreamErrors:
+    """A request gunicorn cannot accept resets its stream, nothing more."""
+
+    def _open(self, **cfg_values):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        for k, v in cfg_values.items():
+            cfg.set(k, v)
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        return conn, client, sock
+
+    def _resets(self, client, sock, since):
+        events = client.receive_data(sock.get_sent_data()[since:])
+        return [(e.stream_id, e.error_code) for e in events
+                if isinstance(e, h2.events.StreamReset)]
+
+    def test_control_character_in_a_value_resets_only_that_stream(self):
+        conn, client, sock = self._open()
+        for sid, value in ((1, "ok"), (3, "bad\x01value"), (5, "ok")):
+            client.send_headers(sid, [
+                (':method', 'GET'), (':path', '/'),
+                (':scheme', 'https'), (':authority', 'localhost'),
+                ('x-thing', value),
+            ], end_stream=True)
+        before = len(sock.get_sent_data())
+        requests = conn.receive_data(client.data_to_send())
+        assert [r.stream.stream_id for r in requests] == [1, 5]
+        assert 3 not in conn.streams
+        assert self._resets(client, sock, before) == [(3, h2.errors.ErrorCodes.PROTOCOL_ERROR)]
+        assert conn.is_closed is False
+
+    def test_request_line_and_field_limits_apply(self):
+        conn, client, sock = self._open(limit_request_line=64, limit_request_fields=3,
+                                        limit_request_field_size=40)
+        base = [(':method', 'GET'), (':scheme', 'https'), (':authority', 'localhost')]
+        client.send_headers(1, base + [(':path', '/' + 'a' * 100)], end_stream=True)
+        client.send_headers(3, base + [(':path', '/'), ('a', '1'), ('b', '2'), ('c', '3'), ('d', '4')],
+                            end_stream=True)
+        client.send_headers(5, base + [(':path', '/'), ('x-long', 'v' * 60)], end_stream=True)
+        client.send_headers(7, base + [(':path', '/fine'), ('x', '1')], end_stream=True)
+        before = len(sock.get_sent_data())
+        requests = conn.receive_data(client.data_to_send())
+        assert [r.stream.stream_id for r in requests] == [7]
+        assert sorted(sid for sid, _ in self._resets(client, sock, before)) == [1, 3, 5]
+
+    def test_method_must_be_a_token(self):
+        conn, client, sock = self._open()
+        client.send_headers(1, [
+            (':method', 'g e t'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        before = len(sock.get_sent_data())
+        assert conn.receive_data(client.data_to_send()) == []
+        assert self._resets(client, sock, before) == [(1, h2.errors.ErrorCodes.PROTOCOL_ERROR)]
+
+    def test_forbidden_trailers_are_dropped(self):
+        conn, client, sock = self._open()
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        req = conn.receive_data(client.data_to_send())[0]
+        client.send_data(1, b"x", end_stream=False)
+        client.send_headers(1, [('content-length', '99'), ('x-sum', 'abc')], end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+        assert req.body.read() == b"x"
+        assert req.trailers == [('X-SUM', 'abc')]
+
+    def test_outbound_chunks_respect_the_peer_frame_size(self):
+        """Our own max_frame_size is for inbound frames; the peer's rules ours."""
+        conn, client, sock = self._open(http2_max_frame_size=32768)
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client.data_to_send())
+        before = len(sock.get_sent_data())
+        assert conn.send_response(1, 200, [], b"x" * 20000) is True
+        kinds = frame_types(sock.get_sent_data()[before:])
+        assert kinds.count("DataFrame") == 2
+
+    def test_header_list_size_zero_is_not_advertised(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("http2_max_header_list_size", 0)
+        conn = HTTP2ServerConnection(cfg, MockSocket(), ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        # Left at h2's own default rather than advertised as 0, which
+        # would refuse every request.
+        assert conn.h2_conn.local_settings.max_header_list_size
+
+
+class TestExpectContinue:
+    def test_100_is_sent_before_the_body_is_pulled(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+            ('expect', '100-continue'),
+        ], end_stream=False)
+        req = conn.receive_data(client.data_to_send())[0]
+        assert req.stream.expect_continue is True
+
+        client.send_data(1, b"payload", end_stream=True)
+        sock.set_recv_data(client.data_to_send())
+        before = len(sock.get_sent_data())
+        assert req.body.read() == b"payload"
+        events = client.receive_data(sock.get_sent_data()[before:])
+        informational = [e for e in events if isinstance(e, h2.events.InformationalResponseReceived)]
+        assert [dict(e.headers)[b':status'] for e in informational] == [b'100']
+        assert req.stream.expect_continue is False
