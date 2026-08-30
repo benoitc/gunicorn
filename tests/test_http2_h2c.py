@@ -1490,7 +1490,6 @@ class TestH2CASGIStreamingPaths:
         import h2.errors
 
         got = []
-        reset_seen = asyncio.Event()
 
         async def app(scope, receive, send):
             got.append((await receive())["type"])
@@ -1498,6 +1497,8 @@ class TestH2CASGIStreamingPaths:
             got.append((await receive())["type"])
 
         loop, worker, proto, transport, client = _asgi_h2_session(app)
+        # Created after the loop exists: before 3.12 an Event binds its loop here.
+        reset_seen = asyncio.Event()
         try:
             _post_headers(client, 1, "/reset")
             client.send_data(1, b"first", end_stream=False)
@@ -1713,11 +1714,11 @@ class TestH2CASGIResponseSendIsAtomic:
     """
 
     def _run(self, body):
-        started = asyncio.Event()
 
         async def app(scope, receive, send):
             await receive()
             started.set()
+            await go.wait()
             await send({"type": "http.response.start", "status": 200,
                         "headers": []})
             if body:
@@ -1726,15 +1727,19 @@ class TestH2CASGIResponseSendIsAtomic:
                 await send({"type": "http.response.body", "body": b""})
 
         loop, worker, proto, transport, client = _asgi_h2_session(app)
+        # Created after the loop exists: before 3.12 an Event binds its loop here.
+        started = asyncio.Event()
+        go = asyncio.Event()
         try:
             _post_headers(client, 1, "/atomic", end_stream=True)
             proto.data_received(client.data_to_send())
 
             async def race():
-                while not hasattr(proto, "_h2_conn"):
-                    await asyncio.sleep(0.005)
+                # The app is dispatched (the loop has flushed and released
+                # the lock) before the lock is taken from under it.
+                await started.wait()
                 async with proto._h2_conn._lock():
-                    await started.wait()
+                    go.set()
                     await asyncio.sleep(0.02)   # app is now blocked on the lock
                     client.close_connection()
                     proto.data_received(client.data_to_send())
@@ -1760,11 +1765,11 @@ class TestH2CASGIResponseSendIsAtomic:
         """Every send after the peer's reset stays inert, trailers included."""
         import h2.errors
 
-        started = asyncio.Event()
 
         async def app(scope, receive, send):
             await receive()
             started.set()
+            await go.wait()
             await send({"type": "http.response.start", "status": 200,
                         "headers": []})
             for chunk in (b"one", b"two", b"three"):
@@ -1775,15 +1780,17 @@ class TestH2CASGIResponseSendIsAtomic:
                         "headers": [(b"x-t", b"1")]})
 
         loop, worker, proto, transport, client = _asgi_h2_session(app)
+        # Created after the loop exists: before 3.12 an Event binds its loop here.
+        started = asyncio.Event()
+        go = asyncio.Event()
         try:
             _post_headers(client, 1, "/cancel", end_stream=True)
             proto.data_received(client.data_to_send())
 
             async def race():
-                while not hasattr(proto, "_h2_conn"):
-                    await asyncio.sleep(0.005)
+                await started.wait()
                 async with proto._h2_conn._lock():
-                    await started.wait()
+                    go.set()
                     await asyncio.sleep(0.02)
                     client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
                     proto.data_received(client.data_to_send())
