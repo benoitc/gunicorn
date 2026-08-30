@@ -682,7 +682,8 @@ class AsyncHTTP2Connection:
                 async with self._lock():
                     self.h2_conn.send_data(stream_id, b"", end_stream=True)
                     stream.send_data(b"", end_stream=True)
-                    await self._flush_locked()
+                    self._write_locked()
+                await self._drain()
                 return True
             while data_to_send:
                 # The window is read and the frame queued under the lock,
@@ -699,8 +700,12 @@ class AsyncHTTP2Connection:
                         # drain: a reset processed meanwhile closes the
                         # stream and must not turn into a send error.
                         stream.send_data(chunk, end_stream=is_final)
-                        await self._flush_locked()
-                if chunk_size <= 0:
+                        self._write_locked()
+                if chunk_size > 0:
+                    # Outside the lock: a peer that stops reading must not
+                    # hold up the receive loop or the other streams.
+                    await self._drain()
+                else:
                     # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
                     available = await self._wait_for_flow_control_window(stream_id)
                     if available == 0:
@@ -833,29 +838,52 @@ class AsyncHTTP2Connection:
     async def _send(self, queue_frames):
         """Queue frames on h2 and put them on the wire.
 
-        Streams are served by concurrent tasks, so both steps happen
-        under one lock with no await between them: the receive loop
-        cannot parse a GOAWAY (which clears h2's outbound buffer) in
-        between, and HEADERS leave in the order they were encoded.
+        Streams are served by concurrent tasks, so encoding and writing
+        happen under one lock with no await between them: the receive
+        loop cannot parse a GOAWAY (which clears h2's outbound buffer)
+        in between, and HEADERS leave in the order they were encoded.
+        Waiting for the transport happens after the lock is released.
         """
         async with self._lock():
             queue_frames()
-            await self._flush_locked()
+            self._write_locked()
+        await self._drain()
 
     async def _send_pending_data(self):
         """Send whatever h2 already has queued."""
         async with self._lock():
-            await self._flush_locked()
+            self._write_locked()
+        await self._drain()
 
-    async def _flush_locked(self):
+    def _write_locked(self):
+        """Hand h2's pending bytes to the transport. Never waits."""
         data = self.h2_conn.data_to_send()
         if data:
             try:
                 self.writer.write(data)
-                await self.writer.drain()
             except (OSError, IOError) as e:
                 self._closed = True
                 raise HTTP2ConnectionError(f"Socket write error: {e}")
+
+    async def _drain(self):
+        """Wait for the transport to catch up, for at most cfg.timeout.
+
+        Holding the write lock here would let one peer that stops
+        reading freeze the receive loop and every other stream on the
+        connection, so this runs outside it. A peer that never catches
+        up is treated as gone: nothing else bounds the wait, since it
+        can keep its flow-control window wide open.
+        """
+        try:
+            await asyncio.wait_for(self.writer.drain(), self.cfg.timeout or None)
+        except asyncio.TimeoutError:
+            self._closed = True
+            self._abort_all_streams()
+            self._signal_window()
+            raise HTTP2ConnectionError("Write timed out: the peer stopped reading")
+        except (OSError, IOError) as e:
+            self._closed = True
+            raise HTTP2ConnectionError(f"Socket write error: {e}")
 
     @property
     def is_closed(self):

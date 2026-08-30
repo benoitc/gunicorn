@@ -1623,3 +1623,107 @@ class TestAsyncEmptyFinalChunk:
         writer.clear()
         assert await conn.send_data(1, b"", end_stream=False) is True
         assert writer.get_written_data() == b""
+
+
+class TestWriteDrain:
+    """The drain is bounded and does not hold the connection write lock."""
+
+    async def _conn(self, writer, timeout=30):
+        import types
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        reader = MockAsyncReader()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        # After setup: cfg.timeout takes floats here, the validator does not
+        conn.cfg = types.SimpleNamespace(timeout=timeout)
+        return conn, client, reader
+
+    @pytest.mark.asyncio
+    async def test_a_stalled_drain_does_not_hold_the_lock(self):
+        """The receive loop keeps running while a stream waits on the transport."""
+
+        class BlockingWriter(MockAsyncWriter):
+            def __init__(self):
+                super().__init__()
+                self.release = asyncio.Event()
+                self.blocking = False
+
+            async def drain(self):
+                if self.blocking:
+                    await self.release.wait()
+
+        writer = BlockingWriter()
+        conn, client, reader = await self._conn(writer)
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+
+        writer.blocking = True
+        sender = asyncio.get_running_loop().create_task(
+            conn.send_data(1, b"payload", end_stream=True))
+        await asyncio.sleep(0.02)
+        assert not sender.done()
+
+        # The write lock is free while the sender waits on the transport,
+        # so the receive loop and the other streams are not held hostage.
+        assert not conn._lock().locked()
+
+        async def take_lock():
+            async with conn._lock():
+                return True
+
+        assert await asyncio.wait_for(take_lock(), timeout=1) is True
+
+        writer.release.set()
+        assert await asyncio.wait_for(sender, timeout=1) is True
+
+    @pytest.mark.asyncio
+    async def test_a_peer_that_never_reads_is_dropped_after_timeout(self):
+        from gunicorn.http2.errors import HTTP2ConnectionError
+
+        class DeafWriter(MockAsyncWriter):
+            blocking = False
+
+            async def drain(self):
+                if self.blocking:
+                    await asyncio.Event().wait()   # never resumes
+
+        writer = DeafWriter()
+        conn, client, reader = await self._conn(writer, timeout=0.2)
+        writer.blocking = True
+        with pytest.raises(HTTP2ConnectionError):
+            await conn.send_response_headers(1, [(':status', '200')])
+        assert conn.is_closed is True
+        assert conn.streams[1].disconnected is True
+
+    @pytest.mark.asyncio
+    async def test_timeout_zero_waits_for_the_transport(self):
+        class SlowWriter(MockAsyncWriter):
+            def __init__(self):
+                super().__init__()
+                self.release = asyncio.Event()
+
+            async def drain(self):
+                await self.release.wait()
+
+        writer = SlowWriter()
+        writer.release.set()          # transport keeps up during setup
+        conn, client, reader = await self._conn(writer, timeout=0)
+        writer.release.clear()
+        sender = asyncio.get_running_loop().create_task(
+            conn.send_response_headers(1, [(':status', '200')]))
+        await asyncio.sleep(0.3)
+        assert not sender.done()
+        writer.release.set()
+        assert await asyncio.wait_for(sender, timeout=1) is True
