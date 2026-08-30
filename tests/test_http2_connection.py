@@ -22,6 +22,7 @@ try:
 except ImportError:
     H2_AVAILABLE = False
 
+from gunicorn.http2.stream import StreamState
 from gunicorn.http2.errors import (
     HTTP2Error, HTTP2ConnectionError, HTTP2ProtocolError
 )
@@ -1234,34 +1235,6 @@ class TestDeferredFlowControlEvents:
     def test_queue_starts_empty(self):
         assert not self._conn()._deferred_events
 
-    def test_events_during_a_window_wait_are_captured(self):
-        """The real bug: events read while blocked must not be discarded."""
-        import socket as _socket
-        from gunicorn.http2.connection import HTTP2ServerConnection
-
-        server, client = _socket.socketpair()
-        try:
-            conn = HTTP2ServerConnection(MockConfig(), server,
-                                         ('127.0.0.1', 12345))
-            # a request arriving alongside the WINDOW_UPDATE we are waiting on
-            arriving = mock.Mock(name="RequestReceived")
-            windows = iter([0, 65535])
-            conn.h2_conn = mock.Mock()
-            conn.h2_conn.local_flow_control_window.side_effect = \
-                lambda sid: next(windows)
-            conn.h2_conn.receive_data.return_value = [arriving]
-            conn._send_pending_data = lambda: None
-
-            client.sendall(b"frame bytes")
-            conn._wait_for_flow_control_window(1)
-
-            assert list(conn._deferred_events) == [arriving], \
-                "event read during the wait was dropped"
-        finally:
-            server.close()
-            client.close()
-
-
 class TestEndStream:
     """Ending a stream must actually put END_STREAM on the wire."""
 
@@ -1774,3 +1747,104 @@ class TestStreamingEdgeCases:
         client.send_data(1, b"abc", end_stream=True)
         conn.receive_data(client.data_to_send())
         assert req.body.read() == b"abc"
+
+
+class TestSendCreditWait:
+    """The send-credit wait handles frames in order and is bounded by cfg.timeout."""
+
+    def _open_get(self, timeout=30):
+        """A served GET on stream 1 over a real socketpair, window held at 0."""
+        import socket
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("timeout", timeout)
+        server_sock, client_sock = socket.socketpair()
+        conn = HTTP2ServerConnection(cfg, server_sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        client.update_settings({h2.settings.SettingCodes.INITIAL_WINDOW_SIZE: 0})
+        conn.receive_data(client.data_to_send())
+        client.receive_data(client_sock.recv(65535))
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client.data_to_send())
+        client_sock.setblocking(False)
+        return conn, client, server_sock, client_sock
+
+    def _server_events(self, client, client_sock):
+        try:
+            data = client_sock.recv(65535)
+        except BlockingIOError:
+            return []
+        return client.receive_data(data)
+
+    def test_deferred_events_are_processed_without_a_read(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        marker = mock.Mock(name="event")
+        conn._deferred_events.append(marker)
+        conn._handle_event = mock.Mock(return_value="request")
+        sock.recv = mock.Mock(side_effect=AssertionError("socket read"))
+        assert conn.receive_data() == ["request"]
+        conn._handle_event.assert_called_once_with(marker)
+        assert not conn._deferred_events
+
+    def test_reset_during_wait_marks_stream_and_keeps_other_events(self):
+        conn, client, server_sock, client_sock = self._open_get()
+        client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+        client.send_headers(3, [
+            (':method', 'GET'), (':path', '/other'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        client_sock.sendall(client.data_to_send())
+
+        assert conn._wait_for_flow_control_window(1) == -1
+        assert conn.streams[1].state is StreamState.CLOSED
+        kinds = [type(e).__name__ for e in conn._deferred_events]
+        assert "RequestReceived" in kinds
+        assert [r.stream.stream_id for r in conn.receive_data()] == [3]
+
+    def test_graceful_goaway_during_wait_keeps_waiting(self):
+        from hyperframe.frame import GoAwayFrame
+        conn, client, server_sock, client_sock = self._open_get()
+        client_sock.sendall(GoAwayFrame(0, last_stream_id=1, error_code=0).serialize())
+        client.increment_flow_control_window(1000, stream_id=1)
+        client_sock.sendall(client.data_to_send())
+
+        assert conn._wait_for_flow_control_window(1) == 1000
+        assert conn.draining is True
+        assert conn.is_closed is False
+
+    def test_goaway_with_error_during_wait_returns_minus_one(self):
+        from hyperframe.frame import GoAwayFrame
+        conn, client, server_sock, client_sock = self._open_get()
+        client_sock.sendall(GoAwayFrame(0, last_stream_id=1, error_code=2).serialize())
+        assert conn._wait_for_flow_control_window(1) == -1
+        assert conn.is_closed is True
+
+    def test_stalled_peer_is_cancelled_after_the_deadline(self):
+        conn, client, server_sock, client_sock = self._open_get(timeout=1)
+        conn.stream_timeout = 0.2
+        assert conn.send_response_headers(1, 200, [], end_stream=False) is True
+        assert conn.send_data(1, b"x" * 10, end_stream=True) is False
+        assert 1 not in conn.streams
+        events = self._server_events(client, client_sock)
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.CANCEL]
+
+    def test_timeout_zero_means_no_deadline(self):
+        conn, client, server_sock, client_sock = self._open_get(timeout=0)
+        assert conn.stream_timeout is None
+        import threading
+
+        def widen():
+            client.increment_flow_control_window(100, stream_id=1)
+            client_sock.sendall(client.data_to_send())
+        threading.Timer(0.3, widen).start()
+        assert conn._wait_for_flow_control_window(1, None) == 100

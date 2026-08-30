@@ -11,6 +11,7 @@ Uses the hyper-h2 library for HTTP/2 protocol handling.
 
 import collections
 import selectors
+import time
 from io import BytesIO
 
 from .errors import (
@@ -88,6 +89,8 @@ class HTTP2ServerConnection:
         # Peer sent a graceful GOAWAY: finish open streams, take no new ones
         self.draining = False
         self.peer_last_stream_id = None
+        # Seconds a stream may make no progress on the wire; 0 means no limit
+        self.stream_timeout = cfg.timeout or None
 
         # Connection settings from config
         self.initial_window_size = cfg.http2_initial_window_size
@@ -606,14 +609,18 @@ class HTTP2ServerConnection:
             self.cleanup_stream(stream_id)
             return False
 
-    def _wait_for_flow_control_window(self, stream_id):
-        """Wait for flow control window to become positive.
+    def _wait_for_flow_control_window(self, stream_id, deadline=None):  # pylint: disable=too-many-return-statements
+        """Wait for the stream's send window to become positive.
+
+        Frames read while waiting are handled in order: a reset of this
+        stream or a GOAWAY goes through the usual handlers (a graceful
+        GOAWAY keeps the wait going), everything else is set aside for
+        the main loop.
 
         Returns:
-            int: Available window size, or -1 if waiting failed
+            int: Available window size; 0 if ``deadline`` passed first;
+            -1 if the stream or the connection is gone.
         """
-
-        max_wait_attempts = 50  # ~5 seconds at 100ms per attempt
         try:
             sel = selectors.DefaultSelector()
             sel.register(self.sock, selectors.EVENT_READ)
@@ -621,53 +628,55 @@ class HTTP2ServerConnection:
             # Socket doesn't support selectors (e.g., mock socket)
             return -1
 
-        result = -1
         try:
-            for _ in range(max_wait_attempts):
-                available = self.h2_conn.local_flow_control_window(stream_id)
+            while True:
+                if self._closed:
+                    return -1
+                stream = self.streams.get(stream_id)
+                if stream is not None and stream.state is StreamState.CLOSED:
+                    return -1
+                try:
+                    available = self.h2_conn.local_flow_control_window(stream_id)
+                except _h2_exceptions.ProtocolError:
+                    return -1
                 if available > 0:
-                    result = available
-                    break
+                    return available
+                wait = 1.0
+                if deadline is not None:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return 0
+                    wait = min(remaining, wait)
 
-                ready = sel.select(timeout=0.1)
-                if ready:
-                    try:
-                        incoming = self.sock.recv(self.READ_BUFFER_SIZE)
-                    except (OSError, IOError, _h2_exceptions.ProtocolError):
-                        break
-                    if not incoming:
-                        self._closed = True
-                        break
-                    try:
-                        events = self.h2_conn.receive_data(incoming)
-                    except _h2_exceptions.ProtocolError:
-                        break
-                    for event in events:
-                        if isinstance(event, _h2_events.StreamReset):
-                            if event.stream_id == stream_id:
-                                result = -1
-                                break
-                        elif isinstance(event, _h2_events.ConnectionTerminated):
-                            self._closed = True
-                            result = -1
-                            break
-                        else:
-                            # Anything else arriving alongside the
-                            # WINDOW_UPDATE belongs to the main loop. It has
-                            # already left the h2 state machine, so dropping
-                            # it here loses a request or its body for good.
-                            self._deferred_events.append(event)
+                if not sel.select(timeout=wait):
+                    continue
+                try:
+                    incoming = self.sock.recv(self.READ_BUFFER_SIZE)
+                except (OSError, IOError):
+                    incoming = b""
+                if not incoming:
+                    self._closed = True
+                    self._abort_all_streams()
+                    return -1
+                try:
+                    events = self.h2_conn.receive_data(incoming)
+                except _h2_exceptions.ProtocolError:
+                    self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
+                    return -1
+                for event in events:
+                    if (isinstance(event, _h2_events.StreamReset)
+                            and event.stream_id == stream_id):
+                        self._handle_stream_reset(event)
+                    elif isinstance(event, _h2_events.ConnectionTerminated):
+                        self._handle_connection_terminated(event)
                     else:
-                        self._send_pending_data()
-                        continue
-                    break  # Break outer loop if inner loop broke
-            else:
-                # Loop completed without break - check final window
-                result = self.h2_conn.local_flow_control_window(stream_id)
+                        # Belongs to the main loop. It has already left the
+                        # h2 state machine, so dropping it here would lose
+                        # a request or its body for good.
+                        self._deferred_events.append(event)
+                self._send_pending_data()
         finally:
             sel.close()
-
-        return result
 
     def send_data(self, stream_id, data, end_stream=False):
         """Send data on a stream.
@@ -685,16 +694,25 @@ class HTTP2ServerConnection:
             return False
 
         data_to_send = data
+        deadline = None
         try:
             while data_to_send:
                 available = self.h2_conn.local_flow_control_window(stream_id)
                 chunk_size = min(available, self.max_frame_size, len(data_to_send))
 
                 if chunk_size <= 0:
-                    # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
+                    # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2,
+                    # for at most stream_timeout without progress.
                     self._send_pending_data()
-                    available = self._wait_for_flow_control_window(stream_id)
-                    if available <= 0:
+                    if deadline is None and self.stream_timeout:
+                        deadline = time.monotonic() + self.stream_timeout
+                    available = self._wait_for_flow_control_window(stream_id, deadline)
+                    if available == 0:
+                        # The peer is there but not reading.
+                        self.abort_stream(stream_id, HTTP2ErrorCode.CANCEL)
+                        return False
+                    if available < 0:
+                        self.cleanup_stream(stream_id)
                         return False
                     chunk_size = min(available, self.max_frame_size, len(data_to_send))
 
@@ -703,9 +721,10 @@ class HTTP2ServerConnection:
                 is_final = end_stream and len(data_to_send) == 0
 
                 self.h2_conn.send_data(stream_id, chunk, end_stream=is_final)
+                stream.send_data(chunk, end_stream=is_final)
                 self._send_pending_data()
+                deadline = None
 
-            stream.send_data(data, end_stream=end_stream)
             return True
         except (_h2_exceptions.StreamClosedError, _h2_exceptions.FlowControlError):
             # Stream was reset by client or flow control error - clean up gracefully

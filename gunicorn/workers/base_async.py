@@ -258,13 +258,13 @@ class AsyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
-            request_time = datetime.now() - request_start
-            self.log.access(resp, req, environ, request_time)
-
         except Exception:
             self.log.exception("Error handling HTTP/2 request")
             raise
         finally:
+            if resp is not None:
+                # Logged even when the stream was cut off mid-response
+                self.log.access(resp, req, environ, datetime.now() - request_start)
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:

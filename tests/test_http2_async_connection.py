@@ -772,6 +772,7 @@ class TestAsyncHTTP2FlowControl:
     @pytest.mark.asyncio
     async def test_send_data_respects_zero_window(self):
         """Test that send_data returns False when flow control window is 0."""
+        import types
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
@@ -808,6 +809,8 @@ class TestAsyncHTTP2FlowControl:
         conn.h2_conn.local_flow_control_window = lambda stream_id: 0
 
         # Try to send data - should return False (not raise)
+        # The wait is bounded by cfg.timeout; keep the test short.
+        conn.cfg = types.SimpleNamespace(timeout=0.2)
         result = await conn.send_data(1, b'Hello, World!')
         assert result is False
 
@@ -1464,3 +1467,75 @@ class TestAsyncGracefulGoAway:
         events = client.receive_data(writer.get_written_data())
         resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
         assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+
+
+class TestAsyncSendCreditDeadline:
+    """The send-credit wait is bounded by cfg.timeout and woken by resets."""
+
+    async def _open_get(self, timeout):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        cfg.set("timeout", timeout)
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        client.update_settings({h2.settings.SettingCodes.INITIAL_WINDOW_SIZE: 0})
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_idle_timeout_resets_the_stream(self):
+        import types
+        conn, client, reader, writer = await self._open_get(timeout=1)
+        conn.cfg = types.SimpleNamespace(timeout=0.2)
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_data(1, b"x" * 10, end_stream=True) is False
+        assert 1 not in conn.streams
+        events = client.receive_data(writer.get_written_data())
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.CANCEL]
+
+    @pytest.mark.asyncio
+    async def test_reset_wakes_a_window_waiter(self):
+        conn, client, reader, writer = await self._open_get(timeout=5)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.01)
+        client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == -1
+
+    @pytest.mark.asyncio
+    async def test_eof_wakes_a_window_waiter(self):
+        conn, client, reader, writer = await self._open_get(timeout=5)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.01)
+        reader.set_eof()
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == -1
+
+    @pytest.mark.asyncio
+    async def test_timeout_zero_waits_for_credit(self):
+        conn, client, reader, writer = await self._open_get(timeout=0)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.3)
+        assert not waiter.done()
+        client.increment_flow_control_window(100, stream_id=1)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == 100

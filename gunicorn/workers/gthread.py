@@ -640,10 +640,10 @@ class ThreadWorker(base.Worker):
         environ = {}
         resp = None
         stream_id = req.stream.stream_id
+        request_start = datetime.now()
 
         try:
             self.cfg.pre_request(self, req)
-            request_start = datetime.now()
 
             # Create WSGI environ. The response frames itself as HTTP/2,
             # so the body streams out instead of being collected first, and
@@ -684,10 +684,10 @@ class ThreadWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
-            request_time = datetime.now() - request_start
-            self.log.access(resp, req, environ, request_time)
-
         finally:
+            if resp is not None:
+                # Logged even when the stream was cut off mid-response
+                self.log.access(resp, req, environ, datetime.now() - request_start)
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:

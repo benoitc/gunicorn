@@ -397,6 +397,8 @@ class AsyncHTTP2Connection:
 
         if stream is not None:
             stream.reset(event.error_code)
+        # A sender waiting for credit on this stream must re-check.
+        self._signal_window()
 
     def _handle_connection_terminated(self, event):
         """Handle ConnectionTerminated event (GOAWAY frame).
@@ -562,34 +564,43 @@ class AsyncHTTP2Connection:
             self._window_event.set()
 
     async def _wait_for_flow_control_window(self, stream_id):
-        """Wait for flow control window to become positive.
+        """Wait for the stream's send window to become positive.
 
         The receive loop owns the reader; it processes the peer's
-        WINDOW_UPDATE and SETTINGS frames and signals here. Waiting on
-        that signal instead of reading keeps two tasks off one reader.
+        WINDOW_UPDATE, SETTINGS, RST_STREAM and GOAWAY frames and signals
+        here. The wait is bounded by ``cfg.timeout`` (0 means no limit).
 
         Returns:
-            int: Available window size, or -1 if waiting failed
+            int: Available window size; 0 if the timeout passed first;
+            -1 if the stream or the connection is gone.
         """
         if self._window_event is None:
             self._window_event = asyncio.Event()
-        max_wait_attempts = 50  # ~5 seconds at 100ms per attempt
-        for _ in range(max_wait_attempts):
-            available = self.h2_conn.local_flow_control_window(stream_id)
-            if available > 0:
-                return available
+        loop = asyncio.get_running_loop()
+        timeout = self.cfg.timeout or None
+        deadline = None if timeout is None else loop.time() + timeout
+        while True:
             if self._closed:
                 return -1
             stream = self.streams.get(stream_id)
             if stream is not None and stream.state is StreamState.CLOSED:
                 return -1
+            try:
+                available = self.h2_conn.local_flow_control_window(stream_id)
+            except _h2_exceptions.ProtocolError:
+                return -1
+            if available > 0:
+                return available
+            remaining = None
+            if deadline is not None:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    return 0
             self._window_event.clear()
             try:
-                await asyncio.wait_for(self._window_event.wait(), timeout=0.1)
+                await asyncio.wait_for(self._window_event.wait(), timeout=remaining)
             except asyncio.TimeoutError:
-                continue
-
-        return self.h2_conn.local_flow_control_window(stream_id)
+                return 0
 
     async def send_data(self, stream_id, data, end_stream=False):
         """Send data on a stream.
@@ -627,7 +638,11 @@ class AsyncHTTP2Connection:
                 if chunk_size <= 0:
                     # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
                     available = await self._wait_for_flow_control_window(stream_id)
-                    if available <= 0:
+                    if available == 0:
+                        # The peer is there but not reading.
+                        await self.abort_stream(stream_id, HTTP2ErrorCode.CANCEL)
+                        return False
+                    if available < 0:
                         return False
 
             return True
