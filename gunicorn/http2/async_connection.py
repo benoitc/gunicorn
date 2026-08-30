@@ -483,6 +483,8 @@ class AsyncHTTP2Connection:
         stream = self.streams.get(stream_id)
         if stream is None:
             raise HTTP2Error(f"Stream {stream_id} not found")
+        if stream.response_headers_sent:
+            raise HTTP2Error("Informational response after the final headers")
 
         # Build headers with :status pseudo-header
         response_headers = [(':status', str(status))]
@@ -501,7 +503,11 @@ class AsyncHTTP2Connection:
             bool: True if sent, False if the stream is gone
         """
         stream = self.streams.get(stream_id)
-        if stream is None:
+        if stream is None or stream.state is StreamState.CLOSED:
+            return False
+        if stream.response_headers_sent:
+            # A second HEADERS block would be encoded into the HPACK table
+            # before h2 refuses it, corrupting every later response.
             return False
 
         def queue():
@@ -698,7 +704,17 @@ class AsyncHTTP2Connection:
             return False
 
     async def send_error(self, stream_id, status_code, message=None):
-        """Send an error response on a stream."""
+        """Send an error response on a stream.
+
+        Once the peer has a status the stream is cut off with
+        RST_STREAM(INTERNAL_ERROR) instead: a second HEADERS block would
+        corrupt the HPACK table.
+        """
+        stream = self.streams.get(stream_id)
+        if stream is None or stream.response_headers_sent:
+            await self.abort_stream(stream_id, HTTP2ErrorCode.INTERNAL_ERROR)
+            return
+
         body = message.encode() if message else b''
         headers = [('content-length', str(len(body)))]
         if body:

@@ -517,6 +517,8 @@ class HTTP2ServerConnection:
         stream = self.streams.get(stream_id)
         if stream is None:
             raise HTTP2Error(f"Stream {stream_id} not found")
+        if stream.response_headers_sent:
+            raise HTTP2Error("Informational response after the final headers")
 
         # Build headers with :status pseudo-header
         response_headers = [(':status', str(status))]
@@ -537,8 +539,12 @@ class HTTP2ServerConnection:
         any number of data frames, then end_stream().
         """
         stream = self.streams.get(stream_id)
-        if stream is None:
+        if stream is None or stream.state is StreamState.CLOSED:
             # Stream was already cleaned up (reset/closed)
+            return False
+        if stream.response_headers_sent:
+            # A second HEADERS block would be encoded into the HPACK table
+            # before h2 refuses it, corrupting every later response.
             return False
 
         # Build response headers with :status pseudo-header
@@ -547,8 +553,13 @@ class HTTP2ServerConnection:
             # HTTP/2 headers must be lowercase
             response_headers.append((name.lower(), str(value)))
 
-        self.h2_conn.send_headers(stream_id, response_headers,
-                                  end_stream=end_stream)
+        try:
+            self.h2_conn.send_headers(stream_id, response_headers,
+                                      end_stream=end_stream)
+        except _h2_exceptions.StreamClosedError:
+            stream.close()
+            self.cleanup_stream(stream_id)
+            return False
         stream.send_headers(response_headers, end_stream=end_stream)
         self._send_pending_data()
         return True
@@ -784,6 +795,14 @@ class HTTP2ServerConnection:
             status_code: HTTP status code
             message: Optional error message body
         """
+        stream = self.streams.get(stream_id)
+        if stream is None or stream.response_headers_sent:
+            # Too late for a status: the peer already has one. Cut the
+            # stream off instead of corrupting the HPACK table with a
+            # second HEADERS block.
+            self.abort_stream(stream_id, HTTP2ErrorCode.INTERNAL_ERROR)
+            return
+
         body = message.encode() if message else b''
         headers = [('content-length', str(len(body)))]
         if body:

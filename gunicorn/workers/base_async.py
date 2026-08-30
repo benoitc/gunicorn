@@ -203,8 +203,8 @@ class AsyncWorker(base.Worker):
                         self.log.exception("Error handling HTTP/2 request")
                         try:
                             h2_conn.send_error(req.stream.stream_id, 500, str(e))
-                        except Exception:
-                            pass
+                        except Exception as err:
+                            self.log.debug("HTTP/2 error response failed: %s", err)
                     finally:
                         h2_conn.cleanup_stream(req.stream.stream_id)
 

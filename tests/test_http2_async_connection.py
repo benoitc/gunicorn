@@ -1539,3 +1539,44 @@ class TestAsyncSendCreditDeadline:
         reader.set_data(client.data_to_send())
         await conn.receive_data()
         assert await asyncio.wait_for(waiter, timeout=1) == 100
+
+
+class TestAsyncErrorAfterHeaders:
+    """An error once headers went out resets the stream; HPACK stays intact."""
+
+    async def _served_get(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_send_error_after_headers_resets_with_internal_error(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_response_headers(1, [(':status', '500')]) is False
+        table = len(conn.h2_conn.encoder.header_table.dynamic_entries)
+        writer.clear()
+
+        await conn.send_error(1, 500, "boom")
+
+        events = client.receive_data(writer.get_written_data())
+        assert not [e for e in events if isinstance(e, h2.events.ResponseReceived)]
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+        assert len(conn.h2_conn.encoder.header_table.dynamic_entries) == table
+        assert 1 not in conn.streams

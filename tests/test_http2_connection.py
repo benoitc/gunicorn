@@ -1848,3 +1848,72 @@ class TestSendCreditWait:
             client_sock.sendall(client.data_to_send())
         threading.Timer(0.3, widen).start()
         assert conn._wait_for_flow_control_window(1, None) == 100
+
+
+class TestErrorAfterHeaders:
+    """An error once headers went out resets the stream; HPACK stays intact."""
+
+    def _served_get(self, stream_id=1):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(stream_id, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client.data_to_send())
+        return conn, client, sock
+
+    def test_send_error_after_headers_resets_with_internal_error(self):
+        conn, client, sock = self._served_get()
+        assert conn.send_response_headers(1, 200, [('content-length', '3')]) is True
+        before = len(sock.get_sent_data())
+        table = len(conn.h2_conn.encoder.header_table.dynamic_entries)
+
+        conn.send_error(1, 500, "boom")
+
+        events = client.receive_data(sock.get_sent_data()[before:])
+        kinds = [type(e).__name__ for e in events]
+        assert "ResponseReceived" not in kinds
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+        assert len(conn.h2_conn.encoder.header_table.dynamic_entries) == table
+        assert 1 not in conn.streams
+
+    def test_later_stream_decodes_correctly_after_a_refused_second_headers(self):
+        conn, client, sock = self._served_get()
+        assert conn.send_response_headers(1, 200, [('content-length', '3')]) is True
+        assert conn.send_response_headers(1, 500, [('x-a', '1')]) is False
+        conn.send_error(1, 500, "boom")
+        client.receive_data(sock.get_sent_data())
+
+        client.send_headers(3, [
+            (':method', 'GET'), (':path', '/next'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client.data_to_send())
+        before = len(sock.get_sent_data())
+        assert conn.send_response(3, 200, [('content-length', '3')], b"abc") is True
+        events = client.receive_data(sock.get_sent_data()[before:])
+        headers = [dict(e.headers) for e in events
+                   if isinstance(e, h2.events.ResponseReceived)]
+        assert headers == [{b':status': b'200', b'content-length': b'3'}]
+
+    def test_informational_after_final_headers_is_refused(self):
+        conn, client, sock = self._served_get()
+        assert conn.send_response_headers(1, 200, []) is True
+        with pytest.raises(HTTP2Error):
+            conn.send_informational(1, 103, [('link', '</a>; rel=preload')])
+
+    def test_cleanup_of_a_never_started_response_resets(self):
+        conn, client, sock = self._served_get()
+        before = len(sock.get_sent_data())
+        conn.cleanup_stream(1)
+        events = client.receive_data(sock.get_sent_data()[before:])
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
