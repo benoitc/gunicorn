@@ -4868,6 +4868,14 @@ noticeably higher if you're sure of the repercussions for sync workers.
 For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.</p>
+<p>On HTTP/2 connections it also bounds a single stream: a request body
+that makes no progress for this long, or a response the peer stops
+reading for this long, is cancelled with <code>RST_STREAM</code>. 0 disables
+that too.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 26.3.0</p>
+<p>Also bounds a stalled HTTP/2 stream.</p>
+</div>
 <h3 id="graceful_timeout"><code>graceful_timeout</code><a class="headerlink" href="#graceful_timeout" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--graceful-timeout INT</code></p>
 <p><strong>Default:</strong> <code>30</code></p>
@@ -4887,6 +4895,12 @@ set this to a higher value.</p>
 <p class="admonition-title">Note</p>
 <p><code>sync</code> worker does not support persistent connections and will
 ignore this option.</p>
+</div>
+<p>On the <code>gthread</code> and <code>gevent</code> workers an HTTP/2 connection with no
+stream open is closed with <code>GOAWAY</code> after this many seconds.</p>
+<div class="admonition info">
+<p class="admonition-title">Changed in 26.3.0</p>
+<p>Also applies to idle HTTP/2 connections.</p>
 </div>
 <h3 id="asgi_loop"><code>asgi_loop</code><a class="headerlink" href="#asgi_loop" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--asgi-loop STRING</code></p>

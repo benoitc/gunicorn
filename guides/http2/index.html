@@ -3581,6 +3581,11 @@ protections against known vulnerabilities.</p>
 <td><code>http2_max_header_list_size</code> (default: 65536)</td>
 </tr>
 <tr>
+<td>Unbounded Upload</td>
+<td>Body streams to the app; window credit returns as it reads</td>
+<td><code>http2_initial_window_size</code> (default: 65535)</td>
+</tr>
+<tr>
 <td>Large Frame Attack</td>
 <td>Frame size limits</td>
 <td><code>http2_max_frame_size</code> (validated: 16384-16777215)</td>
