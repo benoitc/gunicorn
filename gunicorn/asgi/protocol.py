@@ -370,6 +370,8 @@ class ASGIProtocol(asyncio.Protocol):
         self._h2_tasks = set()
         # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
         self._h2_writer_protocol = None
+        # Transport asked us to stop writing: we stop reading as well
+        self._write_paused = False
 
         self.transport = None
         self.reader = None  # Only used for HTTP/2
@@ -917,6 +919,12 @@ class ASGIProtocol(asyncio.Protocol):
             self._flow_control.pause_writing()
         elif self._h2_writer_protocol is not None:
             self._h2_writer_protocol.pause_writing()
+            # The peer is not reading. Stop reading from it too: its PING
+            # and SETTINGS frames are answered without waiting for the
+            # transport, so parsing more of them would grow a write buffer
+            # that is already over its limit.
+            self._write_paused = True
+            self._pause_reading()
 
     def resume_writing(self):
         """Called by transport when write buffer drains below low water mark."""
@@ -924,6 +932,8 @@ class ASGIProtocol(asyncio.Protocol):
             self._flow_control.resume_writing()
         elif self._h2_writer_protocol is not None:
             self._h2_writer_protocol.resume_writing()
+            self._write_paused = False
+            self._maybe_resume_reading()
 
     def _safe_write(self, data):
         """Write data to transport, handling connection errors gracefully.
@@ -1806,6 +1816,10 @@ class ASGIProtocol(asyncio.Protocol):
         Only the HTTP/1 loop used to resume; an HTTP/2 connection that
         once paused never read again. Half the limit gives hysteresis.
         """
+        if self._write_paused:
+            # The transport is still over its write limit; reading more
+            # would only make us answer frames we cannot send.
+            return
         if (self._reading_paused and self.reader is not None
                 and len(self.reader._buffer) <= self._max_buffer_size // 2):
             self._resume_reading()

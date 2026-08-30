@@ -1669,7 +1669,6 @@ class TestH2CASGIStreamingPaths:
         finally:
             _asgi_h2_teardown(loop, proto)
 
-
     def test_protocol_error_mid_body_cancels_the_app(self):
         got = []
 
@@ -1764,7 +1763,6 @@ class TestH2CASGIResponseSendIsAtomic:
     def test_reset_during_drain_is_not_an_app_error(self):
         """Every send after the peer's reset stays inert, trailers included."""
         import h2.errors
-
 
         async def app(scope, receive, send):
             await receive()
@@ -2014,6 +2012,72 @@ class TestH2CASGIContract:
                     await asyncio.sleep(0.05)
             loop.run_until_complete(asyncio.wait_for(until_closed(), timeout=6))
             assert "GoAwayFrame" in frame_types(transport.written)
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_a_paused_transport_stops_reading_too(self):
+        """A peer that stops reading gets its frames left unparsed."""
+        seen = []
+
+        async def app(scope, receive, send):
+            await receive()
+            seen.append(scope["path"])
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"ok"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/first", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def race():
+                while not seen:
+                    await asyncio.sleep(0.005)
+                proto.pause_writing()
+                assert transport.paused is True
+
+                # PINGs arriving now must not be answered into a buffer
+                # that is already over its limit.
+                # A real transport stops delivering while reading is
+                # paused, so nothing new is parsed and nothing is queued.
+                queued = len(transport.written)
+                await asyncio.sleep(0.05)
+                assert len(transport.written) == queued
+
+                proto.resume_writing()
+                assert transport.paused is False
+                _post_headers(client, 3, "/second", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while len(seen) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(race(), timeout=5))
+            assert seen == ["/first", "/second"]
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_reader_is_not_resumed_while_writing_is_paused(self):
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"ok"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def check():
+                while proto._h2_writer_protocol is None:
+                    await asyncio.sleep(0.005)
+                proto.pause_writing()
+                assert transport.paused is True
+                # The receive loop must not undo the pause
+                proto._maybe_resume_reading()
+                assert transport.paused is True
+                proto.resume_writing()
+                assert transport.paused is False
+            loop.run_until_complete(asyncio.wait_for(check(), timeout=5))
         finally:
             _asgi_h2_teardown(loop, proto)
 
