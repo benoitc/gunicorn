@@ -1840,6 +1840,211 @@ class TestH2CASGIResponseSendIsAtomic:
         assert "_send_pending_data" not in src
 
 
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestH2CASGIContract:
+    """send() after a disconnect raises OSError; trailers; no-body framing."""
+
+    def test_send_after_reset_raises_oserror(self):
+        import h2.errors
+
+        caught = []
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"one",
+                        "more_body": True})
+            await asyncio.sleep(0.1)     # the reset lands here
+            try:
+                await send({"type": "http.response.body", "body": b"two",
+                            "more_body": True})
+            except OSError as e:
+                caught.append(type(e).__name__)
+                try:
+                    await send({"type": "http.response.body", "body": b""})
+                except OSError:
+                    caught.append("again")
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/reset", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                while b"one" not in transport.written:
+                    await asyncio.sleep(0.005)
+                client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+                proto.data_received(client.data_to_send())
+                while proto._h2_tasks:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+            assert caught == ["ClientDisconnected", "again"]
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def _run(self, app, path="/t"):
+        import h2.events
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, path, end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_done():
+                while proto._h2_tasks or not transport.written:
+                    await asyncio.sleep(0.005)
+                await asyncio.sleep(0.02)
+            loop.run_until_complete(asyncio.wait_for(until_done(), timeout=5))
+            events = client.receive_data(transport.written)
+            return events, worker
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_trailers_follow_the_body_and_end_the_stream(self):
+        import h2.events
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": [], "trailers": True})
+            await send({"type": "http.response.body", "body": b"payload"})
+            await send({"type": "http.response.trailers",
+                        "headers": [(b"x-a", b"1")], "more_trailers": True})
+            await send({"type": "http.response.trailers",
+                        "headers": [(b"x-b", b"2")]})
+
+        events, worker = self._run(app)
+        kinds = [type(e).__name__ for e in events]
+        assert kinds[-2:] == ["TrailersReceived", "StreamEnded"], kinds
+        trailers = [e for e in events if isinstance(e, h2.events.TrailersReceived)][0]
+        assert dict(trailers.headers) == {"x-a": "1", "x-b": "2"}
+        assert not worker.log.exception.called
+
+    def test_announced_trailers_never_sent_still_end_the_stream(self):
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": [], "trailers": True})
+            await send({"type": "http.response.body", "body": b"payload"})
+
+        events, worker = self._run(app)
+        kinds = [type(e).__name__ for e in events]
+        assert "TrailersReceived" not in kinds
+        assert kinds[-1] == "StreamEnded", kinds
+
+    def test_unannounced_trailers_are_an_app_error(self):
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"payload"})
+            await send({"type": "http.response.trailers", "headers": [(b"x", b"1")]})
+
+        events, worker = self._run(app)
+        assert worker.log.exception.called
+        assert "StreamEnded" in [type(e).__name__ for e in events]
+
+    def test_no_body_status_drops_framing_headers(self):
+        import h2.events
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 204,
+                        "headers": [(b"content-length", b"12"),
+                                    (b"transfer-encoding", b"chunked"),
+                                    (b"x-keep", b"yes")]})
+            await send({"type": "http.response.body", "body": b""})
+
+        events, worker = self._run(app)
+        resp = [e for e in events if isinstance(e, h2.events.ResponseReceived)][0]
+        names = {name for name, _ in resp.headers}
+        assert "x-keep" in names
+        assert "content-length" not in names and "transfer-encoding" not in names
+
+    def test_expect_100_continue_is_answered_before_the_body_is_read(self):
+        import h2.events
+
+        async def app(scope, receive, send):
+            msg = await receive()
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": msg["body"]})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            client.send_headers(1, [
+                (":method", "POST"), (":path", "/expect"),
+                (":scheme", "http"), (":authority", "x"),
+                ("expect", "100-continue"),
+            ], end_stream=False)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                # A 100 must arrive before any body is sent
+                while True:
+                    events = client.receive_data(b"")
+                    found = [e for e in client.receive_data(transport.written)
+                             if isinstance(e, h2.events.InformationalResponseReceived)]
+                    if found:
+                        break
+                    await asyncio.sleep(0.005)
+                client.send_data(1, b"payload", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while b"payload" not in transport.written[-64:]:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_idle_connection_closes_after_keepalive(self):
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"ok"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        worker.cfg.set("keepalive", 1)
+        try:
+            _post_headers(client, 1, "/", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_closed():
+                while not transport.closed:
+                    await asyncio.sleep(0.05)
+            loop.run_until_complete(asyncio.wait_for(until_closed(), timeout=6))
+            assert "GoAwayFrame" in frame_types(transport.written)
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_drain_waits_while_the_transport_is_paused(self):
+        done = []
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+            await send({"type": "http.response.body", "body": b"x" * 1000})
+            done.append(True)
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def race():
+                while proto._h2_writer_protocol is None:
+                    await asyncio.sleep(0.005)
+                proto.pause_writing()
+                await asyncio.sleep(0.1)
+                assert not done, "the send finished while the transport was paused"
+                proto.resume_writing()
+                while not done:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(race(), timeout=5))
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+
 @pytest.mark.skipif(not H1C_AVAILABLE, reason="gunicorn_h1c not available")
 class TestH2CASGIUpgradeOversizedTail:
     """The fast parser caps remaining(); past the cap the tail is gone.

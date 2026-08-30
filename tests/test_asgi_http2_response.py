@@ -33,6 +33,9 @@ def make_request():
     req = mock.Mock()
     req.method = "GET"
     req.stream.stream_id = 1
+    req.stream.disconnected = False
+    req.stream.expect_continue = False
+    req.stream.response_headers_sent = False
     req.path = "/"
     req.query = ""
     req.headers = []
@@ -47,10 +50,10 @@ async def run_app(app, method="GET"):
     """Drive _handle_http2_request and report what reached the wire."""
     proto, worker = make_protocol(app)
     h2 = mock.AsyncMock()
-    h2.streams = {1: mock.Mock()}
     h2.h2_conn = mock.Mock()
     req = make_request()
     req.method = method
+    h2.streams = {1: req.stream}
     await proto._handle_http2_request(
         req, h2, ("127.0.0.1", 8000), ("127.0.0.1", 1))
     assert not worker.log.exception.called, (
