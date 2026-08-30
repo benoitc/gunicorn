@@ -14,7 +14,8 @@ from ssl import SSLError
 
 from gunicorn import util
 from gunicorn.http.errors import (
-    ForbiddenProxyRequest, InvalidHeader,
+    ChunkMissingTerminator, ForbiddenProxyRequest,
+    InvalidChunkExtension, InvalidChunkSize, InvalidHeader,
     InvalidHeaderName, InvalidHTTPVersion,
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
@@ -209,6 +210,7 @@ class Worker:
             InvalidSchemeHeaders, UnsupportedTransferCoding,
             ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
             InvalidH2CPreface, SSLError,
+            InvalidChunkSize, ChunkMissingTerminator, InvalidChunkExtension,
         )):
 
             status_int = 400
@@ -249,6 +251,9 @@ class Worker:
                 mesg = "Request forbidden"
                 status_int = 403
             elif isinstance(exc, InvalidSchemeHeaders):
+                mesg = "%s" % str(exc)
+            elif isinstance(exc, (InvalidChunkSize, ChunkMissingTerminator,
+                                  InvalidChunkExtension)):
                 mesg = "%s" % str(exc)
             elif isinstance(exc, InvalidH2CPreface):
                 mesg = "%s" % str(exc)

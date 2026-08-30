@@ -97,27 +97,30 @@ class UnsupportedTransferCoding(ParseException):
         return "Unsupported transfer coding: %r" % self.hdr
 
 
-class InvalidChunkSize(IOError):
+class InvalidChunkSize(ParseException):
     def __init__(self, data):
         self.data = data
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk size: %r" % self.data
 
 
-class ChunkMissingTerminator(IOError):
+class ChunkMissingTerminator(ParseException):
     def __init__(self, term):
         self.term = term
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk terminator is not '\\r\\n': %r" % self.term
 
 
-class InvalidChunkExtension(IOError):
+class InvalidChunkExtension(ParseException):
     """Invalid chunk extension per RFC 9112."""
 
     def __init__(self, reason):
         self.reason = reason
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk extension: %s" % self.reason
