@@ -1789,9 +1789,11 @@ class TestSendCreditWait:
         conn.initiate_connection()
         marker = mock.Mock(name="event")
         conn._deferred_events.append(marker)
-        conn._handle_event = mock.Mock(return_value="request")
+        request = mock.Mock(name="request")
+        request.stream.state = StreamState.OPEN
+        conn._handle_event = mock.Mock(return_value=request)
         sock.recv = mock.Mock(side_effect=AssertionError("socket read"))
-        assert conn.receive_data() == ["request"]
+        assert conn.receive_data() == [request]
         conn._handle_event.assert_called_once_with(marker)
         assert not conn._deferred_events
 
@@ -1996,3 +1998,64 @@ class TestSocketTimeouts:
         sock.set_recv_data(b"")
         conn.receive_data()
         sock.settimeout.assert_called_once_with(None)
+
+
+class TestStreamFloods:
+    """HEADERS+RST_STREAM pairs cannot pile up behind a body read."""
+
+    def _open_post(self, max_streams=100):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("http2_max_concurrent_streams", max_streams)
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        req = conn.receive_data(client.data_to_send())[0]
+        return conn, client, sock, req
+
+    def _get(self, client, stream_id):
+        client.send_headers(stream_id, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+
+    def test_reset_before_dispatch_drops_the_stream(self):
+        conn, client, sock, req = self._open_post()
+        self._get(client, 3)
+        client.reset_stream(3, error_code=h2.errors.ErrorCodes.CANCEL)
+        sock.set_recv_data(client.data_to_send())
+        conn.pump(1)
+        assert 3 not in conn.streams
+        assert not conn.pending_requests
+
+    def test_reset_after_queueing_is_not_handed_out(self):
+        conn, client, sock, req = self._open_post()
+        self._get(client, 3)
+        sock.set_recv_data(client.data_to_send())
+        conn.pump(1)
+        assert [r.stream.stream_id for r in conn.pending_requests] == [3]
+        client.reset_stream(3, error_code=h2.errors.ErrorCodes.CANCEL)
+        sock.set_recv_data(client.data_to_send())
+        conn.pump(1)
+        assert not conn.pending_requests
+        assert 3 not in conn.streams
+        assert conn.receive_data(b"") == []
+
+    def test_flood_of_reset_pairs_leaves_nothing_behind(self):
+        conn, client, sock, req = self._open_post()
+        for sid in range(3, 3 + 2 * 500, 2):
+            self._get(client, sid)
+            client.reset_stream(sid, error_code=h2.errors.ErrorCodes.CANCEL)
+        data = client.data_to_send()
+        for i in range(0, len(data), 65536):
+            conn.pump(1) if False else conn.receive_data(data[i:i + 65536])
+        assert list(conn.streams) == [1]
+        assert not conn.pending_requests

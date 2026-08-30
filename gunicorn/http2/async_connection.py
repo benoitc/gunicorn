@@ -257,6 +257,14 @@ class AsyncHTTP2Connection:
             request = self._handle_event(event)
             if request is not None:
                 completed_requests.append(request)
+        # A stream reset in the same batch gets no task at all.
+        live = []
+        for request in completed_requests:
+            if request.stream.state is StreamState.CLOSED:
+                self.streams.pop(request.stream.stream_id, None)
+            else:
+                live.append(request)
+        completed_requests = live
 
         # Send any pending data (WINDOW_UPDATE, etc.)
         await self._send_pending_data()

@@ -31,6 +31,7 @@ from ..http.errors import InvalidH2CPreface
 from ..http2 import negotiation
 from ..http2.response import HTTP2Response
 from ..http2.errors import HTTP2ConnectionError, HTTP2StreamError
+from ..http2.stream import StreamState
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -599,6 +600,10 @@ class ThreadWorker(base.Worker):
                 requests = h2_conn.receive_data()
 
                 for req in requests:
+                    if req.stream.state is StreamState.CLOSED:
+                        # Reset by the peer before it could be served
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+                        continue
                     try:
                         self.handle_http2_request(req, conn, h2_conn)
                     except (HTTP2StreamError, HTTP2ConnectionError) as e:

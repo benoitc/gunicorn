@@ -206,8 +206,18 @@ class HTTP2ServerConnection:
         if data is None and self.pending_requests:
             pending = list(self.pending_requests)
             self.pending_requests.clear()
-            return pending
+            return self._live_requests(pending)
         return self._read_and_process(data)
+
+    def _live_requests(self, requests):
+        """Drop requests whose stream the peer already reset."""
+        live = []
+        for request in requests:
+            if request.stream.state is StreamState.CLOSED:
+                self.streams.pop(request.stream.stream_id, None)
+            else:
+                live.append(request)
+        return live
 
     def pump(self, stream_id=None):
         """Read once from the socket while a request body is being consumed.
@@ -301,6 +311,7 @@ class HTTP2ServerConnection:
             request = self._handle_event(event)
             if request is not None:
                 completed_requests.append(request)
+        completed_requests = self._live_requests(completed_requests)
 
         # Send any pending data (WINDOW_UPDATE, etc.)
         self._send_pending_data()
@@ -444,9 +455,16 @@ class HTTP2ServerConnection:
         stream_id = event.stream_id
         stream = self.streams.get(stream_id)
 
-        if stream is not None:
-            stream.reset(event.error_code)
-            # Keep stream in dict for potential cleanup
+        if stream is None:
+            return
+        stream.reset(event.error_code)
+        # A request the worker has not seen yet is dropped here; one it
+        # is serving is cleaned up by the worker. Reset streams must not
+        # accumulate: h2 only counts open ones against the limit.
+        if any(r.stream is stream for r in self.pending_requests):
+            self.pending_requests = collections.deque(
+                r for r in self.pending_requests if r.stream is not stream)
+            self.streams.pop(stream_id, None)
 
     def _handle_connection_terminated(self, event):
         """Handle ConnectionTerminated event (GOAWAY frame).
