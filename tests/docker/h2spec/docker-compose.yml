@@ -1,0 +1,65 @@
+# One gunicorn image, one service per HTTP/2 capable worker, and the
+# official h2spec image run against each of them by the tests.
+x-gunicorn: &gunicorn
+  image: gunicorn-h2spec:local
+  volumes:
+    - ./certs:/certs:ro
+    - ../http2/app.py:/app/app.py:ro
+    - ./asgi_app.py:/app/asgi_app.py:ro
+  healthcheck:
+    test: ["CMD", "python", "-c", "import ssl,socket; s=socket.socket(); s.settimeout(1); ctx=ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE; ss=ctx.wrap_socket(s,server_hostname='localhost'); ss.connect(('localhost',8443)); ss.close()"]
+    interval: 2s
+    timeout: 5s
+    retries: 15
+    start_period: 5s
+
+services:
+  gunicorn-gthread:
+    <<: *gunicorn
+    build:
+      context: ../../../
+      dockerfile: tests/docker/h2spec/Dockerfile
+    ports:
+      - "8451:8443"
+    command: ["gunicorn", "app:app", "--bind", "0.0.0.0:8443",
+              "--worker-class", "gthread", "--threads", "4",
+              "--http-protocols", "h2,h1",
+              "--certfile", "/certs/server.crt", "--keyfile", "/certs/server.key",
+              "--log-level", "warning"]
+
+  gunicorn-gevent:
+    <<: *gunicorn
+    depends_on:
+      gunicorn-gthread:
+        condition: service_started
+    ports:
+      - "8452:8443"
+    command: ["gunicorn", "app:app", "--bind", "0.0.0.0:8443",
+              "--worker-class", "gevent",
+              "--http-protocols", "h2,h1",
+              "--certfile", "/certs/server.crt", "--keyfile", "/certs/server.key",
+              "--log-level", "warning"]
+
+  gunicorn-asgi:
+    <<: *gunicorn
+    depends_on:
+      gunicorn-gthread:
+        condition: service_started
+    ports:
+      - "8453:8443"
+    command: ["gunicorn", "asgi_app:app", "--bind", "0.0.0.0:8443",
+              "--worker-class", "asgi",
+              "--http-protocols", "h2,h1",
+              "--certfile", "/certs/server.crt", "--keyfile", "/certs/server.key",
+              "--log-level", "warning"]
+
+  h2spec:
+    image: summerwind/h2spec:2.6.0
+    profiles: ["tools"]
+    depends_on:
+      gunicorn-gthread:
+        condition: service_healthy
+      gunicorn-gevent:
+        condition: service_healthy
+      gunicorn-asgi:
+        condition: service_healthy

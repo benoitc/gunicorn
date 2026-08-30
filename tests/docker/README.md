@@ -46,6 +46,7 @@ to 8000 and collides with `asgi_compliance`.
 | `asgi_compliance` | 8000, 8080, 8443, 8444, 8445 |
 | `asgi_framework_compat` | 8001 to 8006 |
 | `http2` | 8443, 8444 |
+| `h2spec` | 8451, 8452, 8453 |
 | `uwsgi` | 8080 |
 
 If a suite fails everywhere at once, check for a port collision before looking
