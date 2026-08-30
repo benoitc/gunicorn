@@ -153,3 +153,20 @@ class TestAbortedStream:
         conn.end_stream.return_value = False
         with pytest.raises(HTTP2StreamError):
             resp.close()
+
+
+class TestDefaultHeaders:
+    def test_server_and_date_are_added(self):
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = True
+        resp.send_headers()
+        headers = dict(conn.send_response_headers.call_args[0][2])
+        assert headers.get("server") == resp.version
+        assert "date" in headers
+
+    def test_app_supplied_values_win(self):
+        resp, conn = make_response(headers=[("Server", "mine"), ("Date", "then")])
+        conn.send_response_headers.return_value = True
+        resp.send_headers()
+        names = [name.lower() for name, _ in conn.send_response_headers.call_args[0][2]]
+        assert names.count("server") == 1 and names.count("date") == 1

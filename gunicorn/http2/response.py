@@ -4,6 +4,7 @@
 
 """WSGI response writer for HTTP/2 streams."""
 
+from gunicorn import util
 from gunicorn.http.wsgi import Response
 from gunicorn.http2.errors import HTTP2StreamError
 
@@ -47,8 +48,15 @@ class HTTP2Response(Response):
     def send_headers(self):
         if self.headers_sent:
             return
+        # The same server headers HTTP/1 adds
+        names = {name.lower() for name, _ in self.headers}
+        headers = list(self.headers)
+        if "server" not in names:
+            headers.append(("server", self.version))
+        if "date" not in names:
+            headers.append(("date", util.http_date()))
         if not self.h2_conn.send_response_headers(
-                self.stream_id, self.status_code, self.headers, end_stream=False):
+                self.stream_id, self.status_code, headers, end_stream=False):
             self._aborted("stream closed before headers were sent")
         self.headers_sent = True
 

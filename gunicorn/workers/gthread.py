@@ -30,7 +30,7 @@ from ..http import wsgi
 from ..http.errors import InvalidH2CPreface
 from ..http2 import negotiation
 from ..http2.response import HTTP2Response
-from ..http2.errors import HTTP2ConnectionError, HTTP2StreamError
+from ..http2.errors import HTTP2ConnectionError, HTTP2ProtocolError, HTTP2StreamError
 from ..http2.stream import StreamState
 
 
@@ -580,8 +580,29 @@ class ThreadWorker(base.Worker):
         if pending:
             h2_conn.receive_data(pending)
 
-        self.handle_http2_request(upgraded, conn, h2_conn)
+        self._serve_http2_stream(upgraded, conn, h2_conn)
         return self.handle_http2(conn)
+
+    def _serve_http2_stream(self, req, conn, h2_conn):
+        """Serve one stream, answering or resetting it whatever happens."""
+        if req.stream.state is StreamState.CLOSED:
+            # Reset by the peer before it could be served
+            h2_conn.cleanup_stream(req.stream.stream_id)
+            return
+        try:
+            self.handle_http2_request(req, conn, h2_conn)
+        except (HTTP2StreamError, HTTP2ConnectionError) as e:
+            # The peer reset the stream, stalled past the timeout, or
+            # the socket is gone; nothing to answer.
+            self.log.debug("HTTP/2 stream closed: %s", e)
+        except Exception as e:
+            self.log.exception("Error handling HTTP/2 request")
+            try:
+                h2_conn.send_error(req.stream.stream_id, 500, str(e))
+            except Exception as err:
+                self.log.debug("HTTP/2 error response failed: %s", err)
+        finally:
+            h2_conn.cleanup_stream(req.stream.stream_id)
 
     def handle_http2(self, conn):
         """Handle an HTTP/2 connection. Runs in a worker thread.
@@ -593,6 +614,7 @@ class ThreadWorker(base.Worker):
             False (HTTP/2 connections don't use keepalive polling)
         """
         h2_conn = conn.parser  # HTTP2ServerConnection
+        last_served = 0
 
         try:
             while not h2_conn.is_closed and self.alive:
@@ -600,35 +622,25 @@ class ThreadWorker(base.Worker):
                 requests = h2_conn.receive_data()
 
                 for req in requests:
-                    if req.stream.state is StreamState.CLOSED:
-                        # Reset by the peer before it could be served
-                        h2_conn.cleanup_stream(req.stream.stream_id)
-                        continue
-                    try:
-                        self.handle_http2_request(req, conn, h2_conn)
-                    except (HTTP2StreamError, HTTP2ConnectionError) as e:
-                        # The peer reset the stream, stalled past the
-                        # timeout, or the socket is gone; nothing to answer.
-                        self.log.debug("HTTP/2 stream closed: %s", e)
-                    except Exception as e:
-                        self.log.exception("Error handling HTTP/2 request")
-                        try:
-                            h2_conn.send_error(req.stream.stream_id, 500, str(e))
-                        except Exception as err:
-                            self.log.debug("HTTP/2 error response failed: %s", err)
-                    finally:
-                        # Cleanup stream after processing
-                        h2_conn.cleanup_stream(req.stream.stream_id)
+                    self._serve_http2_stream(req, conn, h2_conn)
+                    last_served = req.stream.stream_id
 
-                # Check if we need to close
                 if not self.alive:
-                    h2_conn.close()
+                    # Requests already queued behind a body read are
+                    # served, then GOAWAY names the last one so the peer
+                    # can retry anything after it.
+                    for req in h2_conn.receive_data(b""):
+                        self._serve_http2_stream(req, conn, h2_conn)
+                        last_served = req.stream.stream_id
+                    h2_conn.close(last_stream_id=last_served)
                     break
 
         except http.errors.NoMoreData:
             self.log.debug("HTTP/2 connection closed by client")
         except HTTP2ConnectionError as e:
             self.log.debug("HTTP/2 connection closed: %s", e)
+        except HTTP2ProtocolError as e:
+            self.log.debug("HTTP/2 protocol error from peer: %s", e)
         except ssl.SSLError as e:
             if e.args[0] == ssl.SSL_ERROR_EOF:
                 self.log.debug("HTTP/2 SSL connection closed")
