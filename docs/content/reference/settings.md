@@ -1945,6 +1945,14 @@ For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.
 
+On HTTP/2 connections it also bounds a single stream: a request body
+that makes no progress for this long, or a response the peer stops
+reading for this long, is cancelled with ``RST_STREAM``. 0 disables
+that too.
+
+!!! info "Changed in 26.3.0"
+    Also bounds a stalled HTTP/2 stream.
+
 ### `graceful_timeout`
 
 **Command line:** `--graceful-timeout INT`
@@ -1973,6 +1981,12 @@ set this to a higher value.
 !!! note
     ``sync`` worker does not support persistent connections and will
     ignore this option.
+
+On the ``gthread`` and ``gevent`` workers an HTTP/2 connection with no
+stream open is closed with ``GOAWAY`` after this many seconds.
+
+!!! info "Changed in 26.3.0"
+    Also applies to idle HTTP/2 connections.
 
 ### `asgi_loop`
 

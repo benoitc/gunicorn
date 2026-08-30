@@ -5,7 +5,9 @@
 
 """Tests for HTTP/2 stream state management."""
 
+import asyncio
 import pytest
+from unittest import mock
 
 from gunicorn.http2.stream import HTTP2Stream, StreamState
 from gunicorn.http2.errors import HTTP2StreamError
@@ -222,7 +224,7 @@ class TestReceiveData:
 
         stream.receive_data(b"Hello, World!", end_stream=False)
 
-        assert stream.request_body.getvalue() == b"Hello, World!"
+        assert stream.get_request_body() == b"Hello, World!"
         assert stream.request_complete is False
 
     def test_receive_data_with_end_stream(self):
@@ -244,7 +246,8 @@ class TestReceiveData:
         stream.receive_data(b"Part2")
         stream.receive_data(b"Part3", end_stream=True)
 
-        assert stream.request_body.getvalue() == b"Part1Part2Part3"
+        assert stream.get_request_body() == b"Part1Part2Part3"
+        assert stream.body_size == 15
 
     def test_receive_data_in_half_closed_local(self):
         conn = MockConnection()
@@ -252,7 +255,7 @@ class TestReceiveData:
         stream.state = StreamState.HALF_CLOSED_LOCAL
 
         stream.receive_data(b"data", end_stream=False)
-        assert stream.request_body.getvalue() == b"data"
+        assert stream.get_request_body() == b"data"
 
     def test_receive_data_in_invalid_state(self):
         conn = MockConnection()
@@ -475,6 +478,27 @@ class TestGetRequestBody:
         stream.receive_data(b"Test body content")
 
         assert stream.get_request_body() == b"Test body content"
+
+
+    def test_single_copy_is_kept(self):
+        """One DATA frame is handed back as-is: no join, no second buffer."""
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+        payload = b"x" * 1024
+        stream.receive_data(payload, end_stream=True)
+
+        assert stream.get_request_body() is payload
+        assert stream.body_size == 1024
+        assert not hasattr(stream, "request_body")
+
+
+    def test_end_stream_on_headers_completes_the_body(self):
+        conn = MockConnection()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.receive_headers([(":method", "GET"), (":path", "/")], end_stream=True)
+        assert stream.body_complete is True
+        assert stream.get_request_body() == b""
 
 
 class TestReadBodyChunk:
@@ -825,3 +849,82 @@ class TestStreamResponseTrailers:
         # Stream is IDLE, cannot send trailers
         with pytest.raises(HTTP2StreamError):
             stream.send_trailers([('trailer', 'value')])
+
+
+class TestBodyEvents:
+    """Completion and reset wake a waiting reader."""
+
+    @pytest.mark.asyncio
+    async def test_end_stream_on_headers_wakes_reader(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.receive_headers([(":method", "POST"), (":path", "/")])
+        reader = asyncio.get_running_loop().create_task(stream.read_body_chunk())
+        await asyncio.sleep(0)
+        stream.receive_headers([("x-trailer", "1")], end_stream=True)
+        assert await asyncio.wait_for(reader, timeout=1) is None
+
+    @pytest.mark.asyncio
+    async def test_end_stream_on_data_wakes_reader(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.state = StreamState.OPEN
+        reader = asyncio.get_running_loop().create_task(stream.read_body_chunk())
+        await asyncio.sleep(0)
+        stream.receive_data(b"", end_stream=True)
+        assert await asyncio.wait_for(reader, timeout=1) is None
+
+    @pytest.mark.asyncio
+    async def test_reset_wakes_reader_with_error(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.state = StreamState.OPEN
+        reader = asyncio.get_running_loop().create_task(stream.read_body_chunk())
+        await asyncio.sleep(0)
+        stream.reset()
+        with pytest.raises(HTTP2StreamError):
+            await asyncio.wait_for(reader, timeout=1)
+
+    def test_empty_frame_is_not_credited(self):
+        conn = MockConnection()
+        conn.acknowledge_data = mock.Mock()
+        stream = HTTP2Stream(stream_id=1, connection=conn)
+        stream.state = StreamState.OPEN
+        stream.receive_data(b"", end_stream=False)
+        assert stream.pop_chunk() is None
+        stream.receive_data(b"abc")
+        assert stream.pop_chunk() == b"abc"
+        conn.acknowledge_data.assert_called_once_with(1, 3)
+        assert stream.acked_size == 3
+
+    def test_pop_without_connection_ack_support(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.state = StreamState.OPEN
+        stream.receive_data(b"abc")
+        assert stream.pop_chunk() == b"abc"
+        assert stream.unacked_size == 0
+
+
+class TestDisconnectWaiter:
+    """wait_disconnect() blocks until reset or signal_disconnect()."""
+
+    @pytest.mark.asyncio
+    async def test_reset_resolves_the_waiter(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.state = StreamState.OPEN
+        waiter = asyncio.get_running_loop().create_task(stream.wait_disconnect())
+        await asyncio.sleep(0)
+        assert not waiter.done()
+        stream.reset()
+        await asyncio.wait_for(waiter, timeout=1)
+        assert stream.disconnected is True
+
+    @pytest.mark.asyncio
+    async def test_returns_at_once_when_already_disconnected(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.signal_disconnect()
+        stream.signal_disconnect()
+        await asyncio.wait_for(stream.wait_disconnect(), timeout=1)
+
+    def test_close_is_not_a_disconnect(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.close()
+        assert stream.disconnected is False

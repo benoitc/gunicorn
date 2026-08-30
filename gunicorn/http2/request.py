@@ -9,31 +9,77 @@ HTTP/2 request wrapper.
 Provides a Request-compatible interface for HTTP/2 streams.
 """
 
-from io import BytesIO
-
 from gunicorn.http.message import (
     HeaderPolicy,
     RFC9110_5_5_INVALID_AND_DANGEROUS,
 )
 from gunicorn.http.errors import InvalidHeader
+from gunicorn.http2.errors import HTTP2StreamError
+from gunicorn.http2.stream import StreamState
 from gunicorn.util import split_request_uri
 
 
 class HTTP2Body:
-    """Body wrapper for HTTP/2 request data.
+    """File-like ``wsgi.input`` over an HTTP/2 stream.
 
-    Provides a file-like interface to the request body,
-    compatible with gunicorn's Body class expectations.
+    Data is taken from the stream as the application reads it. When the
+    stream holds nothing and the body is not complete, the connection is
+    asked to read more frames from the socket, so the request is served
+    while its body is still arriving and the peer only ever has one
+    receive window of it in flight.
+
+    Bytes may be passed instead of a stream for a body already in hand.
     """
 
-    def __init__(self, data):
-        """Initialize with body data.
+    def __init__(self, source):
+        self._buf = b""
+        self._eof = False
+        self._closed = False
+        if isinstance(source, (bytes, bytearray)):
+            self._stream = None
+            self._buf = bytes(source)
+            self._eof = True
+        else:
+            self._stream = source
 
-        Args:
-            data: bytes containing the request body
-        """
-        self._data = BytesIO(data)
-        self._len = len(data)
+    def _next_chunk(self):
+        """Return the next payload, or None once the body is complete."""
+        if self._eof:
+            return None
+        stream = self._stream
+        while True:
+            chunk = stream.pop_chunk()
+            if chunk is not None:
+                return chunk
+            if stream.body_complete:
+                self._eof = True
+                return None
+            connection = stream.connection
+            if stream.state is StreamState.CLOSED or connection.is_closed:
+                raise HTTP2StreamError(
+                    stream.stream_id,
+                    "stream closed before its request body was complete")
+            pump = getattr(connection, "pump", None)
+            if pump is None:
+                # Nothing here can wait for frames; the caller reads via
+                # read_body_chunk() instead.
+                self._eof = True
+                return None
+            pump(stream.stream_id)
+
+    def _fill(self, size):
+        """Hold at least ``size`` bytes, or everything up to the end."""
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+        parts = [self._buf]
+        held = len(self._buf)
+        while size is None or held < size:
+            chunk = self._next_chunk()
+            if chunk is None:
+                break
+            parts.append(chunk)
+            held += len(chunk)
+        self._buf = b"".join(parts) if len(parts) > 1 else parts[0]
 
     def read(self, size=None):
         """Read data from the body.
@@ -44,9 +90,15 @@ class HTTP2Body:
         Returns:
             bytes: The requested data
         """
-        if size is None:
-            return self._data.read()
-        return self._data.read(size)
+        if size is None or size < 0:
+            self._fill(None)
+            data, self._buf = self._buf, b""
+            return data
+        if size == 0:
+            return b""
+        self._fill(size)
+        data, self._buf = self._buf[:size], self._buf[size:]
+        return data
 
     def readline(self, size=None):
         """Read a line from the body.
@@ -57,9 +109,29 @@ class HTTP2Body:
         Returns:
             bytes: A line of data
         """
-        if size is None:
-            return self._data.readline()
-        return self._data.readline(size)
+        if size is not None and size < 0:
+            size = None
+        if size == 0:
+            return b""
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+        while True:
+            idx = self._buf.find(b"\n")
+            if idx >= 0:
+                end = idx + 1
+                if size is not None:
+                    end = min(end, size)
+                break
+            if size is not None and len(self._buf) >= size:
+                end = size
+                break
+            chunk = self._next_chunk()
+            if chunk is None:
+                end = len(self._buf) if size is None else min(size, len(self._buf))
+                break
+            self._buf += chunk
+        data, self._buf = self._buf[:end], self._buf[end:]
+        return data
 
     def readlines(self, hint=None):
         """Read all lines from the body.
@@ -70,19 +142,32 @@ class HTTP2Body:
         Returns:
             list: List of lines
         """
-        return self._data.readlines(hint)
+        lines = []
+        total = 0
+        while True:
+            line = self.readline()
+            if not line:
+                break
+            lines.append(line)
+            total += len(line)
+            if hint is not None and 0 < hint <= total:
+                break
+        return lines
+
+    def close(self):
+        """Drop what is held; further reads raise ValueError."""
+        self._closed = True
+        self._buf = b""
 
     def __iter__(self):
         """Iterate over lines in the body."""
-        return iter(self._data)
+        return self
 
-    def __len__(self):
-        """Return the content length."""
-        return self._len
-
-    def close(self):
-        """Close the body stream."""
-        self._data.close()
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
 
 
 class HTTP2Request(HeaderPolicy):
@@ -170,17 +255,8 @@ class HTTP2Request(HeaderPolicy):
             self.headers = [(n, v) for n, v in self.headers if n != 'HOST']
             self.headers.append(('HOST', authority))
 
-        # Trailers (if any)
-        self.trailers = []
-        if stream.trailers:
-            self.trailers = [
-                (name.upper(), value)
-                for name, value in stream.trailers
-            ]
-
-        # Body - HTTP/2 streams have complete body data
-        body_data = stream.get_request_body()
-        self.body = HTTP2Body(body_data)
+        # Body: read from the stream as it arrives.
+        self.body = HTTP2Body(stream)
 
         # Connection state
         self.must_close = False
@@ -197,6 +273,16 @@ class HTTP2Request(HeaderPolicy):
         # Stream priority (RFC 7540 Section 5.3)
         self.priority_weight = stream.priority_weight
         self.priority_depends_on = stream.priority_depends_on
+
+    @property
+    def trailers(self):
+        """Trailing headers, available once the whole body has been read."""
+        if not self.stream.trailers:
+            return []
+        return [
+            (name.upper(), value)
+            for name, value in self.stream.trailers
+        ]
 
     def force_close(self):
         """Force the connection to close after this request."""

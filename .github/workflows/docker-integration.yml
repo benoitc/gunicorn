@@ -6,11 +6,19 @@ on:
     paths:
       - 'gunicorn/uwsgi/**'
       - 'tests/docker/uwsgi/**'
+      - 'gunicorn/http2/**'
+      - 'gunicorn/asgi/**'
+      - 'gunicorn/workers/**'
+      - 'tests/docker/h2spec/**'
       - '.github/workflows/docker-integration.yml'
   pull_request:
     paths:
       - 'gunicorn/uwsgi/**'
       - 'tests/docker/uwsgi/**'
+      - 'gunicorn/http2/**'
+      - 'gunicorn/asgi/**'
+      - 'gunicorn/workers/**'
+      - 'tests/docker/h2spec/**'
       - '.github/workflows/docker-integration.yml'
 
 permissions:
@@ -43,3 +51,21 @@ jobs:
       - name: Run uWSGI integration tests
         run: |
           pytest tests/docker/uwsgi/ -v --tb=short
+
+  h2spec:
+    name: HTTP/2 conformance (h2spec)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov
+      - name: Run h2spec against each HTTP/2 worker
+        run: |
+          pytest tests/docker/h2spec/ -v --tb=short

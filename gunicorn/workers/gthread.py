@@ -30,6 +30,8 @@ from ..http import wsgi
 from ..http.errors import InvalidH2CPreface
 from ..http2 import negotiation
 from ..http2.response import HTTP2Response
+from ..http2.errors import HTTP2ConnectionError, HTTP2StreamError
+from ..http2.stream import StreamState
 
 
 # Sentinel value to indicate connection should be deferred back to poller
@@ -598,14 +600,22 @@ class ThreadWorker(base.Worker):
                 requests = h2_conn.receive_data()
 
                 for req in requests:
+                    if req.stream.state is StreamState.CLOSED:
+                        # Reset by the peer before it could be served
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+                        continue
                     try:
                         self.handle_http2_request(req, conn, h2_conn)
+                    except (HTTP2StreamError, HTTP2ConnectionError) as e:
+                        # The peer reset the stream, stalled past the
+                        # timeout, or the socket is gone; nothing to answer.
+                        self.log.debug("HTTP/2 stream closed: %s", e)
                     except Exception as e:
                         self.log.exception("Error handling HTTP/2 request")
                         try:
                             h2_conn.send_error(req.stream.stream_id, 500, str(e))
-                        except Exception:
-                            pass
+                        except Exception as err:
+                            self.log.debug("HTTP/2 error response failed: %s", err)
                     finally:
                         # Cleanup stream after processing
                         h2_conn.cleanup_stream(req.stream.stream_id)
@@ -617,6 +627,8 @@ class ThreadWorker(base.Worker):
 
         except http.errors.NoMoreData:
             self.log.debug("HTTP/2 connection closed by client")
+        except HTTP2ConnectionError as e:
+            self.log.debug("HTTP/2 connection closed: %s", e)
         except ssl.SSLError as e:
             if e.args[0] == ssl.SSL_ERROR_EOF:
                 self.log.debug("HTTP/2 SSL connection closed")
@@ -635,10 +647,10 @@ class ThreadWorker(base.Worker):
         environ = {}
         resp = None
         stream_id = req.stream.stream_id
+        request_start = datetime.now()
 
         try:
             self.cfg.pre_request(self, req)
-            request_start = datetime.now()
 
             # Create WSGI environ. The response frames itself as HTTP/2,
             # so the body streams out instead of being collected first, and
@@ -679,10 +691,10 @@ class ThreadWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
-            request_time = datetime.now() - request_start
-            self.log.access(resp, req, environ, request_time)
-
         finally:
+            if resp is not None:
+                # Logged even when the stream was cut off mid-response
+                self.log.access(resp, req, environ, datetime.now() - request_start)
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:

@@ -15,6 +15,8 @@ from gunicorn import sock as gunicorn_sock
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http2 import negotiation
 from gunicorn.http2.response import HTTP2Response
+from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2StreamError
+from gunicorn.http2.stream import StreamState
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -192,17 +194,27 @@ class AsyncWorker(base.Worker):
                     break
 
                 for req in requests:
+                    if req.stream.state is StreamState.CLOSED:
+                        # Reset by the peer before it could be served
+                        h2_conn.cleanup_stream(req.stream.stream_id)
+                        continue
                     try:
                         self.handle_http2_request(listener_name, req, client, addr, h2_conn)
+                    except (HTTP2StreamError, HTTP2ConnectionError) as e:
+                        # The peer reset the stream, stalled past the
+                        # timeout, or the socket is gone; nothing to answer.
+                        self.log.debug("HTTP/2 stream closed: %s", e)
                     except Exception as e:
                         self.log.exception("Error handling HTTP/2 request")
                         try:
                             h2_conn.send_error(req.stream.stream_id, 500, str(e))
-                        except Exception:
-                            pass
+                        except Exception as err:
+                            self.log.debug("HTTP/2 error response failed: %s", err)
                     finally:
                         h2_conn.cleanup_stream(req.stream.stream_id)
 
+        except HTTP2ConnectionError as e:
+            self.log.debug("HTTP/2 connection closed: %s", e)
         except ssl.SSLError as e:
             if e.args[0] == ssl.SSL_ERROR_EOF:
                 self.log.debug("HTTP/2 SSL connection closed")
@@ -253,13 +265,16 @@ class AsyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
-            request_time = datetime.now() - request_start
-            self.log.access(resp, req, environ, request_time)
-
+        except (HTTP2StreamError, HTTP2ConnectionError):
+            # The stream or connection is gone; the caller logs it at debug.
+            raise
         except Exception:
             self.log.exception("Error handling HTTP/2 request")
             raise
         finally:
+            if resp is not None:
+                # Logged even when the stream was cut off mid-response
+                self.log.access(resp, req, environ, datetime.now() - request_start)
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:

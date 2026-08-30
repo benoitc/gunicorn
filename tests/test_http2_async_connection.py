@@ -17,10 +17,12 @@ try:
     import h2.connection
     import h2.config
     import h2.events
+    import h2.errors
     H2_AVAILABLE = True
 except ImportError:
     H2_AVAILABLE = False
 
+from gunicorn.http2.stream import StreamState
 from gunicorn.http2.errors import (
     HTTP2Error, HTTP2ConnectionError
 )
@@ -770,6 +772,7 @@ class TestAsyncHTTP2FlowControl:
     @pytest.mark.asyncio
     async def test_send_data_respects_zero_window(self):
         """Test that send_data returns False when flow control window is 0."""
+        import types
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
@@ -806,6 +809,8 @@ class TestAsyncHTTP2FlowControl:
         conn.h2_conn.local_flow_control_window = lambda stream_id: 0
 
         # Try to send data - should return False (not raise)
+        # The wait is bounded by cfg.timeout; keep the test short.
+        conn.cfg = types.SimpleNamespace(timeout=0.2)
         result = await conn.send_data(1, b'Hello, World!')
         assert result is False
 
@@ -938,44 +943,49 @@ class TestAsyncHTTP2StreamClosedHandling:
 
 
 class TestAsyncHTTP2WindowOverflowHandling:
-    """Test window overflow handling in async connection."""
+    """A peer sending past the receive window gets GOAWAY(FLOW_CONTROL_ERROR)."""
 
     @pytest.mark.asyncio
     async def test_window_overflow_sends_goaway(self):
-        """Test that window overflow results in connection close."""
+        from hyperframe.frame import DataFrame
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
-        from gunicorn.http2.errors import HTTP2ErrorCode
+        from gunicorn.http2.errors import HTTP2ProtocolError
 
         cfg = MockConfig()
         reader = MockAsyncReader()
         writer = MockAsyncWriter()
         conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
 
-        # Create client and send preface
         client_conn = create_client_connection()
         reader.set_data(client_conn.data_to_send())
         await conn.initiate_connection()
         await conn.receive_data()
-
-        # Mock increment_flow_control_window to raise ValueError (overflow)
-        def raise_overflow(increment, stream_id=None):
-            raise ValueError("Flow control window too large")
-
-        conn.h2_conn.increment_flow_control_window = raise_overflow
-
-        # Send a request with data to trigger the overflow
+        client_conn.receive_data(writer.get_written_data())
         client_conn.send_headers(1, [
             (':method', 'POST'),
             (':path', '/'),
             (':scheme', 'https'),
             (':authority', 'localhost'),
         ], end_stream=False)
-        client_conn.send_data(1, b'test data', end_stream=True)
         reader.set_data(client_conn.data_to_send())
         await conn.receive_data()
 
-        # Connection should be closed with FLOW_CONTROL_ERROR
+        # Nothing is credited back until the application reads, so five
+        # full frames overrun the 65535 byte window.
+        frames = b"".join(DataFrame(1, data=b"x" * 16384).serialize() for _ in range(5))
+        reader.set_data(frames)
+        writer.clear()
+        # The reader hands over 64KiB per call; the overrun lands on the second.
+        with pytest.raises(HTTP2ProtocolError):
+            for _ in range(3):
+                await conn.receive_data()
+
         assert conn.is_closed is True
+        events = client_conn.receive_data(writer.get_written_data())
+        goaway = [e for e in events if isinstance(e, h2.events.ConnectionTerminated)]
+        # h2 sends one GOAWAY itself before raising; close() sends another.
+        assert goaway
+        assert {g.error_code for g in goaway} == {h2.errors.ErrorCodes.FLOW_CONTROL_ERROR}
 
 
 class TestAsyncHTTP2ProtocolErrorHandling:
@@ -1023,8 +1033,8 @@ class TestAsyncHTTP2ProtocolErrorHandling:
         assert conn.is_closed is True
 
 
-class TestAsyncDeferredFlowControlEvents:
-    """Events read while waiting on a window must reach the main loop."""
+class TestAsyncWindowWait:
+    """A response task waits for credit on a signal, never on the reader."""
 
     def _conn(self):
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
@@ -1035,21 +1045,581 @@ class TestAsyncDeferredFlowControlEvents:
         assert not self._conn()._deferred_events
 
     @pytest.mark.asyncio
-    async def test_events_during_a_window_wait_are_captured(self):
+    async def test_wait_returns_when_the_receive_loop_signals(self):
         conn = self._conn()
-        arriving = mock.Mock(name="RequestReceived")
-        windows = iter([0, 0, 65535])
+        windows = iter([0, 65535])
         conn.h2_conn = mock.Mock()
         conn.h2_conn.local_flow_control_window.side_effect = \
             lambda sid: next(windows)
-        conn.h2_conn.receive_data.return_value = [arriving]
-        conn.reader = MockAsyncReader(b"frame bytes")
+        conn.reader = mock.Mock()
+        conn.reader.read = mock.AsyncMock(side_effect=AssertionError("reader touched"))
 
-        async def noop():
-            return None
-        conn._send_pending_data = noop
+        async def widen():
+            await asyncio.sleep(0.01)
+            conn._signal_window()
 
-        await conn._wait_for_flow_control_window(1)
+        asyncio.get_running_loop().create_task(widen())
+        assert await conn._wait_for_flow_control_window(1) == 65535
+        conn.reader.read.assert_not_called()
 
-        assert list(conn._deferred_events) == [arriving], \
-            "event read during the wait was dropped"
+    @pytest.mark.asyncio
+    async def test_wait_gives_up_when_the_connection_closes(self):
+        conn = self._conn()
+        conn.h2_conn = mock.Mock()
+        conn.h2_conn.local_flow_control_window.return_value = 0
+        conn._closed = True
+        assert await conn._wait_for_flow_control_window(1) == -1
+
+
+class TestAsyncStreamingRequestBody:
+    """The request goes out on its headers; chunks are read as they arrive."""
+
+    async def _open_post(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        writer.clear()
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/upload'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        return conn, client, reader, writer, requests
+
+    @pytest.mark.asyncio
+    async def test_request_is_dispatched_before_the_body_arrives(self):
+        conn, client, reader, writer, requests = await self._open_post()
+        assert len(requests) == 1
+        assert requests[0].stream.body_complete is False
+
+    @pytest.mark.asyncio
+    async def test_chunks_are_read_as_they_arrive_and_credited_back(self):
+        conn, client, reader, writer, requests = await self._open_post()
+        stream = requests[0].stream
+
+        for _ in range(3):
+            client.send_data(1, b"x" * 16384, end_stream=False)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert stream.unacked_size == 3 * 16384
+        client.receive_data(writer.get_written_data())
+        writer.clear()
+        # Connection-level credit comes straight back, the stream's
+        # only once the application reads.
+        assert client.outbound_flow_control_window == 65535
+        assert client.local_flow_control_window(1) == 65535 - 3 * 16384
+
+        assert await stream.read_body_chunk() == b"x" * 16384
+        assert await stream.read_body_chunk() == b"x" * 16384
+        assert stream.unacked_size == 16384
+        client.receive_data(writer.get_written_data())
+        assert client.local_flow_control_window(1) == 65535 - 16384
+
+        client.send_data(1, b"end", end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        chunks = []
+        while True:
+            chunk = await stream.read_body_chunk()
+            if chunk is None:
+                break
+            chunks.append(chunk)
+        assert b"".join(chunks) == b"x" * 16384 + b"end"
+        assert stream.unacked_size == 0
+
+    @pytest.mark.asyncio
+    async def test_unread_body_is_reset_with_no_error_on_cleanup(self):
+        conn, client, reader, writer, requests = await self._open_post()
+        for _ in range(3):
+            client.send_data(1, b"a" * 16384, end_stream=False)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        writer.clear()
+
+        assert await conn.send_response(1, 200, [], b"done") is True
+        conn.cleanup_stream(1)
+
+        assert 1 not in conn.streams
+        events = client.receive_data(writer.get_written_data())
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert len(resets) == 1
+        assert resets[0].error_code == h2.errors.ErrorCodes.NO_ERROR
+        assert client.outbound_flow_control_window == 65535
+        assert conn.is_closed is False
+
+    @pytest.mark.asyncio
+    async def test_peer_reset_wakes_a_waiting_reader(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        conn, client, reader, writer, requests = await self._open_post()
+        stream = requests[0].stream
+
+        async def feed_reset():
+            await asyncio.sleep(0.01)
+            client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+            reader.set_data(client.data_to_send())
+            await conn.receive_data()
+
+        asyncio.get_running_loop().create_task(feed_reset())
+        with pytest.raises(HTTP2StreamError):
+            await asyncio.wait_for(stream.read_body_chunk(), timeout=2)
+
+
+class TestAsyncStreamingEdgeCases:
+    """Frames for unknown streams and failures while crediting or resetting."""
+
+    async def _open(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        writer.clear()
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        return conn, client, reader, writer, requests
+
+    @pytest.mark.asyncio
+    async def test_data_and_trailers_for_a_cleaned_up_stream_are_ignored(self):
+        conn, client, reader, writer, requests = await self._open()
+        conn.cleanup_stream(1)
+        client.send_data(1, b"late", end_stream=False)
+        client.send_headers(1, [('x-t', '1')], end_stream=True)
+        reader.set_data(client.data_to_send())
+        assert await conn.receive_data() == []
+        assert conn.is_closed is False
+
+    @pytest.mark.asyncio
+    async def test_trailers_wake_reader(self):
+        conn, client, reader, writer, requests = await self._open()
+        stream = requests[0].stream
+        client.send_data(1, b"abc", end_stream=False)
+        client.send_headers(1, [('x-t', '1')], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await stream.read_body_chunk() == b"abc"
+        assert await stream.read_body_chunk() is None
+        assert requests[0].trailers == [('X-T', '1')]
+
+    @pytest.mark.asyncio
+    async def test_credit_after_close_or_failure_is_dropped(self):
+        conn, client, reader, writer, requests = await self._open()
+        stream = requests[0].stream
+        client.send_data(1, b"abc", end_stream=False)
+        client.send_data(1, b"def", end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        conn.h2_conn.increment_flow_control_window = mock.Mock(
+            side_effect=h2.exceptions.StreamClosedError(1))
+        assert await stream.read_body_chunk() == b"abc"
+        conn._closed = True
+        conn.h2_conn.increment_flow_control_window = mock.Mock()
+        assert await stream.read_body_chunk() == b"def"
+        conn.h2_conn.increment_flow_control_window.assert_not_called()
+        conn.acknowledge_data(1, 0)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_survives_reset_and_write_failures(self):
+        conn, client, reader, writer, requests = await self._open()
+        conn.h2_conn.reset_stream = mock.Mock(
+            side_effect=h2.exceptions.StreamClosedError(1))
+        conn.h2_conn.data_to_send = mock.Mock(return_value=b"frame")
+        writer.close()
+        conn.cleanup_stream(1)
+        assert 1 not in conn.streams
+        assert conn.is_closed is True
+        conn.cleanup_stream(1)
+
+    @pytest.mark.asyncio
+    async def test_frames_for_a_stream_we_dropped_are_ignored(self):
+        conn, client, reader, writer, requests = await self._open()
+        conn.streams.pop(1)
+        client.send_data(1, b"late", end_stream=False)
+        client.send_headers(1, [('x-t', '1')], end_stream=True)
+        reader.set_data(client.data_to_send())
+        assert await conn.receive_data() == []
+        assert conn.is_closed is False
+
+    @pytest.mark.asyncio
+    async def test_arrival_credit_failure_is_swallowed(self):
+        conn, client, reader, writer, requests = await self._open()
+        conn.h2_conn.increment_flow_control_window = mock.Mock(
+            side_effect=h2.exceptions.ProtocolError("nope"))
+        client.send_data(1, b"abc", end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await requests[0].stream.read_body_chunk() == b"abc"
+
+
+class TestSendIsAtomicAgainstGoAway:
+    """HEADERS queued while another task holds the writer survive a GOAWAY."""
+
+    @pytest.mark.asyncio
+    async def test_headers_are_not_erased(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+        from test_http2_connection import frame_types
+
+        class SlowWriter(MockAsyncWriter):
+            """Once armed, the next drain() blocks until released."""
+
+            def __init__(self):
+                super().__init__()
+                self.release = asyncio.Event()
+                self.armed = False
+
+            async def drain(self):
+                if self.armed:
+                    self.armed = False
+                    await self.release.wait()
+
+        reader = MockAsyncReader()
+        writer = SlowWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        for sid in (1, 3):
+            client.send_headers(sid, [
+                (':method', 'GET'), (':path', f'/{sid}'),
+                (':scheme', 'https'), (':authority', 'localhost'),
+            ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+
+        # Task 1 holds the writer in drain(); task 2 queues its HEADERS and
+        # waits; the peer's GOAWAY is parsed meanwhile.
+        writer.armed = True
+        t1 = asyncio.get_running_loop().create_task(conn.send_response(1, 200, [], b"one"))
+        await asyncio.sleep(0.01)
+        t2 = asyncio.get_running_loop().create_task(conn.send_response(3, 200, [], b"two"))
+        await asyncio.sleep(0.01)
+        client.close_connection()
+        reader.set_data(client.data_to_send())
+        t3 = asyncio.get_running_loop().create_task(conn.receive_data())
+        await asyncio.sleep(0.01)
+        writer.release.set()
+        await asyncio.gather(t1, t2, t3)
+
+        kinds = frame_types(writer.get_written_data())
+        assert kinds.count("HeadersFrame") == 2, kinds
+        assert conn.draining is True
+
+
+class TestResetDuringDrain:
+    """A RST_STREAM parsed while a send awaits drain() is not a send error."""
+
+    async def _race(self, action):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        class SlowWriter(MockAsyncWriter):
+            def __init__(self):
+                super().__init__()
+                self.release = asyncio.Event()
+                self.armed = False
+
+            async def drain(self):
+                if self.armed:
+                    self.armed = False
+                    await self.release.wait()
+
+        reader = MockAsyncReader()
+        writer = SlowWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+
+        writer.armed = True
+        loop = asyncio.get_running_loop()
+        sender = loop.create_task(action(conn))
+        await asyncio.sleep(0.01)
+        # The sender holds the lock in drain(); the loop parses the reset
+        # now and queues behind it for its own flush.
+        client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+        reader.set_data(client.data_to_send())
+        receiver = loop.create_task(conn.receive_data())
+        await asyncio.sleep(0.01)
+        assert conn.streams[1].state is StreamState.CLOSED
+        writer.release.set()
+        await asyncio.wait_for(receiver, timeout=2)
+        return await asyncio.wait_for(sender, timeout=2)
+
+    @pytest.mark.asyncio
+    async def test_response_headers(self):
+        assert await self._race(
+            lambda c: c.send_response_headers(1, [(':status', '200')])) in (True, False)
+
+    @pytest.mark.asyncio
+    async def test_full_response(self):
+        assert await self._race(
+            lambda c: c.send_response(1, 200, [], b"body")) in (True, False)
+
+    @pytest.mark.asyncio
+    async def test_data_then_trailers(self):
+        async def action(conn):
+            await conn.send_response_headers(1, [(':status', '200')])
+            conn.writer.armed = True
+            await conn.send_data(1, b"x" * 20000, end_stream=False)
+            return await conn.send_trailers(1, [('x-t', '1')])
+        assert await self._race(action) in (True, False)
+
+
+class TestAsyncGracefulGoAway:
+    """GOAWAY(NO_ERROR) drains established streams wherever it lands in a read."""
+
+    @pytest.mark.asyncio
+    async def test_goaway_followed_by_data_in_one_read(self):
+        from hyperframe.frame import DataFrame, GoAwayFrame
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+        from test_http2_connection import frame_types
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        stream = requests[0].stream
+
+        goaway = GoAwayFrame(0, last_stream_id=1, error_code=0)
+        data = DataFrame(1, data=b"body")
+        data.flags.add("END_STREAM")
+        reader.set_data(goaway.serialize() + data.serialize())
+        await conn.receive_data()
+
+        assert conn.draining is True
+        assert conn.is_closed is False
+        assert await stream.read_body_chunk() == b"body"
+        writer.clear()
+        assert await conn.send_response(1, 200, [], b"hello") is True
+        assert "HeadersFrame" in frame_types(writer.get_written_data())
+
+    @pytest.mark.asyncio
+    async def test_unfinished_response_is_reset_with_internal_error(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+
+        conn.cleanup_stream(1)
+
+        events = client.receive_data(writer.get_written_data())
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+
+
+class TestAsyncSendCreditDeadline:
+    """The send-credit wait is bounded by cfg.timeout and woken by resets."""
+
+    async def _open_get(self, timeout):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        cfg = MockConfig()
+        cfg.set("timeout", timeout)
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(cfg, reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        client.update_settings({h2.settings.SettingCodes.INITIAL_WINDOW_SIZE: 0})
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_idle_timeout_resets_the_stream(self):
+        import types
+        conn, client, reader, writer = await self._open_get(timeout=1)
+        conn.cfg = types.SimpleNamespace(timeout=0.2)
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_data(1, b"x" * 10, end_stream=True) is False
+        assert 1 not in conn.streams
+        events = client.receive_data(writer.get_written_data())
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.CANCEL]
+
+    @pytest.mark.asyncio
+    async def test_reset_wakes_a_window_waiter(self):
+        conn, client, reader, writer = await self._open_get(timeout=5)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.01)
+        client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == -1
+
+    @pytest.mark.asyncio
+    async def test_eof_wakes_a_window_waiter(self):
+        conn, client, reader, writer = await self._open_get(timeout=5)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.01)
+        reader.set_eof()
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == -1
+
+    @pytest.mark.asyncio
+    async def test_timeout_zero_waits_for_credit(self):
+        conn, client, reader, writer = await self._open_get(timeout=0)
+        waiter = asyncio.get_running_loop().create_task(
+            conn._wait_for_flow_control_window(1))
+        await asyncio.sleep(0.3)
+        assert not waiter.done()
+        client.increment_flow_control_window(100, stream_id=1)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        assert await asyncio.wait_for(waiter, timeout=1) == 100
+
+
+class TestAsyncErrorAfterHeaders:
+    """An error once headers went out resets the stream; HPACK stays intact."""
+
+    async def _served_get(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_send_error_after_headers_resets_with_internal_error(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_response_headers(1, [(':status', '500')]) is False
+        table = len(conn.h2_conn.encoder.header_table.dynamic_entries)
+        writer.clear()
+
+        await conn.send_error(1, 500, "boom")
+
+        events = client.receive_data(writer.get_written_data())
+        assert not [e for e in events if isinstance(e, h2.events.ResponseReceived)]
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+        assert len(conn.h2_conn.encoder.header_table.dynamic_entries) == table
+        assert 1 not in conn.streams
+
+
+class TestAsyncEmptyFinalChunk:
+    """send_data(b"", end_stream=True) must put END_STREAM on the wire."""
+
+    async def _served_get(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_empty_final_chunk_ends_the_stream(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_data(1, b"part", end_stream=False) is True
+        assert await conn.send_data(1, b"", end_stream=True) is True
+        events = client.receive_data(writer.get_written_data())
+        kinds = [type(e).__name__ for e in events]
+        assert kinds == ["ResponseReceived", "DataReceived", "DataReceived", "StreamEnded"]
+        assert conn.streams[1].response_complete is True
+
+    @pytest.mark.asyncio
+    async def test_empty_chunk_without_end_stream_sends_nothing(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        writer.clear()
+        assert await conn.send_data(1, b"", end_stream=False) is True
+        assert writer.get_written_data() == b""
