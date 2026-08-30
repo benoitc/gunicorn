@@ -91,6 +91,8 @@ class HTTP2ServerConnection:
         self.peer_last_stream_id = None
         # Seconds a stream may make no progress on the wire; 0 means no limit
         self.stream_timeout = cfg.timeout or None
+        # Seconds an idle connection may sit with no stream open; 0 means no limit
+        self.idle_timeout = cfg.keepalive or None
 
         # Connection settings from config
         self.initial_window_size = cfg.http2_initial_window_size
@@ -225,8 +227,24 @@ class HTTP2ServerConnection:
             # anything still on the socket; hand them out without reading.
             return self._process_events(())
         if data is None:
+            # A worker thread or greenlet sits in this read, so the read
+            # itself has to bound how long a peer may keep it: cfg.timeout
+            # while a request body is being pulled, cfg.keepalive between
+            # requests.
+            timeout = self.stream_timeout if waiting_stream_id is not None else self.idle_timeout
+            try:
+                self.sock.settimeout(timeout)
+            except (OSError, AttributeError):
+                pass
             try:
                 data = self.sock.recv(self.READ_BUFFER_SIZE)
+            except TimeoutError:
+                if waiting_stream_id is not None:
+                    # The body stalled; HTTP2Body finds the stream closed.
+                    self.abort_stream(waiting_stream_id, HTTP2ErrorCode.CANCEL)
+                elif not self.streams:
+                    self.close()
+                return []
             except (OSError, IOError) as e:
                 raise HTTP2ConnectionError(f"Socket read error: {e}")
 

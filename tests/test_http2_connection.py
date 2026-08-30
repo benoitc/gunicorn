@@ -1917,3 +1917,82 @@ class TestErrorAfterHeaders:
         events = client.receive_data(sock.get_sent_data()[before:])
         resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
         assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+
+
+class TestSocketTimeouts:
+    """An idle connection or a stalled body read cannot hold the thread forever."""
+
+    def _open(self, keepalive=2, timeout=30):
+        import socket
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("keepalive", keepalive)
+        cfg.set("timeout", timeout)
+        server_sock, client_sock = socket.socketpair()
+        conn = HTTP2ServerConnection(cfg, server_sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(client_sock.recv(65535))
+        client_sock.setblocking(False)
+        return conn, client, server_sock, client_sock
+
+    def _events(self, client, client_sock):
+        try:
+            return client.receive_data(client_sock.recv(65535))
+        except BlockingIOError:
+            return []
+
+    def test_idle_connection_gets_goaway_after_keepalive(self):
+        conn, client, server_sock, client_sock = self._open()
+        conn.idle_timeout = 0.2
+        assert conn.receive_data() == []
+        assert conn.is_closed is True
+        kinds = [type(e).__name__ for e in self._events(client, client_sock)]
+        assert "ConnectionTerminated" in kinds
+
+    def test_stalled_body_read_resets_the_stream(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        conn, client, server_sock, client_sock = self._open()
+        conn.stream_timeout = 0.2
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        client_sock.sendall(client.data_to_send())
+        req = conn.receive_data()[0]
+        with pytest.raises(HTTP2StreamError):
+            req.body.read()
+        assert 1 not in conn.streams
+        assert conn.is_closed is False
+        resets = [e for e in self._events(client, client_sock)
+                  if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.CANCEL]
+
+    def test_idle_timeout_does_not_close_with_a_stream_open(self):
+        conn, client, server_sock, client_sock = self._open()
+        conn.idle_timeout = 0.2
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        client_sock.sendall(client.data_to_send())
+        conn.receive_data()
+        assert conn.receive_data() == []
+        assert conn.is_closed is False
+
+    def test_zero_timeouts_disable_socket_timeout(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        cfg = MockConfig()
+        cfg.set("keepalive", 0)
+        cfg.set("timeout", 0)
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(cfg, sock, ('127.0.0.1', 12345))
+        assert conn.idle_timeout is None
+        assert conn.stream_timeout is None
+        sock.settimeout = mock.Mock()
+        sock.set_recv_data(b"")
+        conn.receive_data()
+        sock.settimeout.assert_called_once_with(None)

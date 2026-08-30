@@ -15,7 +15,7 @@ from gunicorn import sock as gunicorn_sock
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http2 import negotiation
 from gunicorn.http2.response import HTTP2Response
-from gunicorn.http2.errors import HTTP2StreamError
+from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2StreamError
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -195,9 +195,9 @@ class AsyncWorker(base.Worker):
                 for req in requests:
                     try:
                         self.handle_http2_request(listener_name, req, client, addr, h2_conn)
-                    except HTTP2StreamError as e:
-                        # The peer reset the stream while its body was
-                        # being read; there is no one left to answer.
+                    except (HTTP2StreamError, HTTP2ConnectionError) as e:
+                        # The peer reset the stream, stalled past the
+                        # timeout, or the socket is gone; nothing to answer.
                         self.log.debug("HTTP/2 stream closed: %s", e)
                     except Exception as e:
                         self.log.exception("Error handling HTTP/2 request")
@@ -208,6 +208,8 @@ class AsyncWorker(base.Worker):
                     finally:
                         h2_conn.cleanup_stream(req.stream.stream_id)
 
+        except HTTP2ConnectionError as e:
+            self.log.debug("HTTP/2 connection closed: %s", e)
         except ssl.SSLError as e:
             if e.args[0] == ssl.SSL_ERROR_EOF:
                 self.log.debug("HTTP/2 SSL connection closed")
