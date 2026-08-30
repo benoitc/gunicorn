@@ -65,7 +65,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install pytest pytest-cov
       - name: Run h2spec against each HTTP/2 worker
         run: |
           pytest tests/docker/h2spec/ -v --tb=short
