@@ -23,6 +23,7 @@ from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
 from gunicorn.http2 import negotiation
 from gunicorn.http2.errors import HTTP2ErrorCode, HTTP2StreamError
+from gunicorn.http2.stream import StreamState
 from gunicorn.uwsgi.errors import UWSGIParseException
 
 
@@ -868,6 +869,11 @@ class ASGIProtocol(asyncio.Protocol):
         if self._body_receiver is not None:
             self._body_receiver.signal_disconnect()
 
+        # HTTP/2: every stream task learns the peer is gone
+        h2_conn = getattr(self, '_h2_conn', None)
+        if h2_conn is not None:
+            h2_conn.abort_streams_nowait()
+
         # Schedule task cancellation after grace period if task doesn't complete
         if self._task and not self._task.done():
             grace_period = getattr(self.cfg, 'asgi_disconnect_grace_period', 3)
@@ -1698,6 +1704,7 @@ class ASGIProtocol(asyncio.Protocol):
             while not h2_conn.is_closed:
                 if (not self.worker.alive or h2_conn.draining) and not self._h2_tasks:
                     break
+                self._maybe_resume_reading()
                 try:
                     requests = await h2_conn.receive_data(timeout=1.0)
                 except asyncio.TimeoutError:
@@ -1724,13 +1731,40 @@ class ASGIProtocol(asyncio.Protocol):
         except Exception as e:
             self.log.exception("HTTP/2 connection error: %s", e)
         finally:
-            await self._cancel_http2_streams()
+            await self._finish_http2_streams()
             if hasattr(self, '_h2_conn'):
                 try:
                     await self._h2_conn.close()
                 except Exception:
                     pass
             self._close_transport()
+
+    async def _finish_http2_streams(self):
+        """Tell in-flight streams the peer is gone, then cancel stragglers.
+
+        Same contract as HTTP/1: the application sees http.disconnect
+        first and gets asgi_disconnect_grace_period to wind down.
+        """
+        tasks = list(self._h2_tasks)
+        if not tasks:
+            return
+        h2_conn = getattr(self, '_h2_conn', None)
+        if h2_conn is not None:
+            h2_conn.abort_streams_nowait()
+        grace = getattr(self.cfg, 'asgi_disconnect_grace_period', 3)
+        if grace > 0:
+            await asyncio.wait(tasks, timeout=grace)
+        await self._cancel_http2_streams()
+
+    def _maybe_resume_reading(self):
+        """Resume a reader paused by data_received once the loop caught up.
+
+        Only the HTTP/1 loop used to resume; an HTTP/2 connection that
+        once paused never read again. Half the limit gives hysteresis.
+        """
+        if (self._reading_paused and self.reader is not None
+                and len(self.reader._buffer) <= self._max_buffer_size // 2):
+            self._resume_reading()
 
     def _start_http2_stream(self, req, h2_conn, sockname, peername):
         """Serve one stream in its own task."""
@@ -1796,11 +1830,24 @@ class ASGIProtocol(asyncio.Protocol):
         # Track if we've finished receiving body
         body_received = False
 
-        async def receive():
+        async def receive():  # pylint: disable=too-many-return-statements
             nonlocal body_received
 
-            # Check if stream is closed or missing
-            if stream is None or stream.state.name == "CLOSED":
+            # The peer reset the stream or the connection is gone
+            if stream is None or stream.disconnected:
+                return {"type": "http.disconnect"}
+            if not body_received and stream.state is StreamState.CLOSED:
+                return {"type": "http.disconnect"}
+
+            if body_received:
+                # The body has been delivered. Per the ASGI spec the next
+                # message is http.disconnect: at once if the response is
+                # already out, otherwise when the peer actually goes away.
+                # Returning again at once would spin the disconnect
+                # listeners frameworks run alongside the handler.
+                if response_complete or peer_gone:
+                    return {"type": "http.disconnect"}
+                await stream.wait_disconnect()
                 return {"type": "http.disconnect"}
 
             # First call: if body already complete (small requests), return it

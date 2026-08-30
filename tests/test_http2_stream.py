@@ -901,3 +901,30 @@ class TestBodyEvents:
         stream.receive_data(b"abc")
         assert stream.pop_chunk() == b"abc"
         assert stream.unacked_size == 0
+
+
+class TestDisconnectWaiter:
+    """wait_disconnect() blocks until reset or signal_disconnect()."""
+
+    @pytest.mark.asyncio
+    async def test_reset_resolves_the_waiter(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.state = StreamState.OPEN
+        waiter = asyncio.get_running_loop().create_task(stream.wait_disconnect())
+        await asyncio.sleep(0)
+        assert not waiter.done()
+        stream.reset()
+        await asyncio.wait_for(waiter, timeout=1)
+        assert stream.disconnected is True
+
+    @pytest.mark.asyncio
+    async def test_returns_at_once_when_already_disconnected(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.signal_disconnect()
+        stream.signal_disconnect()
+        await asyncio.wait_for(stream.wait_disconnect(), timeout=1)
+
+    def test_close_is_not_a_disconnect(self):
+        stream = HTTP2Stream(stream_id=1, connection=MockConnection())
+        stream.close()
+        assert stream.disconnected is False

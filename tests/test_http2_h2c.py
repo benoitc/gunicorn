@@ -493,11 +493,13 @@ class _FakeTransport:
     def set_write_buffer_limits(self, high=None, low=None):
         pass
 
+    paused = False
+
     def pause_reading(self):
-        pass
+        self.paused = True
 
     def resume_reading(self):
-        pass
+        self.paused = False
 
 
 def drain_task(loop, task):
@@ -1515,7 +1517,7 @@ class TestH2CASGIStreamingPaths:
         finally:
             _asgi_h2_teardown(loop, proto)
 
-    def test_receive_after_the_body_is_complete(self):
+    def test_receive_after_response_complete_returns_disconnect(self):
         got = []
 
         async def app(scope, receive, send):
@@ -1534,8 +1536,102 @@ class TestH2CASGIStreamingPaths:
                 while len(got) < 2:
                     await asyncio.sleep(0.005)
             loop.run_until_complete(asyncio.wait_for(until_done(), timeout=5))
-            assert [m["type"] for m in got] == ["http.request", "http.request"]
-            assert got[1]["body"] == b"" and got[1]["more_body"] is False
+            assert [m["type"] for m in got] == ["http.request", "http.disconnect"]
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_receive_after_the_body_blocks_until_the_peer_goes(self):
+        """The disconnect-listener idiom must suspend, not spin."""
+        import h2.errors
+
+        calls = []
+        listener_done = []
+
+        async def app(scope, receive, send):
+            async def listen():
+                while True:
+                    msg = await receive()
+                    calls.append(msg["type"])
+                    if msg["type"] == "http.disconnect":
+                        listener_done.append(True)
+                        return
+            task = asyncio.get_running_loop().create_task(listen())
+            await asyncio.sleep(0.05)
+            await task
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/listen", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                await asyncio.sleep(0.1)
+                # One body message so far, and the listener is parked.
+                assert calls == ["http.request"], calls
+                client.reset_stream(1, error_code=h2.errors.ErrorCodes.CANCEL)
+                proto.data_received(client.data_to_send())
+                while not listener_done:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+            assert calls == ["http.request", "http.disconnect"]
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_connection_lost_wakes_receive(self):
+        got = []
+
+        async def app(scope, receive, send):
+            got.append((await receive())["type"])
+            got.append((await receive())["type"])
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/lost", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def later():
+                while len(got) < 1:
+                    await asyncio.sleep(0.005)
+                await asyncio.sleep(0.02)
+                proto.connection_lost(None)
+                while len(got) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(later(), timeout=5))
+            assert got == ["http.request", "http.disconnect"]
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
+    def test_reader_resumes_after_a_pause(self):
+        seen = []
+
+        async def app(scope, receive, send):
+            await receive()
+            seen.append(scope["path"])
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"BODY"})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/first", end_stream=True)
+            proto.data_received(client.data_to_send())
+            # Enough control frames in one delivery to trip the reader limit
+            for _ in range(proto._max_buffer_size // 17 + 1):
+                client.ping(b"12345678")
+            proto.data_received(client.data_to_send())
+            assert transport.paused is True
+
+            async def until_resumed():
+                while transport.paused:
+                    await asyncio.sleep(0.005)
+                _post_headers(client, 3, "/second", end_stream=True)
+                proto.data_received(client.data_to_send())
+                while len(seen) < 2:
+                    await asyncio.sleep(0.005)
+            loop.run_until_complete(asyncio.wait_for(until_resumed(), timeout=5))
+            assert seen == ["/first", "/second"]
         finally:
             _asgi_h2_teardown(loop, proto)
 
