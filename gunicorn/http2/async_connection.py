@@ -616,7 +616,7 @@ class AsyncHTTP2Connection:
             except asyncio.TimeoutError:
                 return 0
 
-    async def send_data(self, stream_id, data, end_stream=False):
+    async def send_data(self, stream_id, data, end_stream=False):  # pylint: disable=too-many-return-statements
         """Send data on a stream.
 
         Args:
@@ -633,6 +633,16 @@ class AsyncHTTP2Connection:
 
         data_to_send = data
         try:
+            if not data_to_send:
+                if not end_stream:
+                    return True
+                # An empty DATA frame carrying END_STREAM needs no window
+                # credit and is how a response with nothing left ends.
+                async with self._lock():
+                    self.h2_conn.send_data(stream_id, b"", end_stream=True)
+                    stream.send_data(b"", end_stream=True)
+                    await self._flush_locked()
+                return True
             while data_to_send:
                 # The window is read and the frame queued under the lock,
                 # so another stream cannot spend the credit in between.

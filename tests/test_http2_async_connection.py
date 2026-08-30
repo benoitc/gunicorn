@@ -1580,3 +1580,46 @@ class TestAsyncErrorAfterHeaders:
         assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
         assert len(conn.h2_conn.encoder.header_table.dynamic_entries) == table
         assert 1 not in conn.streams
+
+
+class TestAsyncEmptyFinalChunk:
+    """send_data(b"", end_stream=True) must put END_STREAM on the wire."""
+
+    async def _served_get(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+        return conn, client, reader, writer
+
+    @pytest.mark.asyncio
+    async def test_empty_final_chunk_ends_the_stream(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        assert await conn.send_data(1, b"part", end_stream=False) is True
+        assert await conn.send_data(1, b"", end_stream=True) is True
+        events = client.receive_data(writer.get_written_data())
+        kinds = [type(e).__name__ for e in events]
+        assert kinds == ["ResponseReceived", "DataReceived", "DataReceived", "StreamEnded"]
+        assert conn.streams[1].response_complete is True
+
+    @pytest.mark.asyncio
+    async def test_empty_chunk_without_end_stream_sends_nothing(self):
+        conn, client, reader, writer = await self._served_get()
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+        writer.clear()
+        assert await conn.send_data(1, b"", end_stream=False) is True
+        assert writer.get_written_data() == b""

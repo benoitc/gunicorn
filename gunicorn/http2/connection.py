@@ -607,22 +607,7 @@ class HTTP2ServerConnection:
         if trailers:
             self.send_trailers(stream_id, trailers)
             return True
-        # Not send_data(): it chunks against the flow-control window and an
-        # empty payload skips that loop entirely, so END_STREAM would never
-        # reach the peer and the client would wait for a response that is
-        # already finished.
-        # Not send_data(): it chunks against the flow-control window and an
-        # empty payload skips that loop entirely, so END_STREAM would never
-        # reach the peer and the client would wait for a response that is
-        # already finished.
-        try:
-            self.h2_conn.send_data(stream_id, b"", end_stream=True)
-            self.streams[stream_id].send_data(b"", end_stream=True)
-            self._send_pending_data()
-        except _h2_exceptions.StreamClosedError:
-            self.cleanup_stream(stream_id)
-            return False
-        return True
+        return self.send_data(stream_id, b"", end_stream=True)
 
     def send_response(self, stream_id, status, headers, body=None):
         """Send a response on a stream.
@@ -725,7 +710,7 @@ class HTTP2ServerConnection:
         finally:
             sel.close()
 
-    def send_data(self, stream_id, data, end_stream=False):
+    def send_data(self, stream_id, data, end_stream=False):  # pylint: disable=too-many-return-statements
         """Send data on a stream.
 
         Args:
@@ -743,6 +728,15 @@ class HTTP2ServerConnection:
         data_to_send = data
         deadline = None
         try:
+            if not data_to_send:
+                if not end_stream:
+                    return True
+                # An empty DATA frame carrying END_STREAM needs no window
+                # credit and is how a response with nothing left ends.
+                self.h2_conn.send_data(stream_id, b"", end_stream=True)
+                stream.send_data(b"", end_stream=True)
+                self._send_pending_data()
+                return True
             while data_to_send:
                 available = self.h2_conn.local_flow_control_window(stream_id)
                 chunk_size = min(available, self.max_frame_size, len(data_to_send))

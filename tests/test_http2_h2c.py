@@ -1699,6 +1699,36 @@ class TestH2CASGIResponseSendIsAtomic:
         finally:
             _asgi_h2_teardown(loop, proto)
 
+    def test_empty_final_body_message_ends_the_stream(self):
+        import h2.events
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 200,
+                        "headers": []})
+            await send({"type": "http.response.body", "body": b"chunk",
+                        "more_body": True})
+            await send({"type": "http.response.body", "body": b"",
+                        "more_body": False})
+
+        loop, worker, proto, transport, client = _asgi_h2_session(app)
+        try:
+            _post_headers(client, 1, "/stream", end_stream=True)
+            proto.data_received(client.data_to_send())
+
+            async def until_done():
+                while proto._h2_tasks or not transport.written:
+                    await asyncio.sleep(0.005)
+                await asyncio.sleep(0.02)
+            loop.run_until_complete(asyncio.wait_for(until_done(), timeout=5))
+
+            events = client.receive_data(transport.written)
+            kinds = [type(e).__name__ for e in events]
+            assert "StreamEnded" in kinds, kinds
+            assert not worker.log.exception.called
+        finally:
+            _asgi_h2_teardown(loop, proto)
+
     def test_asgi_path_never_touches_h2_directly(self):
         import inspect
         from gunicorn.asgi.protocol import ASGIProtocol

@@ -2059,3 +2059,49 @@ class TestStreamFloods:
             conn.pump(1) if False else conn.receive_data(data[i:i + 65536])
         assert list(conn.streams) == [1]
         assert not conn.pending_requests
+
+
+class TestEmptyFinalChunk:
+    """send_data(b"", end_stream=True) must put END_STREAM on the wire."""
+
+    def _served_get(self):
+        from gunicorn.http2.connection import HTTP2ServerConnection
+
+        sock = MockSocket()
+        conn = HTTP2ServerConnection(MockConfig(), sock, ('127.0.0.1', 12345))
+        conn.initiate_connection()
+        client = create_client_connection()
+        conn.receive_data(client.data_to_send())
+        client.receive_data(sock.get_sent_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        conn.receive_data(client.data_to_send())
+        return conn, client, sock
+
+    def test_empty_final_chunk_ends_the_stream(self):
+        conn, client, sock = self._served_get()
+        before = len(sock.get_sent_data())
+        assert conn.send_response_headers(1, 200, []) is True
+        assert conn.send_data(1, b"part", end_stream=False) is True
+        assert conn.send_data(1, b"", end_stream=True) is True
+        events = client.receive_data(sock.get_sent_data()[before:])
+        kinds = [type(e).__name__ for e in events]
+        assert kinds == ["ResponseReceived", "DataReceived", "DataReceived", "StreamEnded"]
+        assert conn.streams[1].response_complete is True
+
+    def test_empty_chunk_without_end_stream_sends_nothing(self):
+        conn, client, sock = self._served_get()
+        assert conn.send_response_headers(1, 200, []) is True
+        before = len(sock.get_sent_data())
+        assert conn.send_data(1, b"", end_stream=False) is True
+        assert sock.get_sent_data()[before:] == b""
+
+    def test_end_stream_delegates_to_send_data(self):
+        conn, client, sock = self._served_get()
+        before = len(sock.get_sent_data())
+        assert conn.send_response_headers(1, 200, []) is True
+        assert conn.end_stream(1) is True
+        events = client.receive_data(sock.get_sent_data()[before:])
+        assert "StreamEnded" in [type(e).__name__ for e in events]
