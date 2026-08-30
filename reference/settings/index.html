@@ -3722,8 +3722,7 @@ are force killed.</p>
 <p>Valid protocols:</p>
 <ul>
 <li><code>h1</code> - HTTP/1.1 (default)</li>
-<li><code>h2</code> - HTTP/2 (requires TLS with ALPN)</li>
-<li><code>h3</code> - HTTP/3 (future, not yet implemented)</li>
+<li><code>h2</code> - HTTP/2 (TLS with ALPN, or cleartext via <code>http2_cleartext</code>)</li>
 </ul>
 <p>Examples::</p>
 <div class="highlight"><pre><span></span><code># HTTP/1.1 only (default, backward compatible)
@@ -3732,7 +3731,8 @@ are force killed.</p>
 # Prefer HTTP/2, fallback to HTTP/1.1
 --http-protocols=h2,h1
 
-# HTTP/2 only (reject HTTP/1.1 clients)
+# Offer HTTP/2 only. A client that does not select it over ALPN
+# is still served HTTP/1.1; there is no rejection.
 --http-protocols=h2
 </code></pre></div>
 <p>HTTP/2 requires:</p>

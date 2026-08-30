@@ -1375,6 +1375,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#tls-ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS ciphers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#built-in-protections" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2673,11 +2684,13 @@ workers. Note that with <code>prior-knowledge</code> alone a trusted peer sendin
 anything else is refused with 400, while with <code>upgrade</code> or <code>both</code> an
 ordinary HTTP/1 request is served normally, because that is how an
 upgrade starts.</p>
-<p>Streams on an HTTP/2 connection are handled one after another, not
-concurrently, so a slow handler holds up the other streams on that
-connection. Response bodies are streamed as the application produces
-them rather than collected first, so a large response does not sit in
-worker memory.</p>
+<p>On the <code>gthread</code> and <code>gevent</code> workers, streams on an HTTP/2 connection are
+handled one after another, so a slow handler holds up the other streams on
+that connection; the <code>asgi</code> worker serves them concurrently. Request bodies
+are pulled from the connection as the application reads them and response
+bodies are streamed as the application produces them, so neither sits in
+worker memory. A stream that makes no progress for <code>timeout</code> seconds is
+cancelled, and a connection with nothing open is closed after <code>keepalive</code>.</p>
 <p>As on HTTP/1, responses that cannot carry a body (HEAD, 1xx, 204, 304)
 send none, and <code>sendfile()</code> does not apply to HTTP/2 responses: raw file
 bytes would bypass HTTP/2 framing.</p>
@@ -3077,7 +3090,8 @@ and the <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#early_
 <span class="c1"># SSL/TLS</span>
 <span class="n">certfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.crt"</span>
 <span class="n">keyfile</span> <span class="o">=</span> <span class="s2">"/path/to/server.key"</span>
-<span class="n">ssl_version</span> <span class="o">=</span> <span class="s2">"TLSv1_2"</span>  <span class="c1"># Minimum TLS 1.2 for HTTP/2</span>
+<span class="c1"># TLS 1.2 is already the floor of the default context; ssl_version is</span>
+<span class="c1"># ignored. Use the ssl_context hook to tighten ciphers if you need to.</span>
 
 <span class="c1"># HTTP/2</span>
 <span class="n">http_protocols</span> <span class="o">=</span> <span class="s2">"h2, h1"</span>
@@ -3422,8 +3436,8 @@ Always benchmark your specific workload.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Check HTTP/2 support</span>
 curl<span class="w"> </span>-v<span class="w"> </span>--http2<span class="w"> </span>https://localhost:443/
 
-<span class="c1"># Force HTTP/2</span>
-curl<span class="w"> </span>--http2-prior-knowledge<span class="w"> </span>https://localhost:443/
+<span class="c1"># Over TLS, HTTP/2 is negotiated with ALPN; --http2-prior-knowledge is</span>
+<span class="c1"># for cleartext connections (see the h2c section).</span>
 </code></pre></div>
 <h3 id="using-python">Using Python<a class="headerlink" href="#using-python" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
@@ -3560,6 +3574,11 @@ being deprecated in HTTP/3 and is rarely used in practice.</p>
 <h2 id="security-considerations">Security Considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
 <p>HTTP/2 introduces new attack vectors compared to HTTP/1.1. Gunicorn includes several
 protections against known vulnerabilities.</p>
+<h3 id="tls-ciphers">TLS ciphers<a class="headerlink" href="#tls-ciphers" title="Permanent link">&para;</a></h3>
+<p>RFC 9113 lists cipher suites that must not be used with HTTP/2 (Appendix A).
+The default TLS 1.2 list still contains CBC suites that browsers never pick
+for HTTP/2; gunicorn does not send <code>INADEQUATE_SECURITY</code> itself. Set
+<code>ciphers</code> to a modern list if your clients are not browsers.</p>
 <h3 id="built-in-protections">Built-in Protections<a class="headerlink" href="#built-in-protections" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
