@@ -282,8 +282,9 @@ class AsyncHTTP2Connection:
                 live.append(request)
         completed_requests = live
 
-        # Send any pending data (WINDOW_UPDATE, etc.)
-        await self._send_pending_data()
+        # Send any pending data (WINDOW_UPDATE, etc.). Not waited on: a
+        # peer that stopped reading must not stop us from reading.
+        await self._write_pending()
 
         return completed_requests
 
@@ -682,8 +683,9 @@ class AsyncHTTP2Connection:
                 async with self._lock():
                     self.h2_conn.send_data(stream_id, b"", end_stream=True)
                     stream.send_data(b"", end_stream=True)
-                    self._write_locked()
-                await self._drain()
+                    wrote = self._write_locked()
+                if wrote:
+                    await self._drain()
                 return True
             while data_to_send:
                 # The window is read and the frame queued under the lock,
@@ -700,11 +702,12 @@ class AsyncHTTP2Connection:
                         # drain: a reset processed meanwhile closes the
                         # stream and must not turn into a send error.
                         stream.send_data(chunk, end_stream=is_final)
-                        self._write_locked()
+                        wrote = self._write_locked()
                 if chunk_size > 0:
                     # Outside the lock: a peer that stops reading must not
                     # hold up the receive loop or the other streams.
-                    await self._drain()
+                    if wrote:
+                        await self._drain()
                 else:
                     # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
                     available = await self._wait_for_flow_control_window(stream_id)
@@ -846,24 +849,44 @@ class AsyncHTTP2Connection:
         """
         async with self._lock():
             queue_frames()
-            self._write_locked()
-        await self._drain()
+            wrote = self._write_locked()
+        if wrote:
+            await self._drain()
 
     async def _send_pending_data(self):
-        """Send whatever h2 already has queued."""
+        """Send whatever h2 already has queued and wait for the transport."""
+        async with self._lock():
+            wrote = self._write_locked()
+        if wrote:
+            await self._drain()
+
+    async def _write_pending(self):
+        """Send whatever h2 already has queued, without waiting.
+
+        Used by the receive loop: what it has to send are control frames
+        (SETTINGS and PING acknowledgements, WINDOW_UPDATE, RST_STREAM,
+        GOAWAY), and waiting for the transport there would stop the
+        connection from reading. Backpressure belongs on the response
+        path, where the volume is.
+        """
         async with self._lock():
             self._write_locked()
-        await self._drain()
 
     def _write_locked(self):
-        """Hand h2's pending bytes to the transport. Never waits."""
+        """Hand h2's pending bytes to the transport. Never waits.
+
+        Returns:
+            bool: True if there was anything to write
+        """
         data = self.h2_conn.data_to_send()
-        if data:
-            try:
-                self.writer.write(data)
-            except (OSError, IOError) as e:
-                self._closed = True
-                raise HTTP2ConnectionError(f"Socket write error: {e}")
+        if not data:
+            return False
+        try:
+            self.writer.write(data)
+        except (OSError, IOError) as e:
+            self._closed = True
+            raise HTTP2ConnectionError(f"Socket write error: {e}")
+        return True
 
     async def _drain(self):
         """Wait for the transport to catch up, for at most cfg.timeout.

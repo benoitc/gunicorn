@@ -1628,8 +1628,17 @@ class TestAsyncEmptyFinalChunk:
 class TestWriteDrain:
     """The drain is bounded and does not hold the connection write lock."""
 
+    class _Timeout:
+        """The real config with cfg.timeout overridden, floats included."""
+
+        def __init__(self, cfg, timeout):
+            self._cfg = cfg
+            self.timeout = timeout
+
+        def __getattr__(self, name):
+            return getattr(self._cfg, name)
+
     async def _conn(self, writer, timeout=30):
-        import types
         from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
         cfg = MockConfig()
@@ -1647,8 +1656,7 @@ class TestWriteDrain:
         reader.set_data(client.data_to_send())
         await conn.receive_data()
         writer.clear()
-        # After setup: cfg.timeout takes floats here, the validator does not
-        conn.cfg = types.SimpleNamespace(timeout=timeout)
+        conn.cfg = self._Timeout(conn.cfg, timeout)
         return conn, client, reader
 
     @pytest.mark.asyncio
@@ -1687,6 +1695,62 @@ class TestWriteDrain:
 
         writer.release.set()
         assert await asyncio.wait_for(sender, timeout=1) is True
+
+    @pytest.mark.asyncio
+    async def test_the_receive_loop_runs_while_a_drain_is_stalled(self):
+        """Bodies, resets and window updates keep flowing for other streams."""
+
+        class BlockingWriter(MockAsyncWriter):
+            def __init__(self):
+                super().__init__()
+                self.release = asyncio.Event()
+                self.blocking = False
+
+            async def drain(self):
+                if self.blocking:
+                    await self.release.wait()
+
+        writer = BlockingWriter()
+        conn, client, reader = await self._conn(writer)
+        assert await conn.send_response_headers(1, [(':status', '200')]) is True
+
+        writer.blocking = True
+        sender = asyncio.get_running_loop().create_task(
+            conn.send_data(1, b"payload", end_stream=True))
+        await asyncio.sleep(0.02)
+        assert not sender.done()
+
+        # A new request and a PING arrive while the sender waits
+        client.send_headers(3, [
+            (':method', 'POST'), (':path', '/other'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        client.send_data(3, b"body", end_stream=True)
+        client.ping(b"12345678")
+        reader.set_data(client.data_to_send())
+
+        requests = await asyncio.wait_for(conn.receive_data(), timeout=1)
+        assert [r.stream.stream_id for r in requests] == [3]
+        assert await asyncio.wait_for(requests[0].stream.read_body_chunk(), 1) == b"body"
+
+        writer.release.set()
+        assert await asyncio.wait_for(sender, timeout=1) is True
+
+    @pytest.mark.asyncio
+    async def test_nothing_to_write_does_not_wait_on_the_transport(self):
+        """A flush with no bytes queued must not touch a stalled transport."""
+
+        class CountingWriter(MockAsyncWriter):
+            drains = 0
+
+            async def drain(self):
+                type(self).drains += 1
+
+        writer = CountingWriter()
+        conn, client, reader = await self._conn(writer)
+        CountingWriter.drains = 0
+        await conn._send_pending_data()      # h2 has nothing queued
+        assert CountingWriter.drains == 0
 
     @pytest.mark.asyncio
     async def test_a_peer_that_never_reads_is_dropped_after_timeout(self):
