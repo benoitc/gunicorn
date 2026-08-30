@@ -394,7 +394,8 @@ class AsyncHTTP2Connection:
             return
         try:
             self.h2_conn.increment_flow_control_window(size, stream_id=stream_id)
-        except (ValueError, _h2_exceptions.ProtocolError):
+        except (ValueError, KeyError, _h2_exceptions.ProtocolError):
+            # h2 raises KeyError for a stream it already dropped
             return
         self._write_pending_nowait()
 
@@ -564,7 +565,7 @@ class AsyncHTTP2Connection:
 
         try:
             await self._send(queue)
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             stream.close()
             self.cleanup_stream(stream_id)
             return False
@@ -606,7 +607,7 @@ class AsyncHTTP2Connection:
             if body and len(body) > 0:
                 await self.send_data(stream_id, body, end_stream=True)
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream.close()
             self.cleanup_stream(stream_id)
@@ -755,7 +756,7 @@ class AsyncHTTP2Connection:
 
             await self._send(queue)
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream.close()
             self.cleanup_stream(stream_id)

@@ -442,7 +442,8 @@ class HTTP2ServerConnection:
             return
         try:
             self.h2_conn.increment_flow_control_window(size, stream_id=stream_id)
-        except (ValueError, _h2_exceptions.ProtocolError):
+        except (ValueError, KeyError, _h2_exceptions.ProtocolError):
+            # h2 raises KeyError for a stream it already dropped
             return
         self._send_pending_data()
 
@@ -631,7 +632,7 @@ class HTTP2ServerConnection:
         try:
             self.h2_conn.send_headers(stream_id, response_headers,
                                       end_stream=end_stream)
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             stream.close()
             self.cleanup_stream(stream_id)
             return False
@@ -672,7 +673,7 @@ class HTTP2ServerConnection:
             if body and len(body) > 0:
                 self.send_data(stream_id, body, end_stream=True)
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream = self.streams.get(stream_id)
             if stream is not None:
@@ -850,7 +851,7 @@ class HTTP2ServerConnection:
             stream.send_trailers(trailer_headers)
             self._send_pending_data()
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream.close()
             self.cleanup_stream(stream_id)
