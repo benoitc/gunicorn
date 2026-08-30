@@ -56,8 +56,8 @@ def peer_trusted_for_h2c(cfg, peer_addr):
 def _h2c_available(cfg):
     """Whether cleartext HTTP/2 could apply to this server at all.
 
-    Whether the h2 package is installed is checked once at startup
-    (gunicorn.http2.check_config), not per connection.
+    Whether the h2 package is installed is checked once when the
+    configuration is loaded (Config.validate), not per connection.
     """
     return (
         "h2" in cfg.http_protocols

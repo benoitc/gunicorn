@@ -2292,33 +2292,3 @@ class TestUpgradeSettingsValidation:
         big = str(negotiation.H2C_UPGRADE_BODY_LIMIT + 1)
         assert negotiation.upgrade_settings(self._req(extra=[("CONTENT-LENGTH", big)])) is None
         assert negotiation.upgrade_settings(self._req(extra=[("CONTENT-LENGTH", "10")])) is not None
-
-
-class TestStartupCheck:
-    def test_h2_without_the_package_is_a_config_error(self):
-        from unittest import mock
-        from gunicorn.errors import ConfigError
-        from gunicorn import http2
-        cfg = h2c_config()
-        with mock.patch.object(http2, "is_http2_available", return_value=False):
-            with pytest.raises(ConfigError):
-                http2.check_config(cfg, mock.Mock())
-
-    def test_h2_without_tls_or_cleartext_warns(self):
-        from unittest import mock
-        from gunicorn.config import Config
-        from gunicorn import http2
-        cfg = Config()
-        cfg.set("http_protocols", "h2,h1")
-        log = mock.Mock()
-        with mock.patch.object(http2, "is_http2_available", return_value=True):
-            http2.check_config(cfg, log)
-        assert log.warning.called
-
-    def test_h1_only_is_silent(self):
-        from unittest import mock
-        from gunicorn.config import Config
-        from gunicorn import http2
-        log = mock.Mock()
-        http2.check_config(Config(), log)
-        assert not log.warning.called

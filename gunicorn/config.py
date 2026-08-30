@@ -83,6 +83,29 @@ class Config:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
 
+    def validate(self):
+        """Check settings against each other once everything is loaded.
+
+        Individual values are checked by their own validator as they are
+        set; this is for combinations that only make sense as a whole.
+
+        Raises:
+            gunicorn.errors.ConfigError: the configuration cannot be served
+        """
+        if "h2" in self.http_protocols:
+            from gunicorn.http2 import is_http2_available
+
+            if not is_http2_available():
+                raise ConfigError(
+                    "http_protocols includes h2 but the h2 package is not "
+                    "installed. Install gunicorn[http2], or drop h2 from "
+                    "http_protocols.")
+            if not self.is_ssl and self.http2_cleartext == "off":
+                sys.stderr.write(
+                    "Warning: http_protocols includes h2 but there is no TLS "
+                    "and http2_cleartext is off, so HTTP/2 will never be "
+                    "negotiated.\n")
+
     def get_cmd_args_from_env(self):
         if 'GUNICORN_CMD_ARGS' in self.env_orig:
             return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])

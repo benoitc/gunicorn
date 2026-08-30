@@ -147,9 +147,6 @@ class Arbiter:
         self.num_workers = self.cfg.workers
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
-
-        from gunicorn.http2 import check_config as check_http2_config
-        check_http2_config(self.cfg, self.log)
         self.log.debug('Current configuration:\n{0}'.format(
             '\n'.join(
                 '  {0}: {1}'.format(config, value.value)

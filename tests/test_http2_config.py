@@ -353,3 +353,45 @@ class TestHttp2WindowValidation:
         c = Config()
         with pytest.raises(ValueError):
             c.set("http_protocols", "h2,h3")
+
+
+class TestConfigValidate:
+    """Cross-setting checks run once the whole configuration is loaded."""
+
+    def test_h2_without_the_package_is_a_config_error(self):
+        from unittest import mock
+        from gunicorn.errors import ConfigError
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        c.set("certfile", "/dev/null")
+        with mock.patch.object(http2, "is_http2_available", return_value=False):
+            with pytest.raises(ConfigError):
+                c.validate()
+
+    def test_h2_without_tls_or_cleartext_warns(self, capsys):
+        from unittest import mock
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        with mock.patch.object(http2, "is_http2_available", return_value=True):
+            c.validate()
+        assert "never be negotiated" in capsys.readouterr().err
+
+    def test_h2_over_cleartext_is_quiet(self, capsys):
+        from unittest import mock
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        c.set("http2_cleartext", "prior-knowledge")
+        with mock.patch.object(http2, "is_http2_available", return_value=True):
+            c.validate()
+        assert capsys.readouterr().err == ""
+
+    def test_h1_only_is_quiet(self, capsys):
+        c = Config()
+        c.validate()
+        assert capsys.readouterr().err == ""
