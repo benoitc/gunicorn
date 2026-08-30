@@ -265,6 +265,9 @@ class AsyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
+        except (HTTP2StreamError, HTTP2ConnectionError):
+            # The stream or connection is gone; the caller logs it at debug.
+            raise
         except Exception:
             self.log.exception("Error handling HTTP/2 request")
             raise
