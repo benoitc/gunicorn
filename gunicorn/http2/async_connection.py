@@ -18,6 +18,7 @@ from .errors import (
     HTTP2NotAvailable, HTTP2ErrorCode,
 )
 from .stream import HTTP2Stream, StreamState
+from .h2conn import server_connection_class
 from .request import HTTP2Request
 
 
@@ -88,6 +89,7 @@ class AsyncHTTP2Connection:
         self._write_lock = None
         # Peer sent a graceful GOAWAY: finish open streams, take no new ones
         self.draining = False
+        self.peer_last_stream_id = None
 
         # Queue of completed requests for the worker
         self._request_queue = asyncio.Queue()
@@ -103,7 +105,7 @@ class AsyncHTTP2Connection:
             client_side=False,
             header_encoding='utf-8',
         )
-        self.h2_conn = _h2.H2Connection(config=config)
+        self.h2_conn = server_connection_class()(config=config)
 
         # Connection state
         self._closed = False
@@ -210,6 +212,8 @@ class AsyncHTTP2Connection:
         if not data:
             # Connection closed by peer
             self._closed = True
+            self._abort_all_streams()
+            self._signal_window()
             return []
 
         # Feed data to h2
@@ -246,7 +250,6 @@ class AsyncHTTP2Connection:
         # Process events, oldest first: anything set aside during a
         # flow-control wait arrived before this batch.
         completed_requests = []
-        was_draining = self.draining
         if self._deferred_events:
             events = list(self._deferred_events) + list(events)
             self._deferred_events.clear()
@@ -254,17 +257,6 @@ class AsyncHTTP2Connection:
             request = self._handle_event(event)
             if request is not None:
                 completed_requests.append(request)
-
-        if was_draining:
-            # Streams opened after the peer's GOAWAY are refused.
-            for request in completed_requests:
-                stream_id = request.stream.stream_id
-                self.streams.pop(stream_id, None)
-                try:
-                    self.h2_conn.reset_stream(stream_id, error_code=HTTP2ErrorCode.REFUSED_STREAM)
-                except _h2_exceptions.ProtocolError:
-                    pass
-            completed_requests = []
 
         # Send any pending data (WINDOW_UPDATE, etc.)
         await self._send_pending_data()
@@ -317,6 +309,11 @@ class AsyncHTTP2Connection:
         """Handle RequestReceived event (HEADERS frame)."""
         stream_id = event.stream_id
         headers = event.headers
+
+        if self.draining and stream_id > self.peer_last_stream_id:
+            # Opened after the peer's GOAWAY: it said it would not process it.
+            self._reset_quietly(stream_id, HTTP2ErrorCode.REFUSED_STREAM)
+            return None
 
         # Create new stream
         stream = HTTP2Stream(stream_id, self)
@@ -404,21 +401,37 @@ class AsyncHTTP2Connection:
     def _handle_connection_terminated(self, event):
         """Handle ConnectionTerminated event (GOAWAY frame).
 
-        A graceful GOAWAY (NO_ERROR) only forbids new streams; the ones
-        already established finish (RFC 9113 section 6.8). h2 closes its
-        connection state on receipt and would refuse to send anything,
-        so its state is put back to open while those streams drain, and
-        the connection closes once they are done. Any other error code
-        closes at once.
-
-        Args:
-            event: ConnectionTerminated event
+        A graceful GOAWAY (NO_ERROR) with streams in flight puts the
+        connection into draining: the established streams finish, later
+        ones are refused, and the connection closes once they are done
+        (RFC 9113 section 6.8). The h2 subclass has already kept its own
+        state open for that case. Any other GOAWAY closes at once.
         """
-        if event.error_code == HTTP2ErrorCode.NO_ERROR and self.streams:
+        if (event.error_code == HTTP2ErrorCode.NO_ERROR
+                and self.h2_conn.peer_goaway_last_stream_id is not None):
             self.draining = True
-            self.h2_conn.state_machine.state = _h2.ConnectionState.SERVER_OPEN
+            self.peer_last_stream_id = event.last_stream_id
             return
         self._closed = True
+        self._abort_all_streams()
+
+    def _abort_all_streams(self):
+        """The connection is gone: wake every stream still waiting on it."""
+        for stream in list(self.streams.values()):
+            stream.signal_disconnect()
+
+    def abort_streams_nowait(self):
+        """Called by the protocol on connection loss."""
+        self._closed = True
+        self._abort_all_streams()
+        self._signal_window()
+
+    def _reset_quietly(self, stream_id, error_code):
+        """Queue RST_STREAM for a stream h2 knows about, ignoring a closed one."""
+        try:
+            self.h2_conn.reset_stream(stream_id, error_code=error_code)
+        except _h2_exceptions.ProtocolError:
+            pass
 
     def _handle_trailers_received(self, event):
         """Handle TrailersReceived event."""
@@ -680,12 +693,22 @@ class AsyncHTTP2Connection:
 
     async def reset_stream(self, stream_id, error_code=0x8):
         """Reset a stream with RST_STREAM."""
+        await self.abort_stream(stream_id, error_code)
+
+    async def abort_stream(self, stream_id, error_code):
+        """Reset a stream, drop it, and tell the peer.
+
+        Safe on a stream h2 already closed and on a dead socket.
+        """
         stream = self.streams.get(stream_id)
         if stream is not None:
             stream.reset(error_code)
-
-        await self._send(lambda: self.h2_conn.reset_stream(
-            stream_id, error_code=error_code))
+        try:
+            await self._send(lambda: self._reset_quietly(stream_id, error_code))
+        except HTTP2ConnectionError:
+            pass
+        if stream is not None:
+            self.cleanup_stream(stream_id)
 
     async def close(self, error_code=0x0, last_stream_id=None):
         """Close the connection gracefully with GOAWAY."""
@@ -698,9 +721,12 @@ class AsyncHTTP2Connection:
             last_stream_id = max(self.streams.keys()) if self.streams else 0
 
         try:
-            await self._send(lambda: self.h2_conn.close_connection(error_code=error_code))
+            await self._send(lambda: self.h2_conn.close_connection(
+                error_code=error_code, last_stream_id=last_stream_id))
         except Exception:
             pass
+        self._abort_all_streams()
+        self._signal_window()
 
         # Not awaited: the writer's protocol is a stand-in that never
         # sees connection_lost, so wait_closed() would never return.
@@ -749,18 +775,25 @@ class AsyncHTTP2Connection:
     def cleanup_stream(self, stream_id):
         """Remove a stream after processing is complete.
 
-        A body the application did not finish reading is cut off with
+        A response the application never finished is cut off with
+        RST_STREAM(INTERNAL_ERROR); a body it did not finish reading with
         RST_STREAM(NO_ERROR) (RFC 9113 section 8.1).
         """
         stream = self.streams.pop(stream_id, None)
         if stream is None:
             return
-        if not stream.body_complete and stream.state is not StreamState.CLOSED:
+        if stream.state is StreamState.CLOSED:
+            pass
+        elif not stream.response_complete:
+            # The application never finished its response: the peer must
+            # not wait for one.
+            stream.reset(HTTP2ErrorCode.INTERNAL_ERROR)
+            self._reset_quietly(stream_id, HTTP2ErrorCode.INTERNAL_ERROR)
+        elif not stream.body_complete:
             stream.reset(HTTP2ErrorCode.NO_ERROR)
-            try:
-                self.h2_conn.reset_stream(stream_id, error_code=HTTP2ErrorCode.NO_ERROR)
-            except _h2_exceptions.ProtocolError:
-                pass
+            self._reset_quietly(stream_id, HTTP2ErrorCode.NO_ERROR)
+        # A listener still blocked in receive() after the app returned
+        stream.signal_disconnect()
         if not self._closed:
             self._write_pending_nowait()
 

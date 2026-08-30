@@ -826,7 +826,7 @@ class TestHTTP2BodyStreaming:
         stream.receive_headers([(":method", "POST"), (":path", "/")])
         pending = list(frames)
 
-        def do_pump():
+        def do_pump(stream_id=None):
             data = pending.pop(0)
             stream.receive_data(data, end_stream=not pending)
         if pump:

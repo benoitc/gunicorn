@@ -80,6 +80,11 @@ class HTTP2Stream:
         self._body_event = None  # Lazy-init asyncio.Event
         self._body_complete = False
 
+        # Set once the peer reset the stream or the connection is gone;
+        # wait_disconnect() lets an ASGI receive() block on it.
+        self.disconnected = False
+        self._disconnect_waiter = None
+
     @property
     def is_client_stream(self):
         """Check if this is a client-initiated stream (odd stream ID)."""
@@ -248,9 +253,29 @@ class HTTP2Stream:
         self.state = StreamState.CLOSED
         self.response_complete = True
         self.request_complete = True
+        self.signal_disconnect()
+
+    def signal_disconnect(self):
+        """Mark the peer as gone and wake anything waiting on it."""
+        self.disconnected = True
+        waiter = self._disconnect_waiter
+        if waiter is not None and not waiter.done():
+            waiter.set_result(None)
         # Wake a reader waiting on the body; it finds the stream closed.
         if self._body_event:
             self._body_event.set()
+
+    async def wait_disconnect(self):
+        """Block until the peer resets the stream or the connection ends."""
+        import asyncio
+
+        if self.disconnected:
+            return
+        self._disconnect_waiter = asyncio.get_running_loop().create_future()
+        try:
+            await self._disconnect_waiter
+        finally:
+            self._disconnect_waiter = None
 
     def close(self):
         """Close this stream normally."""

@@ -1148,6 +1148,7 @@ class TestAsyncStreamingRequestBody:
         client.receive_data(writer.get_written_data())
         writer.clear()
 
+        assert await conn.send_response(1, 200, [], b"done") is True
         conn.cleanup_stream(1)
 
         assert 1 not in conn.streams
@@ -1398,3 +1399,68 @@ class TestResetDuringDrain:
             await conn.send_data(1, b"x" * 20000, end_stream=False)
             return await conn.send_trailers(1, [('x-t', '1')])
         assert await self._race(action) in (True, False)
+
+
+class TestAsyncGracefulGoAway:
+    """GOAWAY(NO_ERROR) drains established streams wherever it lands in a read."""
+
+    @pytest.mark.asyncio
+    async def test_goaway_followed_by_data_in_one_read(self):
+        from hyperframe.frame import DataFrame, GoAwayFrame
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+        from test_http2_connection import frame_types
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'POST'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=False)
+        reader.set_data(client.data_to_send())
+        requests = await conn.receive_data()
+        stream = requests[0].stream
+
+        goaway = GoAwayFrame(0, last_stream_id=1, error_code=0)
+        data = DataFrame(1, data=b"body")
+        data.flags.add("END_STREAM")
+        reader.set_data(goaway.serialize() + data.serialize())
+        await conn.receive_data()
+
+        assert conn.draining is True
+        assert conn.is_closed is False
+        assert await stream.read_body_chunk() == b"body"
+        writer.clear()
+        assert await conn.send_response(1, 200, [], b"hello") is True
+        assert "HeadersFrame" in frame_types(writer.get_written_data())
+
+    @pytest.mark.asyncio
+    async def test_unfinished_response_is_reset_with_internal_error(self):
+        from gunicorn.http2.async_connection import AsyncHTTP2Connection
+
+        reader = MockAsyncReader()
+        writer = MockAsyncWriter()
+        conn = AsyncHTTP2Connection(MockConfig(), reader, writer, ('127.0.0.1', 12345))
+        await conn.initiate_connection()
+        client = create_client_connection()
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        client.receive_data(writer.get_written_data())
+        client.send_headers(1, [
+            (':method', 'GET'), (':path', '/'),
+            (':scheme', 'https'), (':authority', 'localhost'),
+        ], end_stream=True)
+        reader.set_data(client.data_to_send())
+        await conn.receive_data()
+        writer.clear()
+
+        conn.cleanup_stream(1)
+
+        events = client.receive_data(writer.get_written_data())
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]

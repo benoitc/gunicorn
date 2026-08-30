@@ -1415,6 +1415,7 @@ class TestStreamingRequestBody:
         conn.receive_data(client.data_to_send())
         before = self._drain(client, sock, before)
 
+        assert conn.send_response(1, 200, [], b"done") is True
         conn.cleanup_stream(1)
 
         assert 1 not in conn.streams
@@ -1431,10 +1432,24 @@ class TestStreamingRequestBody:
         client.send_data(1, b"a" * 10, end_stream=True)
         conn.receive_data(client.data_to_send())
         assert requests[0].body.read() == b"a" * 10
+        assert conn.send_response(1, 200, [], b"done") is True
         before = len(sock.get_sent_data())
         conn.cleanup_stream(1)
         events = client.receive_data(sock.get_sent_data()[before:])
         assert not [e for e in events if isinstance(e, h2.events.StreamReset)]
+
+    def test_unfinished_response_is_reset_with_internal_error_on_cleanup(self):
+        """The app returned without completing its response."""
+        conn, client, sock, requests = self._open_post()
+        client.send_data(1, b"a" * 10, end_stream=True)
+        conn.receive_data(client.data_to_send())
+        assert requests[0].body.read() == b"a" * 10
+        before = len(sock.get_sent_data())
+        conn.cleanup_stream(1)
+        events = client.receive_data(sock.get_sent_data()[before:])
+        resets = [e for e in events if isinstance(e, h2.events.StreamReset)]
+        assert [r.error_code for r in resets] == [h2.errors.ErrorCodes.INTERNAL_ERROR]
+        assert 1 not in conn.streams
 
     def test_requests_arriving_during_a_body_read_are_queued(self):
         conn, client, sock, requests = self._open_post()
@@ -1590,6 +1605,57 @@ class TestGracefulGoAway:
         assert 3 not in conn.streams
         assert 1 in conn.streams
         assert "RstStreamFrame" in frame_types(sock.get_sent_data()[before:])
+
+    def test_goaway_followed_by_data_in_one_read(self):
+        """The rest of the client's write lands after its GOAWAY."""
+        from hyperframe.frame import DataFrame, GoAwayFrame
+        conn, client, sock = self._open()
+        client.send_headers(
+            stream_id=1,
+            headers=[
+                (':method', 'POST'),
+                (':path', '/upload'),
+                (':scheme', 'https'),
+                (':authority', 'localhost'),
+            ],
+            end_stream=False,
+        )
+        requests = conn.receive_data(client.data_to_send())
+        req = requests[0]
+
+        goaway = GoAwayFrame(0, last_stream_id=1, error_code=0)
+        data = DataFrame(1, data=b"body")
+        data.flags.add("END_STREAM")
+        conn.receive_data(goaway.serialize() + data.serialize())
+
+        assert conn.draining is True
+        assert conn.is_closed is False
+        assert conn.h2_conn.peer_goaway_last_stream_id == 1
+        assert req.body.read() == b"body"
+        before = len(sock.get_sent_data())
+        assert conn.send_response(1, 200, [], b"hello") is True
+        conn.cleanup_stream(1)
+        assert conn.is_closed is True
+        kinds = frame_types(sock.get_sent_data()[before:])
+        assert "HeadersFrame" in kinds
+        assert kinds[-1] == "GoAwayFrame"
+
+    def test_stream_at_or_below_last_stream_id_is_served(self):
+        """A stream the peer said it would still process is served."""
+        from hyperframe.frame import GoAwayFrame, HeadersFrame
+        conn, client, sock = self._open()
+        self._get(client, 1)
+        conn.receive_data(client.data_to_send())
+        conn.receive_data(GoAwayFrame(0, last_stream_id=3, error_code=0).serialize())
+        assert conn.draining is True
+
+        f = HeadersFrame(3, data=client.encoder.encode([
+            (':method', 'GET'), (':path', '/late'),
+            (':scheme', 'https'), (':authority', 'localhost')]))
+        f.flags.add('END_HEADERS')
+        f.flags.add('END_STREAM')
+        requests = conn.receive_data(f.serialize())
+        assert [r.stream.stream_id for r in requests] == [3]
 
     def test_goaway_with_error_closes_at_once(self):
         conn, client, sock = self._open()

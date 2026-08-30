@@ -65,7 +65,7 @@ class HTTP2Body:
                 # read_body_chunk() instead.
                 self._eof = True
                 return None
-            pump()
+            pump(stream.stream_id)
 
     def _fill(self, size):
         """Hold at least ``size`` bytes, or everything up to the end."""
