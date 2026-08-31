@@ -1164,6 +1164,8 @@ class ASGIProtocol(asyncio.Protocol):
         use_chunked = False
         omits_body = False
         omits_body_warned = False
+        response_requires_close = False
+        uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
 
         # Reset response buffer for write batching
         self._response_buffer = None
@@ -1179,7 +1181,7 @@ class ASGIProtocol(asyncio.Protocol):
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked, omits_body
-            nonlocal omits_body_warned
+            nonlocal omits_body_warned, response_requires_close
 
             # If client disconnected, silently ignore send attempts
             # This allows apps to finish cleanup without errors
@@ -1214,6 +1216,20 @@ class ASGIProtocol(asyncio.Protocol):
                         has_transfer_encoding = True
                         use_chunked = True  # Framework already set chunked encoding
 
+                # Transfer-Encoding is HTTP hop-by-hop framing.  A uWSGI
+                # upstream response carries raw body bytes, so forwarding or
+                # applying it would make nginx expose the chunk markers as
+                # part of the application response.
+                if uses_uwsgi and has_transfer_encoding:
+                    response_headers = [
+                        (name, value) for name, value in response_headers
+                        if name.lower() not in (
+                            b"transfer-encoding", "transfer-encoding"
+                        )
+                    ]
+                    has_transfer_encoding = False
+                    use_chunked = False
+
                 # No-body responses (HEAD/1xx/204/304) must not carry a body.
                 # Always drop Transfer-Encoding (no chunked terminator without
                 # a body); Content-Length is dropped only for statuses that
@@ -1237,10 +1253,17 @@ class ASGIProtocol(asyncio.Protocol):
                     and not has_transfer_encoding
                     and request.version >= (1, 1)
                     and not omits_body
+                    and not uses_uwsgi
                 )
                 if needs_chunked:
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
+
+                # Without Content-Length, EOF delimits a uWSGI response body.
+                # Do not reuse the upstream connection for another request.
+                response_requires_close = (
+                    uses_uwsgi and not has_content_length and not omits_body
+                )
 
                 self._send_response_start(response_status, response_headers, request)
 
@@ -1345,6 +1368,9 @@ class ASGIProtocol(asyncio.Protocol):
                 self.log.exception("Exception in post_request hook")
 
         # Determine keepalive
+        if response_requires_close:
+            return False
+
         if request.should_close():
             return False
 

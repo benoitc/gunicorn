@@ -411,6 +411,12 @@ class Response:
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
+        #
+        # uWSGI response bodies are not HTTP message bodies: nginx treats
+        # them as opaque bytes and chooses the downstream HTTP framing.  If
+        # we add HTTP chunk markers here they leak into the application body.
+        if getattr(self.cfg, "protocol", "http") == "uwsgi":
+            return False
         if self.response_length is not None:
             return False
         elif self.req.version <= (1, 0):
