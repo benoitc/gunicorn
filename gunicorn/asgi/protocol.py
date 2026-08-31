@@ -455,10 +455,23 @@ class ASGIProtocol(asyncio.Protocol):
         self._is_ssl = ssl_object is not None
         self.writer = transport
 
-        # Setup flow control for HTTP/1.x
+        # Setup flow control
         self._flow_control = FlowControl(transport)
         transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
-        self._start_http1()
+        if getattr(self.cfg, 'protocol', 'http') == 'uwsgi':
+            self._start_uwsgi()
+        else:
+            self._start_http1()
+
+    def _start_uwsgi(self):
+        """Commit to the uWSGI protocol on this connection.
+
+        uWSGI framing is pull-parsed from a StreamReader that data_received()
+        feeds, so create the reader here instead of the HTTP/1 callback parser;
+        _handle_connection() dispatches to the uWSGI handler.
+        """
+        self.reader = asyncio.StreamReader()
+        self._task = self.worker.loop.create_task(self._handle_connection())
 
     def _start_http1(self, buffered=b""):
         """Commit to HTTP/1.x and replay anything already read.
@@ -1080,10 +1093,23 @@ class ASGIProtocol(asyncio.Protocol):
                 await self._handle_websocket(request, sockname, peername)
                 break
 
+            # Build the ASGI body receiver and feed it the uWSGI body. The
+            # HTTP/1 path fills this from parser callbacks; the uWSGI body is
+            # pull-read here (nginx buffers the request upstream).
+            self._body_receiver = BodyReceiver(request, self)
+            if request.content_length:
+                while True:
+                    chunk = await request.read_body()
+                    if not chunk:
+                        break
+                    self._body_receiver.feed(chunk)
+            self._body_receiver.set_complete()
+
             # Handle HTTP request
             keepalive = await self._handle_http_request(
                 request, sockname, peername
             )
+            self._body_receiver = None
 
             # Increment worker request count
             self.worker.nr += 1
