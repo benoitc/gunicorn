@@ -147,6 +147,15 @@ RFC9110_6_5_1_FORBIDDEN_TRAILER = frozenset((
     "TE",
 ))
 
+# RFC 9110 section 5.3: fields whose grammar admits only a single member, so a
+# second occurrence cannot be merged and makes the message ambiguous.
+# CONTENT-LENGTH is deliberately absent: duplicates are already rejected in
+# set_body_reader(), which reports them with the request attached.
+RFC9110_5_3_SINGLETON_FIELDS = frozenset((
+    "HOST",
+    "CONTENT-TYPE",
+))
+
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
     """Check if IP address is in the allow list.
@@ -168,43 +177,31 @@ def _ip_in_allow_list(ip_str, allow_list, networks):
     return False
 
 
-class Message:
-    def __init__(self, cfg, unreader, peer_addr):
-        self.cfg = cfg
-        self.unreader = unreader
-        self.peer_addr = peer_addr
-        self.remote_addr = peer_addr
-        self.version = None
-        self.headers = []
-        self.trailers = []
-        self.body = None
-        self.scheme = "https" if cfg.is_ssl else "http"
-        self.must_close = False
-        self._expected_100_continue = False
+class HeaderPolicy:
+    """Header policy shared by every request path.
 
-        # set headers limits
-        self.limit_request_fields = cfg.limit_request_fields
-        if (self.limit_request_fields <= 0
-                or self.limit_request_fields > MAX_HEADERS):
-            self.limit_request_fields = MAX_HEADERS
-        self.limit_request_field_size = cfg.limit_request_field_size
-        if self.limit_request_field_size <= 0:
-            self.limit_request_field_size = DEFAULT_MAX_HEADERFIELD_SIZE
+    Applies to HTTP/1 (both parsers) and HTTP/2 alike, so a rule added here
+    cannot be enforced on one protocol and quietly skipped on another.
+    Requires ``self.cfg``, ``self.peer_addr``, ``self.scheme`` and
+    ``self.version`` to be set before any header is applied.
+    """
 
-        # set max header buffer size
-        max_header_field_size = self.limit_request_field_size or DEFAULT_MAX_HEADERFIELD_SIZE
-        self.max_buffer_headers = self.limit_request_fields * \
-            (max_header_field_size + 2) + 4
+    #: Set by whichever class mixes this in, before headers are applied.
+    scheme = None
+    version = None
+    _expected_100_continue = False
 
-        unused = self.parse(self.unreader)
-        self.unreader.unread(unused)
-        self.set_body_reader()
+    #: HTTP/2 has no 100-continue handshake on the wire the way HTTP/1 does,
+    #: and gunicorn answers one by writing HTTP/1 bytes straight to the socket
+    #: (see wsgi.create), which would corrupt an HTTP/2 connection.
+    _policy_expect_continue = True
 
-    def force_close(self):
-        self.must_close = True
-
-    def parse(self, unreader):
-        raise NotImplementedError()
+    def _peer_is_trusted_proxy(self):
+        """Whether the peer may set forwarding and scheme headers."""
+        cfg = self.cfg
+        return (not isinstance(self.peer_addr, tuple)
+                or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips,
+                                     cfg.forwarded_allow_networks()))
 
     def _peer_trusted_for_forwarded(self):
         """Return the (secure_scheme_headers, forwarder_headers) the peer is allowed to set.
@@ -214,26 +211,36 @@ class Message:
         spoofing.  Returns ``({}, [])`` when the peer is untrusted.
         """
         cfg = self.cfg
-        if (not isinstance(self.peer_addr, tuple)
-                or _ip_in_allow_list(self.peer_addr[0], cfg.forwarded_allow_ips,
-                                     cfg.forwarded_allow_networks())):
+        if self._peer_is_trusted_proxy():
             return cfg.secure_scheme_headers, cfg.forwarder_headers
         return {}, []
 
-    def _apply_header_policy(self, name, value, scheme_state,
+    def _apply_header_policy(self, name, value, scheme_state, seen,
                              secure_scheme_headers, forwarder_headers,
                              from_trailer=False):
         """Apply per-header policy shared between Python and fast parsers.
 
         Mutates ``self._expected_100_continue`` and ``self.scheme`` as needed.
         ``scheme_state`` is a single-element list used as a mutable sentinel
-        so the caller can detect repeated scheme headers.
+        so the caller can detect repeated scheme headers.  ``seen`` is a set of
+        the field names already accepted for this message, used the same way to
+        detect repeated singleton fields.
 
         Returns the (name, value) pair to retain, or ``None`` to drop the
         header (per ``header_map='drop'``).  Raises the same exceptions the
         Python path raises so behavior is identical regardless of parser.
         """
-        if not from_trailer and name == "EXPECT":
+        # https://datatracker.ietf.org/doc/html/rfc9110#section-5.3
+        # A singleton field cannot be combined into a list, so a repeat leaves
+        # the message ambiguous and open to being read differently by us and by
+        # anything downstream.
+        if name in RFC9110_5_3_SINGLETON_FIELDS:
+            if name in seen:
+                raise InvalidHeader(name, req=self)
+            seen.add(name)
+
+        if (self._policy_expect_continue and not from_trailer
+                and name == "EXPECT"):
             # https://datatracker.ietf.org/doc/html/rfc9110#section-10.1.1
             # "The Expect field value is case-insensitive."
             if value.lower() == "100-continue":
@@ -280,6 +287,45 @@ class Message:
 
         return (name, value)
 
+
+class Message(HeaderPolicy):
+    def __init__(self, cfg, unreader, peer_addr):
+        self.cfg = cfg
+        self.unreader = unreader
+        self.peer_addr = peer_addr
+        self.remote_addr = peer_addr
+        self.version = None
+        self.headers = []
+        self.trailers = []
+        self.body = None
+        self.scheme = "https" if cfg.is_ssl else "http"
+        self.must_close = False
+        self._expected_100_continue = False
+
+        # set headers limits
+        self.limit_request_fields = cfg.limit_request_fields
+        if (self.limit_request_fields <= 0
+                or self.limit_request_fields > MAX_HEADERS):
+            self.limit_request_fields = MAX_HEADERS
+        self.limit_request_field_size = cfg.limit_request_field_size
+        if self.limit_request_field_size <= 0:
+            self.limit_request_field_size = DEFAULT_MAX_HEADERFIELD_SIZE
+
+        # set max header buffer size
+        max_header_field_size = self.limit_request_field_size or DEFAULT_MAX_HEADERFIELD_SIZE
+        self.max_buffer_headers = self.limit_request_fields * \
+            (max_header_field_size + 2) + 4
+
+        unused = self.parse(self.unreader)
+        self.unreader.unread(unused)
+        self.set_body_reader()
+
+    def force_close(self):
+        self.must_close = True
+
+    def parse(self, unreader):
+        raise NotImplementedError()
+
     def parse_headers(self, data, from_trailer=False):
         headers = []
 
@@ -288,6 +334,7 @@ class Message:
 
         # handle scheme headers
         scheme_state = [False]
+        seen = set()
         if from_trailer:
             # nonsense. either a request is https from the beginning
             #  .. or we are just behind a proxy who does not remove conflicting trailers
@@ -344,7 +391,7 @@ class Message:
                 raise LimitRequestHeaders("limit request headers fields size")
 
             kept = self._apply_header_policy(
-                name, value, scheme_state,
+                name, value, scheme_state, seen,
                 secure_scheme_headers, forwarder_headers,
                 from_trailer=from_trailer,
             )
@@ -551,13 +598,14 @@ class Request(Message):
         # below so the fast path mirrors parse_headers().
         self.headers = []
         scheme_state = [False]
+        seen = set()
         secure_scheme_headers, forwarder_headers = self._peer_trusted_for_forwarded()
         for name_bytes, value_bytes in result['headers']:
             name = bytes_to_str(name_bytes).upper()
             value = bytes_to_str(value_bytes)
 
             kept = self._apply_header_policy(
-                name, value, scheme_state,
+                name, value, scheme_state, seen,
                 secure_scheme_headers, forwarder_headers,
             )
             if kept is None:

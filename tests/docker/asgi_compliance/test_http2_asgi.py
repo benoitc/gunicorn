@@ -438,3 +438,43 @@ class TestHTTP2Direct:
         )
         assert response.status_code == 200
         assert len(response.content) == 100000
+
+
+# ============================================================================
+# Direct to gunicorn over TLS with ALPN: this is gunicorn's own HTTP/2
+# implementation on the wire. The nginx tests above only reach it over
+# HTTP/1.1, since nginx proxies upstream as HTTP/1.1.
+# ============================================================================
+
+class TestHTTP2DirectToGunicorn:
+    def test_http2_is_negotiated(self, http2_client, gunicorn_ssl_url):
+        response = http2_client.get(f"{gunicorn_ssl_url}/http/")
+        assert response.status_code == 200
+        assert response.http_version == "HTTP/2"
+
+    def test_scope_reports_http2(self, http2_client, gunicorn_ssl_url):
+        response = http2_client.get(f"{gunicorn_ssl_url}/http/scope")
+        assert response.status_code == 200
+        assert response.json()["http_version"] == "2"
+
+    def test_post_echo(self, http2_client, gunicorn_ssl_url):
+        payload = b"x" * 200_000
+        response = http2_client.post(f"{gunicorn_ssl_url}/http/echo", content=payload)
+        assert response.status_code == 200
+        assert response.http_version == "HTTP/2"
+        assert response.content == payload
+
+    def test_streaming_response(self, http2_client, gunicorn_ssl_url):
+        with http2_client.stream("GET", f"{gunicorn_ssl_url}/http/stream") as response:
+            assert response.http_version == "HTTP/2"
+            chunks = list(response.iter_bytes())
+        assert b"".join(chunks)
+
+    @pytest.mark.asyncio
+    async def test_concurrent_streams(self, async_http_client_factory, gunicorn_ssl_url):
+        import asyncio
+        async with await async_http_client_factory(http2=True) as client:
+            responses = await asyncio.gather(
+                *(client.get(f"{gunicorn_ssl_url}/http/") for _ in range(20)))
+        assert {r.status_code for r in responses} == {200}
+        assert {r.http_version for r in responses} == {"HTTP/2"}

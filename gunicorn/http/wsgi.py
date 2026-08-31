@@ -185,8 +185,17 @@ def _make_early_hints_callback(req, sock, resp):
     return send_early_hints
 
 
-def create(req, sock, client, server, cfg):
-    resp = Response(req, sock, cfg)
+def create(req, sock, client, server, cfg, response_class=None,
+           response_args=()):
+    """Build the (response, environ) pair for a request.
+
+    ``response_class`` and ``response_args`` let a protocol supply its own
+    writer: HTTP/2 passes HTTP2Response so the body is framed as HTTP/2
+    instead of HTTP/1, while everything else here stays the same.
+    """
+    if response_class is None:
+        response_class = Response
+    resp = response_class(req, sock, cfg, *response_args)
 
     # set initial environ
     environ = default_environ(req, sock, cfg)
@@ -402,6 +411,12 @@ class Response:
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
+        #
+        # uWSGI response bodies are not HTTP message bodies: nginx treats
+        # them as opaque bytes and chooses the downstream HTTP framing.  If
+        # we add HTTP chunk markers here they leak into the application body.
+        if getattr(self.cfg, "protocol", "http") == "uwsgi":
+            return False
         if self.response_length is not None:
             return False
         elif self.req.version <= (1, 0):
@@ -471,7 +486,15 @@ class Response:
             return
 
         self.sent += tosend
-        util.write(self.sock, arg, self.chunked)
+        self._emit_body(arg)
+
+    def _emit_body(self, data):
+        """Put body bytes on the wire.
+
+        The one place body framing happens, so a subclass can frame it
+        differently without reimplementing write()'s bookkeeping.
+        """
+        util.write(self.sock, data, self.chunked)
 
     def can_sendfile(self):
         return self.cfg.sendfile is not False
@@ -479,17 +502,6 @@ class Response:
     def sendfile(self, respiter):
         if self.cfg.is_ssl or not self.can_sendfile():
             return False
-
-        if self._omits_body:
-            self.send_headers()
-            if not self._omits_body_warned:
-                log.warning(
-                    "WSGI app sent body bytes on a no-body response "
-                    "(method=%s status=%s); dropping per RFC 9110.",
-                    self.req.method, self.status_code,
-                )
-                self._omits_body_warned = True
-            return True
 
         if not util.has_fileno(respiter.filelike):
             return False
@@ -504,6 +516,19 @@ class Response:
                 nbytes = self.response_length
         except (OSError, io.UnsupportedOperation):
             return False
+
+        if self._omits_body:
+            self.send_headers()
+            # Only complain when there really are body bytes to drop, the
+            # same way write() only warns for a non-empty argument.
+            if nbytes > 0 and not self._omits_body_warned:
+                log.warning(
+                    "WSGI app sent body bytes on a no-body response "
+                    "(method=%s status=%s); dropping per RFC 9110.",
+                    self.req.method, self.status_code,
+                )
+                self._omits_body_warned = True
+            return True
 
         self.send_headers()
 

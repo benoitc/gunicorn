@@ -29,7 +29,8 @@ gunicorn myapp:app \
 HTTP/2 support requires:
 
 - **SSL/TLS**: HTTP/2 uses ALPN (Application-Layer Protocol Negotiation) which
-  requires an encrypted connection
+  requires an encrypted connection (see [Cleartext HTTP/2](#cleartext-http2-h2c)
+  for the proxy-only exception)
 - **h2 library**: Install with `pip install gunicorn[http2]` or `pip install h2`
 - **Compatible worker**: gthread, gevent, or ASGI workers
 
@@ -79,6 +80,59 @@ certfile = "/path/to/server.crt"
 keyfile = "/path/to/server.key"
 http_protocols = "h2, h1"
 ```
+
+### Cleartext HTTP/2 (h2c)
+
+When TLS is terminated in front of Gunicorn - Cloud Run, fly.io, a
+service-mesh sidecar - the proxy can speak HTTP/2 to the upstream over
+plain TCP. Enable it with `--http2-cleartext`, on the `gthread`, `gevent`
+or `asgi` worker:
+
+```bash
+gunicorn myapp:app -k gthread --http-protocols h2,h1 \
+    --http2-cleartext prior-knowledge
+```
+
+The value selects which mechanism is accepted: `prior-knowledge`,
+`upgrade`, `both`, or `off` (the default). Each mechanism is enabled
+separately, so turning one on does not turn the other on.
+
+h2c is only accepted from peers in `forwarded_allow_ips` - the same
+trust list used for forwarded headers, which in this deployment shape is
+exactly the TLS-terminating proxy. A trusted peer that opens a
+connection with the HTTP/2 connection preface is served HTTP/2; anything
+else from a trusted peer (an HTTP/1.x request, a malformed or stalled
+preface) is rejected with a 400 rather than silently downgraded, so a
+misconfigured proxy fails loudly instead of quietly losing HTTP/2.
+Untrusted peers are served HTTP/1.1 exactly as if the flag were off.
+
+Both mechanisms are served by the `gthread`, `gevent` and `asgi`
+workers. Note that with `prior-knowledge` alone a trusted peer sending
+anything else is refused with 400, while with `upgrade` or `both` an
+ordinary HTTP/1 request is served normally, because that is how an
+upgrade starts.
+
+On the `gthread` and `gevent` workers, streams on an HTTP/2 connection are
+handled one after another, so a slow handler holds up the other streams on
+that connection; the `asgi` worker serves them concurrently. Request bodies
+are pulled from the connection as the application reads them and response
+bodies are streamed as the application produces them, so neither sits in
+worker memory. A stream that makes no progress for `timeout` seconds is
+cancelled, and a connection with nothing open is closed after `keepalive`.
+
+As on HTTP/1, responses that cannot carry a body (HEAD, 1xx, 204, 304)
+send none, and `sendfile()` does not apply to HTTP/2 responses: raw file
+bytes would bypass HTTP/2 framing.
+
+Test prior knowledge with:
+
+```bash
+curl --http2-prior-knowledge http://localhost:8000/
+```
+
+!!! warning
+    h2c is cleartext. Only enable it behind a trusted, TLS-terminating
+    proxy. Never expose an h2c port directly to the internet.
 
 ### HTTP/2 Settings
 
@@ -408,7 +462,8 @@ keepalive = 120  # HTTP/2 connections are long-lived
 # SSL/TLS
 certfile = "/path/to/server.crt"
 keyfile = "/path/to/server.key"
-ssl_version = "TLSv1_2"  # Minimum TLS 1.2 for HTTP/2
+# TLS 1.2 is already the floor of the default context; ssl_version is
+# ignored. Use the ssl_context hook to tighten ciphers if you need to.
 
 # HTTP/2
 http_protocols = "h2, h1"
@@ -647,8 +702,8 @@ Reference benchmarks using h2load with 4 Gunicorn workers in Docker (Apple M4 Pr
 # Check HTTP/2 support
 curl -v --http2 https://localhost:443/
 
-# Force HTTP/2
-curl --http2-prior-knowledge https://localhost:443/
+# Over TLS, HTTP/2 is negotiated with ALPN; --http2-prior-knowledge is
+# for cleartext connections (see the h2c section).
 ```
 
 ### Using Python
@@ -717,12 +772,20 @@ and complies with the following specifications:
 HTTP/2 introduces new attack vectors compared to HTTP/1.1. Gunicorn includes several
 protections against known vulnerabilities.
 
+### TLS ciphers
+
+RFC 9113 lists cipher suites that must not be used with HTTP/2 (Appendix A).
+The default TLS 1.2 list still contains CBC suites that browsers never pick
+for HTTP/2; gunicorn does not send `INADEQUATE_SECURITY` itself. Set
+`ciphers` to a modern list if your clients are not browsers.
+
 ### Built-in Protections
 
 | Attack | Protection | Setting |
 |--------|------------|---------|
 | Stream Multiplexing Abuse | Limit concurrent streams | `http2_max_concurrent_streams` (default: 100) |
 | HPACK Bomb | Header size limits | `http2_max_header_list_size` (default: 65536) |
+| Unbounded Upload | Body streams to the app; window credit returns as it reads | `http2_initial_window_size` (default: 65535) |
 | Large Frame Attack | Frame size limits | `http2_max_frame_size` (validated: 16384-16777215) |
 | Resource Exhaustion | Flow control windows | `http2_initial_window_size` (default: 65535) |
 | Slow Read (Slowloris) | Connection timeouts | `timeout` and `keepalive` settings |

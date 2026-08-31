@@ -75,7 +75,7 @@ def docker_compose_file():
     return os.path.join(os.path.dirname(__file__), "docker-compose.yml")
 
 
-def wait_for_service(url: str, timeout: int = 60) -> bool:
+def wait_for_service(url: str, timeout: int = 180) -> bool:
     """Wait for a service to become healthy."""
     start = time.time()
     while time.time() - start < timeout:
@@ -83,7 +83,7 @@ def wait_for_service(url: str, timeout: int = 60) -> bool:
             response = httpx.get(f"{url}/health", timeout=5.0)
             if response.status_code == 200:
                 return True
-        except (httpx.ConnectError, httpx.TimeoutException):
+        except httpx.RequestError:
             pass
         time.sleep(1)
     return False
@@ -105,7 +105,7 @@ def docker_services(docker_compose_file, request):
             if response.status_code != 200:
                 all_healthy = False
                 break
-        except (httpx.ConnectError, httpx.TimeoutException):
+        except httpx.RequestError:
             all_healthy = False
             break
 

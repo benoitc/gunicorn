@@ -110,6 +110,10 @@ title: Gunicorn - Python WSGI HTTP Server
         <strong>FAQ</strong>
         <span>Common questions</span>
       </a>
+      <a class="quick-link" href="roadmap/">
+        <strong>Roadmap</strong>
+        <span>Where the project is going</span>
+      </a>
     </div>
   </div>
 </section>
@@ -134,7 +138,8 @@ title: Gunicorn - Python WSGI HTTP Server
     <p>Questions? Bugs? Ideas? We're here to help.</p>
     <div class="home-footer__links">
       <a href="https://github.com/benoitc/gunicorn/issues">GitHub Issues</a>
-      <a href="https://web.libera.chat/#gunicorn">#gunicorn on Libera</a>
+      <a href="https://web.libera.chat/?channels=%23gunicorn">Chat in your browser</a>
+      <a href="roadmap/">Roadmap</a>
       <a href="community/">Contributing</a>
     </div>
   </div>

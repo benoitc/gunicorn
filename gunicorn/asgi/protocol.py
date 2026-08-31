@@ -21,6 +21,9 @@ from gunicorn.asgi.parser import (
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import NoMoreData
+from gunicorn.http2 import negotiation
+from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2ErrorCode, HTTP2StreamError
+from gunicorn.http2.stream import StreamState
 from gunicorn.uwsgi.errors import UWSGIParseException
 
 
@@ -80,6 +83,13 @@ _CHUNK_PREFIXES = {i: f"{i:x}\r\n".encode("latin-1") for i in range(16384)}
 
 # High water mark for write buffer backpressure (64KB)
 HIGH_WATER_LIMIT = 65536
+
+
+class ClientDisconnected(OSError):
+    """Raised from an HTTP/2 send() once the peer reset the stream or left.
+
+    ASGI 2.4 asks for an OSError subclass on a closed connection.
+    """
 
 
 class FlowControl:
@@ -242,12 +252,12 @@ class BodyReceiver:
             self._closed = True
             return {"type": "http.disconnect"}
 
-        # Wait for body chunk to arrive via callback
-        try:
-            await self._wait_for_data()
-            return self._build_receive_result()
-        except asyncio.CancelledError:
-            return {"type": "http.disconnect"}
+        # Wait for body chunk to arrive via callback.  A real disconnect or a
+        # body-wait expiry is surfaced by _wait_for_data via _disconnected; a
+        # task cancellation propagates to the app rather than being masked as
+        # http.disconnect (#3627).
+        await self._wait_for_data()
+        return self._build_receive_result()
 
     def _pop_chunk(self):
         """Pop a chunk and return the appropriate message."""
@@ -322,11 +332,14 @@ class BodyReceiver:
         loop = asyncio.get_event_loop()
         self._waiter = loop.create_future()
 
+        # Wait for a real transport disconnect.  If the application's task is
+        # cancelled (eg the framework cancels its disconnect listener once the
+        # response is done), let CancelledError propagate instead of swallowing
+        # it and returning http.disconnect.  Swallowing it makes frameworks like
+        # Django raise RequestAborted in place of running response.close(),
+        # which skips request_finished and leaks DB connections (#3627).
         try:
-            # Wait indefinitely for disconnect (or until cancelled)
             await self._waiter
-        except asyncio.CancelledError:
-            pass
         finally:
             self._waiter = None
             self._closed = True
@@ -353,15 +366,35 @@ class ASGIProtocol(asyncio.Protocol):
         self.cfg = worker.cfg
         self.log = worker.log
         self.app = worker.asgi
+        # Tasks serving HTTP/2 streams on this connection
+        self._h2_tasks = set()
+        # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
+        self._h2_writer_protocol = None
+        # Transport asked us to stop writing: we stop reading as well
+        self._write_paused = False
 
         self.transport = None
         self.reader = None  # Only used for HTTP/2
+        # Set to a bytes buffer while sniffing for the cleartext HTTP/2
+        # connection preface, before either protocol has been committed to.
+        self._h2c_buffer = None
+        self._h2c_timer = None
+        # Upgrade: h2c. ``_h2c_upgrade_ok`` is the per-connection decision;
+        # the other two are per-request and only set once one is under way.
+        self._h2c_upgrade_ok = False
+        self._h2c_upgrade_settings = None
+        self._h2c_upgrade_body = None
         self.writer = None
         self._task = None
         self.req_count = 0
 
         # Connection state
         self._closed = False
+        # Guards the connection_lost() cleanup so it runs exactly once. Kept
+        # separate from ``_closed`` because a server-initiated close sets
+        # ``_closed`` early (in _close_transport), and connection_lost() must
+        # still run its cleanup (e.g. decrement nr_conns) afterwards.
+        self._conn_lost_handled = False
         self._body_receiver = None  # Set per-request for disconnect signaling
 
         # Response buffering for write batching
@@ -403,6 +436,21 @@ class ASGIProtocol(asyncio.Protocol):
                 )
                 return
 
+        peername = transport.get_extra_info('peername')
+        if negotiation.prior_knowledge_allowed(self.cfg, peername):
+            # Cleartext HTTP/2 with prior knowledge. Unlike the sync workers
+            # we cannot read here, so commit to neither protocol yet: buffer
+            # in data_received() until the preface either matches or cannot.
+            self._is_ssl = False
+            self.writer = transport
+            self._flow_control = FlowControl(transport)
+            transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
+            self._h2c_buffer = b""
+            self._h2c_timer = self.worker.loop.call_later(
+                negotiation.H2C_PREFACE_TIMEOUT, self._h2c_undecided_timeout
+            )
+            return
+
         # HTTP/1.x connection - always use callback parser
         self._is_ssl = ssl_object is not None
         self.writer = transport
@@ -410,11 +458,28 @@ class ASGIProtocol(asyncio.Protocol):
         # Setup flow control for HTTP/1.x
         self._flow_control = FlowControl(transport)
         transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
+        self._start_http1()
 
-        # Setup callback parser with request ready event
+    def _start_http1(self, buffered=b""):
+        """Commit to HTTP/1.x and replay anything already read.
+
+        Called straight from connection_made(), and again when h2c sniffing
+        gives up on a connection that turned out to speak HTTP/1 after all.
+        """
         self._request_ready = asyncio.Event()
         self._setup_callback_parser()
+        peername = self.transport.get_extra_info('peername')
+        # Decided once per connection: upgrade needs a parser that can hand
+        # back the bytes pipelined behind the request, which gunicorn_h1c
+        # gained in 0.6.9. The pip floor is not enforced at runtime, so an
+        # older parser means no upgrade rather than silently dropped frames.
+        self._h2c_upgrade_ok = (
+            negotiation.upgrade_allowed(self.cfg, peername)
+            and hasattr(self._callback_parser, 'remaining')
+        )
         self._task = self.worker.loop.create_task(self._handle_connection())
+        if buffered:
+            self._feed_callback_parser(buffered)
 
     @classmethod
     def _check_h1c_protocol_available(cls):
@@ -541,6 +606,16 @@ class ASGIProtocol(asyncio.Protocol):
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
 
+        if self._h2c_upgrade_ok:
+            self._h2c_upgrade_settings = negotiation.upgrade_settings(
+                self._current_request)
+            if self._h2c_upgrade_settings is not None:
+                # Hold the request back until the message is complete and the
+                # bytes behind it have been recovered. Waking the connection
+                # loop now would let it answer over HTTP/1 mid-upgrade.
+                self._h2c_upgrade_body = bytearray()
+                return False
+
         # Signal that request is ready for processing
         if self._request_ready:
             self._request_ready.set()
@@ -550,6 +625,17 @@ class ASGIProtocol(asyncio.Protocol):
 
     def _on_body(self, chunk):
         """Callback: received body data chunk."""
+        if self._h2c_upgrade_body is not None:
+            # RFC 7540 section 3.2 allows a payload on the upgrade request.
+            # It becomes the body of stream 1, so it is kept here instead of
+            # going to a receiver no ASGI app will ever read from.
+            self._h2c_upgrade_body += chunk
+            if len(self._h2c_upgrade_body) > negotiation.H2C_UPGRADE_BODY_LIMIT:
+                # Held in memory until stream 1 exists; nothing needs more.
+                self.log.debug("h2c upgrade body over %d bytes, closing",
+                               negotiation.H2C_UPGRADE_BODY_LIMIT)
+                self._close_transport()
+            return
         if self._body_receiver:
             self._body_receiver.feed(chunk)
 
@@ -587,6 +673,9 @@ class ASGIProtocol(asyncio.Protocol):
             # WebSocket path - forward to WebSocket protocol
             self._websocket.feed_data(data)
             return
+        if self._h2c_buffer is not None:
+            self._h2c_feed(data)
+            return
         if self.reader:
             # HTTP/2 path - use StreamReader
             self.reader.feed_data(data)
@@ -599,6 +688,59 @@ class ASGIProtocol(asyncio.Protocol):
         if not self._reading_paused and self._is_buffer_full():
             self._pause_reading()
 
+    def _h2c_feed(self, data):
+        """Accumulate bytes until the connection preface resolves."""
+        self._h2c_buffer += data
+        state = negotiation.preface_match(self._h2c_buffer)
+        if state is negotiation.PARTIAL:
+            return
+        buffered, self._h2c_buffer = self._h2c_buffer, None
+        self._h2c_cancel_timer()
+        if state is negotiation.MATCH:
+            self._h2c_start(buffered)
+            return
+        if negotiation.mismatch_is_error(self.cfg):
+            # A trusted peer on a prior-knowledge-only port must speak
+            # HTTP/2. Anything else is refused rather than downgraded.
+            self._send_error_response(400, "Invalid HTTP/2 connection preface")
+            self._close_transport()
+            return
+        # Upgrade is enabled too, so this may be the HTTP/1 request that
+        # carries it; carry on with the bytes preserved.
+        self._start_http1(buffered)
+
+    def _h2c_start(self, buffered):
+        """Commit to HTTP/2 and replay the bytes read while undecided."""
+        self.reader = asyncio.StreamReader()
+        self._task = self.worker.loop.create_task(
+            # No ssl_object: this is cleartext. The handler does not use it.
+            self._handle_http2_connection(self.transport, None)
+        )
+        self.reader.feed_data(buffered)
+
+    def _h2c_undecided_timeout(self):
+        """Nothing conclusive arrived in time.
+
+        With prior knowledge alone the peer is expected to speak HTTP/2, so
+        stalling mid-preface is refused rather than downgraded. Where an
+        upgrade is also on offer, a quiet client is just a quiet client and
+        the ordinary HTTP/1 timeouts apply.
+        """
+        self._h2c_timer = None
+        if self._h2c_buffer is None:
+            return
+        buffered, self._h2c_buffer = self._h2c_buffer, None
+        if not negotiation.mismatch_is_error(self.cfg):
+            self._start_http1(buffered)
+            return
+        self._send_error_response(400, "Invalid HTTP/2 connection preface")
+        self._close_transport()
+
+    def _h2c_cancel_timer(self):
+        if self._h2c_timer is not None:
+            self._h2c_timer.cancel()
+            self._h2c_timer = None
+
     def _feed_callback_parser(self, data):
         """Feed data to callback parser, handling parse errors.
 
@@ -606,6 +748,8 @@ class ASGIProtocol(asyncio.Protocol):
         """
         try:
             self._callback_parser.feed(data)
+            if self._h2c_upgrade_settings is not None:
+                return self._h2c_arm_upgrade()
             return True
         except LimitRequestLine as e:
             self._send_error_response(414, str(e))  # URI Too Long
@@ -624,6 +768,40 @@ class ASGIProtocol(asyncio.Protocol):
             if self._handle_h1c_exception(e):
                 return False
             raise
+
+    def _h2c_arm_upgrade(self):
+        """Hand the connection over to HTTP/2 once the request is complete.
+
+        Runs synchronously, inside data_received(), because that is what stops
+        the connection preface and the frames behind it from reaching the
+        HTTP/1 parser. Installing the reader here also gives later
+        data_received() calls somewhere to land while the connection loop is
+        still waking up.
+
+        Returns True to keep feeding HTTP/1, as _feed_callback_parser does.
+        """
+        parser = self._callback_parser
+        if not parser.is_complete:
+            return True
+        if parser.remaining_truncated:
+            # The tail is capped, so frames the client already sent are gone
+            # and the HTTP/2 stream would start corrupt. Nobody legitimately
+            # pipelines that much behind an upgrade request.
+            self._h2c_upgrade_settings = None
+            self._h2c_upgrade_body = None
+            self._send_error_response(400, "Upgrade request tail too large")
+            self._close_transport()
+            # Let the connection loop out of its wait instead of leaving it
+            # for the disconnect grace period to cancel.
+            self._request_ready.set()
+            return False
+        pending = parser.remaining()
+        self._callback_parser = None
+        self.reader = asyncio.StreamReader()
+        if pending:
+            self.reader.feed_data(pending)
+        self._request_ready.set()
+        return False
 
     def _is_buffer_full(self):
         """Check if internal buffer is full (HTTP/2 only)."""
@@ -679,11 +857,18 @@ class ASGIProtocol(asyncio.Protocol):
 
         See: https://github.com/benoitc/gunicorn/issues/3484
         """
-        # Guard against multiple calls (idempotent)
-        if self._closed:
+        # Guard against multiple calls (idempotent). Use a dedicated flag rather
+        # than ``_closed``: a server-initiated close sets ``_closed`` in
+        # _close_transport() before the transport reports the loss, and the
+        # cleanup below (notably decrementing nr_conns) must still run.
+        if self._conn_lost_handled:
             return
 
+        self._conn_lost_handled = True
         self._closed = True
+        # Drop any half-read preface with the connection it belonged to.
+        self._h2c_buffer = None
+        self._h2c_cancel_timer()
         self.worker.nr_conns -= 1
 
         # Cancel keepalive timer
@@ -699,6 +884,17 @@ class ASGIProtocol(asyncio.Protocol):
         # Signal disconnect to the app via the body receiver
         if self._body_receiver is not None:
             self._body_receiver.signal_disconnect()
+
+        # HTTP/2: every stream task learns the peer is gone, and a task
+        # blocked in writer.drain() is released with an error.
+        h2_conn = getattr(self, '_h2_conn', None)
+        if h2_conn is not None:
+            h2_conn.abort_streams_nowait()
+        if self._h2_writer_protocol is not None:
+            try:
+                self._h2_writer_protocol.connection_lost(exc)
+            except Exception:
+                pass
 
         # Schedule task cancellation after grace period if task doesn't complete
         if self._task and not self._task.done():
@@ -721,11 +917,23 @@ class ASGIProtocol(asyncio.Protocol):
         """Called by transport when write buffer exceeds high water mark."""
         if self._flow_control:
             self._flow_control.pause_writing()
+        elif self._h2_writer_protocol is not None:
+            self._h2_writer_protocol.pause_writing()
+            # The peer is not reading. Stop reading from it too: its PING
+            # and SETTINGS frames are answered without waiting for the
+            # transport, so parsing more of them would grow a write buffer
+            # that is already over its limit.
+            self._write_paused = True
+            self._pause_reading()
 
     def resume_writing(self):
         """Called by transport when write buffer drains below low water mark."""
         if self._flow_control:
             self._flow_control.resume_writing()
+        elif self._h2_writer_protocol is not None:
+            self._h2_writer_protocol.resume_writing()
+            self._write_paused = False
+            self._maybe_resume_reading()
 
     def _safe_write(self, data):
         """Write data to transport, handling connection errors gracefully.
@@ -783,6 +991,11 @@ class ASGIProtocol(asyncio.Protocol):
 
                 # If PROXY protocol provided a real client address, use it.
                 effective_peer = self._effective_peername(peername)
+
+                # Check for cleartext HTTP/2 upgrade
+                if self._h2c_upgrade_settings is not None:
+                    await self._handle_h2c_upgrade(request)
+                    break  # HTTP/2 takes over the connection
 
                 # Check for WebSocket upgrade
                 if self._is_websocket_upgrade(request):
@@ -889,6 +1102,21 @@ class ASGIProtocol(asyncio.Protocol):
 
             await request.drain_body()
 
+    async def _handle_h2c_upgrade(self, request):
+        """Serve an Upgrade: h2c request over HTTP/2.
+
+        The 101 goes out here rather than in _h2c_arm_upgrade so that nothing
+        can write between it and the SETTINGS frame the HTTP/2 handler sends.
+        """
+        settings = self._h2c_upgrade_settings
+        body = bytes(self._h2c_upgrade_body or b"")
+        self._h2c_upgrade_settings = None
+        self._h2c_upgrade_body = None
+        self.transport.write(negotiation.UPGRADE_101)
+        await self._handle_http2_connection(
+            self.transport, None, upgrade=(settings, request, body)
+        )
+
     def _is_websocket_upgrade(self, request):
         """Check if request is a WebSocket upgrade.
 
@@ -936,6 +1164,8 @@ class ASGIProtocol(asyncio.Protocol):
         use_chunked = False
         omits_body = False
         omits_body_warned = False
+        response_requires_close = False
+        uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
 
         # Reset response buffer for write batching
         self._response_buffer = None
@@ -951,7 +1181,7 @@ class ASGIProtocol(asyncio.Protocol):
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked, omits_body
-            nonlocal omits_body_warned
+            nonlocal omits_body_warned, response_requires_close
 
             # If client disconnected, silently ignore send attempts
             # This allows apps to finish cleanup without errors
@@ -986,6 +1216,20 @@ class ASGIProtocol(asyncio.Protocol):
                         has_transfer_encoding = True
                         use_chunked = True  # Framework already set chunked encoding
 
+                # Transfer-Encoding is HTTP hop-by-hop framing.  A uWSGI
+                # upstream response carries raw body bytes, so forwarding or
+                # applying it would make nginx expose the chunk markers as
+                # part of the application response.
+                if uses_uwsgi and has_transfer_encoding:
+                    response_headers = [
+                        (name, value) for name, value in response_headers
+                        if name.lower() not in (
+                            b"transfer-encoding", "transfer-encoding"
+                        )
+                    ]
+                    has_transfer_encoding = False
+                    use_chunked = False
+
                 # No-body responses (HEAD/1xx/204/304) must not carry a body.
                 # Always drop Transfer-Encoding (no chunked terminator without
                 # a body); Content-Length is dropped only for statuses that
@@ -1009,10 +1253,17 @@ class ASGIProtocol(asyncio.Protocol):
                     and not has_transfer_encoding
                     and request.version >= (1, 1)
                     and not omits_body
+                    and not uses_uwsgi
                 )
                 if needs_chunked:
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
+
+                # Without Content-Length, EOF delimits a uWSGI response body.
+                # Do not reuse the upstream connection for another request.
+                response_requires_close = (
+                    uses_uwsgi and not has_content_length and not omits_body
+                )
 
                 self._send_response_start(response_status, response_headers, request)
 
@@ -1117,6 +1368,9 @@ class ASGIProtocol(asyncio.Protocol):
                 self.log.exception("Exception in post_request hook")
 
         # Determine keepalive
+        if response_requires_close:
+            return False
+
         if request.should_close():
             return False
 
@@ -1463,8 +1717,14 @@ class ASGIProtocol(asyncio.Protocol):
                 pass
             self._closed = True
 
-    async def _handle_http2_connection(self, transport, ssl_object):
-        """Handle an HTTP/2 connection."""
+    async def _handle_http2_connection(self, transport, ssl_object, upgrade=None):
+        """Handle an HTTP/2 connection.
+
+        ``upgrade`` is set when the connection arrives over Upgrade: h2c and
+        carries ``(settings, http1_req, body)``. The request that asked for
+        the upgrade becomes stream 1 and is served before the receive loop
+        starts, per RFC 7540 section 3.2.
+        """
         try:
             from gunicorn.http2.async_connection import AsyncHTTP2Connection
 
@@ -1478,17 +1738,53 @@ class ASGIProtocol(asyncio.Protocol):
             writer = asyncio.StreamWriter(
                 transport, protocol, reader, self.worker.loop
             )
+            # The transport reports pause/resume to this ASGIProtocol; they
+            # are forwarded to the stand-in so writer.drain() really waits.
+            self._h2_writer_protocol = protocol
+            self._flow_control = None
+            try:
+                transport.set_write_buffer_limits(high=HIGH_WATER_LIMIT)
+            except (AttributeError, RuntimeError):
+                pass
 
             # Create HTTP/2 connection handler
             h2_conn = AsyncHTTP2Connection(
                 self.cfg, reader, writer, peername
             )
-            await h2_conn.initiate_connection()
+            if upgrade is None:
+                await h2_conn.initiate_connection()
+                self._h2_conn = h2_conn
+            else:
+                settings, http1_req, body = upgrade
+                upgraded = await h2_conn.initiate_upgrade(
+                    settings, http1_req, body)
+                self._h2_conn = h2_conn
+                self._start_http2_stream(upgraded, h2_conn, sockname, peername)
+                self.worker.nr += 1
 
-            self._h2_conn = h2_conn
-
-            # Main loop - receive and handle requests
-            while not h2_conn.is_closed and self.worker.alive:
+            # Main loop: each request is served by its own task as soon
+            # as its headers are in, while this loop keeps reading frames
+            # so bodies stream to the tasks and window credit flows back.
+            # Once the worker stops accepting, or the peer sends a graceful
+            # GOAWAY, the loop keeps reading until the streams already in
+            # flight have finished, so their bodies still arrive; streams
+            # opened meanwhile are refused.
+            loop = self.worker.loop
+            idle_since = None
+            keepalive = self.cfg.keepalive or None
+            while not h2_conn.is_closed:
+                if (not self.worker.alive or h2_conn.draining) and not self._h2_tasks:
+                    break
+                if self._h2_tasks or h2_conn.streams:
+                    idle_since = None
+                elif idle_since is None:
+                    idle_since = loop.time()
+                elif keepalive and loop.time() - idle_since >= keepalive:
+                    # Nothing open for cfg.keepalive: same as an idle
+                    # HTTP/1 keep-alive connection, closed with GOAWAY.
+                    await h2_conn.close()
+                    break
+                self._maybe_resume_reading()
                 try:
                     requests = await h2_conn.receive_data(timeout=1.0)
                 except asyncio.TimeoutError:
@@ -1498,41 +1794,90 @@ class ASGIProtocol(asyncio.Protocol):
                     break
 
                 for req in requests:
-                    try:
-                        await self._handle_http2_request(
-                            req, h2_conn, sockname, peername
-                        )
-                    except Exception as e:
-                        self.log.exception("Error handling HTTP/2 request")
-                        try:
-                            await h2_conn.send_error(
-                                req.stream.stream_id, 500, str(e)
-                            )
-                        except Exception:
-                            pass
-                    finally:
-                        h2_conn.cleanup_stream(req.stream.stream_id)
-
-                # Increment worker request count
-                self.worker.nr += len(requests)
-
-                # Check max_requests
-                if self.worker.nr >= self.worker.max_requests:
-                    self.log.info("Autorestarting worker after current request.")
-                    self.worker.alive = False
-                    break
+                    stream_id = req.stream.stream_id
+                    if not self.worker.alive:
+                        await h2_conn.reset_stream(
+                            stream_id, HTTP2ErrorCode.REFUSED_STREAM)
+                        h2_conn.cleanup_stream(stream_id)
+                        continue
+                    self._start_http2_stream(req, h2_conn, sockname, peername)
+                    self.worker.nr += 1
+                    if self.worker.nr >= self.worker.max_requests:
+                        self.log.info("Autorestarting worker after current request.")
+                        self.worker.alive = False
 
         except asyncio.CancelledError:
-            pass
+            raise
         except Exception as e:
             self.log.exception("HTTP/2 connection error: %s", e)
         finally:
+            await self._finish_http2_streams()
             if hasattr(self, '_h2_conn'):
                 try:
                     await self._h2_conn.close()
                 except Exception:
                     pass
             self._close_transport()
+
+    async def _finish_http2_streams(self):
+        """Tell in-flight streams the peer is gone, then cancel stragglers.
+
+        Same contract as HTTP/1: the application sees http.disconnect
+        first and gets asgi_disconnect_grace_period to wind down.
+        """
+        tasks = list(self._h2_tasks)
+        if not tasks:
+            return
+        h2_conn = getattr(self, '_h2_conn', None)
+        if h2_conn is not None:
+            h2_conn.abort_streams_nowait()
+        grace = getattr(self.cfg, 'asgi_disconnect_grace_period', 3)
+        if grace > 0:
+            await asyncio.wait(tasks, timeout=grace)
+        await self._cancel_http2_streams()
+
+    def _maybe_resume_reading(self):
+        """Resume a reader paused by data_received once the loop caught up.
+
+        Only the HTTP/1 loop used to resume; an HTTP/2 connection that
+        once paused never read again. Half the limit gives hysteresis.
+        """
+        if self._write_paused:
+            # The transport is still over its write limit; reading more
+            # would only make us answer frames we cannot send.
+            return
+        if (self._reading_paused and self.reader is not None
+                and len(self.reader._buffer) <= self._max_buffer_size // 2):
+            self._resume_reading()
+
+    def _start_http2_stream(self, req, h2_conn, sockname, peername):
+        """Serve one stream in its own task."""
+        task = self.worker.loop.create_task(
+            self._serve_http2_request(req, h2_conn, sockname, peername))
+        self._h2_tasks.add(task)
+        task.add_done_callback(self._h2_tasks.discard)
+
+    async def _cancel_http2_streams(self):
+        """Stop stream tasks still running when the connection ends."""
+        tasks = list(self._h2_tasks)
+        if not tasks:
+            return
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _serve_http2_request(self, req, h2_conn, sockname, peername):
+        """Run one HTTP/2 request, answering 500 rather than dropping it."""
+        try:
+            await self._handle_http2_request(req, h2_conn, sockname, peername)
+        except Exception as e:
+            self.log.exception("Error handling HTTP/2 request")
+            try:
+                await h2_conn.send_error(req.stream.stream_id, 500, str(e))
+            except Exception:
+                pass
+        finally:
+            h2_conn.cleanup_stream(req.stream.stream_id)
 
     def _convert_h2_headers(self, headers):
         """Convert ASGI headers to HTTP/2 format (lowercase string names)."""
@@ -1559,6 +1904,8 @@ class ASGIProtocol(asyncio.Protocol):
         response_started = False
         response_complete = False
         headers_sent = False
+        omits_body = False
+        omits_body_warned = False
         exc_to_raise = None
         response_status = 500
         response_headers = []
@@ -1567,11 +1914,24 @@ class ASGIProtocol(asyncio.Protocol):
         # Track if we've finished receiving body
         body_received = False
 
-        async def receive():
+        async def receive():  # pylint: disable=too-many-return-statements
             nonlocal body_received
 
-            # Check if stream is closed or missing
-            if stream is None or stream.state.name == "CLOSED":
+            # The peer reset the stream or the connection is gone
+            if stream is None or stream.disconnected:
+                return {"type": "http.disconnect"}
+            if not body_received and stream.state is StreamState.CLOSED:
+                return {"type": "http.disconnect"}
+
+            if body_received:
+                # The body has been delivered. Per the ASGI spec the next
+                # message is http.disconnect: at once if the response is
+                # already out, otherwise when the peer actually goes away.
+                # Returning again at once would spin the disconnect
+                # listeners frameworks run alongside the handler.
+                if response_complete or peer_gone:
+                    return {"type": "http.disconnect"}
+                await stream.wait_disconnect()
                 return {"type": "http.disconnect"}
 
             # First call: if body already complete (small requests), return it
@@ -1584,13 +1944,18 @@ class ASGIProtocol(asyncio.Protocol):
                     "more_body": False,
                 }
 
-            # Streaming: read next chunk
+            if stream.expect_continue and not stream.response_headers_sent:
+                # The client is waiting for a 100 before sending the body.
+                stream.expect_continue = False
+                await h2_conn.send_informational(stream_id, 100, [])
+
+            # Streaming: read next chunk, for at most cfg.timeout
             try:
                 chunk = await asyncio.wait_for(
                     stream.read_body_chunk(),
-                    timeout=30.0
+                    timeout=self.cfg.timeout or None
                 )
-            except asyncio.TimeoutError:
+            except (asyncio.TimeoutError, HTTP2StreamError):
                 return {"type": "http.disconnect"}
 
             if chunk is None:
@@ -1601,18 +1966,37 @@ class ASGIProtocol(asyncio.Protocol):
                     "more_body": False,
                 }
 
-            if stream._body_complete:
+            # END_STREAM may have landed with several frames still queued.
+            done = stream._body_complete and not stream._body_chunks
+            if done:
                 body_received = True
 
             return {
                 "type": "http.request",
                 "body": chunk,
-                "more_body": not stream._body_complete,
+                "more_body": not done,
             }
 
-        async def send(message):
+        # Set once a send loses to the peer's RST_STREAM: the response is
+        # over and every later send raises ClientDisconnected (ASGI 2.4);
+        # none of it is an application failure.
+        peer_gone = False
+        expect_trailers = False
+        trailers_sent = False
+        pending_trailers = []
+
+        def gone():
+            nonlocal peer_gone, response_complete
+            peer_gone = response_complete = True
+            raise ClientDisconnected("HTTP/2 stream %d closed by the peer" % stream_id)
+
+        async def send(message):  # pylint: disable=too-many-return-statements,too-many-branches
             nonlocal response_started, response_complete, headers_sent
             nonlocal response_status, response_headers, response_sent, exc_to_raise
+            nonlocal omits_body, omits_body_warned, expect_trailers, trailers_sent
+
+            if peer_gone or stream.disconnected:
+                gone()
 
             msg_type = message["type"]
 
@@ -1630,7 +2014,15 @@ class ASGIProtocol(asyncio.Protocol):
                     return
                 response_started = True
                 response_status = message["status"]
+                # RFC 9110: HEAD, 1xx, 204 and 304 carry no body. The HTTP/1
+                # handler has always applied this; HTTP/2 did not.
+                omits_body = self._response_omits_body(
+                    request.method, response_status)
                 response_headers = message.get("headers", [])
+                if omits_body:
+                    response_headers = self._strip_body_framing_headers(
+                        response_headers, response_status)
+                expect_trailers = bool(message.get("trailers", False))
                 # Don't send headers yet - wait for first body chunk
 
             elif msg_type == "http.response.body":
@@ -1644,6 +2036,16 @@ class ASGIProtocol(asyncio.Protocol):
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
 
+                if omits_body:
+                    if body and not omits_body_warned:
+                        self.log.warning(
+                            "ASGI app sent body bytes on a no-body response "
+                            "(method=%s status=%s); dropping per RFC 9110.",
+                            request.method, response_status,
+                        )
+                        omits_body_warned = True
+                    body = b""
+
                 # Send headers with first body chunk
                 if not headers_sent:
                     headers = self._convert_h2_headers(response_headers)
@@ -1651,33 +2053,45 @@ class ASGIProtocol(asyncio.Protocol):
                     response_hdrs.extend(headers)
 
                     # Send headers without end_stream since we have body
-                    stream = h2_conn.streams.get(stream_id)
-                    if stream is None:
-                        exc_to_raise = RuntimeError("Stream closed")
-                        return
-                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=False)
-                    stream.send_headers(response_hdrs, end_stream=False)
-                    await h2_conn._send_pending_data()
+                    if not await h2_conn.send_response_headers(
+                            stream_id, response_hdrs, end_stream=False):
+                        gone()
                     headers_sent = True
+
+                # The stream ends with the body unless trailers follow
+                final = not more_body and not expect_trailers
 
                 # Stream body immediately
                 if body:
-                    await h2_conn.send_data(stream_id, body, end_stream=not more_body)
+                    if not await h2_conn.send_data(stream_id, body, end_stream=final):
+                        gone()
                     response_sent += len(body)
 
                 if not more_body:
-                    if not body:
+                    if not body and final:
                         # Empty final chunk - send end_stream
-                        await h2_conn.send_data(stream_id, b"", end_stream=True)
+                        if not await h2_conn.send_data(stream_id, b"", end_stream=True):
+                            gone()
                     response_complete = True
 
             elif msg_type == "http.response.trailers":
                 if not response_complete:
                     exc_to_raise = RuntimeError("Cannot send trailers before body complete")
                     return
-                trailer_headers = message.get("headers", [])
-                trailers = self._convert_h2_headers(trailer_headers)
-                await h2_conn.send_trailers(stream_id, trailers)
+                if not expect_trailers:
+                    exc_to_raise = RuntimeError(
+                        "Trailers were not announced in http.response.start")
+                    return
+                if trailers_sent:
+                    exc_to_raise = RuntimeError("Trailers already sent")
+                    return
+                pending_trailers.extend(message.get("headers", []))
+                if message.get("more_trailers", False):
+                    return
+                trailers = self._convert_h2_headers(pending_trailers)
+                trailers_sent = True
+                if not await h2_conn.send_trailers(stream_id, trailers):
+                    gone()
 
         # Only build environ for logging if access logging is enabled
         access_log_enabled = self.log.access_log_enabled
@@ -1691,9 +2105,15 @@ class ASGIProtocol(asyncio.Protocol):
                 raise exc_to_raise
 
             # Handle case where app didn't send any response
-            if not response_started:
+            if peer_gone or stream.disconnected:
+                pass  # nobody to answer
+            elif not response_started:
                 await h2_conn.send_error(stream_id, 500, "Internal Server Error")
                 response_status = 500
+
+            # Trailers were announced but never sent: end the stream anyway
+            elif headers_sent and expect_trailers and not trailers_sent and not peer_gone:
+                await h2_conn.send_data(stream_id, b"", end_stream=True)
 
             # Handle case where headers were started but no body was sent
             elif not headers_sent:
@@ -1701,15 +2121,15 @@ class ASGIProtocol(asyncio.Protocol):
                 headers = self._convert_h2_headers(response_headers)
                 response_hdrs = [(':status', str(response_status))]
                 response_hdrs.extend(headers)
-                stream = h2_conn.streams.get(stream_id)
-                if stream:
-                    h2_conn.h2_conn.send_headers(stream_id, response_hdrs, end_stream=True)
-                    stream.send_headers(response_hdrs, end_stream=True)
-                    await h2_conn._send_pending_data()
+                await h2_conn.send_response_headers(
+                    stream_id, response_hdrs, end_stream=True)
 
+        except (ClientDisconnected, HTTP2ConnectionError) as e:
+            # A peer that reset the stream or left is not an app failure
+            self.log.debug("HTTP/2 stream %s: %s", stream_id, e)
         except Exception:
             self.log.exception("Error in ASGI application")
-            if not headers_sent:
+            if not headers_sent and not peer_gone:
                 await h2_conn.send_error(stream_id, 500, "Internal Server Error")
                 response_status = 500
         finally:

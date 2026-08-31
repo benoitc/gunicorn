@@ -109,16 +109,11 @@ class TestHttp2MaxConcurrentStreams:
         with pytest.raises(ValueError):
             c.set("http2_max_concurrent_streams", -1)
 
-    def test_zero_value(self):
-        # Zero is technically valid for positive int validator
-        # It may have special meaning (use h2 default)
+    def test_zero_value_is_rejected(self):
+        """0 would advertise a connection that can open no streams."""
         c = Config()
-        c.set("http2_max_concurrent_streams", 0)
-        assert c.http2_max_concurrent_streams == 0
-
-
-class TestHttp2InitialWindowSize:
-    """Test http2_initial_window_size configuration setting."""
+        with pytest.raises(ValueError):
+            c.set("http2_max_concurrent_streams", 0)
 
     def test_default_value(self):
         c = Config()
@@ -341,3 +336,62 @@ class TestValidateHttp2FrameSize:
         """Negative values should raise ValueError."""
         with pytest.raises(ValueError):
             config.validate_http2_frame_size(-1)
+
+
+class TestHttp2WindowValidation:
+    def test_window_above_2_31_is_rejected(self):
+        c = Config()
+        with pytest.raises(ValueError):
+            c.set("http2_initial_window_size", 2 ** 31)
+
+    def test_window_at_the_limit_is_accepted(self):
+        c = Config()
+        c.set("http2_initial_window_size", 2 ** 31 - 1)
+        assert c.http2_initial_window_size == 2 ** 31 - 1
+
+    def test_h3_is_rejected(self):
+        c = Config()
+        with pytest.raises(ValueError):
+            c.set("http_protocols", "h2,h3")
+
+
+class TestConfigValidate:
+    """Cross-setting checks run once the whole configuration is loaded."""
+
+    def test_h2_without_the_package_is_a_config_error(self):
+        from unittest import mock
+        from gunicorn.errors import ConfigError
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        c.set("certfile", "/dev/null")
+        with mock.patch.object(http2, "is_http2_available", return_value=False):
+            with pytest.raises(ConfigError):
+                c.validate()
+
+    def test_h2_without_tls_or_cleartext_warns(self, capsys):
+        from unittest import mock
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        with mock.patch.object(http2, "is_http2_available", return_value=True):
+            c.validate()
+        assert "never be negotiated" in capsys.readouterr().err
+
+    def test_h2_over_cleartext_is_quiet(self, capsys):
+        from unittest import mock
+        from gunicorn import http2
+
+        c = Config()
+        c.set("http_protocols", "h2,h1")
+        c.set("http2_cleartext", "prior-knowledge")
+        with mock.patch.object(http2, "is_http2_available", return_value=True):
+            c.validate()
+        assert capsys.readouterr().err == ""
+
+    def test_h1_only_is_quiet(self, capsys):
+        c = Config()
+        c.validate()
+        assert capsys.readouterr().err == ""

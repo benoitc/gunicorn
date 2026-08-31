@@ -3,12 +3,15 @@
 # See the NOTICE for more information.
 # pylint: disable=no-else-continue
 
+import glob
 import os
 import os.path
 import re
 import sys
 import time
 import threading
+
+from gunicorn import util
 
 COMPILED_EXT_RE = re.compile(r'py[co]$')
 
@@ -17,7 +20,13 @@ class ReloaderBase(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
         super().__init__()
         self.daemon = True
-        self._extra_files = set(extra_files or ())
+        self._extra_files = set()
+        self._extra_patterns = set()
+        for entry in extra_files or ():
+            if util.is_glob_pattern(entry):
+                self._extra_patterns.add(entry)
+            else:
+                self._extra_files.add(entry)
         self._interval = interval
         self._callback = callback
 
@@ -32,6 +41,11 @@ class ReloaderBase(threading.Thread):
         ]
 
         fnames.extend(self._extra_files)
+
+        # Expanded on every call rather than once at startup, so that files
+        # created after the server booted are picked up too.
+        for pattern in self._extra_patterns:
+            fnames.extend(sorted(glob.glob(pattern, recursive=True)))
 
         return fnames
 
@@ -81,7 +95,7 @@ if has_inotify:
         def add_extra_file(self, filename):
             super().add_extra_file(filename)
 
-            dirname = os.path.dirname(filename)
+            dirname = os.path.dirname(filename) or '.'
             if dirname in self._dirs:
                 return
 

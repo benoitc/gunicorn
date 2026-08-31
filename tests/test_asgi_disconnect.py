@@ -103,6 +103,28 @@ class TestASGIGracefulDisconnect:
         assert mock_worker.nr_conns == 1  # Should not decrement again
         # Closed flag is still set
 
+    def test_server_initiated_close_still_decrements_nr_conns(self, mock_worker):
+        """A server-initiated close must not leak the connection count (#3661).
+
+        _close_transport() sets ``_closed`` before asyncio reports the transport
+        loss, so connection_lost() must still run its cleanup and decrement
+        nr_conns. Otherwise every graceful stop waits out the full timeout.
+        """
+        protocol = ASGIProtocol(mock_worker)
+        protocol.reader = mock.Mock()
+        protocol.transport = mock.Mock()
+        mock_worker.nr_conns = 1
+
+        # Server closes the connection (e.g. `Connection: close`, keepalive
+        # timeout), which sets ``_closed`` early.
+        protocol._close_transport()
+        assert protocol._closed is True
+        assert mock_worker.nr_conns == 1
+
+        # asyncio then reports the transport loss.
+        protocol.connection_lost(None)
+        assert mock_worker.nr_conns == 0
+
     def test_disconnect_does_not_cancel_immediately(self, mock_worker):
         """Test that connection_lost doesn't cancel task immediately."""
         protocol = ASGIProtocol(mock_worker)

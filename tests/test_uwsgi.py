@@ -6,6 +6,8 @@ import io
 import pytest
 from unittest import mock
 
+from gunicorn.config import Config
+from gunicorn.http.wsgi import Response
 from gunicorn.uwsgi import (
     UWSGIRequest,
     UWSGIParser,
@@ -360,6 +362,35 @@ class TestUWSGIParser:
     def test_parser_mesg_class(self):
         """Test that parser uses UWSGIRequest."""
         assert UWSGIParser.mesg_class is UWSGIRequest
+
+
+class TestUWSGIResponse:
+    """Test response framing on a uWSGI upstream connection."""
+
+    def test_response_without_content_length_is_not_http_chunked(self):
+        cfg = Config()
+        cfg.set("protocol", "uwsgi")
+
+        req = mock.Mock()
+        req.method = "GET"
+        req.version = (1, 1)
+        req.should_close.return_value = False
+        sock = mock.Mock()
+
+        resp = Response(req, sock, cfg)
+        resp.start_response("200 OK", [("Content-Type", "text/plain")])
+        resp.write(b"Hello, world!\n")
+        resp.close()
+
+        wire = b"".join(
+            call.args[0] for call in sock.sendall.call_args_list
+        )
+        headers, body = wire.split(b"\r\n\r\n", 1)
+
+        assert b"Transfer-Encoding" not in headers
+        assert b"Connection: close" in headers
+        assert body == b"Hello, world!\n"
+        assert resp.should_close() is True
 
 
 class TestExceptionStrings:

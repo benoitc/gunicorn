@@ -3,7 +3,7 @@
 <p align="center">
   <strong>Gunicorn is maintained by volunteers. If it powers your production, please consider supporting us:</strong><br>
   <a href="https://github.com/sponsors/benoitc"><img src="https://img.shields.io/badge/GitHub_Sponsors-❤-ea4aaa?style=for-the-badge&logo=github" alt="GitHub Sponsors"></a>
-  <a href="https://checkout.revolut.com/pay/ac271e5e-172a-408b-947b-2f9f79d3a88a"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
+  <a href="https://checkout.revolut.com/pay/74cf6fe1-358e-4880-b800-3f0936ce94be"><img src="https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge" alt="Revolut"></a>
 </p>
 
 [![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)
@@ -39,7 +39,7 @@ gunicorn myapp:app --worker-class asgi
 - uWSGI binary protocol for nginx integration
 - Multiple worker types: sync, gthread, gevent, asgi
 - Graceful worker process management
-- Compatible with Python 3.9+
+- Compatible with Python 3.10+
 
 ## Documentation
 
@@ -53,7 +53,7 @@ Full documentation at https://gunicorn.org
 ## Community
 
 - Report bugs on [GitHub Issues](https://github.com/benoitc/gunicorn/issues)
-- Chat in [#gunicorn](https://web.libera.chat/?channels=#gunicorn) on [Libera.chat](https://libera.chat/)
+- [Chat with us in your browser](https://web.libera.chat/?channels=%23gunicorn) (`#gunicorn` on Libera.Chat, no account needed)
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
 
 ## Support

@@ -103,6 +103,16 @@ class InvalidChunkExtension(ParseError):
     """Invalid chunk extension per RFC 9112."""
 
 
+# RFC 9110 section 5.3: fields whose grammar admits only a single member, so a
+# second occurrence cannot be merged and makes the message ambiguous. Lowercase
+# because that is how _finalize_headers() stores names. content-length belongs
+# to this class too but is validated separately, alongside its value.
+RFC9110_5_3_SINGLETON_FIELDS = frozenset((
+    b'host',
+    b'content-type',
+))
+
+
 class PythonProtocol:
     """Callback-based HTTP/1.1 parser (pure Python fallback).
 
@@ -220,6 +230,23 @@ class PythonProtocol:
                     break
             else:
                 break
+
+    def remaining(self):
+        """Bytes fed after the completed message (b'' if none or not complete).
+
+        Matches the accessor H1CProtocol gained in 0.6.8, so a caller does not
+        have to know which parser it holds. Nothing extra is buffered here:
+        feed() leaves the state loop once the message completes, and both the
+        content-length and chunked paths delete what they consume.
+        """
+        if not self.is_complete:
+            return b''
+        return bytes(self._buffer)
+
+    @property
+    def remaining_truncated(self):
+        """Always False: this parser keeps the whole tail, uncapped."""
+        return False
 
     @property
     def proxy_protocol_info(self):
@@ -573,6 +600,7 @@ class PythonProtocol:
 
         Validates headers for request smuggling vulnerabilities:
         - Rejects duplicate Content-Length headers
+        - Rejects duplicate Host and Content-Type headers
         - Rejects requests with both Content-Length and Transfer-Encoding
         - Rejects chunked Transfer-Encoding in HTTP/1.0
         - Rejects stacked chunked encoding
@@ -583,8 +611,18 @@ class PythonProtocol:
         # Extract and validate content-length and transfer-encoding
         content_length = None
         chunked = False
+        seen_singletons = set()
 
         for name, value in self.headers:
+            # RFC 9110 section 5.3: these admit a single member only, so a
+            # repeat cannot be merged and leaves the message ambiguous.
+            # content-length is handled separately just below.
+            if name in RFC9110_5_3_SINGLETON_FIELDS:
+                if name in seen_singletons:
+                    raise InvalidHeader(
+                        "Duplicate %s header" % name.decode('latin-1'))
+                seen_singletons.add(name)
+
             if name == b'content-length':
                 # Reject duplicate Content-Length headers (request smuggling vector)
                 if content_length is not None:
@@ -902,6 +940,20 @@ class CallbackRequest:
             (n.decode('latin-1').upper(), v.decode('latin-1'))
             for n, v in parser.headers
         ]
+
+        # RFC 9110 section 5.3, enforced here because this is where both
+        # parsers converge. Both reject these on their own now (PythonProtocol
+        # in _finalize_headers(), H1CProtocol since 0.6.6), so this is a
+        # backstop: the pip requirement is not enforced at runtime, and an
+        # older gunicorn_h1c would otherwise let duplicates through.
+        seen_singletons = set()
+        for name, _value in parser.headers:
+            lowered = name.lower()
+            if lowered in RFC9110_5_3_SINGLETON_FIELDS:
+                if lowered in seen_singletons:
+                    raise InvalidHeader(
+                        "Duplicate %s header" % lowered.decode('latin-1'))
+                seen_singletons.add(lowered)
 
         req.scheme = 'https' if is_ssl else 'http'
         req.content_length = parser.content_length or 0

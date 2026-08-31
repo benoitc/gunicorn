@@ -18,6 +18,7 @@ from gunicorn.dirty.protocol import (
     DirtyProtocol,
     BinaryProtocol,
     make_request,
+    make_response,
     HEADER_SIZE,
 )
 
@@ -694,6 +695,118 @@ class TestDirtyArbiterWorkerConnection:
             await arbiter._get_worker_connection(99999)
 
         assert "Worker socket not ready" in str(exc_info.value)
+
+        arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterTimeoutConnection:
+    """Tests that a timed out worker connection is not reused."""
+
+    @pytest.mark.asyncio
+    async def test_timeout_closes_worker_connection(self):
+        """_execute_on_worker drops the cached connection on timeout."""
+        cfg = Config()
+        cfg.set("dirty_timeout", 1)
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        fake_pid = 99999
+
+        # A reader that never yields a message forces the timeout path.
+        worker_reader = asyncio.StreamReader()
+        worker_writer = MockStreamWriter()
+        arbiter.worker_connections[fake_pid] = (worker_reader, worker_writer)
+
+        client = MockStreamWriter()
+        await arbiter._execute_on_worker(
+            fake_pid,
+            make_request(request_id=1, app_path="test:App",
+                         action="slow_action"),
+            client,
+        )
+
+        assert client.messages[-1]["type"] == DirtyProtocol.MSG_TYPE_ERROR
+        assert fake_pid not in arbiter.worker_connections
+        assert worker_writer.closed
+
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_late_response_not_given_to_next_request(self):
+        """A response arriving after the timeout is not reused.
+
+        Without dropping the connection, the worker's late answer to the
+        timed out request is the first message waiting on the socket, so the
+        next request routed to that worker receives it instead of its own.
+        """
+        cfg = Config()
+        cfg.set("dirty_timeout", 1)
+        log = MockLog()
+
+        arbiter = DirtyArbiter(cfg=cfg, log=log)
+        fake_pid = 99999
+
+        # Request ids travel in the header as uint64, so use ints here:
+        # a str id is hashed and would not compare equal on the way back.
+        slow_id, fast_id = 1, 2
+
+        async def handle_worker(reader, writer):
+            # One request per connection: a handler parked in a read keeps the
+            # server alive on 3.12, where wait_closed() waits for handlers.
+            try:
+                message = await DirtyProtocol.read_message_async(reader)
+                request_id = message.get("id")
+                if request_id == slow_id:
+                    # Answer only after the arbiter has given up.
+                    await asyncio.sleep(1.5)
+                await DirtyProtocol.write_message_async(
+                    writer, make_response(request_id, {"for": request_id})
+                )
+            except Exception:
+                pass
+            finally:
+                writer.close()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "worker.sock")
+            server = await asyncio.start_unix_server(
+                handle_worker, path=socket_path
+            )
+            arbiter.workers[fake_pid] = "fake_worker"
+            arbiter.worker_sockets[fake_pid] = socket_path
+
+            try:
+                first = MockStreamWriter()
+                await arbiter._execute_on_worker(
+                    fake_pid,
+                    make_request(request_id=slow_id, app_path="test:App",
+                                 action="slow_action"),
+                    first,
+                )
+                assert len(first.messages) == 1
+                assert first.messages[0]["type"] == DirtyProtocol.MSG_TYPE_ERROR
+
+                second = MockStreamWriter()
+                await arbiter._execute_on_worker(
+                    fake_pid,
+                    make_request(request_id=fast_id, app_path="test:App",
+                                 action="fast_action"),
+                    second,
+                )
+
+                assert len(second.messages) == 1
+                assert second.messages[0]["id"] == fast_id
+                assert (second.messages[0]["type"] ==
+                        DirtyProtocol.MSG_TYPE_RESPONSE)
+            finally:
+                # Drop the arbiter side first, otherwise the still open
+                # connection keeps its handler alive and wait_closed() blocks.
+                arbiter._close_worker_connection(fake_pid)
+                server.close()
+                try:
+                    await asyncio.wait_for(server.wait_closed(), timeout=10)
+                except (asyncio.TimeoutError, TimeoutError):
+                    pass
 
         arbiter._cleanup_sync()
 

@@ -197,10 +197,10 @@ class SyncWorker(base.Worker):
         except OSError:
             # pass to next try-except level
             util.reraise(*sys.exc_info())
-        except Exception:
+        except (Exception, SystemExit):
             if resp and resp.headers_sent:
-                # If the requests have already been sent, we should close the
-                # connection to indicate the error.
+                # Timeout abort is SystemExit. If we already started the
+                # response, writing a 500 on the same socket corrupts it.
                 self.log.exception("Error handling request")
                 util.close_graceful(client)
                 raise StopIteration()

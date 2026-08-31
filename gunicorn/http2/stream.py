@@ -10,7 +10,6 @@ Each HTTP/2 stream represents a single request/response exchange.
 """
 
 from enum import Enum, auto
-from io import BytesIO
 
 from .errors import HTTP2StreamError
 
@@ -49,7 +48,6 @@ class HTTP2Stream:
 
         # Request data
         self.request_headers = []
-        self.request_body = BytesIO()
         self.request_complete = False
 
         # Response data
@@ -71,10 +69,23 @@ class HTTP2Stream:
         self.priority_depends_on = 0
         self.priority_exclusive = False
 
-        # Streaming body support (avoids buffering entire uploads)
+        # Request body: DATA payloads in arrival order, held only until
+        # the application takes them. Flow-control credit for a payload
+        # goes back to the peer when it is taken, not when it arrives, so
+        # what sits here is bounded by the receive window. body_size
+        # counts what arrived, acked_size what has been credited back.
         self._body_chunks = []
+        self.body_size = 0
+        self.acked_size = 0
         self._body_event = None  # Lazy-init asyncio.Event
         self._body_complete = False
+
+        # Set once the peer reset the stream or the connection is gone;
+        # wait_disconnect() lets an ASGI receive() block on it.
+        self.disconnected = False
+        self._disconnect_waiter = None
+        # Request carried Expect: 100-continue and no 100 went out yet
+        self.expect_continue = False
 
     @property
     def is_client_stream(self):
@@ -125,6 +136,9 @@ class HTTP2Stream:
         if end_stream:
             self._half_close_remote()
             self.request_complete = True
+            self._body_complete = True
+            if self._body_event:
+                self._body_event.set()
 
     def receive_data(self, data, end_stream=False):
         """Process received DATA frame with streaming support.
@@ -142,14 +156,11 @@ class HTTP2Stream:
                 f"Cannot receive data in state {self.state.name}"
             )
 
-        # Add to chunks queue for streaming reads
         if data:
             self._body_chunks.append(data)
+            self.body_size += len(data)
             if self._body_event:
                 self._body_event.set()
-
-        # Also write to legacy BytesIO for compatibility
-        self.request_body.write(data)
 
         if end_stream:
             self._half_close_remote()
@@ -244,6 +255,29 @@ class HTTP2Stream:
         self.state = StreamState.CLOSED
         self.response_complete = True
         self.request_complete = True
+        self.signal_disconnect()
+
+    def signal_disconnect(self):
+        """Mark the peer as gone and wake anything waiting on it."""
+        self.disconnected = True
+        waiter = self._disconnect_waiter
+        if waiter is not None and not waiter.done():
+            waiter.set_result(None)
+        # Wake a reader waiting on the body; it finds the stream closed.
+        if self._body_event:
+            self._body_event.set()
+
+    async def wait_disconnect(self):
+        """Block until the peer resets the stream or the connection ends."""
+        import asyncio
+
+        if self.disconnected:
+            return
+        self._disconnect_waiter = asyncio.get_running_loop().create_future()
+        try:
+            await self._disconnect_waiter
+        finally:
+            self._disconnect_waiter = None
 
     def close(self):
         """Close this stream normally."""
@@ -290,13 +324,47 @@ class HTTP2Stream:
                 f"Cannot half-close remote in state {self.state.name}"
             )
 
+    @property
+    def body_complete(self):
+        """True once END_STREAM (or trailers) arrived for the request."""
+        return self._body_complete
+
+    @property
+    def unacked_size(self):
+        """Bytes received on this stream not yet credited back to the peer."""
+        return self.body_size - self.acked_size
+
     def get_request_body(self):
-        """Get the complete request body.
+        """Join whatever body data is currently held, without taking it.
 
         Returns:
-            bytes: The request body data
+            bytes: The request body data received so far
         """
-        return self.request_body.getvalue()
+        if len(self._body_chunks) == 1:
+            return self._body_chunks[0]
+        return b"".join(self._body_chunks)
+
+    def pop_chunk(self):
+        """Take the next held DATA payload and credit it back to the peer.
+
+        Returns:
+            bytes: The payload, or None when nothing is held right now.
+        """
+        if not self._body_chunks:
+            return None
+        chunk = self._body_chunks.pop(0)
+        self._acknowledge(len(chunk))
+        return chunk
+
+    def _acknowledge(self, size):
+        """Return flow-control credit for ``size`` consumed bytes."""
+        if size <= 0 or self.acked_size >= self.body_size:
+            # Nothing owed: an h2c upgrade body came over HTTP/1
+            return
+        self.acked_size += size
+        ack = getattr(self.connection, "acknowledge_data", None)
+        if ack is not None:
+            ack(self.stream_id, size)
 
     async def read_body_chunk(self):
         """Read next body chunk asynchronously for streaming.
@@ -316,12 +384,17 @@ class HTTP2Stream:
 
         while True:
             # Return chunk if available
-            if self._body_chunks:
-                return self._body_chunks.pop(0)
+            chunk = self.pop_chunk()
+            if chunk is not None:
+                return chunk
 
             # No more data expected
             if self._body_complete:
                 return None
+            if self.state is StreamState.CLOSED:
+                raise HTTP2StreamError(
+                    self.stream_id,
+                    "stream closed before its request body was complete")
 
             # Wait for more data
             self._body_event.clear()

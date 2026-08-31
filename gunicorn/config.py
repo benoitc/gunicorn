@@ -2,10 +2,12 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-# Please remember to run "make -C docs html" after update "desc" attributes.
+# Please remember to run "python scripts/build_settings_doc.py"
+# after update "desc" attributes.
 
 import argparse
 import copy
+import glob
 import grp
 import inspect
 import ipaddress
@@ -16,6 +18,7 @@ import shlex
 import ssl
 import sys
 import textwrap
+import warnings
 
 from gunicorn import __version__, util
 from gunicorn.errors import ConfigError
@@ -79,6 +82,29 @@ class Config:
         if name not in self.settings:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
+
+    def validate(self):
+        """Check settings against each other once everything is loaded.
+
+        Individual values are checked by their own validator as they are
+        set; this is for combinations that only make sense as a whole.
+
+        Raises:
+            gunicorn.errors.ConfigError: the configuration cannot be served
+        """
+        if "h2" in self.http_protocols:
+            from gunicorn.http2 import is_http2_available
+
+            if not is_http2_available():
+                raise ConfigError(
+                    "http_protocols includes h2 but the h2 package is not "
+                    "installed. Install gunicorn[http2], or drop h2 from "
+                    "http_protocols.")
+            if not self.is_ssl and self.http2_cleartext == "off":
+                sys.stderr.write(
+                    "Warning: http_protocols includes h2 but there is no TLS "
+                    "and http2_cleartext is off, so HTTP/2 will never be "
+                    "negotiated.\n")
 
     def get_cmd_args_from_env(self):
         if 'GUNICORN_CMD_ARGS' in self.env_orig:
@@ -356,6 +382,20 @@ class Setting:
 Setting = SettingMeta('Setting', (Setting,), {})
 
 
+def validate_http2_cleartext(val):
+    if val is None:
+        return "off"
+    if isinstance(val, bool):
+        # keeps `http2_cleartext = True` in a config file meaning something
+        return "prior-knowledge" if val else "off"
+    if not isinstance(val, str):
+        raise TypeError("Invalid type for casting: %s" % val)
+    val = val.lower().strip()
+    if val in ("off", "prior-knowledge", "upgrade", "both"):
+        return val
+    raise ValueError("Invalid http2_cleartext: %s" % val)
+
+
 def validate_bool(val):
     if val is None:
         return
@@ -386,6 +426,21 @@ def validate_pos_int(val):
         val = int(val)
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
+    return val
+
+
+def validate_http2_window_size(val):
+    """Flow control windows are at most 2^31-1 (RFC 9113 section 6.9.1)."""
+    val = validate_pos_int(val)
+    if val > 2 ** 31 - 1:
+        raise ValueError("HTTP/2 window size must be at most 2147483647: %s" % val)
+    return val
+
+
+def validate_http2_stream_limit(val):
+    val = validate_pos_int(val)
+    if val < 1:
+        raise ValueError("HTTP/2 max concurrent streams must be at least 1: %s" % val)
     return val
 
 
@@ -435,8 +490,25 @@ def validate_list_string(val):
     return [validate_string(v) for v in val]
 
 
-def validate_list_of_existing_files(val):
-    return [validate_file_exists(v) for v in validate_list_string(val)]
+def validate_list_of_files_or_patterns(val):
+    """Validate literal paths, and pass glob patterns through unexpanded.
+
+    Patterns are kept as-is so that the reloader can re-expand them on every
+    cycle and pick up files created after startup. A pattern matching nothing
+    is legitimate for that reason, so it only warns.
+    """
+    entries = []
+    for entry in validate_list_string(val):
+        if not util.is_glob_pattern(entry):
+            entries.append(validate_file_exists(entry))
+            continue
+        if not glob.glob(entry, recursive=True):
+            warnings.warn(
+                "Pattern %s currently matches no files." % entry,
+                RuntimeWarning, stacklevel=2,
+            )
+        entries.append(entry)
+    return entries
 
 
 def validate_string_to_addr_list(val):
@@ -834,6 +906,14 @@ class Timeout(Setting):
         For the non sync workers it just means that the worker process is still
         communicating and is not tied to the length of time required to handle a
         single request.
+
+        On HTTP/2 connections it also bounds a single stream: a request body
+        that makes no progress for this long, or a response the peer stops
+        reading for this long, is cancelled with ``RST_STREAM``. 0 disables
+        that too.
+
+        .. versionchanged:: 26.3.0
+           Also bounds a stalled HTTP/2 stream.
         """
 
 
@@ -873,6 +953,12 @@ class Keepalive(Setting):
         .. note::
            ``sync`` worker does not support persistent connections and will
            ignore this option.
+
+        On the ``gthread`` and ``gevent`` workers an HTTP/2 connection with no
+        stream open is closed with ``GOAWAY`` after this many seconds.
+
+        .. versionchanged:: 26.3.0
+           Also applies to idle HTTP/2 connections.
         """
 
 
@@ -996,13 +1082,32 @@ class ReloadExtraFiles(Setting):
     section = "Debugging"
     cli = ["--reload-extra-file"]
     meta = "FILES"
-    validator = validate_list_of_existing_files
+    validator = validate_list_of_files_or_patterns
     default = []
     desc = """\
         Extends :ref:`reload` option to also watch and reload on additional files
         (e.g., templates, configurations, specifications, etc.).
 
+        Entries containing ``*``, ``?`` or ``[`` are treated as glob patterns and
+        are re-expanded on every reload check, so a file created after startup
+        starts being watched without restarting gunicorn. Note that it is the
+        first edit to that file which triggers a reload, not its creation. Use
+        ``**`` to recurse, and keep patterns narrow: a recursive pattern over a
+        large tree is walked once per check.
+
+        Two things behave the way glob does, not the way a path does. ``*`` does
+        not match dotfiles, so list ``.env`` literally rather than expecting
+        ``*`` to find it. And a literal path that happens to contain ``*``, ``?``
+        or ``[`` is read as a pattern, so it warns and matches nothing instead of
+        failing outright the way a missing plain path does.
+
+        Patterns are relative to the directory gunicorn is started from, not to
+        :ref:`chdir`, which is applied later.
+
         .. versionadded:: 19.8
+
+        .. versionchanged:: 26.1.0
+           Glob patterns are supported.
         """
 
 
@@ -2380,12 +2485,11 @@ class Ciphers(Setting):
 # HTTP/2 Protocol Settings
 
 # Valid protocol identifiers
-VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2", "h3"])
+VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2"])
 # Map protocol identifiers to ALPN protocol names
 ALPN_PROTOCOL_MAP = {
     "h1": "http/1.1",
     "h2": "h2",
-    "h3": "h3",  # Future: HTTP/3 over QUIC
 }
 
 
@@ -2393,7 +2497,7 @@ def validate_http_protocols(val):
     """Validate http_protocols setting.
 
     Accepts comma-separated list of protocol identifiers.
-    Valid values: h1 (HTTP/1.1), h2 (HTTP/2), h3 (HTTP/3 - future)
+    Valid values: h1 (HTTP/1.1), h2 (HTTP/2)
     Order indicates preference (first = most preferred).
     """
     if val is None:
@@ -2437,8 +2541,7 @@ class HTTPProtocols(Setting):
         Valid protocols:
 
         * ``h1`` - HTTP/1.1 (default)
-        * ``h2`` - HTTP/2 (requires TLS with ALPN)
-        * ``h3`` - HTTP/3 (future, not yet implemented)
+        * ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
         Examples::
 
@@ -2448,7 +2551,8 @@ class HTTPProtocols(Setting):
             # Prefer HTTP/2, fallback to HTTP/1.1
             --http-protocols=h2,h1
 
-            # HTTP/2 only (reject HTTP/1.1 clients)
+            # Offer HTTP/2 only. A client that does not select it over ALPN
+            # is still served HTTP/1.1; there is no rejection.
             --http-protocols=h2
 
         HTTP/2 requires:
@@ -2458,10 +2562,56 @@ class HTTPProtocols(Setting):
         * ALPN-capable TLS client
 
         .. note::
-           HTTP/2 cleartext (h2c) is not supported due to security concerns
-           and lack of browser support.
+           HTTP/2 cleartext (h2c) is disabled by default. Deployments behind
+           a TLS-terminating proxy can enable prior-knowledge h2c with
+           :ref:`http2-prior-knowledge`.
 
         .. versionadded:: 25.0.0
+        """
+
+
+class HTTP2Cleartext(Setting):
+    name = "http2_cleartext"
+    section = "HTTP/2"
+    cli = ["--http2-cleartext"]
+    meta = "STRING"
+    validator = validate_http2_cleartext
+    default = "off"
+    desc = """\
+        Accept HTTP/2 over cleartext TCP (h2c), and by which mechanism.
+
+        Valid values are:
+
+        * ``off`` (default) - no cleartext HTTP/2
+        * ``prior-knowledge`` - serve connections that open with the HTTP/2
+          connection preface (``PRI * HTTP/2.0``), RFC 9113 section 3.4
+        * ``upgrade`` - honour an HTTP/1.1 ``Upgrade: h2c`` request
+        * ``both`` - accept either
+
+        The mechanisms are listed separately on purpose: enabling one does not
+        enable the other.
+
+        With ``prior-knowledge`` alone, a trusted peer that does not send the
+        preface is refused with 400, since it is expected to speak HTTP/2.
+        With ``upgrade`` or ``both`` an HTTP/1 request is how an upgrade
+        begins, so it is served normally.
+
+        Only peers in :ref:`forwarded-allow-ips` are considered. Everyone else
+        is served HTTP/1.x exactly as if this were ``off``. Anything else from
+        a trusted peer on a prior-knowledge port (an HTTP/1.x request, a
+        malformed or stalled preface) is rejected with a 400: such a peer is
+        expected to speak HTTP/2, and a silent downgrade would only hide a
+        misconfiguration.
+
+        This is meant for deployments where TLS is terminated by a trusted
+        proxy that speaks HTTP/2 upstream (Cloud Run, fly.io, a service-mesh
+        sidecar). Do not expose a cleartext HTTP/2 port to the internet.
+
+        Requires ``h2`` in :ref:`http-protocols` and the h2 library
+        (``pip install gunicorn[http2]``). Ignored when TLS is configured;
+        there HTTP/2 is negotiated by ALPN.
+
+        .. versionadded:: 26.2.0
         """
 
 
@@ -2470,7 +2620,7 @@ class HTTP2MaxConcurrentStreams(Setting):
     section = "HTTP/2"
     cli = ["--http2-max-concurrent-streams"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_stream_limit
     type = int
     default = 100
     desc = """\
@@ -2492,7 +2642,7 @@ class HTTP2InitialWindowSize(Setting):
     section = "HTTP/2"
     cli = ["--http2-initial-window-size"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_window_size
     type = int
     default = 65535
     desc = """\
@@ -2868,15 +3018,14 @@ class HttpParser(Setting):
     validator = validate_http_parser
     default = "auto"
     desc = """\
-        HTTP parser implementation for ASGI workers.
+        HTTP parser implementation.
 
-        - auto: Use H1CProtocol if gunicorn_h1c is available, else PythonProtocol (default)
-        - fast: Require H1CProtocol from gunicorn_h1c (fail if unavailable)
-        - python: Force pure Python PythonProtocol parser
+        - auto: Use gunicorn_h1c if it is available, else use the pure Python parser (default)
+        - fast: Require gunicorn_h1c (fail if unavailable)
+        - python: Force pure Python parser
 
-        ASGI workers use callback-based parsing in data_received() for efficient
-        incremental parsing. The gunicorn_h1c C extension provides significantly
-        faster HTTP parsing using picohttpparser with SIMD optimizations.
+        The gunicorn_h1c C extension provides significantly faster HTTP parsing
+        using picohttpparser with SIMD optimizations.
 
         Install it with: pip install gunicorn[fast]
 

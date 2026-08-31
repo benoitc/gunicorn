@@ -20,7 +20,7 @@ The control interface consists of two parts:
 
 ### Start Gunicorn with Control Socket
 
-By default, Gunicorn creates a control socket at `gunicorn.ctl` in the current directory:
+By default, Gunicorn creates the control socket at `$XDG_RUNTIME_DIR/gunicorn.ctl`. If `XDG_RUNTIME_DIR` is unset or does not point to an existing directory, it falls back to `$HOME/.gunicorn/gunicorn.ctl`:
 
 ```bash
 gunicorn -w 4 myapp:app
@@ -301,6 +301,6 @@ Error: Permission denied
 Error: No such file or directory
 ```
 
-- Gunicorn creates the socket relative to the working directory by default
+- By default, Gunicorn creates the socket at `$XDG_RUNTIME_DIR/gunicorn.ctl` or falls back to `$HOME/.gunicorn/gunicorn.ctl`.
 - Use an absolute path with `--control-socket /path/to/socket.ctl`
 - Check if `--no-control-socket` was specified

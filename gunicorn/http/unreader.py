@@ -16,6 +16,18 @@ class Unreader:
     def chunk(self):
         raise NotImplementedError()
 
+    def take_buffered(self):
+        """Return read-ahead already held, without touching the source.
+
+        read() blocks on the source when the buffer is empty, which is wrong
+        for a caller that only wants the bytes it has: an Upgrade: h2c
+        handshake needs whatever the client pipelined behind the request,
+        and must not wait for more.
+        """
+        data = self.buf.getvalue()
+        self.buf = io.BytesIO()
+        return data
+
     def read(self, size=None):
         if size is not None and not isinstance(size, int):
             raise TypeError("size parameter must be an int or long.")
