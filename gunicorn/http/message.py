@@ -482,6 +482,7 @@ class Request(Message):
         self.path = None
         self.query = None
         self.fragment = None
+        self.authority = None
 
         # get max request line size (0 means unlimited per documentation)
         self.limit_request_line = cfg.limit_request_line
@@ -587,6 +588,7 @@ class Request(Message):
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
+        self.authority = parts.netloc or None
 
         # Version (validation done by C parser)
         self.version = (1, result['minor_version'])
@@ -922,6 +924,9 @@ class Request(Message):
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
+        # populated only for absolute-form request-targets (parts.netloc is
+        # empty for origin-form, asterisk-form and CONNECT's authority-form)
+        self.authority = parts.netloc or None
 
         # Version
         match = VERSION_RE.fullmatch(bits[2])

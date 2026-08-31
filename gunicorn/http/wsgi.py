@@ -229,6 +229,16 @@ def create(req, sock, client, server, cfg, response_class=None,
             hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
+    # rfc9112 3.2.2: an absolute-form request-target carries its own
+    # authority, and a server receiving one MUST ignore any Host header the
+    # client also sent and use that authority instead. HTTP/2 has no such
+    # concept on the wire (its :authority pseudo-header already becomes the
+    # Host header above), so only HTTP/1's Request defines this attribute.
+    authority = getattr(req, 'authority', None)
+    if authority:
+        host = authority
+        environ['HTTP_HOST'] = authority
+
     # set the url scheme
     environ['wsgi.url_scheme'] = req.scheme
 
