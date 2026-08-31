@@ -306,7 +306,7 @@ class AsyncWorker(base.Worker):
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)
             util.reraise(*sys.exc_info())
-        except BaseException:
+        except (Exception, SystemExit):
             if resp and resp.headers_sent:
                 # Timeout abort is SystemExit. If we already started the
                 # response, writing a 500 on the same socket corrupts it.

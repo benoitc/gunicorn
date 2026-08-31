@@ -197,7 +197,7 @@ class SyncWorker(base.Worker):
         except OSError:
             # pass to next try-except level
             util.reraise(*sys.exc_info())
-        except BaseException:
+        except (Exception, SystemExit):
             if resp and resp.headers_sent:
                 # Timeout abort is SystemExit. If we already started the
                 # response, writing a 500 on the same socket corrupts it.
