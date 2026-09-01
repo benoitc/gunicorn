@@ -31,6 +31,8 @@ VERSION = "gevent/%s gunicorn/%s" % (gevent.__version__, gunicorn.__version__)
 
 class GeventWorker(AsyncWorker):
 
+    WORKAROUND_BASE_EXCEPTIONS = (gevent.Timeout, )
+
     server_class = None
     wsgi_handler = None
 

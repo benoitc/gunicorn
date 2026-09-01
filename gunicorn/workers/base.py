@@ -31,6 +31,8 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker:
 
+    WORKAROUND_BASE_EXCEPTIONS = ()  # none
+
     SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
         "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
     )]
@@ -270,7 +272,7 @@ class Worker:
             elif hasattr(req, "uri"):
                 self.log.exception("Error handling request %s", req.uri)
             else:
-                self.log.exception("Error handling request (no URI read)")
+                self.log.debug("Error handling request (no URI read)")
             status_int = 500
             reason = "Internal Server Error"
             mesg = ""
