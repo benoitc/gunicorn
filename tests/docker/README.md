@@ -47,6 +47,7 @@ to 8000 and collides with `asgi_compliance`.
 | `asgi_framework_compat` | 8001 to 8006 |
 | `http2` | 8443, 8444 |
 | `h2spec` | 8451, 8452, 8453 |
+| `stress` | 8460 to 8466, 8474, 8475 |
 | `uwsgi` | 8080 |
 
 If a suite fails everywhere at once, check for a port collision before looking
@@ -66,6 +67,7 @@ lsof -nP -iTCP:8000 -sTCP:LISTEN
 | `dirty_ttin_ttou` | scaling dirty workers with TTIN/TTOU |
 | `http2` | HTTP/2 over TLS, direct and behind nginx |
 | `per_app_allocation` | per-app worker allocation end to end |
+| `stress` | k6 load and resilience across workers, direct and behind nginx |
 | `uwsgi` | uWSGI binary protocol behind nginx |
 
 `asgi/` and `test_asgi_uwsgi/` are shell-driven demos (`test_asgi.sh`,
@@ -73,9 +75,10 @@ lsof -nP -iTCP:8000 -sTCP:LISTEN
 
 ## CI
 
-`.github/workflows/docker-integration.yml` runs `tests/docker/uwsgi/` only. The
-other suites are not gated, so run them locally before changing the areas they
-cover.
+`.github/workflows/docker-integration.yml` runs `uwsgi`, `h2spec`, and the
+`stress` smoke matrix. The heavier `stress` resilience and fault scenarios run
+in `.github/workflows/stress-nightly.yml`. The other suites are not gated, so
+run them locally before changing the areas they cover.
 
 ## Certificates
 

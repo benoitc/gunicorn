@@ -1,0 +1,8 @@
+[
+  {
+    "name": "asgi",
+    "listen": "0.0.0.0:8475",
+    "upstream": "gunicorn-asgi:8000",
+    "enabled": true
+  }
+]
