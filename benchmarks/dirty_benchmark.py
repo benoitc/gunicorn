@@ -185,9 +185,6 @@ class MockLogger:
     def reopen_files(self):
         pass
 
-    def close_on_exec(self):
-        pass
-
 
 class IsolatedBenchmark:
     """
