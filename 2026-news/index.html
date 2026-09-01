@@ -2596,6 +2596,14 @@
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>ASGI worker returned 502 for the uWSGI protocol</strong>: with
+  <code>--worker-class asgi --protocol uwsgi</code> behind nginx <code>uwsgi_pass</code>, every
+  request failed with <code>Invalid uWSGI header: incomplete header</code>. The worker
+  set up the HTTP/1 parser instead of a uWSGI reader, so inbound bytes never
+  reached the uWSGI handler. The connection now starts a reader for the uWSGI
+  protocol, builds the request body for the app, and sets <code>raw_path</code>.</p>
+</li>
+<li>
 <p><strong>Chunked framing lines were read without a bound</strong>: a chunk-size line or
   trailer section that never terminates was reread in full on every socket read
   with no size limit, so one request could keep a worker busy without ever
