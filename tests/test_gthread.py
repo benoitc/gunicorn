@@ -1776,3 +1776,250 @@ class TestSlowClientResilience:
 
         # wait_for_data should not be called for initialized connections
         conn.wait_for_data.assert_not_called()
+
+
+class TestDrainAcceptQueues:
+    """Tests for draining accept queues during shutdown.
+
+    When self.alive becomes False, the main loop exits. Connections that
+    completed the TCP handshake but were not yet accept()-ed by the
+    application sit in the kernel's accept queue. Without draining,
+    these connections receive a TCP RST when the listening socket is
+    closed, causing 'Connection reset by peer' errors for clients.
+    """
+
+    def create_worker(self, cfg=None):
+        """Create a ThreadWorker for testing."""
+        if cfg is None:
+            cfg = Config()
+        cfg.set('workers', 1)
+        cfg.set('threads', 4)
+        cfg.set('worker_connections', 1000)
+        cfg.set('keepalive', 2)
+        cfg.set('graceful_timeout', 5)
+
+        worker = gthread.ThreadWorker(
+            age=1,
+            ppid=os.getpid(),
+            sockets=[],
+            app=mock.Mock(),
+            timeout=30,
+            cfg=cfg,
+            log=mock.Mock(),
+        )
+        worker.poller = mock.Mock()
+        worker.tpool = mock.Mock()
+        worker.method_queue = mock.Mock()
+        return worker
+
+    def test_drain_accepts_all_pending_connections(self):
+        """Test that _drain_accept_queues accepts all connections in the backlog."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        # Simulate a listener with 3 pending connections then EAGAIN
+        pending_clients = [
+            (FakeSocket(), ('127.0.0.1', 12345)),
+            (FakeSocket(), ('127.0.0.1', 12346)),
+            (FakeSocket(), ('127.0.0.1', 12347)),
+        ]
+        listener = mock.Mock()
+        listener.accept.side_effect = list(pending_clients) + [
+            OSError(errno.EAGAIN, "Resource temporarily unavailable")
+        ]
+        listener.getsockname.return_value = ('127.0.0.1', 8000)
+        worker.sockets = [listener]
+
+        worker._drain_accept_queues()
+
+        assert worker.nr_conns == 3
+        assert worker.tpool.submit.call_count == 3
+
+    def test_drain_is_noop_when_queue_empty(self):
+        """Test that drain does nothing when accept queue is empty."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        listener = mock.Mock()
+        listener.accept.side_effect = OSError(errno.EAGAIN, "Resource temporarily unavailable")
+        worker.sockets = [listener]
+
+        worker._drain_accept_queues()
+
+        assert worker.nr_conns == 0
+        worker.tpool.submit.assert_not_called()
+
+    def test_drain_handles_multiple_listeners(self):
+        """Test that drain processes all listener sockets."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        # Two listeners, each with one pending connection
+        listener1 = mock.Mock()
+        listener1.accept.side_effect = [
+            (FakeSocket(), ('127.0.0.1', 12345)),
+            OSError(errno.EAGAIN, ""),
+        ]
+        listener1.getsockname.return_value = ('127.0.0.1', 8000)
+
+        listener2 = mock.Mock()
+        listener2.accept.side_effect = [
+            (FakeSocket(), ('127.0.0.1', 12346)),
+            OSError(errno.EAGAIN, ""),
+        ]
+        listener2.getsockname.return_value = ('127.0.0.1', 8001)
+
+        worker.sockets = [listener1, listener2]
+
+        worker._drain_accept_queues()
+
+        assert worker.nr_conns == 2
+        assert worker.tpool.submit.call_count == 2
+
+    def test_drain_handles_econnaborted(self):
+        """Test that drain handles ECONNABORTED from accept()."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        # ECONNABORTED can occur if client disconnects during handshake
+        listener = mock.Mock()
+        listener.accept.side_effect = [
+            OSError(errno.ECONNABORTED, "Connection aborted"),
+        ]
+        worker.sockets = [listener]
+
+        # Should not raise
+        worker._drain_accept_queues()
+
+        assert worker.nr_conns == 0
+
+    def test_drain_closes_listeners_when_requested(self):
+        """Test that _drain_accept_queues closes listeners with close_listeners=True."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        listener = mock.Mock()
+        # Two EAGAIN responses: one for the first drain pass,
+        # one for the second pass after the brief pause.
+        listener.accept.side_effect = [
+            (FakeSocket(), ('127.0.0.1', 12345)),
+            OSError(errno.EAGAIN, ""),
+            OSError(errno.EAGAIN, ""),  # second pass
+        ]
+        listener.getsockname.return_value = ('127.0.0.1', 8000)
+        worker.sockets = [listener]
+
+        worker._drain_accept_queues(close_listeners=True)
+
+        assert worker.nr_conns == 1
+        listener.close.assert_called_once()
+
+    def test_drain_does_not_close_listeners_by_default(self):
+        """Test that _drain_accept_queues does not close listeners by default."""
+        worker = self.create_worker()
+        worker.nr_conns = 0
+
+        listener = mock.Mock()
+        listener.accept.side_effect = OSError(errno.EAGAIN, "")
+        worker.sockets = [listener]
+
+        worker._drain_accept_queues()
+
+        listener.close.assert_not_called()
+
+    def test_run_drains_and_closes_during_shutdown(self):
+        """Test that run() drains accept queues and closes listeners during shutdown."""
+        worker = self.create_worker()
+        worker.method_queue.init()
+        worker.poller = mock.Mock()
+        worker.poller.select.return_value = []
+        worker.tpool = mock.Mock()
+        worker.alive = True
+
+        # Listener with one pending connection in accept queue
+        pending_client = (FakeSocket(), ('127.0.0.1', 12345))
+        listener = mock.Mock()
+        listener.getsockname.return_value = ('127.0.0.1', 8000)
+        worker.sockets = [listener]
+        worker._accepting = True
+
+        # First accept() call returns a connection (from drain), second returns EAGAIN
+        accept_calls = [0]
+        def mock_accept():
+            accept_calls[0] += 1
+            if accept_calls[0] == 1:
+                return pending_client
+            raise OSError(errno.EAGAIN, "")
+        listener.accept.side_effect = mock_accept
+
+        # Exit main loop on first iteration
+        iterations = [0]
+        def mock_select(timeout):
+            iterations[0] += 1
+            if iterations[0] == 1:
+                worker.alive = False
+            return []
+        worker.poller.select.side_effect = mock_select
+
+        worker.is_parent_alive = mock.Mock(return_value=True)
+
+        worker.run()
+
+        # Drain should have accepted the pending connection
+        assert worker.tpool.submit.call_count >= 1
+        # Listener should have been closed during shutdown
+        listener.close.assert_called_once()
+
+        worker.method_queue.close()
+
+    def test_drained_connections_are_processed_in_grace_period(self):
+        """Test that connections drained at shutdown are waited on during grace period."""
+        worker = self.create_worker()
+        worker.method_queue.init()
+        worker.poller = mock.Mock()
+        worker.tpool = mock.Mock()
+        worker.alive = True
+
+        # Listener with 2 pending connections
+        pending = [
+            (FakeSocket(), ('127.0.0.1', 12345)),
+            (FakeSocket(), ('127.0.0.1', 12346)),
+        ]
+        listener = mock.Mock()
+        listener.getsockname.return_value = ('127.0.0.1', 8000)
+        accept_calls = [0]
+        def mock_accept():
+            accept_calls[0] += 1
+            if accept_calls[0] <= 2:
+                return pending[accept_calls[0] - 1]
+            raise OSError(errno.EAGAIN, "")
+        listener.accept.side_effect = mock_accept
+        worker.sockets = [listener]
+        worker._accepting = True
+
+        # Track nr_conns at each stage
+        conns_at_drain_end = [None]
+        conns_at_grace_start = [None]
+
+        iterations = [0]
+        def mock_select(timeout):
+            iterations[0] += 1
+            if iterations[0] == 1:
+                worker.alive = False
+                return []
+            # During grace period, simulate connections finishing
+            if conns_at_drain_end[0] is None:
+                conns_at_drain_end[0] = worker.nr_conns
+            conns_at_grace_start[0] = worker.nr_conns
+            worker.nr_conns = 0  # Simulate all connections finished
+            return []
+        worker.poller.select.side_effect = mock_select
+
+        worker.is_parent_alive = mock.Mock(return_value=True)
+
+        worker.run()
+
+        # After drain, nr_conns should have been 2 (the drained connections)
+        assert conns_at_drain_end[0] == 2
+
+        worker.method_queue.close()
