@@ -1,0 +1,5 @@
+GET scheme+ext://user+ext:password!@[::1]:8000/path?query#frag HTTP/1.1\r\n
+Host: localhost\r\n
+CONTENT-LENGTH: 3\r\n
+\r\n
+odd
