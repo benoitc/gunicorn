@@ -548,6 +548,74 @@ class TestASGIProtocol:
         assert protocol._get_reason_phrase(500) == "Internal Server Error"
         assert protocol._get_reason_phrase(999) == "Unknown"
 
+    @pytest.mark.parametrize(
+        "requires_close,req_close,alive,keepalive,expected",
+        [
+            (False, False, True, 2, False),   # reusable connection
+            (True, False, True, 2, True),     # response framing forbids reuse
+            (False, True, True, 2, True),     # client sent Connection: close
+            (False, False, False, 2, True),   # worker shutting down
+            (False, False, True, 0, True),    # keepalive disabled
+        ],
+    )
+    def test_will_close_matches_keepalive_decision(
+        self, requires_close, req_close, alive, keepalive, expected
+    ):
+        """_will_close is the inverse of the keepalive decision, case for case."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.cfg.set("keepalive", keepalive)
+        worker.alive = alive
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.should_close.return_value = req_close
+
+        assert protocol._will_close(request, requires_close) is expected
+
+    @pytest.mark.parametrize("close", [True, False])
+    def test_response_start_announces_connection_close(self, close):
+        """RFC 9112 s9.6: a server that will close MUST say so."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.version = (1, 1)
+
+        protocol._send_response_start(
+            200, [(b"content-type", b"text/plain")], request, close=close
+        )
+
+        assert (b"Connection: close\r\n" in protocol._response_buffer) is close
+
+    def test_response_start_keeps_app_connection_header(self):
+        """An app-supplied Connection header is not duplicated."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.version = (1, 1)
+
+        protocol._send_response_start(
+            200, [(b"connection", b"close")], request, close=True
+        )
+
+        assert protocol._response_buffer.lower().count(b"connection:") == 1
+
     def test_scope_building(self):
         """Test HTTP scope building."""
         from gunicorn.asgi.protocol import ASGIProtocol

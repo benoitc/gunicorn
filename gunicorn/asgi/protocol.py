@@ -1291,7 +1291,10 @@ class ASGIProtocol(asyncio.Protocol):
                     uses_uwsgi and not has_content_length and not omits_body
                 )
 
-                self._send_response_start(response_status, response_headers, request)
+                self._send_response_start(
+                    response_status, response_headers, request,
+                    close=self._will_close(request, response_requires_close),
+                )
 
             elif msg_type == "http.response.body":
                 if not response_started:
@@ -1394,13 +1397,23 @@ class ASGIProtocol(asyncio.Protocol):
                 self.log.exception("Exception in post_request hook")
 
         # Determine keepalive
+        return not self._will_close(request, response_requires_close)
+
+    def _will_close(self, request, response_requires_close):
+        """Return True when this connection is closed after the response.
+
+        Single source of truth: ``_send_response_start`` consults it to emit
+        ``Connection: close`` and ``_handle_http_request`` returns its inverse
+        as the keepalive decision, so the announced framing cannot drift from
+        the framing actually used.
+        """
         if response_requires_close:
-            return False
+            return True
 
         if request.should_close():
-            return False
+            return True
 
-        return self.worker.alive and self.cfg.keepalive
+        return not (self.worker.alive and self.cfg.keepalive)
 
     def _build_http_scope(self, request, sockname, peername):
         """Build ASGI HTTP scope from parsed request."""
@@ -1531,11 +1544,14 @@ class ASGIProtocol(asyncio.Protocol):
         response += "\r\n"
         self._safe_write(response.encode("latin-1"))
 
-    def _send_response_start(self, status, headers, request):
+    def _send_response_start(self, status, headers, request, close=False):
         """Send HTTP response status and headers.
 
         Uses cached status lines and headers for common cases to avoid
         repeated string formatting and encoding.
+
+        ``close`` announces that the connection ends after this response, as
+        RFC 9112 section 9.6 requires of a server that will not reuse it.
         """
         # Get cached status line bytes
         reason = self._get_reason_phrase(status)
@@ -1546,6 +1562,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         has_date = False
         has_server = False
+        has_connection = False
 
         for name, value in headers:
             if isinstance(name, bytes):
@@ -1564,17 +1581,21 @@ class ASGIProtocol(asyncio.Protocol):
 
             parts.append(b"\r\n")
 
-            # Track if Date/Server headers are present
+            # Track if Date/Server/Connection headers are present
             if name_lower == b"date":
                 has_date = True
             elif name_lower == b"server":
                 has_server = True
+            elif name_lower == b"connection":
+                has_connection = True
 
         # Add default headers if not present
         if not has_server:
             parts.append(_CACHED_SERVER_HEADER)
         if not has_date:
             parts.append(_get_cached_date_header())
+        if close and not has_connection:
+            parts.append(b"Connection: close\r\n")
 
         parts.append(b"\r\n")
 
