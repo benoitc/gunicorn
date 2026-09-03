@@ -734,6 +734,7 @@ class TestHTTP2RequestWSGIEnviron:
         mock_req._expected_100_continue = False
         mock_req.proxy_protocol_info = None
         mock_req.body = mock.Mock()
+        mock_req.authority = None
 
         # Remove priority attributes to simulate HTTP/1 request
         del mock_req.priority_weight
