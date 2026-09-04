@@ -1049,8 +1049,15 @@ class ASGIProtocol(asyncio.Protocol):
                 # Resume reading if paused during body consumption
                 self._resume_reading()
 
-                # Reset parser for next request
+                # A pipelined next request already sits in the parser buffer
+                # (feed() leaves the tail after a completed message); reset()
+                # would clear it, so recover it and re-feed it below.
+                pipelined = b""
                 if self._callback_parser:
+                    if getattr(self._callback_parser, "remaining_truncated", False):
+                        # A capped tail cannot be safely replayed.
+                        break
+                    pipelined = self._callback_parser.remaining()
                     self._callback_parser.reset()
 
                 # Clear request state for next iteration
@@ -1058,8 +1065,18 @@ class ASGIProtocol(asyncio.Protocol):
                 self._body_receiver = None
                 self._request_ready.clear()
 
-                # Arm keepalive timer between requests
-                self._arm_keepalive_timer()
+                # Re-feed the pipelined request so it is served rather than
+                # dropped; _feed_callback_parser fires _on_headers_complete
+                # synchronously and closes the connection (returns False) on a
+                # malformed tail.
+                if pipelined:
+                    if not self._feed_callback_parser(pipelined):
+                        break
+
+                # Arm the idle keepalive timer only when nothing is ready yet;
+                # a fully pipelined request is processed on the next iteration.
+                if not self._request_ready.is_set():
+                    self._arm_keepalive_timer()
 
         except asyncio.CancelledError:
             pass
