@@ -3846,32 +3846,104 @@ Protects against compression bombs and excessive memory use.</p>
 <p><strong>Command line:</strong> <code>--access-logformat STRING</code></p>
 <p><strong>Default:</strong> <code>'%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'</code></p>
 <p>The access log format.</p>
-<p>===========  ===========
-Identifier   Description
-===========  ===========
-h            remote address
-l            <code>'-'</code>
-u            user name (if HTTP Basic auth used)
-t            date of the request
-r            status line (e.g. <code>GET / HTTP/1.1</code>)
-m            request method
-U            URL path without query string
-q            query string
-H            protocol
-s            status
-B            response length
-b            response length or <code>'-'</code> (CLF format)
-f            referrer (note: header is <code>referer</code>)
-a            user agent
-T            request time in seconds
-M            request time in milliseconds
-D            request time in microseconds
-L            request time in decimal seconds
-p            process ID
-{header}i    request header
-{header}o    response header
-{variable}e  environment variable
-===========  ===========</p>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>h</td>
+<td>remote client IP address (not overridden by proxy headers like X-Real-IP)</td>
+</tr>
+<tr>
+<td>l</td>
+<td><code>'-'</code> for compatibility with Common Log Format (CLF)</td>
+</tr>
+<tr>
+<td>u</td>
+<td>user name (if HTTP Basic auth used)</td>
+</tr>
+<tr>
+<td>t</td>
+<td>date of the request at logging time in CLF format</td>
+</tr>
+<tr>
+<td>r</td>
+<td>status line (e.g. <code>GET / HTTP/1.1</code>)</td>
+</tr>
+<tr>
+<td>m</td>
+<td>request method</td>
+</tr>
+<tr>
+<td>U</td>
+<td>URL path without query string</td>
+</tr>
+<tr>
+<td>q</td>
+<td>query string without a leading '?'</td>
+</tr>
+<tr>
+<td>H</td>
+<td>protocol</td>
+</tr>
+<tr>
+<td>s</td>
+<td>status</td>
+</tr>
+<tr>
+<td>B</td>
+<td>response length</td>
+</tr>
+<tr>
+<td>b</td>
+<td>response length or <code>'-'</code> (CLF format)</td>
+</tr>
+<tr>
+<td>f</td>
+<td>referrer (note: header is <code>referer</code>)</td>
+</tr>
+<tr>
+<td>a</td>
+<td>user agent</td>
+</tr>
+<tr>
+<td>T</td>
+<td>request duration in seconds</td>
+</tr>
+<tr>
+<td>M</td>
+<td>request duration in milliseconds</td>
+</tr>
+<tr>
+<td>D</td>
+<td>request duration in microseconds</td>
+</tr>
+<tr>
+<td>L</td>
+<td>request duration in decimal seconds</td>
+</tr>
+<tr>
+<td>p</td>
+<td>process ID</td>
+</tr>
+<tr>
+<td>{header}i</td>
+<td>request header</td>
+</tr>
+<tr>
+<td>{header}o</td>
+<td>response header</td>
+</tr>
+<tr>
+<td>{variable}e</td>
+<td>environment variable</td>
+</tr>
+</tbody>
+</table>
 <p>Use lowercase for header and environment variable names, and put
 <code>{...}x</code> names inside <code>%(...)s</code>. For example::</p>
 <div class="highlight"><pre><span></span><code>%({x-forwarded-for}i)s
