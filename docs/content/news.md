@@ -1,13 +1,86 @@
 <span id="news"></span>
 # Changelog
 
-## Unreleased
+## 26.2.1 - 2026-09-05
 
 ### Bug Fixes
 
+- **ASGI worker dropped a pipelined request on keepalive**: a second request
+  sent on a kept-alive connection while the worker was finishing the first was
+  left in the parser buffer, then discarded when the parser was reset between
+  requests, so the connection hung until the client timed out. The buffered
+  request is now recovered and served. Most visible with clients that pipeline
+  or with frameworks that respond with `Transfer-Encoding: chunked`.
+
+- **ASGI worker returned 502 for the uWSGI protocol**: with
+  `--worker-class asgi --protocol uwsgi` behind nginx `uwsgi_pass`, every
+  request failed with `Invalid uWSGI header: incomplete header`. The worker
+  set up the HTTP/1 parser instead of a uWSGI reader, so inbound bytes never
+  reached the uWSGI handler. The connection now starts a reader for the uWSGI
+  protocol, builds the request body for the app, and sets `raw_path`.
+
+- **Chunked framing lines were read without a bound**: a chunk-size line or
+  trailer section that never terminates was reread in full on every socket read
+  with no size limit, so one request could keep a worker busy without ever
+  reaching the application. These lines are now bounded by the existing request
+  limits and scanned incrementally, and a malformed chunked body answers
+  `400 Bad Request` with one log line instead of a traceback.
+
+- **HTTP/2 follow-up to the review**: a bad request now resets its own
+  stream instead of the connection; the request line and field limits and
+  the method token rule apply to HTTP/2 requests; forbidden trailers are
+  dropped; `Expect: 100-continue` is answered; `RST_STREAM` floods close the
+  connection with `ENHANCE_YOUR_CALM`; outbound frames respect the peer's
+  `SETTINGS_MAX_FRAME_SIZE`; a malformed `HTTP2-Settings` header refuses the
+  h2c upgrade before any `101` goes out and an oversized upgrade body is not
+  upgraded; `http2_initial_window_size` and `http2_max_concurrent_streams` are
+  bounded at startup, `http2_max_header_list_size = 0` means unlimited as
+  documented, `h3` is no longer accepted in `http_protocols`, and `h2` without
+  the h2 package is a configuration error. On `gthread` and `gevent` the
+  h2c-upgraded stream is cleaned up like any other, requests queued behind a
+  body read are served before the `max_requests` `GOAWAY`, which names the
+  last stream served, peer protocol errors are logged at debug, and responses
+  carry `Server` and `Date`. On the ASGI worker `send()` raises an `OSError`
+  once the peer is gone (ASGI 2.4), trailers announced on
+  `http.response.start` are sent after the body, no-body statuses drop their
+  framing headers, the body wait is bounded by `timeout`, write backpressure
+  reaches `writer.drain()`, and an idle connection closes after `keepalive`.
+  h2spec runs against every HTTP/2 worker in the docker suites.
+
+- **HTTP/2 request bodies were buffered in full before dispatch**: DATA
+  frames were kept in two buffers, copied twice more when the request was
+  built, and flow control credit went back to the peer as each frame arrived,
+  so a client that never sent END_STREAM could grow a worker without the
+  application being called. A request is now dispatched on its headers and
+  `wsgi.input` (or ASGI `receive()`) pulls the body from the stream as it
+  arrives, returning window credit only for what the application has read.
+  A peer can have no more than the receive window in flight per stream. A
+  body the application leaves unread is cut off with `RST_STREAM(NO_ERROR)`
+  once the response is sent. On the ASGI worker, streams on a connection are
+  served concurrently. Only listeners with `h2` in `http_protocols` were
+  affected.
+- **HTTP/2 review fixes**: a review of the HTTP/2 support found these, all
+  fixed on every h2-capable worker unless noted. A graceful `GOAWAY` from the
+  peer is honoured wherever it lands in a read: established streams finish,
+  later ones are refused, and no private h2 state is touched. Waiting for
+  send credit is bounded by `timeout` instead of a fixed five seconds; a
+  peer that stops reading gets `RST_STREAM(CANCEL)` and the application is
+  stopped rather than told the response succeeded. An application error
+  after the response headers went out resets the stream instead of sending a
+  second `HEADERS` block, which corrupted the HPACK table for every later
+  response. An empty final body chunk now ends the stream. On `gthread` and
+  `gevent`, frames read while waiting for credit are handled in order, an
+  idle connection is closed after `keepalive` and a body that stalls for
+  `timeout` is cancelled, so a peer can no longer pin a thread, and streams
+  the peer resets before they are served are dropped so `HEADERS+RST_STREAM`
+  floods cannot grow the worker. On the ASGI worker, `receive()` after the
+  body blocks until the peer goes away instead of spinning the event loop, a
+  reader paused under backpressure is resumed, and in-flight streams get the
+  disconnect grace period before they are cancelled.
+
 - Worker timeout used to dump a 500 response onto a body that had already
   started, because `sys.exit()` from the abort handler is a `BaseException`.
-  Once headers are out we just close the connection.
+  Once headers are out we just close the connection
   ([#3410](https://github.com/benoitc/gunicorn/issues/3410)).
 
 ## 26.2.0 - 2026-08-24
