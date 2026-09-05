@@ -1415,15 +1415,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#2621-2026-09-05" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        26.2.1 - 2026-09-05
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Unreleased">
+    <nav class="md-nav" aria-label="26.2.1 - 2026-09-05">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2592,7 +2592,7 @@
 
 <p><span id="news-2026"></span></p>
 <h1 id="changelog-2026">Changelog - 2026<a class="headerlink" href="#changelog-2026" title="Permanent link">&para;</a></h1>
-<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="2621-2026-09-05">26.2.1 - 2026-09-05<a class="headerlink" href="#2621-2026-09-05" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
@@ -2655,7 +2655,8 @@
   served concurrently. Only listeners with <code>h2</code> in <code>http_protocols</code> were
   affected.</p>
 </li>
-<li><strong>HTTP/2 review fixes</strong>: a review of the HTTP/2 support found these, all
+<li>
+<p><strong>HTTP/2 review fixes</strong>: a review of the HTTP/2 support found these, all
   fixed on every h2-capable worker unless noted. A graceful <code>GOAWAY</code> from the
   peer is honoured wherever it lands in a read: established streams finish,
   later ones are refused, and no private h2 state is touched. Waiting for
@@ -2672,7 +2673,14 @@
   floods cannot grow the worker. On the ASGI worker, <code>receive()</code> after the
   body blocks until the peer goes away instead of spinning the event loop, a
   reader paused under backpressure is resumed, and in-flight streams get the
-  disconnect grace period before they are cancelled.</li>
+  disconnect grace period before they are cancelled.</p>
+</li>
+<li>
+<p>Worker timeout used to dump a 500 response onto a body that had already
+  started, because <code>sys.exit()</code> from the abort handler is a <code>BaseException</code>.
+  Once headers are out we just close the connection
+  (<a href="https://github.com/benoitc/gunicorn/issues/3410">#3410</a>).</p>
+</li>
 </ul>
 <h2 id="2620-2026-08-24">26.2.0 - 2026-08-24<a class="headerlink" href="#2620-2026-08-24" title="Permanent link">&para;</a></h2>
 <h3 id="new-features">New Features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
