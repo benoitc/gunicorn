@@ -111,11 +111,9 @@ class Pidfile:
                     if e.args[0] == errno.ESRCH:
                         return
                     raise
-                if not _is_gunicorn_process(wpid):
-                    # PID was reused by an unrelated process after a crash
-                    # left the pidfile behind (#3383).
-                    return
-                return wpid
+                # PID was reused by an unrelated process after a crash
+                # left the pidfile behind (#3383).
+                return wpid if _is_gunicorn_process(wpid) else None
         except OSError as e:
             if e.args[0] == errno.ENOENT:
                 return
