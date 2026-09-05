@@ -4,7 +4,38 @@
 
 import errno
 import os
+import subprocess
 import tempfile
+
+
+def _read_process_cmdline(pid):
+    """Return the process command line, or None if it cannot be inspected."""
+    proc_path = "/proc/%s/cmdline" % pid
+    try:
+        fd = os.open(proc_path, os.O_RDONLY)
+        try:
+            raw = os.read(fd, 4096)
+        finally:
+            os.close(fd)
+        return raw.replace(b"\x00", b" ").decode("utf-8", "replace")
+    except OSError:
+        pass
+    try:
+        out = subprocess.check_output(
+            ["ps", "-p", str(pid), "-o", "args="],
+            stderr=subprocess.DEVNULL,
+        )
+        return out.decode("utf-8", "replace")
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _is_gunicorn_process(pid):
+    """True if pid looks like gunicorn, or we cannot tell."""
+    cmdline = _read_process_cmdline(pid)
+    if cmdline is None:
+        return True
+    return "gunicorn" in cmdline.lower()
 
 
 class Pidfile:
@@ -74,13 +105,17 @@ class Pidfile:
 
                 try:
                     os.kill(wpid, 0)
-                    return wpid
                 except OSError as e:
                     if e.args[0] == errno.EPERM:
                         return wpid
                     if e.args[0] == errno.ESRCH:
                         return
                     raise
+                if not _is_gunicorn_process(wpid):
+                    # PID was reused by an unrelated process after a crash
+                    # left the pidfile behind (#3383).
+                    return
+                return wpid
         except OSError as e:
             if e.args[0] == errno.ENOENT:
                 return

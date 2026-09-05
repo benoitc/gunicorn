@@ -9,6 +9,9 @@
   started, because `sys.exit()` from the abort handler is a `BaseException`.
   Once headers are out we just close the connection.
   ([#3410](https://github.com/benoitc/gunicorn/issues/3410)).
+- A pidfile left behind after a crash no longer blocks restart when that PID
+  has been reused by an unrelated process
+  ([#3383](https://github.com/benoitc/gunicorn/issues/3383)).
 
 ## 26.2.0 - 2026-08-24
 
