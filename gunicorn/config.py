@@ -897,6 +897,9 @@ class Timeout(Setting):
     default = 30
     desc = """\
         Workers silent for more than this many seconds are killed and restarted.
+        The master checks each worker's heartbeat file; a worker that does not
+        update it within this timeout is considered silent. Idle workers keep
+        updating their heartbeat while waiting for requests.
 
         Value is a positive number or 0. Setting it to 0 has the effect of
         infinite timeouts by disabling timeouts for all workers entirely.
