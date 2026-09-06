@@ -1387,6 +1387,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2621-2026-09-05" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1399,7 +1427,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes" class="md-nav__link">
+  <a href="#bug-fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1449,7 +1477,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_1" class="md-nav__link">
+  <a href="#bug-fixes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1521,7 +1549,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_2" class="md-nav__link">
+  <a href="#bug-fixes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1604,7 +1632,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_3" class="md-nav__link">
+  <a href="#bug-fixes_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1654,7 +1682,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_4" class="md-nav__link">
+  <a href="#bug-fixes_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1715,7 +1743,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_5" class="md-nav__link">
+  <a href="#bug-fixes_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1804,7 +1832,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_6" class="md-nav__link">
+  <a href="#bug-fixes_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1832,7 +1860,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_7" class="md-nav__link">
+  <a href="#bug-fixes_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1871,7 +1899,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_8" class="md-nav__link">
+  <a href="#bug-fixes_9" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1932,7 +1960,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_9" class="md-nav__link">
+  <a href="#bug-fixes_10" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -1982,7 +2010,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_10" class="md-nav__link">
+  <a href="#bug-fixes_11" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -2021,7 +2049,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#bug-fixes_11" class="md-nav__link">
+  <a href="#bug-fixes_12" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
@@ -2659,8 +2687,19 @@
 
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="2621-2026-09-05">26.2.1 - 2026-09-05<a class="headerlink" href="#2621-2026-09-05" title="Permanent link">&para;</a></h2>
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ASGI worker closed HTTP/1.1 connections without saying so</strong>: when the
+  worker would not reuse a connection (the client sent <code>Connection: close</code>,
+  keepalive is disabled, the worker is shutting down, or the response trips
+  <code>max_requests</code>) it closed the socket without a <code>Connection: close</code> header, so
+  a client treated the response as persistent and reused a socket the server
+  had already closed. The header is now sent whenever the connection will close
+  (<a href="https://github.com/benoitc/gunicorn/pull/3726">#3726</a>).</li>
+</ul>
+<h2 id="2621-2026-09-05">26.2.1 - 2026-09-05<a class="headerlink" href="#2621-2026-09-05" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>ASGI worker dropped a pipelined request on keepalive</strong>: a second request
@@ -2777,7 +2816,7 @@
   derived from the transport
   (<a href="https://github.com/benoitc/gunicorn/pull/3705">#3705</a>).</li>
 </ul>
-<h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>WSGI HTTP/2 responses were buffered whole</strong>: both WSGI workers collected the
@@ -2873,7 +2912,7 @@
   advisories and older than the <code>&gt;=6.5.0</code> the tornado worker needs, so the
   example could not run as pinned.</li>
 </ul>
-<h3 id="bug-fixes_2">Bug Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>SIGHUP did not reload the logger configuration</strong>: <code>Arbiter.reload()</code>
@@ -3082,7 +3121,7 @@
   section 9.6 to prevent reset-on-close truncation.</p>
 </li>
 </ul>
-<h3 id="bug-fixes_3">Bug Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Body Framing on HEAD/204/304</strong>:</li>
 <li>Keep <code>Content-Length</code> on HEAD and 304 responses
@@ -3152,7 +3191,7 @@
 </ul>
 <hr />
 <h2 id="2530-2026-03-26">25.3.0 - 2026-03-26<a class="headerlink" href="#2530-2026-03-26" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_4">Bug Fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>HTTP/2 ASGI Body Duplication</strong>: Fix request body being received twice in HTTP/2
@@ -3210,7 +3249,7 @@
 <li>Falls back to Python parser in <code>auto</code> mode if version not met</li>
 <li>Proper HTTP status codes for limit errors (414, 431)</li>
 </ul>
-<h3 id="bug-fixes_5">Bug Fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_6">Bug Fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>uWSGI Async Workers</strong>: Fix <code>InvalidUWSGIHeader: incomplete header</code> error
@@ -3288,7 +3327,7 @@
 </ul>
 <hr />
 <h2 id="2503-2026-02-07">25.0.3 - 2026-02-07<a class="headerlink" href="#2503-2026-02-07" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_6">Bug Fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_7">Bug Fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix RuntimeError when StopIteration is raised inside ASGI response body
@@ -3301,7 +3340,7 @@
 </ul>
 <hr />
 <h2 id="2502-2026-02-06">25.0.2 - 2026-02-06<a class="headerlink" href="#2502-2026-02-06" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_7">Bug Fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_8">Bug Fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix ASGI concurrent request failures through nginx proxy by normalizing
@@ -3334,7 +3373,7 @@
 </ul>
 <hr />
 <h2 id="2501-2026-02-02">25.0.1 - 2026-02-02<a class="headerlink" href="#2501-2026-02-02" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_8">Bug Fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_9">Bug Fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix ASGI streaming responses (SSE) hanging: add chunked transfer encoding for
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
@@ -3410,7 +3449,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3467">PR #3467</a>)</p>
 </li>
 </ul>
-<h3 id="bug-fixes_9">Bug Fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_10">Bug Fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fix HTTP/2 ALPN negotiation for the gevent worker when
@@ -3454,7 +3493,7 @@
 </ul>
 <hr />
 <h2 id="2411-2026-01-24">24.1.1 - 2026-01-24<a class="headerlink" href="#2411-2026-01-24" title="Permanent link">&para;</a></h2>
-<h3 id="bug-fixes_10">Bug Fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_11">Bug Fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix <code>forwarded_allow_ips</code> and <code>proxy_allow_ips</code> to remain as strings for backward
   compatibility with external tools like uvicorn. Network validation now uses strict
@@ -3494,7 +3533,7 @@
   imported modules, not just those loaded at startup</p>
 </li>
 </ul>
-<h3 id="bug-fixes_11">Bug Fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">&para;</a></h3>
+<h3 id="bug-fixes_12">Bug Fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fix signal handling regression where SIGCLD alias caused errors on Linux</li>
 <li>Fix socket blocking mode on keepalive connections with async workers</li>
