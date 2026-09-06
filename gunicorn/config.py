@@ -35,7 +35,7 @@ def make_settings(ignore=None):
         setting = s()
         if setting.name in ignore:
             continue
-        settings[setting.name] = setting.copy()
+        settings[setting.name] = setting
     return settings
 
 
