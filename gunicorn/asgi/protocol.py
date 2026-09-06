@@ -859,6 +859,9 @@ class ASGIProtocol(asyncio.Protocol):
     def _keepalive_timeout(self):
         """Called when keepalive timeout expires."""
         self._close_transport()
+        # Wake _handle_connection up so it sees _closed and exits instead of
+        # waiting for the cancellation scheduled by connection_lost.
+        self._request_ready.set()
 
     def connection_lost(self, exc):
         """Called when the connection is lost or closed.
@@ -987,15 +990,19 @@ class ASGIProtocol(asyncio.Protocol):
 
             while not self._closed:
                 self.req_count += 1
-                self._cancel_keepalive_timer()
 
                 # Wait for headers to be parsed (callback sets the event and _current_request)
                 # Don't clear if request already arrived (data_received ran before us)
                 if not self._request_ready.is_set():
+                    # Arm the keepalive timer while we wait for the next
+                    # request to become available.
+                    if self.req_count > 1:
+                        self._arm_keepalive_timer()
                     try:
                         await self._request_ready.wait()
                     except asyncio.CancelledError:
                         break
+                self._cancel_keepalive_timer()
 
                 if self._closed or self._current_request is None:
                     break
@@ -1072,11 +1079,6 @@ class ASGIProtocol(asyncio.Protocol):
                 if pipelined:
                     if not self._feed_callback_parser(pipelined):
                         break
-
-                # Arm the idle keepalive timer only when nothing is ready yet;
-                # a fully pipelined request is processed on the next iteration.
-                if not self._request_ready.is_set():
-                    self._arm_keepalive_timer()
 
         except asyncio.CancelledError:
             pass

@@ -13,6 +13,13 @@
   had already closed. The header is now sent whenever the connection will close
   ([#3726](https://github.com/benoitc/gunicorn/pull/3726)).
 
+- **ASGI worker never enforced `keepalive`**: a kept-alive HTTP/1.1 connection
+  that went idle was never closed by the server, whatever the `keepalive`
+  setting, so idle connections only went away when the client closed them and
+  could pile up on a worker. They are now closed after `keepalive` seconds, as
+  with the other workers
+  ([#3734](https://github.com/benoitc/gunicorn/discussions/3734)).
+
 ## 26.2.1 - 2026-09-05
 
 ### Bug Fixes
