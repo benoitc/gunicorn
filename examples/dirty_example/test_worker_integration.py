@@ -31,7 +31,6 @@ class MockLog:
     def info(self, msg, *args): print(f"[INFO] {msg % args if args else msg}")
     def warning(self, msg, *args): print(f"[WARN] {msg % args if args else msg}")
     def error(self, msg, *args): print(f"[ERROR] {msg % args if args else msg}")
-    def close_on_exec(self): pass
     def reopen_files(self): pass
 
 

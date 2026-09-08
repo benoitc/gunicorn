@@ -157,10 +157,6 @@ class DirtyWorker:
         # Reseed random number generator
         util.seed()
 
-        # Prevent fd inheritance
-        util.close_on_exec(self.tmp.fileno())
-        self.log.close_on_exec()
-
         # Set up signals
         self.init_signals()
 

@@ -227,8 +227,6 @@ class Arbiter:
         Initialize master signal handling. Most of the signals
         are queued. Child signals only wake up the master.
         """
-        self.log.close_on_exec()
-
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)

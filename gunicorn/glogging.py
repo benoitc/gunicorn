@@ -411,15 +411,7 @@ class Logger:
                         handler.release()
 
     def close_on_exec(self):
-        for log in loggers():
-            for handler in log.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    handler.acquire()
-                    try:
-                        if handler.stream:
-                            util.close_on_exec(handler.stream.fileno())
-                    finally:
-                        handler.release()
+        pass
 
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
