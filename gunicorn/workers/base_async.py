@@ -73,7 +73,8 @@ class AsyncWorker(base.Worker):
                 parser.unreader.unread(unread_preface)
             try:
                 listener_name = listener.getsockname()
-                if not self.cfg.keepalive:
+                # do not allow keepalive if the worker is about to be restarted
+                if not self.cfg.keepalive or not self.alive:
                     req = next(parser)
                     if self._try_h2c_upgrade(listener, req, parser, client,
                                              addr):
