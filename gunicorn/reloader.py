@@ -40,7 +40,7 @@ class ReloaderBase(threading.Thread):
             if getattr(module, '__file__', None)
         ]
 
-        fnames.extend(self._extra_files)
+        fnames.extend(os.path.realpath(fn) for fn in self._extra_files)
 
         # Expanded on every call rather than once at startup, so that files
         # created after the server booted are picked up too.
