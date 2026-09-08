@@ -73,6 +73,7 @@ REF_MAP = {
     "ssl-version": ("reference/settings.md", "ssl_version"),
     "blocking-os-fchmod": ("reference/settings.md", "blocking_os_fchmod"),
     "configuration_file": ("../configure.md", "configuration-file"),
+    "worker-types": ("../design.md", "worker-types"),
 }
 
 REF_PATTERN = re.compile(r":ref:`([^`]+)`")
