@@ -482,6 +482,7 @@ class Request(Message):
         self.path = None
         self.query = None
         self.fragment = None
+        self.authority = None
 
         # get max request line size (0 means unlimited per documentation)
         self.limit_request_line = cfg.limit_request_line
@@ -587,6 +588,13 @@ class Request(Message):
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
+        # parts.scheme is only set for a genuine absolute-form request-target
+        # (e.g. "http://host/path"), never for origin-form, even one whose
+        # path or query happens to contain "://". An absolute-form target can
+        # still have an empty authority ("https://" with nothing after it),
+        # which is distinct from not being absolute-form at all, hence the
+        # separate None below rather than folding both into one falsy check.
+        self.authority = parts.netloc if parts.scheme else None
 
         # Version (validation done by C parser)
         self.version = (1, result['minor_version'])
@@ -922,6 +930,13 @@ class Request(Message):
         self.path = parts.path or ""
         self.query = parts.query or ""
         self.fragment = parts.fragment or ""
+        # parts.scheme is only set for a genuine absolute-form request-target;
+        # it stays empty for origin-form, asterisk-form and CONNECT's
+        # authority-form. An absolute-form target can still have an empty
+        # authority ("https://" with nothing after it), so that case needs to
+        # stay distinguishable from "not absolute-form at all" rather than
+        # collapsing both into None on an empty-string check.
+        self.authority = parts.netloc if parts.scheme else None
 
         # Version
         match = VERSION_RE.fullmatch(bits[2])

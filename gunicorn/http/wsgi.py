@@ -229,6 +229,23 @@ def create(req, sock, client, server, cfg, response_class=None,
             hdr_value = "%s,%s" % (environ[key], hdr_value)
         environ[key] = hdr_value
 
+    # rfc9112 3.2.2: an absolute-form request-target carries its own
+    # authority, and a server receiving one MUST ignore any Host header the
+    # client also sent and use that authority instead, even when the
+    # request-target's own authority is empty ("GET https:// HTTP/1.1" is
+    # supposed to result in an empty Host, not a fallback to whatever the
+    # client's Host header said). HTTP/2 has no such concept on the wire
+    # (its :authority pseudo-header already becomes the Host header above),
+    # so only HTTP/1's Request defines this attribute, and it's None rather
+    # than empty for anything that isn't actually absolute-form.
+    authority = getattr(req, 'authority', None)
+    if authority is not None:
+        # the authority component can carry userinfo ("user:pass@host"),
+        # which has no place in a Host value — rpartition just returns the
+        # string unchanged when there's no "@" to split on.
+        host = authority.rpartition('@')[2]
+        environ['HTTP_HOST'] = host
+
     # set the url scheme
     environ['wsgi.url_scheme'] = req.scheme
 
