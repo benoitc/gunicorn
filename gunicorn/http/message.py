@@ -156,6 +156,38 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     "CONTENT-TYPE",
 ))
 
+RFC3986_2_URI_SPECIALS = (
+    # gen-delims
+    ":/?#[]@"
+    # sub-delims
+    "!$&'()*+,;="
+    # for unreserved
+    "-._~"
+    # for pct-encoded
+    "%"
+    # notably absent from this list (must be pct-encoded):
+    #   \N{SPACE}
+    #   <> and {}
+    #   ` a.k.a \N{GRAVE ACCENT}
+    #   ^ a.k.a \N{CIRCUMFLEX ACCENT}
+    #   | a.k.a \N{VERTICAL LINE}
+    #   backslash a.k.a \N{REVERSE SOLIDUS}
+)
+GUNICORN_NONSTANDARD_URI_CHARACTERS = (
+    "\N{QUOTATION MARK}"
+    # firefox and curl do not consider pipe escape-worthy
+    "\N{VERTICAL LINE}"
+    # used in tests/requests/valid/027.http (utf8 decoded as latin-1)
+    #   "\N{LATIN CAPITAL LETTER A WITH TILDE}"
+    #   "\N{NO-BREAK SPACE}"
+    # any with significant bit set - includes the above
+    #   also includes "\N{SOFT HYPHEN}"
+    # simplify this once util.bytes_to_str is deleted
+    + bytes(range(0x80, 0xff + 1)).decode("latin-1")
+)
+GUNICORN_URI_SPECIALS = RFC3986_2_URI_SPECIALS + GUNICORN_NONSTANDARD_URI_CHARACTERS
+URI_CHARACTERS_RE = re.compile(r"[%s0-9a-zA-Z]+" % (re.escape(GUNICORN_URI_SPECIALS)))
+
 
 def _ip_in_allow_list(ip_str, allow_list, networks):
     """Check if IP address is in the allow list.
@@ -888,6 +920,7 @@ class Request(Message):
         if self.cfg.casefold_http_method:
             self.method = self.method.upper()
 
+        # https://datatracker.ietf.org/doc/html/rfc9112#section-3.2
         # URI
         self.uri = bits[1]
 
@@ -900,6 +933,9 @@ class Request(Message):
         # 4. asterisk-form, which is an asterisk (`\x2A`)
         # => manually reject one always invalid URI: empty
         if len(self.uri) == 0:
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
+        # => reject URI exceeding characters listed in RFC 3986
+        if not URI_CHARACTERS_RE.fullmatch(self.uri):
             raise InvalidRequestLine(bytes_to_str(line_bytes))
 
         # RFC 9112 section 3.2.4: asterisk-form is only valid with OPTIONS.
