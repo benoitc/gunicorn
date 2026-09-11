@@ -580,11 +580,11 @@ class PythonProtocol:
             if colon == -1:
                 raise InvalidHeader("Missing colon in header")
 
-            name = line[:colon].strip()
+            name = line[:colon]
             if not self._is_valid_token(name):
                 raise InvalidHeaderName(name.decode('latin-1'))
 
-            value = line[colon + 1:].strip()
+            value = line[colon + 1:].strip(b" \t")
             if self._has_invalid_header_chars(value):
                 raise InvalidHeader("Invalid characters in header value")
 
@@ -638,7 +638,7 @@ class PythonProtocol:
             elif name == b'transfer-encoding':
                 # Properly parse comma-separated Transfer-Encoding values
                 # per RFC 9112 Section 6.1
-                vals = [v.strip() for v in value.split(b',')]
+                vals = [v.strip(b" \t") for v in value.split(b',')]
                 for val in vals:
                     val_lower = val.lower()
                     if val_lower == b'chunked':
