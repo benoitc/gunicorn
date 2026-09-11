@@ -413,7 +413,7 @@ class Message(HeaderPolicy):
             elif name == "TRANSFER-ENCODING":
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
-                vals = [v.strip() for v in value.split(',')]
+                vals = [v.strip(" \t") for v in value.split(',')]
                 for val in vals:
                     if val.lower() == "chunked":
                         # DANGER: transfer codings stack, and stacked chunking is never intended
