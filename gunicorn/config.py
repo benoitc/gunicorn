@@ -980,7 +980,7 @@ class LimitRequestLine(Setting):
         on the server. A server needs this value to be large enough to
         hold any of its resource names, including any information that
         might be passed in the query part of a GET request. Value is a number
-        from 0 (unlimited) to 8190.
+        from 0 (unlimited). The default is 4094. A positive value is used as given and is not capped at 8190.
 
         This parameter can be used to prevent any DDOS attack.
         """

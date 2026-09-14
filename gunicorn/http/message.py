@@ -491,9 +491,6 @@ class Request(Message):
         # doesn't support 0 as unlimited. 1MB should be more than enough.
         if self.limit_request_line == 0:
             self._fast_limit_request_line = 1024 * 1024  # 1MB
-        elif self.limit_request_line >= MAX_REQUEST_LINE:
-            self._fast_limit_request_line = MAX_REQUEST_LINE
-            self.limit_request_line = MAX_REQUEST_LINE
         else:
             self._fast_limit_request_line = self.limit_request_line
 
