@@ -1722,6 +1722,10 @@ class Syslog(Setting):
     desc = """\
     Send *Gunicorn* logs to syslog.
 
+    Each line uses an RFC 3164 timestamp and ``ident[pid]`` tag so collectors
+    that expect that layout can parse it. The logging handler still adds the
+    PRI prefix.
+
     .. versionchanged:: 19.8
        You can now disable sending access logs by using the
        :ref:`disable-redirect-access-to-syslog` setting.

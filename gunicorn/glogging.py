@@ -161,6 +161,39 @@ def parse_syslog_address(addr):
     return (socktype, (host, port))
 
 
+class SyslogRFC3164Formatter(logging.Formatter):
+    """RFC 3164 HEADER plus TAG[PID]: MSG. PRI is added by SysLogHandler."""
+
+    def __init__(self, tag):
+        super().__init__()
+        self.tag = tag
+        self.hostname = socket.gethostname().split(".", 1)[0]
+
+    def formatTime(self, record, datefmt=None):
+        ct = self.converter(record.created)
+        return "%s %2d %s" % (
+            time.strftime("%b", ct),
+            ct.tm_mday,
+            time.strftime("%H:%M:%S", ct),
+        )
+
+    def format(self, record):
+        message = record.getMessage()
+        if record.exc_info and not record.exc_text:
+            record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            if message[-1:] != "\n":
+                message = message + "\n"
+            message = message + record.exc_text
+        return "%s %s %s[%s]: %s" % (
+            self.formatTime(record),
+            self.hostname,
+            self.tag,
+            record.process,
+            message,
+        )
+
+
 class Logger:
 
     LOG_LEVELS = {
@@ -457,7 +490,7 @@ class Logger:
         prefix = "gunicorn.%s.%s" % (prefix, name)
 
         # set format
-        fmt = logging.Formatter(r"%s: %s" % (prefix, fmt))
+        fmt = SyslogRFC3164Formatter(prefix)
 
         # syslog facility
         try:

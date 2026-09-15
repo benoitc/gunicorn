@@ -195,3 +195,57 @@ def test_setup_twice_does_not_stack_syslog_handlers():
         for log in (logger.error_log, logger.access_log):
             for handler in list(log.handlers):
                 log.removeHandler(handler)
+
+
+def test_syslog_formatter_uses_rfc3164_layout():
+    from gunicorn.glogging import SyslogRFC3164Formatter
+
+    fmt = SyslogRFC3164Formatter("gunicorn.app.access")
+    record = logging.LogRecord(
+        "gunicorn.access", logging.INFO, __file__, 1, "hello world", None, None
+    )
+    record.process = 30
+    record.created = 1727971112.0
+    line = fmt.format(record)
+    assert "gunicorn.app.access[30]: hello world" in line
+    assert ": [30]" not in line
+    assert line.split(" gunicorn.app.access[30]: ", 1)[1] == "hello world"
+    header = line.split(" gunicorn.app.access[30]: ", 1)[0]
+    parts = header.split()
+    assert len(parts) == 4
+    assert parts[0].isalpha() and len(parts[0]) == 3
+    assert parts[1].isdigit() or parts[1].strip().isdigit()
+    assert parts[2].count(":") == 2
+    assert parts[3] == fmt.hostname
+
+
+def test_syslog_handler_uses_rfc3164_formatter():
+    from gunicorn.glogging import SyslogRFC3164Formatter
+
+    cfg = Config()
+    cfg.set("syslog", True)
+    cfg.set("syslog_addr", "udp://127.0.0.1:514")
+    cfg.set("proc_name", "site:wsgi:application")
+    logger = Logger(cfg)
+    try:
+        handlers = [
+            h for h in logger.access_log.handlers
+            if isinstance(h, logging.handlers.SysLogHandler)
+        ]
+        assert len(handlers) == 1
+        fmt = handlers[0].formatter
+        assert isinstance(fmt, SyslogRFC3164Formatter)
+        assert fmt.tag == "gunicorn.site.wsgi.application.access"
+        record = logging.LogRecord(
+            "gunicorn.access", logging.INFO, __file__, 1,
+            '10.0.0.2 - USER [03/Oct/2024:18:38:32 +0300] "POST /api/blank/ HTTP/1.0" 201 292',
+            None, None,
+        )
+        record.process = 30
+        line = fmt.format(record)
+        assert "gunicorn.site.wsgi.application.access[30]:" in line
+        assert "gunicorn.site.wsgi.application.access: [30]" not in line
+    finally:
+        for log in (logger.error_log, logger.access_log):
+            for handler in list(log.handlers):
+                log.removeHandler(handler)
