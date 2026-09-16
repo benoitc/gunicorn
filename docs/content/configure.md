@@ -3,11 +3,21 @@
 
 Gunicorn reads configuration from five places, in increasing order of priority:
 
-1. Environment variables, for settings that support them.
+1. Dedicated environment variables. Only a few settings have these, and they
+   are not a general `SETTING=value` overlay:
+   `PORT` (default bind address), `WEB_CONCURRENCY` (default worker count),
+   `SENDFILE` (sendfile), and `FORWARDED_ALLOW_IPS` (trusted front-end
+   addresses). `SENDFILE` is enabled when its value is `y`, `1`, `yes`, or
+   `true`, compared case-insensitively.
 2. Framework-specific configuration (currently Paste Deploy only).
 3. A Python configuration file `gunicorn.conf.py` (default in the working directory).
-4. The `GUNICORN_CMD_ARGS` environment variable.
+4. The `GUNICORN_CMD_ARGS` environment variable. Gunicorn splits that value with
+   `shlex`, so quoted arguments stay intact, then treats the tokens as extra
+   command-line flags.
 5. Command-line arguments.
+
+`NOTIFY_SOCKET` is used for systemd readiness notification. It is not a
+Gunicorn setting. The control socket default may also follow `XDG_RUNTIME_DIR`.
 
 If a configuration file is provided both via `GUNICORN_CMD_ARGS` and the CLI,
 only the file specified on the command line is used.

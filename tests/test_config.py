@@ -475,6 +475,34 @@ def test_cli_overrides_enviroment_variables_module(monkeypatch):
     assert app.cfg.workers == 3
 
 
+def test_cmd_args_from_env_uses_shlex(monkeypatch):
+    monkeypatch.setenv("GUNICORN_CMD_ARGS", "--proc-name 'my app'")
+    c = config.Config()
+    assert c.get_cmd_args_from_env() == ["--proc-name", "my app"]
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("y", True),
+    ("1", True),
+    ("yes", True),
+    ("true", True),
+    ("YES", True),
+    ("0", False),
+    ("false", False),
+    ("n", False),
+])
+def test_sendfile_environment_variable(monkeypatch, value, expected):
+    monkeypatch.setenv("SENDFILE", value)
+    c = config.Config()
+    assert c.sendfile is expected
+
+
+def test_sendfile_environment_variable_absent(monkeypatch):
+    monkeypatch.delenv("SENDFILE", raising=False)
+    c = config.Config()
+    assert c.sendfile is True
+
+
 @pytest.mark.parametrize("options, expected", [
     (["app:app"], 'app:app'),
     (["-c", cfg_file(), "app:app"], 'app:app'),
