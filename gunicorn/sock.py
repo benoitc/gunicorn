@@ -56,7 +56,9 @@ class BaseSocket:
         if hasattr(sock, "set_inheritable"):
             sock.set_inheritable(True)
 
-        sock.listen(self.conf.backlog)
+        if (not hasattr(socket, 'SO_ACCEPTCONN')
+                or not sock.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN)):
+            sock.listen(self.conf.backlog)
         return sock
 
     def bind(self, sock):
