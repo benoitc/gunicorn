@@ -298,6 +298,7 @@ After=network.target
 [Service]
 Type=notify
 NotifyAccess=main
+WatchdogSec=30
 User=someuser
 Group=someuser
 WorkingDirectory=/home/someuser/applicationroot
@@ -311,9 +312,11 @@ PrivateTmp=true
 WantedBy=multi-user.target
 ```
 
-`Type=notify` lets Gunicorn report readiness to systemd. If the service should
-run under a transient user consider adding `DynamicUser=true`. Tighten
-permissions further with `ProtectSystem=strict` if the app permits.
+`Type=notify` lets Gunicorn report readiness to systemd. When `WatchdogSec` is
+set, the arbiter pings `WATCHDOG=1` about once a second, so the timeout should
+be at least two seconds. If the service should run under a transient user
+consider adding `DynamicUser=true`. Tighten permissions further with
+`ProtectSystem=strict` if the app permits.
 
 Socket activation file:
 
