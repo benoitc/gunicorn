@@ -199,10 +199,7 @@ class Arbiter:
                 fds = []
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
-
-            if hasattr(socket, "SO_REUSEPORT"):
-                delattr(socket, "SO_REUSEPORT")
-                
+            
             if not (self.cfg.reuse_port and hasattr(socket, 'SO_REUSEPORT')):
                 self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
