@@ -152,6 +152,79 @@ def test_arbiter_calls_worker_exit(mock_os_fork):
     arbiter.cfg.worker_exit.assert_called_with(arbiter, mock_worker)
 
 
+@mock.patch('gunicorn.sock.create_sockets')
+@mock.patch('os.fork')
+@mock.patch('gunicorn.arbiter.socket')
+def test_arbiter_inherits_sockets_when_reuse_port_unavailable(
+        mock_socket, mock_os_fork, create_sockets):
+    del mock_socket.SO_REUSEPORT
+    mock_os_fork.return_value = 0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['reuse_port'].set(True)
+    arbiter.LISTENERS = [mock.Mock()]
+    arbiter.pid = None
+    mock_worker = mock.Mock(sockets=arbiter.LISTENERS)
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+
+    with pytest.raises(SystemExit) as exc:
+        arbiter.spawn_worker()
+
+    assert exc.value.code == 0
+    create_sockets.assert_not_called()
+    assert mock_worker.sockets is arbiter.LISTENERS
+    mock_worker.init_process.assert_called_once_with()
+
+
+@mock.patch('gunicorn.sock.create_sockets')
+@mock.patch('os.fork')
+@mock.patch('gunicorn.arbiter.socket')
+def test_arbiter_creates_sockets_when_reuse_port_available(
+        mock_socket, mock_os_fork, create_sockets):
+    mock_socket.SO_REUSEPORT = 15
+    mock_os_fork.return_value = 0
+    create_sockets.return_value = [mock.Mock()]
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['reuse_port'].set(True)
+    arbiter.LISTENERS = [mock.Mock()]
+    arbiter.pid = None
+    mock_worker = mock.Mock(sockets=arbiter.LISTENERS)
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+
+    with pytest.raises(SystemExit) as exc:
+        arbiter.spawn_worker()
+
+    assert exc.value.code == 0
+    create_sockets.assert_called_once_with(arbiter.cfg, arbiter.log)
+    assert mock_worker.sockets is create_sockets.return_value
+    mock_worker.init_process.assert_called_once_with()
+
+
+@mock.patch('gunicorn.sock.create_sockets')
+@mock.patch('os.fork')
+@mock.patch('gunicorn.arbiter.socket')
+def test_arbiter_inherits_sockets_when_reuse_port_disabled(
+        mock_socket, mock_os_fork, create_sockets):
+    mock_socket.SO_REUSEPORT = 15
+    mock_os_fork.return_value = 0
+
+    arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+    arbiter.cfg.settings['reuse_port'].set(False)
+    arbiter.LISTENERS = [mock.Mock()]
+    arbiter.pid = None
+    mock_worker = mock.Mock(sockets=arbiter.LISTENERS)
+    arbiter.worker_class = mock.Mock(return_value=mock_worker)
+
+    with pytest.raises(SystemExit) as exc:
+        arbiter.spawn_worker()
+
+    assert exc.value.code == 0
+    create_sockets.assert_not_called()
+    assert mock_worker.sockets is arbiter.LISTENERS
+    mock_worker.init_process.assert_called_once_with()
+
+
 @mock.patch('os.waitpid')
 def test_arbiter_reap_workers(mock_os_waitpid):
     mock_os_waitpid.side_effect = [(42, 0), (0, 0)]
