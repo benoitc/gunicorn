@@ -200,6 +200,9 @@ class Arbiter:
                 for fd in os.environ.pop('GUNICORN_FD').split(','):
                     fds.append(int(fd))
 
+            if hasattr(socket, "SO_REUSEPORT"):
+                delattr(socket, "SO_REUSEPORT")
+                
             if not (self.cfg.reuse_port and hasattr(socket, 'SO_REUSEPORT')):
                 self.LISTENERS = sock.create_sockets(self.cfg, self.log, fds)
 
@@ -746,7 +749,7 @@ class Arbiter:
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
-            if self.cfg.reuse_port:
+            if self.cfg.reuse_port and hasattr(socket, "SO_REUSEPORT"):
                 worker.sockets = sock.create_sockets(self.cfg, self.log)
             self.cfg.post_fork(self, worker)
             worker.init_process()
