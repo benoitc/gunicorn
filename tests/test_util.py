@@ -129,3 +129,54 @@ def test_to_bytestring():
 ])
 def test_split_request_uri(test_input, expected):
     assert util.split_request_uri(test_input) == expected
+
+
+class _Sock:
+    def __init__(self):
+        self.data = b""
+
+    def gettimeout(self):
+        return 0.0
+
+    def sendall(self, data):
+        self.data += data
+
+
+def _error_response(accept=None, mesg="boom"):
+    sock = _Sock()
+    util.write_error(sock, 500, "Internal Server Error", mesg, accept=accept)
+    header, _, body = sock.data.partition(b"\r\n\r\n")
+    return header.decode("latin1"), body
+
+
+def test_write_error_defaults_to_html():
+    header, body = _error_response()
+    assert "Content-Type: text/html" in header
+    assert b"<title>Internal Server Error</title>" in body
+    assert b"boom" in body
+
+
+def test_write_error_json_from_accept():
+    header, body = _error_response("application/json")
+    assert "Content-Type: application/json" in header
+    assert b'"status": 500' in body
+    assert b'"reason": "Internal Server Error"' in body
+    assert b'"message": "boom"' in body
+
+
+def test_write_error_xml_from_accept():
+    header, body = _error_response("application/xml")
+    assert "Content-Type: application/xml" in header
+    assert b"<status>500</status>" in body
+    assert b"<reason>Internal Server Error</reason>" in body
+
+
+def test_write_error_prefers_json_quality():
+    header, body = _error_response("text/html;q=0.8, application/json;q=0.9")
+    assert "Content-Type: application/json" in header
+    assert b'"status": 500' in body
+
+
+def test_write_error_html_when_json_not_offered():
+    header, _body = _error_response("text/plain")
+    assert "Content-Type: text/html" in header
