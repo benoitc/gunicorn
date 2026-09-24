@@ -5,7 +5,11 @@
 import datetime
 import logging
 import logging.handlers
+import os
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 
@@ -195,3 +199,73 @@ def test_setup_twice_does_not_stack_syslog_handlers():
         for log in (logger.error_log, logger.access_log):
             for handler in list(log.handlers):
                 log.removeHandler(handler)
+
+
+def test_capture_output_skips_default_stderr():
+    cfg = Config()
+    cfg.set('capture_output', True)
+    with mock.patch('gunicorn.glogging.os.dup2') as dup2:
+        dup2.side_effect = AssertionError('dup2 should not run when errorlog is -')
+        logger = Logger(cfg)
+    assert logger.logfile is None
+
+
+def test_capture_output_uses_logconfig_dict_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'captured.log'
+        cfg = Config()
+        cfg.set('capture_output', True)
+        cfg.set('logconfig_dict', _logconfig(path, '%(message)s'))
+        dup2_calls = []
+        with mock.patch('gunicorn.glogging.os.dup2', lambda src, dst: dup2_calls.append((src, dst))):
+            logger = Logger(cfg)
+        try:
+            assert logger.logfile is not None
+            assert os.path.samefile(logger.logfile.name, path)
+            assert len(dup2_calls) == 2
+        finally:
+            if logger.logfile is not None:
+                logger.logfile.close()
+            for handler in list(logger.error_log.handlers):
+                logger.error_log.removeHandler(handler)
+
+
+def test_capture_output_prefers_errorlog_over_logconfig_dict():
+    with tempfile.TemporaryDirectory() as tmp:
+        error_path = Path(tmp) / 'error.log'
+        dict_path = Path(tmp) / 'dict.log'
+        cfg = Config()
+        cfg.set('capture_output', True)
+        cfg.set('errorlog', str(error_path))
+        cfg.set('logconfig_dict', _logconfig(dict_path, '%(message)s'))
+        with mock.patch('gunicorn.glogging.os.dup2', lambda *a, **k: None):
+            logger = Logger(cfg)
+        try:
+            assert logger.logfile is not None
+            assert os.path.samefile(logger.logfile.name, error_path)
+        finally:
+            if logger.logfile is not None:
+                logger.logfile.close()
+            for handler in list(logger.error_log.handlers):
+                logger.error_log.removeHandler(handler)
+
+
+def test_reopen_files_uses_logconfig_dict_capture_path():
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'captured.log'
+        cfg = Config()
+        cfg.set('capture_output', True)
+        cfg.set('logconfig_dict', _logconfig(path, '%(message)s'))
+        with mock.patch('gunicorn.glogging.os.dup2', lambda *a, **k: None):
+            logger = Logger(cfg)
+            try:
+                first = logger.logfile
+                assert first is not None
+                logger.reopen_files()
+                assert logger.logfile is not first
+                assert os.path.samefile(logger.logfile.name, path)
+            finally:
+                if logger.logfile is not None:
+                    logger.logfile.close()
+                for handler in list(logger.error_log.handlers):
+                    logger.error_log.removeHandler(handler)
