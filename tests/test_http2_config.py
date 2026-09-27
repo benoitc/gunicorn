@@ -115,6 +115,10 @@ class TestHttp2MaxConcurrentStreams:
         with pytest.raises(ValueError):
             c.set("http2_max_concurrent_streams", 0)
 
+
+class TestHttp2InitialWindowSize:
+    """Test http2_initial_window_size configuration setting."""
+
     def test_default_value(self):
         c = Config()
         # Default per RFC 7540 is 65535
