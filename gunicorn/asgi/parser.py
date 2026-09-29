@@ -9,6 +9,7 @@ Provides callback-based parsing using either the fast C parser (gunicorn_h1c)
 or the pure Python PythonProtocol fallback.
 """
 
+import re
 import socket
 import struct
 from enum import IntEnum
@@ -115,6 +116,11 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     b'host',
     b'content-type',
 ))
+
+# RFC 9112 request-target / RFC 3986 URI: C0 controls and DEL are not valid
+# in a request-target. A raw NUL is especially dangerous because C-string
+# consumers truncate at it. Percent-encoded %00 remains three VCHARs.
+RFC9112_TARGET_INVALID_CTL = re.compile(rb"[\x00-\x1f\x7f]")
 
 
 class PythonProtocol:
@@ -511,6 +517,10 @@ class PythonProtocol:
 
         self.method = parts[0]
         self.path = parts[1]
+
+        # RFC 9112 request-target cannot contain control characters.
+        if RFC9112_TARGET_INVALID_CTL.search(self.path):
+            raise InvalidRequestLine("Invalid request line")
 
         # Validate method
         if not self._permit_unconventional_http_method:
@@ -935,6 +945,8 @@ class CallbackRequest:
         # - path: percent-decoded UTF-8 string
         # - raw_path: original bytes as received
         raw_url = parser.path
+        if RFC9112_TARGET_INVALID_CTL.search(raw_url):
+            raise InvalidRequestLine("Invalid request line")
         if b'?' in raw_url:
             path_part, query_part = raw_url.split(b'?', 1)
             req.raw_path = path_part  # Store original bytes

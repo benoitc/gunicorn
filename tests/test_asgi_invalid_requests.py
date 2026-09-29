@@ -50,6 +50,9 @@ FAST_PARSER_SKIP_TESTS = {
     '024.http',      # InvalidHeader - fast parser accepts
     'prefix_03.http',  # InvalidHeader - fast parser accepts
     'prefix_04.http',  # InvalidHeader - fast parser accepts
+    # Request-target CTL rejection is enforced in PythonProtocol and as a
+    # from_parser() backstop; gunicorn_h1c may still accept a raw NUL.
+    'rfc9112_target_nul_01.http',
 }
 
 
@@ -130,3 +133,17 @@ class TestSingletonHeadersFromParser:
         parser.feed(b"GET / HTTP/1.1\r\nHost: a\r\nContent-Type: text/html\r\n\r\n")
         req = CallbackRequest.from_parser(parser)
         assert req.get_header("HOST") == "a"
+
+    def test_nul_in_request_target_rejected(self, http_parser):
+        """Raw NUL in the request-target must be a 400, even if the C parser
+        accepted the bytes: from_parser() is the production backstop."""
+        parser_class = treq_asgi.get_parser_class(http_parser)
+        parser = parser_class()
+        raw = b"GET /\x00 HTTP/1.1\r\nHost: a\r\n\r\n"
+        try:
+            parser.feed(raw)
+        except Exception:
+            return
+
+        with pytest.raises(Exception):
+            CallbackRequest.from_parser(parser)
