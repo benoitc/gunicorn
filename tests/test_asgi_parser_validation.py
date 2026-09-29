@@ -14,6 +14,7 @@ from gunicorn.asgi.parser import (
     PythonProtocol,
     InvalidHeader,
     InvalidChunkSize,
+    InvalidRequestLine,
     UnsupportedTransferCoding,
     ParseError,
 )
@@ -416,3 +417,28 @@ class TestMultipleTransferEncodingHeaders:
                 b"Transfer-Encoding: chunked\r\n"
                 b"\r\n"
             )
+
+
+class TestRequestTargetControls:
+    """RFC 9112: request-target must not contain control characters."""
+
+    def test_raw_nul_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /\x00 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_embedded_nul_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /foo\x00bar HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_bel_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /\x07 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_percent_encoded_nul_accepted(self):
+        parser = PythonProtocol()
+        parser.feed(b"GET /%00 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        assert parser.is_complete
+        assert parser.path == b"/%00"
