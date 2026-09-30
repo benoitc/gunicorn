@@ -134,10 +134,6 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 # only non-VCHAR bytes allowed in a field-value. Anything else in the
 # control range (0x00-0x1F except HTAB, plus DEL 0x7F) must be rejected.
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
-# RFC 9112 request-target / RFC 3986 URI: C0 controls and DEL are not valid
-# in a request-target. A raw NUL is especially dangerous because C-string
-# consumers truncate at it. Percent-encoded %00 remains three VCHARs and is
-# still accepted.
 RFC9112_TARGET_INVALID_CTL = re.compile(r"[\x00-\x1f\x7f]")
 
 # RFC 9110 section 6.5.1: fields forbidden in trailers because they alter
