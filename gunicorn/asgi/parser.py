@@ -113,9 +113,6 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     b'content-type',
 ))
 
-# RFC 9112 request-target / RFC 3986 URI: C0 controls and DEL are not valid
-# in a request-target. A raw NUL is especially dangerous because C-string
-# consumers truncate at it. Percent-encoded %00 remains three VCHARs.
 RFC9112_TARGET_INVALID_CTL = re.compile(rb"[\x00-\x1f\x7f]")
 
 
