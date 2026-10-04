@@ -147,3 +147,53 @@ def test_recursive_pattern_matches_nested_files(tmp_path):
     r = Reloader(extra_files=[str(tmp_path / "**" / "config.json")])
 
     assert str(target) in r.get_files()
+
+def _make_symlink(tmp_path):
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    target = real_dir / "settings.toml"
+    target.write_text("x = 1")
+    link_dir = tmp_path / "links"
+    link_dir.mkdir()
+    link = link_dir / "settings.toml"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks are not supported here")
+    return link, real_dir
+
+
+def test_symlink_target_dir(tmp_path):
+    from gunicorn.reloader import symlink_target_dir
+
+    link, real_dir = _make_symlink(tmp_path)
+    plain = tmp_path / "plain.txt"
+    plain.write_text("plain")
+
+    assert symlink_target_dir(str(link)) == os.path.realpath(str(real_dir))
+    assert symlink_target_dir(str(plain)) is None
+    assert symlink_target_dir(str(tmp_path / "missing")) is None
+
+
+def test_inotify_watches_symlink_target_dir(tmp_path):
+    """Edits to a symlinked extra file happen in the target's directory."""
+    pytest.importorskip("inotify", reason="inotify reloader requires the inotify package")
+
+    from gunicorn import reloader as reloader_mod
+
+    if not reloader_mod.has_inotify:
+        pytest.skip("inotify reloader is only available on Linux")
+
+    link, real_dir = _make_symlink(tmp_path)
+    calls = []
+
+    class FakeWatcher:
+        def add_watch(self, dirname, mask=None):
+            calls.append(dirname)
+
+    r = reloader_mod.InotifyReloader(callback=lambda f: None)
+    r._watcher = FakeWatcher()
+    r.add_extra_file(str(link))
+
+    assert calls == [str(link.parent), os.path.realpath(str(real_dir))]
+    assert os.path.realpath(str(real_dir)) in r.get_dirs()
