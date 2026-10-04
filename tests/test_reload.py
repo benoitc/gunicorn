@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import os
 import unittest.mock as mock
 
 import pytest
