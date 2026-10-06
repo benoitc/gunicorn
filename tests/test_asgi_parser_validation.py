@@ -97,11 +97,24 @@ class TestDuplicateContentLength:
         """Negative Content-Length must be rejected."""
         parser = PythonProtocol()
 
-        with pytest.raises(InvalidHeader, match="Negative Content-Length"):
+        with pytest.raises(InvalidHeader, match="Invalid Content-Length"):
             parser.feed(
                 b"POST /test HTTP/1.1\r\n"
                 b"Host: localhost\r\n"
                 b"Content-Length: -999\r\n"
+                b"\r\n"
+            )
+
+    @pytest.mark.parametrize("value", [b"+5", b"1_0"])
+    def test_non_digit_cl_rejected(self, value):
+        """Content-Length is 1*DIGIT; forms int() alone would take are rejected."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeader, match="Invalid Content-Length"):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: " + value + b"\r\n"
                 b"\r\n"
             )
 

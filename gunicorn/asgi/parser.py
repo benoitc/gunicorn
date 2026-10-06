@@ -635,13 +635,12 @@ class PythonProtocol:
                 # Reject duplicate Content-Length headers (request smuggling vector)
                 if content_length is not None:
                     raise InvalidHeader("Duplicate Content-Length header")
-                try:
-                    cl_value = int(value)
-                except ValueError:
+                # RFC 9110 section 8.6: Content-Length = 1*DIGIT. int() on
+                # its own also takes a sign and underscores, which a proxy
+                # framing by the same header will not.
+                if not value.isdigit():
                     raise InvalidHeader("Invalid Content-Length value")
-                if cl_value < 0:
-                    raise InvalidHeader("Negative Content-Length")
-                content_length = cl_value
+                content_length = int(value)
 
             elif name == b'transfer-encoding':
                 # Properly parse comma-separated Transfer-Encoding values
