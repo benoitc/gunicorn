@@ -103,6 +103,10 @@ class InvalidChunkExtension(ParseError):
     """Invalid chunk extension per RFC 9112."""
 
 
+class ChunkMissingTerminator(ParseError):
+    """Chunk data not followed by the required CRLF per RFC 9112."""
+
+
 # RFC 9110 section 5.3: fields whose grammar admits only a single member, so a
 # second occurrence cannot be merged and makes the message ambiguous. Lowercase
 # because that is how _finalize_headers() stores names. content-length belongs
@@ -808,9 +812,15 @@ class PythonProtocol:
                     self._chunk_state = 'crlf'
 
             elif self._chunk_state == 'crlf':
-                # Skip CRLF after chunk data
+                # RFC 9112 7.1: chunk-data is terminated by CRLF. Accepting
+                # anything else here lets a peer frame the body one way while a
+                # strict upstream frames it another (request smuggling vector),
+                # so the two bytes must be exactly CRLF.
                 if len(self._buffer) < 2:
                     return False
+                if self._buffer[:2] != b'\r\n':
+                    raise ChunkMissingTerminator(
+                        "chunk data not terminated by CRLF")
                 del self._buffer[:2]  # Skip \r\n
                 self._chunk_state = 'size'
 
