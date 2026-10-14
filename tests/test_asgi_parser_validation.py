@@ -13,6 +13,7 @@ import pytest
 from gunicorn.asgi.parser import (
     PythonProtocol,
     InvalidHeader,
+    InvalidHeaderName,
     InvalidChunkSize,
     UnsupportedTransferCoding,
     ParseError,
@@ -414,5 +415,45 @@ class TestMultipleTransferEncodingHeaders:
                 b"Host: localhost\r\n"
                 b"Transfer-Encoding: chunked\r\n"
                 b"Transfer-Encoding: chunked\r\n"
+                b"\r\n"
+            )
+
+
+class TestHeaderNameWhitespace:
+    """Whitespace between field name and colon must be rejected (RFC 9112 5.1)."""
+
+    def test_space_before_colon_rejected(self):
+        """A space before the colon must not be stripped into a valid name."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Transfer-Encoding : chunked\r\n"
+                b"\r\n"
+            )
+
+    def test_tab_before_colon_rejected(self):
+        """A tab before the colon must not be stripped into a valid name."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length\t: 10\r\n"
+                b"\r\n"
+            )
+
+    def test_leading_whitespace_name_rejected(self):
+        """A leading-space line must not be accepted as a framing header."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b" Content-Length: 10\r\n"
                 b"\r\n"
             )

@@ -580,7 +580,15 @@ class PythonProtocol:
             if colon == -1:
                 raise InvalidHeader("Missing colon in header")
 
-            name = line[:colon].strip()
+            # RFC 9112 section 5.1: no whitespace is allowed between the field
+            # name and the colon, and a server must reject a message that has
+            # it. Do not strip the name: a stripped "Transfer-Encoding :" or a
+            # leading-space " Content-Length:" would be read as a framing header
+            # here while the WSGI parser (TOKEN_RE) and a well-behaved proxy
+            # reject or fold it, which desyncs the two and smuggles a request.
+            # _is_valid_token already rejects SP/HTAB, so leaving them in place
+            # makes such a name fail validation instead of being accepted.
+            name = line[:colon]
             if not self._is_valid_token(name):
                 raise InvalidHeaderName(name.decode('latin-1'))
 
