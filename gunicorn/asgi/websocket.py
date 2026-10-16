@@ -13,6 +13,8 @@ import base64
 import hashlib
 import struct
 
+from gunicorn.asgi.protocol import _validate_response_headers
+
 
 # WebSocket frame opcodes
 OPCODE_CONTINUATION = 0x0
@@ -197,10 +199,12 @@ class WebSocketProtocol:
         # Add selected subprotocol if specified
         subprotocol = message.get("subprotocol")
         if subprotocol:
+            _validate_response_headers([("Sec-WebSocket-Protocol", subprotocol)])
             headers.append(f"Sec-WebSocket-Protocol: {subprotocol}\r\n")
 
         # Add any extra headers from message
         extra_headers = message.get("headers", [])
+        _validate_response_headers(extra_headers)
         for name, value in extra_headers:
             if isinstance(name, bytes):
                 name = name.decode("latin-1")

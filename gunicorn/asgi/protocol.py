@@ -12,6 +12,7 @@ and dispatch to ASGI applications.
 import asyncio
 import errno
 import ipaddress
+import re
 import time
 
 from gunicorn.asgi.unreader import AsyncUnreader
@@ -20,7 +21,9 @@ from gunicorn.asgi.parser import (
     LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
-from gunicorn.http.errors import NoMoreData
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData
+from gunicorn.http.message import TOKEN_RE
+from gunicorn.http.wsgi import HEADER_VALUE_RE
 from gunicorn.http2 import negotiation
 from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2ErrorCode, HTTP2StreamError
 from gunicorn.http2.stream import StreamState
@@ -68,6 +71,30 @@ def _check_trusted_proxy(peer_addr, allow_list, networks):
         if ip in network:
             return True
     return False
+
+
+# Response header checks, same rules as the WSGI Response.process_headers
+_HEADER_NAME_RE = re.compile(TOKEN_RE.pattern.encode("latin-1"))
+_HEADER_VALUE_RE = re.compile(HEADER_VALUE_RE.pattern.encode("latin-1"))
+
+
+def _validate_response_headers(headers):
+    """Reject response headers that would break HTTP/1.1 framing.
+
+    Names must be tokens and values must not contain CR, LF or other
+    control characters, otherwise an app echoing request data into a
+    header can split the response.
+    """
+    for name, value in headers:
+        if isinstance(name, str):
+            name = name.encode("latin-1")
+        if isinstance(value, str):
+            value = value.encode("latin-1")
+        if not _HEADER_NAME_RE.fullmatch(name):
+            raise InvalidHeaderName('%r' % name)
+        if not _HEADER_VALUE_RE.fullmatch(value):
+            # Pass only the name, the value may carry sensitive data
+            raise InvalidHeader('%r' % name)
 
 
 # Cached response bytes for common cases
@@ -1238,6 +1265,7 @@ class ASGIProtocol(asyncio.Protocol):
                 # Handle informational responses (1xx) like 103 Early Hints
                 info_status = message.get("status")
                 info_headers = message.get("headers", [])
+                _validate_response_headers(info_headers)
                 self._send_informational(info_status, info_headers, request)
                 return
 
@@ -1245,6 +1273,7 @@ class ASGIProtocol(asyncio.Protocol):
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
                     return
+                _validate_response_headers(message.get("headers", []))
                 response_started = True
                 response_status = message["status"]
                 response_headers = message.get("headers", [])
