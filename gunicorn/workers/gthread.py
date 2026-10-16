@@ -463,6 +463,11 @@ class ThreadWorker(base.Worker):
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_pending_socket_readable, conn))
             elif result and self.alive:
+                if conn.parser.unreader.buf.getvalue():
+                    # A body drain can read ahead into the next request. Those
+                    # bytes no longer make the socket readable to the poller.
+                    self.enqueue_req(conn)
+                    return
                 # Keepalive - put connection back in the poller
                 conn.sock.setblocking(False)
                 conn.set_timeout()

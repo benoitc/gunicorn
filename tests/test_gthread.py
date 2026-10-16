@@ -454,6 +454,7 @@ class TestFinishRequest:
 
         conn = mock.Mock()
         conn.sock = mock.Mock()
+        conn.parser.unreader.buf.getvalue.return_value = b''
         fs = mock.Mock()
         fs.cancelled.return_value = False
         fs.result.return_value = True  # keepalive=True
@@ -464,6 +465,52 @@ class TestFinishRequest:
         assert conn in worker.keepalived_conns
         conn.set_timeout.assert_called_once()
         worker.poller.register.assert_called_once()
+
+    @pytest.mark.parametrize('body', [b'', b'payload'])
+    def test_finish_request_buffered_request(self, body):
+        """Read-ahead after a body drain must not wait for socket readiness."""
+        from gunicorn.http.parser import RequestParser
+
+        worker = self.create_worker()
+        worker.nr_conns = 1
+        worker.enqueue_req = mock.Mock()
+        request = b'GET /next HTTP/1.1\r\nHost: localhost\r\n\r\n'
+        headers = (b'POST /first HTTP/1.1\r\nHost: localhost\r\n'
+                   b'Content-Length: %d\r\n\r\n' % len(body))
+        source = [headers, body + request] if body else [headers + request]
+        parser = RequestParser(worker.cfg, source, ('127.0.0.1', 1234))
+        assert next(parser).path == '/first'
+        conn = mock.Mock()
+        conn.parser = parser
+        assert worker._keepalive_after(conn, True)
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = True
+
+        worker.finish_request(conn, fs)
+
+        worker.enqueue_req.assert_called_once_with(conn)
+        worker.poller.register.assert_not_called()
+        assert not worker.keepalived_conns
+        assert worker.nr_conns == 1
+        assert next(parser).path == '/next'
+
+    def test_finish_request_buffered_shutdown(self):
+        worker = self.create_worker()
+        worker.alive = False
+        worker.nr_conns = 1
+        worker.enqueue_req = mock.Mock()
+        conn = mock.Mock()
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = True
+
+        worker.finish_request(conn, fs)
+
+        worker.enqueue_req.assert_not_called()
+        worker.poller.register.assert_not_called()
+        conn.close.assert_called_once_with(graceful=True)
+        assert worker.nr_conns == 0
 
     def test_finish_request_close(self):
         """Test handling of non-keepalive response."""
