@@ -1208,6 +1208,7 @@ class ASGIProtocol(asyncio.Protocol):
         omits_body = False
         omits_body_warned = False
         response_requires_close = False
+        response_length = None
         uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
 
         # Reset response buffer for write batching
@@ -1224,7 +1225,7 @@ class ASGIProtocol(asyncio.Protocol):
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked, omits_body
-            nonlocal omits_body_warned, response_requires_close
+            nonlocal omits_body_warned, response_requires_close, response_length
 
             # If client disconnected, silently ignore send attempts
             # This allows apps to finish cleanup without errors
@@ -1251,10 +1252,12 @@ class ASGIProtocol(asyncio.Protocol):
                 # Check if Content-Length or Transfer-Encoding is present
                 has_content_length = False
                 has_transfer_encoding = False
-                for name, _ in response_headers:
+                content_length_value = None
+                for name, value in response_headers:
                     name_lower = name.lower() if isinstance(name, str) else name.lower()
                     if name_lower in (b"content-length", "content-length"):
                         has_content_length = True
+                        content_length_value = value
                     elif name_lower in (b"transfer-encoding", "transfer-encoding"):
                         has_transfer_encoding = True
                         use_chunked = True  # Framework already set chunked encoding
@@ -1302,6 +1305,15 @@ class ASGIProtocol(asyncio.Protocol):
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 
+                # Like the WSGI Response, never write more body bytes than the
+                # app's Content-Length declares: the excess would be read as
+                # the start of the next response on a reused connection.
+                if has_content_length and not use_chunked and not omits_body:
+                    try:
+                        response_length = int(content_length_value)
+                    except (TypeError, ValueError):
+                        response_length = None
+
                 # Without Content-Length, EOF delimits a uWSGI response body.
                 # Do not reuse the upstream connection for another request.
                 response_requires_close = (
@@ -1339,6 +1351,9 @@ class ASGIProtocol(asyncio.Protocol):
                         )
                         omits_body_warned = True
                     body = b""
+
+                if response_length is not None:
+                    body = body[:max(response_length - response_sent, 0)]
 
                 if body:
                     self._send_body(body, chunked=use_chunked)
@@ -1412,6 +1427,11 @@ class ASGIProtocol(asyncio.Protocol):
                 self.cfg.post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
+
+        # A body shorter than the declared Content-Length leaves the client
+        # waiting for bytes that never come; close instead of keeping alive.
+        if response_length is not None and response_sent < response_length:
+            return False
 
         # Determine keepalive
         return not self._will_close(request, response_requires_close)
