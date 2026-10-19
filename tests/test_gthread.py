@@ -993,13 +993,15 @@ class TestWorkerLiveness:
 class TestSignalHandling:
     """Tests for signal handling in gthread worker."""
 
-    def create_worker(self):
+    def create_worker(self, keepalive=None):
         """Create a worker for testing."""
         cfg = Config()
         cfg.set('workers', 1)
         cfg.set('threads', 4)
         cfg.set('worker_connections', 1000)
         cfg.set('graceful_timeout', 5)
+        if keepalive is not None:
+            cfg.set('keepalive', keepalive)
 
         worker = gthread.ThreadWorker(
             age=1,
@@ -1111,6 +1113,50 @@ class TestSignalHandling:
         assert iterations[0] >= 2
         worker.method_queue.close()
         assert worker.notify.call_count == 3  # 1x main loop, 2x drain loop
+
+    def test_graceful_shutdown_ignore_idle_keepalived(self):
+        """Test that graceful shutdown ignores idle keepalived conns."""
+        worker = self.create_worker(keepalive=30)
+        worker.method_queue.init()
+        worker.poller = mock.Mock()
+        worker.tpool = mock.Mock()
+        worker.sockets = []
+        worker.alive = True
+
+        iterations = [0]
+
+        def mock_select(timeout):
+            iterations[0] += 1
+            if iterations[0] == 1:
+                # First iteration: trigger shutdown
+                worker.alive = False
+            elif iterations[0] == 2:
+                # Second iteration: during grace period
+                pass
+            elif iterations[0] == 3:
+                # Third iteration: in-flight request completes
+                worker.nr_conns -= 1
+            return []
+
+        worker.poller.select.side_effect = mock_select
+        worker.is_parent_alive = mock.Mock(return_value=True)
+
+        # Create a keepalived socket
+        sock = FakeSocket()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.timeout = time.monotonic() + 60
+        worker.keepalived_conns.append(conn)
+        worker.nr_conns = 2  # 1 active + 1 idle keepalived
+
+        worker.run()
+
+        # Should have waited for in-flight connection, but not idle
+        assert iterations[0] == 3
+        assert sock.closed is True
+        assert len(worker.keepalived_conns) == 0
+        assert worker.nr_conns == 0
+
+        worker.method_queue.close()
 
     def test_sigterm_does_not_interrupt_active_request(self):
         """Test that SIGTERM doesn't immediately interrupt active requests."""

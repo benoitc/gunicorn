@@ -432,7 +432,7 @@ class ThreadWorker(base.Worker):
 
         # Wait for in-flight connections within grace period
         graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
-        while self.nr_conns > 0:
+        while self.nr_conns - len(self.keepalived_conns) > 0:
             if time.monotonic() > graceful_timeout:
                 break
             self.notify()
@@ -441,6 +441,7 @@ class ThreadWorker(base.Worker):
             self.murder_pending()
 
         # Cleanup
+        self.murder_keepalived(force=True)
         self.tpool.shutdown(wait=False)
         self.poller.close()
         self.method_queue.close()
