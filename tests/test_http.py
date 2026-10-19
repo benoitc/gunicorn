@@ -218,6 +218,83 @@ def test_length_reader_read():
     assert reader.read(100) == b''
 
 
+class RecordingSocket(t.FakeSocket):
+    """FakeSocket that remembers the size of every recv() call."""
+
+    def __init__(self, data):
+        super().__init__(io.BytesIO(data))
+        self.recv_sizes = []
+        self.received = []
+
+    def recv(self, length=None):
+        self.recv_sizes.append(length)
+        data = super().recv(length)
+        self.received.append(len(data))
+        return data
+
+
+def test_socket_unreader_chunk_size_hint():
+    sock = RecordingSocket(b'x' * (4 * 1024 * 1024))
+    unreader = SocketUnreader(sock, max_chunk=8192)
+    unreader.chunk()
+    unreader.chunk(100)
+    unreader.chunk(64 * 1024)
+    unreader.chunk(10 * 1024 * 1024)
+    assert sock.recv_sizes == [8192, 8192, 64 * 1024, SocketUnreader.max_body_chunk]
+
+
+def test_body_read_uses_large_recv_calls():
+    # Every recv() releases the GIL; reading a body 8 KiB at a time made uploads
+    # crawl when other threads of the worker were busy (one recv per 8 KiB).
+    payload = bytes(range(256)) * (16 * 1024)       # 4 MiB
+    sock = RecordingSocket(payload)
+    body = Body(LengthReader(SocketUnreader(sock), len(payload)))
+    assert body.read() == payload
+    assert len(sock.recv_sizes) <= 8
+
+
+def test_body_read_in_pieces_reads_ahead_within_the_body():
+    # Django and Werkzeug read uploads 64 KiB at a time: the socket is still
+    # read in large steps, and a step larger than the default 8 KiB never
+    # reaches past the end of the body (bytes of a pipelined request read by
+    # the default step stay buffered, as before).
+    payload = b'a' * (3 * 1024 * 1024 + 123)
+    pipelined = b'GET /next HTTP/1.1\r\n\r\n'
+    sock = RecordingSocket(payload + pipelined)
+    unreader = SocketUnreader(sock)
+    body = Body(LengthReader(unreader, len(payload)))
+    pieces = []
+    while True:
+        piece = body.read(64 * 1024)
+        if not piece:
+            break
+        pieces.append(piece)
+    assert b''.join(pieces) == payload
+    assert len(sock.recv_sizes) <= 8
+    consumed = 0
+    for asked, got in zip(sock.recv_sizes, sock.received):
+        assert asked <= max(8192, len(payload) - consumed)
+        consumed += got
+    assert unreader.read() == pipelined
+
+
+def test_body_read_whole_body_memory_stays_close_to_body_size():
+    # read() with no size reads the whole body: the readers' own buffers must
+    # stay small, the only large allocation being the body handed back.
+    import tracemalloc
+    size = 8 * 1024 * 1024
+    sock = t.FakeSocket(io.BytesIO(b'a' * size))
+    body = Body(LengthReader(SocketUnreader(sock), size))
+    tracemalloc.start()
+    try:
+        data = body.read()
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert len(data) == size
+    assert peak < 1.5 * size
+
+
 def test_length_reader_read_invalid_size():
     reader = LengthReader(None, 5)
     with pytest.raises(TypeError):
@@ -490,9 +567,9 @@ class _CountingUnreader(IterUnreader):
         super().__init__(iter(blocks))
         self.reads = 0
 
-    def read(self, size=None):
+    def read(self, size=None, read_ahead=None):
         self.reads += 1
-        return super().read(size)
+        return super().read(size, read_ahead)
 
 
 def _chunked_reader(unreader, field_size=8190, headers=8190 * 32):

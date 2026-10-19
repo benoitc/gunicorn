@@ -9,6 +9,9 @@ from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
                                   InvalidChunkSize, InvalidChunkExtension,
                                   LimitRequestHeaders)
 
+#: Largest piece Body.read() asks its reader for in one call.
+MAX_READ_STEP = 1024 * 1024
+
 #: Fallbacks when the request carries no header limits of its own.
 DEFAULT_MAX_CHUNK_SIZE_LINE = 8190
 DEFAULT_MAX_TRAILER_SECTION = 8190 * 32
@@ -165,17 +168,10 @@ class LengthReader:
         if size == 0:
             return b""
 
-        buf = io.BytesIO()
-        data = self.unreader.read()
-        while data:
-            buf.write(data)
-            if buf.tell() >= size:
-                break
-            data = self.unreader.read()
-
-        buf = buf.getvalue()
-        ret, rest = buf[:size], buf[size:]
-        self.unreader.unread(rest)
+        # The unreader reads until it holds `size` bytes and keeps anything
+        # beyond for later. It may read ahead up to the end of the body, so an
+        # application reading 64 KiB at a time still gets large recv() calls.
+        ret = self.unreader.read(size, read_ahead=self.length)
         self.length -= size
         return ret
 
@@ -265,8 +261,15 @@ class Body:
             self.buf.write(rest)
             return ret
 
+        # Ask the reader for what is still missing, in steps of at most
+        # MAX_READ_STEP (and at least 1 KiB, the read-ahead small reads always
+        # had). Asking for 1 KiB made LengthReader push the rest of each
+        # received chunk back with unread(), copying it again on every turn of
+        # this loop; the upper bound keeps the readers' own buffers small when
+        # the application reads a large body in one call.
         while size > self.buf.tell():
-            data = self._read_reader(1024)
+            step = min(max(1024, size - self.buf.tell()), MAX_READ_STEP)
+            data = self._read_reader(step)
             if not data:
                 break
             self.buf.write(data)
