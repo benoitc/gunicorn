@@ -749,6 +749,37 @@ class TestKeepaliveManagement:
 
         worker.poller.close()
 
+    def test_murder_keepalived_force(self):
+        """Test that all idle connections are closed if forced."""
+        worker = self.create_worker()
+        worker.poller = selectors.DefaultSelector()
+
+        cfg = Config()
+
+        # Add one expired and one valid connection
+        expired_sock = FakeSocket()
+        expired_conn = gthread.TConn(cfg, expired_sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        expired_conn.timeout = time.monotonic() - 10  # Expired
+
+        valid_sock = FakeSocket()
+        valid_conn = gthread.TConn(cfg, valid_sock, ('127.0.0.1', 12346), ('127.0.0.1', 8000))
+        valid_conn.timeout = time.monotonic() + 100  # Still valid
+
+        worker.keepalived_conns.append(expired_conn)
+        worker.keepalived_conns.append(valid_conn)
+        worker.nr_conns = 2
+
+        with mock.patch.object(worker.poller, 'unregister'):
+            worker.murder_keepalived(force=True)
+
+        # Expired and valid should be closed
+        assert expired_sock.closed is True
+        assert valid_sock.closed is True
+        assert len(worker.keepalived_conns) == 0
+        assert worker.nr_conns == 0
+
+        worker.poller.close()
+
 
 class TestErrorHandling:
     """Tests for error handling in various scenarios."""

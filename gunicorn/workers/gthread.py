@@ -345,13 +345,13 @@ class ThreadWorker(base.Worker):
         # Submit to thread pool for processing
         self.enqueue_req(conn)
 
-    def murder_keepalived(self):
-        """Close expired keepalive connections."""
+    def murder_keepalived(self, force=False):
+        """Close expired keepalive connections (or all if forced)."""
         now = time.monotonic()
         while self.keepalived_conns:
             conn = self.keepalived_conns[0]
             delta = conn.timeout - now
-            if delta > 0:
+            if delta > 0 and not force:
                 break
 
             # Connection has timed out
