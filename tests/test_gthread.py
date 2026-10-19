@@ -1053,6 +1053,7 @@ class TestSignalHandling:
         worker.sockets = []
         worker.nr_conns = 1  # One active connection
         worker.alive = True
+        worker.notify = mock.Mock()
 
         # Track iterations
         iterations = [0]
@@ -1078,6 +1079,7 @@ class TestSignalHandling:
         # Should have waited for connections
         assert iterations[0] >= 2
         worker.method_queue.close()
+        assert worker.notify.call_count == 3  # 1x main loop, 2x drain loop
 
     def test_sigterm_does_not_interrupt_active_request(self):
         """Test that SIGTERM doesn't immediately interrupt active requests."""

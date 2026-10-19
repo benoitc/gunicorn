@@ -433,10 +433,10 @@ class ThreadWorker(base.Worker):
         # Wait for in-flight connections within grace period
         graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
         while self.nr_conns > 0:
-            time_remaining = max(graceful_timeout - time.monotonic(), 0)
-            if time_remaining == 0:
+            if time.monotonic() > graceful_timeout:
                 break
-            self.wait_for_and_dispatch_events(timeout=time_remaining)
+            self.notify()
+            self.wait_for_and_dispatch_events(timeout=1.0)
             self.murder_keepalived()
             self.murder_pending()
 
