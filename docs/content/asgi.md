@@ -297,9 +297,11 @@ configuration capabilities you're familiar with from WSGI deployments.
 
 ### Lifespan startup failed
 
-If you see "ASGI lifespan startup failed", your application may not properly
-implement the lifespan protocol. Either fix the application or set
-`--asgi-lifespan off`.
+If you see "ASGI lifespan startup failed", the application either sent
+`lifespan.startup.failed` (for example because a lifespan handler raised) or,
+with `--asgi-lifespan on`, did not complete the lifespan protocol. Gunicorn
+stops in both cases. Fix the application, or set `--asgi-lifespan off` (or
+`auto` for an app that does not implement lifespan).
 
 ### Connection limits
 

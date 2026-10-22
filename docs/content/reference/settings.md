@@ -2017,6 +2017,10 @@ Control ASGI lifespan protocol handling.
 - on: Always run lifespan protocol (fail if unsupported)
 - off: Never run lifespan protocol
 
+In ``auto`` and ``on`` mode, an app that sends
+``lifespan.startup.failed`` stops gunicorn. With ``on``, any failure
+to complete startup does.
+
 The lifespan protocol allows ASGI applications to run code at
 startup and shutdown. This is essential for frameworks like
 FastAPI that need to initialize database connections, caches,

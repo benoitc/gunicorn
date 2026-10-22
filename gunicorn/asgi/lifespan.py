@@ -13,6 +13,15 @@ cleanup code.
 import asyncio
 
 
+class LifespanStartupFailed(RuntimeError):
+    """The application explicitly reported ``lifespan.startup.failed``.
+
+    Unlike an application that crashes or exits without handling the
+    lifespan scope (which may simply not support the protocol), this is a
+    definite statement from the app that it could not start.
+    """
+
+
 class LifespanManager:
     """Manages ASGI lifespan events (startup/shutdown).
 
@@ -44,6 +53,7 @@ class LifespanManager:
         self._startup_complete = asyncio.Event()
         self._shutdown_complete = asyncio.Event()
         self._startup_failed = False
+        self._startup_reported = False  # app sent lifespan.startup.failed
         self._startup_error = None
         self._shutdown_error = None
         self._receive_queue = asyncio.Queue()
@@ -54,7 +64,9 @@ class LifespanManager:
         """Run lifespan startup and wait for completion.
 
         Raises:
-            RuntimeError: If startup fails or app doesn't support lifespan
+            LifespanStartupFailed: If the app sent lifespan.startup.failed
+            RuntimeError: If startup times out or the app raised or exited
+                without completing startup (e.g. no lifespan support)
         """
         scope = {
             "type": "lifespan",
@@ -83,7 +95,9 @@ class LifespanManager:
             if self._task:
                 self._task.cancel()
             msg = self._startup_error or "Unknown error"
-            raise RuntimeError(f"Lifespan startup failed: {msg}")
+            exc_class = (LifespanStartupFailed if self._startup_reported
+                         else RuntimeError)
+            raise exc_class(f"Lifespan startup failed: {msg}")
 
         self.logger.debug("ASGI lifespan startup complete")
 
@@ -162,6 +176,7 @@ class LifespanManager:
 
         elif msg_type == "lifespan.startup.failed":
             self._startup_failed = True
+            self._startup_reported = True
             self._startup_error = message.get("message", "")
             self._startup_complete.set()
             self.logger.debug("Received lifespan.startup.failed: %s",

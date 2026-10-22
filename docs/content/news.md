@@ -1,6 +1,19 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- **ASGI worker kept running after a failed lifespan startup**: when the app
+  sent `lifespan.startup.failed`, `--asgi-lifespan auto` logged the failure and
+  served requests anyway, and `--asgi-lifespan on` made the worker exit with
+  status 0 so the arbiter rebooted it forever. The worker now exits with the
+  boot-error status and gunicorn stops. In `auto` mode an app that crashes on
+  the lifespan scope without sending `lifespan.startup.failed` is still treated
+  as not supporting lifespan
+  ([#3778](https://github.com/benoitc/gunicorn/issues/3778)).
+
 ## 26.2.2 - 2026-09-06
 
 ### Bug Fixes
