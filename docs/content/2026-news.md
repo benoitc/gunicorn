@@ -36,6 +36,9 @@
   (RFC 9112 §7.1), like the Python parsers.
 - Ignore one empty line before the request line, as the fast parser
   already does (RFC 9112 §2.2).
+- ASGI: stop gunicorn when the app reports a failed lifespan startup,
+  instead of serving requests or rebooting the worker forever (ASGI
+  lifespan spec) ([#3778](https://github.com/benoitc/gunicorn/issues/3778)).
 
 ## 26.2.2 - 2026-09-06
 
