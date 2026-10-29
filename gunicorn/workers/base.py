@@ -236,6 +236,8 @@ class Worker:
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
                 mesg = "%s" % str(exc)
+                status_int = 414
+                reason = "URI Too Long"
             elif isinstance(exc, ExpectationFailed):
                 reason = "Expectation Failed"
                 mesg = str(exc)
