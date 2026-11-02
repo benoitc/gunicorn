@@ -532,6 +532,18 @@ def test_umask_config(options, expected):
     assert app.cfg.umask == expected
 
 
+def test_umask_octal_literal_in_python_config_file():
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as handle:
+        handle.write("umask = 0o007\n")
+        path = handle.name
+    try:
+        with AltArgs(["prog_name", "-c", path]):
+            app = NoConfigApp()
+        assert app.cfg.umask == 0o007
+    finally:
+        os.unlink(path)
+
+
 def _test_ssl_version(options, expected):
     cmdline = ["prog_name"]
     cmdline.extend(options)

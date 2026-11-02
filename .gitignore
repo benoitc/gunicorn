@@ -20,3 +20,5 @@ site/
 docs/site/
 tests/docker/*/results/
 tests/docker/h2spec/certs/
+config.bat
+node_modules

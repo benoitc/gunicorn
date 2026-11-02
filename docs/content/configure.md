@@ -50,7 +50,13 @@ import multiprocessing
 
 bind = "127.0.0.1:8000"
 workers = multiprocessing.cpu_count() * 2 + 1
+umask = 0o007
 ```
+
+The file is ordinary Python, so integer literals follow Python 3 rules. Write
+an octal umask as `0o007`. A leading-zero form such as `007` is a syntax
+error. The `gthread` worker is bundled; setting `threads` above 1 selects it
+without an extra install.
 
 Every configuration key is documented in the [settings reference](reference/settings.md).
 

@@ -117,7 +117,9 @@ spew = False
 #       A valid value for the os.umask(mode) call or a string
 #       compatible with int(value, 0) (0 means Python guesses
 #       the base, so values like "0", "0xFF", "0022" are valid
-#       for decimal, hex, and octal representations)
+#       for decimal, hex, and octal representations).
+#       In this Python file use an octal literal such as 0o007.
+#       A leading-zero form such as 007 is not valid Python 3.
 #
 #   tmp_upload_dir - A directory to store temporary request data when
 #       requests are read. This will most likely be disappearing soon.

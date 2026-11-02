@@ -1386,7 +1386,16 @@ Note that this affects unix socket permissions.
 A valid value for the ``os.umask(mode)`` call or a string compatible
 with ``int(value, 0)`` (``0`` means Python guesses the base, so values
 like ``0``, ``0xFF``, ``0022`` are valid for decimal, hex, and octal
-representations)
+representations).
+
+In a Python configuration file the value is a Python integer. Python 3
+rejects a leading-zero literal such as ``007``. Use an octal literal
+instead::
+
+    umask = 0o007
+
+Command-line values are strings, so ``007``, ``0o007``, and ``0xFF``
+are all accepted there.
 
 ### `initgroups`
 
@@ -1856,8 +1865,7 @@ A string referring to one of the following bundled classes:
   ``pip install gunicorn[gevent]``)
 * ``tornado``  - Requires tornado >= 6.5.0 (or install it via
   ``pip install gunicorn[tornado]``)
-* ``gthread``  - Python 2 requires the futures package to be installed
-  (or install it via ``pip install gunicorn[gthread]``)
+* ``gthread``  - Bundled. No extra package is required.
 
 Optionally, you can provide your own worker by giving Gunicorn a
 Python path to a subclass of ``gunicorn.workers.base.Worker``.
@@ -1880,7 +1888,8 @@ application's work load.
 
 If it is not defined, the default is ``1``.
 
-This setting only affects the Gthread worker type.
+This setting only affects the Gthread worker type. That worker is
+bundled with Gunicorn; no extra package is required.
 
 !!! note
     If you try to use the ``sync`` worker type and set the ``threads``
