@@ -3,6 +3,7 @@
 # See the NOTICE for more information.
 
 import errno
+import socket
 from unittest import mock
 
 from gunicorn import sock
@@ -74,6 +75,55 @@ def test_unix_socket_filesystem_path_still_checks_stat(stat):
     with mock.patch.object(sock.BaseSocket, '__init__', lambda *a, **kw: None):
         sock.UnixSocket('/var/run/test.sock', conf, log)
     stat.assert_called_once_with('/var/run/test.sock')
+
+
+def test_create_sockets_from_fd_closes_inspection_socket():
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(('127.0.0.1', 0))
+    srv.listen(1)
+    fd = srv.fileno()
+    conf = mock.Mock(
+        address=[],
+        certfile=None,
+        keyfile=None,
+        reuse_port=False,
+        backlog=8,
+        is_ssl=False,
+    )
+    log = mock.Mock()
+    created = []
+    real_fromfd = sock.socket.fromfd
+
+    def tracking_fromfd(*args, **kwargs):
+        dup = real_fromfd(*args, **kwargs)
+        created.append(dup)
+        return dup
+
+    listeners = []
+    try:
+        with mock.patch.object(sock.socket, 'fromfd', tracking_fromfd):
+            listeners = sock.create_sockets(conf, log, fds=[fd])
+        assert len(listeners) == 1
+        assert len(created) >= 2
+
+        def socket_is_closed(dup):
+            if getattr(dup, '_closed', False):
+                return True
+            try:
+                return dup.fileno() < 0
+            except OSError:
+                return True
+
+        assert socket_is_closed(created[0])
+        assert listeners[0].sock.fileno() >= 0
+    finally:
+        for listener in listeners:
+            listener.close()
+        try:
+            srv.close()
+        except OSError:
+            pass
 
 
 @mock.patch.object(sock.util, 'chown')

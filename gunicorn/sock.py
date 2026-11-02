@@ -193,8 +193,13 @@ def create_sockets(conf, log, fds=None):
     # sockets are already bound
     if fdaddr:
         for fd in fdaddr:
+            # fromfd() duplicates the inherited fd. Close that copy after
+            # reading getsockname() so only the real listener keeps a handle.
             sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            sock_name = sock.getsockname()
+            try:
+                sock_name = sock.getsockname()
+            finally:
+                sock.close()
             sock_type = _sock_type(sock_name)
             listener = sock_type(sock_name, conf, log, fd=fd)
             listeners.append(listener)
