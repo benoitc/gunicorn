@@ -1377,6 +1377,17 @@ class ASGIProtocol(asyncio.Protocol):
             if not response_started:
                 self._send_error_response(500, "Internal Server Error")
                 response_status = 500
+            elif not response_complete:
+                # The app returned in the middle of its response. The client
+                # cannot tell where it ends, and on a kept-alive connection
+                # the next response would be read as the rest of this one
+                # (or, with the headers still buffered, as the response to
+                # this request). Close the connection instead.
+                if not self._closed:
+                    self.log.error(
+                        "ASGI application returned without completing "
+                        "the response; closing the connection")
+                return False
 
         except asyncio.CancelledError:
             # Client disconnected - don't log as error, this is normal
