@@ -208,11 +208,12 @@ class Logger:
                     log.removeHandler(handler)
 
         # set gunicorn.error handler
-        if self.cfg.capture_output and cfg.errorlog != "-":
+        capture_path = self._stdio_capture_path(cfg)
+        if self.cfg.capture_output and capture_path:
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
 
-            self.logfile = open(cfg.errorlog, 'a+')
+            self.logfile = open(capture_path, 'a+')
             os.dup2(self.logfile.fileno(), sys.stdout.fileno())
             os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
@@ -388,14 +389,15 @@ class Logger:
         return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
 
     def reopen_files(self):
-        if self.cfg.capture_output and self.cfg.errorlog != "-":
+        capture_path = self._stdio_capture_path(self.cfg)
+        if self.cfg.capture_output and capture_path:
             for stream in sys.stdout, sys.stderr:
                 stream.flush()
 
             with self.lock:
                 if self.logfile is not None:
                     self.logfile.close()
-                self.logfile = open(self.cfg.errorlog, 'a+')
+                self.logfile = open(capture_path, 'a+')
                 os.dup2(self.logfile.fileno(), sys.stdout.fileno())
                 os.dup2(self.logfile.fileno(), sys.stderr.fileno())
 
@@ -420,6 +422,45 @@ class Logger:
                             util.close_on_exec(handler.stream.fileno())
                     finally:
                         handler.release()
+
+    def _stdio_capture_path(self, cfg):
+        """Return the file stdout/stderr should be redirected to.
+
+        capture_output historically required errorlog to be a file path.
+        When errorlog is '-' and logconfig_dict or logconfig_json names a
+        file handler for gunicorn.error, use that filename instead.
+        """
+        if cfg.errorlog and cfg.errorlog != "-":
+            return cfg.errorlog
+
+        config = None
+        if cfg.logconfig_dict:
+            config = cfg.logconfig_dict
+        elif cfg.logconfig_json and os.path.exists(cfg.logconfig_json):
+            try:
+                with open(cfg.logconfig_json) as handle:
+                    config = json.load(handle)
+            except (OSError, json.JSONDecodeError, TypeError):
+                return None
+        if not isinstance(config, dict):
+            return None
+
+        handlers = config.get("handlers") or {}
+        if not isinstance(handlers, dict):
+            return None
+        loggers_cfg = config.get("loggers") or {}
+        error_cfg = loggers_cfg.get("gunicorn.error") or {}
+        names = list(error_cfg.get("handlers") or [])
+        if not names:
+            names = list(handlers)
+        for name in names:
+            handler = handlers.get(name) or {}
+            if not isinstance(handler, dict):
+                continue
+            filename = handler.get("filename")
+            if filename:
+                return filename
+        return None
 
     def _get_gunicorn_handler(self, log):
         for h in log.handlers:
