@@ -9,6 +9,7 @@ import html
 import importlib
 import inspect
 import io
+import json
 import logging
 import os
 import pwd
@@ -360,27 +361,83 @@ def write_nonblock(sock, data, chunked=False):
         return write(sock, data, chunked)
 
 
-def write_error(sock, status_int, reason, mesg):
-    html_error = textwrap.dedent("""\
-    <html>
-      <head>
-        <title>%(reason)s</title>
-      </head>
-      <body>
-        <h1><p>%(reason)s</p></h1>
-        %(mesg)s
-      </body>
-    </html>
-    """) % {"reason": reason, "mesg": html.escape(mesg)}
+def error_body_type(accept):
+    """Pick json, xml, or html from Accept. Default html."""
+    if not accept:
+        return "html"
+    if isinstance(accept, bytes):
+        accept = accept.decode("latin1", "replace")
+    chosen = "html"
+    best_q = -1.0
+    mapping = {
+        "application/json": "json",
+        "application/xml": "xml",
+        "text/xml": "xml",
+        "text/html": "html",
+        "*/*": "html",
+    }
+    for part in accept.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        bits = [b.strip() for b in part.split(";")]
+        media = bits[0].lower()
+        q = 1.0
+        for param in bits[1:]:
+            if param.lower().startswith("q="):
+                try:
+                    q = float(param[2:])
+                except ValueError:
+                    q = 0.0
+        kind = mapping.get(media)
+        if kind is None:
+            continue
+        if q > best_q:
+            best_q = q
+            chosen = kind
+    return chosen
 
-    http = textwrap.dedent("""\
-    HTTP/1.1 %s %s\r
-    Connection: close\r
-    Content-Type: text/html\r
-    Content-Length: %d\r
-    \r
-    %s""") % (str(status_int), reason, len(html_error), html_error)
-    write_nonblock(sock, http.encode('latin1'))
+
+def write_error(sock, status_int, reason, mesg, accept=None):
+    kind = error_body_type(accept)
+    if kind == "json":
+        body = json.dumps(
+            {"status": int(status_int), "reason": reason, "message": mesg},
+            ensure_ascii=True,
+        )
+        content_type = "application/json"
+        encoded = body.encode("utf-8")
+    elif kind == "xml":
+        body = (
+            '<?xml version="1.0" encoding="utf-8"?>'
+            "<error><status>%s</status><reason>%s</reason>"
+            "<message>%s</message></error>"
+        ) % (int(status_int), html.escape(reason), html.escape(mesg))
+        content_type = "application/xml"
+        encoded = body.encode("utf-8")
+    else:
+        body = textwrap.dedent("""\
+        <html>
+          <head>
+            <title>%(reason)s</title>
+          </head>
+          <body>
+            <h1><p>%(reason)s</p></h1>
+            %(mesg)s
+          </body>
+        </html>
+        """) % {"reason": reason, "mesg": html.escape(mesg)}
+        content_type = "text/html"
+        encoded = body.encode("latin1")
+
+    http = (
+        "HTTP/1.1 %s %s\r\n"
+        "Connection: close\r\n"
+        "Content-Type: %s\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n"
+    ) % (str(status_int), reason, content_type, len(encoded))
+    write_nonblock(sock, http.encode("latin1") + encoded)
 
 
 def _called_with_wrong_args(f):

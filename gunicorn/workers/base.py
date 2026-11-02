@@ -285,8 +285,14 @@ class Worker:
             resp.response_length = len(mesg)
             self.log.access(resp, req, environ, request_time)
 
+        accept = None
+        if req is not None:
+            for name, value in getattr(req, "headers", []) or []:
+                if str(name).upper() == "ACCEPT":
+                    accept = value
+                    break
         try:
-            util.write_error(client, status_int, reason, mesg)
+            util.write_error(client, status_int, reason, mesg, accept=accept)
         except Exception:
             self.log.debug("Failed to send error message.")
 
