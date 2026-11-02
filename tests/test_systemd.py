@@ -58,3 +58,50 @@ def test_listen_fds_returns_count(unset):
         with check_environ(unset):
             assert systemd.listen_fds(unset) == 5, \
                 "should return the correct count of fds"
+
+
+def test_watchdog_disabled_without_usec():
+    with mock.patch.dict(os.environ, clear=True):
+        assert systemd.watchdog_enabled() is False
+
+
+def test_watchdog_disabled_for_zero_usec():
+    with mock.patch.dict(os.environ, {"WATCHDOG_USEC": "0"}):
+        assert systemd.watchdog_enabled() is False
+
+
+def test_watchdog_disabled_for_other_pid():
+    with mock.patch.dict(os.environ, {
+        "WATCHDOG_USEC": "10000000",
+        "WATCHDOG_PID": "1",
+    }):
+        assert systemd.watchdog_enabled() is False
+
+
+def test_watchdog_enabled_for_this_pid():
+    with mock.patch.dict(os.environ, {
+        "WATCHDOG_USEC": "10000000",
+        "WATCHDOG_PID": str(os.getpid()),
+    }):
+        assert systemd.watchdog_enabled() is True
+
+
+def test_watchdog_enabled_without_pid():
+    with mock.patch.dict(os.environ, {"WATCHDOG_USEC": "2000000"}):
+        assert systemd.watchdog_enabled() is True
+
+
+def test_ping_watchdog_sends_when_enabled():
+    logger = mock.Mock()
+    with mock.patch.dict(os.environ, {"WATCHDOG_USEC": "5000000"}):
+        with mock.patch.object(systemd, "sd_notify") as notify:
+            systemd.ping_watchdog(logger)
+            notify.assert_called_once_with("WATCHDOG=1", logger)
+
+
+def test_ping_watchdog_skips_when_disabled():
+    logger = mock.Mock()
+    with mock.patch.dict(os.environ, clear=True):
+        with mock.patch.object(systemd, "sd_notify") as notify:
+            systemd.ping_watchdog(logger)
+            notify.assert_not_called()

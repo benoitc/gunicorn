@@ -208,6 +208,7 @@ class Arbiter:
         self.log.info("Listening at: %s (%s)", listeners_str, self.pid)
         self.log.info("Using worker: %s", self.cfg.worker_class_str)
         systemd.sd_notify("READY=1\nSTATUS=Gunicorn arbiter booted", self.log)
+        systemd.ping_watchdog(self.log)
 
         # check worker class requirements
         if hasattr(self.worker_class, "check_config"):
@@ -252,6 +253,7 @@ class Arbiter:
 
             while True:
                 self.maybe_promote_master()
+                systemd.ping_watchdog(self.log)
 
                 # Wait for and process signals
                 for sig in self.wait_for_signals(timeout=1.0):

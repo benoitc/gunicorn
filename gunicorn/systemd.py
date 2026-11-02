@@ -75,3 +75,33 @@ def sd_notify(state, logger, unset_environment=False):
             os.environ.pop('NOTIFY_SOCKET')
         if sock is not None:
             sock.close()
+
+
+def watchdog_enabled():
+    """Return True when this process should ping systemd's watchdog.
+
+    systemd sets WATCHDOG_USEC when WatchdogSec is enabled. WATCHDOG_PID, when
+    present, names the only process that may send WATCHDOG=1.
+    """
+    usec = os.environ.get('WATCHDOG_USEC')
+    if not usec:
+        return False
+    try:
+        if int(usec) <= 0:
+            return False
+    except ValueError:
+        return False
+
+    pid = os.environ.get('WATCHDOG_PID')
+    if pid is None or pid == '':
+        return True
+    try:
+        return int(pid) == os.getpid()
+    except ValueError:
+        return False
+
+
+def ping_watchdog(logger):
+    """Tell systemd the arbiter is still alive."""
+    if watchdog_enabled():
+        sd_notify("WATCHDOG=1", logger)
