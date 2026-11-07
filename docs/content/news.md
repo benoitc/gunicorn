@@ -65,6 +65,9 @@
   master's sockets instead of failing to bind.
 - StatsD: send metrics over IPv6 when `statsd_host` is a numeric IPv6
   address; they used to be dropped silently.
+- Read request bodies of known length in large steps instead of 8 KiB at a
+  time. Large uploads are much faster, most of all while other threads keep
+  the worker busy ([#2596](https://github.com/benoitc/gunicorn/issues/2596)).
 
 ## 26.2.2 - 2026-09-06
 
