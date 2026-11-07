@@ -17,6 +17,8 @@ from gunicorn.asgi.parser import (
     InvalidChunkSize,
     ChunkMissingTerminator,
     InvalidRequestLine,
+    LimitRequestHeaders,
+    LimitRequestLine,
     UnsupportedTransferCoding,
     ParseError,
 )
@@ -554,3 +556,62 @@ class TestRequestTargetControls:
         parser.feed(b"GET /%00 HTTP/1.1\r\nHost: localhost\r\n\r\n")
         assert parser.is_complete
         assert parser.path == b"/%00"
+
+
+class TestUnterminatedLineBounds:
+    """A line that never gets its CRLF must not grow the buffer past the limit
+    that applies to it."""
+
+    @staticmethod
+    def _feed_forever(parser, prefix, n=64):
+        parser.feed(prefix)
+        for _ in range(n):
+            parser.feed(b"a" * 1024)
+
+    def test_request_line(self):
+        parser = PythonProtocol(limit_request_line=4094)
+        with pytest.raises(LimitRequestLine):
+            self._feed_forever(parser, b"GET /")
+        assert len(parser._buffer) <= 4094 + 1024 + 1
+
+    def test_request_line_unlimited_is_bounded(self):
+        parser = PythonProtocol(limit_request_line=0)
+        with pytest.raises(LimitRequestLine):
+            self._feed_forever(parser, b"GET /", n=2048)
+
+    def test_header_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(LimitRequestHeaders):
+            self._feed_forever(parser, b"GET / HTTP/1.1\r\nX: ")
+
+    def test_chunk_size_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(InvalidChunkSize):
+            self._feed_forever(
+                parser,
+                b"POST / HTTP/1.1\r\nHost: a\r\n"
+                b"Transfer-Encoding: chunked\r\n\r\n1;")
+
+    def test_trailer_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(LimitRequestHeaders):
+            self._feed_forever(
+                parser,
+                b"POST / HTTP/1.1\r\nHost: a\r\n"
+                b"Transfer-Encoding: chunked\r\n\r\n0\r\nX: ")
+
+    def test_trailer_count(self):
+        parser = PythonProtocol(limit_request_fields=10)
+        parser.feed(b"POST / HTTP/1.1\r\nHost: a\r\n"
+                    b"Transfer-Encoding: chunked\r\n\r\n0\r\n")
+        with pytest.raises(LimitRequestHeaders):
+            for _ in range(20):
+                parser.feed(b"X: 1\r\n")
+
+    def test_line_split_across_feeds(self):
+        """A terminator split between two reads is still found."""
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        for byte in b"GET / HTTP/1.1\r\nHost: a\r\n\r\n":
+            parser.feed(bytes([byte]))
+        assert done == [1]

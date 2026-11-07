@@ -119,6 +119,12 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
 
 RFC9112_TARGET_INVALID_CTL = re.compile(rb"[\x00-\x1f\x7f]")
 
+# Bounds used while waiting for a line terminator when the matching limit is
+# 0 (unlimited): the same values the WSGI parser and the C parser fall back to.
+MAX_UNLIMITED_REQUEST_LINE = 1024 * 1024
+DEFAULT_MAX_FIELD_LINE = 8190
+DEFAULT_MAX_FIELDS = 32768
+
 
 class PythonProtocol:
     """Callback-based HTTP/1.1 parser (pure Python fallback).
@@ -145,7 +151,7 @@ class PythonProtocol:
         '_chunk_state', '_chunk_size', '_chunk_remaining',
         '_limit_request_line', '_limit_request_fields', '_limit_request_field_size',
         '_permit_unconventional_http_method', '_permit_unconventional_http_version',
-        '_header_count',
+        '_header_count', '_scan_from',
         '_proxy_protocol', '_proxy_protocol_info', '_proxy_protocol_done',
     )
 
@@ -178,6 +184,7 @@ class PythonProtocol:
         self._permit_unconventional_http_method = permit_unconventional_http_method
         self._permit_unconventional_http_version = permit_unconventional_http_version
         self._header_count = 0
+        self._scan_from = 0
 
         # Proxy protocol
         self._proxy_protocol = proxy_protocol
@@ -279,6 +286,7 @@ class PythonProtocol:
         self._chunk_size = 0
         self._chunk_remaining = 0
         self._header_count = 0
+        self._scan_from = 0
 
     def finish(self):
         """Mark parsing complete for EOF handling.
@@ -494,9 +502,31 @@ class PythonProtocol:
         self._state = 'request_line'
         return True
 
+    def _find_line(self, limit, error):
+        """Return the index of the next CRLF in the buffer, or -1.
+
+        Only bytes not scanned on a previous call are scanned again, and a
+        buffer that can no longer hold a line of at most ``limit`` bytes
+        raises ``error`` instead of growing until a terminator arrives.
+        """
+        idx = self._buffer.find(b'\r\n', self._scan_from)
+        if idx == -1:
+            if len(self._buffer) > limit + 1:
+                raise error
+            # keep a trailing CR: it may be the start of the terminator
+            self._scan_from = max(len(self._buffer) - 1, 0)
+            return -1
+        self._scan_from = 0
+        return idx
+
+    def _line_limit(self):
+        return self._limit_request_field_size or DEFAULT_MAX_FIELD_LINE
+
     def _parse_request_line(self):
         """Parse request line, return True if complete."""
-        idx = self._buffer.find(b'\r\n')
+        idx = self._find_line(
+            self._limit_request_line or MAX_UNLIMITED_REQUEST_LINE,
+            LimitRequestLine("Request line is too large"))
         if idx == -1:
             return False
 
@@ -565,7 +595,9 @@ class PythonProtocol:
     def _parse_headers(self):
         """Parse headers, return True if headers are complete."""
         while True:
-            idx = self._buffer.find(b'\r\n')
+            idx = self._find_line(
+                self._line_limit(),
+                LimitRequestHeaders("Request header field is too large"))
             if idx == -1:
                 return False
 
@@ -761,7 +793,9 @@ class PythonProtocol:
         while self._buffer:
             if self._chunk_state == 'size':
                 # Looking for chunk size line
-                idx = self._buffer.find(b'\r\n')
+                idx = self._find_line(
+                    self._line_limit(),
+                    InvalidChunkSize("chunk size line has no terminator"))
                 if idx == -1:
                     return False
 
@@ -833,7 +867,9 @@ class PythonProtocol:
 
             elif self._chunk_state == 'trailer':
                 # Skip trailer headers
-                idx = self._buffer.find(b'\r\n')
+                idx = self._find_line(
+                    self._line_limit(),
+                    LimitRequestHeaders("Request trailer field is too large"))
                 if idx == -1:
                     return False
 
@@ -847,6 +883,11 @@ class PythonProtocol:
                     if self._on_message_complete:
                         self._on_message_complete()
                     return True
+
+                # Trailer lines count against the same field limit as headers.
+                self._header_count += 1
+                if self._header_count > (self._limit_request_fields or DEFAULT_MAX_FIELDS):
+                    raise LimitRequestHeaders("Too many trailer fields")
 
                 # RFC 9110 section 6.5.1: reject fields that must not appear
                 # in trailers.
