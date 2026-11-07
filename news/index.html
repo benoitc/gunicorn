@@ -2778,6 +2778,9 @@
   master's sockets instead of failing to bind.</li>
 <li>StatsD: send metrics over IPv6 when <code>statsd_host</code> is a numeric IPv6
   address; they used to be dropped silently.</li>
+<li>Read request bodies of known length in large steps instead of 8 KiB at a
+  time. Large uploads are much faster, most of all while other threads keep
+  the worker busy (<a href="https://github.com/benoitc/gunicorn/issues/2596">#2596</a>).</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
