@@ -2764,6 +2764,14 @@
   control frame over 125 bytes or fragmented (RFC 6455 §5.5, §7.4.1).</li>
 <li>ASGI: stop reading from a WebSocket while unread data or messages pile up,
   until the app catches up.</li>
+<li>gthread: serve a request that arrived while the previous request's unread
+  body was drained, instead of leaving it until the keepalive timeout
+  (<a href="https://github.com/benoitc/gunicorn/issues/3770">#3770</a>).</li>
+<li>gthread: idle keep-alive connections no longer hold up a graceful
+  shutdown, and the worker keeps reporting to the arbiter while it waits, so
+  it is not killed during <code>max_requests</code> restarts.</li>
+<li>Close the connection when reading a request body fails, instead of keeping
+  it open with the bytes that followed the body lost.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
