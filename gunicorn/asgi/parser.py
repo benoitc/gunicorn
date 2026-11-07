@@ -9,6 +9,7 @@ Provides callback-based parsing using either the fast C parser (gunicorn_h1c)
 or the pure Python PythonProtocol fallback.
 """
 
+import re
 import socket
 import struct
 from enum import IntEnum
@@ -103,6 +104,10 @@ class InvalidChunkExtension(ParseError):
     """Invalid chunk extension per RFC 9112."""
 
 
+class ChunkMissingTerminator(ParseError):
+    """Chunk data not followed by the required CRLF per RFC 9112."""
+
+
 # RFC 9110 section 5.3: fields whose grammar admits only a single member, so a
 # second occurrence cannot be merged and makes the message ambiguous. Lowercase
 # because that is how _finalize_headers() stores names. content-length belongs
@@ -111,6 +116,8 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     b'host',
     b'content-type',
 ))
+
+RFC9112_TARGET_INVALID_CTL = re.compile(rb"[\x00-\x1f\x7f]")
 
 
 class PythonProtocol:
@@ -508,6 +515,10 @@ class PythonProtocol:
         self.method = parts[0]
         self.path = parts[1]
 
+        # RFC 9112 request-target cannot contain control characters.
+        if RFC9112_TARGET_INVALID_CTL.search(self.path):
+            raise InvalidRequestLine("Invalid request line")
+
         # Validate method
         if not self._permit_unconventional_http_method:
             if not self._is_valid_method(self.method):
@@ -580,11 +591,19 @@ class PythonProtocol:
             if colon == -1:
                 raise InvalidHeader("Missing colon in header")
 
-            name = line[:colon].strip()
+            # RFC 9112 section 5.1: no whitespace is allowed between the field
+            # name and the colon, and a server must reject a message that has
+            # it. Do not strip the name: a stripped "Transfer-Encoding :" or a
+            # leading-space " Content-Length:" would be read as a framing header
+            # here while the WSGI parser (TOKEN_RE) and a well-behaved proxy
+            # reject or fold it, which desyncs the two and smuggles a request.
+            # _is_valid_token already rejects SP/HTAB, so leaving them in place
+            # makes such a name fail validation instead of being accepted.
+            name = line[:colon]
             if not self._is_valid_token(name):
                 raise InvalidHeaderName(name.decode('latin-1'))
 
-            value = line[colon + 1:].strip()
+            value = line[colon + 1:].strip(b" \t")
             if self._has_invalid_header_chars(value):
                 raise InvalidHeader("Invalid characters in header value")
 
@@ -627,18 +646,17 @@ class PythonProtocol:
                 # Reject duplicate Content-Length headers (request smuggling vector)
                 if content_length is not None:
                     raise InvalidHeader("Duplicate Content-Length header")
-                try:
-                    cl_value = int(value)
-                except ValueError:
+                # RFC 9110 section 8.6: Content-Length = 1*DIGIT. int() on
+                # its own also takes a sign and underscores, which a proxy
+                # framing by the same header will not.
+                if not value.isdigit():
                     raise InvalidHeader("Invalid Content-Length value")
-                if cl_value < 0:
-                    raise InvalidHeader("Negative Content-Length")
-                content_length = cl_value
+                content_length = int(value)
 
             elif name == b'transfer-encoding':
                 # Properly parse comma-separated Transfer-Encoding values
                 # per RFC 9112 Section 6.1
-                vals = [v.strip() for v in value.split(b',')]
+                vals = [v.strip(b" \t") for v in value.split(b',')]
                 for val in vals:
                     val_lower = val.lower()
                     if val_lower == b'chunked':
@@ -801,9 +819,15 @@ class PythonProtocol:
                     self._chunk_state = 'crlf'
 
             elif self._chunk_state == 'crlf':
-                # Skip CRLF after chunk data
+                # RFC 9112 7.1: chunk-data is terminated by CRLF. Accepting
+                # anything else here lets a peer frame the body one way while a
+                # strict upstream frames it another (request smuggling vector),
+                # so the two bytes must be exactly CRLF.
                 if len(self._buffer) < 2:
                     return False
+                if self._buffer[:2] != b'\r\n':
+                    raise ChunkMissingTerminator(
+                        "chunk data not terminated by CRLF")
                 del self._buffer[:2]  # Skip \r\n
                 self._chunk_state = 'size'
 
@@ -918,6 +942,8 @@ class CallbackRequest:
         # - path: percent-decoded UTF-8 string
         # - raw_path: original bytes as received
         raw_url = parser.path
+        if RFC9112_TARGET_INVALID_CTL.search(raw_url):
+            raise InvalidRequestLine("Invalid request line")
         if b'?' in raw_url:
             path_part, query_part = raw_url.split(b'?', 1)
             req.raw_path = path_part  # Store original bytes

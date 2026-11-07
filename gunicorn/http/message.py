@@ -134,6 +134,7 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 # only non-VCHAR bytes allowed in a field-value. Anything else in the
 # control range (0x00-0x1F except HTAB, plus DEL 0x7F) must be rejected.
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
+RFC9112_TARGET_INVALID_CTL = re.compile(r"[\x00-\x1f\x7f]")
 
 # RFC 9110 section 6.5.1: fields forbidden in trailers because they alter
 # routing, framing, or authentication. Using the uppercased names stored
@@ -413,7 +414,7 @@ class Message(HeaderPolicy):
             elif name == "TRANSFER-ENCODING":
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
-                vals = [v.strip() for v in value.split(',')]
+                vals = [v.strip(" \t") for v in value.split(',')]
                 for val in vals:
                     if val.lower() == "chunked":
                         # DANGER: transfer codings stack, and stacked chunking is never intended
@@ -579,6 +580,8 @@ class Request(Message):
 
         # Parse URI parts
         if len(self.uri) == 0:
+            raise InvalidRequestLine(self.uri)
+        if RFC9112_TARGET_INVALID_CTL.search(self.uri):
             raise InvalidRequestLine(self.uri)
         try:
             parts = split_request_uri(self.uri)
@@ -890,6 +893,11 @@ class Request(Message):
 
         # URI
         self.uri = bits[1]
+
+        # RFC 9112 request-target cannot contain control characters. Reject
+        # them before urllib.parse (which does not validate) sees the value.
+        if RFC9112_TARGET_INVALID_CTL.search(self.uri):
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
 
         # Python stdlib explicitly tells us it will not perform validation.
         # https://docs.python.org/3/library/urllib.parse.html#url-parsing-security
