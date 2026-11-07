@@ -660,8 +660,10 @@ class ASGIProtocol(asyncio.Protocol):
         if self._request_ready:
             self._request_ready.set()
 
-        # Return True for HEAD to skip body parsing
-        return self._callback_parser.method == b'HEAD'
+        # Never skip the body: a request is framed by its own Content-Length
+        # or Transfer-Encoding whatever the method (RFC 9112 section 6.3).
+        # Only a response to HEAD has no body.
+        return False
 
     def _on_body(self, chunk):
         """Callback: received body data chunk."""

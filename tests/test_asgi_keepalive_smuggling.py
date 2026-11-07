@@ -313,3 +313,48 @@ async def test_unfinished_response_closes_connection(http_parser, messages):
 
     assert b"second" not in written, written
     assert closed is True
+
+
+@pytest.mark.asyncio
+async def test_head_request_body_is_framed(http_parser):
+    """A HEAD request's Content-Length frames its body like any other
+    request (RFC 9112 section 6.3): the body must not be served as the next
+    request on the connection."""
+    paths = []
+
+    async def app(scope, receive, send):
+        paths.append(scope["path"])
+        body = b""
+        while True:
+            message = await receive()
+            body += message.get("body", b"")
+            if not message.get("more_body"):
+                break
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", str(len(body)).encode())],
+        })
+        await send({"type": "http.response.body", "body": body})
+
+    inner = b"GET /admin HTTP/1.1\r\nHost: example.com\r\n\r\n"
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(
+        b"HEAD / HTTP/1.1\r\nHost: example.com\r\n"
+        b"Content-Length: " + str(len(inner)).encode() + b"\r\n\r\n" + inner
+    )
+    for _ in range(40):
+        await asyncio.sleep(0)
+
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    assert paths == ["/"], paths
+    assert transport.written.count(b"HTTP/1.1 200") == 1, transport.written
