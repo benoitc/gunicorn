@@ -12,6 +12,8 @@ DO NOT OPEN A NEW ISSUE. PLEASE USE THE DISCUSSIONS SECTION.
 
 Link to approved discussion:
 
+<!-- Write in plain English, see "Write for the person who reads it" in CONTRIBUTING.md. -->
+
 ---
 
 <!-- Gunicorn is volunteer-maintained. If it powers your production, consider sponsoring: https://gunicorn.org/sponsor/ -->
