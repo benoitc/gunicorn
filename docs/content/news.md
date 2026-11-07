@@ -23,6 +23,14 @@
   (RFC 9110 §5.1, §5.5).
 - WSGI: reject a response status that is not three digits followed by a
   valid reason phrase (RFC 9112 §4).
+- ASGI: read the body a `HEAD` request declares instead of serving it as the
+  next request (RFC 9112 §6.3).
+- ASGI: stop buffering a request line, header, chunk-size line or trailer
+  that never ends; the usual request limits now apply before the line
+  terminator arrives, and trailers count against `limit_request_fields`.
+- ASGI: apply `forwarded_allow_ips` to HTTP/1 requests as WSGI and HTTP/2
+  already do: `secure_scheme_headers` set the scheme only from trusted
+  proxies, and header names with underscores follow `header_map`.
 
 ## 26.2.2 - 2026-09-06
 
