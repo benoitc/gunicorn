@@ -147,6 +147,18 @@ app = Starlette(routes=[
 ])
 ```
 
+Each message is held in memory until its last frame arrives, so messages are
+limited to 16 MiB. A larger message closes the connection with code 1009. To
+change the limit:
+
+```bash
+gunicorn app:app -k asgi --websocket-max-message-size 67108864
+```
+
+While the application does not call `receive()`, gunicorn stops reading from
+the socket once a few messages are waiting, so a fast client cannot grow the
+worker's memory.
+
 ## Production Deployment
 
 ### With Nginx (HTTP Proxy)

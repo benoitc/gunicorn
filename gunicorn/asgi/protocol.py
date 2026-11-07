@@ -1258,7 +1258,8 @@ class ASGIProtocol(asyncio.Protocol):
 
         scope = self._build_websocket_scope(request, sockname, peername)
         ws_protocol = WebSocketProtocol(
-            self.transport, scope, self.app, self.log
+            self.transport, scope, self.app, self.log,
+            max_message_size=self.cfg.websocket_max_message_size,
         )
 
         # Store reference so data_received() forwards to WebSocket

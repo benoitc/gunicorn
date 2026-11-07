@@ -3013,6 +3013,28 @@ class ASGIDisconnectGracePeriod(Setting):
         """
 
 
+class WebSocketMaxMessageSize(Setting):
+    name = "websocket_max_message_size"
+    section = "Worker Processes"
+    cli = ["--websocket-max-message-size"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 16 * 1024 * 1024
+    desc = """\
+        Largest WebSocket message, in bytes, the ``asgi`` worker accepts.
+
+        ASGI hands the application whole messages, so each message is held in
+        memory until its last frame arrives. A frame or a fragmented message
+        larger than this closes the connection with code 1009 (message too
+        big, RFC 6455 section 7.4.1).
+
+        Set to 0 for no limit.
+
+        .. versionadded:: 26.3.0
+        """
+
+
 class HttpParser(Setting):
     name = "http_parser"
     section = "Worker Processes"

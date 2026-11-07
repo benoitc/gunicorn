@@ -34,6 +34,15 @@ CLOSE_ABNORMAL = 1006
 CLOSE_INVALID_DATA = 1007
 CLOSE_POLICY_VIOLATION = 1008
 CLOSE_MESSAGE_TOO_BIG = 1009
+
+# RFC 6455 section 5.5: control frames carry at most 125 bytes.
+MAX_CONTROL_PAYLOAD = 125
+DEFAULT_MAX_MESSAGE_SIZE = 16 * 1024 * 1024
+# Stop reading from the socket once this many bytes wait in the buffer and
+# the reader does not need them yet.
+READ_BUFFER_HIGH_WATER = 64 * 1024
+# Stop reading frames while this many messages wait for the app to receive().
+RECEIVE_QUEUE_HIGH_WATER = 32
 CLOSE_MANDATORY_EXT = 1010
 CLOSE_INTERNAL_ERROR = 1011
 
@@ -48,7 +57,8 @@ class WebSocketProtocol:
     Data is fed via feed_data() from the parent protocol's data_received().
     """
 
-    def __init__(self, transport, scope, app, log):
+    def __init__(self, transport, scope, app, log,
+                 max_message_size=DEFAULT_MAX_MESSAGE_SIZE):
         """Initialize WebSocket protocol handler.
 
         Args:
@@ -56,6 +66,7 @@ class WebSocketProtocol:
             scope: ASGI WebSocket scope dict
             app: ASGI application callable
             log: Logger instance
+            max_message_size: largest message accepted, 0 for no limit
         """
         self.transport = transport
         self.scope = scope
@@ -75,6 +86,15 @@ class WebSocketProtocol:
         # Message reassembly state
         self._fragments = []
         self._fragment_opcode = None
+        self._fragments_size = 0
+        self.max_message_size = max_message_size
+
+        # Backpressure: pause the transport while bytes pile up unread, and
+        # stop reading frames while messages wait for the app.
+        self._reading_paused = False
+        self._wanted = 0
+        self._queue_space = asyncio.Event()
+        self._queue_space.set()
 
         # Receive queue for incoming messages
         self._receive_queue = asyncio.Queue()
@@ -93,6 +113,24 @@ class WebSocketProtocol:
         if data:
             self._buffer.extend(data)
             self._data_event.set()
+            if (not self._reading_paused
+                    and len(self._buffer) > max(READ_BUFFER_HIGH_WATER, self._wanted)):
+                self._pause_reading()
+
+    def _pause_reading(self):
+        try:
+            self.transport.pause_reading()
+            self._reading_paused = True
+        except (AttributeError, RuntimeError):
+            pass
+
+    def _resume_reading(self):
+        if self._reading_paused:
+            self._reading_paused = False
+            try:
+                self.transport.resume_reading()
+            except (AttributeError, RuntimeError):
+                pass
 
     def feed_eof(self):
         """Signal that the connection has been closed."""
@@ -129,7 +167,23 @@ class WebSocketProtocol:
 
     async def _receive(self):
         """ASGI receive callable."""
-        return await self._receive_queue.get()
+        message = await self._receive_queue.get()
+        if self._receive_queue.qsize() < RECEIVE_QUEUE_HIGH_WATER:
+            self._queue_space.set()
+        return message
+
+    async def _put_message(self, message):
+        """Queue a message for the app, waiting while too many are unread."""
+        # Once our close frame is out the read loop must keep going to see the
+        # client's reply, so it stops waiting for the app, and the app gets no
+        # more data.
+        while (self._receive_queue.qsize() >= RECEIVE_QUEUE_HIGH_WATER
+               and not self._close_sent):
+            self._queue_space.clear()
+            await self._queue_space.wait()
+        if self._close_sent:
+            return
+        await self._receive_queue.put(message)
 
     async def _send(self, message):
         """ASGI send callable."""
@@ -237,12 +291,12 @@ class WebSocketProtocol:
                     # Ignore pongs
                     pass
                 elif opcode == OPCODE_TEXT:
-                    await self._receive_queue.put({
+                    await self._put_message({
                         "type": "websocket.receive",
                         "text": payload.decode("utf-8"),
                     })
                 elif opcode == OPCODE_BINARY:
-                    await self._receive_queue.put({
+                    await self._put_message({
                         "type": "websocket.receive",
                         "bytes": payload,
                     })
@@ -306,6 +360,20 @@ class WebSocketProtocol:
                 return None
             payload_len = struct.unpack("!Q", ext_len)[0]
 
+        # RFC 6455 section 5.5: control frames are not fragmented and carry at
+        # most 125 bytes.
+        if opcode >= 0x8 and (not fin or payload_len > MAX_CONTROL_PAYLOAD):
+            await self._send_close(CLOSE_PROTOCOL_ERROR, "Invalid control frame")
+            return None
+
+        # Refuse a message larger than the limit before reading it (RFC 6455
+        # section 7.4.1, 1009).
+        if opcode < 0x8 and self.max_message_size:
+            total = payload_len + (self._fragments_size if opcode == OPCODE_CONTINUATION else 0)
+            if total > self.max_message_size:
+                await self._send_close(CLOSE_MESSAGE_TOO_BIG, "Message too big")
+                return None
+
         # Read masking key
         masking_key = await self._read_exact(4)
         if not masking_key:
@@ -325,11 +393,13 @@ class WebSocketProtocol:
                 await self._send_close(CLOSE_PROTOCOL_ERROR, "Unexpected continuation")
                 return None
             self._fragments.append(payload)
+            self._fragments_size += len(payload)
             if fin:
                 # Reassemble complete message
                 full_payload = b"".join(self._fragments)
                 final_opcode = self._fragment_opcode
                 self._fragments = []
+                self._fragments_size = 0
                 self._fragment_opcode = None
                 return (final_opcode, full_payload)
             return (OPCODE_CONTINUATION, b"")  # Fragment received, wait for more
@@ -338,6 +408,7 @@ class WebSocketProtocol:
                 # Start of fragmented message
                 self._fragment_opcode = opcode
                 self._fragments = [payload]
+                self._fragments_size = len(payload)
                 return (OPCODE_CONTINUATION, b"")  # Fragment started, wait for more
             return (opcode, payload)
         else:
@@ -349,9 +420,12 @@ class WebSocketProtocol:
 
         Waits for data via the callback-fed buffer instead of StreamReader.
         """
+        self._wanted = n
         while len(self._buffer) < n:
             if self._eof:
                 return None
+            # The reader needs these bytes: never wait with reading paused.
+            self._resume_reading()
             self._data_event.clear()
             # Critical: check buffer AGAIN after clearing to avoid race
             # condition where data arrives between clear() and wait()
@@ -363,6 +437,9 @@ class WebSocketProtocol:
 
         data = bytes(self._buffer[:n])
         del self._buffer[:n]
+        self._wanted = 0
+        if self._reading_paused and len(self._buffer) <= READ_BUFFER_HIGH_WATER:
+            self._resume_reading()
         return data
 
     def _unmask(self, payload, masking_key):
@@ -433,6 +510,7 @@ class WebSocketProtocol:
             payload += reason.encode("utf-8")[:123]  # Max 125 bytes total
         await self._send_frame(OPCODE_CLOSE, payload)
         self._close_sent = True
+        self._queue_space.set()
 
         # If we already received a close, handshake is complete
         if self._close_received:

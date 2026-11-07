@@ -2050,6 +2050,23 @@ This setting only affects the ``asgi`` worker type.
 
 !!! info "Added in 25.0.0"
 
+### `websocket_max_message_size`
+
+**Command line:** `--websocket-max-message-size INT`
+
+**Default:** `16777216`
+
+Largest WebSocket message, in bytes, the ``asgi`` worker accepts.
+
+ASGI hands the application whole messages, so each message is held in
+memory until its last frame arrives. A frame or a fragmented message
+larger than this closes the connection with code 1009 (message too
+big, RFC 6455 section 7.4.1).
+
+Set to 0 for no limit.
+
+!!! info "Added in 26.3.0"
+
 ### `http_parser`
 
 **Command line:** `--http-parser STRING`
