@@ -572,3 +572,32 @@ def test_transfer_encoding_non_http_whitespace_rejected(ws):
             + b"\r\n\r\n0\r\n\r\n")
     with pytest.raises((InvalidHeader, UnsupportedTransferCoding)):
         next(RequestParser(cfg, [data], None))
+
+
+@pytest.mark.parametrize("status", [
+    "200 OK\r\nSet-Cookie: x=1",
+    "200 OK\nX: 1",
+    "200 O\x00K",
+    "20 OK",
+    "2000 OK",
+    "OK",
+    "200  OK\r",
+])
+def test_http_invalid_response_status(status):
+    """The status line is 3DIGIT then an optional reason phrase (RFC 9112 4)."""
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(ValueError):
+        response.start_response(status, [])
+
+
+@pytest.mark.parametrize("status", ["200 OK", "404 Not Found", "200", "599 \xe9t\xe9"])
+def test_http_valid_response_status(status):
+    response, _ = _make_response()
+    response.start_response(status, [])
+    assert response.status == status
+
+
+def test_http_response_status_must_be_str():
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(TypeError):
+        response.start_response(b"200 OK", [])

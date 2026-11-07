@@ -12,6 +12,7 @@ and dispatch to ASGI applications.
 import asyncio
 import errno
 import ipaddress
+import re
 import time
 
 from gunicorn.asgi.unreader import AsyncUnreader
@@ -20,7 +21,9 @@ from gunicorn.asgi.parser import (
     LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
-from gunicorn.http.errors import NoMoreData
+from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData
+from gunicorn.http.message import TOKEN_RE
+from gunicorn.http.wsgi import HEADER_VALUE_RE
 from gunicorn.http2 import negotiation
 from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2ErrorCode, HTTP2StreamError
 from gunicorn.http2.stream import StreamState
@@ -68,6 +71,30 @@ def _check_trusted_proxy(peer_addr, allow_list, networks):
         if ip in network:
             return True
     return False
+
+
+# Response header checks, same rules as the WSGI Response.process_headers
+_HEADER_NAME_RE = re.compile(TOKEN_RE.pattern.encode("latin-1"))
+_HEADER_VALUE_RE = re.compile(HEADER_VALUE_RE.pattern.encode("latin-1"))
+
+
+def _validate_response_headers(headers):
+    """Reject response headers that would break HTTP/1.1 framing.
+
+    Names must be tokens and values must not contain CR, LF or other
+    control characters, otherwise an app echoing request data into a
+    header can split the response.
+    """
+    for name, value in headers:
+        if isinstance(name, str):
+            name = name.encode("latin-1")
+        if isinstance(value, str):
+            value = value.encode("latin-1")
+        if not _HEADER_NAME_RE.fullmatch(name):
+            raise InvalidHeaderName('%r' % name)
+        if not _HEADER_VALUE_RE.fullmatch(value):
+            # Pass only the name, the value may carry sensitive data
+            raise InvalidHeader('%r' % name)
 
 
 # Cached response bytes for common cases
@@ -1208,6 +1235,7 @@ class ASGIProtocol(asyncio.Protocol):
         omits_body = False
         omits_body_warned = False
         response_requires_close = False
+        response_length = None
         uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
 
         # Reset response buffer for write batching
@@ -1224,7 +1252,7 @@ class ASGIProtocol(asyncio.Protocol):
         async def send(message):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked, omits_body
-            nonlocal omits_body_warned, response_requires_close
+            nonlocal omits_body_warned, response_requires_close, response_length
 
             # If client disconnected, silently ignore send attempts
             # This allows apps to finish cleanup without errors
@@ -1237,6 +1265,7 @@ class ASGIProtocol(asyncio.Protocol):
                 # Handle informational responses (1xx) like 103 Early Hints
                 info_status = message.get("status")
                 info_headers = message.get("headers", [])
+                _validate_response_headers(info_headers)
                 self._send_informational(info_status, info_headers, request)
                 return
 
@@ -1244,6 +1273,7 @@ class ASGIProtocol(asyncio.Protocol):
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
                     return
+                _validate_response_headers(message.get("headers", []))
                 response_started = True
                 response_status = message["status"]
                 response_headers = message.get("headers", [])
@@ -1251,10 +1281,12 @@ class ASGIProtocol(asyncio.Protocol):
                 # Check if Content-Length or Transfer-Encoding is present
                 has_content_length = False
                 has_transfer_encoding = False
-                for name, _ in response_headers:
+                content_length_value = None
+                for name, value in response_headers:
                     name_lower = name.lower() if isinstance(name, str) else name.lower()
                     if name_lower in (b"content-length", "content-length"):
                         has_content_length = True
+                        content_length_value = value
                     elif name_lower in (b"transfer-encoding", "transfer-encoding"):
                         has_transfer_encoding = True
                         use_chunked = True  # Framework already set chunked encoding
@@ -1302,6 +1334,15 @@ class ASGIProtocol(asyncio.Protocol):
                     use_chunked = True
                     response_headers = list(response_headers) + [(b"transfer-encoding", b"chunked")]
 
+                # Like the WSGI Response, never write more body bytes than the
+                # app's Content-Length declares: the excess would be read as
+                # the start of the next response on a reused connection.
+                if has_content_length and not use_chunked and not omits_body:
+                    try:
+                        response_length = int(content_length_value)
+                    except (TypeError, ValueError):
+                        response_length = None
+
                 # Without Content-Length, EOF delimits a uWSGI response body.
                 # Do not reuse the upstream connection for another request.
                 response_requires_close = (
@@ -1340,6 +1381,9 @@ class ASGIProtocol(asyncio.Protocol):
                         omits_body_warned = True
                     body = b""
 
+                if response_length is not None:
+                    body = body[:max(response_length - response_sent, 0)]
+
                 if body:
                     self._send_body(body, chunked=use_chunked)
                     response_sent += len(body)
@@ -1377,6 +1421,17 @@ class ASGIProtocol(asyncio.Protocol):
             if not response_started:
                 self._send_error_response(500, "Internal Server Error")
                 response_status = 500
+            elif not response_complete:
+                # The app returned in the middle of its response. The client
+                # cannot tell where it ends, and on a kept-alive connection
+                # the next response would be read as the rest of this one
+                # (or, with the headers still buffered, as the response to
+                # this request). Close the connection instead.
+                if not self._closed:
+                    self.log.error(
+                        "ASGI application returned without completing "
+                        "the response; closing the connection")
+                return False
 
         except asyncio.CancelledError:
             # Client disconnected - don't log as error, this is normal
@@ -1412,6 +1467,11 @@ class ASGIProtocol(asyncio.Protocol):
                 self.cfg.post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
+
+        # A body shorter than the declared Content-Length leaves the client
+        # waiting for bytes that never come; close instead of keeping alive.
+        if response_length is not None and response_sent < response_length:
+            return False
 
         # Determine keepalive
         return not self._will_close(request, response_requires_close)
