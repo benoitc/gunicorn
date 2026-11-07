@@ -2661,6 +2661,14 @@
 <li>Return <code>414 URI Too Long</code> for a request line over <code>limit_request_line</code>
   (RFC 9112 §3)
   (<a href="https://github.com/benoitc/gunicorn/issues/2487">#2487</a>).</li>
+<li>ASGI: never write more body bytes than the app's <code>Content-Length</code>, and close
+  the connection when the body is shorter (RFC 9112 §6.3).</li>
+<li>ASGI: close the connection when the app returns before finishing its
+  response (RFC 9112 §6.3).</li>
+<li>ASGI: reject response header names and values that are not valid
+  (RFC 9110 §5.1, §5.5).</li>
+<li>WSGI: reject a response status that is not three digits followed by a
+  valid reason phrase (RFC 9112 §4).</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
