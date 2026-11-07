@@ -256,12 +256,11 @@ class WebSocketProtocol:
             self.log.debug("WebSocket read error: %s", e)
         finally:
             # Signal disconnect
-            if not self.closed:
-                self.closed = True
-                await self._receive_queue.put({
-                    "type": "websocket.disconnect",
-                    "code": self.close_code or CLOSE_ABNORMAL,
-                })
+            self.closed = True
+            await self._receive_queue.put({
+                "type": "websocket.disconnect",
+                "code": self.close_code or CLOSE_ABNORMAL,
+            })
 
     async def _read_frame(self):  # pylint: disable=too-many-return-statements
         """Read a single WebSocket frame.

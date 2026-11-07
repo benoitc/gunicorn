@@ -289,6 +289,34 @@ class TestLifespanErrorHandling:
             await manager.startup()
 
     @pytest.mark.asyncio
+    async def test_startup_failed_message_raises_startup_failed(self):
+        """An explicit lifespan.startup.failed is a definite failure."""
+        from gunicorn.asgi.lifespan import LifespanStartupFailed
+
+        async def app(scope, receive, send):
+            await receive()
+            await send({"type": "lifespan.startup.failed", "message": "boom"})
+
+        manager = self._create_manager(app=app)
+
+        with pytest.raises(LifespanStartupFailed, match="boom"):
+            await manager.startup()
+
+    @pytest.mark.asyncio
+    async def test_app_exception_is_not_startup_failed(self):
+        """A crashing app may just lack lifespan support, so it is not definite."""
+        from gunicorn.asgi.lifespan import LifespanStartupFailed
+
+        async def app(scope, receive, send):
+            raise ValueError("no lifespan here")
+
+        manager = self._create_manager(app=app)
+
+        with pytest.raises(RuntimeError) as excinfo:
+            await manager.startup()
+        assert not isinstance(excinfo.value, LifespanStartupFailed)
+
+    @pytest.mark.asyncio
     async def test_app_exits_before_startup_complete(self):
         """App exiting before startup.complete should fail startup."""
         async def app(scope, receive, send):
@@ -422,3 +450,63 @@ class TestLifespanCallables:
 
         assert manager._shutdown_error == "Cleanup error"
         assert manager._shutdown_complete.is_set()
+
+
+# ============================================================================
+# Worker Behaviour On Failed Startup
+# ============================================================================
+
+class TestWorkerLifespanStartupFailure:
+    """A failed lifespan startup must stop gunicorn (issue #3778)."""
+
+    def _serve(self, app, mode):
+        import os
+        from gunicorn.config import Config
+        from gunicorn.workers import gasgi
+
+        cfg = Config()
+        cfg.set("asgi_lifespan", mode)
+        worker = gasgi.ASGIWorker(
+            age=1, ppid=os.getpid(), sockets=[], app=mock.Mock(),
+            timeout=30, cfg=cfg, log=mock.Mock(),
+        )
+        worker.asgi = app
+        worker._get_ssl_context = mock.Mock(return_value=None)
+        worker.alive = False  # leave the serve loop at once if it gets there
+        loop = asyncio.new_event_loop()
+        worker.loop = loop
+        try:
+            loop.run_until_complete(worker._serve())
+        finally:
+            loop.close()
+        return worker
+
+    @staticmethod
+    async def _failing_app(scope, receive, send):
+        if scope["type"] == "lifespan":
+            await receive()
+            await send({"type": "lifespan.startup.failed", "message": "boom"})
+
+    @staticmethod
+    async def _crashing_app(scope, receive, send):
+        if scope["type"] == "lifespan":
+            raise RuntimeError("lifespan not supported")
+
+    @pytest.mark.parametrize("mode", ["auto", "on"])
+    def test_startup_failed_exits_with_boot_error(self, mode):
+        from gunicorn.arbiter import Arbiter
+
+        with pytest.raises(SystemExit) as excinfo:
+            self._serve(self._failing_app, mode)
+        assert excinfo.value.code == Arbiter.WORKER_BOOT_ERROR
+
+    def test_on_mode_exits_with_boot_error_for_unsupported_app(self):
+        from gunicorn.arbiter import Arbiter
+
+        with pytest.raises(SystemExit) as excinfo:
+            self._serve(self._crashing_app, "on")
+        assert excinfo.value.code == Arbiter.WORKER_BOOT_ERROR
+
+    def test_auto_mode_tolerates_app_without_lifespan(self):
+        worker = self._serve(self._crashing_app, "auto")
+        assert worker.lifespan is None

@@ -36,6 +36,16 @@
   (RFC 9112 §7.1), like the Python parsers.
 - Ignore one empty line before the request line, as the fast parser
   already does (RFC 9112 §2.2).
+- ASGI: stop gunicorn when the app reports a failed lifespan startup,
+  instead of serving requests or rebooting the worker forever (ASGI
+  lifespan spec) ([#3778](https://github.com/benoitc/gunicorn/issues/3778)).
+- ASGI: close idle kept-alive connections after `keepalive` seconds, as
+  the other workers do ([#3734](https://github.com/benoitc/gunicorn/discussions/3734)).
+- ASGI: give each request a shallow copy of the lifespan state, so a value
+  one request stores in `scope["state"]` is not seen by the next one (ASGI
+  lifespan spec).
+- ASGI: deliver `websocket.disconnect` as soon as the client closes the
+  connection, instead of after the close timeout (RFC 6455 §5.5.1).
 
 ## 26.2.2 - 2026-09-06
 
