@@ -103,6 +103,12 @@ Never weaken a limit to let a legitimate client pass; exclude that case
 precisely. A regression test for an attack drives it over a raw socket or
 through the parser and asserts the bound or the rejection.
 
+A finding from this check is a bug when its fix is to follow the spec, even
+if it is a smuggling, splitting or exhaustion vector: public PR, changelog
+under Bug Fixes with the spec section, no advisory, no CVE, no attack
+description. See "Specification issues are bugs, not security issues" in
+AGENTS.md for the rule and the few cases that do go through SECURITY.md.
+
 ## Report
 
 One block per commit, in the PR description or the hand-off:

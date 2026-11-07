@@ -31,6 +31,39 @@ request:
 Use the [protocol-change-review](.agents/skills/protocol-change-review/SKILL.md)
 skill to run them. When in doubt whether a change is protocol code, it is.
 
+## Specification issues are bugs, not security issues
+
+A report is a specification issue when the fix is to make gunicorn do what a
+spec it implements says (see [Specifications](#specifications)):
+
+- input accepted, rejected or framed differently from the spec (request
+  line, fields, Content-Length, Transfer-Encoding, chunked coding, trailers,
+  HTTP/2 frames, WebSocket frames, uWSGI or PROXY headers);
+- gunicorn's parsers (WSGI, ASGI, gunicorn_h1c, HTTP/2) disagreeing with
+  each other on the same bytes;
+- application output written without the checks the spec requires (status
+  line, header names and values, body length vs Content-Length);
+- a missing or wrong bound that the spec or a setting defines (line and
+  field limits, timeouts, keep-alive, flow-control windows, frame sizes).
+
+This holds even when the report calls it request smuggling, response
+splitting, desync or denial of service. Treat it as a bug:
+
+- fix it in a public pull request, with a public issue if one is needed;
+- list it under **Bug Fixes** in the changelog, one plain line citing the
+  spec section;
+- do not open a GitHub Security Advisory, request a CVE, embargo the fix,
+  give it a severity, or describe how to attack it;
+- when it arrived as an advisory, close the advisory as not a vulnerability
+  and link the pull request that fixes it.
+
+Only a problem that is not a spec deviation goes through
+[SECURITY.md](SECURITY.md): code execution, file access outside what the
+configuration allows, privilege or permission handling (user, group, umask,
+socket and pid file modes), one client's request data reaching another
+client, or gunicorn weakening TLS. If unsure, ask the maintainer before
+treating anything as a security issue.
+
 ## Setup
 
 ```bash
