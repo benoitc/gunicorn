@@ -3,6 +3,7 @@
 # See the NOTICE for more information.
 
 import io
+import platform
 import t
 import pytest
 from unittest import mock
@@ -278,6 +279,8 @@ def test_body_read_in_pieces_reads_ahead_within_the_body():
     assert unreader.read() == pipelined
 
 
+@pytest.mark.skipif(platform.python_implementation() == "PyPy",
+                    reason="tracemalloc is not available on PyPy")
 def test_body_read_whole_body_memory_stays_close_to_body_size():
     # read() with no size reads the whole body: the readers' own buffers must
     # stay small, the only large allocation being the body handed back.
