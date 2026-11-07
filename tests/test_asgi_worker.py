@@ -455,8 +455,14 @@ class TestASGIIntegration:
             writer.write(request.encode())
             await writer.drain()
 
-            # Read response
-            response = await reader.read(4096)
+            # Read until the body arrives: headers and body are written
+            # separately and may come back in separate reads.
+            response = b""
+            while b"Hello, World!" not in response:
+                chunk = await asyncio.wait_for(reader.read(4096), timeout=5)
+                if not chunk:
+                    break
+                response += chunk
             response_text = response.decode()
 
             assert "HTTP/1.1 200" in response_text

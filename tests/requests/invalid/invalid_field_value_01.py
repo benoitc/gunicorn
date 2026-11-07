@@ -7,3 +7,8 @@ from gunicorn.http.errors import InvalidHeader
 
 cfg = Config()
 request = InvalidHeader
+
+# gunicorn_h1c reports it as a generic parse error when the read boundary
+# falls inside the message (incremental path).
+from gunicorn.http.errors import InvalidRequestLine
+fast_alternates = (InvalidRequestLine,)
