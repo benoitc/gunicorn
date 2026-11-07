@@ -615,3 +615,28 @@ class TestUnterminatedLineBounds:
         for byte in b"GET / HTTP/1.1\r\nHost: a\r\n\r\n":
             parser.feed(bytes([byte]))
         assert done == [1]
+
+
+class TestLeadingEmptyLine:
+    """RFC 9112 section 2.2: one empty line before the request line."""
+
+    def test_one_crlf_split_across_feeds(self):
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"\r")
+        parser.feed(b"\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1]
+
+    def test_two_crlf_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"\r\n\r\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+
+    def test_one_crlf_per_message(self):
+        """The skip resets for each request on a kept-alive connection."""
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        parser.reset()
+        parser.feed(b"\r\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1, 1]

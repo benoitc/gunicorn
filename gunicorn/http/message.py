@@ -621,6 +621,13 @@ class Request(Message):
 
     def _parse_python(self, unreader, buf):
         """Parse request using pure Python parser."""
+        # RFC 9112 section 2.2: ignore one empty line (CRLF) received before
+        # the request line, as gunicorn_h1c does. Only one, and only CRLF.
+        while buf[:1] == b"\r" and len(buf) < 2:
+            self.read_into(unreader, buf)
+        if buf[:2] == b"\r\n":
+            del buf[:2]
+
         # Get request line
         line, buf = self.read_line(unreader, buf, self.limit_request_line)
 

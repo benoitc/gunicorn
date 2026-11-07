@@ -601,3 +601,15 @@ def test_http_response_status_must_be_str():
     response = Response(mock.MagicMock(), mock.MagicMock(), None)
     with pytest.raises(TypeError):
         response.start_response(b"200 OK", [])
+
+
+def test_one_empty_line_before_request_line_is_ignored():
+    """RFC 9112 2.2, also when the CRLF is split across reads."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    chunks = [b"\r", b"\nGET /x HTTP/1.1\r\nHost: a\r\n\r\n"]
+    req = next(RequestParser(cfg, chunks, None))
+    assert req.path == "/x"

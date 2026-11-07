@@ -34,6 +34,8 @@
 - Require gunicorn_h1c 0.6.10: the fast parser now rejects a bare LF as a
   line ending (RFC 9112 §2.2) and bounds chunk-size lines and trailers
   (RFC 9112 §7.1), like the Python parsers.
+- Ignore one empty line before the request line, as the fast parser
+  already does (RFC 9112 §2.2).
 
 ## 26.2.2 - 2026-09-06
 

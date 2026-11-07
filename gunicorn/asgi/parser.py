@@ -151,7 +151,7 @@ class PythonProtocol:
         '_chunk_state', '_chunk_size', '_chunk_remaining',
         '_limit_request_line', '_limit_request_fields', '_limit_request_field_size',
         '_permit_unconventional_http_method', '_permit_unconventional_http_version',
-        '_header_count', '_scan_from',
+        '_header_count', '_scan_from', '_empty_line_skipped',
         '_proxy_protocol', '_proxy_protocol_info', '_proxy_protocol_done',
     )
 
@@ -185,6 +185,7 @@ class PythonProtocol:
         self._permit_unconventional_http_version = permit_unconventional_http_version
         self._header_count = 0
         self._scan_from = 0
+        self._empty_line_skipped = False
 
         # Proxy protocol
         self._proxy_protocol = proxy_protocol
@@ -287,6 +288,7 @@ class PythonProtocol:
         self._chunk_remaining = 0
         self._header_count = 0
         self._scan_from = 0
+        self._empty_line_skipped = False
 
     def finish(self):
         """Mark parsing complete for EOF handling.
@@ -524,6 +526,16 @@ class PythonProtocol:
 
     def _parse_request_line(self):
         """Parse request line, return True if complete."""
+        # RFC 9112 section 2.2: ignore one empty line (CRLF) received before
+        # the request line, as gunicorn_h1c does. Only one, and only CRLF.
+        if not self._empty_line_skipped:
+            if self._buffer[:1] == b'\r' and len(self._buffer) < 2:
+                return False
+            if self._buffer[:2] == b'\r\n':
+                del self._buffer[:2]
+                self._scan_from = 0
+            self._empty_line_skipped = True
+
         idx = self._find_line(
             self._limit_request_line or MAX_UNLIMITED_REQUEST_LINE,
             LimitRequestLine("Request line is too large"))
