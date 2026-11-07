@@ -2831,6 +2831,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#websocket_max_message_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        websocket_max_message_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#http_parser" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5022,6 +5033,18 @@ need to increase this value.</p>
 <p>This setting only affects the <code>asgi</code> worker type.</p>
 <div class="admonition info">
 <p class="admonition-title">Added in 25.0.0</p>
+</div>
+<h3 id="websocket_max_message_size"><code>websocket_max_message_size</code><a class="headerlink" href="#websocket_max_message_size" title="Permanent link">&para;</a></h3>
+<p><strong>Command line:</strong> <code>--websocket-max-message-size INT</code></p>
+<p><strong>Default:</strong> <code>16777216</code></p>
+<p>Largest WebSocket message, in bytes, the <code>asgi</code> worker accepts.</p>
+<p>ASGI hands the application whole messages, so each message is held in
+memory until its last frame arrives. A frame or a fragmented message
+larger than this closes the connection with code 1009 (message too
+big, RFC 6455 section 7.4.1).</p>
+<p>Set to 0 for no limit.</p>
+<div class="admonition info">
+<p class="admonition-title">Added in 26.3.0</p>
 </div>
 <h3 id="http_parser"><code>http_parser</code><a class="headerlink" href="#http_parser" title="Permanent link">&para;</a></h3>
 <p><strong>Command line:</strong> <code>--http-parser STRING</code></p>

@@ -2304,6 +2304,14 @@ configuration is required.</p>
     <span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">websocket_endpoint</span><span class="p">),</span>
 <span class="p">])</span>
 </code></pre></div>
+<p>Each message is held in memory until its last frame arrives, so messages are
+limited to 16 MiB. A larger message closes the connection with code 1009. To
+change the limit:</p>
+<div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>app:app<span class="w"> </span>-k<span class="w"> </span>asgi<span class="w"> </span>--websocket-max-message-size<span class="w"> </span><span class="m">67108864</span>
+</code></pre></div>
+<p>While the application does not call <code>receive()</code>, gunicorn stops reading from
+the socket once a few messages are waiting, so a fast client cannot grow the
+worker's memory.</p>
 <h2 id="production-deployment">Production Deployment<a class="headerlink" href="#production-deployment" title="Permanent link">&para;</a></h2>
 <h3 id="with-nginx-http-proxy">With Nginx (HTTP Proxy)<a class="headerlink" href="#with-nginx-http-proxy" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">upstream</span><span class="w"> </span><span class="s">gunicorn</span><span class="w"> </span><span class="p">{</span>

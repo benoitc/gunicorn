@@ -2759,6 +2759,11 @@
   lifespan spec).</li>
 <li>ASGI: deliver <code>websocket.disconnect</code> as soon as the client closes the
   connection, instead of after the close timeout (RFC 6455 §5.5.1).</li>
+<li>ASGI: close a WebSocket with 1009 when a message is larger than the new
+  <code>websocket_max_message_size</code> setting (default 16 MiB), and with 1002 for a
+  control frame over 125 bytes or fragmented (RFC 6455 §5.5, §7.4.1).</li>
+<li>ASGI: stop reading from a WebSocket while unread data or messages pile up,
+  until the app catches up.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
