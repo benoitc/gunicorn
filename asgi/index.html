@@ -2479,9 +2479,11 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 configuration capabilities you're familiar with from WSGI deployments.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="lifespan-startup-failed">Lifespan startup failed<a class="headerlink" href="#lifespan-startup-failed" title="Permanent link">&para;</a></h3>
-<p>If you see "ASGI lifespan startup failed", your application may not properly
-implement the lifespan protocol. Either fix the application or set
-<code>--asgi-lifespan off</code>.</p>
+<p>If you see "ASGI lifespan startup failed", the application either sent
+<code>lifespan.startup.failed</code> (for example because a lifespan handler raised) or,
+with <code>--asgi-lifespan on</code>, did not complete the lifespan protocol. Gunicorn
+stops in both cases. Fix the application, or set <code>--asgi-lifespan off</code> (or
+<code>auto</code> for an app that does not implement lifespan).</p>
 <h3 id="connection-limits">Connection limits<a class="headerlink" href="#connection-limits" title="Permanent link">&para;</a></h3>
 <p>If you're hitting connection limits, increase <code>--worker-connections</code> or add
 more workers with <code>--workers</code>.</p>

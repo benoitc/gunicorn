@@ -4998,6 +4998,9 @@ installing the uvloop package.</p>
 <li>on: Always run lifespan protocol (fail if unsupported)</li>
 <li>off: Never run lifespan protocol</li>
 </ul>
+<p>In <code>auto</code> and <code>on</code> mode, an app that sends
+<code>lifespan.startup.failed</code> stops gunicorn. With <code>on</code>, any failure
+to complete startup does.</p>
 <p>The lifespan protocol allows ASGI applications to run code at
 startup and shutdown. This is essential for frameworks like
 FastAPI that need to initialize database connections, caches,
