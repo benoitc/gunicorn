@@ -137,6 +137,10 @@ both the Python parser and gunicorn_h1c.
   changes. Reference issues with `Fixes #N`. No test plan, no file-by-file
   walkthrough.
 - No `Co-Authored-By`, "Generated with" or similar trailers.
+- Follow "Write for the person who reads it" in
+  [CONTRIBUTING.md](CONTRIBUTING.md#write-for-the-person-who-reads-it): plain
+  English, no inflated or pseudo-technical wording, and a person has read the
+  change before it is opened.
 
 ## Specifications
 
