@@ -46,6 +46,11 @@
   lifespan spec).
 - ASGI: deliver `websocket.disconnect` as soon as the client closes the
   connection, instead of after the close timeout (RFC 6455 §5.5.1).
+- ASGI: close a WebSocket with 1009 when a message is larger than the new
+  `websocket_max_message_size` setting (default 16 MiB), and with 1002 for a
+  control frame over 125 bytes or fragmented (RFC 6455 §5.5, §7.4.1).
+- ASGI: stop reading from a WebSocket while unread data or messages pile up,
+  until the app catches up.
 
 ## 26.2.2 - 2026-09-06
 

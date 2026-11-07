@@ -539,3 +539,127 @@ async def test_client_close_delivers_disconnect():
     assert received[0] == {"type": "websocket.connect"}
     assert received[1]["type"] == "websocket.disconnect"
     assert received[1]["code"] == 1000
+
+
+# ============================================================================
+# Message size limit and backpressure
+# ============================================================================
+
+
+def _client_frame(opcode, payload=b"", fin=True, declared_len=None):
+    """A masked client frame; ``declared_len`` overrides the length field."""
+    length = len(payload) if declared_len is None else declared_len
+    first = (0x80 if fin else 0) | opcode
+    if length < 126:
+        header = bytes([first, 0x80 | length])
+    elif length < 65536:
+        header = bytes([first, 0x80 | 126]) + struct.pack("!H", length)
+    else:
+        header = bytes([first, 0x80 | 127]) + struct.pack("!Q", length)
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    return header + mask + masked
+
+
+def _close_codes(transport):
+    """Close codes in the frames the server wrote."""
+    codes = []
+    for call in transport.write.call_args_list:
+        data = call.args[0]
+        if data[:1] == b"\x88" and len(data) >= 4:
+            codes.append(struct.unpack("!H", data[2:4])[0])
+    return codes
+
+
+async def _run_ws(frames, max_message_size=1024, receive_all=True):
+    """Accept, feed ``frames``, and collect what the app receives."""
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    received = []
+    ref = []
+
+    async def app(scope, receive, send):
+        await receive()
+        await send({"type": "websocket.accept"})
+        for frame in frames:
+            ref[0].feed_data(frame)
+        if not receive_all:
+            await asyncio.sleep(0.05)
+            return
+        while True:
+            message = await asyncio.wait_for(receive(), timeout=2)
+            received.append(message)
+            if message["type"] == "websocket.disconnect":
+                return
+
+    transport = mock.Mock()
+    protocol = WebSocketProtocol(
+        transport=transport,
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=app, log=mock.Mock(), max_message_size=max_message_size)
+    ref.append(protocol)
+    await asyncio.wait_for(protocol.run(), timeout=10)
+    return protocol, transport, received
+
+
+@pytest.mark.asyncio
+async def test_frame_over_limit_closes_1009_before_reading():
+    """A frame declaring 1 TiB is refused from its header alone."""
+    protocol, transport, received = await _run_ws(
+        [_client_frame(0x2, b"x" * 10, declared_len=1 << 40)])
+    assert 1009 in _close_codes(transport)
+    assert received[-1]["type"] == "websocket.disconnect"
+    assert not any(m["type"] == "websocket.receive" for m in received)
+
+
+@pytest.mark.asyncio
+async def test_fragmented_message_over_limit_closes_1009():
+    frames = [_client_frame(0x2, b"a" * 600, fin=False),
+              _client_frame(0x0, b"b" * 600, fin=True)]
+    _, transport, received = await _run_ws(frames)
+    assert 1009 in _close_codes(transport)
+    assert not any(m["type"] == "websocket.receive" for m in received)
+
+
+@pytest.mark.asyncio
+async def test_message_at_limit_is_delivered():
+    frames = [_client_frame(0x2, b"a" * 1024), _client_frame(0x8, struct.pack("!H", 1000))]
+    _, _, received = await _run_ws(frames)
+    assert received[0] == {"type": "websocket.receive", "bytes": b"a" * 1024}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("frame", [
+    _client_frame(0x9, b"p" * 126),
+    _client_frame(0x9, b"ping", fin=False),
+], ids=["ping-over-125", "fragmented-ping"])
+async def test_invalid_control_frame_closes_1002(frame):
+    """RFC 6455 5.5: control frames are unfragmented, at most 125 bytes."""
+    _, transport, _ = await _run_ws([frame])
+    assert 1002 in _close_codes(transport)
+
+
+@pytest.mark.asyncio
+async def test_frame_larger_than_read_buffer_is_read():
+    """Pausing the socket must not stop a frame bigger than the pause
+    threshold from being read."""
+    from gunicorn.asgi.websocket import READ_BUFFER_HIGH_WATER
+    payload = b"z" * (READ_BUFFER_HIGH_WATER * 3)
+    frames = [_client_frame(0x2, payload), _client_frame(0x8, struct.pack("!H", 1000))]
+    _, transport, received = await _run_ws(frames, max_message_size=0)
+    assert received[0] == {"type": "websocket.receive", "bytes": payload}
+    assert transport.pause_reading.called
+
+
+@pytest.mark.asyncio
+async def test_unread_messages_are_bounded():
+    """An app that stops calling receive() does not make the queue grow
+    without bound, and the socket is paused."""
+    from gunicorn.asgi.websocket import RECEIVE_QUEUE_HIGH_WATER
+    frames = [_client_frame(0x2, b"m" * 100) for _ in range(5000)]
+    frames.append(_client_frame(0x8, struct.pack("!H", 1000)))
+    protocol, transport, _ = await _run_ws(frames, receive_all=False)
+    assert protocol._receive_queue.qsize() <= RECEIVE_QUEUE_HIGH_WATER + 1
+    assert transport.pause_reading.called
