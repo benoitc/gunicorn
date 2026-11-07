@@ -2677,6 +2677,11 @@
 <li>ASGI: apply <code>forwarded_allow_ips</code> to HTTP/1 requests as WSGI and HTTP/2
   already do: <code>secure_scheme_headers</code> set the scheme only from trusted
   proxies, and header names with underscores follow <code>header_map</code>.</li>
+<li>Require gunicorn_h1c 0.6.10: the fast parser now rejects a bare LF as a
+  line ending (RFC 9112 §2.2) and bounds chunk-size lines and trailers
+  (RFC 9112 §7.1), like the Python parsers.</li>
+<li>Ignore one empty line before the request line, as the fast parser
+  already does (RFC 9112 §2.2).</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
