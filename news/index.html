@@ -2784,6 +2784,9 @@
 <li>inotify reloader: reload when the target of a symlinked file changes
   (<a href="https://github.com/benoitc/gunicorn/issues/3243">#3243</a>).</li>
 <li>Docs: fix the worker types link in the <code>worker_class</code> setting.</li>
+<li>Join repeated request headers in linear time when building the WSGI
+  environ; many copies of one header used to take time growing with the
+  square of their number.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
