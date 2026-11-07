@@ -784,7 +784,7 @@ class WorkerClass(Setting):
         The type of workers to use.
 
         The default class (``sync``) should handle most "normal" types of
-        workloads. You'll want to read :doc:`design` for information on when
+        workloads. You'll want to read :ref:`worker-types` for information on when
         you might want to choose one of the other worker classes. Required
         libraries may be installed using setuptools' ``extras_require`` feature.
 
