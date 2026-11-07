@@ -716,3 +716,21 @@ def test_body_read_error_stops_the_connection():
     assert parser.finish_body() is False
     with pytest.raises(StopIteration):
         next(parser)
+
+
+def test_repeated_headers_joined_in_order():
+    """Repeated fields become one comma-joined environ value, in order."""
+    from gunicorn.config import Config
+    from gunicorn.http import wsgi
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"GET / HTTP/1.1\r\nHost: x\r\n"
+            b"X-A: 1\r\nCookie: c=1\r\nX-A: 2\r\nX-A: 3\r\n\r\n")
+    req = next(RequestParser(cfg, [data], ('127.0.0.1', 1)))
+    sock = mock.Mock()
+    sock.getsockname.return_value = ('127.0.0.1', 8000)
+    _, environ = wsgi.create(req, sock, ('127.0.0.1', 1), ('127.0.0.1', 8000), cfg)
+    assert environ['HTTP_X_A'] == "1,2,3"
+    assert environ['HTTP_COOKIE'] == "c=1"

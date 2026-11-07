@@ -71,6 +71,9 @@
 - inotify reloader: reload when the target of a symlinked file changes
   ([#3243](https://github.com/benoitc/gunicorn/issues/3243)).
 - Docs: fix the worker types link in the `worker_class` setting.
+- Join repeated request headers in linear time when building the WSGI
+  environ; many copies of one header used to take time growing with the
+  square of their number.
 
 ## 26.2.2 - 2026-09-06
 
