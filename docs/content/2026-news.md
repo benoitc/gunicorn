@@ -39,6 +39,8 @@
 - ASGI: stop gunicorn when the app reports a failed lifespan startup,
   instead of serving requests or rebooting the worker forever (ASGI
   lifespan spec) ([#3778](https://github.com/benoitc/gunicorn/issues/3778)).
+- ASGI: close idle kept-alive connections after `keepalive` seconds, as
+  the other workers do ([#3734](https://github.com/benoitc/gunicorn/discussions/3734)).
 
 ## 26.2.2 - 2026-09-06
 
@@ -51,13 +53,6 @@
   a client treated the response as persistent and reused a socket the server
   had already closed. The header is now sent whenever the connection will close
   ([#3726](https://github.com/benoitc/gunicorn/pull/3726)).
-
-- **ASGI worker never enforced `keepalive`**: a kept-alive HTTP/1.1 connection
-  that went idle was never closed by the server, whatever the `keepalive`
-  setting, so idle connections only went away when the client closed them and
-  could pile up on a worker. They are now closed after `keepalive` seconds, as
-  with the other workers
-  ([#3734](https://github.com/benoitc/gunicorn/discussions/3734)).
 
 ## 26.2.1 - 2026-09-05
 
