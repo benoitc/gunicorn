@@ -164,6 +164,20 @@ class TestChunkedInHTTP10:
 class TestTransferEncodingValidation:
     """Test proper validation of Transfer-Encoding header values."""
 
+    @pytest.mark.parametrize("ws", [b"\x0b", b"\x0c", b"\x85", b"\xa0"])
+    def test_non_http_whitespace_rejected(self, ws):
+        """Only SP/HTAB are whitespace around Transfer-Encoding tokens."""
+        parser = PythonProtocol()
+
+        with pytest.raises(ParseError):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Transfer-Encoding: chunked" + ws + b"\r\n"
+                b"\r\n"
+                b"0\r\n\r\n"
+            )
+
     def test_stacked_chunked_rejected(self):
         """Stacked chunked encoding must be rejected."""
         parser = PythonProtocol()

@@ -557,3 +557,18 @@ def test_request_target_rejects_raw_nul_but_allows_percent_encoded():
     req = next(parser)
     assert req.uri == "/%00"
     assert req.path == "/%00"
+
+
+@pytest.mark.parametrize("ws", [b"\x0b", b"\x0c", b"\x85", b"\xa0"])
+def test_transfer_encoding_non_http_whitespace_rejected(ws):
+    """Only SP/HTAB are whitespace around Transfer-Encoding tokens."""
+    from gunicorn.config import Config
+    from gunicorn.http.errors import UnsupportedTransferCoding
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"POST / HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked" + ws
+            + b"\r\n\r\n0\r\n\r\n")
+    with pytest.raises((InvalidHeader, UnsupportedTransferCoding)):
+        next(RequestParser(cfg, [data], None))
