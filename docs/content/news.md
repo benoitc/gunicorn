@@ -41,6 +41,9 @@
   lifespan spec) ([#3778](https://github.com/benoitc/gunicorn/issues/3778)).
 - ASGI: close idle kept-alive connections after `keepalive` seconds, as
   the other workers do ([#3734](https://github.com/benoitc/gunicorn/discussions/3734)).
+- ASGI: give each request a shallow copy of the lifespan state, so a value
+  one request stores in `scope["state"]` is not seen by the next one (ASGI
+  lifespan spec).
 
 ## 26.2.2 - 2026-09-06
 

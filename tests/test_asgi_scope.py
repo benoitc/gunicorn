@@ -2,9 +2,12 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
-"""The ASGI worker applies the same forwarded-header policy as WSGI and
-HTTP/2 to HTTP/1 requests: scheme headers and underscore names are honored
-only from peers in ``forwarded_allow_ips``."""
+"""What the ASGI worker puts in an HTTP/1 request scope.
+
+- The forwarded-header policy is the one WSGI and HTTP/2 use: scheme headers
+  and underscore names are honored only from peers in ``forwarded_allow_ips``.
+- ``scope["state"]`` is a shallow copy of the lifespan state per request.
+"""
 
 import asyncio
 
@@ -77,3 +80,37 @@ async def test_underscore_header_refused(http_parser):
         forwarded_allow_ips="10.0.0.5", header_map="refuse")
     assert scopes == []
     assert transport.written.startswith(b"HTTP/1.1 400"), transport.written
+
+
+@pytest.mark.asyncio
+async def test_lifespan_state_is_copied_per_request(http_parser):
+    """ASGI lifespan spec: each request gets a shallow copy of the state, so
+    a value one request stores is not seen by the next one."""
+    seen = []
+
+    async def app(scope, receive, send):
+        seen.append(dict(scope["state"]))
+        scope["state"]["user"] = scope["path"]
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-length", b"0")]})
+        await send({"type": "http.response.body", "body": b""})
+
+    loop = asyncio.get_event_loop()
+    worker = _build_worker(loop, app, http_parser)
+    worker.state = {"db": "conn"}
+    protocol = ASGIProtocol(worker)
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(b"GET /a HTTP/1.1\r\nHost: a\r\n\r\n"
+                           b"GET /b HTTP/1.1\r\nHost: a\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    assert seen == [{"db": "conn"}, {"db": "conn"}], seen
+    assert worker.state == {"db": "conn"}

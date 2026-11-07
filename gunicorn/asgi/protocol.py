@@ -1573,9 +1573,10 @@ class ASGIProtocol(asyncio.Protocol):
             "client": client,
         }
 
-        # Add state dict for lifespan sharing
+        # Each request gets a shallow copy of the lifespan state (ASGI lifespan
+        # spec), so one request's changes never reach another.
         if hasattr(self.worker, 'state'):
-            scope["state"] = self.worker.state
+            scope["state"] = self.worker.state.copy()
 
         # Add HTTP/2 priority extension if available
         if hasattr(request, 'priority_weight'):
@@ -1638,9 +1639,10 @@ class ASGIProtocol(asyncio.Protocol):
             "subprotocols": subprotocols,
         }
 
-        # Add state dict for lifespan sharing
+        # Each request gets a shallow copy of the lifespan state (ASGI lifespan
+        # spec), so one request's changes never reach another.
         if hasattr(self.worker, 'state'):
-            scope["state"] = self.worker.state
+            scope["state"] = self.worker.state.copy()
 
         return scope
 
@@ -2352,7 +2354,7 @@ class ASGIProtocol(asyncio.Protocol):
         }
 
         if hasattr(self.worker, 'state'):
-            scope["state"] = self.worker.state
+            scope["state"] = self.worker.state.copy()
 
         # Add HTTP/2 extensions
         extensions = {}
