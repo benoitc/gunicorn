@@ -5,14 +5,15 @@
 
 ### Bug Fixes
 
-- Reject whitespace between a header name and the colon.
-- Trim only spaces and tabs around `Transfer-Encoding` values
+- Reject whitespace between a header name and the colon (RFC 9112 §5.1).
+- Trim only spaces and tabs around `Transfer-Encoding` values (RFC 9110 §5.6.3)
   ([#3364](https://github.com/benoitc/gunicorn/issues/3364)).
-- Reject a `Content-Length` that is not plain digits.
-- Reject chunk data not followed by CRLF.
-- Reject control characters in the request path
+- Reject a `Content-Length` that is not plain digits (RFC 9110 §8.6).
+- Reject chunk data not followed by CRLF (RFC 9112 §7.1).
+- Reject control characters in the request path (RFC 9112 §3.2)
   ([#3371](https://github.com/benoitc/gunicorn/issues/3371)).
 - Return `414 URI Too Long` for a request line over `limit_request_line`
+  (RFC 9112 §3)
   ([#2487](https://github.com/benoitc/gunicorn/issues/2487)).
 
 ## 26.2.2 - 2026-09-06
