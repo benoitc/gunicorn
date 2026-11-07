@@ -59,6 +59,12 @@
   it is not killed during `max_requests` restarts.
 - Close the connection when reading a request body fails, instead of keeping
   it open with the bytes that followed the body lost.
+- Don't call `listen()` again on a socket that already listens, such as one
+  passed by systemd socket activation; SELinux can deny that call.
+- With `reuse_port` on a platform without `SO_REUSEPORT`, workers now use the
+  master's sockets instead of failing to bind.
+- StatsD: send metrics over IPv6 when `statsd_host` is a numeric IPv6
+  address; they used to be dropped silently.
 
 ## 26.2.2 - 2026-09-06
 
