@@ -1866,6 +1866,8 @@ does not impact request handling.</p>
 <p>Tell Gunicorn where the statsD server is located:</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>--statsd-host<span class="o">=</span>localhost:8125<span class="w"> </span>--statsd-prefix<span class="o">=</span>service.app<span class="w"> </span>...
 </code></pre></div>
+<p>For an IPv6 address, enclose the host in brackets, for example
+<code>--statsd-host='[::1]:8125'</code>.</p>
 <p>The <code>Statsd</code> logger subclasses <code>gunicorn.glogging.Logger</code> and tracks:</p>
 <ul>
 <li><code>gunicorn.requests</code> &mdash; request rate per second</li>

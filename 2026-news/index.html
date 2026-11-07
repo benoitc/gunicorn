@@ -2705,6 +2705,12 @@
   it is not killed during <code>max_requests</code> restarts.</li>
 <li>Close the connection when reading a request body fails, instead of keeping
   it open with the bytes that followed the body lost.</li>
+<li>Don't call <code>listen()</code> again on a socket that already listens, such as one
+  passed by systemd socket activation; SELinux can deny that call.</li>
+<li>With <code>reuse_port</code> on a platform without <code>SO_REUSEPORT</code>, workers now use the
+  master's sockets instead of failing to bind.</li>
+<li>StatsD: send metrics over IPv6 when <code>statsd_host</code> is a numeric IPv6
+  address; they used to be dropped silently.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
