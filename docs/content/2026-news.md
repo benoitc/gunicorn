@@ -44,6 +44,8 @@
 - ASGI: give each request a shallow copy of the lifespan state, so a value
   one request stores in `scope["state"]` is not seen by the next one (ASGI
   lifespan spec).
+- ASGI: deliver `websocket.disconnect` as soon as the client closes the
+  connection, instead of after the close timeout (RFC 6455 §5.5.1).
 
 ## 26.2.2 - 2026-09-06
 

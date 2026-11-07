@@ -496,3 +496,46 @@ class TestWebSocketReceiveQueue:
         # Now should complete
         message = await asyncio.wait_for(receive_task, timeout=1.0)
         assert message["type"] == "websocket.connect"
+
+
+# ============================================================================
+# Client-initiated close
+# ============================================================================
+
+
+def _client_close_frame(code=1000):
+    """A masked close frame, as a client sends it (RFC 6455 5.3, 5.5.1)."""
+    payload = struct.pack("!H", code)
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    return bytes([0x88, 0x80 | len(payload)]) + mask + masked
+
+
+@pytest.mark.asyncio
+async def test_client_close_delivers_disconnect():
+    """When the client closes, the app's next receive() returns
+    websocket.disconnect with the client's code instead of waiting."""
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    received = []
+    proto_ref = []
+
+    async def app(scope, receive, send):
+        received.append(await receive())
+        await send({"type": "websocket.accept"})
+        proto_ref[0].feed_data(_client_close_frame(1000))
+        received.append(await asyncio.wait_for(receive(), timeout=2))
+
+    scope = {
+        "type": "websocket",
+        "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")],
+    }
+    protocol = WebSocketProtocol(
+        transport=mock.Mock(), scope=scope, app=app, log=mock.Mock())
+    proto_ref.append(protocol)
+    await asyncio.wait_for(protocol.run(), timeout=5)
+
+    assert received[0] == {"type": "websocket.connect"}
+    assert received[1]["type"] == "websocket.disconnect"
+    assert received[1]["code"] == 1000
