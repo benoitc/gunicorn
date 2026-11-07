@@ -13,7 +13,12 @@ class Unreader:
     def __init__(self):
         self.buf = io.BytesIO()
 
-    def chunk(self):
+    def chunk(self, size_hint=None):
+        """Return the next piece of data from the source.
+
+        ``size_hint`` is how many bytes the caller still wants; sources may
+        use it to read more at once, never to read past what they hold.
+        """
         raise NotImplementedError()
 
     def take_buffered(self):
@@ -28,7 +33,14 @@ class Unreader:
         self.buf = io.BytesIO()
         return data
 
-    def read(self, size=None):
+    def read(self, size=None, read_ahead=None):
+        """Read `size` bytes (or the next chunk if None).
+
+        ``read_ahead`` is how many bytes the caller may consume in total from
+        here, e.g. what is left of a request body of known length: the source
+        may then be asked for up to that much at once, the surplus staying
+        buffered. It is never a reason to read past the end of the body.
+        """
         if size is not None and not isinstance(size, int):
             raise TypeError("size parameter must be an int or long.")
 
@@ -49,7 +61,7 @@ class Unreader:
             return d
 
         while self.buf.tell() < size:
-            chunk = self.chunk()
+            chunk = self.chunk(max(size, read_ahead or 0) - self.buf.tell())
             if not chunk:
                 ret = self.buf.getvalue()
                 self.buf = io.BytesIO()
@@ -68,13 +80,23 @@ class Unreader:
 
 
 class SocketUnreader(Unreader):
+    #: Largest single recv() when the caller says how much it still wants (a
+    #: request body of known length). Every recv() releases and re-acquires the
+    #: GIL; with CPU-bound threads in the same process, re-acquiring it can take
+    #: up to sys.getswitchinterval() (5 ms), so a body read 8 KiB at a time was
+    #: slowed down to a few MiB/s.
+    max_body_chunk = 1024 * 1024
+
     def __init__(self, sock, max_chunk=8192):
         super().__init__()
         self.sock = sock
         self.mxchunk = max_chunk
 
-    def chunk(self):
-        return self.sock.recv(self.mxchunk)
+    def chunk(self, size_hint=None):
+        size = self.mxchunk
+        if size_hint and size_hint > size:
+            size = min(size_hint, self.max_body_chunk)
+        return self.sock.recv(size)
 
 
 class IterUnreader(Unreader):
@@ -82,7 +104,7 @@ class IterUnreader(Unreader):
         super().__init__()
         self.iter = iter(iterable)
 
-    def chunk(self):
+    def chunk(self, size_hint=None):
         if not self.iter:
             return b""
         try:
