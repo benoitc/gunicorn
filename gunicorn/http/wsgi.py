@@ -212,7 +212,9 @@ def create(req, sock, client, server, cfg, response_class=None,
         # rfc9112: Expect MUST be forwarded if the request is forwarded
         # N.B. gunicorn just sends at most one - application might send another
 
-    # add the headers to the environ
+    # add the headers to the environ. Repeated fields are joined once at the
+    # end: joining them one by one copies the growing value each time.
+    repeated = {}
     for hdr_name, hdr_value in req.headers:
         if hdr_name == 'HOST':
             host = hdr_value
@@ -229,8 +231,11 @@ def create(req, sock, client, server, cfg, response_class=None,
         # RFC9110 Section 17.10 discourages ambiguous or incomplete mappings
         key = 'HTTP_' + hdr_name.replace('-', '_')
         if key in environ:
-            hdr_value = "%s,%s" % (environ[key], hdr_value)
-        environ[key] = hdr_value
+            repeated.setdefault(key, [environ[key]]).append(hdr_value)
+        else:
+            environ[key] = hdr_value
+    for key, values in repeated.items():
+        environ[key] = ",".join(values)
 
     # set the url scheme
     environ['wsgi.url_scheme'] = req.scheme
