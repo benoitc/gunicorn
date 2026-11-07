@@ -29,6 +29,58 @@ def test_create_sockets_unix_strings(stat):
         assert isinstance(listeners[0], sock.UnixSocket)
 
 
+def test_create_sockets_does_not_relisten_inherited_socket():
+    conf = mock.Mock(address=[], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    inherited_socket = mock.Mock()
+    inherited_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    inherited_socket.getsockopt.return_value = 1
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[inherited_socket, inherited_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log, fds=[3])
+
+    assert len(listeners) == 1
+    inherited_socket.listen.assert_not_called()
+
+
+def test_create_sockets_listens_on_bind_fd():
+    conf = mock.Mock(address=[3], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    bound_socket = mock.Mock()
+    bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    bound_socket.getsockopt.return_value = 0
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[bound_socket, bound_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log)
+
+    assert len(listeners) == 1
+    bound_socket.listen.assert_called_once_with(123)
+
+
+def test_create_sockets_listens_when_acceptconn_unsupported():
+    """If the platform cannot report SO_ACCEPTCONN, listen() as before."""
+    conf = mock.Mock(address=[3], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    bound_socket = mock.Mock()
+    bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    bound_socket.getsockopt.side_effect = OSError("not supported")
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[bound_socket, bound_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log)
+
+    assert len(listeners) == 1
+    bound_socket.listen.assert_called_once_with(123)
+
+
 def test_socket_close():
     listener1 = mock.Mock()
     listener1.getsockname.return_value = ('127.0.0.1', '80')

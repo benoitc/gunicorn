@@ -56,8 +56,20 @@ class BaseSocket:
         if hasattr(sock, "set_inheritable"):
             sock.set_inheritable(True)
 
-        sock.listen(self.conf.backlog)
+        if not self._is_listening(sock):
+            sock.listen(self.conf.backlog)
         return sock
+
+    @staticmethod
+    def _is_listening(sock):
+        """Whether ``sock`` already listens, as an inherited socket from systemd
+        does. Calling listen() again on it can be denied (SELinux)."""
+        if not hasattr(socket, 'SO_ACCEPTCONN'):
+            return False
+        try:
+            return bool(sock.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN))
+        except OSError:
+            return False
 
     def bind(self, sock):
         sock.bind(self.cfg_addr)

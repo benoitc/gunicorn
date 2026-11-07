@@ -746,7 +746,7 @@ class Arbiter:
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
-            if self.cfg.reuse_port:
+            if self.cfg.reuse_port and hasattr(socket, "SO_REUSEPORT"):
                 worker.sockets = sock.create_sockets(self.cfg, self.log)
             self.cfg.post_fork(self, worker)
             worker.init_process()
