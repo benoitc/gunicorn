@@ -20,6 +20,9 @@ BLKSIZE = 0x3FFFFFFF
 # RFC9110 5.5: field-vchar = VCHAR / obs-text
 # RFC4234 B.1: VCHAR = 0x21-x07E = printable ASCII
 HEADER_VALUE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
+# RFC 9112 section 4: status-code is 3DIGIT, the reason phrase is
+# HTAB / SP / VCHAR / obs-text. PEP 3333: a single space separates them.
+STATUS_RE = re.compile(r'[0-9]{3}(?: [ \t\x21-\x7e\x80-\xff]*)?')
 
 log = logging.getLogger(__name__)
 
@@ -335,6 +338,11 @@ class Response:
                 exc_info = None
         elif self.status is not None:
             raise AssertionError("Response headers already set!")
+
+        if not isinstance(status, str):
+            raise TypeError('%r is not a string' % status)
+        if not STATUS_RE.fullmatch(status):
+            raise ValueError('Invalid status %r' % status)
 
         self.status = status
 
