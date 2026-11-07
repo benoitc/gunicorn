@@ -22,7 +22,8 @@ from gunicorn.asgi.parser import (
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData
-from gunicorn.http.message import TOKEN_RE
+from gunicorn.http.errors import ParseException as HTTPParseException
+from gunicorn.http.message import TOKEN_RE, HeaderPolicy
 from gunicorn.http.wsgi import HEADER_VALUE_RE
 from gunicorn.http2 import negotiation
 from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2ErrorCode, HTTP2StreamError
@@ -95,6 +96,37 @@ def _validate_response_headers(headers):
         if not _HEADER_VALUE_RE.fullmatch(value):
             # Pass only the name, the value may carry sensitive data
             raise InvalidHeader('%r' % name)
+
+
+class _RequestHeaderPolicy(HeaderPolicy):
+    """Run the header policy shared with WSGI and HTTP/2 on an HTTP/1
+    request parsed by the ASGI worker: scheme headers and underscore names
+    are honored only from peers in ``forwarded_allow_ips``."""
+
+    # Expect: 100-continue is handled by the ASGI body receiver.
+    _policy_expect_continue = False
+
+    def __init__(self, cfg, peer_addr, scheme, version):
+        self.cfg = cfg
+        self.peer_addr = peer_addr
+        self.scheme = scheme
+        self.version = version
+
+    def apply(self, request):
+        secure_scheme_headers, forwarder_headers = \
+            self._peer_trusted_for_forwarded()
+        scheme_state = [False]
+        seen = set()
+        keep = []
+        for name, value in request.headers:
+            keep.append(self._apply_header_policy(
+                name, value, scheme_state, seen,
+                secure_scheme_headers, forwarder_headers) is not None)
+        if not all(keep) and len(request.headers_bytes) == len(keep):
+            request.headers = [h for h, k in zip(request.headers, keep) if k]
+            request.headers_bytes = [
+                h for h, k in zip(request.headers_bytes, keep) if k]
+        request.scheme = self.scheme
 
 
 # Cached response bytes for common cases
@@ -642,6 +674,11 @@ class ASGIProtocol(asyncio.Protocol):
         self._current_request = CallbackRequest.from_parser(
             self._callback_parser, is_ssl=self._is_ssl
         )
+        request = self._current_request
+        _RequestHeaderPolicy(
+            self.cfg, self.transport.get_extra_info('peername'),
+            request.scheme, request.version,
+        ).apply(request)
 
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
@@ -801,7 +838,7 @@ class ASGIProtocol(asyncio.Protocol):
             self._send_error_response(431, str(e))  # Request Header Fields Too Large
             self._close_transport()
             return False
-        except (InvalidChunkExtension, ParseError) as e:
+        except (InvalidChunkExtension, ParseError, HTTPParseException) as e:
             self._send_error_response(400, str(e))
             self._close_transport()
             return False
