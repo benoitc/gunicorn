@@ -613,3 +613,26 @@ def test_one_empty_line_before_request_line_is_ignored():
     chunks = [b"\r", b"\nGET /x HTTP/1.1\r\nHost: a\r\n\r\n"]
     req = next(RequestParser(cfg, chunks, None))
     assert req.path == "/x"
+
+
+def test_body_read_error_stops_the_connection():
+    """A body that fails to read (here a repeated singleton field in the
+    trailers) leaves the start of the next request unknown: the parser must
+    not keep the connection alive or serve what follows."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"POST /a HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"5\r\nhello\r\n0\r\n"
+            b"Content-Type: a\r\nContent-Type: b\r\n\r\n"
+            b"GET /admin HTTP/1.1\r\nHost: x\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    with pytest.raises(InvalidHeader):
+        req.body.read()
+
+    assert parser.finish_body() is False
+    with pytest.raises(StopIteration):
+        next(parser)

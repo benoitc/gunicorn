@@ -75,8 +75,10 @@ class ChunkedReader:
         if done:
             unreader.unread(bytes(buf[2:]))
             return b""
-        self.req.trailers = self.req.parse_headers(bytes(buf[:idx]), from_trailer=True)
+        # Hand back what follows the trailers before checking them, so a bad
+        # trailer does not also lose bytes read ahead from the socket.
         unreader.unread(bytes(buf[idx + 4:]))
+        self.req.trailers = self.req.parse_headers(bytes(buf[:idx]), from_trailer=True)
 
     def parse_chunked(self, unreader):
         (size, rest) = self.parse_chunk_size(unreader)
@@ -220,6 +222,16 @@ class Body:
     def __init__(self, reader):
         self.reader = reader
         self.buf = io.BytesIO()
+        # Set when reading the body raised: where the next request starts on
+        # the connection is then unknown, so it must not be reused.
+        self.failed = False
+
+    def _read_reader(self, size):
+        try:
+            return self.reader.read(size)
+        except Exception:
+            self.failed = True
+            raise
 
     def __iter__(self):
         return self
@@ -254,7 +266,7 @@ class Body:
             return ret
 
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            data = self._read_reader(1024)
             if not data:
                 break
             self.buf.write(data)
@@ -284,7 +296,7 @@ class Body:
 
             ret.append(data)
             size -= len(data)
-            data = self.reader.read(min(1024, size))
+            data = self._read_reader(min(1024, size))
             if not data:
                 break
 

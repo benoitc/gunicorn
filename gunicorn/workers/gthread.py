@@ -345,13 +345,13 @@ class ThreadWorker(base.Worker):
         # Submit to thread pool for processing
         self.enqueue_req(conn)
 
-    def murder_keepalived(self):
-        """Close expired keepalive connections."""
+    def murder_keepalived(self, force=False):
+        """Close expired keepalive connections (or all if forced)."""
         now = time.monotonic()
         while self.keepalived_conns:
             conn = self.keepalived_conns[0]
             delta = conn.timeout - now
-            if delta > 0:
+            if delta > 0 and not force:
                 break
 
             # Connection has timed out
@@ -432,15 +432,16 @@ class ThreadWorker(base.Worker):
 
         # Wait for in-flight connections within grace period
         graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
-        while self.nr_conns > 0:
-            time_remaining = max(graceful_timeout - time.monotonic(), 0)
-            if time_remaining == 0:
+        while self.nr_conns - len(self.keepalived_conns) > 0:
+            if time.monotonic() > graceful_timeout:
                 break
-            self.wait_for_and_dispatch_events(timeout=time_remaining)
+            self.notify()
+            self.wait_for_and_dispatch_events(timeout=1.0)
             self.murder_keepalived()
             self.murder_pending()
 
         # Cleanup
+        self.murder_keepalived(force=True)
         self.tpool.shutdown(wait=False)
         self.poller.close()
         self.method_queue.close()
@@ -463,6 +464,11 @@ class ThreadWorker(base.Worker):
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_pending_socket_readable, conn))
             elif result and self.alive:
+                if conn.parser.unreader.buf.getvalue():
+                    # A body drain can read ahead into the next request. Those
+                    # bytes no longer make the socket readable to the poller.
+                    self.enqueue_req(conn)
+                    return
                 # Keepalive - put connection back in the poller
                 conn.sock.setblocking(False)
                 conn.set_timeout()

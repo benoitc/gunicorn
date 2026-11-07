@@ -454,6 +454,7 @@ class TestFinishRequest:
 
         conn = mock.Mock()
         conn.sock = mock.Mock()
+        conn.parser.unreader.buf.getvalue.return_value = b''
         fs = mock.Mock()
         fs.cancelled.return_value = False
         fs.result.return_value = True  # keepalive=True
@@ -464,6 +465,52 @@ class TestFinishRequest:
         assert conn in worker.keepalived_conns
         conn.set_timeout.assert_called_once()
         worker.poller.register.assert_called_once()
+
+    @pytest.mark.parametrize('body', [b'', b'payload'])
+    def test_finish_request_buffered_request(self, body):
+        """Read-ahead after a body drain must not wait for socket readiness."""
+        from gunicorn.http.parser import RequestParser
+
+        worker = self.create_worker()
+        worker.nr_conns = 1
+        worker.enqueue_req = mock.Mock()
+        request = b'GET /next HTTP/1.1\r\nHost: localhost\r\n\r\n'
+        headers = (b'POST /first HTTP/1.1\r\nHost: localhost\r\n'
+                   b'Content-Length: %d\r\n\r\n' % len(body))
+        source = [headers, body + request] if body else [headers + request]
+        parser = RequestParser(worker.cfg, source, ('127.0.0.1', 1234))
+        assert next(parser).path == '/first'
+        conn = mock.Mock()
+        conn.parser = parser
+        assert worker._keepalive_after(conn, True)
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = True
+
+        worker.finish_request(conn, fs)
+
+        worker.enqueue_req.assert_called_once_with(conn)
+        worker.poller.register.assert_not_called()
+        assert not worker.keepalived_conns
+        assert worker.nr_conns == 1
+        assert next(parser).path == '/next'
+
+    def test_finish_request_buffered_shutdown(self):
+        worker = self.create_worker()
+        worker.alive = False
+        worker.nr_conns = 1
+        worker.enqueue_req = mock.Mock()
+        conn = mock.Mock()
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = True
+
+        worker.finish_request(conn, fs)
+
+        worker.enqueue_req.assert_not_called()
+        worker.poller.register.assert_not_called()
+        conn.close.assert_called_once_with(graceful=True)
+        assert worker.nr_conns == 0
 
     def test_finish_request_close(self):
         """Test handling of non-keepalive response."""
@@ -702,6 +749,37 @@ class TestKeepaliveManagement:
 
         worker.poller.close()
 
+    def test_murder_keepalived_force(self):
+        """Test that all idle connections are closed if forced."""
+        worker = self.create_worker()
+        worker.poller = selectors.DefaultSelector()
+
+        cfg = Config()
+
+        # Add one expired and one valid connection
+        expired_sock = FakeSocket()
+        expired_conn = gthread.TConn(cfg, expired_sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        expired_conn.timeout = time.monotonic() - 10  # Expired
+
+        valid_sock = FakeSocket()
+        valid_conn = gthread.TConn(cfg, valid_sock, ('127.0.0.1', 12346), ('127.0.0.1', 8000))
+        valid_conn.timeout = time.monotonic() + 100  # Still valid
+
+        worker.keepalived_conns.append(expired_conn)
+        worker.keepalived_conns.append(valid_conn)
+        worker.nr_conns = 2
+
+        with mock.patch.object(worker.poller, 'unregister'):
+            worker.murder_keepalived(force=True)
+
+        # Expired and valid should be closed
+        assert expired_sock.closed is True
+        assert valid_sock.closed is True
+        assert len(worker.keepalived_conns) == 0
+        assert worker.nr_conns == 0
+
+        worker.poller.close()
+
 
 class TestErrorHandling:
     """Tests for error handling in various scenarios."""
@@ -915,13 +993,15 @@ class TestWorkerLiveness:
 class TestSignalHandling:
     """Tests for signal handling in gthread worker."""
 
-    def create_worker(self):
+    def create_worker(self, keepalive=None):
         """Create a worker for testing."""
         cfg = Config()
         cfg.set('workers', 1)
         cfg.set('threads', 4)
         cfg.set('worker_connections', 1000)
         cfg.set('graceful_timeout', 5)
+        if keepalive is not None:
+            cfg.set('keepalive', keepalive)
 
         worker = gthread.ThreadWorker(
             age=1,
@@ -1006,6 +1086,7 @@ class TestSignalHandling:
         worker.sockets = []
         worker.nr_conns = 1  # One active connection
         worker.alive = True
+        worker.notify = mock.Mock()
 
         # Track iterations
         iterations = [0]
@@ -1030,6 +1111,51 @@ class TestSignalHandling:
 
         # Should have waited for connections
         assert iterations[0] >= 2
+        worker.method_queue.close()
+        assert worker.notify.call_count == 3  # 1x main loop, 2x drain loop
+
+    def test_graceful_shutdown_ignore_idle_keepalived(self):
+        """Test that graceful shutdown ignores idle keepalived conns."""
+        worker = self.create_worker(keepalive=30)
+        worker.method_queue.init()
+        worker.poller = mock.Mock()
+        worker.tpool = mock.Mock()
+        worker.sockets = []
+        worker.alive = True
+
+        iterations = [0]
+
+        def mock_select(timeout):
+            iterations[0] += 1
+            if iterations[0] == 1:
+                # First iteration: trigger shutdown
+                worker.alive = False
+            elif iterations[0] == 2:
+                # Second iteration: during grace period
+                pass
+            elif iterations[0] == 3:
+                # Third iteration: in-flight request completes
+                worker.nr_conns -= 1
+            return []
+
+        worker.poller.select.side_effect = mock_select
+        worker.is_parent_alive = mock.Mock(return_value=True)
+
+        # Create a keepalived socket
+        sock = FakeSocket()
+        conn = gthread.TConn(worker.cfg, sock, ('127.0.0.1', 12345), ('127.0.0.1', 8000))
+        conn.timeout = time.monotonic() + 60
+        worker.keepalived_conns.append(conn)
+        worker.nr_conns = 2  # 1 active + 1 idle keepalived
+
+        worker.run()
+
+        # Should have waited for in-flight connection, but not idle
+        assert iterations[0] == 3
+        assert sock.closed is True
+        assert len(worker.keepalived_conns) == 0
+        assert worker.nr_conns == 0
+
         worker.method_queue.close()
 
     def test_sigterm_does_not_interrupt_active_request(self):
