@@ -734,3 +734,26 @@ def test_repeated_headers_joined_in_order():
     _, environ = wsgi.create(req, sock, ('127.0.0.1', 1), ('127.0.0.1', 8000), cfg)
     assert environ['HTTP_X_A'] == "1,2,3"
     assert environ['HTTP_COOKIE'] == "c=1"
+
+
+@pytest.mark.parametrize("target", [b"/caf\xc3\xa9", b"/a\xe9", b"/?q=\xff"])
+def test_request_target_rejects_non_ascii(target):
+    """RFC 9112 3.2 / RFC 3986 2: non-ASCII must be percent-encoded."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    parser = RequestParser(cfg, [b"GET " + target + b" HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    with pytest.raises(InvalidRequestLine):
+        next(parser)
+
+
+def test_request_target_accepts_percent_encoded_non_ascii():
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    parser = RequestParser(cfg, [b"GET /caf%C3%A9 HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    assert next(parser).uri == "/caf%C3%A9"
