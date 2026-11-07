@@ -61,7 +61,7 @@ testing = [
     "pytest>=9.0.3",
     "pytest-cov",
     "pytest-asyncio",
-    "uvloop>=0.19.0",
+    "uvloop>=0.19.0; platform_python_implementation != 'PyPy'",
     "httpx[http2]>=0.23.0",
     "inotify>=0.2.10; sys_platform == 'linux'",
 ]
