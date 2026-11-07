@@ -61,7 +61,9 @@ Only a problem that is not a spec deviation goes through
 [SECURITY.md](SECURITY.md): code execution, file access outside what the
 configuration allows, privilege or permission handling (user, group, umask,
 socket and pid file modes), one client's request data reaching another
-client, or gunicorn weakening TLS. If unsure, ask the maintainer before
+client, or gunicorn weakening TLS. A spec deviation stays a bug even when its
+effect is on this list: per-request state shared across requests because the
+ASGI lifespan copy was skipped is a bug. If unsure, ask the maintainer before
 treating anything as a security issue.
 
 ## Setup
