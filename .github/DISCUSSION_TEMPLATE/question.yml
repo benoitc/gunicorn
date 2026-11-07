@@ -11,6 +11,9 @@ body:
         - [Settings Reference](https://gunicorn.org/reference/settings/)
         - [Existing discussions](https://github.com/benoitc/gunicorn/discussions)
 
+        Ask in plain English and include what you tried. See
+        [Write for the person who reads it](https://github.com/benoitc/gunicorn/blob/master/CONTRIBUTING.md#write-for-the-person-who-reads-it).
+
   - type: textarea
     id: question
     attributes:
