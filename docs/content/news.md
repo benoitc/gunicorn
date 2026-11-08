@@ -115,6 +115,10 @@
   subclass, as ASGI 2.4 asks; it is still a `RuntimeError`, so existing
   handlers keep working, and gunicorn no longer logs it as an error. HTTP
   sends after a disconnect stay silently ignored.
+- Dirty apps: bound every stream read by the idle timeout and the total
+  timeout, and drop the connection when one fires, so a late chunk is never
+  read by the next call. A sync stream's idle timeout is no longer replaced
+  by a fixed 5 seconds.
 
 ## 26.2.2 - 2026-09-06
 
