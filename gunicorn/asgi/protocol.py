@@ -10,6 +10,8 @@ and dispatch to ASGI applications.
 """
 
 import asyncio
+import base64
+import binascii
 import collections
 import errno
 import ipaddress
@@ -150,6 +152,16 @@ class ClientDisconnected(OSError):
 
     ASGI 2.4 asks for an OSError subclass on a closed connection.
     """
+
+
+def _valid_websocket_key(key):
+    """RFC 6455 section 4.2.1: base64 of 16 bytes."""
+    if not key:
+        return False
+    try:
+        return len(base64.b64decode(key, validate=True)) == 16
+    except (ValueError, binascii.Error):
+        return False
 
 
 class FlowControl:
@@ -1302,6 +1314,25 @@ class ASGIProtocol(asyncio.Protocol):
         # Stop callback parser - WebSocket uses its own data handling
         self._callback_parser = None
 
+        # RFC 6455 section 4.2.1: version 13 and a key that is 16 bytes
+        # once base64-decoded. A version we do not speak gets 426 with the
+        # version we do (section 4.2.2); a bad key gets 400.
+        version = key = None
+        for name, value in request.headers:
+            if name == "SEC-WEBSOCKET-VERSION":
+                version = value.strip()
+            elif name == "SEC-WEBSOCKET-KEY":
+                key = value.strip()
+        if version != "13":
+            self._send_error_response(426, "Upgrade Required",
+                                      (("Sec-WebSocket-Version", "13"),))
+            self._close_transport()
+            return
+        if not _valid_websocket_key(key):
+            self._send_error_response(400, "Bad Request")
+            self._close_transport()
+            return
+
         scope = self._build_websocket_scope(request, sockname, peername)
         ws_protocol = WebSocketProtocol(
             self.transport, scope, self.app, self.log,
@@ -1873,13 +1904,15 @@ class ASGIProtocol(asyncio.Protocol):
             elif body:
                 self._safe_write(body)
 
-    def _send_error_response(self, status, message):
+    def _send_error_response(self, status, message, extra_headers=()):
         """Send an error response."""
         body = message.encode("utf-8")
+        extra = "".join(f"{name}: {value}\r\n" for name, value in extra_headers)
         response = (
             f"HTTP/1.1 {status} {message}\r\n"
             f"Content-Type: text/plain\r\n"
             f"Content-Length: {len(body)}\r\n"
+            f"{extra}"
             f"Connection: close\r\n"
             f"\r\n"
         )
