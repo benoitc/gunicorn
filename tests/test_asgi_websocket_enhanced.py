@@ -787,3 +787,47 @@ async def test_send_waits_while_the_client_is_not_reading():
     flow.resume_writing()
     await asyncio.wait_for(send, timeout=1)
     assert transport.write.call_count == writes + 1
+
+
+@pytest.mark.asyncio
+async def test_send_after_close_raises_an_oserror_that_is_still_a_runtimeerror():
+    """ASGI 2.4: send on a closed connection raises an OSError subclass;
+    it stays a RuntimeError for code written against older gunicorn."""
+    from gunicorn.asgi.protocol import ClientDisconnected
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    protocol = WebSocketProtocol(
+        transport=mock.Mock(),
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=mock.AsyncMock(), log=mock.Mock())
+    await protocol._send({"type": "websocket.accept"})
+    protocol.closed = True
+    with pytest.raises(ClientDisconnected) as info:
+        await protocol._send({"type": "websocket.send", "text": "x"})
+    assert isinstance(info.value, OSError)
+    assert isinstance(info.value, RuntimeError)
+
+
+@pytest.mark.asyncio
+async def test_send_after_close_escaping_the_app_is_not_logged_as_error():
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    ref = []
+
+    async def app(scope, receive, send):
+        await receive()
+        await send({"type": "websocket.accept"})
+        ref[0].closed = True
+        await send({"type": "websocket.send", "text": "late"})
+
+    log = mock.Mock()
+    protocol = WebSocketProtocol(
+        transport=mock.Mock(),
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=app, log=log)
+    ref.append(protocol)
+    await asyncio.wait_for(protocol.run(), timeout=2)
+    log.exception.assert_not_called()

@@ -13,7 +13,7 @@ import base64
 import hashlib
 import struct
 
-from gunicorn.asgi.protocol import _validate_response_headers
+from gunicorn.asgi.protocol import ClientDisconnected, _validate_response_headers
 
 
 # WebSocket frame opcodes
@@ -50,6 +50,15 @@ CLOSE_INTERNAL_ERROR = 1011
 
 # WebSocket handshake GUID (RFC 6455)
 WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+
+class WebSocketDisconnected(ClientDisconnected, RuntimeError):
+    """Raised by send() once the WebSocket is closed.
+
+    ASGI 2.4: a send on a closed connection raises a server-specific
+    subclass of OSError. It also stays a RuntimeError, which is what
+    gunicorn raised before, so existing ``except RuntimeError`` still match.
+    """
 
 
 def _valid_close_code(code):
@@ -162,6 +171,9 @@ class WebSocketProtocol:
         failed = False
         try:
             await self.app(self.scope, self._receive, self._send)
+        except WebSocketDisconnected:
+            # The client went away; ASGI asks servers not to log this.
+            self.log.debug("WebSocket closed while the application was sending")
         except Exception:
             failed = True
             self.log.exception("Error in WebSocket ASGI application")
@@ -238,7 +250,7 @@ class WebSocketProtocol:
             if not self.accepted:
                 raise RuntimeError("WebSocket not accepted")
             if self.closed:
-                raise RuntimeError("WebSocket closed")
+                raise WebSocketDisconnected("WebSocket closed")
 
             # Check for truthy values since both keys may be present with None
             text = message.get("text")
@@ -248,7 +260,7 @@ class WebSocketProtocol:
             if self._drain is not None:
                 await self._drain()
                 if self.closed:
-                    raise RuntimeError("WebSocket closed")
+                    raise WebSocketDisconnected("WebSocket closed")
             if text is not None:
                 await self._send_frame(OPCODE_TEXT, text.encode("utf-8"))
             elif bytes_data is not None:

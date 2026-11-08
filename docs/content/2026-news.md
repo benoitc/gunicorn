@@ -111,6 +111,10 @@
 - WebSocket: wait while the client is not reading before sending a message,
   as HTTP responses already do, so a slow client cannot grow the worker's
   write buffer.
+- WebSocket: `send()` after the connection closed raises an `OSError`
+  subclass, as ASGI 2.4 asks; it is still a `RuntimeError`, so existing
+  handlers keep working, and gunicorn no longer logs it as an error. HTTP
+  sends after a disconnect stay silently ignored.
 
 ## 26.2.2 - 2026-09-06
 
