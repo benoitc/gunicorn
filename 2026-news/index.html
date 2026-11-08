@@ -2735,6 +2735,36 @@
 <li>Dirty arbiter: create its PID file in the temporary directory with mode
   0600, and only use it to stop an orphaned arbiter when this user created
   it and the process is ours. A file left there by someone else is ignored.</li>
+<li>ASGI: stop reading from the socket while more than 256 KiB of request body
+  or pipelined data waits for the application, and resume as it reads; uWSGI
+  request bodies are read as the application asks for them.</li>
+<li>HTTP/2: close the connection with ENHANCE_YOUR_CALM when a peer sends more
+  than 1000 PING, SETTINGS or empty DATA frames in 10 seconds, as already done
+  for RST_STREAM floods.</li>
+<li>HTTP/2, sync workers: close the connection with ENHANCE_YOUR_CALM when more
+  than 10000 frames pile up while a response waits for window credit.</li>
+<li>WebSocket: fail the connection on frames RFC 6455 forbids: a new message
+  inside a fragmented one, reserved opcodes, lengths not minimally encoded,
+  malformed close frames (1002), and text or close reasons that are not UTF-8
+  (1007) (RFC 6455 §5.2, §5.4, §5.5.1, §7.4, §8.1). An empty client close is
+  answered with 1000 instead of the reserved 1005.</li>
+<li>WebSocket: refuse a handshake without <code>Sec-WebSocket-Version: 13</code> with 426
+  (and the supported version), and one whose key is not 16 bytes of base64
+  with 400 (RFC 6455 §4.2.1, §4.2.2).</li>
+<li>WebSocket: refuse a handshake the application closes or never accepts with
+  an HTTP 403 (500 if it raised), as ASGI requires, instead of writing a
+  WebSocket close frame on a connection that never switched protocols.</li>
+<li>WebSocket: wait while the client is not reading before sending a message,
+  as HTTP responses already do, so a slow client cannot grow the worker's
+  write buffer.</li>
+<li>WebSocket: <code>send()</code> after the connection closed raises an <code>OSError</code>
+  subclass, as ASGI 2.4 asks; it is still a <code>RuntimeError</code>, so existing
+  handlers keep working, and gunicorn no longer logs it as an error. HTTP
+  sends after a disconnect stay silently ignored.</li>
+<li>Dirty apps: bound every stream read by the idle timeout and the total
+  timeout, and drop the connection when one fires, so a late chunk is never
+  read by the next call. A sync stream's idle timeout is no longer replaced
+  by a fixed 5 seconds.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
