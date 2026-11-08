@@ -193,6 +193,11 @@ _cached_date_header = b""
 _cached_date_time = 0.0
 
 # Pre-compute common chunk size prefixes to avoid repeated formatting
+# A body at least this large is handed to the transport as it is, next to
+# the headers or chunk framing, instead of being joined to them: the join
+# would copy it, and the copy would stay alive until the socket took it.
+_NO_COPY_BODY_SIZE = 65536
+
 _CHUNK_PREFIXES = {i: f"{i:x}\r\n".encode("latin-1") for i in range(16384)}
 
 # High water mark for write buffer backpressure (64KB)
@@ -1217,6 +1222,17 @@ class ASGIProtocol(asyncio.Protocol):
             # Transport is closing/closed or None
             pass
 
+    def _safe_writelines(self, parts):
+        """Write several buffers in one call without joining them; errors
+        are handled as in _safe_write()."""
+        try:
+            self.transport.writelines(parts)
+        except OSError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                self.log.exception("Socket error writing response.")
+        except (RuntimeError, AttributeError):
+            pass
+
     async def _handle_connection(self):
         """Main request handling loop using callback-based parser.
 
@@ -2014,20 +2030,25 @@ class ASGIProtocol(asyncio.Protocol):
                 # Use pre-cached prefix for common sizes, else format
                 size = len(body)
                 prefix = _CHUNK_PREFIXES.get(size) or f"{size:x}\r\n".encode("latin-1")
-                chunk_data = prefix + body + b"\r\n"
-            else:
-                chunk_data = b""
-
-            # Combine with buffered headers if present
-            if self._response_buffer:
-                self._safe_write(self._response_buffer + chunk_data)
+                if self._response_buffer:
+                    parts = (self._response_buffer, prefix, body, b"\r\n")
+                    self._response_buffer = None
+                else:
+                    parts = (prefix, body, b"\r\n")
+                if size >= _NO_COPY_BODY_SIZE:
+                    self._safe_writelines(parts)
+                else:
+                    self._safe_write(b"".join(parts))
+            elif self._response_buffer:
+                self._safe_write(self._response_buffer)
                 self._response_buffer = None
-            elif chunk_data:
-                self._safe_write(chunk_data)
         else:
             # Non-chunked: combine headers + body or just body
             if self._response_buffer:
-                self._safe_write(self._response_buffer + body)
+                if len(body) >= _NO_COPY_BODY_SIZE:
+                    self._safe_writelines((self._response_buffer, body))
+                else:
+                    self._safe_write(self._response_buffer + body)
                 self._response_buffer = None
             elif body:
                 self._safe_write(body)
