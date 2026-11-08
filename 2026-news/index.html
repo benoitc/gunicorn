@@ -2680,6 +2680,8 @@
 <li>Require gunicorn_h1c 0.6.10: the fast parser now rejects a bare LF as a
   line ending (RFC 9112 §2.2) and bounds chunk-size lines and trailers
   (RFC 9112 §7.1), like the Python parsers.</li>
+<li>Require gunicorn_h1c 0.6.11: the fast parser reports the same error for
+  the same bad request however its bytes are split across reads.</li>
 <li>Ignore one empty line before the request line, as the fast parser
   already does (RFC 9112 §2.2).</li>
 <li>ASGI: stop gunicorn when the app reports a failed lifespan startup,
