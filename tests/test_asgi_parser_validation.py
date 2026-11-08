@@ -640,3 +640,18 @@ class TestLeadingEmptyLine:
         parser.reset()
         parser.feed(b"\r\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
         assert done == [1, 1]
+
+
+class TestRequestTargetNonAscii:
+    """RFC 9112 3.2 / RFC 3986 2: the request-target is printable ASCII."""
+
+    @pytest.mark.parametrize("target", [b"/caf\xc3\xa9", b"/a\xe9", b"/?q=\xff"])
+    def test_non_ascii_rejected(self, target):
+        with pytest.raises(InvalidRequestLine):
+            PythonProtocol().feed(b"GET " + target + b" HTTP/1.1\r\nHost: a\r\n\r\n")
+
+    def test_percent_encoded_accepted(self):
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"GET /caf%C3%A9 HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1]

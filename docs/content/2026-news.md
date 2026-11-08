@@ -74,6 +74,8 @@
 - Join repeated request headers in linear time when building the WSGI
   environ; many copies of one header used to take time growing with the
   square of their number.
+- Reject a request path with raw non-ASCII bytes; they must be
+  percent-encoded (RFC 9112 §3.2, RFC 3986 §2.1).
 
 ## 26.2.2 - 2026-09-06
 

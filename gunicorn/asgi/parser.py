@@ -117,7 +117,10 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     b'content-type',
 ))
 
-RFC9112_TARGET_INVALID_CTL = re.compile(rb"[\x00-\x1f\x7f]")
+# RFC 9112 section 3.2: the request-target uses the URI grammar of RFC 3986,
+# whose characters are printable ASCII (section 2); anything else must be
+# percent-encoded (section 2.1). Controls, DEL and bytes 0x80-0xFF are refused.
+RFC9112_TARGET_INVALID = re.compile(rb"[^\x21-\x7e]")
 
 # Bounds used while waiting for a line terminator when the matching limit is
 # 0 (unlimited): the same values the WSGI parser and the C parser fall back to.
@@ -557,8 +560,9 @@ class PythonProtocol:
         self.method = parts[0]
         self.path = parts[1]
 
-        # RFC 9112 request-target cannot contain control characters.
-        if RFC9112_TARGET_INVALID_CTL.search(self.path):
+        # RFC 9112 3.2 / RFC 3986 2: printable ASCII only, the rest must be
+        # percent-encoded.
+        if RFC9112_TARGET_INVALID.search(self.path):
             raise InvalidRequestLine("Invalid request line")
 
         # Validate method
@@ -995,7 +999,7 @@ class CallbackRequest:
         # - path: percent-decoded UTF-8 string
         # - raw_path: original bytes as received
         raw_url = parser.path
-        if RFC9112_TARGET_INVALID_CTL.search(raw_url):
+        if RFC9112_TARGET_INVALID.search(raw_url):
             raise InvalidRequestLine("Invalid request line")
         if b'?' in raw_url:
             path_part, query_part = raw_url.split(b'?', 1)
