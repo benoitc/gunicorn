@@ -84,6 +84,8 @@ class WebSocketProtocol:
 
         self.accepted = False
         self.closed = False
+        # Set once an HTTP response refused the handshake.
+        self._denied = False
         self.close_code = None
         self.close_reason = ""
 
@@ -154,11 +156,21 @@ class WebSocketProtocol:
         # Start frame reading task
         read_task = asyncio.create_task(self._read_frames())
 
+        failed = False
         try:
             await self.app(self.scope, self._receive, self._send)
         except Exception:
+            failed = True
             self.log.exception("Error in WebSocket ASGI application")
         finally:
+            # The app ended without accepting: the handshake is refused with
+            # an HTTP response (403, or 500 when the app raised).
+            if not self.accepted and not self._denied:
+                if failed:
+                    self._deny(500, "Internal Server Error")
+                else:
+                    self._deny(403, "Forbidden")
+
             # Send close frame if not already closed
             if not self.closed and self.accepted and not self._close_sent:
                 await self._send_close(CLOSE_INTERNAL_ERROR, "Application error")
@@ -173,6 +185,21 @@ class WebSocketProtocol:
                 await read_task
             except asyncio.CancelledError:
                 pass
+
+    def _deny(self, status, reason):
+        """Refuse the handshake with an HTTP response and close."""
+        if self._denied:
+            return
+        self._denied = True
+        self.closed = True
+        self._close_event.set()
+        try:
+            self.transport.write(
+                b"HTTP/1.1 %d %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                % (status, reason.encode("latin-1")))
+            self.transport.close()
+        except (OSError, RuntimeError):
+            pass
 
     async def _receive(self):
         """ASGI receive callable."""
@@ -219,6 +246,11 @@ class WebSocketProtocol:
                 await self._send_frame(OPCODE_BINARY, bytes_data)
 
         elif msg_type == "websocket.close":
+            if not self.accepted:
+                # ASGI: closing before accept refuses the handshake with an
+                # HTTP 403; no WebSocket frame goes on the wire.
+                self._deny(403, "Forbidden")
+                return
             code = message.get("code", CLOSE_NORMAL)
             reason = message.get("reason", "")
             await self._send_close(code, reason)

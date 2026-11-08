@@ -91,6 +91,10 @@ class TestWebSocketConnectionRejection:
         await protocol._send({"type": "websocket.close", "code": 1000})
 
         assert protocol.closed is True
+        written = b"".join(c.args[0] for c in protocol.transport.write.call_args_list)
+        assert written.startswith(b"HTTP/1.1 403 Forbidden\r\n")
+        assert b"\x88" not in written  # no WebSocket close frame
+        protocol.transport.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_with_custom_code(self):
@@ -729,3 +733,28 @@ async def test_fragmented_text_with_control_frame_between_is_delivered():
               _client_frame(0x0, b"lo"), _CLOSE_1000]
     _, _, received = await _run_ws(frames, max_message_size=0)
     assert received[0] == {"type": "websocket.receive", "text": "hello"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("behaviour, status", [
+    ("return", b"403"), ("raise", b"500"),
+], ids=["returns-without-accept", "raises-before-accept"])
+async def test_app_ending_before_accept_gets_http_response(behaviour, status):
+    """ASGI: a handshake the app never accepts is refused with HTTP."""
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    async def app(scope, receive, send):
+        await receive()
+        if behaviour == "raise":
+            raise ValueError("boom")
+
+    transport = mock.Mock()
+    protocol = WebSocketProtocol(
+        transport=transport,
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=app, log=mock.Mock())
+    await asyncio.wait_for(protocol.run(), timeout=2)
+    written = b"".join(c.args[0] for c in transport.write.call_args_list)
+    assert written.startswith(b"HTTP/1.1 " + status), written

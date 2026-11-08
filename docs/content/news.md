@@ -105,6 +105,9 @@
 - WebSocket: refuse a handshake without `Sec-WebSocket-Version: 13` with 426
   (and the supported version), and one whose key is not 16 bytes of base64
   with 400 (RFC 6455 §4.2.1, §4.2.2).
+- WebSocket: refuse a handshake the application closes or never accepts with
+  an HTTP 403 (500 if it raised), as ASGI requires, instead of writing a
+  WebSocket close frame on a connection that never switched protocols.
 
 ## 26.2.2 - 2026-09-06
 
