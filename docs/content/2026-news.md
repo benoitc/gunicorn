@@ -89,6 +89,9 @@
 - Dirty arbiter: create its PID file in the temporary directory with mode
   0600, and only use it to stop an orphaned arbiter when this user created
   it and the process is ours. A file left there by someone else is ignored.
+- ASGI: stop reading from the socket while more than 256 KiB of request body
+  or pipelined data waits for the application, and resume as it reads; uWSGI
+  request bodies are read as the application asks for them.
 
 ## 26.2.2 - 2026-09-06
 

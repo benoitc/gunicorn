@@ -10,6 +10,7 @@ and dispatch to ASGI applications.
 """
 
 import asyncio
+import collections
 import errno
 import ipaddress
 import re
@@ -235,13 +236,20 @@ class BodyReceiver:
     Uses Future-based waiting for efficient async receive().
     """
 
-    __slots__ = ('_chunks', '_complete', '_body_finished', '_closed',
-                 '_body_wait_expired', '_waiter', 'request', 'protocol')
+    __slots__ = ('_chunks', '_buffered', '_source', '_complete', '_body_finished',
+                 '_closed', '_body_wait_expired', '_waiter', 'request', 'protocol')
 
     def __init__(self, request, protocol):
         self.request = request
         self.protocol = protocol
-        self._chunks = []
+        # Chunks wait here until the app receives them. The protocol pauses
+        # reading from the socket while too many bytes wait (see
+        # ASGIProtocol._is_buffer_full), so this stays bounded.
+        self._chunks = collections.deque()
+        self._buffered = 0
+        # Optional coroutine function returning the next body chunk (b'' at
+        # the end): the uWSGI path reads its body as the app asks for it.
+        self._source = None
         self._complete = False
         self._body_finished = False  # True after returning more_body=False
         # _closed means the client transport has gone away (signal_disconnect
@@ -257,7 +265,13 @@ class BodyReceiver:
         """Feed a body chunk directly (called by parser callback)."""
         if chunk:
             self._chunks.append(chunk)
+            self._buffered += len(chunk)
             self._wake_waiter()
+
+    @property
+    def buffered(self):
+        """Bytes received but not yet handed to the app."""
+        return self._buffered
 
     def set_complete(self):
         """Mark body as complete (called when message ends)."""
@@ -311,6 +325,15 @@ class BodyReceiver:
             self._closed = True
             return {"type": "http.disconnect"}
 
+        # Pull source (uWSGI): read the next piece only when the app asks.
+        if self._source is not None:
+            chunk = await self._source()
+            if chunk:
+                return {"type": "http.request", "body": chunk, "more_body": True}
+            self._complete = True
+            self._body_finished = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+
         # Wait for body chunk to arrive via callback.  A real disconnect or a
         # body-wait expiry is surfaced by _wait_for_data via _disconnected; a
         # task cancellation propagates to the app rather than being masked as
@@ -320,7 +343,9 @@ class BodyReceiver:
 
     def _pop_chunk(self):
         """Pop a chunk and return the appropriate message."""
-        chunk = self._chunks.pop(0)
+        chunk = self._chunks.popleft()
+        self._buffered -= len(chunk)
+        self.protocol._maybe_resume_reading()
         more = bool(self._chunks) or not self._complete
         if not more:
             self._body_finished = True
@@ -461,7 +486,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         # Backpressure control
         self._reading_paused = False
-        self._max_buffer_size = 65536 * 4  # 256KB max buffer (HTTP/2 only)
+        self._max_buffer_size = 65536 * 4  # 256KB held before reading pauses
 
         # Keep-alive timer
         self._keepalive_handle = None
@@ -882,10 +907,27 @@ class ASGIProtocol(asyncio.Protocol):
         self._request_ready.set()
         return False
 
+    def _http1_buffered(self):
+        """Bytes held for HTTP/1 that the app has not taken yet.
+
+        The body chunks waiting in the receiver, plus what the pure-Python
+        parser holds after a completed message (a pipelined request); the
+        C parser caps that tail itself.
+        """
+        held = self._body_receiver.buffered if self._body_receiver else 0
+        parser = self._callback_parser
+        if parser is not None and getattr(parser, 'is_complete', False):
+            tail = getattr(parser, '_buffer', None)
+            if tail is not None:
+                held += len(tail)
+        return held
+
     def _is_buffer_full(self):
-        """Check if internal buffer is full (HTTP/2 only)."""
+        """Check if internal buffers are full."""
         if self.reader and hasattr(self.reader, '_buffer'):
             return len(self.reader._buffer) > self._max_buffer_size
+        if self.reader is None and self._callback_parser is not None:
+            return self._http1_buffered() > self._max_buffer_size
         return False
 
     def _pause_reading(self):
@@ -1183,18 +1225,22 @@ class ASGIProtocol(asyncio.Protocol):
             # pull-read here (nginx buffers the request upstream).
             self._body_receiver = BodyReceiver(request, self)
             if request.content_length:
-                while True:
-                    chunk = await request.read_body()
-                    if not chunk:
-                        break
-                    self._body_receiver.feed(chunk)
-            self._body_receiver.set_complete()
+                # Read the body as the app asks for it rather than holding
+                # all of it in memory before the app starts.
+                self._body_receiver._source = request.read_body
+            else:
+                self._body_receiver.set_complete()
 
             # Handle HTTP request
             keepalive = await self._handle_http_request(
                 request, sockname, peername
             )
             self._body_receiver = None
+
+            # Discard what the app did not read, so the next request starts
+            # where it should.
+            if keepalive and request.content_length:
+                await request.drain_body()
 
             # Increment worker request count
             self.worker.nr += 1
@@ -2024,8 +2070,12 @@ class ASGIProtocol(asyncio.Protocol):
             # The transport is still over its write limit; reading more
             # would only make us answer frames we cannot send.
             return
-        if (self._reading_paused and self.reader is not None
-                and len(self.reader._buffer) <= self._max_buffer_size // 2):
+        if not self._reading_paused:
+            return
+        if self.reader is not None:
+            if len(self.reader._buffer) <= self._max_buffer_size // 2:
+                self._resume_reading()
+        elif self._http1_buffered() <= self._max_buffer_size // 2:
             self._resume_reading()
 
     def _start_http2_stream(self, req, h2_conn, sockname, peername):
