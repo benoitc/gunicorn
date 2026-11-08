@@ -1655,6 +1655,11 @@ class ASGIProtocol(asyncio.Protocol):
                         omits_body_warned = True
                     body = b""
 
+                if body.__class__ is not bytes and body:
+                    # A bytearray or memoryview the app may reuse once send()
+                    # returns: the transport may hold on to what it is given.
+                    body = bytes(body)
+
                 if response_length is not None:
                     body = body[:max(response_length - response_sent, 0)]
 

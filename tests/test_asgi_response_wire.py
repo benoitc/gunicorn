@@ -270,3 +270,57 @@ async def test_last_chunk_and_terminator_go_out_together(http_parser):
     transport, _, body = await _serve(http_parser, app)
     assert body == b"2\r\nab\r\n2\r\ncd\r\n0\r\n\r\n"
     assert transport.buffers[-1] == b"2\r\ncd\r\n0\r\n\r\n"
+
+
+class _HoldingTransport(_FakeTransport):
+    """Keeps the objects it is given, like a transport whose socket is
+    full, and only reads them when asked what was written."""
+
+    def __init__(self):
+        super().__init__()
+        self.held = []
+
+    def write(self, data):
+        if not self.closed:
+            self.held.append(data)
+
+    def writelines(self, list_of_data):
+        for data in list_of_data:
+            self.write(data)
+
+    @property
+    def written(self):
+        return b"".join(bytes(d) for d in self.held)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("framing", ["content-length", "chunked"])
+async def test_bytearray_body_reused_by_the_app(http_parser, framing):
+    async def app(scope, receive, send):
+        body = bytearray(b"first")
+        headers = ([(b"content-length", b"10")] if framing == "content-length"
+                   else [])
+        await send({"type": "http.response.start", "status": 200, "headers": headers})
+        await send({"type": "http.response.body", "body": body, "more_body": True})
+        body[:] = b"later"
+        await send({"type": "http.response.body", "body": body})
+        body[:] = b"XXXXX"  # the app reuses its buffer once send() returned
+
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _HoldingTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+    if framing == "content-length":
+        assert transport.written.endswith(b"\r\n\r\nfirstlater")
+    else:
+        assert transport.written.endswith(
+            b"\r\n\r\n5\r\nfirst\r\n5\r\nlater\r\n0\r\n\r\n")
