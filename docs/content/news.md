@@ -97,6 +97,11 @@
   for RST_STREAM floods.
 - HTTP/2, sync workers: close the connection with ENHANCE_YOUR_CALM when more
   than 10000 frames pile up while a response waits for window credit.
+- WebSocket: fail the connection on frames RFC 6455 forbids: a new message
+  inside a fragmented one, reserved opcodes, lengths not minimally encoded,
+  malformed close frames (1002), and text or close reasons that are not UTF-8
+  (1007) (RFC 6455 §5.2, §5.4, §5.5.1, §7.4, §8.1). An empty client close is
+  answered with 1000 instead of the reserved 1005.
 
 ## 26.2.2 - 2026-09-06
 
