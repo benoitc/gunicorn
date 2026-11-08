@@ -61,12 +61,6 @@ def test_http_parser(fname, http_parser):
         acceptable = (expect,) + _FAST_PARSER_ALTERNATES[expect]
     else:
         acceptable = expect
-    # Fixture-level alternates for the C parser: the sidecar sets
-    # `fast_alternates = (SomeError,)` when it reports the same rejection
-    # under a different class.
-    if http_parser == 'fast' and env.get('fast_alternates'):
-        acceptable = tuple(acceptable if isinstance(acceptable, tuple)
-                           else (acceptable,)) + tuple(env['fast_alternates'])
 
     req = treq.badrequest(fname)
 
