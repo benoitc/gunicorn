@@ -57,8 +57,9 @@ class Unreader:
             self.buf = io.BytesIO()
             return ret
         if size is None:
-            d = self.chunk()
-            return d
+            # Nothing buffered: one read from the source, as large as the
+            # caller says it may consume (the rest of a chunk, for example).
+            return self.chunk(read_ahead)
 
         while self.buf.tell() < size:
             chunk = self.chunk(max(size, read_ahead or 0) - self.buf.tell())

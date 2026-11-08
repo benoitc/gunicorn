@@ -89,7 +89,10 @@ class ChunkedReader:
             while size > len(rest):
                 size -= len(rest)
                 yield rest
-                rest = unreader.read()
+                # The chunk header said how many bytes follow: let the socket
+                # read up to that much at once instead of 8 KiB per recv().
+                # Never more, so a read does not cross the end of the chunk.
+                rest = unreader.read(None, read_ahead=size)
                 if not rest:
                     raise NoMoreData()
             yield rest[:size]
