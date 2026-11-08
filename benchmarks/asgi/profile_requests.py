@@ -21,6 +21,7 @@ Usage:
     python benchmarks/asgi/profile_requests.py
     python benchmarks/asgi/profile_requests.py --servers gunicorn-fast --top 25
     python benchmarks/asgi/profile_requests.py --request many_headers
+    python benchmarks/asgi/profile_requests.py --request large --count 300
 """
 
 import argparse
@@ -45,11 +46,17 @@ REQUESTS = {
     "many_headers": (b"GET / HTTP/1.1\r\nHost: localhost\r\n"
                      + b"".join(b"X-Bench-%02d: value-%02d\r\n" % (i, i) for i in range(30))
                      + b"\r\n"),
+    "stream": b"GET /stream HTTP/1.1\r\nHost: localhost\r\nAccept: */*\r\n\r\n",
+    "large": b"GET /large HTTP/1.1\r\nHost: localhost\r\nAccept: */*\r\n\r\n",
 }
+
+# How each response of apps.app ends: the small body, the chunked
+# terminator of /stream, or the last bytes of the 1 MiB /large body.
+_RESPONSE_ENDS = (b"Hello, World!", b"0\r\n\r\n", b"x" * 32)
 
 
 class _Transport(asyncio.Transport):  # pylint: disable=abstract-method
-    """Collects writes; signals each complete small response."""
+    """Drops writes; signals each complete response."""
 
     def __init__(self, loop):
         super().__init__()
@@ -63,14 +70,14 @@ class _Transport(asyncio.Transport):  # pylint: disable=abstract-method
         return self._extra.get(name, default)
 
     def write(self, data):
-        # Every response of the app ends with its 13-byte body.
-        if data.endswith(b"Hello, World!"):
+        if data.endswith(_RESPONSE_ENDS):
             self.responses += 1
             if self.waiter is not None and not self.waiter.done():
                 self.waiter.set_result(None)
 
     def writelines(self, list_of_data):
-        self.write(b"".join(list_of_data))
+        # Like uvloop's, without joining (which would copy the buffers).
+        self.write(list_of_data[-1])
 
     def is_closing(self):
         return False

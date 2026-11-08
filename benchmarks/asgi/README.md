@@ -49,9 +49,10 @@ git worktree add /tmp/gunicorn-old <commit>
 ```bash
 .venv/bin/python benchmarks/asgi/profile_requests.py
 .venv/bin/python benchmarks/asgi/profile_requests.py --request many_headers --top 25
+.venv/bin/python benchmarks/asgi/profile_requests.py --request large --count 300
 ```
 
-This drives gunicorn's real ASGI protocol and Uvicorn's httptools protocol in process, one request at a time, over an in-memory transport. It prints, from separate passes: microseconds per request, Python and C calls per request, memory still held after a batch (a leak check) and peak traced memory, and with `--top` the cProfile functions with the most own time. Use it to see where a change saves work; use `run.py` to see whether it shows up under load.
+This drives gunicorn's real ASGI protocol and Uvicorn's httptools protocol in process, one request at a time, over an in-memory transport. It prints, from separate passes: microseconds per request, Python and C calls per request, memory still held after a batch (a leak check) and peak traced memory, and with `--top` the cProfile functions with the most own time. Requests: `small`, `pct_target`, `many_headers`, `stream` (16 chunks of 4 KiB) and `large` (1 MiB). Use it to see where a change saves work; use `run.py` to see whether it shows up under load.
 
 ## Workloads
 

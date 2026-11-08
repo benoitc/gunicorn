@@ -122,3 +122,53 @@ def test_access_log_switch_follows_setup():
     assert logger.access_log_enabled is False  # not until setup() runs
     logger.setup(cfg)
     assert logger.access_log_enabled is True
+
+
+def _pre_request_for(loglevel, log_class=Logger, **settings):
+    from gunicorn.asgi.protocol import _pre_request_hook
+    cfg = Config()
+    cfg.set("loglevel", loglevel)
+    for name, value in settings.items():
+        cfg.set(name, value)
+    return _pre_request_hook(cfg, log_class(cfg)), cfg
+
+
+def test_default_pre_request_skipped_only_when_it_would_not_log():
+    hook, _ = _pre_request_for("info")
+    assert hook is None
+    hook, cfg = _pre_request_for("debug")
+    assert hook is cfg.pre_request
+
+
+def test_default_pre_request_still_logs_at_debug():
+    from gunicorn.asgi.protocol import _pre_request_hook
+    cfg = Config()
+    cfg.set("loglevel", "debug")
+    log = Logger(cfg)
+    hook = _pre_request_hook(cfg, log)
+    worker = mock.Mock(log=log)
+    request = mock.Mock(method="GET", path="/x")
+    with mock.patch.object(log.error_log, "debug") as debug:
+        hook(worker, request)
+    debug.assert_called_once_with("%s %s", "GET", "/x")
+
+
+def test_custom_pre_request_always_called():
+    def custom(worker, req):
+        pass
+    hook, _ = _pre_request_for("info", pre_request=custom)
+    assert hook is custom
+
+
+def test_custom_logger_class_keeps_default_pre_request():
+    class Custom(Logger):
+        def debug(self, msg, *args, **kwargs):
+            pass
+    hook, cfg = _pre_request_for("info", log_class=Custom)
+    assert hook is cfg.pre_request
+
+
+def test_statsd_logger_skips_default_pre_request_when_not_debug():
+    from gunicorn.instrument.statsd import Statsd
+    hook, _ = _pre_request_for("info", log_class=Statsd)
+    assert hook is None

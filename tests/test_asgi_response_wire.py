@@ -188,3 +188,139 @@ async def test_response_bytes_unchanged(http_parser, index):
         except (asyncio.CancelledError, Exception):
             pass
     assert re.sub(rb"Date: [^\r]*", b"Date: X", transport.written) == EXPECTED[index]
+
+
+class _RecordingTransport(_FakeTransport):
+    """Keeps every buffer handed to write() or writelines() as it was."""
+
+    def __init__(self):
+        super().__init__()
+        self.buffers = []
+
+    def write(self, data):
+        self.buffers.append(data)
+        super().write(data)
+
+    def writelines(self, list_of_data):
+        for data in list_of_data:
+            self.write(data)
+
+
+LARGE = b"L" * (1 << 20)
+SMALL_CHUNK = b"s" * 4096
+
+
+async def _serve(http_parser, app):
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _RecordingTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+    head, _, body = re.sub(rb"Date: [^\r]*", b"Date: X", transport.written).partition(b"\r\n\r\n")
+    return transport, head, body
+
+
+@pytest.mark.asyncio
+async def test_large_body_with_content_length_is_not_copied(http_parser):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-length", str(len(LARGE)).encode())]})
+        await send({"type": "http.response.body", "body": LARGE})
+
+    transport, head, body = await _serve(http_parser, app)
+    assert head == (b"HTTP/1.1 200 OK\r\ncontent-length: 1048576\r\n"
+                    b"Server: gunicorn/asgi\r\nDate: X")
+    assert body == LARGE
+    assert any(buf is LARGE for buf in transport.buffers)
+
+
+@pytest.mark.asyncio
+async def test_large_chunk_is_not_copied(http_parser):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": SMALL_CHUNK, "more_body": True})
+        await send({"type": "http.response.body", "body": LARGE, "more_body": True})
+        await send({"type": "http.response.body", "body": b""})
+
+    transport, head, body = await _serve(http_parser, app)
+    assert head == (b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n"
+                    b"Server: gunicorn/asgi\r\nDate: X")
+    assert body == (b"1000\r\n" + SMALL_CHUNK + b"\r\n"
+                    b"100000\r\n" + LARGE + b"\r\n0\r\n\r\n")
+    assert any(buf is LARGE for buf in transport.buffers)
+    # A small chunk still goes out in one buffer with the headers.
+    assert transport.buffers[0].endswith(b"\r\n\r\n1000\r\n" + SMALL_CHUNK + b"\r\n")
+
+
+@pytest.mark.asyncio
+async def test_last_chunk_and_terminator_go_out_together(http_parser):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ab", "more_body": True})
+        await send({"type": "http.response.body", "body": b"cd"})
+
+    transport, _, body = await _serve(http_parser, app)
+    assert body == b"2\r\nab\r\n2\r\ncd\r\n0\r\n\r\n"
+    assert transport.buffers[-1] == b"2\r\ncd\r\n0\r\n\r\n"
+
+
+class _HoldingTransport(_FakeTransport):
+    """Keeps the objects it is given, like a transport whose socket is
+    full, and only reads them when asked what was written."""
+
+    def __init__(self):
+        super().__init__()
+        self.held = []
+
+    def write(self, data):
+        if not self.closed:
+            self.held.append(data)
+
+    def writelines(self, list_of_data):
+        for data in list_of_data:
+            self.write(data)
+
+    @property
+    def written(self):
+        return b"".join(bytes(d) for d in self.held)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("framing", ["content-length", "chunked"])
+async def test_bytearray_body_reused_by_the_app(http_parser, framing):
+    async def app(scope, receive, send):
+        body = bytearray(b"first")
+        headers = ([(b"content-length", b"10")] if framing == "content-length"
+                   else [])
+        await send({"type": "http.response.start", "status": 200, "headers": headers})
+        await send({"type": "http.response.body", "body": body, "more_body": True})
+        body[:] = b"later"
+        await send({"type": "http.response.body", "body": body})
+        body[:] = b"XXXXX"  # the app reuses its buffer once send() returned
+
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _HoldingTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+    if framing == "content-length":
+        assert transport.written.endswith(b"\r\n\r\nfirstlater")
+    else:
+        assert transport.written.endswith(
+            b"\r\n\r\n5\r\nfirst\r\n5\r\nlater\r\n0\r\n\r\n")
