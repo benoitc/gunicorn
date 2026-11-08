@@ -61,6 +61,11 @@ RST_STREAM_RATE_WINDOW = 10.0
 CONTROL_FRAME_RATE_LIMIT = 1000
 CONTROL_FRAME_RATE_WINDOW = 10.0
 
+# Events the sync worker may set aside for the main loop while it waits for
+# window credit. A peer that withholds WINDOW_UPDATE and keeps sending
+# frames must not grow that queue without end.
+MAX_DEFERRED_EVENTS = 10000
+
 
 class HTTP2ServerConnection:
     """HTTP/2 server-side connection handler.
@@ -789,6 +794,10 @@ class HTTP2ServerConnection:
                         # h2 state machine, so dropping it here would lose
                         # a request or its body for good.
                         self._deferred_events.append(event)
+                        if len(self._deferred_events) > MAX_DEFERRED_EVENTS:
+                            self.close(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                            self._abort_all_streams()
+                            return -1
                 self._send_pending_data()
         finally:
             sel.close()

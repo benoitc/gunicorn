@@ -95,6 +95,8 @@
 - HTTP/2: close the connection with ENHANCE_YOUR_CALM when a peer sends more
   than 1000 PING, SETTINGS or empty DATA frames in 10 seconds, as already done
   for RST_STREAM floods.
+- HTTP/2, sync workers: close the connection with ENHANCE_YOUR_CALM when more
+  than 10000 frames pile up while a response waits for window credit.
 
 ## 26.2.2 - 2026-09-06
 

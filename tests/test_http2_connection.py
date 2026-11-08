@@ -8,6 +8,7 @@
 import pytest
 
 from gunicorn.config import Config
+import time
 from unittest import mock
 from io import BytesIO
 
@@ -1234,6 +1235,35 @@ class TestDeferredFlowControlEvents:
 
     def test_queue_starts_empty(self):
         assert not self._conn()._deferred_events
+
+    def test_wait_closes_when_too_many_events_are_set_aside(self):
+        """A peer that withholds window credit and keeps sending frames
+        gets ENHANCE_YOUR_CALM instead of growing the queue without end."""
+        import socket
+        from gunicorn.http2 import connection as h2c
+        from gunicorn.http2.errors import HTTP2ErrorCode
+
+        server, client = socket.socketpair()
+        try:
+            conn = h2c.HTTP2ServerConnection(MockConfig(), server, ('127.0.0.1', 1))
+            h2c._import_h2()
+            conn.h2_conn = mock.Mock()
+            conn.h2_conn.local_flow_control_window.return_value = 0
+            # One read yields more unrelated events than the cap.
+            conn.h2_conn.receive_data.side_effect = (
+                lambda data: [object()] * (h2c.MAX_DEFERRED_EVENTS + 10))
+            conn._send_pending_data = lambda: None
+            conn.close = mock.Mock()
+            client.sendall(b"x" * 64)
+
+            # The deadline keeps the test bounded if the cap is missing.
+            deadline = time.monotonic() + 5
+            assert conn._wait_for_flow_control_window(1, deadline) == -1
+            conn.close.assert_called_once_with(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+            assert len(conn._deferred_events) == h2c.MAX_DEFERRED_EVENTS + 1
+        finally:
+            server.close()
+            client.close()
 
 class TestEndStream:
     """Ending a stream must actually put END_STREAM on the wire."""
