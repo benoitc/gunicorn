@@ -101,6 +101,32 @@ def _validate_response_headers(headers):
             raise InvalidResponseHeader('%r' % name)
 
 
+def _scan_response_headers(headers):
+    """Validate response headers and find their framing fields, in one pass.
+
+    Same checks as _validate_response_headers(). Returns
+    (has_content_length, content_length_value, has_transfer_encoding).
+    """
+    has_content_length = False
+    has_transfer_encoding = False
+    content_length_value = None
+    for name, value in headers:
+        bname = name.encode("latin-1") if isinstance(name, str) else name
+        bvalue = value.encode("latin-1") if isinstance(value, str) else value
+        if not _HEADER_NAME_RE.fullmatch(bname):
+            raise InvalidResponseHeaderName('%r' % bname)
+        if not _HEADER_VALUE_RE.fullmatch(bvalue):
+            # Pass only the name, the value may carry sensitive data
+            raise InvalidResponseHeader('%r' % bname)
+        lowered = bname.lower()
+        if lowered == b"content-length":
+            has_content_length = True
+            content_length_value = value
+        elif lowered == b"transfer-encoding":
+            has_transfer_encoding = True
+    return has_content_length, content_length_value, has_transfer_encoding
+
+
 class _RequestHeaderPolicy(HeaderPolicy):
     """Run the header policy shared with WSGI and HTTP/2 on an HTTP/1
     request parsed by the ASGI worker: scheme headers and underscore names
@@ -115,16 +141,24 @@ class _RequestHeaderPolicy(HeaderPolicy):
         self.scheme = scheme
         self.version = version
 
-    def apply(self, request):
-        secure_scheme_headers, forwarder_headers = \
-            self._peer_trusted_for_forwarded()
+    def apply(self, request, trust=None):
+        """Apply the policy; ``trust`` is _peer_trusted_for_forwarded(),
+        passed in when the caller already knows it for this peer."""
+        secure_scheme_headers, forwarder_headers = (
+            trust if trust is not None else self._peer_trusted_for_forwarded())
         scheme_state = [False]
         seen = set()
         keep = []
         for name, value in request.headers:
-            keep.append(self._apply_header_policy(
-                name, value, scheme_state, seen,
-                secure_scheme_headers, forwarder_headers) is not None)
+            # Only a scheme header or a name with '_' can be acted on here:
+            # Expect is off for this policy, and the singleton fields were
+            # checked by CallbackRequest.from_parser(). Others are kept.
+            if '_' in name or name in secure_scheme_headers:
+                keep.append(self._apply_header_policy(
+                    name, value, scheme_state, seen,
+                    secure_scheme_headers, forwarder_headers) is not None)
+            else:
+                keep.append(True)
         if not all(keep) and len(request.headers_bytes) == len(keep):
             request.headers = [h for h, k in zip(request.headers, keep) if k]
             request.headers_bytes = [
@@ -216,13 +250,54 @@ def _get_cached_date_header():
     return _cached_date_header
 
 
-def _get_cached_status_line(version, status, reason):
-    """Get cached status line bytes."""
-    key = (version, status)
-    if key not in _CACHED_STATUS_LINES:
-        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n"
-        _CACHED_STATUS_LINES[key] = line.encode("latin-1")
-    return _CACHED_STATUS_LINES[key]
+# Reason phrases for the status line, built once.
+_REASON_PHRASES = {
+    100: "Continue",
+    101: "Switching Protocols",
+    103: "Early Hints",
+    200: "OK",
+    201: "Created",
+    202: "Accepted",
+    204: "No Content",
+    206: "Partial Content",
+    301: "Moved Permanently",
+    302: "Found",
+    303: "See Other",
+    304: "Not Modified",
+    307: "Temporary Redirect",
+    308: "Permanent Redirect",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    408: "Request Timeout",
+    409: "Conflict",
+    410: "Gone",
+    411: "Length Required",
+    413: "Payload Too Large",
+    414: "URI Too Long",
+    415: "Unsupported Media Type",
+    422: "Unprocessable Entity",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+}
+
+
+def _get_cached_status_line(version, status, reason=None):
+    """Get cached status line bytes; the reason phrase is only looked up
+    the first time a (version, status) pair is seen."""
+    line = _CACHED_STATUS_LINES.get((version, status))
+    if line is None:
+        if reason is None:
+            reason = _REASON_PHRASES.get(status, "Unknown")
+        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n".encode("latin-1")
+        _CACHED_STATUS_LINES[(version, status)] = line
+    return line
 
 
 class ASGIResponseInfo:
@@ -441,6 +516,10 @@ class BodyReceiver:
             self._closed = True
 
 
+def _no_request_hook(*args):
+    """Stand-in for pre_request/post_request when a config has none."""
+
+
 class ASGIProtocol(asyncio.Protocol):
     """HTTP/1.1 protocol handler for ASGI applications.
 
@@ -459,9 +538,23 @@ class ASGIProtocol(asyncio.Protocol):
 
     def __init__(self, worker):
         self.worker = worker
-        self.cfg = worker.cfg
+        self.cfg = cfg = worker.cfg
         self.log = worker.log
         self.app = worker.asgi
+        # Settings read on every request, read once per connection instead.
+        # A configuration reload starts new workers, so they cannot change
+        # under a live connection.
+        # getattr with the settings' defaults: a partial config (tests,
+        # embedders) used to work as long as these were not needed.
+        self._keepalive = getattr(cfg, "keepalive", 2)
+        self._root_path = getattr(cfg, "root_path", "") or ""
+        self._pre_request = getattr(cfg, "pre_request", _no_request_hook)
+        self._post_request = getattr(cfg, "post_request", _no_request_hook)
+        self._uses_uwsgi = getattr(cfg, "protocol", "http") == "uwsgi"
+        self._proxy_protocol = getattr(cfg, "proxy_protocol", "off")
+        # (secure_scheme_headers, forwarder_headers) this peer may set,
+        # decided on the first request: the peer cannot change either.
+        self._forwarded_trust = None
         # Tasks serving HTTP/2 streams on this connection
         self._h2_tasks = set()
         # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
@@ -712,10 +805,13 @@ class ASGIProtocol(asyncio.Protocol):
             self._callback_parser, is_ssl=self._is_ssl
         )
         request = self._current_request
-        _RequestHeaderPolicy(
+        policy = _RequestHeaderPolicy(
             self.cfg, self.transport.get_extra_info('peername'),
             request.scheme, request.version,
-        ).apply(request)
+        )
+        if self._forwarded_trust is None:
+            self._forwarded_trust = policy._peer_trusted_for_forwarded()
+        policy.apply(request, self._forwarded_trust)
 
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
@@ -964,7 +1060,7 @@ class ASGIProtocol(asyncio.Protocol):
         """Arm keepalive timeout timer after response completion."""
         if self._keepalive_handle:
             self._keepalive_handle.cancel()
-        keepalive_timeout = self.cfg.keepalive
+        keepalive_timeout = self._keepalive
         if keepalive_timeout > 0:
             self._keepalive_handle = self.worker.loop.call_later(
                 keepalive_timeout, self._keepalive_timeout
@@ -1160,7 +1256,7 @@ class ASGIProtocol(asyncio.Protocol):
                     break
 
                 # Check connection limits for keepalive
-                if not self.cfg.keepalive:
+                if not self._keepalive:
                     break
 
                 # Refuse keepalive if the previous request body was not fully
@@ -1266,7 +1362,7 @@ class ASGIProtocol(asyncio.Protocol):
             if not keepalive or not self.worker.alive:
                 break
 
-            if not self.cfg.keepalive:
+            if not self._keepalive:
                 break
 
             await request.drain_body()
@@ -1356,7 +1452,7 @@ class ASGIProtocol(asyncio.Protocol):
         omits_body_warned = False
         response_requires_close = False
         response_length = None
-        uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
+        uses_uwsgi = self._uses_uwsgi
 
         # Reset response buffer for write batching
         self._response_buffer = None
@@ -1393,23 +1489,15 @@ class ASGIProtocol(asyncio.Protocol):
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
                     return
-                _validate_response_headers(message.get("headers", []))
+                response_headers = message.get("headers", [])
+                # Validated before the response counts as started, so an
+                # invalid header still turns into a 500.
+                has_content_length, content_length_value, has_transfer_encoding = \
+                    _scan_response_headers(response_headers)
                 response_started = True
                 response_status = message["status"]
-                response_headers = message.get("headers", [])
-
-                # Check if Content-Length or Transfer-Encoding is present
-                has_content_length = False
-                has_transfer_encoding = False
-                content_length_value = None
-                for name, value in response_headers:
-                    name_lower = name.lower() if isinstance(name, str) else name.lower()
-                    if name_lower in (b"content-length", "content-length"):
-                        has_content_length = True
-                        content_length_value = value
-                    elif name_lower in (b"transfer-encoding", "transfer-encoding"):
-                        has_transfer_encoding = True
-                        use_chunked = True  # Framework already set chunked encoding
+                if has_transfer_encoding:
+                    use_chunked = True  # Framework already set chunked encoding
 
                 # Transfer-Encoding is HTTP hop-by-hop framing.  A uWSGI
                 # upstream response carries raw body bytes, so forwarding or
@@ -1530,7 +1618,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         try:
             request_start = time.monotonic()
-            self.cfg.pre_request(self.worker, request)
+            self._pre_request(self.worker, request)
 
             await self.app(scope, body_receiver.receive, send)
 
@@ -1584,7 +1672,7 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     environ = None
                     resp = None
-                self.cfg.post_request(self.worker, request, environ, resp)
+                self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -1610,7 +1698,7 @@ class ASGIProtocol(asyncio.Protocol):
         if request.should_close():
             return True
 
-        if not (self.worker.alive and self.cfg.keepalive):
+        if not (self.worker.alive and self._keepalive):
             return True
 
         # This response trips max_requests recycling; the loop closes the
@@ -1646,7 +1734,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
@@ -1711,7 +1799,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
@@ -1763,8 +1851,7 @@ class ASGIProtocol(asyncio.Protocol):
         RFC 9112 requires of a server that will not reuse it.
         """
         # Get cached status line bytes
-        reason = self._get_reason_phrase(status)
-        status_line = _get_cached_status_line(request.version, status, reason)
+        status_line = _get_cached_status_line(request.version, status)
 
         # Build headers as bytes directly
         parts = [status_line]
@@ -1820,7 +1907,7 @@ class ASGIProtocol(asyncio.Protocol):
         ``proxy_allow_ips`` (defense-in-depth: ``_setup_callback_parser``
         already disables PROXY parsing for untrusted peers).
         """
-        if getattr(self.cfg, 'proxy_protocol', 'off') == 'off':
+        if self._proxy_protocol == 'off':
             return peername
         if not _check_trusted_proxy(
             peername,
@@ -1922,42 +2009,7 @@ class ASGIProtocol(asyncio.Protocol):
 
     def _get_reason_phrase(self, status):
         """Get HTTP reason phrase for status code."""
-        reasons = {
-            100: "Continue",
-            101: "Switching Protocols",
-            103: "Early Hints",
-            200: "OK",
-            201: "Created",
-            202: "Accepted",
-            204: "No Content",
-            206: "Partial Content",
-            301: "Moved Permanently",
-            302: "Found",
-            303: "See Other",
-            304: "Not Modified",
-            307: "Temporary Redirect",
-            308: "Permanent Redirect",
-            400: "Bad Request",
-            401: "Unauthorized",
-            403: "Forbidden",
-            404: "Not Found",
-            405: "Method Not Allowed",
-            408: "Request Timeout",
-            409: "Conflict",
-            410: "Gone",
-            411: "Length Required",
-            413: "Payload Too Large",
-            414: "URI Too Long",
-            415: "Unsupported Media Type",
-            422: "Unprocessable Entity",
-            429: "Too Many Requests",
-            500: "Internal Server Error",
-            501: "Not Implemented",
-            502: "Bad Gateway",
-            503: "Service Unavailable",
-            504: "Gateway Timeout",
-        }
-        return reasons.get(status, "Unknown")
+        return _REASON_PHRASES.get(status, "Unknown")
 
     def _close_transport(self):
         """Close the transport safely.
@@ -2029,7 +2081,7 @@ class ASGIProtocol(asyncio.Protocol):
             # opened meanwhile are refused.
             loop = self.worker.loop
             idle_since = None
-            keepalive = self.cfg.keepalive or None
+            keepalive = self._keepalive or None
             while not h2_conn.is_closed:
                 if (not self.worker.alive or h2_conn.draining) and not self._h2_tasks:
                     break
@@ -2360,7 +2412,7 @@ class ASGIProtocol(asyncio.Protocol):
         request_start = time.monotonic()
 
         try:
-            self.cfg.pre_request(self.worker, request)
+            self._pre_request(self.worker, request)
             await self.app(scope, receive, send)
 
             if exc_to_raise is not None:
@@ -2407,7 +2459,7 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     environ = None
                     resp = None
-                self.cfg.post_request(self.worker, request, environ, resp)
+                self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -2432,7 +2484,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": getattr(request, 'raw_path', None) or (request.path.encode("latin-1") if request.path else b""),
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
