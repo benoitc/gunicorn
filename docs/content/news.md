@@ -124,6 +124,8 @@
   instead of on every request.
 - ASGI: build each request in one pass over its headers, and skip
   percent-decoding a path that has no `%`.
+- ASGI: look up the reason phrase only the first time a status is seen, and
+  validate response headers in the same pass that finds their framing.
 
 ## 26.2.2 - 2026-09-06
 

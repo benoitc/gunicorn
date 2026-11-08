@@ -101,6 +101,32 @@ def _validate_response_headers(headers):
             raise InvalidResponseHeader('%r' % name)
 
 
+def _scan_response_headers(headers):
+    """Validate response headers and find their framing fields, in one pass.
+
+    Same checks as _validate_response_headers(). Returns
+    (has_content_length, content_length_value, has_transfer_encoding).
+    """
+    has_content_length = False
+    has_transfer_encoding = False
+    content_length_value = None
+    for name, value in headers:
+        bname = name.encode("latin-1") if isinstance(name, str) else name
+        bvalue = value.encode("latin-1") if isinstance(value, str) else value
+        if not _HEADER_NAME_RE.fullmatch(bname):
+            raise InvalidResponseHeaderName('%r' % bname)
+        if not _HEADER_VALUE_RE.fullmatch(bvalue):
+            # Pass only the name, the value may carry sensitive data
+            raise InvalidResponseHeader('%r' % bname)
+        lowered = bname.lower()
+        if lowered == b"content-length":
+            has_content_length = True
+            content_length_value = value
+        elif lowered == b"transfer-encoding":
+            has_transfer_encoding = True
+    return has_content_length, content_length_value, has_transfer_encoding
+
+
 class _RequestHeaderPolicy(HeaderPolicy):
     """Run the header policy shared with WSGI and HTTP/2 on an HTTP/1
     request parsed by the ASGI worker: scheme headers and underscore names
@@ -224,13 +250,54 @@ def _get_cached_date_header():
     return _cached_date_header
 
 
-def _get_cached_status_line(version, status, reason):
-    """Get cached status line bytes."""
-    key = (version, status)
-    if key not in _CACHED_STATUS_LINES:
-        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n"
-        _CACHED_STATUS_LINES[key] = line.encode("latin-1")
-    return _CACHED_STATUS_LINES[key]
+# Reason phrases for the status line, built once.
+_REASON_PHRASES = {
+    100: "Continue",
+    101: "Switching Protocols",
+    103: "Early Hints",
+    200: "OK",
+    201: "Created",
+    202: "Accepted",
+    204: "No Content",
+    206: "Partial Content",
+    301: "Moved Permanently",
+    302: "Found",
+    303: "See Other",
+    304: "Not Modified",
+    307: "Temporary Redirect",
+    308: "Permanent Redirect",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    408: "Request Timeout",
+    409: "Conflict",
+    410: "Gone",
+    411: "Length Required",
+    413: "Payload Too Large",
+    414: "URI Too Long",
+    415: "Unsupported Media Type",
+    422: "Unprocessable Entity",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+}
+
+
+def _get_cached_status_line(version, status, reason=None):
+    """Get cached status line bytes; the reason phrase is only looked up
+    the first time a (version, status) pair is seen."""
+    line = _CACHED_STATUS_LINES.get((version, status))
+    if line is None:
+        if reason is None:
+            reason = _REASON_PHRASES.get(status, "Unknown")
+        line = f"HTTP/{version[0]}.{version[1]} {status} {reason}\r\n".encode("latin-1")
+        _CACHED_STATUS_LINES[(version, status)] = line
+    return line
 
 
 class ASGIResponseInfo:
@@ -1422,23 +1489,15 @@ class ASGIProtocol(asyncio.Protocol):
                 if response_started:
                     exc_to_raise = RuntimeError("Response already started")
                     return
-                _validate_response_headers(message.get("headers", []))
+                response_headers = message.get("headers", [])
+                # Validated before the response counts as started, so an
+                # invalid header still turns into a 500.
+                has_content_length, content_length_value, has_transfer_encoding = \
+                    _scan_response_headers(response_headers)
                 response_started = True
                 response_status = message["status"]
-                response_headers = message.get("headers", [])
-
-                # Check if Content-Length or Transfer-Encoding is present
-                has_content_length = False
-                has_transfer_encoding = False
-                content_length_value = None
-                for name, value in response_headers:
-                    name_lower = name.lower() if isinstance(name, str) else name.lower()
-                    if name_lower in (b"content-length", "content-length"):
-                        has_content_length = True
-                        content_length_value = value
-                    elif name_lower in (b"transfer-encoding", "transfer-encoding"):
-                        has_transfer_encoding = True
-                        use_chunked = True  # Framework already set chunked encoding
+                if has_transfer_encoding:
+                    use_chunked = True  # Framework already set chunked encoding
 
                 # Transfer-Encoding is HTTP hop-by-hop framing.  A uWSGI
                 # upstream response carries raw body bytes, so forwarding or
@@ -1792,8 +1851,7 @@ class ASGIProtocol(asyncio.Protocol):
         RFC 9112 requires of a server that will not reuse it.
         """
         # Get cached status line bytes
-        reason = self._get_reason_phrase(status)
-        status_line = _get_cached_status_line(request.version, status, reason)
+        status_line = _get_cached_status_line(request.version, status)
 
         # Build headers as bytes directly
         parts = [status_line]
@@ -1951,42 +2009,7 @@ class ASGIProtocol(asyncio.Protocol):
 
     def _get_reason_phrase(self, status):
         """Get HTTP reason phrase for status code."""
-        reasons = {
-            100: "Continue",
-            101: "Switching Protocols",
-            103: "Early Hints",
-            200: "OK",
-            201: "Created",
-            202: "Accepted",
-            204: "No Content",
-            206: "Partial Content",
-            301: "Moved Permanently",
-            302: "Found",
-            303: "See Other",
-            304: "Not Modified",
-            307: "Temporary Redirect",
-            308: "Permanent Redirect",
-            400: "Bad Request",
-            401: "Unauthorized",
-            403: "Forbidden",
-            404: "Not Found",
-            405: "Method Not Allowed",
-            408: "Request Timeout",
-            409: "Conflict",
-            410: "Gone",
-            411: "Length Required",
-            413: "Payload Too Large",
-            414: "URI Too Long",
-            415: "Unsupported Media Type",
-            422: "Unprocessable Entity",
-            429: "Too Many Requests",
-            500: "Internal Server Error",
-            501: "Not Implemented",
-            502: "Bad Gateway",
-            503: "Service Unavailable",
-            504: "Gateway Timeout",
-        }
-        return reasons.get(status, "Unknown")
+        return _REASON_PHRASES.get(status, "Unknown")
 
     def _close_transport(self):
         """Close the transport safely.
