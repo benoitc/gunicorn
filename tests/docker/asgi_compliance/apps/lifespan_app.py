@@ -76,7 +76,10 @@ async def handle_lifespan(scope, receive, send):
                 scope["state"]["startup_time"] = _lifespan_state["startup_time"]
                 scope["state"]["db_connection"] = "simulated_connection"
                 scope["state"]["cache"] = {}
-                scope["state"]["request_count"] = 0
+                # Each request gets a shallow copy of this state (ASGI
+                # lifespan spec): a counter shared across requests has to be
+                # a mutable object stored here and changed in place.
+                scope["state"]["counters"] = {"requests": 0}
 
             _lifespan_state["startup_complete"] = True
 
@@ -100,9 +103,9 @@ async def handle_root(scope, receive, send):
 
     _lifespan_state["request_count"] += 1
 
-    # Increment request count in state if available
-    if "state" in scope and "request_count" in scope["state"]:
-        scope["state"]["request_count"] += 1
+    # Increment the shared counter in state if available
+    if "state" in scope and "counters" in scope["state"]:
+        scope["state"]["counters"]["requests"] += 1
 
     body = b"Lifespan Test App"
 
@@ -213,10 +216,10 @@ async def handle_counter(scope, receive, send):
 
     counter_value = _lifespan_state["request_count"]
 
-    # Also track in scope state if available
-    if "state" in scope:
-        scope["state"]["request_count"] = scope["state"].get("request_count", 0) + 1
-        counter_value = scope["state"]["request_count"]
+    # Also track in the shared counter stored at startup, if available
+    if "state" in scope and "counters" in scope["state"]:
+        scope["state"]["counters"]["requests"] += 1
+        counter_value = scope["state"]["counters"]["requests"]
 
     body = json.dumps({
         "counter": counter_value,
