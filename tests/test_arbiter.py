@@ -894,80 +894,88 @@ class TestDirtyArbiterOrphanCleanup:
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
         arbiter.master_pid = 0
 
-        with mock.patch('os.path.exists', return_value=False):
+        with mock.patch('os.path.lexists', return_value=False):
             # Should not raise any exception
             arbiter._cleanup_orphaned_dirty_arbiter()
 
-    @mock.patch('os.unlink')
-    @mock.patch('os.kill')
-    def test_cleanup_orphaned_kills_existing_process(self, mock_kill, mock_unlink):
-        """Verify cleanup kills orphaned dirty arbiter process."""
+    def _orphan_setup(self, tmp_path, pid="12345"):
+        from gunicorn.dirty.pidfile import write_pidfile
         arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
         arbiter.master_pid = 0
+        pidfile = str(tmp_path / "gunicorn-dirty-test.pid")
+        write_pidfile(pidfile, pid)
+        return arbiter, pidfile
 
+    @mock.patch('gunicorn.dirty.pidfile.process_owned_by_us', return_value=True)
+    @mock.patch('os.kill')
+    def test_cleanup_orphaned_kills_existing_process(self, mock_kill, _owned, tmp_path):
+        """Verify cleanup kills orphaned dirty arbiter process."""
+        arbiter, pidfile = self._orphan_setup(tmp_path)
         # First kill(pid, 0) succeeds (process exists), then SIGTERM causes exit
         mock_kill.side_effect = [None, None, OSError(3, "No such process")]
 
-        import tempfile
-        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
-
-        with mock.patch('os.path.exists', return_value=True), \
-             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
-             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+        with mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
              mock.patch('time.sleep'):
             arbiter._cleanup_orphaned_dirty_arbiter()
 
-        # Should have sent signal 0 (check), then SIGTERM
         assert mock_kill.call_args_list[0] == mock.call(12345, 0)
         assert mock_kill.call_args_list[1] == mock.call(12345, signal.SIGTERM)
-        # Should unlink the stale pidfile
-        mock_unlink.assert_called_with(pidfile)
+        assert not os.path.exists(pidfile)
 
-    @mock.patch('os.unlink')
-    @mock.patch('os.kill')
-    def test_cleanup_orphaned_sigkill_if_sigterm_fails(self, mock_kill, mock_unlink):
+    @mock.patch('gunicorn.dirty.pidfile.process_owned_by_us', return_value=True)
+    @mock.patch('os.kill', return_value=None)
+    def test_cleanup_orphaned_sigkill_if_sigterm_fails(self, mock_kill, _owned, tmp_path):
         """Verify cleanup sends SIGKILL if SIGTERM doesn't work."""
-        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.master_pid = 0
+        arbiter, pidfile = self._orphan_setup(tmp_path)
 
-        # Process exists on all checks until SIGKILL
-        def kill_side_effect(pid, sig):
-            if sig == signal.SIGKILL:
-                return None
-            return None  # Process still running
-
-        mock_kill.side_effect = kill_side_effect
-
-        import tempfile
-        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
-
-        with mock.patch('os.path.exists', return_value=True), \
-             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
-             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+        with mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
              mock.patch('time.sleep'):
             arbiter._cleanup_orphaned_dirty_arbiter()
 
-        # Should end with SIGKILL
         kill_calls = [c for c in mock_kill.call_args_list if c[0][1] == signal.SIGKILL]
         assert len(kill_calls) == 1
 
-    @mock.patch('os.unlink')
-    def test_cleanup_orphaned_stale_pidfile_no_process(self, mock_unlink):
-        """Verify cleanup removes stale pidfile when process doesn't exist."""
-        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-        arbiter.master_pid = 0
+    @mock.patch('gunicorn.dirty.pidfile.process_owned_by_us', return_value=False)
+    @mock.patch('os.kill')
+    def test_cleanup_orphaned_stale_pidfile_no_process(self, mock_kill, _owned, tmp_path):
+        """A stale pidfile whose process is gone is removed, nothing signalled."""
+        arbiter, pidfile = self._orphan_setup(tmp_path)
 
-        import tempfile
-        pidfile = os.path.join(tempfile.gettempdir(), 'gunicorn-dirty-test.pid')
-
-        with mock.patch('os.path.exists', return_value=True), \
-             mock.patch('builtins.open', mock.mock_open(read_data='12345')), \
-             mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
-             mock.patch('os.kill', side_effect=OSError(3, "No such process")):
+        with mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile):
             arbiter._cleanup_orphaned_dirty_arbiter()
 
-        # Should still unlink the stale pidfile
-        mock_unlink.assert_called_with(pidfile)
+        mock_kill.assert_not_called()
+        assert not os.path.exists(pidfile)
+
+    @pytest.mark.parametrize("plant", ["world_writable", "symlink", "other_owner"])
+    @mock.patch('gunicorn.dirty.pidfile.process_owned_by_us', return_value=True)
+    @mock.patch('os.kill')
+    def test_cleanup_orphaned_ignores_untrusted_pidfile(self, mock_kill, _owned, plant, tmp_path):
+        """A pidfile this user did not create must never make gunicorn signal
+        a process: the file lives in the shared temporary directory."""
+        arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
+        arbiter.master_pid = 0
+        pidfile = str(tmp_path / "gunicorn-dirty-test.pid")
+        target = str(tmp_path / "target")
+        with open(target, "w") as f:
+            f.write("12345")
+        if plant == "world_writable":
+            os.rename(target, pidfile)
+            os.chmod(pidfile, 0o666)
+        elif plant == "symlink":
+            os.symlink(target, pidfile)
+        else:
+            os.rename(target, pidfile)
+
+        uid = os.geteuid() + (1 if plant == "other_owner" else 0)
+        with mock.patch.object(arbiter, '_get_dirty_pidfile_path', return_value=pidfile), \
+             mock.patch('gunicorn.dirty.pidfile.os.geteuid', return_value=uid), \
+             mock.patch.object(arbiter.log, 'warning') as warning:
+            arbiter._cleanup_orphaned_dirty_arbiter()
+
+        mock_kill.assert_not_called()
+        assert os.path.lexists(pidfile)
+        assert warning.called
 
     @mock.patch('gunicorn.dirty.DirtyArbiter')
     @mock.patch('os.fork')

@@ -76,6 +76,9 @@
   square of their number.
 - Reject a request path with raw non-ASCII bytes; they must be
   percent-encoded (RFC 9112 §3.2, RFC 3986 §2.1).
+- Dirty arbiter: create its PID file in the temporary directory with mode
+  0600, and only use it to stop an orphaned arbiter when this user created
+  it and the process is ours. A file left there by someone else is ignored.
 
 ## 26.2.2 - 2026-09-06
 
