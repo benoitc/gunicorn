@@ -1,0 +1,18 @@
+gunicorn 26.2.2 from <5be13466 worktree>/gunicorn
+request: small; event loop: uvloop; Python 3.14.9; access log off
+server               us/req        min-max  py calls  C calls    total    retained B   peak KiB
+gunicorn-fast         44.63    43.87-45.85     106.0    104.0    210.0          3250       10.0
+gunicorn-python       52.88    50.48-55.31     130.0    129.0    259.0          3011        9.3
+uvicorn               34.02    33.08-34.44      38.0     52.0     90.0          3511        7.5
+gunicorn 26.2.2 from <5be13466 worktree>/gunicorn
+request: pct_target; event loop: uvloop; Python 3.14.9; access log off
+server               us/req        min-max  py calls  C calls    total    retained B   peak KiB
+gunicorn-fast         43.91    42.91-50.23     105.0    101.0    206.0          3193        9.8
+gunicorn-python       50.15    49.48-51.27     125.0    120.0    245.0          2954        9.2
+uvicorn               34.71    34.38-35.80      43.0     61.0    104.0          4311        8.6
+gunicorn 26.2.2 from <5be13466 worktree>/gunicorn
+request: many_headers; event loop: uvloop; Python 3.14.9; access log off
+server               us/req        min-max  py calls  C calls    total    retained B   peak KiB
+gunicorn-fast         55.05    54.42-61.77     134.0    244.0    378.0          8874       24.0
+gunicorn-python      105.84   95.13-115.44     270.0    437.0    707.0          8635       20.7
+uvicorn               38.55    37.83-50.64      66.0    108.0    174.0          6099       12.5
