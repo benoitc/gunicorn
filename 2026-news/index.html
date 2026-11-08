@@ -2722,6 +2722,9 @@
   square of their number.</li>
 <li>Reject a request path with raw non-ASCII bytes; they must be
   percent-encoded (RFC 9112 §3.2, RFC 3986 §2.1).</li>
+<li>Dirty arbiter: create its PID file in the temporary directory with mode
+  0600, and only use it to stop an orphaned arbiter when this user created
+  it and the process is ours. A file left there by someone else is ignored.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
