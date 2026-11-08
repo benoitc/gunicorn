@@ -832,3 +832,15 @@ def test_connect_ends_the_connection(http_parser):
     assert req.should_close()
     with pytest.raises(StopIteration):
         next(parser)
+
+
+def test_invalid_response_header_value_not_in_error():
+    """The error names the header but never carries its value, which may be
+    sensitive (a cookie, a token)."""
+    from gunicorn.http.errors import InvalidResponseHeader
+
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(InvalidResponseHeader) as info:
+        response.start_response("200 OK", [("X-Token", "secret\r\nSet-Cookie: x=1")])
+    assert "secret" not in str(info.value)
+    assert "X-Token" in str(info.value)

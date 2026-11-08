@@ -77,6 +77,8 @@
   workers keep updating.
 - Close the connection after a CONNECT request, whatever the application
   answers; what follows is never served as another request (RFC 9931 §8).
+- WSGI: answer 500 instead of 400 when the application sends an invalid
+  response header, and leave the header value out of the error.
 - Join repeated request headers in linear time when building the WSGI
   environ; many copies of one header used to take time growing with the
   square of their number.

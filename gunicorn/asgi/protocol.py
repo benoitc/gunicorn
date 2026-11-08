@@ -21,7 +21,7 @@ from gunicorn.asgi.parser import (
     LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, NoMoreData
+from gunicorn.http.errors import InvalidResponseHeader, InvalidResponseHeaderName, NoMoreData
 from gunicorn.http.errors import ParseException as HTTPParseException
 from gunicorn.http.message import TOKEN_RE, HeaderPolicy
 from gunicorn.http.wsgi import HEADER_VALUE_RE
@@ -92,10 +92,10 @@ def _validate_response_headers(headers):
         if isinstance(value, str):
             value = value.encode("latin-1")
         if not _HEADER_NAME_RE.fullmatch(name):
-            raise InvalidHeaderName('%r' % name)
+            raise InvalidResponseHeaderName('%r' % name)
         if not _HEADER_VALUE_RE.fullmatch(value):
             # Pass only the name, the value may carry sensitive data
-            raise InvalidHeader('%r' % name)
+            raise InvalidResponseHeader('%r' % name)
 
 
 class _RequestHeaderPolicy(HeaderPolicy):

@@ -88,6 +88,24 @@ class InvalidHeaderName(ParseException):
         return "Invalid HTTP header name: %r" % self.hdr
 
 
+class InvalidResponseHeader(InvalidHeader):
+    """A header value the application tried to send is not valid.
+
+    The application is at fault, not the client: the response is a 500.
+    Subclass of InvalidHeader so existing ``except`` clauses still match.
+    """
+
+    def __str__(self):
+        return "Invalid response header from the application: %s" % self.hdr
+
+
+class InvalidResponseHeaderName(InvalidHeaderName):
+    """A header name the application tried to send is not valid (500)."""
+
+    def __str__(self):
+        return "Invalid response header name from the application: %s" % self.hdr
+
+
 class UnsupportedTransferCoding(ParseException):
     def __init__(self, hdr):
         self.hdr = hdr

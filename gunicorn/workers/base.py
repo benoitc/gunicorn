@@ -22,7 +22,7 @@ from gunicorn.http.errors import (
     LimitRequestHeaders, LimitRequestLine,
     UnsupportedTransferCoding, ExpectationFailed,
     ConfigurationProblem, ObsoleteFolding,
-    InvalidH2CPreface,
+    InvalidH2CPreface, InvalidResponseHeader, InvalidResponseHeaderName,
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
@@ -202,16 +202,22 @@ class Worker:
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
-        if isinstance(exc, (
-            InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            LimitRequestLine, LimitRequestHeaders,
-            InvalidProxyLine, ForbiddenProxyRequest,
-            InvalidSchemeHeaders, UnsupportedTransferCoding,
-            ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
-            InvalidH2CPreface, SSLError,
-            InvalidChunkSize, ChunkMissingTerminator, InvalidChunkExtension,
-        )):
+        # A header the application tried to send is the application's fault,
+        # not the client's: answer 500 like any other application error.
+        if isinstance(exc, (InvalidResponseHeader, InvalidResponseHeaderName)):
+            client_error = False
+        else:
+            client_error = isinstance(exc, (
+                InvalidRequestLine, InvalidRequestMethod,
+                InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+                LimitRequestLine, LimitRequestHeaders,
+                InvalidProxyLine, ForbiddenProxyRequest,
+                InvalidSchemeHeaders, UnsupportedTransferCoding,
+                ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
+                InvalidH2CPreface, SSLError,
+                InvalidChunkSize, ChunkMissingTerminator, InvalidChunkExtension,
+            ))
+        if client_error:
 
             status_int = 400
             reason = "Bad Request"
