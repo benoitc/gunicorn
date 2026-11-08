@@ -551,15 +551,11 @@ class BodyReceiver:
             self._closed = True
 
 
-def _no_request_hook(*args):
-    """Stand-in for pre_request/post_request when a config has none."""
-
-
 def _pre_request_hook(cfg, log):
-    """The pre_request hook to call, or _no_request_hook when calling it
-    would do nothing: the default hook only logs the request at debug
-    level, through a logger whose debug() goes to the error log."""
-    hook = getattr(cfg, "pre_request", _no_request_hook)
+    """The pre_request hook to call, or None when calling it would do
+    nothing: the default hook only logs the request at debug level,
+    through a logger whose debug() goes to the error log."""
+    hook = getattr(cfg, "pre_request", None)
     settings = getattr(cfg, "settings", None)
     if not isinstance(settings, dict) or "pre_request" not in settings:
         return hook
@@ -571,7 +567,18 @@ def _pre_request_hook(cfg, log):
     if (getattr(type(log), "debug", None) in (Logger.debug, Statsd.debug)
             and error_log is not None
             and not error_log.isEnabledFor(logging.DEBUG)):
-        return _no_request_hook
+        return None
+    return hook
+
+
+def _post_request_hook(cfg):
+    """The post_request hook to call, or None for the default one, which
+    does nothing."""
+    hook = getattr(cfg, "post_request", None)
+    settings = getattr(cfg, "settings", None)
+    if (isinstance(settings, dict) and "post_request" in settings
+            and hook is settings["post_request"].default):
+        return None
     return hook
 
 
@@ -604,13 +611,16 @@ class ASGIProtocol(asyncio.Protocol):
         self._keepalive = getattr(cfg, "keepalive", 2)
         self._root_path = getattr(cfg, "root_path", "") or ""
         self._pre_request = _pre_request_hook(cfg, worker.log)
-        self._post_request = getattr(cfg, "post_request", _no_request_hook)
+        self._post_request = _post_request_hook(cfg)
         self._uses_uwsgi = getattr(cfg, "protocol", "http") == "uwsgi"
         self._proxy_protocol = getattr(cfg, "proxy_protocol", "off")
         # (secure_scheme_headers, forwarder_headers) this peer may set,
         # decided on the first request: the peer cannot change either.
         self._forwarded_trust = None
         self._secure_names = None
+        # (sockname, peername, scope server, scope client), see
+        # _build_http_scope()
+        self._scope_addresses = None
         # Tasks serving HTTP/2 streams on this connection
         self._h2_tasks = set()
         # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
@@ -952,6 +962,11 @@ class ASGIProtocol(asyncio.Protocol):
             # HTTP/1.x path - feed directly to callback parser
             if not self._feed_callback_parser(data):
                 return
+            # Backpressure: pause reading if buffer is too large
+            if (not self._reading_paused and self._callback_parser is not None
+                    and self._http1_buffered() > self._max_buffer_size):
+                self._pause_reading()
+            return
 
         # Backpressure: pause reading if buffer is too large
         if not self._reading_paused and self._is_buffer_full():
@@ -1079,9 +1094,10 @@ class ASGIProtocol(asyncio.Protocol):
         parser holds after a completed message (a pipelined request); the
         C parser caps that tail itself.
         """
-        held = self._body_receiver.buffered if self._body_receiver else 0
+        receiver = self._body_receiver
+        held = receiver.buffered if receiver is not None else 0
         parser = self._callback_parser
-        if parser is not None and getattr(parser, 'is_complete', False):
+        if parser.__class__ is PythonProtocol and parser.is_complete:
             tail = getattr(parser, '_buffer', None)
             if tail is not None:
                 held += len(tail)
@@ -1261,6 +1277,7 @@ class ASGIProtocol(asyncio.Protocol):
                 await self._handle_connection_uwsgi(peername, sockname)
                 return
 
+            effective_peer = None
             while not self._closed:
                 self.req_count += 1
 
@@ -1283,7 +1300,10 @@ class ASGIProtocol(asyncio.Protocol):
                 request = self._current_request
 
                 # If PROXY protocol provided a real client address, use it.
-                effective_peer = self._effective_peername(peername)
+                # The PROXY header only opens a connection, so the answer
+                # holds for every request on it.
+                if effective_peer is None:
+                    effective_peer = self._effective_peername(peername)
 
                 # Check for cleartext HTTP/2 upgrade
                 if self._h2c_upgrade_settings is not None:
@@ -1291,7 +1311,7 @@ class ASGIProtocol(asyncio.Protocol):
                     break  # HTTP/2 takes over the connection
 
                 # Check for WebSocket upgrade
-                if self._is_websocket_upgrade(request):
+                if request.may_upgrade() and self._is_websocket_upgrade(request):
                     await self._handle_websocket(request, sockname, effective_peer)
                     break  # WebSocket takes over the connection
 
@@ -1511,6 +1531,7 @@ class ASGIProtocol(asyncio.Protocol):
         omits_body = False
         omits_body_warned = False
         response_requires_close = False
+        close_announced = None
         response_length = None
         uses_uwsgi = self._uses_uwsgi
 
@@ -1529,6 +1550,7 @@ class ASGIProtocol(asyncio.Protocol):
             nonlocal response_started, response_complete, exc_to_raise
             nonlocal response_status, response_headers, response_sent, use_chunked, omits_body
             nonlocal omits_body_warned, response_requires_close, response_length
+            nonlocal close_announced
 
             # If client disconnected, silently ignore send attempts
             # This allows apps to finish cleanup without errors
@@ -1623,9 +1645,10 @@ class ASGIProtocol(asyncio.Protocol):
                     uses_uwsgi and not has_content_length and not omits_body
                 )
 
+                close_announced = self._will_close(request, response_requires_close)
                 self._send_response_start(
                     response_status, response_headers, request,
-                    close=self._will_close(request, response_requires_close),
+                    close=close_announced,
                 )
 
             elif msg_type == "http.response.body":
@@ -1659,14 +1682,15 @@ class ASGIProtocol(asyncio.Protocol):
                     # A bytearray or memoryview the app may reuse once send()
                     # returns: the transport may hold on to what it is given.
                     body = bytes(body)
+                size = len(body)
+                if response_length is not None and size > response_length - response_sent:
+                    size = max(response_length - response_sent, 0)
+                    body = body[:size]
 
-                if response_length is not None:
-                    body = body[:max(response_length - response_sent, 0)]
-
-                if body:
+                if size:
                     # The last chunk carries the chunked terminator.
-                    self._send_body(body, use_chunked, not more_body)
-                    response_sent += len(body)
+                    self._send_body(body, use_chunked, not more_body, size)
+                    response_sent += size
                     # Apply write backpressure for streaming responses. The
                     # writable event is set whenever writing is not paused,
                     # so only a paused transport needs the await.
@@ -1675,7 +1699,7 @@ class ASGIProtocol(asyncio.Protocol):
                         await flow_control.drain()
 
                 if not more_body:
-                    if use_chunked and body:
+                    if use_chunked and size:
                         pass  # _send_body() wrote the terminator
                     elif use_chunked:
                         # Send terminal chunk, combined with any buffered headers
@@ -1694,8 +1718,10 @@ class ASGIProtocol(asyncio.Protocol):
         access_log_enabled = self.log.access_log_enabled
 
         try:
-            request_start = time.monotonic()
-            self._pre_request(self.worker, request)
+            # Only the access log uses the request time.
+            request_start = time.monotonic() if access_log_enabled else 0.0
+            if self._pre_request is not None:
+                self._pre_request(self.worker, request)
 
             await self.app(scope, body_receiver.receive, send)
 
@@ -1740,16 +1766,17 @@ class ASGIProtocol(asyncio.Protocol):
             # complete).  The connection loop clears the reference itself
             # after the gate has run.
             try:
-                request_time = _RequestTime(time.monotonic() - request_start)
                 # Only build log data if access logging is enabled
                 if access_log_enabled:
+                    request_time = _RequestTime(time.monotonic() - request_start)
                     environ = self._build_environ(request, sockname, peername)
                     resp = ASGIResponseInfo(response_status, response_headers, response_sent)
                     self.log.access(resp, request, environ, request_time)
                 else:
                     environ = None
                     resp = None
-                self._post_request(self.worker, request, environ, resp)
+                if self._post_request is not None:
+                    self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -1758,8 +1785,15 @@ class ASGIProtocol(asyncio.Protocol):
         if response_length is not None and response_sent < response_length:
             return False
 
-        # Determine keepalive
-        return not self._will_close(request, response_requires_close)
+        # Determine keepalive. What decided close_announced cannot have
+        # changed, except the worker state and, when something read (and so
+        # could have edited) the str headers, the request's own fields.
+        if (close_announced is None or not isinstance(request, CallbackRequest)
+                or request._headers is not None):
+            return not self._will_close(request, response_requires_close)
+        worker = self.worker
+        return not (close_announced or not worker.alive
+                    or worker.nr + 1 >= worker.max_requests)
 
     def _will_close(self, request, response_requires_close):
         """Return True when the connection is closed after this response.
@@ -1799,8 +1833,16 @@ class ASGIProtocol(asyncio.Protocol):
             for name, value in request.headers:
                 headers.append((name.lower().encode("latin-1"), value.encode("latin-1")))
 
-        server = _normalize_sockaddr(sockname)
-        client = _normalize_sockaddr(peername)
+        # The same address objects come with every request on a connection;
+        # the tuples built from them are immutable, so they are reused.
+        addresses = self._scope_addresses
+        if (addresses is None or addresses[0] is not sockname
+                or addresses[1] is not peername):
+            addresses = self._scope_addresses = (
+                sockname, peername,
+                _normalize_sockaddr(sockname), _normalize_sockaddr(peername))
+        server = addresses[2]
+        client = addresses[3]
 
         scope = {
             "type": "http",
@@ -1940,19 +1982,12 @@ class ASGIProtocol(asyncio.Protocol):
         for name, value in headers:
             if isinstance(name, bytes):
                 name_lower = name.lower()
-                parts.append(name)
             else:
-                name_lower = name.lower().encode("latin-1")
-                parts.append(name.encode("latin-1"))
-
-            parts.append(b": ")
-
-            if isinstance(value, bytes):
-                parts.append(value)
-            else:
-                parts.append(value.encode("latin-1"))
-
-            parts.append(b"\r\n")
+                name = name.encode("latin-1")
+                name_lower = name.lower()
+            if not isinstance(value, bytes):
+                value = value.encode("latin-1")
+            parts += (name, b": ", value, b"\r\n")
 
             # Track if Date/Server/Connection headers are present
             if name_lower == b"date":
@@ -2040,7 +2075,7 @@ class ASGIProtocol(asyncio.Protocol):
             if (n.lower() if isinstance(n, str) else n.lower()) not in forbidden
         ]
 
-    def _send_body(self, body, chunked=False, last=False):
+    def _send_body(self, body, chunked=False, last=False, size=None):
         """Send response body chunk.
 
         Combines buffered headers with the first body chunk, and with
@@ -2051,12 +2086,13 @@ class ASGIProtocol(asyncio.Protocol):
         buffer = self._response_buffer
         if buffer:
             self._response_buffer = None
+        if size is None:
+            size = len(body)
         transport = self.transport
         try:
-            if chunked and body:
+            if chunked and size:
                 # Chunked encoding: size in hex + CRLF + data + CRLF
                 # Use pre-cached prefix for common sizes, else format
-                size = len(body)
                 prefix = _CHUNK_PREFIXES.get(size) or f"{size:x}\r\n".encode("latin-1")
                 tail = b"\r\n0\r\n\r\n" if last else b"\r\n"
                 parts = (buffer, prefix, body, tail) if buffer else (prefix, body, tail)
@@ -2065,11 +2101,11 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     transport.write(b"".join(parts))
             elif buffer:
-                if len(body) >= _NO_COPY_BODY_SIZE:
+                if size >= _NO_COPY_BODY_SIZE:
                     transport.writelines((buffer, body))
                 else:
                     transport.write(buffer + body)
-            elif body:
+            elif size:
                 transport.write(body)
         except OSError as e:
             if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
@@ -2498,7 +2534,8 @@ class ASGIProtocol(asyncio.Protocol):
         request_start = time.monotonic()
 
         try:
-            self._pre_request(self.worker, request)
+            if self._pre_request is not None:
+                self._pre_request(self.worker, request)
             await self.app(scope, receive, send)
 
             if exc_to_raise is not None:
@@ -2545,7 +2582,8 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     environ = None
                     resp = None
-                self._post_request(self.worker, request, environ, resp)
+                if self._post_request is not None:
+                    self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 

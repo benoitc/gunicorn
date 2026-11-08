@@ -134,9 +134,8 @@ def _pre_request_for(loglevel, log_class=Logger, **settings):
 
 
 def test_default_pre_request_skipped_only_when_it_would_not_log():
-    from gunicorn.asgi.protocol import _no_request_hook
     hook, _ = _pre_request_for("info")
-    assert hook is _no_request_hook
+    assert hook is None
     hook, cfg = _pre_request_for("debug")
     assert hook is cfg.pre_request
 
@@ -170,7 +169,6 @@ def test_custom_logger_class_keeps_default_pre_request():
 
 
 def test_statsd_logger_skips_default_pre_request_when_not_debug():
-    from gunicorn.asgi.protocol import _no_request_hook
     from gunicorn.instrument.statsd import Statsd
     hook, _ = _pre_request_for("info", log_class=Statsd)
-    assert hook is _no_request_hook
+    assert hook is None
