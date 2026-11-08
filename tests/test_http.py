@@ -811,3 +811,36 @@ def test_chunked_body_content_and_pipelined_request(chunks):
     req = next(parser)
     assert req.body.read() == b"".join(chunks)
     assert next(parser).path == "/next"
+
+
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+def test_connect_ends_the_connection(http_parser):
+    """RFC 9931 section 8: what follows a CONNECT is tunnel data; it is never
+    served as another request, whatever the application answered."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    data = (b"CONNECT no-such.example:443 HTTP/1.1\r\nHost: no-such.example:443\r\n\r\n"
+            b"POST /upload HTTP/1.1\r\nHost: proxy.example\r\nContent-Length: 0\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    assert req.method == "CONNECT"
+    assert req.should_close()
+    with pytest.raises(StopIteration):
+        next(parser)
+
+
+def test_invalid_response_header_value_not_in_error():
+    """The error names the header but never carries its value, which may be
+    sensitive (a cookie, a token)."""
+    from gunicorn.http.errors import InvalidResponseHeader
+
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(InvalidResponseHeader) as info:
+        response.start_response("200 OK", [("X-Token", "secret\r\nSet-Cookie: x=1")])
+    assert "secret" not in str(info.value)
+    assert "X-Token" in str(info.value)

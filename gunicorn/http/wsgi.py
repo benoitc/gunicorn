@@ -9,7 +9,8 @@ import re
 import sys
 
 from gunicorn.http.message import TOKEN_RE
-from gunicorn.http.errors import ConfigurationProblem, InvalidHeader, InvalidHeaderName
+from gunicorn.http.errors import (ConfigurationProblem, InvalidResponseHeader,
+                                  InvalidResponseHeaderName)
 from gunicorn import SERVER_SOFTWARE, SERVER
 from gunicorn import util
 
@@ -148,8 +149,8 @@ def _make_early_hints_callback(req, sock, resp):
                      Example: [('Link', '</style.css>; rel=preload; as=style')]
 
         Raises:
-            InvalidHeaderName: If a header name is not a valid HTTP token.
-            InvalidHeader: If a header value contains invalid characters.
+            InvalidResponseHeaderName: If a header name is not a valid HTTP token.
+            InvalidResponseHeader: If a header value contains invalid characters.
         """
         # Don't send after response has started - would break framing
         if resp.headers_sent:
@@ -171,13 +172,13 @@ def _make_early_hints_callback(req, sock, resp):
             # Response.process_headers — defense-in-depth against
             # HTTP response splitting via CRLF injection.
             if not TOKEN_RE.fullmatch(name):
-                raise InvalidHeaderName('%r' % name)
+                raise InvalidResponseHeaderName('%r' % name)
             if not HEADER_VALUE_RE.fullmatch(value):
                 # Pass only the name — the invalid value may contain
                 # sensitive data that shouldn't cross security boundaries
                 # via exception propagation (browsers/proxies may forward
                 # it to untrusted parties).
-                raise InvalidHeader('%r' % name)
+                raise InvalidResponseHeader('%r' % name)
 
             value = value.strip(" \t")
             response += f"{name}: {value}\r\n".encode('latin-1')
@@ -394,13 +395,14 @@ class Response:
                 raise TypeError('%r is not a string' % name)
 
             if not TOKEN_RE.fullmatch(name):
-                raise InvalidHeaderName('%r' % name)
+                raise InvalidResponseHeaderName('%r' % name)
 
             if not isinstance(value, str):
                 raise TypeError('%r is not a string' % value)
 
             if not HEADER_VALUE_RE.fullmatch(value):
-                raise InvalidHeader('%r' % value)
+                # Name only: the value may carry sensitive data.
+                raise InvalidResponseHeader('%r' % name)
 
             # RFC9110 5.5
             value = value.strip(" \t")

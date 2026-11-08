@@ -358,3 +358,37 @@ async def test_head_request_body_is_framed(http_parser):
 
     assert paths == ["/"], paths
     assert transport.written.count(b"HTTP/1.1 200") == 1, transport.written
+
+
+@pytest.mark.asyncio
+async def test_connect_ends_the_connection(http_parser):
+    """RFC 9931 section 8: after a CONNECT the app rejects, the pipelined
+    bytes are not served as a request and the connection closes."""
+    paths = []
+
+    async def app(scope, receive, send):
+        paths.append((scope["method"], scope["path"]))
+        await send({"type": "http.response.start", "status": 405,
+                    "headers": [(b"content-length", b"0")]})
+        await send({"type": "http.response.body", "body": b""})
+
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(
+        b"CONNECT no-such.example:443 HTTP/1.1\r\nHost: no-such.example:443\r\n\r\n"
+        b"POST /upload HTTP/1.1\r\nHost: proxy.example\r\nContent-Length: 0\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    assert [m for m, _ in paths] == ["CONNECT"], paths
+    assert transport.written.count(b"HTTP/1.1 405") == 1, transport.written
+    assert b"connection: close" in transport.written.lower()
+    assert transport.closed is True

@@ -63,7 +63,7 @@ handling.
 1. Name the governing document and confirm it is current on
    https://datatracker.ietf.org/doc/rfcNNNN/ ("Obsoleted by", "Updated by").
    Known replacements: RFC 7230/7231/2616 to RFC 9110/9112, RFC 7540 to
-   RFC 9113; RFC 9931 updates RFC 9112 for Upgrade.
+   RFC 9113; RFC 9931 updates RFC 9112 for Upgrade and CONNECT.
 2. For ASGI, check https://asgi.readthedocs.io/ for the spec version the
    scope advertises. For WSGI, PEP 3333.
 3. Check for errata on https://www.rfc-editor.org/errata/rfcNNNN and for an
@@ -81,7 +81,7 @@ Walk the classes that apply and state which you checked.
   malformed Content-Length, non SP/HTAB whitespace, header name whitespace,
   bare LF / CR, chunk-size and chunk terminator parsing, obs-fold, request
   bodies left unread on keep-alive, HTTP/1.0 keep-alive, Upgrade bytes read as
-  HTTP/1 (RFC 9931).
+  HTTP/1, bytes after a CONNECT served as a request (RFC 9931).
 - **Response splitting / desync**: unchecked header names or values written
   by the app, body bytes beyond Content-Length, a response that ends early on
   a kept-alive connection, a response written to the wrong request when
