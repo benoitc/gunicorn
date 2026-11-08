@@ -15,6 +15,7 @@ import binascii
 import collections
 import errno
 import ipaddress
+import logging
 import re
 import time
 
@@ -554,6 +555,26 @@ def _no_request_hook(*args):
     """Stand-in for pre_request/post_request when a config has none."""
 
 
+def _pre_request_hook(cfg, log):
+    """The pre_request hook to call, or _no_request_hook when calling it
+    would do nothing: the default hook only logs the request at debug
+    level, through a logger whose debug() goes to the error log."""
+    hook = getattr(cfg, "pre_request", _no_request_hook)
+    settings = getattr(cfg, "settings", None)
+    if not isinstance(settings, dict) or "pre_request" not in settings:
+        return hook
+    if hook is not settings["pre_request"].default:
+        return hook
+    from gunicorn.glogging import Logger
+    from gunicorn.instrument.statsd import Statsd
+    error_log = getattr(log, "error_log", None)
+    if (getattr(type(log), "debug", None) in (Logger.debug, Statsd.debug)
+            and error_log is not None
+            and not error_log.isEnabledFor(logging.DEBUG)):
+        return _no_request_hook
+    return hook
+
+
 class ASGIProtocol(asyncio.Protocol):
     """HTTP/1.1 protocol handler for ASGI applications.
 
@@ -582,7 +603,7 @@ class ASGIProtocol(asyncio.Protocol):
         # embedders) used to work as long as these were not needed.
         self._keepalive = getattr(cfg, "keepalive", 2)
         self._root_path = getattr(cfg, "root_path", "") or ""
-        self._pre_request = getattr(cfg, "pre_request", _no_request_hook)
+        self._pre_request = _pre_request_hook(cfg, worker.log)
         self._post_request = getattr(cfg, "post_request", _no_request_hook)
         self._uses_uwsgi = getattr(cfg, "protocol", "http") == "uwsgi"
         self._proxy_protocol = getattr(cfg, "proxy_protocol", "off")
