@@ -108,6 +108,9 @@
 - WebSocket: refuse a handshake the application closes or never accepts with
   an HTTP 403 (500 if it raised), as ASGI requires, instead of writing a
   WebSocket close frame on a connection that never switched protocols.
+- WebSocket: wait while the client is not reading before sending a message,
+  as HTTP responses already do, so a slow client cannot grow the worker's
+  write buffer.
 
 ## 26.2.2 - 2026-09-06
 

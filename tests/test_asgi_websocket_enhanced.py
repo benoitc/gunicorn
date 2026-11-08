@@ -758,3 +758,32 @@ async def test_app_ending_before_accept_gets_http_response(behaviour, status):
     await asyncio.wait_for(protocol.run(), timeout=2)
     written = b"".join(c.args[0] for c in transport.write.call_args_list)
     assert written.startswith(b"HTTP/1.1 " + status), written
+
+
+@pytest.mark.asyncio
+async def test_send_waits_while_the_client_is_not_reading():
+    """websocket.send waits for the transport to drain, like an HTTP
+    response, so a slow client does not grow the write buffer."""
+    import asyncio
+    from gunicorn.asgi.protocol import FlowControl
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    transport = mock.Mock()
+    flow = FlowControl(transport)
+    protocol = WebSocketProtocol(
+        transport=transport,
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=mock.AsyncMock(), log=mock.Mock(), drain=flow.drain)
+    await protocol._send({"type": "websocket.accept"})
+    writes = transport.write.call_count
+
+    flow.pause_writing()
+    send = asyncio.ensure_future(protocol._send({"type": "websocket.send", "bytes": b"x"}))
+    await asyncio.sleep(0.01)
+    assert not send.done()
+    assert transport.write.call_count == writes
+
+    flow.resume_writing()
+    await asyncio.wait_for(send, timeout=1)
+    assert transport.write.call_count == writes + 1

@@ -67,7 +67,7 @@ class WebSocketProtocol:
     """
 
     def __init__(self, transport, scope, app, log,
-                 max_message_size=DEFAULT_MAX_MESSAGE_SIZE):
+                 max_message_size=DEFAULT_MAX_MESSAGE_SIZE, drain=None):
         """Initialize WebSocket protocol handler.
 
         Args:
@@ -76,6 +76,8 @@ class WebSocketProtocol:
             app: ASGI application callable
             log: Logger instance
             max_message_size: largest message accepted, 0 for no limit
+            drain: coroutine function that returns once the transport is
+                below its write limit (the connection's FlowControl.drain)
         """
         self.transport = transport
         self.scope = scope
@@ -99,6 +101,7 @@ class WebSocketProtocol:
         self._fragment_opcode = None
         self._fragments_size = 0
         self.max_message_size = max_message_size
+        self._drain = drain
 
         # Backpressure: pause the transport while bytes pile up unread, and
         # stop reading frames while messages wait for the app.
@@ -240,6 +243,12 @@ class WebSocketProtocol:
             # Check for truthy values since both keys may be present with None
             text = message.get("text")
             bytes_data = message.get("bytes")
+            # Wait while the client is not reading, as HTTP responses do, so
+            # a slow client cannot grow the write buffer without end.
+            if self._drain is not None:
+                await self._drain()
+                if self.closed:
+                    raise RuntimeError("WebSocket closed")
             if text is not None:
                 await self._send_frame(OPCODE_TEXT, text.encode("utf-8"))
             elif bytes_data is not None:
