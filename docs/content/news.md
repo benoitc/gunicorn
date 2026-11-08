@@ -127,6 +127,7 @@
 - ASGI: look up the reason phrase only the first time a status is seen, and
   validate response headers in the same pass that finds their framing.
 - The ASGI worker now answers `Expect: 100-continue` on HTTP/1.1 with a `100 Continue` when the app reads the body, so clients such as curl no longer wait about a second before sending an upload (RFC 9110 §10.1.1).
+- The ASGI worker no longer makes a second text copy of every request header unless something reads it, which makes requests with many headers faster and lighter.
 
 ## 26.2.2 - 2026-09-06
 

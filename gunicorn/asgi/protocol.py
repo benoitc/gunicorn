@@ -141,29 +141,47 @@ class _RequestHeaderPolicy(HeaderPolicy):
         self.scheme = scheme
         self.version = version
 
-    def apply(self, request, trust=None):
-        """Apply the policy; ``trust`` is _peer_trusted_for_forwarded(),
-        passed in when the caller already knows it for this peer."""
+    def apply(self, request, trust=None, secure_names=None):
+        """Apply the policy to the request's (lower-case bytes) headers.
+
+        ``trust`` is _peer_trusted_for_forwarded() and ``secure_names`` is
+        secure_scheme_names() of its first item, passed in when the caller
+        already knows them for this peer.
+        """
         secure_scheme_headers, forwarder_headers = (
             trust if trust is not None else self._peer_trusted_for_forwarded())
+        if secure_names is None:
+            secure_names = secure_scheme_names(secure_scheme_headers)
         scheme_state = [False]
         seen = set()
-        keep = []
-        for name, value in request.headers:
+        drop = None
+        headers_bytes = request.headers_bytes
+        for index, (name, value) in enumerate(headers_bytes):
             # Only a scheme header or a name with '_' can be acted on here:
             # Expect is off for this policy, and the singleton fields were
             # checked by CallbackRequest.from_parser(). Others are kept.
-            if '_' in name or name in secure_scheme_headers:
-                keep.append(self._apply_header_policy(
-                    name, value, scheme_state, seen,
-                    secure_scheme_headers, forwarder_headers) is not None)
-            else:
-                keep.append(True)
-        if not all(keep) and len(request.headers_bytes) == len(keep):
-            request.headers = [h for h, k in zip(request.headers, keep) if k]
+            if b'_' in name or name in secure_names:
+                kept = self._apply_header_policy(
+                    name.decode('latin-1').upper(), value.decode('latin-1'),
+                    scheme_state, seen, secure_scheme_headers, forwarder_headers)
+                if kept is None:
+                    if drop is None:
+                        drop = set()
+                    drop.add(index)
+        if drop:
+            str_headers = getattr(request, '_headers', None)
             request.headers_bytes = [
-                h for h, k in zip(request.headers_bytes, keep) if k]
+                h for i, h in enumerate(headers_bytes) if i not in drop]
+            if str_headers is not None:
+                request.headers = [
+                    h for i, h in enumerate(str_headers) if i not in drop]
         request.scheme = self.scheme
+
+
+def secure_scheme_names(secure_scheme_headers):
+    """The secure_scheme_headers names as lower-case bytes."""
+    return frozenset(name.lower().encode('latin-1')
+                     for name in secure_scheme_headers)
 
 
 # Cached response bytes for common cases
@@ -566,6 +584,7 @@ class ASGIProtocol(asyncio.Protocol):
         # (secure_scheme_headers, forwarder_headers) this peer may set,
         # decided on the first request: the peer cannot change either.
         self._forwarded_trust = None
+        self._secure_names = None
         # Tasks serving HTTP/2 streams on this connection
         self._h2_tasks = set()
         # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
@@ -822,12 +841,13 @@ class ASGIProtocol(asyncio.Protocol):
         )
         if self._forwarded_trust is None:
             self._forwarded_trust = policy._peer_trusted_for_forwarded()
-        policy.apply(request, self._forwarded_trust)
+            self._secure_names = secure_scheme_names(self._forwarded_trust[0])
+        policy.apply(request, self._forwarded_trust, self._secure_names)
 
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
 
-        if self._h2c_upgrade_ok:
+        if self._h2c_upgrade_ok and request.may_upgrade():
             self._h2c_upgrade_settings = negotiation.upgrade_settings(
                 self._current_request)
             if self._h2c_upgrade_settings is not None:
@@ -1403,6 +1423,9 @@ class ASGIProtocol(asyncio.Protocol):
         """
         # RFC 6455: The method of the request MUST be GET
         if request.method != "GET":
+            return False
+        may_upgrade = getattr(request, "may_upgrade", None)
+        if may_upgrade is not None and not may_upgrade():
             return False
 
         upgrade = None

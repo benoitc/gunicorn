@@ -948,6 +948,9 @@ class PythonProtocol:
         return False
 
 
+_UNKNOWN = object()
+
+
 class CallbackRequest:
     """Request object built from callback parser state.
 
@@ -956,9 +959,10 @@ class CallbackRequest:
 
     __slots__ = (
         'method', 'uri', 'path', 'query', 'fragment', 'version',
-        'headers', 'headers_bytes', 'scheme', 'raw_path',
+        '_headers', 'headers_bytes', 'scheme', 'raw_path',
         'content_length', 'chunked', 'must_close',
         'proxy_protocol_info', '_expect_100_continue',
+        '_connection', '_has_upgrade',
     )
 
     def __init__(self):
@@ -968,7 +972,7 @@ class CallbackRequest:
         self.query = None
         self.fragment = None
         self.version = None
-        self.headers = []
+        self._headers = []
         self.headers_bytes = []
         self.scheme = "http"
         self.raw_path = b''
@@ -977,6 +981,30 @@ class CallbackRequest:
         self.must_close = False
         self.proxy_protocol_info = None
         self._expect_100_continue = False
+        # Set by from_parser() from its pass over the headers. They are used
+        # only while nothing has read (and so could have changed) the str
+        # headers; otherwise those are scanned as before.
+        self._connection = _UNKNOWN
+        self._has_upgrade = True
+
+    @property
+    def headers(self):
+        """The headers as (UPPER-CASE name, value) str pairs.
+
+        Built from headers_bytes the first time something reads them:
+        serving a request needs only the bytes, and building this copy
+        costs two decodes and an upper() per header.
+        """
+        headers = self._headers
+        if headers is None:
+            headers = self._headers = [
+                (name.decode('latin-1').upper(), value.decode('latin-1'))
+                for name, value in self.headers_bytes]
+        return headers
+
+    @headers.setter
+    def headers(self, value):
+        self._headers = value
 
     @classmethod
     def from_parser(cls, parser, is_ssl=False):
@@ -1021,30 +1049,43 @@ class CallbackRequest:
         # Headers - store both bytes (for ASGI scope) and strings (for compatibility)
         # Use asgi_headers (lowercase names) if available (fast parser >= 0.6.2),
         # otherwise fall back to headers (Python parser already uses lowercase)
-        req.headers_bytes = list(getattr(parser, 'asgi_headers', None) or parser.headers)
+        asgi_headers = getattr(parser, 'asgi_headers', None)
+        if asgi_headers is not None or isinstance(parser, PythonProtocol):
+            req.headers_bytes = headers_bytes = list(asgi_headers or parser.headers)
+        else:
+            # gunicorn_h1c < 0.6.2 keeps the names as received.
+            req.headers_bytes = headers_bytes = [
+                (name.lower(), value) for name, value in parser.headers]
 
-        # One pass over the parser's headers builds the str copy and runs
-        # the checks that need every field.
+        # One pass over the lower-cased headers runs the checks that need
+        # every field and notes what serving the request needs, so the str
+        # copy (CallbackRequest.headers) is only built if something reads it.
         #
         # RFC 9110 section 5.3, enforced here because this is where both
         # parsers converge. Both reject these on their own now (PythonProtocol
         # in _finalize_headers(), H1CProtocol since 0.6.6), so this is a
         # backstop: the pip requirement is not enforced at runtime, and an
         # older gunicorn_h1c would otherwise let duplicates through.
-        headers = []
         seen_singletons = set()
         expect_continue = False
-        for name, value in parser.headers:
-            lowered = name.lower()
-            if lowered in RFC9110_5_3_SINGLETON_FIELDS:
-                if lowered in seen_singletons:
+        connection = None
+        has_upgrade = False
+        for name, value in headers_bytes:
+            if name in RFC9110_5_3_SINGLETON_FIELDS:
+                if name in seen_singletons:
                     raise InvalidHeader(
-                        "Duplicate %s header" % lowered.decode('latin-1'))
-                seen_singletons.add(lowered)
-            elif lowered == b'expect' and value.lower() == b'100-continue':
+                        "Duplicate %s header" % name.decode('latin-1'))
+                seen_singletons.add(name)
+            elif name == b'connection':
+                if connection is None:
+                    connection = value.decode('latin-1')
+            elif name == b'upgrade':
+                has_upgrade = True
+            elif name == b'expect' and value.lower() == b'100-continue':
                 expect_continue = True
-            headers.append((name.decode('latin-1').upper(), value.decode('latin-1')))
-        req.headers = headers
+        req._headers = None
+        req._connection = connection
+        req._has_upgrade = has_upgrade
         # RFC 9110 section 10.1.1: "A server that receives a 100-continue
         # expectation in an HTTP/1.0 request MUST ignore that expectation."
         req._expect_100_continue = (
@@ -1066,15 +1107,24 @@ class CallbackRequest:
         # HTTP/1.1 request to serve.
         if self.method == "CONNECT":
             return True
-        for name, value in self.headers:
-            if name == "CONNECTION":
-                v = value.lower().strip(" \t")
-                if v == "close":
-                    return True
-                elif v == "keep-alive":
-                    return False
-                break
+        connection = self._connection
+        if connection is _UNKNOWN or self._headers is not None:
+            connection = None
+            for name, value in self.headers:
+                if name == "CONNECTION":
+                    connection = value
+                    break
+        if connection is not None:
+            v = connection.lower().strip(" \t")
+            if v == "close":
+                return True
+            elif v == "keep-alive":
+                return False
         return self.version <= (1, 0)
+
+    def may_upgrade(self):
+        """False only when the request is known to carry no Upgrade field."""
+        return self._has_upgrade or self._headers is not None
 
     def get_header(self, name):
         """Get a header value by name (case-insensitive)."""
