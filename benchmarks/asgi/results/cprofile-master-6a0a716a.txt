@@ -1,0 +1,87 @@
+gunicorn 26.2.2 from <repo>/gunicorn
+request: small; event loop: uvloop; Python 3.14.9; access log off
+server               us/req        min-max  py calls  C calls    total    retained B   peak KiB
+gunicorn-fast         42.59    41.69-43.08     108.0    106.0    214.0          4138       11.7
+uvicorn               33.83    32.60-34.76      38.0     52.0     90.0          3543        7.5
+
+== cProfile, gunicorn-fast, 5000 requests ==
+         1070024 function calls in 0.275 seconds
+
+   Ordered by: internal time
+   List reduced from 110 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     5000    0.019    0.000    0.034    0.000 <repo>/gunicorn/asgi/parser.py:981(from_parser)
+     5000    0.017    0.000    0.160    0.000 <repo>/gunicorn/asgi/protocol.py:1093(_handle_connection)
+    10000    0.016    0.000    0.070    0.000 <repo>/gunicorn/asgi/protocol.py:1372(send)
+    85000    0.016    0.000    0.021    0.000 <repo>/gunicorn/config.py:69(__getattr__)
+     5000    0.013    0.000    0.028    0.000 <repo>/gunicorn/asgi/protocol.py:1756(_send_response_start)
+     5000    0.012    0.000    0.122    0.000 <repo>/gunicorn/asgi/protocol.py:1348(_handle_http_request)
+    20000    0.009    0.000    0.013    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1208(_parse_octet)
+     5000    0.007    0.000    0.012    0.000 <repo>/gunicorn/asgi/protocol.py:1625(_build_http_scope)
+     5000    0.007    0.000    0.098    0.000 <repo>/gunicorn/asgi/protocol.py:708(_on_headers_complete)
+     5000    0.006    0.000    0.049    0.000 <repo>/gunicorn/asgi/protocol.py:118(apply)
+    80000    0.005    0.000    0.005    0.000 {built-in method builtins.isinstance}
+    85000    0.005    0.000    0.005    0.000 <repo>/gunicorn/config.py:360(get)
+     5000    0.005    0.000    0.005    0.000 <repo>/gunicorn/asgi/protocol.py:1923(_get_reason_phrase)
+    35000    0.005    0.000    0.008    0.000 {built-in method builtins.getattr}
+    15000    0.005    0.000    0.007    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/locks.py:200(wait)
+    70000    0.005    0.000    0.005    0.000 {method 'append' of 'list' objects}
+    45000    0.005    0.000    0.005    0.000 {method 'decode' of 'bytes' objects}
+     5000    0.005    0.000    0.009    0.000 <repo>/gunicorn/asgi/protocol.py:85(_validate_response_headers)
+    10000    0.004    0.000    0.008    0.000 <repo>/gunicorn/asgi/protocol.py:1599(_will_close)
+     5000    0.003    0.000    0.074    0.000 <repo>/benchmarks/asgi/apps.py:27(app)
+    20000    0.003    0.000    0.003    0.000 {method 'fullmatch' of 're.Pattern' objects}
+     5000    0.003    0.000    0.104    0.000 {method 'feed' of 'gunicorn_h1c._protocol.H1CProtocol' objects}
+     5000    0.003    0.000    0.034    0.000 <repo>/gunicorn/http/message.py:204(_peer_is_trusted_proxy)
+     5000    0.003    0.000    0.009    0.000 <repo>/gunicorn/glogging.py:354(access_log_enabled)
+     5000    0.003    0.000    0.004    0.000 <repo>/gunicorn/asgi/protocol.py:963(_arm_keepalive_timer)
+     5001    0.003    0.000    0.115    0.000 <repo>/benchmarks/asgi/profile_requests.py:146(_serve)
+     5000    0.003    0.000    0.016    0.000 {built-in method from_bytes}
+    35000    0.003    0.000    0.003    0.000 {method 'lower' of 'bytes' objects}
+     5000    0.003    0.000    0.020    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1182(_ip_int_from_string)
+     5000    0.003    0.000    0.023    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1272(__init__)
+
+
+
+
+== cProfile, uvicorn, 5000 requests ==
+         450024 function calls in 0.117 seconds
+
+   Ordered by: internal time
+   List reduced from 66 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    10000    0.017    0.000    0.036    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:457(send)
+     5000    0.013    0.000    0.020    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:247(on_headers_complete)
+     5000    0.008    0.000    0.041    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:169(data_received)
+    20000    0.008    0.000    0.012    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1208(_parse_octet)
+     5000    0.004    0.000    0.071    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py:27(__call__)
+     5000    0.004    0.000    0.005    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:319(on_response_complete)
+    15000    0.004    0.000    0.006    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:241(on_header)
+     5000    0.003    0.000    0.039    0.000 <repo>/benchmarks/asgi/apps.py:27(app)
+    10000    0.003    0.000    0.005    0.000 <repo>/benchmarks/asgi/profile_requests.py:65(write)
+     5000    0.003    0.000    0.028    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py:109(__contains__)
+     5001    0.003    0.000    0.044    0.000 <repo>/benchmarks/asgi/profile_requests.py:146(_serve)
+     5000    0.003    0.000    0.018    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1182(_ip_int_from_string)
+     5000    0.003    0.000    0.014    0.000 {built-in method from_bytes}
+    20000    0.003    0.000    0.003    0.000 {method 'search' of 're.Pattern' objects}
+     5000    0.003    0.000    0.004    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:221(on_message_begin)
+     5000    0.003    0.000    0.021    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:1272(__init__)
+     5000    0.002    0.000    0.074    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:414(run_asgi)
+     5000    0.002    0.000    0.002    0.000 {method 'run' of '_contextvars.Context' objects}
+    25000    0.002    0.000    0.002    0.000 {method 'lower' of 'bytes' objects}
+    20000    0.002    0.000    0.002    0.000 {method 'get' of 'dict' objects}
+    30000    0.002    0.000    0.002    0.000 {built-in method builtins.len}
+    15000    0.002    0.000    0.002    0.000 {method 'decode' of 'bytes' objects}
+    20000    0.001    0.000    0.001    0.000 {method 'append' of 'list' objects}
+    20000    0.001    0.000    0.001    0.000 {method 'isdigit' of 'str' objects}
+     5000    0.001    0.000    0.002    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:607(__hash__)
+    20000    0.001    0.000    0.001    0.000 {method 'isascii' of 'str' objects}
+     5000    0.001    0.000    0.023    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/ipaddress.py:28(ip_address)
+     5000    0.001    0.000    0.002    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:313(on_message_complete)
+    10000    0.001    0.000    0.001    0.000 <repo>/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py:137(_unset_keepalive_if_required)
+     5000    0.001    0.000    0.001    0.000 /opt/local/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/locks.py:167(__init__)
+
+
+

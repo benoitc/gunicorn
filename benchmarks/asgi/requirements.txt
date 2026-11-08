@@ -1,0 +1,4 @@
+psutil
+uvicorn[standard]
+httptools
+uvloop
