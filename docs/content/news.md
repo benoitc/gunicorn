@@ -68,6 +68,8 @@
 - Read request bodies of known length in large steps instead of 8 KiB at a
   time. Large uploads are much faster, most of all while other threads keep
   the worker busy ([#2596](https://github.com/benoitc/gunicorn/issues/2596)).
+- Read chunked request bodies in large steps too, up to the size each chunk
+  announces ([#2596](https://github.com/benoitc/gunicorn/issues/2596)).
 - inotify reloader: reload when the target of a symlinked file changes
   ([#3243](https://github.com/benoitc/gunicorn/issues/3243)).
 - Docs: fix the worker types link in the `worker_class` setting.

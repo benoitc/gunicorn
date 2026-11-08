@@ -757,3 +757,57 @@ def test_request_target_accepts_percent_encoded_non_ascii():
     cfg.set('http_parser', 'python')
     parser = RequestParser(cfg, [b"GET /caf%C3%A9 HTTP/1.1\r\nHost: x\r\n\r\n"], None)
     assert next(parser).uri == "/caf%C3%A9"
+
+
+class _RecordingSocket:
+    """recv() from a fixed byte string, recording the size asked for."""
+
+    def __init__(self, data):
+        self.data = data
+        self.asked = []
+
+    def recv(self, n):
+        self.asked.append(n)
+        out, self.data = self.data[:n], self.data[n:]
+        return out
+
+
+def _chunked_request(chunks, after=b""):
+    body = b"".join(b"%x\r\n%s\r\n" % (len(c), c) for c in chunks) + b"0\r\n\r\n"
+    return (b"POST / HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n"
+            + body + after)
+
+
+def test_chunked_body_reads_follow_chunk_size():
+    """Chunk data is read in steps as large as the chunk (#2596), never past
+    the end of the chunk."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    chunk = b"a" * (300 * 1024)
+    sock = _RecordingSocket(_chunked_request([chunk]))
+    req = next(RequestParser(cfg, sock, None))
+    sock.asked.clear()
+    assert req.body.read() == chunk
+    assert max(sock.asked) > 8192
+    assert max(sock.asked) <= len(chunk)
+
+
+@pytest.mark.parametrize("chunks", [
+    [b"x" * 7] * 500,
+    [b"y" * (1 << 20), b"z" * 3],
+], ids=["many-small", "few-large"])
+def test_chunked_body_content_and_pipelined_request(chunks):
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    after = b"GET /next HTTP/1.1\r\nHost: x\r\n\r\n"
+    sock = _RecordingSocket(_chunked_request(chunks, after))
+    parser = RequestParser(cfg, sock, None)
+    req = next(parser)
+    assert req.body.read() == b"".join(chunks)
+    assert next(parser).path == "/next"
