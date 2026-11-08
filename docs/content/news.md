@@ -122,6 +122,8 @@
 - ASGI: read the settings needed on every request once per connection, and
   decide once per connection whether the peer may set forwarded headers,
   instead of on every request.
+- ASGI: build each request in one pass over its headers, and skip
+  percent-decoding a path that has no `%`.
 
 ## 26.2.2 - 2026-09-06
 

@@ -124,9 +124,15 @@ class _RequestHeaderPolicy(HeaderPolicy):
         seen = set()
         keep = []
         for name, value in request.headers:
-            keep.append(self._apply_header_policy(
-                name, value, scheme_state, seen,
-                secure_scheme_headers, forwarder_headers) is not None)
+            # Only a scheme header or a name with '_' can be acted on here:
+            # Expect is off for this policy, and the singleton fields were
+            # checked by CallbackRequest.from_parser(). Others are kept.
+            if '_' in name or name in secure_scheme_headers:
+                keep.append(self._apply_header_policy(
+                    name, value, scheme_state, seen,
+                    secure_scheme_headers, forwarder_headers) is not None)
+            else:
+                keep.append(True)
         if not all(keep) and len(request.headers_bytes) == len(keep):
             request.headers = [h for h, k in zip(request.headers, keep) if k]
             request.headers_bytes = [

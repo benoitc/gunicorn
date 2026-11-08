@@ -1003,13 +1003,16 @@ class CallbackRequest:
             raise InvalidRequestLine("Invalid request line")
         if b'?' in raw_url:
             path_part, query_part = raw_url.split(b'?', 1)
-            req.raw_path = path_part  # Store original bytes
-            req.path = unquote_to_bytes(path_part).decode('utf-8', errors='replace')
             req.query = query_part.decode('latin-1')
         else:
-            req.raw_path = raw_url  # Store original bytes
-            req.path = unquote_to_bytes(raw_url).decode('utf-8', errors='replace')
+            path_part = raw_url
             req.query = ''
+        req.raw_path = path_part  # Store original bytes
+        # Without '%' there is nothing to decode: unquote_to_bytes() would
+        # return the same bytes.
+        if b'%' in path_part:
+            path_part = unquote_to_bytes(path_part)
+        req.path = path_part.decode('utf-8', errors='replace')
 
         req.uri = raw_url.decode('latin-1')
         req.fragment = ''
@@ -1019,35 +1022,35 @@ class CallbackRequest:
         # Use asgi_headers (lowercase names) if available (fast parser >= 0.6.2),
         # otherwise fall back to headers (Python parser already uses lowercase)
         req.headers_bytes = list(getattr(parser, 'asgi_headers', None) or parser.headers)
-        req.headers = [
-            (n.decode('latin-1').upper(), v.decode('latin-1'))
-            for n, v in parser.headers
-        ]
 
+        # One pass over the parser's headers builds the str copy and runs
+        # the checks that need every field.
+        #
         # RFC 9110 section 5.3, enforced here because this is where both
         # parsers converge. Both reject these on their own now (PythonProtocol
         # in _finalize_headers(), H1CProtocol since 0.6.6), so this is a
         # backstop: the pip requirement is not enforced at runtime, and an
         # older gunicorn_h1c would otherwise let duplicates through.
+        headers = []
         seen_singletons = set()
-        for name, _value in parser.headers:
+        expect_continue = False
+        for name, value in parser.headers:
             lowered = name.lower()
             if lowered in RFC9110_5_3_SINGLETON_FIELDS:
                 if lowered in seen_singletons:
                     raise InvalidHeader(
                         "Duplicate %s header" % lowered.decode('latin-1'))
                 seen_singletons.add(lowered)
+            elif lowered == b'expect' and value.lower() == b'100-continue':
+                expect_continue = True
+            headers.append((name.decode('latin-1').upper(), value.decode('latin-1')))
+        req.headers = headers
+        req._expect_100_continue = expect_continue
 
         req.scheme = 'https' if is_ssl else 'http'
         req.content_length = parser.content_length or 0
         req.chunked = parser.is_chunked
         req.must_close = not parser.should_keep_alive
-
-        # Check for Expect: 100-continue
-        for name, value in parser.headers:
-            if name == b'expect' and value.lower() == b'100-continue':
-                req._expect_100_continue = True
-                break
 
         return req
 
