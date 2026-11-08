@@ -55,6 +55,12 @@ def _import_h2():
 RST_STREAM_RATE_LIMIT = 200
 RST_STREAM_RATE_WINDOW = 10.0
 
+# PING, SETTINGS and empty DATA frames a peer may send per window before
+# the connection is closed with ENHANCE_YOUR_CALM. Each costs work and
+# carries no request; a real client sends a handful.
+CONTROL_FRAME_RATE_LIMIT = 1000
+CONTROL_FRAME_RATE_WINDOW = 10.0
+
 
 class AsyncHTTP2Connection:
     """Async HTTP/2 server-side connection handler for ASGI.
@@ -92,6 +98,7 @@ class AsyncHTTP2Connection:
         # for the main receive loop rather than discarded.
         self._deferred_events = collections.deque()
         self._reset_times = collections.deque()
+        self._control_times = collections.deque()
         # Set by the receive loop whenever the peer widens a window, so
         # a response task can wait for credit without touching the
         # reader the loop owns.
@@ -297,6 +304,9 @@ class AsyncHTTP2Connection:
         Returns:
             HTTP2Request if a request is complete, None otherwise
         """
+        if self._is_control_frame(event):
+            self._count_control_frame()
+
         if isinstance(event, _h2_events.RequestReceived):
             return self._handle_request_received(event)
 
@@ -466,6 +476,31 @@ class AsyncHTTP2Connection:
                 pass
             self._abort_all_streams()
             raise HTTP2ProtocolError("RST_STREAM rate exceeded")
+
+    @staticmethod
+    def _is_control_frame(event):
+        """PING, SETTINGS, or a DATA frame with no data that does not end
+        its stream: frames that carry no request."""
+        if isinstance(event, (_h2_events.PingReceived, _h2_events.RemoteSettingsChanged)):
+            return True
+        return (isinstance(event, _h2_events.DataReceived) and not event.data
+                and getattr(event, "stream_ended", None) is None)
+
+    def _count_control_frame(self):
+        """Close the connection when the peer sends control frames at flood rate."""
+        now = time.monotonic()
+        self._control_times.append(now)
+        while self._control_times and now - self._control_times[0] > CONTROL_FRAME_RATE_WINDOW:
+            self._control_times.popleft()
+        if len(self._control_times) > CONTROL_FRAME_RATE_LIMIT:
+            self._closed = True
+            try:
+                self.h2_conn.close_connection(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                self._write_pending_nowait()
+            except Exception:
+                pass
+            self._abort_all_streams()
+            raise HTTP2ProtocolError("control frame rate exceeded")
 
     def _abort_all_streams(self):
         """The connection is gone: wake every stream still waiting on it."""

@@ -89,6 +89,36 @@
 - Dirty arbiter: create its PID file in the temporary directory with mode
   0600, and only use it to stop an orphaned arbiter when this user created
   it and the process is ours. A file left there by someone else is ignored.
+- ASGI: stop reading from the socket while more than 256 KiB of request body
+  or pipelined data waits for the application, and resume as it reads; uWSGI
+  request bodies are read as the application asks for them.
+- HTTP/2: close the connection with ENHANCE_YOUR_CALM when a peer sends more
+  than 1000 PING, SETTINGS or empty DATA frames in 10 seconds, as already done
+  for RST_STREAM floods.
+- HTTP/2, sync workers: close the connection with ENHANCE_YOUR_CALM when more
+  than 10000 frames pile up while a response waits for window credit.
+- WebSocket: fail the connection on frames RFC 6455 forbids: a new message
+  inside a fragmented one, reserved opcodes, lengths not minimally encoded,
+  malformed close frames (1002), and text or close reasons that are not UTF-8
+  (1007) (RFC 6455 §5.2, §5.4, §5.5.1, §7.4, §8.1). An empty client close is
+  answered with 1000 instead of the reserved 1005.
+- WebSocket: refuse a handshake without `Sec-WebSocket-Version: 13` with 426
+  (and the supported version), and one whose key is not 16 bytes of base64
+  with 400 (RFC 6455 §4.2.1, §4.2.2).
+- WebSocket: refuse a handshake the application closes or never accepts with
+  an HTTP 403 (500 if it raised), as ASGI requires, instead of writing a
+  WebSocket close frame on a connection that never switched protocols.
+- WebSocket: wait while the client is not reading before sending a message,
+  as HTTP responses already do, so a slow client cannot grow the worker's
+  write buffer.
+- WebSocket: `send()` after the connection closed raises an `OSError`
+  subclass, as ASGI 2.4 asks; it is still a `RuntimeError`, so existing
+  handlers keep working, and gunicorn no longer logs it as an error. HTTP
+  sends after a disconnect stay silently ignored.
+- Dirty apps: bound every stream read by the idle timeout and the total
+  timeout, and drop the connection when one fires, so a late chunk is never
+  read by the next call. A sync stream's idle timeout is no longer replaced
+  by a fixed 5 seconds.
 
 ## 26.2.2 - 2026-09-06
 

@@ -55,6 +55,17 @@ def _import_h2():
 RST_STREAM_RATE_LIMIT = 200
 RST_STREAM_RATE_WINDOW = 10.0
 
+# PING, SETTINGS and empty DATA frames a peer may send per window before
+# the connection is closed with ENHANCE_YOUR_CALM. Each costs work and
+# carries no request; a real client sends a handful.
+CONTROL_FRAME_RATE_LIMIT = 1000
+CONTROL_FRAME_RATE_WINDOW = 10.0
+
+# Events the sync worker may set aside for the main loop while it waits for
+# window credit. A peer that withholds WINDOW_UPDATE and keeps sending
+# frames must not grow that queue without end.
+MAX_DEFERRED_EVENTS = 10000
+
 
 class HTTP2ServerConnection:
     """HTTP/2 server-side connection handler.
@@ -91,6 +102,7 @@ class HTTP2ServerConnection:
         # for the main receive loop rather than discarded.
         self._deferred_events = collections.deque()
         self._reset_times = collections.deque()
+        self._control_times = collections.deque()
 
         # Requests that arrived while a request body was being pulled
         # off the socket; handed to the worker on its next call.
@@ -342,6 +354,9 @@ class HTTP2ServerConnection:
         Returns:
             HTTP2Request if a request is complete, None otherwise
         """
+        if self._is_control_frame(event):
+            self._count_control_frame()
+
         if isinstance(event, _h2_events.RequestReceived):
             return self._handle_request_received(event)
 
@@ -525,6 +540,31 @@ class HTTP2ServerConnection:
                 pass
             self._abort_all_streams()
             raise HTTP2ProtocolError("RST_STREAM rate exceeded")
+
+    @staticmethod
+    def _is_control_frame(event):
+        """PING, SETTINGS, or a DATA frame with no data that does not end
+        its stream: frames that carry no request."""
+        if isinstance(event, (_h2_events.PingReceived, _h2_events.RemoteSettingsChanged)):
+            return True
+        return (isinstance(event, _h2_events.DataReceived) and not event.data
+                and getattr(event, "stream_ended", None) is None)
+
+    def _count_control_frame(self):
+        """Close the connection when the peer sends control frames at flood rate."""
+        now = time.monotonic()
+        self._control_times.append(now)
+        while self._control_times and now - self._control_times[0] > CONTROL_FRAME_RATE_WINDOW:
+            self._control_times.popleft()
+        if len(self._control_times) > CONTROL_FRAME_RATE_LIMIT:
+            self._closed = True
+            try:
+                self.h2_conn.close_connection(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                self._send_pending_data()
+            except Exception:
+                pass
+            self._abort_all_streams()
+            raise HTTP2ProtocolError("control frame rate exceeded")
 
     def _abort_all_streams(self):
         """The connection is gone: wake every stream still waiting on it."""
@@ -736,6 +776,14 @@ class HTTP2ServerConnection:
                     self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
                     return -1
                 for event in events:
+                    if isinstance(event, (_h2_events.PingReceived,
+                                          _h2_events.RemoteSettingsChanged)):
+                        # h2 has already answered it and the main loop does
+                        # nothing with it: count it here instead of setting
+                        # it aside. Empty DATA frames go to the main loop,
+                        # which counts them (their padding is credited there).
+                        self._count_control_frame()
+                        continue
                     if (isinstance(event, _h2_events.StreamReset)
                             and event.stream_id == stream_id):
                         self._handle_stream_reset(event)
@@ -746,6 +794,10 @@ class HTTP2ServerConnection:
                         # h2 state machine, so dropping it here would lose
                         # a request or its body for good.
                         self._deferred_events.append(event)
+                        if len(self._deferred_events) > MAX_DEFERRED_EVENTS:
+                            self.close(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                            self._abort_all_streams()
+                            return -1
                 self._send_pending_data()
         finally:
             sel.close()

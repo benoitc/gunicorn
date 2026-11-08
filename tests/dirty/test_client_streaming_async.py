@@ -261,3 +261,30 @@ class TestDirtyAsyncStreamTimeout:
 
         with pytest.raises(DirtyTimeoutError):
             await iterator.__anext__()
+
+
+class TestDirtyAsyncStreamTimeoutBounds:
+    """Every read is bounded, and a timeout drops the connection."""
+
+    @pytest.mark.asyncio
+    async def test_idle_timeout_applies_with_time_left(self):
+        """With a long total timeout, a short idle timeout still fires."""
+        from gunicorn.dirty.client import DirtyAsyncStreamIterator
+
+        class StalledReader:
+            async def readexactly(self, n):
+                await asyncio.sleep(10)
+
+        client = DirtyClient("/tmp/test.sock", timeout=60)
+        client._reader = StalledReader()
+        writer = MockAsyncWriter()
+        client._writer = writer
+        iterator = DirtyAsyncStreamIterator(client, "test:App", "gen", (), {},
+                                            idle_timeout=0.02)
+        start = asyncio.get_event_loop().time()
+        with pytest.raises(DirtyTimeoutError):
+            await iterator.__anext__()
+        assert asyncio.get_event_loop().time() - start < 2
+        # The connection is dropped so late frames are never read later.
+        assert writer.closed
+        assert client._reader is None and client._writer is None

@@ -91,6 +91,10 @@ class TestWebSocketConnectionRejection:
         await protocol._send({"type": "websocket.close", "code": 1000})
 
         assert protocol.closed is True
+        written = b"".join(c.args[0] for c in protocol.transport.write.call_args_list)
+        assert written.startswith(b"HTTP/1.1 403 Forbidden\r\n")
+        assert b"\x88" not in written  # no WebSocket close frame
+        protocol.transport.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_with_custom_code(self):
@@ -663,3 +667,167 @@ async def test_unread_messages_are_bounded():
     protocol, transport, _ = await _run_ws(frames, receive_all=False)
     assert protocol._receive_queue.qsize() <= RECEIVE_QUEUE_HIGH_WATER + 1
     assert transport.pause_reading.called
+
+
+# ============================================================================
+# RFC 6455 frame rules
+# ============================================================================
+
+
+def _raw_client_frame(first, length_bytes, payload):
+    """A masked frame with a hand-built length field."""
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    return bytes([first]) + length_bytes + mask + masked
+
+
+_CLOSE_1000 = _client_frame(0x8, struct.pack("!H", 1000))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("frames, code", [
+    # 5.4: a new data frame while a fragmented message is unfinished
+    ([_client_frame(0x1, b"he", fin=False), _client_frame(0x1, b"llo")], 1002),
+    # 5.2: reserved opcodes
+    ([_client_frame(0x3, b"x")], 1002),
+    ([_client_frame(0xB, b"x")], 1002),
+    # 5.2: non-minimal 16-bit length, non-minimal 64-bit length, MSB set
+    ([_raw_client_frame(0x82, bytes([0x80 | 126]) + struct.pack("!H", 5), b"hello")], 1002),
+    ([_raw_client_frame(0x82, bytes([0x80 | 127]) + struct.pack("!Q", 5), b"hello")], 1002),
+    ([_raw_client_frame(0x82, bytes([0x80 | 127]) + struct.pack("!Q", 1 << 63), b"")], 1002),
+    # 5.5.1 / 7.4: close body of one byte, reserved or out-of-range codes
+    ([_client_frame(0x8, b"\x03")], 1002),
+    ([_client_frame(0x8, struct.pack("!H", 1005))], 1002),
+    ([_client_frame(0x8, struct.pack("!H", 999))], 1002),
+    ([_client_frame(0x8, struct.pack("!H", 2000))], 1002),
+    # 8.1: invalid UTF-8 in a close reason or a text message
+    ([_client_frame(0x8, struct.pack("!H", 1000) + b"\xff")], 1007),
+    ([_client_frame(0x1, b"\xff\xfe"), _CLOSE_1000], 1007),
+], ids=["interleaved", "opcode-3", "opcode-b", "len16-minimal", "len64-minimal",
+        "len64-msb", "close-1-byte", "close-1005", "close-999", "close-2000",
+        "close-reason-utf8", "text-utf8"])
+async def test_invalid_frames_fail_the_connection(frames, code):
+    _, transport, received = await _run_ws(frames, max_message_size=0)
+    assert _close_codes(transport)[-1] == code, _close_codes(transport)
+    assert not any(m["type"] == "websocket.receive" for m in received)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("close, reply", [
+    (_client_frame(0x8, struct.pack("!H", 1000)), 1000),
+    (_client_frame(0x8, struct.pack("!H", 4001) + b"bye"), 4001),
+    (_client_frame(0x8, b""), 1000),
+], ids=["1000", "4001-with-reason", "empty"])
+async def test_valid_close_is_answered(close, reply):
+    """A valid client close is echoed as before; an empty one gets 1000,
+    since 1005 must never be sent."""
+    _, transport, received = await _run_ws([close], max_message_size=0)
+    assert _close_codes(transport) == [reply]
+    assert received[-1]["type"] == "websocket.disconnect"
+
+
+@pytest.mark.asyncio
+async def test_fragmented_text_with_control_frame_between_is_delivered():
+    """A ping between fragments is allowed (5.4); the message arrives whole."""
+    frames = [_client_frame(0x1, b"hel", fin=False), _client_frame(0x9, b"p"),
+              _client_frame(0x0, b"lo"), _CLOSE_1000]
+    _, _, received = await _run_ws(frames, max_message_size=0)
+    assert received[0] == {"type": "websocket.receive", "text": "hello"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("behaviour, status", [
+    ("return", b"403"), ("raise", b"500"),
+], ids=["returns-without-accept", "raises-before-accept"])
+async def test_app_ending_before_accept_gets_http_response(behaviour, status):
+    """ASGI: a handshake the app never accepts is refused with HTTP."""
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    async def app(scope, receive, send):
+        await receive()
+        if behaviour == "raise":
+            raise ValueError("boom")
+
+    transport = mock.Mock()
+    protocol = WebSocketProtocol(
+        transport=transport,
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=app, log=mock.Mock())
+    await asyncio.wait_for(protocol.run(), timeout=2)
+    written = b"".join(c.args[0] for c in transport.write.call_args_list)
+    assert written.startswith(b"HTTP/1.1 " + status), written
+
+
+@pytest.mark.asyncio
+async def test_send_waits_while_the_client_is_not_reading():
+    """websocket.send waits for the transport to drain, like an HTTP
+    response, so a slow client does not grow the write buffer."""
+    import asyncio
+    from gunicorn.asgi.protocol import FlowControl
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    transport = mock.Mock()
+    flow = FlowControl(transport)
+    protocol = WebSocketProtocol(
+        transport=transport,
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=mock.AsyncMock(), log=mock.Mock(), drain=flow.drain)
+    await protocol._send({"type": "websocket.accept"})
+    writes = transport.write.call_count
+
+    flow.pause_writing()
+    send = asyncio.ensure_future(protocol._send({"type": "websocket.send", "bytes": b"x"}))
+    await asyncio.sleep(0.01)
+    assert not send.done()
+    assert transport.write.call_count == writes
+
+    flow.resume_writing()
+    await asyncio.wait_for(send, timeout=1)
+    assert transport.write.call_count == writes + 1
+
+
+@pytest.mark.asyncio
+async def test_send_after_close_raises_an_oserror_that_is_still_a_runtimeerror():
+    """ASGI 2.4: send on a closed connection raises an OSError subclass;
+    it stays a RuntimeError for code written against older gunicorn."""
+    from gunicorn.asgi.protocol import ClientDisconnected
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    protocol = WebSocketProtocol(
+        transport=mock.Mock(),
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=mock.AsyncMock(), log=mock.Mock())
+    await protocol._send({"type": "websocket.accept"})
+    protocol.closed = True
+    with pytest.raises(ClientDisconnected) as info:
+        await protocol._send({"type": "websocket.send", "text": "x"})
+    assert isinstance(info.value, OSError)
+    assert isinstance(info.value, RuntimeError)
+
+
+@pytest.mark.asyncio
+async def test_send_after_close_escaping_the_app_is_not_logged_as_error():
+    import asyncio
+    from gunicorn.asgi.websocket import WebSocketProtocol
+
+    ref = []
+
+    async def app(scope, receive, send):
+        await receive()
+        await send({"type": "websocket.accept"})
+        ref[0].closed = True
+        await send({"type": "websocket.send", "text": "late"})
+
+    log = mock.Mock()
+    protocol = WebSocketProtocol(
+        transport=mock.Mock(),
+        scope={"type": "websocket",
+               "headers": [(b"sec-websocket-key", b"dGhlIHNhbXBsZSBub25jZQ==")]},
+        app=app, log=log)
+    ref.append(protocol)
+    await asyncio.wait_for(protocol.run(), timeout=2)
+    log.exception.assert_not_called()

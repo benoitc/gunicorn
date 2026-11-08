@@ -281,13 +281,30 @@ def test_headers_reset_flood_leaves_the_worker_serving(server, client):
     assert server.tracebacks() == 0
 
 
-def test_control_frame_flood_does_not_wedge_the_connection(server, client):
-    for _ in range(20000):
+def test_some_pings_leave_the_connection_serving(server, client):
+    for _ in range(500):
         client.conn.ping(b"12345678")
     client.flush()
     client.request(1)
     client.read(_ended(), timeout=10)
     assert _response_status(client.events) == "200"
+    assert server.tracebacks() == 0
+
+
+def test_control_frame_flood_closes_with_enhance_your_calm(server, client):
+    """More PING frames than the limit allows close the connection with
+    GOAWAY(ENHANCE_YOUR_CALM), the same answer as a RST_STREAM flood."""
+    for _ in range(20000):
+        client.conn.ping(b"12345678")
+    try:
+        client.flush()
+    except (BrokenPipeError, ConnectionResetError):
+        pass
+    client.read(lambda evs: "EOF" in evs or any(
+        isinstance(e, h2.events.ConnectionTerminated) for e in evs), timeout=10)
+    terminated = [e for e in client.events if isinstance(e, h2.events.ConnectionTerminated)]
+    assert terminated, client.kinds()[-5:]
+    assert terminated[0].error_code == h2.errors.ErrorCodes.ENHANCE_YOUR_CALM
     assert server.tracebacks() == 0
 
 
@@ -329,3 +346,24 @@ def test_disconnect_listener_does_not_spin(server, client):
     client.read(_ended(3), timeout=5)
     assert _response_status(client.events, 3) == "200"
     assert server.tracebacks() == 0
+
+
+@pytest.mark.parametrize("module", ["gunicorn.http2.connection", "gunicorn.http2.async_connection"])
+def test_what_counts_as_a_control_frame(module):
+    """PING, SETTINGS and empty DATA that does not end its stream count
+    against the limit; requests, real data and stream ends do not."""
+    import importlib
+    mod = importlib.import_module(module)
+    mod._import_h2()
+    cls = mod.HTTP2ServerConnection if hasattr(mod, "HTTP2ServerConnection") else mod.AsyncHTTP2Connection
+    ev = h2.events
+    empty = ev.DataReceived(stream_id=1, data=b"", flow_controlled_length=0)
+    ending = ev.DataReceived(stream_id=1, data=b"", flow_controlled_length=0,
+                             stream_ended=ev.StreamEnded(stream_id=1))
+    full = ev.DataReceived(stream_id=1, data=b"x", flow_controlled_length=1)
+    assert cls._is_control_frame(ev.PingReceived(ping_data=b"12345678"))
+    assert cls._is_control_frame(ev.RemoteSettingsChanged())
+    assert cls._is_control_frame(empty)
+    assert not cls._is_control_frame(ending)
+    assert not cls._is_control_frame(full)
+    assert not cls._is_control_frame(ev.RequestReceived(stream_id=1, headers=[]))
