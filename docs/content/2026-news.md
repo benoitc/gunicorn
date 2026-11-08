@@ -119,6 +119,9 @@
   timeout, and drop the connection when one fires, so a late chunk is never
   read by the next call. A sync stream's idle timeout is no longer replaced
   by a fixed 5 seconds.
+- ASGI: read the settings needed on every request once per connection, and
+  decide once per connection whether the peer may set forwarded headers,
+  instead of on every request.
 
 ## 26.2.2 - 2026-09-06
 

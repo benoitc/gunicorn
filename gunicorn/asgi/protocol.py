@@ -115,9 +115,11 @@ class _RequestHeaderPolicy(HeaderPolicy):
         self.scheme = scheme
         self.version = version
 
-    def apply(self, request):
-        secure_scheme_headers, forwarder_headers = \
-            self._peer_trusted_for_forwarded()
+    def apply(self, request, trust=None):
+        """Apply the policy; ``trust`` is _peer_trusted_for_forwarded(),
+        passed in when the caller already knows it for this peer."""
+        secure_scheme_headers, forwarder_headers = (
+            trust if trust is not None else self._peer_trusted_for_forwarded())
         scheme_state = [False]
         seen = set()
         keep = []
@@ -441,6 +443,10 @@ class BodyReceiver:
             self._closed = True
 
 
+def _no_request_hook(*args):
+    """Stand-in for pre_request/post_request when a config has none."""
+
+
 class ASGIProtocol(asyncio.Protocol):
     """HTTP/1.1 protocol handler for ASGI applications.
 
@@ -459,9 +465,23 @@ class ASGIProtocol(asyncio.Protocol):
 
     def __init__(self, worker):
         self.worker = worker
-        self.cfg = worker.cfg
+        self.cfg = cfg = worker.cfg
         self.log = worker.log
         self.app = worker.asgi
+        # Settings read on every request, read once per connection instead.
+        # A configuration reload starts new workers, so they cannot change
+        # under a live connection.
+        # getattr with the settings' defaults: a partial config (tests,
+        # embedders) used to work as long as these were not needed.
+        self._keepalive = getattr(cfg, "keepalive", 2)
+        self._root_path = getattr(cfg, "root_path", "") or ""
+        self._pre_request = getattr(cfg, "pre_request", _no_request_hook)
+        self._post_request = getattr(cfg, "post_request", _no_request_hook)
+        self._uses_uwsgi = getattr(cfg, "protocol", "http") == "uwsgi"
+        self._proxy_protocol = getattr(cfg, "proxy_protocol", "off")
+        # (secure_scheme_headers, forwarder_headers) this peer may set,
+        # decided on the first request: the peer cannot change either.
+        self._forwarded_trust = None
         # Tasks serving HTTP/2 streams on this connection
         self._h2_tasks = set()
         # Stand-in protocol behind the HTTP/2 StreamWriter; drain() waits on it
@@ -712,10 +732,13 @@ class ASGIProtocol(asyncio.Protocol):
             self._callback_parser, is_ssl=self._is_ssl
         )
         request = self._current_request
-        _RequestHeaderPolicy(
+        policy = _RequestHeaderPolicy(
             self.cfg, self.transport.get_extra_info('peername'),
             request.scheme, request.version,
-        ).apply(request)
+        )
+        if self._forwarded_trust is None:
+            self._forwarded_trust = policy._peer_trusted_for_forwarded()
+        policy.apply(request, self._forwarded_trust)
 
         # Create body receiver for this request
         self._body_receiver = BodyReceiver(self._current_request, self)
@@ -964,7 +987,7 @@ class ASGIProtocol(asyncio.Protocol):
         """Arm keepalive timeout timer after response completion."""
         if self._keepalive_handle:
             self._keepalive_handle.cancel()
-        keepalive_timeout = self.cfg.keepalive
+        keepalive_timeout = self._keepalive
         if keepalive_timeout > 0:
             self._keepalive_handle = self.worker.loop.call_later(
                 keepalive_timeout, self._keepalive_timeout
@@ -1160,7 +1183,7 @@ class ASGIProtocol(asyncio.Protocol):
                     break
 
                 # Check connection limits for keepalive
-                if not self.cfg.keepalive:
+                if not self._keepalive:
                     break
 
                 # Refuse keepalive if the previous request body was not fully
@@ -1266,7 +1289,7 @@ class ASGIProtocol(asyncio.Protocol):
             if not keepalive or not self.worker.alive:
                 break
 
-            if not self.cfg.keepalive:
+            if not self._keepalive:
                 break
 
             await request.drain_body()
@@ -1356,7 +1379,7 @@ class ASGIProtocol(asyncio.Protocol):
         omits_body_warned = False
         response_requires_close = False
         response_length = None
-        uses_uwsgi = getattr(self.cfg, "protocol", "http") == "uwsgi"
+        uses_uwsgi = self._uses_uwsgi
 
         # Reset response buffer for write batching
         self._response_buffer = None
@@ -1530,7 +1553,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         try:
             request_start = time.monotonic()
-            self.cfg.pre_request(self.worker, request)
+            self._pre_request(self.worker, request)
 
             await self.app(scope, body_receiver.receive, send)
 
@@ -1584,7 +1607,7 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     environ = None
                     resp = None
-                self.cfg.post_request(self.worker, request, environ, resp)
+                self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -1610,7 +1633,7 @@ class ASGIProtocol(asyncio.Protocol):
         if request.should_close():
             return True
 
-        if not (self.worker.alive and self.cfg.keepalive):
+        if not (self.worker.alive and self._keepalive):
             return True
 
         # This response trips max_requests recycling; the loop closes the
@@ -1646,7 +1669,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
@@ -1711,7 +1734,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": request.raw_path if request.raw_path else b"",
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
@@ -1820,7 +1843,7 @@ class ASGIProtocol(asyncio.Protocol):
         ``proxy_allow_ips`` (defense-in-depth: ``_setup_callback_parser``
         already disables PROXY parsing for untrusted peers).
         """
-        if getattr(self.cfg, 'proxy_protocol', 'off') == 'off':
+        if self._proxy_protocol == 'off':
             return peername
         if not _check_trusted_proxy(
             peername,
@@ -2029,7 +2052,7 @@ class ASGIProtocol(asyncio.Protocol):
             # opened meanwhile are refused.
             loop = self.worker.loop
             idle_since = None
-            keepalive = self.cfg.keepalive or None
+            keepalive = self._keepalive or None
             while not h2_conn.is_closed:
                 if (not self.worker.alive or h2_conn.draining) and not self._h2_tasks:
                     break
@@ -2360,7 +2383,7 @@ class ASGIProtocol(asyncio.Protocol):
         request_start = time.monotonic()
 
         try:
-            self.cfg.pre_request(self.worker, request)
+            self._pre_request(self.worker, request)
             await self.app(scope, receive, send)
 
             if exc_to_raise is not None:
@@ -2407,7 +2430,7 @@ class ASGIProtocol(asyncio.Protocol):
                 else:
                     environ = None
                     resp = None
-                self.cfg.post_request(self.worker, request, environ, resp)
+                self._post_request(self.worker, request, environ, resp)
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
@@ -2432,7 +2455,7 @@ class ASGIProtocol(asyncio.Protocol):
             "path": request.path,
             "raw_path": getattr(request, 'raw_path', None) or (request.path.encode("latin-1") if request.path else b""),
             "query_string": request.query.encode("latin-1") if request.query else b"",
-            "root_path": self.cfg.root_path or "",
+            "root_path": self._root_path,
             "headers": headers,
             "server": server,
             "client": client,
