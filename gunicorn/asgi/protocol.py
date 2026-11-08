@@ -1243,17 +1243,6 @@ class ASGIProtocol(asyncio.Protocol):
             # Transport is closing/closed or None
             pass
 
-    def _safe_writelines(self, parts):
-        """Write several buffers in one call without joining them; errors
-        are handled as in _safe_write()."""
-        try:
-            self.transport.writelines(parts)
-        except OSError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
-                self.log.exception("Socket error writing response.")
-        except (RuntimeError, AttributeError):
-            pass
-
     async def _handle_connection(self):
         """Main request handling loop using callback-based parser.
 
@@ -1670,7 +1659,8 @@ class ASGIProtocol(asyncio.Protocol):
                     body = body[:max(response_length - response_sent, 0)]
 
                 if body:
-                    self._send_body(body, chunked=use_chunked)
+                    # The last chunk carries the chunked terminator.
+                    self._send_body(body, use_chunked, not more_body)
                     response_sent += len(body)
                     # Apply write backpressure for streaming responses. The
                     # writable event is set whenever writing is not paused,
@@ -1680,7 +1670,9 @@ class ASGIProtocol(asyncio.Protocol):
                         await flow_control.drain()
 
                 if not more_body:
-                    if use_chunked:
+                    if use_chunked and body:
+                        pass  # _send_body() wrote the terminator
+                    elif use_chunked:
                         # Send terminal chunk, combined with any buffered headers
                         if self._response_buffer:
                             self._safe_write(self._response_buffer + b"0\r\n\r\n")
@@ -2043,39 +2035,43 @@ class ASGIProtocol(asyncio.Protocol):
             if (n.lower() if isinstance(n, str) else n.lower()) not in forbidden
         ]
 
-    def _send_body(self, body, chunked=False):
+    def _send_body(self, body, chunked=False, last=False):
         """Send response body chunk.
 
-        Combines buffered headers with first body chunk for efficient write batching.
+        Combines buffered headers with the first body chunk, and with
+        ``last`` the final chunk with the chunked terminator, so each goes
+        out in one write. A large body is handed over without being joined
+        to its framing (see _NO_COPY_BODY_SIZE).
         """
-        if chunked:
-            if body:
+        buffer = self._response_buffer
+        if buffer:
+            self._response_buffer = None
+        transport = self.transport
+        try:
+            if chunked and body:
                 # Chunked encoding: size in hex + CRLF + data + CRLF
                 # Use pre-cached prefix for common sizes, else format
                 size = len(body)
                 prefix = _CHUNK_PREFIXES.get(size) or f"{size:x}\r\n".encode("latin-1")
-                if self._response_buffer:
-                    parts = (self._response_buffer, prefix, body, b"\r\n")
-                    self._response_buffer = None
-                else:
-                    parts = (prefix, body, b"\r\n")
+                tail = b"\r\n0\r\n\r\n" if last else b"\r\n"
+                parts = (buffer, prefix, body, tail) if buffer else (prefix, body, tail)
                 if size >= _NO_COPY_BODY_SIZE:
-                    self._safe_writelines(parts)
+                    transport.writelines(parts)
                 else:
-                    self._safe_write(b"".join(parts))
-            elif self._response_buffer:
-                self._safe_write(self._response_buffer)
-                self._response_buffer = None
-        else:
-            # Non-chunked: combine headers + body or just body
-            if self._response_buffer:
+                    transport.write(b"".join(parts))
+            elif buffer:
                 if len(body) >= _NO_COPY_BODY_SIZE:
-                    self._safe_writelines((self._response_buffer, body))
+                    transport.writelines((buffer, body))
                 else:
-                    self._safe_write(self._response_buffer + body)
-                self._response_buffer = None
+                    transport.write(buffer + body)
             elif body:
-                self._safe_write(body)
+                transport.write(body)
+        except OSError as e:
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                self.log.exception("Socket error writing response.")
+        except (RuntimeError, AttributeError):
+            # Transport is closing/closed or None
+            pass
 
     def _send_error_response(self, status, message, extra_headers=()):
         """Send an error response."""

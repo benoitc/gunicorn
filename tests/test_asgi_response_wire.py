@@ -258,3 +258,15 @@ async def test_large_chunk_is_not_copied(http_parser):
     assert any(buf is LARGE for buf in transport.buffers)
     # A small chunk still goes out in one buffer with the headers.
     assert transport.buffers[0].endswith(b"\r\n\r\n1000\r\n" + SMALL_CHUNK + b"\r\n")
+
+
+@pytest.mark.asyncio
+async def test_last_chunk_and_terminator_go_out_together(http_parser):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ab", "more_body": True})
+        await send({"type": "http.response.body", "body": b"cd"})
+
+    transport, _, body = await _serve(http_parser, app)
+    assert body == b"2\r\nab\r\n2\r\ncd\r\n0\r\n\r\n"
+    assert transport.buffers[-1] == b"2\r\ncd\r\n0\r\n\r\n"
