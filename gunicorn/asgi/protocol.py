@@ -324,7 +324,8 @@ class BodyReceiver:
     """
 
     __slots__ = ('_chunks', '_buffered', '_source', '_complete', '_body_finished',
-                 '_closed', '_body_wait_expired', '_waiter', 'request', 'protocol')
+                 '_closed', '_body_wait_expired', '_waiter', 'request', 'protocol',
+                 'expect_continue')
 
     def __init__(self, request, protocol):
         self.request = request
@@ -347,10 +348,16 @@ class BodyReceiver:
         self._closed = False
         self._body_wait_expired = False
         self._waiter = None
+        # RFC 9110 section 10.1.1: the client may hold the body back until it
+        # sees a 100 (Continue). It goes out when the app first asks for the
+        # body; a final response sent before that clears it.
+        self.expect_continue = getattr(request, '_expect_100_continue', False) is True
 
     def feed(self, chunk):
         """Feed a body chunk directly (called by parser callback)."""
         if chunk:
+            # The client sent the body without waiting: no 100 is needed.
+            self.expect_continue = False
             self._chunks.append(chunk)
             self._buffered += len(chunk)
             self._wake_waiter()
@@ -420,6 +427,10 @@ class BodyReceiver:
             self._complete = True
             self._body_finished = True
             return {"type": "http.request", "body": b"", "more_body": False}
+
+        if self.expect_continue:
+            self.expect_continue = False
+            self.protocol._safe_write(b"HTTP/1.1 100 Continue\r\n\r\n")
 
         # Wait for body chunk to arrive via callback.  A real disconnect or a
         # body-wait expiry is surfaced by _wait_for_data via _disconnected; a
@@ -1483,6 +1494,8 @@ class ASGIProtocol(asyncio.Protocol):
                 info_headers = message.get("headers", [])
                 _validate_response_headers(info_headers)
                 self._send_informational(info_status, info_headers, request)
+                if info_status == 100 and body_receiver is not None:
+                    body_receiver.expect_continue = False
                 return
 
             if msg_type == "http.response.start":
@@ -1496,6 +1509,10 @@ class ASGIProtocol(asyncio.Protocol):
                     _scan_response_headers(response_headers)
                 response_started = True
                 response_status = message["status"]
+                if body_receiver is not None:
+                    # A final status before the body was asked for: the
+                    # client gets no 100 (RFC 9110 section 10.1.1).
+                    body_receiver.expect_continue = False
                 if has_transfer_encoding:
                     use_chunked = True  # Framework already set chunked encoding
 

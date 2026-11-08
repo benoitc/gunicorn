@@ -1045,7 +1045,10 @@ class CallbackRequest:
                 expect_continue = True
             headers.append((name.decode('latin-1').upper(), value.decode('latin-1')))
         req.headers = headers
-        req._expect_100_continue = expect_continue
+        # RFC 9110 section 10.1.1: "A server that receives a 100-continue
+        # expectation in an HTTP/1.0 request MUST ignore that expectation."
+        req._expect_100_continue = (
+            expect_continue and req.version is not None and req.version >= (1, 1))
 
         req.scheme = 'https' if is_ssl else 'http'
         req.content_length = parser.content_length or 0
