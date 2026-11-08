@@ -811,3 +811,24 @@ def test_chunked_body_content_and_pipelined_request(chunks):
     req = next(parser)
     assert req.body.read() == b"".join(chunks)
     assert next(parser).path == "/next"
+
+
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+def test_connect_ends_the_connection(http_parser):
+    """RFC 9931 section 8: what follows a CONNECT is tunnel data; it is never
+    served as another request, whatever the application answered."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    data = (b"CONNECT no-such.example:443 HTTP/1.1\r\nHost: no-such.example:443\r\n\r\n"
+            b"POST /upload HTTP/1.1\r\nHost: proxy.example\r\nContent-Length: 0\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    assert req.method == "CONNECT"
+    assert req.should_close()
+    with pytest.raises(StopIteration):
+        next(parser)

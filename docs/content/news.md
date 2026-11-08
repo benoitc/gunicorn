@@ -75,6 +75,8 @@
 - Docs: fix the worker types link in the `worker_class` setting.
 - Docs: explain that `timeout` watches each worker's heartbeat, which idle
   workers keep updating.
+- Close the connection after a CONNECT request, whatever the application
+  answers; what follows is never served as another request (RFC 9931 §8).
 - Join repeated request headers in linear time when building the WSGI
   environ; many copies of one header used to take time growing with the
   square of their number.

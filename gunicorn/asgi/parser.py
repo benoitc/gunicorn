@@ -1055,6 +1055,11 @@ class CallbackRequest:
         """Check if connection should be closed after this request."""
         if self.must_close:
             return True
+        # RFC 9931 section 8: after a CONNECT the bytes on the connection are
+        # tunnel data whatever the application answered, never another
+        # HTTP/1.1 request to serve.
+        if self.method == "CONNECT":
+            return True
         for name, value in self.headers:
             if name == "CONNECTION":
                 v = value.lower().strip(" \t")

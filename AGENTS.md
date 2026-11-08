@@ -153,7 +153,7 @@ Last checked: 2026-11-07.
 |---|---|---|
 | RFC 9110 HTTP Semantics | methods, status codes, fields, Content-Length, Expect, trailers | `http/`, `asgi/`, `http2/` |
 | RFC 9112 HTTP/1.1 | request line, field parsing, chunked coding, keep-alive, 414 | `http/message.py`, `http/body.py`, `asgi/parser.py` |
-| RFC 9931 Optimistic protocol transitions (updates RFC 9112) | bytes sent after an `Upgrade` request (h2c, WebSocket); not yet reviewed against the code | `http2/negotiation.py`, `asgi/protocol.py` |
+| RFC 9931 Optimistic protocol transitions (updates RFC 9112) | a CONNECT always ends the connection (§8); a rejected `Upgrade` keeps HTTP/1.1 (§5) | `http/message.py`, `asgi/parser.py` |
 | RFC 9113 HTTP/2 | frames, streams, flow control, SETTINGS, GOAWAY, prior-knowledge h2c (§3.3) | `http2/` |
 | RFC 7540 §3.2 HTTP/2 Upgrade (obsoleted by RFC 9113) | `Upgrade: h2c` from HTTP/1.1, kept for compatibility; RFC 9113 deprecates it | `http2/negotiation.py` |
 | RFC 7541 HPACK | header compression (through `h2`) | `h2` |

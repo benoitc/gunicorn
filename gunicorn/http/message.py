@@ -469,6 +469,11 @@ class Message(HeaderPolicy):
     def should_close(self):
         if self.must_close:
             return True
+        # RFC 9931 section 8: after a CONNECT the bytes on the connection are
+        # tunnel data whatever the application answered, never another
+        # HTTP/1.1 request to serve.
+        if getattr(self, "method", None) == "CONNECT":
+            return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
                 v = v.lower().strip(" \t")
