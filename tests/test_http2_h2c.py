@@ -1618,9 +1618,12 @@ class TestH2CASGIStreamingPaths:
         try:
             _post_headers(client, 1, "/first", end_stream=True)
             proto.data_received(client.data_to_send())
-            # Enough control frames in one delivery to trip the reader limit
-            for _ in range(proto._max_buffer_size // 17 + 1):
-                client.ping(b"12345678")
+            # Enough frames in one delivery to trip the reader limit.
+            # WINDOW_UPDATE (13 bytes) rather than PING: PING frames count
+            # against the control frame limit and would close the
+            # connection before the reader pauses.
+            for _ in range(proto._max_buffer_size // 13 + 1):
+                client.increment_flow_control_window(1)
             proto.data_received(client.data_to_send())
             assert transport.paused is True
 

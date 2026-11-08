@@ -92,6 +92,9 @@
 - ASGI: stop reading from the socket while more than 256 KiB of request body
   or pipelined data waits for the application, and resume as it reads; uWSGI
   request bodies are read as the application asks for them.
+- HTTP/2: close the connection with ENHANCE_YOUR_CALM when a peer sends more
+  than 1000 PING, SETTINGS or empty DATA frames in 10 seconds, as already done
+  for RST_STREAM floods.
 
 ## 26.2.2 - 2026-09-06
 
