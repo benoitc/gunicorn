@@ -1651,9 +1651,12 @@ class ASGIProtocol(asyncio.Protocol):
                 if body:
                     self._send_body(body, chunked=use_chunked)
                     response_sent += len(body)
-                    # Apply write backpressure for streaming responses
-                    if self._flow_control:
-                        await self._flow_control.drain()
+                    # Apply write backpressure for streaming responses. The
+                    # writable event is set whenever writing is not paused,
+                    # so only a paused transport needs the await.
+                    flow_control = self._flow_control
+                    if flow_control is not None and flow_control.write_paused:
+                        await flow_control.drain()
 
                 if not more_body:
                     if use_chunked:
