@@ -23,7 +23,8 @@ import time
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.parser import (
     PythonProtocol, CallbackRequest, ParseError,
-    LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension
+    LimitRequestLine, LimitRequestHeaders, InvalidChunkExtension,
+    UnsupportedTransferCoding,
 )
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
 from gunicorn.http.errors import InvalidResponseHeader, InvalidResponseHeaderName, NoMoreData
@@ -599,6 +600,7 @@ class ASGIProtocol(asyncio.Protocol):
     _h1c_limit_request_headers = None  # Exception class from gunicorn_h1c >= 0.4.1
     _h1c_invalid_chunk_extension = None  # Exception class from gunicorn_h1c >= 0.6.3
     _h1c_parse_errors = ()  # Every other request error gunicorn_h1c raises
+    _h1c_unsupported_transfer_coding = None  # When gunicorn_h1c defines it
 
     def __init__(self, worker):
         self.worker = worker
@@ -772,6 +774,9 @@ class ASGIProtocol(asyncio.Protocol):
                 # Check for InvalidChunkExtension (>= 0.6.3)
                 cls._h1c_invalid_chunk_extension = getattr(
                     gunicorn_h1c, 'InvalidChunkExtension', None
+                )
+                cls._h1c_unsupported_transfer_coding = getattr(
+                    gunicorn_h1c, 'UnsupportedTransferCoding', None
                 )
                 # Any other malformed request. gunicorn_h1c raises two
                 # unrelated ParseError classes: the public one, base of
@@ -955,6 +960,11 @@ class ASGIProtocol(asyncio.Protocol):
             self._send_error_response(400, str(exc))
             self._close_transport()
             return True
+        h1c_unsupported_te = ASGIProtocol._h1c_unsupported_transfer_coding
+        if h1c_unsupported_te is not None and isinstance(exc, h1c_unsupported_te):
+            self._send_error_response(501, str(exc))  # RFC 9112 section 6.1
+            self._close_transport()
+            return True
         # Any other malformed request gets a 400, as with the Python parser
         # (RFC 9112 section 3, 5.1), instead of an unhandled exception that
         # dropped the connection without a response.
@@ -1043,7 +1053,7 @@ class ASGIProtocol(asyncio.Protocol):
             self._h2c_timer.cancel()
             self._h2c_timer = None
 
-    def _feed_callback_parser(self, data):
+    def _feed_callback_parser(self, data):  # pylint: disable=too-many-return-statements
         """Feed data to callback parser, handling parse errors.
 
         Returns True if parsing should continue, False if connection was closed.
@@ -1059,6 +1069,12 @@ class ASGIProtocol(asyncio.Protocol):
             return False
         except LimitRequestHeaders as e:
             self._send_error_response(431, str(e))  # Request Header Fields Too Large
+            self._close_transport()
+            return False
+        except UnsupportedTransferCoding as e:
+            # RFC 9112 section 6.1: a transfer coding the server does not
+            # understand SHOULD get 501, as the WSGI workers answer.
+            self._send_error_response(501, str(e))
             self._close_transport()
             return False
         except (InvalidChunkExtension, ParseError, HTTPParseException) as e:

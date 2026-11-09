@@ -408,6 +408,7 @@ class Message(HeaderPolicy):
 
     def set_body_reader(self):
         chunked = False
+        transfer_encoding = False
         content_length = None
 
         for (name, value) in self.headers:
@@ -416,6 +417,7 @@ class Message(HeaderPolicy):
                     raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
+                transfer_encoding = True
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
                 vals = [v.strip(" \t") for v in value.split(',')]
@@ -437,6 +439,13 @@ class Message(HeaderPolicy):
                         self.force_close()
                     else:
                         raise UnsupportedTransferCoding(value)
+
+        # RFC 9112 section 6.3: a request whose Transfer-Encoding does not
+        # end with chunked has no length that can be determined; it MUST be
+        # answered with 400, whatever Content-Length says. Reading it until
+        # the connection closes is only for responses.
+        if transfer_encoding and not chunked:
+            raise InvalidHeader("TRANSFER-ENCODING", req=self)
 
         if chunked:
             # two potentially dangerous cases:
@@ -575,6 +584,12 @@ class Request(Message):
             except _fast_parser_module.InvalidHeaderName as e:
                 raise InvalidHeaderName(str(e))
             except _fast_parser_module.InvalidHeader as e:
+                # A gunicorn_h1c that tells an unknown transfer coding apart
+                # gets the same 501 as the Python parser (RFC 9112 6.1).
+                unsupported = getattr(_fast_parser_module, "UnsupportedTransferCoding", None)
+                # pylint: disable-next=isinstance-second-argument-not-valid-type
+                if unsupported is not None and isinstance(e, unsupported):
+                    raise UnsupportedTransferCoding(str(e))
                 raise InvalidHeader(str(e))
             except _fast_parser_module.ParseError as e:
                 raise InvalidRequestLine(str(e))
