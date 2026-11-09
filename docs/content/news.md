@@ -137,6 +137,7 @@
 - The Python parsers now reject a line ended by a bare LF at once with 400, as gunicorn_h1c does; a head or trailer section ended that way used to leave the connection waiting for a CRLF until a limit or the timeout (RFC 9112 §2.2).
 - The Python parsers now reject a chunk extension that is not a name with an optional token or quoted-string value, such as one holding control characters or an unclosed quote (RFC 9112 §7.1.1).
 - The `fast` extra now requires gunicorn_h1c 0.6.13, which rejects a chunk extension holding a control character, as the Python parsers do (RFC 9112 §7.1.1).
+- The ASGI worker's Python parser now accepts whitespace between a chunk size and its extension, such as `1 ;a`, as RFC 9112 §7.1.1 allows and the WSGI workers already did.
 
 ## 26.2.2 - 2026-09-06
 

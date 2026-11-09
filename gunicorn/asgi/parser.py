@@ -836,7 +836,10 @@ class PythonProtocol:
                     chunk_ext = size_line[semicolon:]
                     if b'\r' in chunk_ext:
                         raise InvalidChunkExtension("bare CR not allowed")
-                    size_line = size_line[:semicolon]
+                    # RFC 9112 section 7.1.1: BWS may come before the ";"
+                    # of an extension, so only there may the size be
+                    # followed by SP or HTAB.
+                    size_line = size_line[:semicolon].rstrip(b' \t')
 
                 # Strict validation: reject leading/trailing whitespace
                 # to prevent parser desync (request smuggling vector)
