@@ -141,10 +141,6 @@ def test_unknown_coding_wsgi_python_is_501(raw):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("raw", list(UNKNOWN_CODINGS.values()), ids=list(UNKNOWN_CODINGS))
 async def test_unknown_coding_asgi_worker_is_501(http_parser, raw):
-    if http_parser == "fast":
-        import gunicorn_h1c
-        if not hasattr(gunicorn_h1c, "UnsupportedTransferCoding"):
-            pytest.xfail("gunicorn_h1c raises a plain InvalidHeader (400) for now")
     transport = await _asgi_response(http_parser, raw)
     assert transport.written.startswith(b"HTTP/1.1 501 Not Implemented\r\n")
     assert transport.closed

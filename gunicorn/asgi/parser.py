@@ -1113,7 +1113,8 @@ class CallbackRequest:
             elif name == b'expect' and value.lower() == b'100-continue':
                 expect_continue = True
         # RFC 9112 section 6.3: Transfer-Encoding must end with chunked.
-        # gunicorn_h1c (0.6.13 and earlier) frames such a body as empty.
+        # gunicorn_h1c before 0.6.14 framed such a body as empty, and the
+        # pip floor is not enforced at runtime.
         if transfer_encoding and not parser.is_chunked:
             raise InvalidHeader("Transfer-Encoding does not end with chunked")
         req._headers = None

@@ -6,7 +6,3 @@
 # chunked MUST get 400.
 from gunicorn.http.errors import InvalidHeader
 request = InvalidHeader
-# gunicorn_h1c 0.6.13 frames this body as empty instead of rejecting it;
-# gunicorn rejects it after parsing (CallbackRequest.from_parser), which
-# tests/test_transfer_encoding.py covers through the ASGI worker.
-python_only = True

@@ -78,19 +78,19 @@ def test_invalid_extension_rejected_asgi(size_line):
         _asgi(size_line)
 
 
-# gunicorn_h1c rejects a control character in an extension since 0.6.13,
-# but not yet the rest of the grammar.
-H1C_REJECTS = ("control character in name", "control character in value",
-               "DEL in name", "control character in quoted")
-
-
 @pytest.mark.parametrize("name", list(INVALID))
 def test_invalid_extension_rejected_gunicorn_h1c(name):
     gunicorn_h1c = pytest.importorskip("gunicorn_h1c")
-    if name not in H1C_REJECTS:
-        pytest.xfail("gunicorn_h1c does not check the rest of the extension grammar yet")
-    with pytest.raises(gunicorn_h1c.ParseError):
+    with pytest.raises(gunicorn_h1c.InvalidChunkExtension):
         gunicorn_h1c.H1CProtocol().feed(_request(INVALID[name]))
+
+
+@pytest.mark.parametrize("size_line", list(VALID.values()), ids=list(VALID))
+def test_valid_extension_accepted_gunicorn_h1c(size_line):
+    gunicorn_h1c = pytest.importorskip("gunicorn_h1c")
+    body = []
+    gunicorn_h1c.H1CProtocol(on_body=body.append).feed(_request(size_line))
+    assert b"".join(body) == b"x"
 
 
 BWS_BEFORE_EXTENSION = {
@@ -113,7 +113,6 @@ def test_bws_before_extension_accepted(size_line):
     assert _asgi(size_line) == b"x"
 
 
-@pytest.mark.xfail(reason="gunicorn_h1c rejects BWS before the first ';' yet")
 @pytest.mark.parametrize("size_line", list(BWS_BEFORE_EXTENSION.values()),
                          ids=list(BWS_BEFORE_EXTENSION))
 def test_bws_before_extension_accepted_gunicorn_h1c(size_line):
