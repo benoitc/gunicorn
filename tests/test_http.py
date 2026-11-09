@@ -695,6 +695,33 @@ def test_one_empty_line_before_request_line_is_ignored():
     assert req.path == "/x"
 
 
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+@pytest.mark.parametrize("lead", [b"", b"\r\n"])
+@pytest.mark.parametrize("length,accepted", [(64, True), (65, False)])
+def test_request_line_limit_after_empty_line(http_parser, lead, length, accepted):
+    """limit_request_line measures the request line itself, also after the
+    one empty line RFC 9112 2.2 allows before it, with both parsers."""
+    from gunicorn.config import Config
+    from gunicorn.http.errors import LimitRequestLine
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    cfg.set('limit_request_line', 64)
+    target = b"/" + b"a" * (length - len(b"GET  HTTP/1.1") - 1)
+    line = b"GET " + target + b" HTTP/1.1"
+    assert len(line) == length
+    data = lead + line + b"\r\nHost: a\r\n\r\n"
+    parser = RequestParser(cfg, [data], None)
+    if accepted:
+        assert next(parser).path == target.decode()
+    else:
+        with pytest.raises(LimitRequestLine):
+            next(parser)
+
+
 def test_body_read_error_stops_the_connection():
     """A body that fails to read (here a repeated singleton field in the
     trailers) leaves the start of the next request unknown: the parser must
