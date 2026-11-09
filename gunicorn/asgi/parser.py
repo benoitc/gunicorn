@@ -14,6 +14,8 @@ import socket
 import struct
 from enum import IntEnum
 
+from gunicorn.http.body import CHUNK_EXT_RE
+
 
 class ParseError(Exception):
     """Base error raised during HTTP parsing."""
@@ -515,6 +517,14 @@ class PythonProtocol:
         raises ``error`` instead of growing until a terminator arrives.
         """
         idx = self._buffer.find(b'\r\n', self._scan_from)
+        # RFC 9112 section 2.2: lines end with CRLF. An LF before the first
+        # CRLF (or with none yet) ends a line on its own; reject it, as
+        # gunicorn_h1c does, instead of waiting for a CRLF that may never
+        # come. Bytes before _scan_from were checked on an earlier call.
+        if self._buffer.find(b'\n', self._scan_from,
+                             idx if idx != -1 else len(self._buffer)) != -1:
+            raise ParseError(
+                "Bare LF as line terminator, CRLF required (RFC 9112 section 2.2)")
         if idx == -1:
             if len(self._buffer) > limit + 1:
                 raise error
@@ -820,9 +830,10 @@ class PythonProtocol:
 
                 # Handle chunk extensions (e.g., "5;ext=value")
                 semicolon = size_line.find(b';')
+                chunk_ext = None
                 if semicolon != -1:
                     # RFC 9112: chunk-ext must not contain bare CR
-                    chunk_ext = size_line[semicolon + 1:]
+                    chunk_ext = size_line[semicolon:]
                     if b'\r' in chunk_ext:
                         raise InvalidChunkExtension("bare CR not allowed")
                     size_line = size_line[:semicolon]
@@ -843,6 +854,10 @@ class PythonProtocol:
                     self._chunk_size = int(size_line, 16)
                 except ValueError:
                     raise InvalidChunkSize("Invalid chunk size")
+
+                # After the size, so a bad size is reported as such.
+                if chunk_ext is not None and not CHUNK_EXT_RE.fullmatch(chunk_ext):
+                    raise InvalidChunkExtension("invalid chunk extension")
 
                 if self._chunk_size == 0:
                     # Final chunk - skip trailers

@@ -660,6 +660,11 @@ class Request(Message):
             done = data[:2] == b"\r\n"
 
             if idx < 0 and not done:
+                # RFC 9112 section 2.2: every line of the head ends with
+                # CRLF. A bare LF means the head will never end the way it
+                # is read here; reject it now rather than wait for more.
+                if data.count(b"\n") != data.count(b"\r\n"):
+                    raise InvalidHeader("bare LF as line terminator")
                 self.read_into(unreader, buf)
                 data = bytes(buf)
                 if len(data) > self.max_buffer_headers:
@@ -691,6 +696,11 @@ class Request(Message):
 
         while True:
             idx = data.find(b"\r\n")
+            # RFC 9112 section 2.2: the line ends with CRLF; an LF before it
+            # (or with no CRLF yet) is a bare LF, rejected rather than
+            # waited on, as by gunicorn_h1c.
+            if data.find(b"\n", 0, idx if idx >= 0 else len(data)) >= 0:
+                raise InvalidRequestLine("bare LF as line terminator")
             if idx >= 0:
                 # check if the request line is too large
                 if idx > limit > 0:

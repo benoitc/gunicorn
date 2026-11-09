@@ -3,11 +3,22 @@
 # See the NOTICE for more information.
 
 import io
+import re
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
                                   InvalidChunkSize, InvalidChunkExtension,
-                                  LimitRequestHeaders)
+                                  InvalidHeader, LimitRequestHeaders)
+
+# RFC 9112 section 7.1.1, everything from the first ";" of a chunk size line:
+#   chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] )
+#   chunk-ext-name = token; chunk-ext-val = token / quoted-string
+# with token and quoted-string from RFC 9110 section 5.6.2 and 5.6.4.
+_TOKEN = rb"[!#$%&'*+\-.^_`|~0-9A-Za-z]+"
+_QUOTED_STRING = rb'"(?:[\t !#-\[\]-~\x80-\xff]|\\[\t -~\x80-\xff])*"'
+CHUNK_EXT_RE = re.compile(
+    rb"(?:[ \t]*;[ \t]*" + _TOKEN
+    + rb"(?:[ \t]*=[ \t]*(?:" + _TOKEN + rb"|" + _QUOTED_STRING + rb"))?)*")
 
 #: Largest piece Body.read() asks its reader for in one call.
 MAX_READ_STEP = 1024 * 1024
@@ -62,6 +73,9 @@ class ChunkedReader:
         while idx < 0 and not done:
             if len(buf) > self.limit_trailer_section:
                 raise LimitRequestHeaders("limit request trailer section size")
+            # RFC 9112 section 2.2: trailer lines end with CRLF too.
+            if buf.count(b"\n") != buf.count(b"\r\n"):
+                raise InvalidHeader("bare LF as line terminator")
             # Only the last three bytes can start a terminator that the next
             # read completes, so the scan resumes there instead of running
             # over the whole buffer again.
@@ -135,6 +149,9 @@ class ChunkedReader:
             raise InvalidChunkSize(chunk_size)
         if len(chunk_size) == 0:
             raise InvalidChunkSize(chunk_size)
+        # The size first, so a bad size is reported as such.
+        if chunk_ext and not CHUNK_EXT_RE.fullmatch(b";" + chunk_ext[0]):
+            raise InvalidChunkExtension("invalid chunk extension")
         chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:

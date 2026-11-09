@@ -14,6 +14,7 @@ import base64
 import binascii
 import collections
 import errno
+from http import HTTPStatus
 import ipaddress
 import logging
 import re
@@ -597,6 +598,7 @@ class ASGIProtocol(asyncio.Protocol):
     _h1c_limit_request_line = None  # Exception class from gunicorn_h1c >= 0.4.1
     _h1c_limit_request_headers = None  # Exception class from gunicorn_h1c >= 0.4.1
     _h1c_invalid_chunk_extension = None  # Exception class from gunicorn_h1c >= 0.6.3
+    _h1c_parse_errors = ()  # Every other request error gunicorn_h1c raises
 
     def __init__(self, worker):
         self.worker = worker
@@ -771,6 +773,15 @@ class ASGIProtocol(asyncio.Protocol):
                 cls._h1c_invalid_chunk_extension = getattr(
                     gunicorn_h1c, 'InvalidChunkExtension', None
                 )
+                # Any other malformed request. gunicorn_h1c raises two
+                # unrelated ParseError classes: the public one, base of
+                # the errors above, and one from H1CProtocol itself (bare
+                # LF, invalid request target, chunk size).
+                protocol_module = getattr(gunicorn_h1c, '_protocol', None)
+                cls._h1c_parse_errors = tuple(
+                    c for c in (getattr(gunicorn_h1c, 'ParseError', None),
+                                getattr(protocol_module, 'ParseError', None))
+                    if isinstance(c, type) and issubclass(c, Exception))
             except ImportError:
                 cls._h1c_available = False
                 cls._h1c_has_limits = False
@@ -941,6 +952,13 @@ class ASGIProtocol(asyncio.Protocol):
             return True
         h1c_chunk_ext = ASGIProtocol._h1c_invalid_chunk_extension
         if h1c_chunk_ext is not None and isinstance(exc, h1c_chunk_ext):
+            self._send_error_response(400, str(exc))
+            self._close_transport()
+            return True
+        # Any other malformed request gets a 400, as with the Python parser
+        # (RFC 9112 section 3, 5.1), instead of an unhandled exception that
+        # dropped the connection without a response.
+        if isinstance(exc, ASGIProtocol._h1c_parse_errors):
             self._send_error_response(400, str(exc))
             self._close_transport()
             return True
@@ -2115,11 +2133,25 @@ class ASGIProtocol(asyncio.Protocol):
             pass
 
     def _send_error_response(self, status, message, extra_headers=()):
-        """Send an error response."""
+        """Send an error response.
+
+        The status line carries the standard reason phrase; ``message``,
+        which can quote the request, only goes in the body, as with the
+        WSGI workers (RFC 9112 section 4: the reason phrase is fixed text
+        describing the status code).
+        """
         body = message.encode("utf-8")
+        # gunicorn's own table first: HTTPStatus phrases change between
+        # Python versions (414 is "Request-URI Too Long" before 3.13).
+        reason = _REASON_PHRASES.get(status)
+        if reason is None:
+            try:
+                reason = HTTPStatus(status).phrase
+            except ValueError:
+                reason = "Error"
         extra = "".join(f"{name}: {value}\r\n" for name, value in extra_headers)
         response = (
-            f"HTTP/1.1 {status} {message}\r\n"
+            f"HTTP/1.1 {status} {reason}\r\n"
             f"Content-Type: text/plain\r\n"
             f"Content-Length: {len(body)}\r\n"
             f"{extra}"
