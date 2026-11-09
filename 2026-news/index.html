@@ -2776,6 +2776,8 @@
 <li>The ASGI worker no longer makes a second text copy of every request header unless something reads it, which makes requests with many headers faster and lighter.</li>
 <li>The ASGI worker no longer copies large response bodies (64 KiB or more) before sending them, which cuts memory use per connection when serving large files or downloads.</li>
 <li>The ASGI worker could send changed bytes when an app reused a <code>bytearray</code> or <code>memoryview</code> response body after <code>send</code> returned; such bodies are now copied when sent.</li>
+<li>With the fast parser, the WSGI workers accepted a request line longer than <code>limit_request_line</code> when an empty line came before it; it is now rejected with 414 as with the Python parser (RFC 9112 §2.2, §3).</li>
+<li>The <code>fast</code> extra now requires gunicorn_h1c 0.6.12, which parses requests faster and reads a chunked request body in time proportional to its size instead of to its square.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
