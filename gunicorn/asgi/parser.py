@@ -14,6 +14,8 @@ import socket
 import struct
 from enum import IntEnum
 
+from gunicorn.http.body import CHUNK_EXT_RE
+
 
 class ParseError(Exception):
     """Base error raised during HTTP parsing."""
@@ -828,9 +830,10 @@ class PythonProtocol:
 
                 # Handle chunk extensions (e.g., "5;ext=value")
                 semicolon = size_line.find(b';')
+                chunk_ext = None
                 if semicolon != -1:
                     # RFC 9112: chunk-ext must not contain bare CR
-                    chunk_ext = size_line[semicolon + 1:]
+                    chunk_ext = size_line[semicolon:]
                     if b'\r' in chunk_ext:
                         raise InvalidChunkExtension("bare CR not allowed")
                     size_line = size_line[:semicolon]
@@ -851,6 +854,10 @@ class PythonProtocol:
                     self._chunk_size = int(size_line, 16)
                 except ValueError:
                     raise InvalidChunkSize("Invalid chunk size")
+
+                # After the size, so a bad size is reported as such.
+                if chunk_ext is not None and not CHUNK_EXT_RE.fullmatch(chunk_ext):
+                    raise InvalidChunkExtension("invalid chunk extension")
 
                 if self._chunk_size == 0:
                     # Final chunk - skip trailers
