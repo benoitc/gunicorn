@@ -2141,10 +2141,14 @@ class ASGIProtocol(asyncio.Protocol):
         describing the status code).
         """
         body = message.encode("utf-8")
-        try:
-            reason = HTTPStatus(status).phrase
-        except ValueError:
-            reason = "Error"
+        # gunicorn's own table first: HTTPStatus phrases change between
+        # Python versions (414 is "Request-URI Too Long" before 3.13).
+        reason = _REASON_PHRASES.get(status)
+        if reason is None:
+            try:
+                reason = HTTPStatus(status).phrase
+            except ValueError:
+                reason = "Error"
         extra = "".join(f"{name}: {value}\r\n" for name, value in extra_headers)
         response = (
             f"HTTP/1.1 {status} {reason}\r\n"
