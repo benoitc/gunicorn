@@ -579,6 +579,15 @@ class Request(Message):
             except _fast_parser_module.ParseError as e:
                 raise InvalidRequestLine(str(e))
 
+        # RFC 9112 section 2.2 allows one empty line before the request line.
+        # gunicorn_h1c before 0.6.12 did not measure the request line after
+        # it, so check limit_request_line here as _parse_python() does. Only
+        # requests that start with that empty line pay for this.
+        if data[:2] == b"\r\n" and self.limit_request_line > 0:
+            end = data.find(b"\r\n", 2)
+            if end - 2 > self.limit_request_line:
+                raise LimitRequestLine(end - 2, self.limit_request_line)
+
         # Extract parsed data
         self.method = bytes_to_str(result['method'])
         self.uri = bytes_to_str(result['path'])
