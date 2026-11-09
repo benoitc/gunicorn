@@ -2782,6 +2782,7 @@
 <li>The ASGI worker's error responses now carry the standard reason phrase (for example <code>400 Bad Request</code>) with the error text in the body, as the WSGI workers do; the error text, which can quote the request, used to be written into the status line (RFC 9112 §4).</li>
 <li>The Python parsers now reject a line ended by a bare LF at once with 400, as gunicorn_h1c does; a head or trailer section ended that way used to leave the connection waiting for a CRLF until a limit or the timeout (RFC 9112 §2.2).</li>
 <li>The Python parsers now reject a chunk extension that is not a name with an optional token or quoted-string value, such as one holding control characters or an unclosed quote (RFC 9112 §7.1.1).</li>
+<li>The <code>fast</code> extra now requires gunicorn_h1c 0.6.13, which rejects a chunk extension holding a control character, as the Python parsers do (RFC 9112 §7.1.1).</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
