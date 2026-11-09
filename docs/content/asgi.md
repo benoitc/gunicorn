@@ -24,7 +24,7 @@ gunicorn main:app --worker-class asgi --bind 0.0.0.0:8000
 The ASGI worker provides:
 
 - **HTTP/1.1** with keepalive connections
-- **HTTP/2** with multiplexing and server push (requires SSL)
+- **HTTP/2** with multiplexing, over TLS or cleartext h2c behind a trusted proxy
 - **WebSocket** support for real-time applications
 - **Lifespan protocol** for startup/shutdown hooks
 - **Optional fast HTTP parser** via C extension for high throughput
@@ -249,9 +249,9 @@ For maximum performance, install the optional `gunicorn_h1c` C extension:
 pip install gunicorn[fast]
 ```
 
-This provides a high-performance HTTP parser using picohttpparser with SIMD
-optimizations, offering significant speedups for HTTP parsing compared to the
-pure Python implementation.
+This installs gunicorn_h1c 0.6.14 or later, a C HTTP/1 parser. It accepts and
+rejects the same requests as the pure Python parser, so you can switch between
+them without changing how requests are framed or which ones get a 400.
 
 The parser is automatically used when available (`--http-parser auto`), or you
 can explicitly require it:
@@ -289,6 +289,53 @@ gunicorn myapp:app --worker-class asgi --http-parser fast
    gunicorn myapp:app --worker-class asgi --worker-connections 2000
    ```
 
+### Measure performance
+
+Gunicorn ships the benchmark it is tuned with in `benchmarks/asgi/`. It runs
+the same app on gunicorn's ASGI worker (with each parser), on Uvicorn and on
+gunicorn with Uvicorn's worker, in alternating rounds, and reports requests
+per second, latency, CPU and memory for each.
+
+```bash
+pip install -e . -r benchmarks/asgi/requirements.txt
+python benchmarks/asgi/run.py --workloads small_keepalive stream_response
+
+# compare with another revision, in the same alternating rounds
+git worktree add /tmp/gunicorn-old <commit>
+python benchmarks/asgi/run.py --baseline-root /tmp/gunicorn-old
+```
+
+`benchmarks/asgi/profile_requests.py` shows where one request spends its time,
+in process, without the network. See `benchmarks/asgi/README.md` for every
+workload and option.
+
+On an Apple M4 Pro with one worker, uvloop and the fast parser, gunicorn's
+ASGI worker serves small requests at about 95% of Uvicorn's rate, uploads at
+about the same rate, and streamed and 1 MiB responses at about 90%. Requests with
+many headers are the slowest case, at about 80%. Measure on your own hardware
+before you rely on these numbers.
+
+## HTTP/1.1 request handling
+
+Both parsers handle requests the same way. These are the answers you can see
+from a client:
+
+| Request | Answer |
+|---------|--------|
+| `Expect: 100-continue` on HTTP/1.1 | `100 Continue` when the app first reads the body; none if the app answers first or the body came with the headers |
+| Malformed request line, header or chunked body | `400 Bad Request`, connection closed |
+| `Transfer-Encoding` that does not end with `chunked`, such as `gzip` or `identity` alone | `400 Bad Request`, connection closed (RFC 9112 §6.3) |
+| Unknown transfer coding, such as `foo, chunked` | `501 Not Implemented`, connection closed |
+| Request line over `limit_request_line` | `414 URI Too Long` |
+| Header section over the header limits | `431 Request Header Fields Too Large` |
+
+Error responses carry the standard reason phrase in the status line and the
+error text in the body.
+
+!!! note
+    A client that sends `Transfer-Encoding: identity` gets a 400. Drop the
+    header: `identity` is no longer a transfer coding.
+
 ## Comparison with Other ASGI Servers
 
 | Feature | Gunicorn ASGI | Uvicorn | Hypercorn |
@@ -300,7 +347,8 @@ gunicorn myapp:app --worker-class asgi --http-parser fast
 | uvloop support | Yes | Yes | Yes |
 
 !!! note
-    HTTP/2 requires SSL/TLS and the h2 library. See [HTTP/2 Support](guides/http2.md) for details.
+    HTTP/2 requires the h2 library, and TLS unless you enable cleartext h2c
+    behind a trusted proxy. See [HTTP/2 Support](guides/http2.md) for details.
 
 Gunicorn's ASGI worker provides the same process management, logging, and
 configuration capabilities you're familiar with from WSGI deployments.
