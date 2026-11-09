@@ -132,6 +132,7 @@
 - The ASGI worker could send changed bytes when an app reused a `bytearray` or `memoryview` response body after `send` returned; such bodies are now copied when sent.
 - With the fast parser, the WSGI workers accepted a request line longer than `limit_request_line` when an empty line came before it; it is now rejected with 414 as with the Python parser (RFC 9112 §2.2, §3).
 - The `fast` extra now requires gunicorn_h1c 0.6.12, which parses requests faster and reads a chunked request body in time proportional to its size instead of to its square.
+- The ASGI worker's default fast parser now answers a malformed request with 400 and closes the connection, as the Python parser does; it used to drop the connection without a response and log a traceback for each such request (RFC 9112 §3, §5.1).
 
 ## 26.2.2 - 2026-09-06
 
