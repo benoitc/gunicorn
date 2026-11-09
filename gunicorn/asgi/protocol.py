@@ -939,7 +939,7 @@ class ASGIProtocol(asyncio.Protocol):
         if self._body_receiver:
             self._body_receiver.set_complete()
 
-    def _handle_h1c_exception(self, exc):  # pylint: disable=too-many-return-statements
+    def _handle_h1c_exception(self, exc):
         """Handle gunicorn_h1c exceptions with appropriate HTTP status codes.
 
         Returns True if the exception was handled, False otherwise.
@@ -1053,7 +1053,7 @@ class ASGIProtocol(asyncio.Protocol):
             self._h2c_timer.cancel()
             self._h2c_timer = None
 
-    def _feed_callback_parser(self, data):
+    def _feed_callback_parser(self, data):  # pylint: disable=too-many-return-statements
         """Feed data to callback parser, handling parse errors.
 
         Returns True if parsing should continue, False if connection was closed.
