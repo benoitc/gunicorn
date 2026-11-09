@@ -84,6 +84,8 @@ These match what CI gates on.
 .venv/bin/pytest tests/test_http.py -k chunked     # one file / one test
 .venv/bin/pycodestyle gunicorn                     # style (tox -e pycodestyle)
 tox -e lint                                        # pylint, max line 120
+# CI runs pylint 3.3.2 under Python 3.12, which reports things 3.13 does not:
+uv run --no-project --python 3.12 --with pylint==3.3.2 -- pylint -j0 --max-line-length=120 gunicorn
 mkdocs build --strict                              # docs, regenerates settings.md
 ```
 
@@ -152,7 +154,7 @@ Last checked: 2026-11-07.
 | Spec | Scope in gunicorn | Code |
 |---|---|---|
 | RFC 9110 HTTP Semantics | methods, status codes, fields, Content-Length, Expect, trailers | `http/`, `asgi/`, `http2/` |
-| RFC 9112 HTTP/1.1 | request line, field parsing, chunked coding, keep-alive, 414 | `http/message.py`, `http/body.py`, `asgi/parser.py` |
+| RFC 9112 HTTP/1.1 | request line, field parsing, line endings (§2.2), Transfer-Encoding framing (§6.1, §6.3), chunked coding and extensions (§7.1), keep-alive, 414 | `http/message.py`, `http/body.py`, `asgi/parser.py` |
 | RFC 9931 Optimistic protocol transitions (updates RFC 9112) | a CONNECT always ends the connection (§8); a rejected `Upgrade` keeps HTTP/1.1 (§5) | `http/message.py`, `asgi/parser.py` |
 | RFC 9113 HTTP/2 | frames, streams, flow control, SETTINGS, GOAWAY, prior-knowledge h2c (§3.3) | `http2/` |
 | RFC 7540 §3.2 HTTP/2 Upgrade (obsoleted by RFC 9113) | `Upgrade: h2c` from HTTP/1.1, kept for compatibility; RFC 9113 deprecates it | `http2/negotiation.py` |
