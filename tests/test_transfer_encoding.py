@@ -122,3 +122,63 @@ async def test_asgi_worker_accepts_chunked_as_final_coding(http_parser, raw):
     transport = await _asgi_response(http_parser, raw)
     assert transport.written.startswith(b"HTTP/1.1 200 OK\r\n")
     assert transport.written.endswith(b"\r\n\r\nx")
+
+
+UNKNOWN_CODINGS = {
+    "foo, chunked": _post(b"foo, chunked", body=b"1\r\nx\r\n0\r\n\r\n"),
+    "x-gzip, chunked": _post(b"x-gzip, chunked", body=b"1\r\nx\r\n0\r\n\r\n"),
+}
+
+
+@pytest.mark.parametrize("raw", list(UNKNOWN_CODINGS.values()), ids=list(UNKNOWN_CODINGS))
+def test_unknown_coding_wsgi_python_is_501(raw):
+    from gunicorn.http.errors import UnsupportedTransferCoding
+    with pytest.raises(UnsupportedTransferCoding) as excinfo:
+        _wsgi(raw, "python")
+    assert excinfo.value.code == 501
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("raw", list(UNKNOWN_CODINGS.values()), ids=list(UNKNOWN_CODINGS))
+async def test_unknown_coding_asgi_worker_is_501(http_parser, raw):
+    if http_parser == "fast":
+        import gunicorn_h1c
+        if not hasattr(gunicorn_h1c, "UnsupportedTransferCoding"):
+            pytest.xfail("gunicorn_h1c raises a plain InvalidHeader (400) for now")
+    transport = await _asgi_response(http_parser, raw)
+    assert transport.written.startswith(b"HTTP/1.1 501 Not Implemented\r\n")
+    assert transport.closed
+
+
+def test_gunicorn_h1c_unsupported_coding_class_gets_501_on_asgi(monkeypatch):
+    """Once gunicorn_h1c raises its own UnsupportedTransferCoding, the
+    ASGI worker answers 501 instead of 400."""
+    class UnsupportedTransferCoding(ValueError):
+        pass
+
+    monkeypatch.setattr(ASGIProtocol, "_h1c_unsupported_transfer_coding",
+                        UnsupportedTransferCoding)
+    protocol = ASGIProtocol.__new__(ASGIProtocol)
+    transport = _FakeTransport()
+    protocol.transport = transport
+    protocol._closed = False
+    protocol.log = None
+    assert protocol._handle_h1c_exception(UnsupportedTransferCoding("foo"))
+    assert transport.written.startswith(b"HTTP/1.1 501 Not Implemented\r\n")
+
+
+def test_gunicorn_h1c_unsupported_coding_class_gets_501_on_wsgi(monkeypatch):
+    gunicorn_h1c = pytest.importorskip("gunicorn_h1c")
+    from gunicorn.http.errors import UnsupportedTransferCoding
+
+    class H1cUnsupportedTransferCoding(gunicorn_h1c.InvalidHeader):
+        pass
+
+    def parse_request(*args, **kwargs):
+        raise H1cUnsupportedTransferCoding("Unsupported Transfer-Encoding")
+
+    monkeypatch.setattr(gunicorn_h1c, "UnsupportedTransferCoding",
+                        H1cUnsupportedTransferCoding, raising=False)
+    monkeypatch.setattr(gunicorn_h1c, "parse_request", parse_request)
+    with pytest.raises(UnsupportedTransferCoding):
+        _wsgi(UNKNOWN_CODINGS["foo, chunked"], "fast")

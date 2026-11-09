@@ -584,6 +584,11 @@ class Request(Message):
             except _fast_parser_module.InvalidHeaderName as e:
                 raise InvalidHeaderName(str(e))
             except _fast_parser_module.InvalidHeader as e:
+                # A gunicorn_h1c that tells an unknown transfer coding apart
+                # gets the same 501 as the Python parser (RFC 9112 6.1).
+                unsupported = getattr(_fast_parser_module, "UnsupportedTransferCoding", None)
+                if unsupported is not None and isinstance(e, unsupported):
+                    raise UnsupportedTransferCoding(str(e))
                 raise InvalidHeader(str(e))
             except _fast_parser_module.ParseError as e:
                 raise InvalidRequestLine(str(e))
