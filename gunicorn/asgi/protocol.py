@@ -14,6 +14,7 @@ import base64
 import binascii
 import collections
 import errno
+from http import HTTPStatus
 import ipaddress
 import logging
 import re
@@ -2132,11 +2133,21 @@ class ASGIProtocol(asyncio.Protocol):
             pass
 
     def _send_error_response(self, status, message, extra_headers=()):
-        """Send an error response."""
+        """Send an error response.
+
+        The status line carries the standard reason phrase; ``message``,
+        which can quote the request, only goes in the body, as with the
+        WSGI workers (RFC 9112 section 4: the reason phrase is fixed text
+        describing the status code).
+        """
         body = message.encode("utf-8")
+        try:
+            reason = HTTPStatus(status).phrase
+        except ValueError:
+            reason = "Error"
         extra = "".join(f"{name}: {value}\r\n" for name, value in extra_headers)
         response = (
-            f"HTTP/1.1 {status} {message}\r\n"
+            f"HTTP/1.1 {status} {reason}\r\n"
             f"Content-Type: text/plain\r\n"
             f"Content-Length: {len(body)}\r\n"
             f"{extra}"

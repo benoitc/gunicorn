@@ -67,3 +67,44 @@ async def test_malformed_request_gets_400(http_parser, raw):
             await protocol._task
         except (asyncio.CancelledError, Exception):
             pass
+
+
+@pytest.mark.asyncio
+async def test_status_line_has_the_standard_reason_phrase(http_parser):
+    """The error text quotes the request, so it goes in the body, never in
+    the status line (RFC 9112 section 4)."""
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, _app, http_parser))
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(MALFORMED["space before colon"])
+    for _ in range(20):
+        await asyncio.sleep(0)
+    head, _, body = transport.written.partition(b"\r\n\r\n")
+    assert head.split(b"\r\n")[0] == b"HTTP/1.1 400 Bad Request"
+    assert body  # the parser's message
+    assert body not in head
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+
+@pytest.mark.parametrize("status,reason", [
+    (400, b"Bad Request"), (414, b"URI Too Long"),
+    (431, b"Request Header Fields Too Large"), (426, b"Upgrade Required"),
+    (599, b"Error"),
+])
+def test_error_response_reason_and_body(status, reason):
+    protocol = ASGIProtocol.__new__(ASGIProtocol)
+    transport = _FakeTransport()
+    protocol.transport = transport
+    protocol._send_error_response(status, "bad ☃ value\r\nX-Injected: 1")
+    head, _, body = transport.written.partition(b"\r\n\r\n")
+    lines = head.split(b"\r\n")
+    assert lines[0] == b"HTTP/1.1 %d %s" % (status, reason)
+    assert b"X-Injected" not in head
+    assert body == "bad ☃ value\r\nX-Injected: 1".encode("utf-8")
+    assert b"Content-Length: %d" % len(body) in lines
