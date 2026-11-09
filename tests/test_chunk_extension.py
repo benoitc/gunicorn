@@ -78,9 +78,16 @@ def test_invalid_extension_rejected_asgi(size_line):
         _asgi(size_line)
 
 
-@pytest.mark.xfail(reason="gunicorn_h1c does not check the extension grammar yet")
-@pytest.mark.parametrize("size_line", list(INVALID.values()), ids=list(INVALID))
-def test_invalid_extension_rejected_gunicorn_h1c(size_line):
+# gunicorn_h1c rejects a control character in an extension since 0.6.13,
+# but not yet the rest of the grammar.
+H1C_REJECTS = ("control character in name", "control character in value",
+               "DEL in name", "control character in quoted")
+
+
+@pytest.mark.parametrize("name", list(INVALID))
+def test_invalid_extension_rejected_gunicorn_h1c(name):
     gunicorn_h1c = pytest.importorskip("gunicorn_h1c")
+    if name not in H1C_REJECTS:
+        pytest.xfail("gunicorn_h1c does not check the rest of the extension grammar yet")
     with pytest.raises(gunicorn_h1c.ParseError):
-        gunicorn_h1c.H1CProtocol().feed(_request(size_line))
+        gunicorn_h1c.H1CProtocol().feed(_request(INVALID[name]))
