@@ -47,8 +47,6 @@ async def _app(scope, receive, send):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("raw", list(MALFORMED.values()), ids=list(MALFORMED))
 async def test_malformed_request_gets_400(http_parser, raw):
-    if http_parser == "python" and raw == MALFORMED["bare LF"]:
-        pytest.skip("the Python parser waits for a CRLF instead (separate issue)")
     loop = asyncio.get_event_loop()
     protocol = ASGIProtocol(_build_worker(loop, _app, http_parser))
     transport = _FakeTransport()

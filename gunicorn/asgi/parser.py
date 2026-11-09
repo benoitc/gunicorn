@@ -515,6 +515,14 @@ class PythonProtocol:
         raises ``error`` instead of growing until a terminator arrives.
         """
         idx = self._buffer.find(b'\r\n', self._scan_from)
+        # RFC 9112 section 2.2: lines end with CRLF. An LF before the first
+        # CRLF (or with none yet) ends a line on its own; reject it, as
+        # gunicorn_h1c does, instead of waiting for a CRLF that may never
+        # come. Bytes before _scan_from were checked on an earlier call.
+        if self._buffer.find(b'\n', self._scan_from,
+                             idx if idx != -1 else len(self._buffer)) != -1:
+            raise ParseError(
+                "Bare LF as line terminator, CRLF required (RFC 9112 section 2.2)")
         if idx == -1:
             if len(self._buffer) > limit + 1:
                 raise error

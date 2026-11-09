@@ -7,7 +7,7 @@ import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
                                   InvalidChunkSize, InvalidChunkExtension,
-                                  LimitRequestHeaders)
+                                  InvalidHeader, LimitRequestHeaders)
 
 #: Largest piece Body.read() asks its reader for in one call.
 MAX_READ_STEP = 1024 * 1024
@@ -62,6 +62,9 @@ class ChunkedReader:
         while idx < 0 and not done:
             if len(buf) > self.limit_trailer_section:
                 raise LimitRequestHeaders("limit request trailer section size")
+            # RFC 9112 section 2.2: trailer lines end with CRLF too.
+            if buf.count(b"\n") != buf.count(b"\r\n"):
+                raise InvalidHeader("bare LF as line terminator")
             # Only the last three bytes can start a terminator that the next
             # read completes, so the scan resumes there instead of running
             # over the whole buffer again.
