@@ -1,0 +1,4 @@
+POST /te_gzip_only HTTP/1.1\r\n
+Host: a\r\n
+Transfer-Encoding: gzip\r\n
+\r\n

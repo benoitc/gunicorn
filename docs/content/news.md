@@ -138,6 +138,7 @@
 - The Python parsers now reject a chunk extension that is not a name with an optional token or quoted-string value, such as one holding control characters or an unclosed quote (RFC 9112 §7.1.1).
 - The `fast` extra now requires gunicorn_h1c 0.6.13, which rejects a chunk extension holding a control character, as the Python parsers do (RFC 9112 §7.1.1).
 - The ASGI worker's Python parser now accepts whitespace between a chunk size and its extension, such as `1 ;a`, as RFC 9112 §7.1.1 allows and the WSGI workers already did.
+- A request whose `Transfer-Encoding` does not end with `chunked`, such as `gzip` or `identity` alone, is now rejected with 400 by every parser, as RFC 9112 §6.3 requires and other servers do; the WSGI workers used to read its body until the connection closed and the ASGI worker treated it as empty. Clients that send `Transfer-Encoding: identity` must drop it.
 
 ## 26.2.2 - 2026-09-06
 

@@ -688,6 +688,7 @@ class PythonProtocol:
         # Extract and validate content-length and transfer-encoding
         content_length = None
         chunked = False
+        transfer_encoding = False
         seen_singletons = set()
 
         for name, value in self.headers:
@@ -712,6 +713,7 @@ class PythonProtocol:
                 content_length = int(value)
 
             elif name == b'transfer-encoding':
+                transfer_encoding = True
                 # Properly parse comma-separated Transfer-Encoding values
                 # per RFC 9112 Section 6.1
                 vals = [v.strip(b" \t") for v in value.split(b',')]
@@ -742,6 +744,12 @@ class PythonProtocol:
                     self.should_keep_alive = False
                 elif b'keep-alive' in val:
                     self.should_keep_alive = True
+
+        # RFC 9112 section 6.3: a request whose Transfer-Encoding does not
+        # end with chunked has no length that can be determined; it MUST be
+        # answered with 400, whatever Content-Length says.
+        if transfer_encoding and not chunked:
+            raise InvalidHeader("Transfer-Encoding does not end with chunked")
 
         # Security checks for request smuggling prevention
         if chunked:
@@ -1088,6 +1096,7 @@ class CallbackRequest:
         expect_continue = False
         connection = None
         has_upgrade = False
+        transfer_encoding = False
         for name, value in headers_bytes:
             if name in RFC9110_5_3_SINGLETON_FIELDS:
                 if name in seen_singletons:
@@ -1099,8 +1108,14 @@ class CallbackRequest:
                     connection = value.decode('latin-1')
             elif name == b'upgrade':
                 has_upgrade = True
+            elif name == b'transfer-encoding':
+                transfer_encoding = True
             elif name == b'expect' and value.lower() == b'100-continue':
                 expect_continue = True
+        # RFC 9112 section 6.3: Transfer-Encoding must end with chunked.
+        # gunicorn_h1c (0.6.13 and earlier) frames such a body as empty.
+        if transfer_encoding and not parser.is_chunked:
+            raise InvalidHeader("Transfer-Encoding does not end with chunked")
         req._headers = None
         req._connection = connection
         req._has_upgrade = has_upgrade
