@@ -3,6 +3,14 @@
 
 ## Unreleased
 
+### Breaking Changes
+
+- Reject with 400 a request whose `Transfer-Encoding` does not end with
+  `chunked`, such as `gzip` or `identity` alone, with or without
+  `Content-Length` (RFC 9112 §6.3). The WSGI workers used to read such a body
+  until the connection closed and the ASGI worker treated it as empty. Clients
+  that send `Transfer-Encoding: identity` must stop sending it.
+
 ### Bug Fixes
 
 - Reject whitespace between a header name and the colon (RFC 9112 §5.1).
@@ -31,11 +39,6 @@
 - ASGI: apply `forwarded_allow_ips` to HTTP/1 requests as WSGI and HTTP/2
   already do: `secure_scheme_headers` set the scheme only from trusted
   proxies, and header names with underscores follow `header_map`.
-- Require gunicorn_h1c 0.6.10: the fast parser now rejects a bare LF as a
-  line ending (RFC 9112 §2.2) and bounds chunk-size lines and trailers
-  (RFC 9112 §7.1), like the Python parsers.
-- Require gunicorn_h1c 0.6.11: the fast parser reports the same error for
-  the same bad request however its bytes are split across reads.
 - Ignore one empty line before the request line, as the fast parser
   already does (RFC 9112 §2.2).
 - ASGI: stop gunicorn when the app reports a failed lifespan startup,
@@ -119,28 +122,44 @@
   timeout, and drop the connection when one fires, so a late chunk is never
   read by the next call. A sync stream's idle timeout is no longer replaced
   by a fixed 5 seconds.
-- ASGI: read the settings needed on every request once per connection, and
-  decide once per connection whether the peer may set forwarded headers,
-  instead of on every request.
-- ASGI: build each request in one pass over its headers, and skip
-  percent-decoding a path that has no `%`.
-- ASGI: look up the reason phrase only the first time a status is seen, and
-  validate response headers in the same pass that finds their framing.
-- The ASGI worker now answers `Expect: 100-continue` on HTTP/1.1 with a `100 Continue` when the app reads the body, so clients such as curl no longer wait about a second before sending an upload (RFC 9110 §10.1.1).
-- The ASGI worker no longer makes a second text copy of every request header unless something reads it, which makes requests with many headers faster and lighter.
-- The ASGI worker no longer copies large response bodies (64 KiB or more) before sending them, which cuts memory use per connection when serving large files or downloads.
-- The ASGI worker could send changed bytes when an app reused a `bytearray` or `memoryview` response body after `send` returned; such bodies are now copied when sent.
-- With the fast parser, the WSGI workers accepted a request line longer than `limit_request_line` when an empty line came before it; it is now rejected with 414 as with the Python parser (RFC 9112 §2.2, §3).
-- The `fast` extra now requires gunicorn_h1c 0.6.12, which parses requests faster and reads a chunked request body in time proportional to its size instead of to its square.
-- The ASGI worker's default fast parser now answers a malformed request with 400 and closes the connection, as the Python parser does; it used to drop the connection without a response and log a traceback for each such request (RFC 9112 §3, §5.1).
-- The ASGI worker's error responses now carry the standard reason phrase (for example `400 Bad Request`) with the error text in the body, as the WSGI workers do; the error text, which can quote the request, used to be written into the status line (RFC 9112 §4).
-- The Python parsers now reject a line ended by a bare LF at once with 400, as gunicorn_h1c does; a head or trailer section ended that way used to leave the connection waiting for a CRLF until a limit or the timeout (RFC 9112 §2.2).
-- The Python parsers now reject a chunk extension that is not a name with an optional token or quoted-string value, such as one holding control characters or an unclosed quote (RFC 9112 §7.1.1).
-- The `fast` extra now requires gunicorn_h1c 0.6.13, which rejects a chunk extension holding a control character, as the Python parsers do (RFC 9112 §7.1.1).
-- The ASGI worker's Python parser now accepts whitespace between a chunk size and its extension, such as `1 ;a`, as RFC 9112 §7.1.1 allows and the WSGI workers already did.
-- A request whose `Transfer-Encoding` does not end with `chunked`, such as `gzip` or `identity` alone, is now rejected with 400 by every parser, as RFC 9112 §6.3 requires and other servers do; the WSGI workers used to read its body until the connection closed and the ASGI worker treated it as empty. Clients that send `Transfer-Encoding: identity` must drop it.
-- The ASGI worker now answers 501 to a transfer coding it does not support, such as `foo, chunked`, as the WSGI workers do; it answered 400 (RFC 9112 §6.1).
-- The `fast` extra now requires gunicorn_h1c 0.6.14, which checks the chunk extension grammar, accepts whitespace before a chunk extension, rejects a `Transfer-Encoding` that does not end with `chunked` and reports an unknown transfer coding so it gets 501, as gunicorn's Python parsers do (RFC 9112 §6.1, §6.3, §7.1.1).
+- ASGI: answer `Expect: 100-continue` with `100 Continue` when the app first
+  reads the body, so clients such as curl no longer wait about a second before
+  sending an upload (RFC 9110 §10.1.1).
+- ASGI: answer a request the fast parser rejects with 400 and close the
+  connection; it used to be dropped without a response, with a traceback
+  logged for each one (RFC 9112 §3, §5.1).
+- ASGI: put the standard reason phrase in error responses, such as `400 Bad
+  Request`, and the error text in the body; the text, which can quote the
+  request, used to be written into the status line (RFC 9112 §4).
+- ASGI: answer 501 to a transfer coding gunicorn does not support, such as
+  `foo, chunked`, as the WSGI workers do (RFC 9112 §6.1).
+- ASGI: accept whitespace between a chunk size and its extension, such as `1
+  ;a`, as the WSGI workers do (RFC 9112 §7.1.1).
+- ASGI: copy a `bytearray` or `memoryview` response body when sending it; an
+  app that reused the buffer after `send` returned could have the changed
+  bytes sent.
+- Reject a line ended by a bare LF at once with 400; with the Python parsers,
+  a head or trailer section ended that way kept the connection waiting until a
+  limit or the timeout (RFC 9112 §2.2).
+- Reject a chunk extension that is not a name with an optional token or
+  quoted-string value, such as one with a control character or an unclosed
+  quote (RFC 9112 §7.1.1).
+- WSGI: with the fast parser, answer 414 to a request line longer than
+  `limit_request_line` that follows an empty line, as the Python parser does
+  (RFC 9112 §2.2, §3).
+
+### Changes
+
+- Require gunicorn_h1c 0.6.14 for the `fast` extra. It parses requests faster,
+  reads a chunked body in time proportional to its size, and accepts and
+  rejects the same requests as gunicorn's Python parsers, whatever way their
+  bytes are split across reads.
+- ASGI: do less work per request: settings and forwarded-header trust are read
+  once per connection, a request is built in one pass over its headers, their
+  text copy is only made when something reads it, and response bodies of 64
+  KiB or more are sent without being copied. With one worker, small requests
+  are about a third faster and streamed responses over 50% faster, and large
+  responses use much less memory under load.
 
 ## 26.2.2 - 2026-09-06
 
