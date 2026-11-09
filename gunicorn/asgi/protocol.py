@@ -939,7 +939,7 @@ class ASGIProtocol(asyncio.Protocol):
         if self._body_receiver:
             self._body_receiver.set_complete()
 
-    def _handle_h1c_exception(self, exc):
+    def _handle_h1c_exception(self, exc):  # pylint: disable=too-many-return-statements
         """Handle gunicorn_h1c exceptions with appropriate HTTP status codes.
 
         Returns True if the exception was handled, False otherwise.
