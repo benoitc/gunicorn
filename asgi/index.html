@@ -1007,8 +1007,30 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#measure-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measure performance
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http11-request-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/1.1 request handling
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2184,7 +2206,7 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 <p>The ASGI worker provides:</p>
 <ul>
 <li><strong>HTTP/1.1</strong> with keepalive connections</li>
-<li><strong>HTTP/2</strong> with multiplexing and server push (requires SSL)</li>
+<li><strong>HTTP/2</strong> with multiplexing, over TLS or cleartext h2c behind a trusted proxy</li>
 <li><strong>WebSocket</strong> support for real-time applications</li>
 <li><strong>Lifespan protocol</strong> for startup/shutdown hooks</li>
 <li><strong>Optional fast HTTP parser</strong> via C extension for high throughput</li>
@@ -2383,9 +2405,9 @@ Use HTTP proxy for WebSocket endpoints.</p>
 <p>For maximum performance, install the optional <code>gunicorn_h1c</code> C extension:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>gunicorn<span class="o">[</span>fast<span class="o">]</span>
 </code></pre></div>
-<p>This provides a high-performance HTTP parser using picohttpparser with SIMD
-optimizations, offering significant speedups for HTTP parsing compared to the
-pure Python implementation.</p>
+<p>This installs gunicorn_h1c 0.6.14 or later, a C HTTP/1 parser. It accepts and
+rejects the same requests as the pure Python parser, so you can switch between
+them without changing how requests are framed or which ones get a 400.</p>
 <p>The parser is automatically used when available (<code>--http-parser auto</code>), or you
 can explicitly require it:</p>
 <div class="highlight"><pre><span></span><code>gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<span class="w"> </span>asgi<span class="w"> </span>--http-parser<span class="w"> </span>fast
@@ -2436,6 +2458,70 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 </code></pre></div></p>
 </li>
 </ol>
+<h3 id="measure-performance">Measure performance<a class="headerlink" href="#measure-performance" title="Permanent link">&para;</a></h3>
+<p>Gunicorn ships the benchmark it is tuned with in <code>benchmarks/asgi/</code>. It runs
+the same app on gunicorn's ASGI worker (with each parser), on Uvicorn and on
+gunicorn with Uvicorn's worker, in alternating rounds, and reports requests
+per second, latency, CPU and memory for each.</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-r<span class="w"> </span>benchmarks/asgi/requirements.txt
+python<span class="w"> </span>benchmarks/asgi/run.py<span class="w"> </span>--workloads<span class="w"> </span>small_keepalive<span class="w"> </span>stream_response
+
+<span class="c1"># compare with another revision, in the same alternating rounds</span>
+git<span class="w"> </span>worktree<span class="w"> </span>add<span class="w"> </span>/tmp/gunicorn-old<span class="w"> </span>&lt;commit&gt;
+python<span class="w"> </span>benchmarks/asgi/run.py<span class="w"> </span>--baseline-root<span class="w"> </span>/tmp/gunicorn-old
+</code></pre></div>
+<p><code>benchmarks/asgi/profile_requests.py</code> shows where one request spends its time,
+in process, without the network. See <code>benchmarks/asgi/README.md</code> for every
+workload and option.</p>
+<p>On an Apple M4 Pro with one worker, uvloop and the fast parser, gunicorn's
+ASGI worker serves small requests at about 95% of Uvicorn's rate, uploads at
+about the same rate, and streamed and 1 MiB responses at about 90%. Requests with
+many headers are the slowest case, at about 80%. Measure on your own hardware
+before you rely on these numbers.</p>
+<h2 id="http11-request-handling">HTTP/1.1 request handling<a class="headerlink" href="#http11-request-handling" title="Permanent link">&para;</a></h2>
+<p>Both parsers handle requests the same way. These are the answers you can see
+from a client:</p>
+<table>
+<thead>
+<tr>
+<th>Request</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Expect: 100-continue</code> on HTTP/1.1</td>
+<td><code>100 Continue</code> when the app first reads the body; none if the app answers first or the body came with the headers</td>
+</tr>
+<tr>
+<td>Malformed request line, header or chunked body</td>
+<td><code>400 Bad Request</code>, connection closed</td>
+</tr>
+<tr>
+<td><code>Transfer-Encoding</code> that does not end with <code>chunked</code>, such as <code>gzip</code> or <code>identity</code> alone</td>
+<td><code>400 Bad Request</code>, connection closed (RFC 9112 §6.3)</td>
+</tr>
+<tr>
+<td>Unknown transfer coding, such as <code>foo, chunked</code></td>
+<td><code>501 Not Implemented</code>, connection closed</td>
+</tr>
+<tr>
+<td>Request line over <code>limit_request_line</code></td>
+<td><code>414 URI Too Long</code></td>
+</tr>
+<tr>
+<td>Header section over the header limits</td>
+<td><code>431 Request Header Fields Too Large</code></td>
+</tr>
+</tbody>
+</table>
+<p>Error responses carry the standard reason phrase in the status line and the
+error text in the body.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A client that sends <code>Transfer-Encoding: identity</code> gets a 400. Drop the
+header: <code>identity</code> is no longer a transfer coding.</p>
+</div>
 <h2 id="comparison-with-other-asgi-servers">Comparison with Other ASGI Servers<a class="headerlink" href="#comparison-with-other-asgi-servers" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2481,7 +2567,8 @@ gunicorn<span class="w"> </span>myapp:app<span class="w"> </span>--worker-class<
 </table>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>HTTP/2 requires SSL/TLS and the h2 library. See <a href="../guides/http2/">HTTP/2 Support</a> for details.</p>
+<p>HTTP/2 requires the h2 library, and TLS unless you enable cleartext h2c
+behind a trusted proxy. See <a href="../guides/http2/">HTTP/2 Support</a> for details.</p>
 </div>
 <p>Gunicorn's ASGI worker provides the same process management, logging, and
 configuration capabilities you're familiar with from WSGI deployments.</p>

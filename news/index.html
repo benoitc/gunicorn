@@ -1399,10 +1399,32 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#bug-fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
         Bug Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes
       
     </span>
   </a>
@@ -1516,7 +1538,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes" class="md-nav__link">
+  <a href="#changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1599,7 +1621,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_1" class="md-nav__link">
+  <a href="#changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1627,7 +1649,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -1682,7 +1704,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_2" class="md-nav__link">
+  <a href="#changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1732,7 +1754,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_3" class="md-nav__link">
+  <a href="#changes_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1821,7 +1843,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_4" class="md-nav__link">
+  <a href="#changes_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1899,7 +1921,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_5" class="md-nav__link">
+  <a href="#changes_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -1938,7 +1960,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_6" class="md-nav__link">
+  <a href="#changes_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -2010,7 +2032,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changes_7" class="md-nav__link">
+  <a href="#changes_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changes
@@ -2144,7 +2166,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_1" class="md-nav__link">
+  <a href="#breaking-changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking changes
@@ -2172,7 +2194,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_2" class="md-nav__link">
+  <a href="#breaking-changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking changes
@@ -2716,6 +2738,14 @@
 <p><span id="news"></span></p>
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Reject with 400 a request whose <code>Transfer-Encoding</code> does not end with
+  <code>chunked</code>, such as <code>gzip</code> or <code>identity</code> alone, with or without
+  <code>Content-Length</code> (RFC 9112 §6.3). The WSGI workers used to read such a body
+  until the connection closed and the ASGI worker treated it as empty. Clients
+  that send <code>Transfer-Encoding: identity</code> must stop sending it.</li>
+</ul>
 <h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Reject whitespace between a header name and the colon (RFC 9112 §5.1).</li>
@@ -2744,11 +2774,6 @@
 <li>ASGI: apply <code>forwarded_allow_ips</code> to HTTP/1 requests as WSGI and HTTP/2
   already do: <code>secure_scheme_headers</code> set the scheme only from trusted
   proxies, and header names with underscores follow <code>header_map</code>.</li>
-<li>Require gunicorn_h1c 0.6.10: the fast parser now rejects a bare LF as a
-  line ending (RFC 9112 §2.2) and bounds chunk-size lines and trailers
-  (RFC 9112 §7.1), like the Python parsers.</li>
-<li>Require gunicorn_h1c 0.6.11: the fast parser reports the same error for
-  the same bad request however its bytes are split across reads.</li>
 <li>Ignore one empty line before the request line, as the fast parser
   already does (RFC 9112 §2.2).</li>
 <li>ASGI: stop gunicorn when the app reports a failed lifespan startup,
@@ -2832,28 +2857,44 @@
   timeout, and drop the connection when one fires, so a late chunk is never
   read by the next call. A sync stream's idle timeout is no longer replaced
   by a fixed 5 seconds.</li>
-<li>ASGI: read the settings needed on every request once per connection, and
-  decide once per connection whether the peer may set forwarded headers,
-  instead of on every request.</li>
-<li>ASGI: build each request in one pass over its headers, and skip
-  percent-decoding a path that has no <code>%</code>.</li>
-<li>ASGI: look up the reason phrase only the first time a status is seen, and
-  validate response headers in the same pass that finds their framing.</li>
-<li>The ASGI worker now answers <code>Expect: 100-continue</code> on HTTP/1.1 with a <code>100 Continue</code> when the app reads the body, so clients such as curl no longer wait about a second before sending an upload (RFC 9110 §10.1.1).</li>
-<li>The ASGI worker no longer makes a second text copy of every request header unless something reads it, which makes requests with many headers faster and lighter.</li>
-<li>The ASGI worker no longer copies large response bodies (64 KiB or more) before sending them, which cuts memory use per connection when serving large files or downloads.</li>
-<li>The ASGI worker could send changed bytes when an app reused a <code>bytearray</code> or <code>memoryview</code> response body after <code>send</code> returned; such bodies are now copied when sent.</li>
-<li>With the fast parser, the WSGI workers accepted a request line longer than <code>limit_request_line</code> when an empty line came before it; it is now rejected with 414 as with the Python parser (RFC 9112 §2.2, §3).</li>
-<li>The <code>fast</code> extra now requires gunicorn_h1c 0.6.12, which parses requests faster and reads a chunked request body in time proportional to its size instead of to its square.</li>
-<li>The ASGI worker's default fast parser now answers a malformed request with 400 and closes the connection, as the Python parser does; it used to drop the connection without a response and log a traceback for each such request (RFC 9112 §3, §5.1).</li>
-<li>The ASGI worker's error responses now carry the standard reason phrase (for example <code>400 Bad Request</code>) with the error text in the body, as the WSGI workers do; the error text, which can quote the request, used to be written into the status line (RFC 9112 §4).</li>
-<li>The Python parsers now reject a line ended by a bare LF at once with 400, as gunicorn_h1c does; a head or trailer section ended that way used to leave the connection waiting for a CRLF until a limit or the timeout (RFC 9112 §2.2).</li>
-<li>The Python parsers now reject a chunk extension that is not a name with an optional token or quoted-string value, such as one holding control characters or an unclosed quote (RFC 9112 §7.1.1).</li>
-<li>The <code>fast</code> extra now requires gunicorn_h1c 0.6.13, which rejects a chunk extension holding a control character, as the Python parsers do (RFC 9112 §7.1.1).</li>
-<li>The ASGI worker's Python parser now accepts whitespace between a chunk size and its extension, such as <code>1 ;a</code>, as RFC 9112 §7.1.1 allows and the WSGI workers already did.</li>
-<li>A request whose <code>Transfer-Encoding</code> does not end with <code>chunked</code>, such as <code>gzip</code> or <code>identity</code> alone, is now rejected with 400 by every parser, as RFC 9112 §6.3 requires and other servers do; the WSGI workers used to read its body until the connection closed and the ASGI worker treated it as empty. Clients that send <code>Transfer-Encoding: identity</code> must drop it.</li>
-<li>The ASGI worker now answers 501 to a transfer coding it does not support, such as <code>foo, chunked</code>, as the WSGI workers do; it answered 400 (RFC 9112 §6.1).</li>
-<li>The <code>fast</code> extra now requires gunicorn_h1c 0.6.14, which checks the chunk extension grammar, accepts whitespace before a chunk extension, rejects a <code>Transfer-Encoding</code> that does not end with <code>chunked</code> and reports an unknown transfer coding so it gets 501, as gunicorn's Python parsers do (RFC 9112 §6.1, §6.3, §7.1.1).</li>
+<li>ASGI: answer <code>Expect: 100-continue</code> with <code>100 Continue</code> when the app first
+  reads the body, so clients such as curl no longer wait about a second before
+  sending an upload (RFC 9110 §10.1.1).</li>
+<li>ASGI: answer a request the fast parser rejects with 400 and close the
+  connection; it used to be dropped without a response, with a traceback
+  logged for each one (RFC 9112 §3, §5.1).</li>
+<li>ASGI: put the standard reason phrase in error responses, such as <code>400 Bad
+  Request</code>, and the error text in the body; the text, which can quote the
+  request, used to be written into the status line (RFC 9112 §4).</li>
+<li>ASGI: answer 501 to a transfer coding gunicorn does not support, such as
+  <code>foo, chunked</code>, as the WSGI workers do (RFC 9112 §6.1).</li>
+<li>ASGI: accept whitespace between a chunk size and its extension, such as <code>1
+  ;a</code>, as the WSGI workers do (RFC 9112 §7.1.1).</li>
+<li>ASGI: copy a <code>bytearray</code> or <code>memoryview</code> response body when sending it; an
+  app that reused the buffer after <code>send</code> returned could have the changed
+  bytes sent.</li>
+<li>Reject a line ended by a bare LF at once with 400; with the Python parsers,
+  a head or trailer section ended that way kept the connection waiting until a
+  limit or the timeout (RFC 9112 §2.2).</li>
+<li>Reject a chunk extension that is not a name with an optional token or
+  quoted-string value, such as one with a control character or an unclosed
+  quote (RFC 9112 §7.1.1).</li>
+<li>WSGI: with the fast parser, answer 414 to a request line longer than
+  <code>limit_request_line</code> that follows an empty line, as the Python parser does
+  (RFC 9112 §2.2, §3).</li>
+</ul>
+<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Require gunicorn_h1c 0.6.14 for the <code>fast</code> extra. It parses requests faster,
+  reads a chunked body in time proportional to its size, and accepts and
+  rejects the same requests as gunicorn's Python parsers, whatever way their
+  bytes are split across reads.</li>
+<li>ASGI: do less work per request: settings and forwarded-header trust are read
+  once per connection, a request is built in one pass over its headers, their
+  text copy is only made when something reads it, and response bodies of 64
+  KiB or more are sent without being copied. With one worker, small requests
+  are about a third faster and streamed responses over 50% faster, and large
+  responses use much less memory under load.</li>
 </ul>
 <h2 id="2622-2026-09-06">26.2.2 - 2026-09-06<a class="headerlink" href="#2622-2026-09-06" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fixes_1">Bug Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
@@ -3023,7 +3064,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3711">#3711</a>).</p>
 </li>
 </ul>
-<h3 id="changes">Changes<a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
+<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Fast HTTP Parser</strong>: require <code>gunicorn_h1c &gt;= 0.6.9</code>, which adds
   <code>remaining()</code> for recovering bytes pipelined behind a completed message, and
@@ -3221,7 +3262,7 @@
   termination message in <code>Arbiter.reap_workers()</code>
   (<a href="https://github.com/benoitc/gunicorn/pull/3678">#3678</a>).</li>
 </ul>
-<h3 id="changes_1">Changes<a class="headerlink" href="#changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong><code>packaging</code> is no longer a runtime dependency</strong>: it was only ever imported by
@@ -3238,7 +3279,7 @@
 </li>
 </ul>
 <h2 id="2600-2026-05-05">26.0.0 - 2026-05-05<a class="headerlink" href="#2600-2026-05-05" title="Permanent link">&para;</a></h2>
-<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Eventlet worker removed</strong>: The <code>eventlet</code> worker class has been dropped.
   Migrate to <code>gevent</code>, <code>gthread</code>, or <code>tornado</code>.</li>
@@ -3339,7 +3380,7 @@
 <li>Split <code>BodyReceiver._closed</code> into separate transport and body-wait flags
   for clearer keepalive/EOF semantics.</li>
 </ul>
-<h3 id="changes_2">Changes<a class="headerlink" href="#changes_2" title="Permanent link">&para;</a></h3>
+<h3 id="changes_3">Changes<a class="headerlink" href="#changes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>Fast HTTP Parser</strong>: Require <code>gunicorn_h1c &gt;= 0.6.5</code>. Drop the last
@@ -3394,7 +3435,7 @@
 <li>Validate Transfer-Encoding values</li>
 <li>Strict chunk size validation</li>
 </ul>
-<h3 id="changes_3">Changes<a class="headerlink" href="#changes_3" title="Permanent link">&para;</a></h3>
+<h3 id="changes_4">Changes<a class="headerlink" href="#changes_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>Fast HTTP Parser</strong>: Update to gunicorn_h1c &gt;= 0.6.3 for <code>asgi_headers</code> property
@@ -3484,7 +3525,7 @@
 <li>Send SIGTTOU to decrease dirty workers</li>
 <li>Respects minimum worker constraints from app configurations</li>
 </ul>
-<h3 id="changes_4">Changes<a class="headerlink" href="#changes_4" title="Permanent link">&para;</a></h3>
+<h3 id="changes_5">Changes<a class="headerlink" href="#changes_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI Worker</strong>: Promoted from beta to stable</li>
 <li><strong>Dirty Arbiters</strong>: Now marked as beta feature</li>
@@ -3526,7 +3567,7 @@
   (<a href="https://github.com/benoitc/gunicorn/pull/3483">PR #3483</a>)</p>
 </li>
 </ul>
-<h3 id="changes_5">Changes<a class="headerlink" href="#changes_5" title="Permanent link">&para;</a></h3>
+<h3 id="changes_6">Changes<a class="headerlink" href="#changes_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Refactor: Extract <code>_normalize_sockaddr</code> utility function for consistent
@@ -3547,7 +3588,7 @@
   HTTP/1.1 responses without Content-Length header. Without chunked encoding,
   clients wait for connection close to determine end-of-response.</li>
 </ul>
-<h3 id="changes_6">Changes<a class="headerlink" href="#changes_6" title="Permanent link">&para;</a></h3>
+<h3 id="changes_7">Changes<a class="headerlink" href="#changes_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Update celery_alternative example to use FastAPI with native ASGI worker and
   uvloop for async task execution</li>
@@ -3654,7 +3695,7 @@
   the worker was deprecated in 25.x and is now gone.  Migrate to <code>gevent</code>,
   <code>gthread</code>, or one of the ASGI workers.</li>
 </ul>
-<h3 id="changes_7">Changes<a class="headerlink" href="#changes_7" title="Permanent link">&para;</a></h3>
+<h3 id="changes_8">Changes<a class="headerlink" href="#changes_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Remove obsolete Makefile targets
   (<a href="https://github.com/benoitc/gunicorn/pull/3471">PR #3471</a>)</li>
@@ -3758,7 +3799,7 @@
 <li>Review your <a href="../reference/settings/#forwarder_headers">forwarder-headers</a> setting if you are missing headers after upgrading from a version prior to 22.0.0</li>
 </ul>
 </div>
-<h3 id="breaking-changes_1">Breaking changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">&para;</a></h3>
+<h3 id="breaking-changes_2">Breaking changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>refuse requests where the uri field is empty (<a href="https://github.com/benoitc/gunicorn/pull/3255">PR #3255</a>)</li>
 <li>refuse requests with invalid CR/LR/NUL in heade field values (<a href="https://github.com/benoitc/gunicorn/pull/3253">PR #3253</a>)</li>
@@ -3776,7 +3817,7 @@
 <li>Trailer fields are no longer inspected for headers indicating secure scheme</li>
 <li>support Python 3.12</li>
 </ul>
-<h3 id="breaking-changes_2">Breaking changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">&para;</a></h3>
+<h3 id="breaking-changes_3">Breaking changes<a class="headerlink" href="#breaking-changes_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>minimum version is Python 3.7</li>
 <li>the limitations on valid characters in the HTTP method have been bounded to Internet Standards</li>
