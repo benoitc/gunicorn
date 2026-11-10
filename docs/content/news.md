@@ -1,7 +1,7 @@
 <span id="news"></span>
 # Changelog
 
-## Unreleased
+## 27.0.0 - 2026-11-10
 
 ### Breaking Changes
 
