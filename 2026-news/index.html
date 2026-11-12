@@ -2708,6 +2708,12 @@
   (<a href="https://github.com/benoitc/gunicorn/issues/3819">#3819</a>).</li>
 <li>ASGI: refuse an informational (1xx) response sent after the final response
   has started, instead of writing it out of order (RFC 9110 §15.2).</li>
+<li>gthread: when a worker stops (<code>max_requests</code>, reload, SIGTERM), keep its
+  kept-alive connections open for up to 2 seconds and answer a request that
+  arrives on one with <code>Connection: close</code>, instead of closing them right away.
+  A client reusing such a connection, such as one following a redirect, lost
+  its request (RFC 9112 §9.6)
+  (<a href="https://github.com/benoitc/gunicorn/issues/3821">#3821</a>).</li>
 </ul>
 <h2 id="2700-2026-11-10">27.0.0 - 2026-11-10<a class="headerlink" href="#2700-2026-11-10" title="Permanent link">&para;</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
