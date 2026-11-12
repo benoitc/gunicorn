@@ -496,19 +496,63 @@ class TestFinishRequest:
         assert next(parser).path == '/next'
 
     def test_finish_request_buffered_shutdown(self):
+        """A stopping worker still serves a request already read ahead on
+        a connection whose response announced keep-alive (#3821)."""
         worker = self.create_worker()
         worker.alive = False
         worker.nr_conns = 1
         worker.enqueue_req = mock.Mock()
         conn = mock.Mock()
+        conn.parser.unreader.buf.getvalue.return_value = b'GET / HTTP/1.1\r\n'
         fs = mock.Mock()
         fs.cancelled.return_value = False
         fs.result.return_value = True
 
         worker.finish_request(conn, fs)
 
-        worker.enqueue_req.assert_not_called()
-        worker.poller.register.assert_not_called()
+        worker.enqueue_req.assert_called_once_with(conn)
+        conn.close.assert_not_called()
+        assert worker.nr_conns == 1
+
+    def test_finish_request_keepalive_shutdown(self):
+        """A stopping worker keeps a connection whose response announced
+        keep-alive, so the next request is served (#3821)."""
+        worker = self.create_worker()
+        worker.alive = False
+        worker.nr_conns = 1
+        conn = gthread.TConn(worker.cfg, mock.Mock(), ('127.0.0.1', 1234),
+                             ('127.0.0.1', 8000))
+        conn.parser = mock.Mock()
+        conn.parser.unreader.buf.getvalue.return_value = b''
+        worker.cfg.set('keepalive', 60)
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = True
+
+        start = time.monotonic()
+        worker.finish_request(conn, fs)
+
+        assert conn in worker.keepalived_conns
+        worker.poller.register.assert_called_once()
+        conn.sock.close.assert_not_called()
+        assert worker.nr_conns == 1
+        # Kept briefly, not for the whole keepalive timeout.
+        assert conn.timeout <= time.monotonic() + gthread.STOP_KEEPALIVE_LINGER
+        assert conn.timeout >= start + gthread.STOP_KEEPALIVE_LINGER
+
+    def test_finish_request_close_shutdown(self):
+        """A response that announced close still closes on shutdown."""
+        worker = self.create_worker()
+        worker.alive = False
+        worker.nr_conns = 1
+        conn = mock.Mock()
+        fs = mock.Mock()
+        fs.cancelled.return_value = False
+        fs.result.return_value = False
+
+        worker.finish_request(conn, fs)
+
+        assert not worker.keepalived_conns
         conn.close.assert_called_once_with(graceful=True)
         assert worker.nr_conns == 0
 
@@ -1114,8 +1158,10 @@ class TestSignalHandling:
         worker.method_queue.close()
         assert worker.notify.call_count == 3  # 1x main loop, 2x drain loop
 
-    def test_graceful_shutdown_ignore_idle_keepalived(self):
-        """Test that graceful shutdown ignores idle keepalived conns."""
+    def test_graceful_shutdown_ignore_idle_keepalived(self, monkeypatch):
+        """Idle keepalived conns are kept for STOP_KEEPALIVE_LINGER on
+        shutdown, not for their keepalive timeout or graceful_timeout."""
+        monkeypatch.setattr(gthread, "STOP_KEEPALIVE_LINGER", 0.3)
         worker = self.create_worker(keepalive=30)
         worker.method_queue.init()
         worker.poller = mock.Mock()
@@ -1130,12 +1176,10 @@ class TestSignalHandling:
             if iterations[0] == 1:
                 # First iteration: trigger shutdown
                 worker.alive = False
-            elif iterations[0] == 2:
-                # Second iteration: during grace period
-                pass
             elif iterations[0] == 3:
                 # Third iteration: in-flight request completes
                 worker.nr_conns -= 1
+            time.sleep(0.05)
             return []
 
         worker.poller.select.side_effect = mock_select
@@ -1148,10 +1192,14 @@ class TestSignalHandling:
         worker.keepalived_conns.append(conn)
         worker.nr_conns = 2  # 1 active + 1 idle keepalived
 
+        start = time.monotonic()
         worker.run()
+        elapsed = time.monotonic() - start
 
-        # Should have waited for in-flight connection, but not idle
-        assert iterations[0] == 3
+        # Waited for the in-flight connection and the linger, not for the
+        # idle connection's keepalive timeout.
+        assert iterations[0] >= 3
+        assert elapsed < 2
         assert sock.closed is True
         assert len(worker.keepalived_conns) == 0
         assert worker.nr_conns == 0

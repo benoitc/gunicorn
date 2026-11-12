@@ -42,6 +42,10 @@ _DEFER = object()
 # the main poller to prevent thread pool exhaustion from slow clients.
 DEFAULT_WORKER_DATA_TIMEOUT = 5.0
 
+# How long a stopping worker keeps its kept-alive connections open (at most
+# their keepalive timeout), for a request a client may already be sending.
+STOP_KEEPALIVE_LINGER = 2.0
+
 
 class TConn:
 
@@ -430,13 +434,22 @@ class ThreadWorker(base.Worker):
         # Graceful shutdown: stop accepting but handle existing connections
         self.set_accept_enabled(False)
 
-        # Wait for in-flight connections within grace period
+        # Wait for in-flight connections within grace period. Kept-alive
+        # connections stay open for STOP_KEEPALIVE_LINGER at most, not their
+        # whole keepalive timeout: a request arriving on one meanwhile is
+        # answered with "Connection: close" instead of being dropped.
+        self._cap_keepalive(time.monotonic() + STOP_KEEPALIVE_LINGER)
         graceful_timeout = time.monotonic() + self.cfg.graceful_timeout
-        while self.nr_conns - len(self.keepalived_conns) > 0:
+        while self.nr_conns > 0:
             if time.monotonic() > graceful_timeout:
                 break
             self.notify()
-            self.wait_for_and_dispatch_events(timeout=1.0)
+            timeout = 1.0
+            if self.keepalived_conns:
+                # Wake up when the first kept-alive connection expires.
+                timeout = min(timeout, max(
+                    self.keepalived_conns[0].timeout - time.monotonic(), 0.0))
+            self.wait_for_and_dispatch_events(timeout=timeout)
             self.murder_keepalived()
             self.murder_pending()
 
@@ -448,6 +461,15 @@ class ThreadWorker(base.Worker):
 
         for s in self.sockets:
             s.close()
+
+    def _cap_keepalive(self, deadline):
+        """Close kept-alive connections by ``deadline`` at the latest.
+
+        The deque stays sorted by timeout: capping every entry at the same
+        deadline keeps the order.
+        """
+        for conn in self.keepalived_conns:
+            conn.timeout = min(conn.timeout, deadline)
 
     def finish_request(self, conn, fs):
         """Handle completion of a request (called via method_queue on main thread)."""
@@ -463,7 +485,11 @@ class ThreadWorker(base.Worker):
                 self.pending_conns.append(conn)
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_pending_socket_readable, conn))
-            elif result and self.alive:
+            elif result:
+                # The response announced keep-alive, so the client may be
+                # sending its next request already. A stopping worker keeps
+                # the connection briefly too (see run()) and answers that
+                # request with "Connection: close" (RFC 9112 section 9.6).
                 if conn.parser.unreader.buf.getvalue():
                     # A body drain can read ahead into the next request. Those
                     # bytes no longer make the socket readable to the poller.
@@ -472,6 +498,9 @@ class ThreadWorker(base.Worker):
                 # Keepalive - put connection back in the poller
                 conn.sock.setblocking(False)
                 conn.set_timeout()
+                if not self.alive:
+                    conn.timeout = min(conn.timeout,
+                                       time.monotonic() + STOP_KEEPALIVE_LINGER)
                 self.keepalived_conns.append(conn)
                 self.poller.register(conn.sock, selectors.EVENT_READ,
                                      partial(self.on_client_socket_readable, conn))

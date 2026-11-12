@@ -12,6 +12,12 @@
   ([#3819](https://github.com/benoitc/gunicorn/issues/3819)).
 - ASGI: refuse an informational (1xx) response sent after the final response
   has started, instead of writing it out of order (RFC 9110 §15.2).
+- gthread: when a worker stops (`max_requests`, reload, SIGTERM), keep its
+  kept-alive connections open for up to 2 seconds and answer a request that
+  arrives on one with `Connection: close`, instead of closing them right away.
+  A client reusing such a connection, such as one following a redirect, lost
+  its request (RFC 9112 §9.6)
+  ([#3821](https://github.com/benoitc/gunicorn/issues/3821)).
 
 ## 27.0.0 - 2026-11-10
 
