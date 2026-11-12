@@ -206,6 +206,11 @@ _CHUNK_PREFIXES = {i: f"{i:x}\r\n".encode("latin-1") for i in range(16384)}
 # High water mark for write buffer backpressure (64KB)
 HIGH_WATER_LIMIT = 65536
 
+# HTTP/1 application calls that may still be running on one connection after
+# their response went out (background tasks, cleanup). The next request waits
+# while this many are left.
+_MAX_FINISHING_APP_CALLS = 16
+
 
 class ClientDisconnected(OSError):
     """Raised from an HTTP/2 send() once the peer reset the stream or left.
@@ -573,6 +578,18 @@ def _pre_request_hook(cfg, log):
     return hook
 
 
+def _relay_result(task, future):
+    """Pass a finished task's outcome on to ``future`` unless it has one."""
+    if future.done():
+        return
+    if task.cancelled():
+        future.cancel()
+    elif task.exception() is not None:
+        future.set_exception(task.exception())
+    else:
+        future.set_result(task.result())
+
+
 def _post_request_hook(cfg):
     """The post_request hook to call, or None for the default one, which
     does nothing."""
@@ -655,6 +672,11 @@ class ASGIProtocol(asyncio.Protocol):
         # still run its cleanup (e.g. decrement nr_conns) afterwards.
         self._conn_lost_handled = False
         self._body_receiver = None  # Set per-request for disconnect signaling
+        # HTTP/1 application calls whose response is complete but which are
+        # still running, mapped to their body receivers. The connection
+        # serves the next request meanwhile.
+        self._finishing_calls = {}
+        self._awaiting_request = False
 
         # Response buffering for write batching
         self._response_buffer = None
@@ -1223,6 +1245,9 @@ class ASGIProtocol(asyncio.Protocol):
         # Signal disconnect to the app via the body receiver
         if self._body_receiver is not None:
             self._body_receiver.signal_disconnect()
+        for receiver in self._finishing_calls.values():
+            if receiver is not None:
+                receiver.signal_disconnect()
 
         # HTTP/2: every stream task learns the peer is gone, and a task
         # blocked in writer.drain() is released with an error.
@@ -1301,6 +1326,7 @@ class ASGIProtocol(asyncio.Protocol):
         headers and body data are available, and this loop waits on
         events rather than actively parsing.
         """
+        cancelled = False
         try:
             peername = self.transport.get_extra_info('peername')
             sockname = self.transport.get_extra_info('sockname')
@@ -1319,13 +1345,19 @@ class ASGIProtocol(asyncio.Protocol):
                 # Don't clear if request already arrived (data_received ran before us)
                 if not self._request_ready.is_set():
                     # Arm the keepalive timer while we wait for the next
-                    # request to become available.
-                    if self.req_count > 1:
+                    # request to become available. While an application
+                    # call is still running the connection is not idle;
+                    # _finishing_call_done arms it once the last one ends.
+                    if self.req_count > 1 and not self._finishing_calls:
                         self._arm_keepalive_timer()
+                    self._awaiting_request = True
                     try:
                         await self._request_ready.wait()
                     except asyncio.CancelledError:
+                        cancelled = True
                         break
+                    finally:
+                        self._awaiting_request = False
                 self._cancel_keepalive_timer()
 
                 if self._closed or self._current_request is None:
@@ -1349,8 +1381,14 @@ class ASGIProtocol(asyncio.Protocol):
                     await self._handle_websocket(request, sockname, effective_peer)
                     break  # WebSocket takes over the connection
 
+                # Bound the application calls left running on this
+                # connection before starting another one.
+                while len(self._finishing_calls) >= _MAX_FINISHING_APP_CALLS:
+                    await asyncio.wait(list(self._finishing_calls),
+                                       return_when=asyncio.FIRST_COMPLETED)
+
                 # Handle HTTP request
-                keepalive = await self._handle_http_request(
+                keepalive = await self._serve_http_request(
                     request, sockname, effective_peer
                 )
 
@@ -1408,11 +1446,78 @@ class ASGIProtocol(asyncio.Protocol):
                         break
 
         except asyncio.CancelledError:
-            pass
+            cancelled = True
         except Exception as e:
             self.log.exception("Error handling connection: %s", e)
         finally:
+            await self._finish_app_calls(cancelled)
             self._close_transport()
+
+    async def _serve_http_request(self, request, sockname, peername):
+        """Run one HTTP/1 request; return once its response is complete.
+
+        The application may keep running after its last response message
+        (Starlette's background tasks run there). When the connection can
+        be kept alive and the request body has been read in full, the
+        call is left to finish in its own task and the next request is
+        served meanwhile. Otherwise this waits for the call to return, so
+        the connection is closed only after it. A post_request hook runs
+        after the call and may still decide to close the connection, so
+        with one set this also waits.
+
+        Returns the keepalive decision, as _handle_http_request does.
+        """
+        loop = self.worker.loop
+        receiver = self._body_receiver
+        complete = loop.create_future()
+        task = loop.create_task(
+            self._handle_http_request(request, sockname, peername, complete))
+        task.add_done_callback(lambda t: _relay_result(t, complete))
+        try:
+            keepalive = await complete
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
+        if task.done():
+            # The final answer, which a post_request hook may have changed.
+            return task.result()
+        if (keepalive and self._post_request is None
+                and (receiver is None or receiver._complete)):
+            self._finishing_calls[task] = receiver
+            task.add_done_callback(self._finishing_call_done)
+            return keepalive
+        # This connection serves nothing more: wait for the call as before.
+        # Awaiting the task directly passes a cancellation on to it.
+        return await task
+
+    def _finishing_call_done(self, task):
+        """An application call left running after its response returned."""
+        self._finishing_calls.pop(task, None)
+        if (not self._finishing_calls and self._awaiting_request
+                and not self._closed):
+            # The connection is idle only now.
+            self._arm_keepalive_timer()
+
+    async def _finish_app_calls(self, cancel):
+        """Settle the application calls still running when the loop ends.
+
+        They run to completion while the connection stays open. Once the
+        peer is gone, connection_lost() gives them
+        asgi_disconnect_grace_period, then cancels this task, which
+        cancels them.
+        """
+        tasks = list(self._finishing_calls)
+        if not tasks:
+            return
+        if not cancel:
+            try:
+                await asyncio.wait(tasks)
+                return
+            except asyncio.CancelledError:
+                pass
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _handle_connection_uwsgi(self, peername, sockname):
         """Handle uWSGI protocol connections (legacy path)."""
@@ -1555,8 +1660,13 @@ class ASGIProtocol(asyncio.Protocol):
 
         await ws_protocol.run()
 
-    async def _handle_http_request(self, request, sockname, peername):
-        """Handle a single HTTP request."""
+    async def _handle_http_request(self, request, sockname, peername, complete=None):
+        """Handle a single HTTP request.
+
+        Returns whether the connection may be kept alive. When ``complete``
+        is a future, it gets that answer as soon as the response is
+        complete, while the application may still be running.
+        """
         scope = self._build_http_scope(request, sockname, peername)
         response_started = False
         response_complete = False
@@ -1754,6 +1864,26 @@ class ASGIProtocol(asyncio.Protocol):
                         self._safe_write(self._response_buffer)
                         self._response_buffer = None
                     response_complete = True
+                    if (complete is not None and exc_to_raise is None
+                            and not complete.done()):
+                        complete.set_result(keepalive_after_response())
+
+        def keepalive_after_response():
+            # A body shorter than the declared Content-Length leaves the
+            # client waiting for bytes that never come; close instead of
+            # keeping alive.
+            if response_length is not None and response_sent < response_length:
+                return False
+
+            # What decided close_announced cannot have changed, except the
+            # worker state and, when something read (and so could have
+            # edited) the str headers, the request's own fields.
+            if (close_announced is None or not isinstance(request, CallbackRequest)
+                    or request._headers is not None):
+                return not self._will_close(request, response_requires_close)
+            worker = self.worker
+            return not (close_announced or not worker.alive
+                        or worker.nr + 1 >= worker.max_requests)
 
         # Only build environ for logging if access logging is enabled
         access_log_enabled = self.log.access_log_enabled
@@ -1821,20 +1951,7 @@ class ASGIProtocol(asyncio.Protocol):
             except Exception:
                 self.log.exception("Exception in post_request hook")
 
-        # A body shorter than the declared Content-Length leaves the client
-        # waiting for bytes that never come; close instead of keeping alive.
-        if response_length is not None and response_sent < response_length:
-            return False
-
-        # Determine keepalive. What decided close_announced cannot have
-        # changed, except the worker state and, when something read (and so
-        # could have edited) the str headers, the request's own fields.
-        if (close_announced is None or not isinstance(request, CallbackRequest)
-                or request._headers is not None):
-            return not self._will_close(request, response_requires_close)
-        worker = self.worker
-        return not (close_announced or not worker.alive
-                    or worker.nr + 1 >= worker.max_requests)
+        return keepalive_after_response()
 
     def _will_close(self, request, response_requires_close):
         """Return True when the connection is closed after this response.
