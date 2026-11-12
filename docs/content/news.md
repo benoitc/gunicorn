@@ -1,6 +1,13 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- ASGI: refuse an informational (1xx) response sent after the final response
+  has started, instead of writing it out of order (RFC 9110 §15.2).
+
 ## 27.0.0 - 2026-11-10
 
 ### Breaking Changes

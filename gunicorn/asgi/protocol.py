@@ -1594,6 +1594,13 @@ class ASGIProtocol(asyncio.Protocol):
             msg_type = message["type"]
 
             if msg_type == "http.response.informational":
+                if response_started:
+                    # RFC 9110 section 15.2: a 1xx comes before the final
+                    # response, written later it would corrupt this response
+                    # or the next one on the connection.
+                    exc_to_raise = RuntimeError(
+                        "Informational response after response start")
+                    return
                 # Handle informational responses (1xx) like 103 Early Hints
                 info_status = message.get("status")
                 info_headers = message.get("headers", [])

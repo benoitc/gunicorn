@@ -199,3 +199,51 @@ async def test_websocket_accept_valid_headers_pass():
     assert b"Sec-WebSocket-Protocol: chat\r\n" in data
     assert b"x-value: ok\r\n" in data
     assert protocol.accepted is True
+
+
+async def _run_informational(after_start):
+    """Send a 103 before or after the final response starts."""
+    from gunicorn.asgi.protocol import BodyReceiver
+
+    protocol = _create_protocol()
+    written = []
+    protocol.transport.write = mock.Mock(side_effect=written.append)
+    request = _create_mock_request()
+    protocol._body_receiver = BodyReceiver(request, protocol)
+    protocol._body_receiver.set_complete()
+    hint = {"type": "http.response.informational", "status": 103,
+            "headers": [(b"link", b"</a>")]}
+
+    async def app(scope, receive, send):
+        if not after_start:
+            await send(hint)
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-length", b"2")]})
+        if after_start:
+            await send(hint)
+        await send({"type": "http.response.body", "body": b"ok"})
+
+    protocol.app = app
+    keepalive = await protocol._handle_http_request(
+        request, ("127.0.0.1", 8000), ("127.0.0.1", 50000)
+    )
+    return b"".join(written), keepalive
+
+
+@pytest.mark.asyncio
+async def test_informational_before_start_is_written():
+    response, keepalive = await _run_informational(after_start=False)
+
+    assert response.startswith(b"HTTP/1.1 103 ")
+    assert response.endswith(b"\r\n\r\nok")
+    assert keepalive
+
+
+@pytest.mark.asyncio
+async def test_informational_after_start_is_refused():
+    # RFC 9110 section 15.2: a 1xx precedes the final response.
+    response, keepalive = await _run_informational(after_start=True)
+
+    assert response.startswith(b"HTTP/1.1 200 ")
+    assert b" 103 " not in response
+    assert not keepalive
