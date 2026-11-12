@@ -1458,7 +1458,7 @@ class ASGIProtocol(asyncio.Protocol):
 
         The application may keep running after its last response message
         (Starlette's background tasks run there). When the connection can
-        be kept alive and the request body has been read in full, the
+        be kept alive and the app has taken the whole request body, the
         call is left to finish in its own task and the next request is
         served meanwhile. Otherwise this waits for the call to return, so
         the connection is closed only after it. A post_request hook runs
@@ -1481,8 +1481,11 @@ class ASGIProtocol(asyncio.Protocol):
         if task.done():
             # The final answer, which a post_request hook may have changed.
             return task.result()
+        # Body bytes the app has not taken would no longer count towards the
+        # read backpressure once the next request is read, so they also wait.
         if (keepalive and self._post_request is None
-                and (receiver is None or receiver._complete)):
+                and (receiver is None
+                     or (receiver._complete and not receiver.buffered))):
             self._finishing_calls[task] = receiver
             task.add_done_callback(self._finishing_call_done)
             return keepalive

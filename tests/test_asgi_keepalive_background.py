@@ -222,6 +222,36 @@ async def test_unread_body_waits_for_app(http_parser):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("read_body", [True, False])
+async def test_body_not_taken_waits_for_app(http_parser, read_body):
+    """A body that arrived in full but that the app left unread keeps the
+    connection waiting for the call."""
+    release = asyncio.Event()
+
+    async def app(scope, receive, send):
+        if read_body:
+            await receive()
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-length", b"2")]})
+        await send({"type": "http.response.body", "body": b"ok"})
+        if scope["path"] == "/slow":
+            await release.wait()
+
+    protocol, transport = _connect(app, http_parser)
+    protocol.data_received(
+        b"POST /slow HTTP/1.1\r\nHost: example.com\r\n"
+        b"Content-Length: 5\r\n\r\nhello" + _get(b"/fast"))
+    await _spin()
+    served = transport.written.count(b"HTTP/1.1 200")
+    assert served == (2 if read_body else 1), transport.written
+
+    release.set()
+    await _spin()
+    assert transport.written.count(b"HTTP/1.1 200") == 2
+    await _close(protocol)
+
+
+@pytest.mark.asyncio
 async def test_finishing_calls_are_bounded(http_parser):
     release = asyncio.Event()
     finished = []
