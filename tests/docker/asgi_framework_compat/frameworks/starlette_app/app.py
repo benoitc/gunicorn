@@ -7,11 +7,13 @@ Implements the contract endpoints for ASGI 3.0 compliance testing.
 import asyncio
 import json
 import sys
+import time
 import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
 from starlette.applications import Starlette
+from starlette.background import BackgroundTask
 from starlette.responses import (
     JSONResponse,
     PlainTextResponse,
@@ -188,6 +190,26 @@ async def delay(request):
     return PlainTextResponse(f"Delayed {seconds} seconds")
 
 
+background_completed = {"count": 0}
+
+
+def _background_sleep(seconds):
+    time.sleep(seconds)
+    background_completed["count"] += 1
+
+
+async def background(request):
+    """Respond, then run a sync background task in the same app call."""
+    seconds = min(float(request.query_params.get("seconds", 1)), 30)
+    return PlainTextResponse(
+        "scheduled", background=BackgroundTask(_background_sleep, seconds))
+
+
+async def background_completed_endpoint(request):
+    """Number of background tasks that ran to completion."""
+    return JSONResponse(background_completed)
+
+
 async def lifespan_state_endpoint(request):
     """Return lifespan startup state."""
     return JSONResponse(lifespan_state)
@@ -271,6 +293,8 @@ routes = [
     Route("/sse", sse),
     Route("/large", large),
     Route("/delay", delay),
+    Route("/background", background),
+    Route("/background/completed", background_completed_endpoint),
     Route("/lifespan/state", lifespan_state_endpoint),
     Route("/lifespan/counter", lifespan_counter),
     # WebSocket endpoints
