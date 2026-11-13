@@ -1540,3 +1540,121 @@ class TestDirtyArbiterRoutingPerApp:
         assert response["error"]["error_type"] == "DirtyNoWorkersAvailableError"
 
         arbiter._cleanup_sync()
+
+
+class TestDirtyArbiterWorkerExitWithPendingRequests:
+    """Requests queued on a worker must not hang when the worker goes away."""
+
+    @staticmethod
+    def _arbiter(pids):
+        cfg = Config()
+        arbiter = DirtyArbiter(cfg=cfg, log=MockLog())
+        arbiter.pid = os.getpid()
+        arbiter.alive = True
+        for pid in pids:
+            arbiter.workers[pid] = "fake_worker"
+            arbiter.worker_sockets[pid] = "/tmp/fake-%d.sock" % pid
+        return arbiter
+
+    @staticmethod
+    async def _stop_consumers(arbiter):
+        arbiter.alive = False
+        for task in list(arbiter.worker_consumers.values()):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        arbiter._cleanup_sync()
+
+    @pytest.mark.asyncio
+    async def test_inflight_and_queued_requests_fail_when_only_worker_exits(self):
+        arbiter = self._arbiter([99991])
+        started = asyncio.Event()
+
+        async def stuck(worker_pid, request, client_writer):
+            started.set()
+            await asyncio.sleep(3600)
+
+        arbiter._execute_on_worker = stuck
+
+        writers = [MockStreamWriter() for _ in range(3)]
+        routes = [
+            asyncio.create_task(arbiter.route_request(
+                make_request("req-%d" % i, "test:App", "go"), w))
+            for i, w in enumerate(writers)
+        ]
+        await asyncio.wait_for(started.wait(), 5)
+        await asyncio.sleep(0)
+
+        arbiter._cleanup_worker(99991)
+
+        # Before the fix these never finished.
+        await asyncio.wait_for(asyncio.gather(*routes), 5)
+        for w in writers:
+            assert [m["type"] for m in w.messages] == ["error"]
+
+    @pytest.mark.asyncio
+    async def test_queued_requests_move_to_another_worker(self):
+        arbiter = self._arbiter([99992, 99993])
+        started = asyncio.Event()
+        served = []
+
+        async def execute(worker_pid, request, client_writer):
+            if worker_pid == 99992:
+                started.set()
+                await asyncio.sleep(3600)
+            served.append((worker_pid, request["id"]))
+            await DirtyProtocol.write_message_async(
+                client_writer, make_response(request["id"], "ok"))
+
+        arbiter._execute_on_worker = execute
+
+        # Put the requests on worker 99992 only.
+        arbiter._worker_rr_index = 0
+        arbiter.workers.pop(99993)
+        w1, w2 = MockStreamWriter(), MockStreamWriter()
+        r1 = asyncio.create_task(arbiter.route_request(
+            make_request("a", "test:App", "go"), w1))
+        await asyncio.wait_for(started.wait(), 5)
+        r2 = asyncio.create_task(arbiter.route_request(
+            make_request("b", "test:App", "go"), w2))
+        await asyncio.sleep(0.05)
+        arbiter.workers[99993] = "fake_worker"
+
+        arbiter._cleanup_worker(99992)
+
+        await asyncio.wait_for(asyncio.gather(r1, r2), 5)
+        # The request being served is lost with its worker...
+        assert [m["type"] for m in w1.messages] == ["error"]
+        # ...the one that never started is served by the survivor.
+        assert served == [(99993, "b")]
+        assert [m["type"] for m in w2.messages] == ["response"]
+        await self._stop_consumers(arbiter)
+
+    @pytest.mark.asyncio
+    async def test_stop_fails_queued_requests(self):
+        arbiter = self._arbiter([99994])
+        started = asyncio.Event()
+
+        async def stuck(worker_pid, request, client_writer):
+            started.set()
+            await asyncio.sleep(3600)
+
+        arbiter._execute_on_worker = stuck
+        arbiter.cfg.set("dirty_graceful_timeout", 1)
+        writers = [MockStreamWriter() for _ in range(2)]
+        routes = [
+            asyncio.create_task(arbiter.route_request(
+                make_request("s-%d" % i, "test:App", "go"), w))
+            for i, w in enumerate(writers)
+        ]
+        await asyncio.wait_for(started.wait(), 5)
+        await asyncio.sleep(0)
+
+        await arbiter.stop()
+
+        await asyncio.wait_for(asyncio.gather(*routes), 5)
+        for w in writers:
+            assert [m["type"] for m in w.messages] == ["error"]
+        arbiter._cleanup_sync()

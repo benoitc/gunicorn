@@ -91,6 +91,7 @@ class DirtyArbiter:
         self.worker_connections = {}  # pid -> (reader, writer)
         self.worker_queues = {}  # pid -> asyncio.Queue
         self.worker_consumers = {}  # pid -> asyncio.Task
+        self.worker_inflight = {}  # pid -> future of the request being served
         self._worker_rr_index = 0  # Round-robin index for worker selection
         self.worker_age = 0
         self.alive = True
@@ -506,19 +507,34 @@ class DirtyArbiter:
             while self.alive:
                 try:
                     request, client_writer, future = await queue.get()
-                    try:
-                        await self._execute_on_worker(
-                            worker_pid, request, client_writer
-                        )
-                        if not future.done():
-                            future.set_result(None)
-                    except Exception as e:
-                        if not future.done():
-                            future.set_exception(e)
-                    finally:
-                        queue.task_done()
                 except asyncio.CancelledError:
                     break
+                if future.done():
+                    # Failed or rerouted while it waited.
+                    queue.task_done()
+                    continue
+                self.worker_inflight[worker_pid] = future
+                try:
+                    await self._execute_on_worker(
+                        worker_pid, request, client_writer
+                    )
+                    if not future.done():
+                        future.set_result(None)
+                except asyncio.CancelledError:
+                    # Cancelled mid-request (the worker is gone): the
+                    # caller must hear about it, not wait for ever.
+                    if not future.done():
+                        future.set_exception(DirtyWorkerError(
+                            "Worker exited while handling the request",
+                            worker_id=worker_pid))
+                    break
+                except Exception as e:
+                    if not future.done():
+                        future.set_exception(e)
+                finally:
+                    if self.worker_inflight.get(worker_pid) is future:
+                        del self.worker_inflight[worker_pid]
+                    queue.task_done()
 
         task = asyncio.create_task(consumer())
         self.worker_consumers[worker_pid] = task
@@ -1029,8 +1045,15 @@ class DirtyArbiter:
             self.worker_consumers[pid].cancel()
             del self.worker_consumers[pid]
 
-        # Remove queue
-        self.worker_queues.pop(pid, None)
+        # Remove queue, keeping the requests still waiting in it
+        queue = self.worker_queues.pop(pid, None)
+        waiting = self._drain_queue(queue)
+
+        # The request being served can no longer be answered by this worker
+        inflight = self.worker_inflight.pop(pid, None)
+        if inflight is not None and not inflight.done():
+            inflight.set_exception(DirtyWorkerError(
+                "Worker exited while handling the request", worker_id=pid))
 
         # Save dead worker's apps for respawn BEFORE unregistering
         if pid in self.worker_app_map:
@@ -1050,6 +1073,63 @@ class DirtyArbiter:
                 os.unlink(socket_path)
             except OSError:
                 pass
+
+        self._reroute_waiting(pid, waiting)
+
+    @staticmethod
+    def _drain_queue(queue):
+        """Take every request still waiting in a worker's queue."""
+        waiting = []
+        while queue is not None:
+            try:
+                waiting.append(queue.get_nowait())
+            except asyncio.QueueEmpty:
+                break
+        return waiting
+
+    def _reroute_waiting(self, dead_pid, waiting):
+        """Hand requests that never reached a dead worker to another one.
+
+        Their callers are blocked in route_request() on a future that only
+        the dead worker's consumer would have completed. A request that was
+        never sent can safely go to a different worker; when there is none
+        the caller gets an error instead of waiting for ever.
+        """
+        for request, client_writer, future in waiting:
+            if future.done():
+                continue
+            app_path = request.get("app_path")
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            pid = self._pick_worker_now(app_path) if loop is not None else None
+            if pid is None:
+                future.set_exception(DirtyWorkerError(
+                    "Worker exited before the request was started",
+                    worker_id=dead_pid))
+                continue
+            loop.create_task(self._requeue(pid, request, client_writer, future))
+
+    def _pick_worker_now(self, app_path):
+        """Synchronous twin of _get_available_worker()."""
+        if app_path and self.app_specs:
+            eligible = list(self.app_worker_map.get(app_path, ()))
+        else:
+            eligible = list(self.workers.keys())
+        if not eligible:
+            return None
+        pid = eligible[self._worker_rr_index % len(eligible)]
+        self._worker_rr_index += 1
+        return pid
+
+    async def _requeue(self, pid, request, client_writer, future):
+        """Queue a rerouted request on another worker."""
+        if future.done():
+            return
+        if pid not in self.worker_queues:
+            await self._start_worker_consumer(pid)
+        await self.worker_queues[pid].put((request, client_writer, future))
 
     async def murder_workers(self):
         """Kill workers that have timed out."""
@@ -1114,6 +1194,12 @@ class DirtyArbiter:
         # Cancel all consumer tasks
         for task in self.worker_consumers.values():
             task.cancel()
+        # Nothing will serve the requests still queued: answer them
+        for pid, queue in list(self.worker_queues.items()):
+            for _request, _writer, future in self._drain_queue(queue):
+                if not future.done():
+                    future.set_exception(DirtyWorkerError(
+                        "Dirty arbiter is stopping", worker_id=pid))
 
         sig = signal.SIGTERM if graceful else signal.SIGQUIT
         limit = time.time() + self.cfg.dirty_graceful_timeout
