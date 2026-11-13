@@ -43,9 +43,6 @@ class MockLog:
     def error(self, msg, *args):
         self.messages.append(("error", msg % args if args else msg))
 
-    def close_on_exec(self):
-        pass
-
     def reopen_files(self):
         pass
 

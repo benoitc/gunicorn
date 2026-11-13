@@ -136,7 +136,6 @@ class TestDirtyExecutionTimeout:
             def info(self, *a, **kw): pass
             def warning(self, *a, **kw): pass
             def error(self, *a, **kw): pass
-            def close_on_exec(self): pass
             def reopen_files(self): pass
 
         cfg = Config()
@@ -205,7 +204,6 @@ class TestDirtyExecutionTimeout:
             def error(self, *a, **kw): pass
             def critical(self, *a, **kw): pass
             def exception(self, *a, **kw): pass
-            def close_on_exec(self): pass
             def reopen_files(self): pass
 
         cfg = Config()
@@ -297,7 +295,6 @@ class TestDirtyExecutionTimeout:
             def error(self, *a, **kw): pass
             def critical(self, *a, **kw): pass
             def exception(self, *a, **kw): pass
-            def close_on_exec(self): pass
             def reopen_files(self): pass
 
         cfg = Config()
