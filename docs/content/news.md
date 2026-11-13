@@ -1,6 +1,15 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- Dirty arbiter: when a dirty worker exits (scale down, reload, crash), the
+  requests queued behind it are handed to another worker, and the request it
+  was serving gets an error. They used to wait for ever, because only the
+  exited worker's queue would have answered them.
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes
