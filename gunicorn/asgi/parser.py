@@ -931,13 +931,24 @@ class PythonProtocol:
                 if self._header_count > (self._limit_request_fields or DEFAULT_MAX_FIELDS):
                     raise LimitRequestHeaders("Too many trailer fields")
 
+                # RFC 9112 section 7.1.2: a trailer line is a field-line,
+                # checked like a header line (section 5.1: no whitespace
+                # around the name, so no obs-fold either; RFC 9110 section
+                # 5.5: no CTLs in the value), as the WSGI parser does.
+                colon = line.find(b':')
+                if colon == -1:
+                    raise InvalidHeader("Missing colon in trailer")
+                name = line[:colon]
+                if not self._is_valid_token(name):
+                    raise InvalidHeaderName(name.decode('latin-1'))
+                if self._has_invalid_header_chars(line[colon + 1:]):
+                    raise InvalidHeader("Invalid characters in trailer value")
+
                 # RFC 9110 section 6.5.1: reject fields that must not appear
                 # in trailers.
-                colon = line.find(b':')
-                if colon > 0:
-                    name = line[:colon].strip(b' \t').lower()
-                    if name in RFC9110_6_5_1_FORBIDDEN_TRAILER:
-                        raise InvalidHeaderName(name.decode('latin-1'))
+                name = name.lower()
+                if name in RFC9110_6_5_1_FORBIDDEN_TRAILER:
+                    raise InvalidHeaderName(name.decode('latin-1'))
 
         return False
 

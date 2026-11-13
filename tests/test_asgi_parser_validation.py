@@ -655,3 +655,31 @@ class TestRequestTargetNonAscii:
         parser = PythonProtocol(on_message_complete=lambda: done.append(1))
         parser.feed(b"GET /caf%C3%A9 HTTP/1.1\r\nHost: a\r\n\r\n")
         assert done == [1]
+
+
+class TestTrailerFieldLines:
+    """RFC 9112 7.1.2: trailer lines are field-lines, checked like headers."""
+
+    PREFIX = (b"POST / HTTP/1.1\r\nHost: a\r\n"
+              b"Transfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n0\r\n")
+
+    @pytest.mark.parametrize("line", [
+        b"X",
+        b": 1",
+        b"foo bar: 1",
+        b"X : 1",
+        b" Content-Length: 5",
+        b"\tX: 1",
+        b"X: a\x00b",
+        b"X: a\x01b",
+        b"X: a\x7fb",
+    ])
+    def test_malformed_trailer_rejected(self, line):
+        with pytest.raises((InvalidHeader, InvalidHeaderName)):
+            PythonProtocol().feed(self.PREFIX + line + b"\r\n\r\n")
+
+    def test_valid_trailer_accepted(self):
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(self.PREFIX + b"X-Checksum: \tab c\x80\r\n\r\n")
+        assert done == [1]
