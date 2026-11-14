@@ -1,0 +1,4 @@
+CONNECT host:25 HTTP/1.1\r\n
+Content-Length: 3\r\n
+\r\n
+BOO
