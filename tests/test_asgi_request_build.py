@@ -93,6 +93,31 @@ def test_parser_reset_does_not_touch_an_earlier_request(kind):
     assert req.path == "/up"
 
 
+ABSOLUTE_FORM_CASES = [
+    (b"GET http://example.com/foo%20bar?q=1 HTTP/1.1\r\nHost: example.com\r\n\r\n",
+     b"/foo%20bar", "/foo bar", "q=1"),
+    (b"GET http://user:pass@example.com:8080/foo HTTP/1.1\r\nHost: example.com\r\n\r\n",
+     b"/foo", "/foo", ""),
+    (b"GET https://example.com?q=1 HTTP/1.1\r\nHost: example.com\r\n\r\n",
+     b"", "", "q=1"),
+    # origin-form that merely contains "://" is left alone
+    (b"GET /r?to=http://example.com/ HTTP/1.1\r\nHost: example.com\r\n\r\n",
+     b"/r", "/r", "to=http://example.com/"),
+]
+
+
+@pytest.mark.parametrize("kind", PARSERS)
+@pytest.mark.parametrize("raw,raw_path,path,query", ABSOLUTE_FORM_CASES)
+def test_absolute_form_path(kind, raw, raw_path, path, query):
+    # RFC 9112 section 3.2.2: the scheme and authority of an absolute-form
+    # request-target are not part of the path, as on the WSGI worker.
+    req = _build(kind, raw)
+    assert req.raw_path == raw_path
+    assert req.path == path
+    assert req.query == query
+    assert req.uri == raw.split(b" ")[1].decode("latin-1")
+
+
 CONNECTION_CASES = [
     (b"GET / HTTP/1.1\r\nHost: a\r\n\r\n", False),
     (b"GET / HTTP/1.1\r\nHost: a\r\nConnection: close\r\n\r\n", True),

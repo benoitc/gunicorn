@@ -1043,7 +1043,7 @@ class CallbackRequest:
         Returns:
             CallbackRequest instance
         """
-        from urllib.parse import unquote_to_bytes
+        from urllib.parse import unquote_to_bytes, urlsplit
 
         req = cls()
         req.method = parser.method.decode('ascii')
@@ -1055,11 +1055,21 @@ class CallbackRequest:
         raw_url = parser.path
         if RFC9112_TARGET_INVALID.search(raw_url):
             raise InvalidRequestLine("Invalid request line")
-        if b'?' in raw_url:
-            path_part, query_part = raw_url.split(b'?', 1)
+        target = raw_url
+        # RFC 9112 section 3.2.2: a server must accept the absolute-form.
+        # Its scheme and authority are not part of the path, so keep only
+        # the path and query, as the WSGI worker does for PATH_INFO.
+        if (req.method != 'CONNECT' and not target.startswith(b'/')
+                and b'://' in target):
+            parts = urlsplit(target)
+            target = parts.path
+            if parts.query:
+                target += b'?' + parts.query
+        if b'?' in target:
+            path_part, query_part = target.split(b'?', 1)
             req.query = query_part.decode('latin-1')
         else:
-            path_part = raw_url
+            path_part = target
             req.query = ''
         req.raw_path = path_part  # Store original bytes
         # Without '%' there is nothing to decode: unquote_to_bytes() would

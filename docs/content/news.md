@@ -1,6 +1,15 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- ASGI: give an absolute-form request-target (`GET http://host/path`) the
+  path alone in `scope["path"]` and `raw_path`, as the WSGI workers do
+  for `PATH_INFO`. The scheme and authority were kept in the path
+  (RFC 9112 §3.2.2).
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes
