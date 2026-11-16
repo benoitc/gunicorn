@@ -33,7 +33,7 @@ jobs:
           pytest tests/docker/stress -v --tb=short
       - name: Upload k6 results and container logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stress-results
           path: |
