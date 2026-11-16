@@ -107,6 +107,23 @@ Choose a worker type based on your application's needs.
     gunicorn myapp:app -k tornado
     ```
 
+=== "Interpreter (Experimental)"
+
+    !!! warning "Experimental — requires Python 3.14+"
+
+    **Sub-interpreter** worker using `InterpreterPoolExecutor`. Each request runs
+    in its own sub-interpreter with an independent GIL, enabling true CPU
+    parallelism without forking extra processes.
+
+    - True parallelism for CPU-bound workloads
+    - No keep-alive support
+    - Hooks (`ssl_context`, `pre_request`, `post_request`) are not supported
+    - See the [Interpreter Worker](ginterpreter.md) guide for details
+
+    ```bash
+    gunicorn myapp:app -k ginterpreter --threads 4
+    ```
+
 ## Comparison
 
 | Worker | Concurrency Model | Keep-Alive | Best For |
@@ -116,6 +133,7 @@ Choose a worker type based on your application's needs.
 | ASGI workers | AsyncIO | ✅ | Modern async frameworks (FastAPI, etc.) |
 | `gevent` | Greenlets | ✅ | I/O-bound, WebSockets, streaming |
 | `tornado` | Tornado IOLoop | ✅ | Native Tornado applications |
+| `ginterpreter` *(experimental)* | Sub-interpreters | ❌ | CPU-bound apps on Python 3.14+ |
 
 !!! tip "Quick Decision Guide"
 
@@ -123,6 +141,7 @@ Choose a worker type based on your application's needs.
     - **Need keep-alive or moderate concurrency?** → `gthread`
     - **WebSockets, streaming, long-polling?** → `gevent` or ASGI worker
     - **FastAPI, Starlette, or async framework?** → ASGI worker
+    - **CPU-bound and on Python 3.14+?** → `ginterpreter` *(experimental)*
 
 ## When to Use Async Workers
 
