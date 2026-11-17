@@ -201,6 +201,21 @@ def _upgrade_body_too_large(req):
     return False
 
 
+def read_upgrade_body(req):
+    """Read the payload of an upgrade request, or None if it is too large.
+
+    upgrade_settings() can only refuse a declared Content-Length. A chunked
+    payload has no declared size, so it is read here up to
+    H2C_UPGRADE_BODY_LIMIT and refused past it, as the ASGI worker does.
+    """
+    if req.body is None:
+        return b""
+    body = req.body.read(H2C_UPGRADE_BODY_LIMIT + 1) or b""
+    if len(body) > H2C_UPGRADE_BODY_LIMIT:
+        return None
+    return body
+
+
 def _settings_payload_valid(payload):
     """Decode the base64url HTTP2-Settings payload and check its values."""
     import base64

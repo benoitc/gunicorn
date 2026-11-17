@@ -147,9 +147,12 @@ class AsyncWorker(base.Worker):
         if settings is None:
             return False
 
-        body = b""
-        if req.body is not None:
-            body = req.body.read() or b""
+        body = negotiation.read_upgrade_body(req)
+        if body is None:
+            # Over the limit: no 101 has gone out, so just close.
+            self.log.debug("h2c upgrade body over %d bytes, closing",
+                           negotiation.H2C_UPGRADE_BODY_LIMIT)
+            return True
         pending = parser.unreader.take_buffered()
         util.write(client, negotiation.UPGRADE_101)
         self.handle_http2(listener, client, addr, preface=pending,
