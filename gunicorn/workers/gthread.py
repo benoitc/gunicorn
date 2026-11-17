@@ -601,9 +601,12 @@ class ThreadWorker(base.Worker):
         taking the buffer before draining it would feed the payload to the
         HTTP/2 state machine as if it were frames.
         """
-        body = b""
-        if req.body is not None:
-            body = req.body.read() or b""
+        body = negotiation.read_upgrade_body(req)
+        if body is None:
+            # Over the limit: no 101 has gone out, so just close.
+            self.log.debug("h2c upgrade body over %d bytes, closing",
+                           negotiation.H2C_UPGRADE_BODY_LIMIT)
+            return False
         pending = conn.parser.unreader.take_buffered()
         util.write(conn.sock, negotiation.UPGRADE_101)
 

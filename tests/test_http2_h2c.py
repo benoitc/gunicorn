@@ -806,6 +806,82 @@ class TestUpgradeWithBody:
         assert not worker.errors
 
 
+def _send_in_background(sock, data):
+    """Send from a thread: a body larger than the socket buffer would block."""
+    def send():
+        try:
+            sock.sendall(data)
+        except OSError:
+            pass
+    t = threading.Thread(target=send, daemon=True)
+    t.start()
+    return t
+
+
+@pytest.mark.skipif(not H2_AVAILABLE, reason="h2 library not available")
+class TestUpgradeChunkedBodyLimit:
+    """A chunked upgrade payload has no Content-Length for upgrade_settings()
+    to check, so it is held to H2C_UPGRADE_BODY_LIMIT while it is read."""
+
+    OVER = b"x" * (negotiation.H2C_UPGRADE_BODY_LIMIT + 1)
+
+    def _gthread(self, body):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", "upgrade")
+        conn, client = make_conn(cfg)
+        sender = _send_in_background(client, upgrade_request(body, chunked=True))
+        try:
+            conn.init()
+            conn.sock.settimeout(5)
+            req = next(conn.parser)
+            settings = negotiation.upgrade_settings(req)
+            assert settings is not None
+            worker = _StubThreadWorker(cfg)
+            keepalive = worker.handle_h2c_upgrade(conn, req, settings)
+            return worker, keepalive
+        finally:
+            client.close()
+            sender.join()
+            conn.sock.close()
+
+    def _gevent(self, body):
+        cfg = h2c_config()
+        cfg.set("http2_cleartext", "upgrade")
+        server_sock, client_sock = socket.socketpair()
+        server_sock.settimeout(5)
+        sender = _send_in_background(client_sock, upgrade_request(body, chunked=True))
+        listener = mock.Mock()
+        listener.getsockname.return_value = ("127.0.0.1", 8000)
+        worker = _StubAsyncWorker(cfg)
+        try:
+            worker.handle(listener, server_sock, TRUSTED_ADDR)
+        finally:
+            client_sock.close()
+            sender.join()
+            server_sock.close()
+        return worker
+
+    def test_gthread_over_limit_is_not_upgraded(self):
+        worker, keepalive = self._gthread(self.OVER)
+        assert worker.served == []
+        assert keepalive is False
+
+    def test_gthread_under_limit_is_upgraded(self):
+        worker, _keepalive = self._gthread(b"hello=world")
+        assert len(worker.served) == 1
+        assert worker.served[0].body.read() == b"hello=world"
+
+    def test_gevent_over_limit_is_not_upgraded(self):
+        worker = self._gevent(self.OVER)
+        assert worker.upgrades == []
+        assert worker.http2_calls == []
+
+    def test_gevent_under_limit_is_upgraded(self):
+        worker = self._gevent(b"hello=world")
+        assert len(worker.upgrades) == 1
+        assert worker.upgrades[0][2] == b"hello=world"
+
+
 UPGRADE_HEADERS = (
     b"Host: x\r\nUpgrade: h2c\r\n"
     b"Connection: Upgrade, HTTP2-Settings\r\n"

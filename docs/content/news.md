@@ -1,6 +1,15 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- h2c: on the gthread, gevent and eventlet workers, close the connection
+  instead of upgrading when an `Upgrade: h2c` request has a chunked body over
+  64 KiB, as the ASGI worker does. The 64 KiB limit was only checked against
+  `Content-Length`, so a chunked body was read into memory whatever its size.
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes
