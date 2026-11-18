@@ -861,6 +861,41 @@ def test_connect_ends_the_connection(http_parser):
         next(parser)
 
 
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+@pytest.mark.parametrize("version,connection,closes", [
+    (b"1.1", b"Connection: close\r\n", True),
+    (b"1.1", b"Connection: TE, close\r\n", True),
+    (b"1.1", b"Connection: keep-alive, Close\r\n", True),
+    (b"1.1", b"Connection: keep-alive\r\nConnection: close\r\n", True),
+    (b"1.1", b"Connection: upgrade\r\n", False),
+    (b"1.1", b"", False),
+    (b"1.0", b"Connection: keep-alive, TE\r\n", False),
+    (b"1.0", b"Connection: TE\r\n", True),
+    (b"1.0", b"", True),
+])
+def test_connection_close_option(http_parser, version, connection, closes):
+    """RFC 9110 section 7.6.1: Connection is a list of options. RFC 9112
+    section 9.6: after a request with "close" in it, no further request on
+    that connection is served."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    data = (b"GET /first HTTP/" + version + b"\r\nHost: a\r\n" + connection + b"\r\n"
+            b"GET /second HTTP/1.1\r\nHost: a\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    assert req.should_close() is closes
+    if closes:
+        with pytest.raises(StopIteration):
+            next(parser)
+    else:
+        assert next(parser).path == "/second"
+
+
 def test_invalid_response_header_value_not_in_error():
     """The error names the header but never carries its value, which may be
     sensitive (a cookie, a token)."""

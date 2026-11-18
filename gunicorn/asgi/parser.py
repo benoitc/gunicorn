@@ -1104,8 +1104,8 @@ class CallbackRequest:
                         "Duplicate %s header" % name.decode('latin-1'))
                 seen_singletons.add(name)
             elif name == b'connection':
-                if connection is None:
-                    connection = value.decode('latin-1')
+                value = value.decode('latin-1')
+                connection = value if connection is None else connection + ',' + value
             elif name == b'upgrade':
                 has_upgrade = True
             elif name == b'transfer-encoding':
@@ -1146,15 +1146,17 @@ class CallbackRequest:
             connection = None
             for name, value in self.headers:
                 if name == "CONNECTION":
-                    connection = value
-                    break
+                    connection = value if connection is None else connection + ',' + value
+        # RFC 9110 section 7.6.1 and RFC 9112 section 9.3, as in
+        # gunicorn/http/message.py:Message.should_close.
+        options = set()
         if connection is not None:
-            v = connection.lower().strip(" \t")
-            if v == "close":
-                return True
-            elif v == "keep-alive":
-                return False
-        return self.version <= (1, 0)
+            options.update(o.strip(" \t") for o in connection.lower().split(","))
+        if "close" in options:
+            return True
+        if self.version >= (1, 1):
+            return False
+        return "keep-alive" not in options
 
     def may_upgrade(self):
         """False only when the request is known to carry no Upgrade field."""
