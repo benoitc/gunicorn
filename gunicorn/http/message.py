@@ -483,15 +483,18 @@ class Message(HeaderPolicy):
         # HTTP/1.1 request to serve.
         if getattr(self, "method", None) == "CONNECT":
             return True
+        # RFC 9110 section 7.6.1: Connection is a list of case-insensitive
+        # options, possibly over several field lines. RFC 9112 section 9.3
+        # and 9.6: "close" anywhere in it ends the connection.
+        options = set()
         for (h, v) in self.headers:
             if h == "CONNECTION":
-                v = v.lower().strip(" \t")
-                if v == "close":
-                    return True
-                elif v == "keep-alive":
-                    return False
-                break
-        return self.version <= (1, 0)
+                options.update(o.strip(" \t") for o in v.lower().split(","))
+        if "close" in options:
+            return True
+        if self.version >= (1, 1):
+            return False
+        return "keep-alive" not in options
 
 
 class Request(Message):

@@ -102,6 +102,8 @@ CONNECTION_CASES = [
     (b"GET / HTTP/1.0\r\nHost: a\r\n\r\n", True),
     (b"GET / HTTP/1.0\r\nHost: a\r\nConnection: Keep-Alive\r\n\r\n", False),
     (b"GET / HTTP/1.1\r\nHost: a\r\nConnection: upgrade\r\n\r\n", False),
+    (b"GET / HTTP/1.1\r\nHost: a\r\nConnection: TE, close\r\n\r\n", True),
+    (b"GET / HTTP/1.0\r\nHost: a\r\nConnection: TE, keep-alive\r\n\r\n", False),
 ]
 
 
@@ -155,6 +157,20 @@ def test_request_built_by_hand_reads_its_str_headers():
     req.headers = [("CONNECTION", "close"), ("UPGRADE", "websocket")]
     assert req.should_close() is True
     assert req.may_upgrade() is True
+
+
+@pytest.mark.parametrize("connection,closes", [
+    (["TE, close"], True),
+    (["keep-alive", "close"], True),
+    (["keep-alive, upgrade"], False),
+])
+def test_request_built_by_hand_reads_connection_as_a_list(connection, closes):
+    """RFC 9110 section 7.6.1: Connection is a list of options, possibly over
+    several field lines; "close" anywhere ends the connection."""
+    req = CallbackRequest()
+    req.version = (1, 1)
+    req.headers = [("CONNECTION", v) for v in connection]
+    assert req.should_close() is closes
 
 
 def _old_apply(policy, request, trust):
