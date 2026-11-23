@@ -81,7 +81,6 @@ class AsyncWorker(base.Worker):
                     self.handle_request(listener_name, req, client, addr)
                 else:
                     # keepalive loop
-                    proxy_protocol_info = {}
                     while True:
                         req = None
                         with self.timeout_ctx():
@@ -91,10 +90,6 @@ class AsyncWorker(base.Worker):
                         if self._try_h2c_upgrade(listener, req, parser, client,
                                                  addr):
                             return
-                        if req.proxy_protocol_info:
-                            proxy_protocol_info = req.proxy_protocol_info
-                        else:
-                            req.proxy_protocol_info = proxy_protocol_info
                         self.handle_request(listener_name, req, client, addr)
             except http.errors.NoMoreData as e:
                 self.log.debug("Ignored premature client disconnection. %s", e)

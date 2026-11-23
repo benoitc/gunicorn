@@ -115,10 +115,15 @@ class Parser:
             raise StopIteration()
 
         # Parse the next request
+        prev = self.mesg
         self.req_count += 1
         self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
         if not self.mesg:
             raise StopIteration()
+        # A PROXY protocol header comes once, before the first request, and
+        # gives the client address for the whole connection.
+        if prev is not None and self.mesg.proxy_protocol_info is None:
+            self.mesg.proxy_protocol_info = prev.proxy_protocol_info
         return self.mesg
 
     next = __next__

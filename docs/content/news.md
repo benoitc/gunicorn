@@ -1,6 +1,14 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- gthread: give the PROXY protocol client address to every request on a
+  kept-alive connection, not only the first. Later requests got the proxy's
+  address in `REMOTE_ADDR` (PROXY protocol v1/v2, section 2).
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes

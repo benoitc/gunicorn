@@ -861,6 +861,30 @@ def test_connect_ends_the_connection(http_parser):
         next(parser)
 
 
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+def test_proxy_protocol_applies_to_every_request_on_the_connection(http_parser):
+    """The PROXY header comes once, before the first request, and gives the
+    client address for the whole connection (PROXY protocol, section 2)."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+    from gunicorn.http.wsgi import proxy_environ
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    cfg.set('proxy_protocol', 'v1')
+    cfg.set('proxy_allow_ips', '127.0.0.1')
+    data = (b"PROXY TCP4 203.0.113.7 192.0.2.1 51000 80\r\n"
+            b"GET /a HTTP/1.1\r\nHost: x\r\n\r\n"
+            b"GET /b HTTP/1.1\r\nHost: x\r\n\r\n")
+    parser = RequestParser(cfg, [data], ('127.0.0.1', 40000))
+    for path in ("/a", "/b"):
+        req = next(parser)
+        assert req.path == path
+        assert proxy_environ(req)["REMOTE_ADDR"] == "203.0.113.7"
+
+
 def test_invalid_response_header_value_not_in_error():
     """The error names the header but never carries its value, which may be
     sensitive (a cookie, a token)."""
