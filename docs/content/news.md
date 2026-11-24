@@ -5,19 +5,13 @@
 
 ### New Features
 
-- Windows: serve from a single process. The arbiter forks workers and steers
-  them with POSIX signals, and Windows has neither, so the worker runs in the
-  process that would have been the master. Only the `sync` and `gthread`
-  workers are available, the control socket is not started, and what needs
-  the master (`--daemon`, `--reload`, `--user`, `--group`, dirty workers,
-  `unix:` and `fd://` binds) is refused at startup instead of silently
-  ignored.
+- Windows: gunicorn serves from a single process, with the `sync` and
+  `gthread` workers. Settings that need the master are refused at startup.
 
 ### Bug Fixes
 
-- Windows: treat a connection aborted by the client (WSAECONNABORTED) as the
-  client leaving rather than as a server error, so a browser cancelling a
-  connection no longer prints a traceback.
+- Windows: log a connection the client aborted at debug level instead of
+  printing a traceback.
 
 ## 27.0.1 - 2026-11-12
 
