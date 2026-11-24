@@ -15,6 +15,7 @@ import errno
 import os
 import queue
 import selectors
+import socket
 import ssl
 import sys
 import time
@@ -23,6 +24,7 @@ from datetime import datetime
 from functools import partial
 
 from . import base
+from .. import compat
 from .. import http
 from .. import util
 from .. import sock
@@ -171,29 +173,37 @@ class PollableMethodQueue:
     Uses a pipe to allow worker threads to signal the main thread
     when work is ready, enabling lock-free coordination.
 
-    This approach is compatible with all POSIX systems including
-    Linux, macOS, FreeBSD, OpenBSD, and NetBSD. The pipe is set to
-    non-blocking mode to prevent worker threads from blocking if
-    the pipe buffer fills up under extreme load.
+    POSIX select() waits on a pipe; Windows select() waits on sockets only,
+    so a socketpair carries the same wake-up bytes there.
     """
 
     def __init__(self):
         self._read_fd = None
         self._write_fd = None
+        self._reader = None
+        self._writer = None
         self._queue = None
 
     def init(self):
         """Initialize the pipe and queue."""
-        self._read_fd, self._write_fd = os.pipe()
-        # Set both ends to non-blocking:
-        # - Write: prevents worker threads from blocking if buffer is full
-        # - Read: allows run_callbacks to drain without blocking
-        os.set_blocking(self._read_fd, False)
-        os.set_blocking(self._write_fd, False)
+        if compat.WINDOWS:
+            self._reader, self._writer = socket.socketpair()
+            self._reader.setblocking(False)
+            self._writer.setblocking(False)
+        else:
+            self._read_fd, self._write_fd = os.pipe()
+            # Set both ends to non-blocking:
+            # - Write: prevents worker threads from blocking if buffer is full
+            # - Read: allows run_callbacks to drain without blocking
+            os.set_blocking(self._read_fd, False)
+            os.set_blocking(self._write_fd, False)
         self._queue = queue.SimpleQueue()
 
     def close(self):
         """Close the pipe file descriptors."""
+        if self._reader is not None:
+            self._reader.close()
+            self._writer.close()
         if self._read_fd is not None:
             try:
                 os.close(self._read_fd)
@@ -207,7 +217,20 @@ class PollableMethodQueue:
 
     def fileno(self):
         """Return the readable file descriptor for selector registration."""
+        if compat.WINDOWS:
+            return self._reader.fileno()
         return self._read_fd
+
+    def _write(self, data):
+        if compat.WINDOWS:
+            self._writer.send(data)
+            return
+        os.write(self._write_fd, data)
+
+    def _read(self, size):
+        if compat.WINDOWS:
+            return self._reader.recv(size)
+        return os.read(self._read_fd, size)
 
     def defer(self, callback, *args):
         """Queue a callback to be run on the main thread.
@@ -219,7 +242,7 @@ class PollableMethodQueue:
         """
         self._queue.put(partial(callback, *args))
         try:
-            os.write(self._write_fd, b'\x00')
+            self._write(b'\x00')
         except OSError:
             # Pipe buffer full (EAGAIN/EWOULDBLOCK) - safe to ignore
             # The main thread will still process the queue
@@ -233,7 +256,7 @@ class PollableMethodQueue:
         """
         # Read all available wake-up bytes (up to limit)
         try:
-            data = os.read(self._read_fd, max_callbacks)
+            data = self._read(max_callbacks)
         except OSError:
             return
 
@@ -286,6 +309,7 @@ class ThreadWorker(base.Worker):
     def handle_exit(self, sig, frame):
         """Handle SIGTERM - begin graceful shutdown."""
         if self.alive:
+            self.stopping = True
             self.alive = False
             # Wake up the poller so it can start shutdown
             self.method_queue.defer(lambda: None)
@@ -384,13 +408,6 @@ class ThreadWorker(base.Worker):
                 pass  # Already unregistered
             self.nr_conns -= 1
             conn.close()
-
-    def is_parent_alive(self):
-        # If our parent changed then we shut down.
-        if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s", self)
-            return False
-        return True
 
     def wait_for_and_dispatch_events(self, timeout):
         """Wait for events and dispatch callbacks."""

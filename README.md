@@ -10,10 +10,11 @@
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.python.org/pypi/gunicorn)
 [![Build Status](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml)
 
-Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
-worker model ported from Ruby's [Unicorn](https://bogomips.org/unicorn/) project. The Gunicorn server is broadly
-compatible with various web frameworks, simply implemented, light on server
-resource usage, and fairly speedy.
+Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX and Windows. It's
+a pre-fork worker model ported from Ruby's [Unicorn](https://bogomips.org/unicorn/) project;
+Windows has no fork, so it serves from a single process there. The Gunicorn
+server is broadly compatible with various web frameworks, simply implemented,
+light on server resource usage, and fairly speedy.
 
 **New in v25**: Per-app worker allocation for dirty arbiters, HTTP/2 support (beta)!
 

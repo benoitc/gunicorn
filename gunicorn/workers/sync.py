@@ -13,12 +13,18 @@ import sys
 from gunicorn import http
 from gunicorn.http import wsgi
 from gunicorn import sock
+from gunicorn import compat
 from gunicorn import util
 from gunicorn.workers import base
 
 
 class StopWaiting(Exception):
     """ exception raised to stop waiting for a connection """
+
+
+# How often the sync worker looks for a console signal on Windows. select()
+# waits on sockets only there and a console event does not interrupt it.
+POLL_INTERVAL = 0.2
 
 
 class SyncWorker(base.Worker):
@@ -32,6 +38,10 @@ class SyncWorker(base.Worker):
     def wait(self, timeout):
         try:
             self.notify()
+            if compat.WINDOWS:
+                ready = select.select(self.sockets, [], [], min(timeout, POLL_INTERVAL))
+                return ready[0]
+
             ret = select.select(self.wait_fds, [], [], timeout)
             if ret[0]:
                 if self.PIPE[0] in ret[0]:
@@ -47,13 +57,6 @@ class SyncWorker(base.Worker):
                 else:
                     raise StopWaiting
             raise
-
-    def is_parent_alive(self):
-        # If our parent changed then we shut down.
-        if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s", self)
-            return False
-        return True
 
     def run_for_one(self, timeout):
         listener = self.sockets[0]
@@ -95,7 +98,7 @@ class SyncWorker(base.Worker):
 
             if ready is not None:
                 for listener in ready:
-                    if listener == self.PIPE[0]:
+                    if self.PIPE and listener == self.PIPE[0]:
                         continue
 
                     try:

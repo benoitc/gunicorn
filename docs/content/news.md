@@ -1,6 +1,18 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- Windows: serve from a single process. The arbiter forks workers and steers
+  them with POSIX signals, and Windows has neither, so the worker runs in the
+  process that would have been the master. Only the `sync` and `gthread`
+  workers are available, the control socket is not started, and what needs
+  the master (`--daemon`, `--reload`, `--user`, `--group`, dirty workers,
+  `unix:` and `fd://` binds) is refused at startup instead of silently
+  ignored.
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes

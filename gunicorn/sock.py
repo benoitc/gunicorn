@@ -135,7 +135,9 @@ class TCP6Socket(TCPSocket):
 
 class UnixSocket(BaseSocket):
 
-    FAMILY = socket.AF_UNIX
+    # Windows 10 has AF_UNIX but gunicorn does not bind unix sockets there;
+    # this keeps the class importable for socket type checks.
+    FAMILY = getattr(socket, "AF_UNIX", None)
 
     def __init__(self, addr, conf, log, fd=None):
         # Abstract namespace sockets (address starts with a null byte) have

@@ -5,7 +5,14 @@
 import errno
 from unittest import mock
 
+import pytest
+
 import gunicorn.pidfile
+
+# The POSIX liveness probe is os.kill(pid, 0); Windows asks the kernel.
+posix_only = pytest.mark.skipif(
+    gunicorn.pidfile.compat.WINDOWS,
+    reason="os.kill(pid, 0) terminates the process on Windows")
 
 
 def builtin(name):
@@ -19,6 +26,7 @@ def test_validate_no_file(_open):
     assert pidfile.validate() is None
 
 
+@posix_only
 @mock.patch(builtin('open'), new_callable=mock.mock_open, read_data='1')
 @mock.patch('os.kill')
 def test_validate_file_pid_exists(kill, _open):
@@ -33,6 +41,7 @@ def test_validate_file_pid_malformed(_open):
     assert pidfile.validate() is None
 
 
+@posix_only
 @mock.patch(builtin('open'), new_callable=mock.mock_open, read_data='1')
 @mock.patch('os.kill')
 def test_validate_file_pid_exists_kill_exception(kill, _open):
@@ -41,6 +50,7 @@ def test_validate_file_pid_exists_kill_exception(kill, _open):
     assert pidfile.validate() == 1
 
 
+@posix_only
 @mock.patch(builtin('open'), new_callable=mock.mock_open, read_data='1')
 @mock.patch('os.kill')
 def test_validate_file_pid_does_not_exist(kill, _open):

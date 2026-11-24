@@ -7,9 +7,10 @@ import os
 import sys
 import traceback
 
-from gunicorn import util
+from gunicorn import compat, util
 from gunicorn.arbiter import Arbiter
 from gunicorn.config import Config, get_default_config_file
+from gunicorn.single import SingleProcess, check_platform
 from gunicorn import debug
 
 
@@ -69,7 +70,11 @@ class BaseApplication:
 
     def run(self):
         try:
-            Arbiter(self).run()
+            if compat.HAS_FORK:
+                Arbiter(self).run()
+            else:
+                check_platform(self.cfg)
+                SingleProcess(self).run()
         except RuntimeError as e:
             print("\nError: %s\n" % e, file=sys.stderr)
             sys.stderr.flush()
