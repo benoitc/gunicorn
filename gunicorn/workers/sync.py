@@ -154,15 +154,16 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except OSError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+            if e.errno in compat.CLIENT_ABORT_ERRNOS:
+                self.log.debug("Ignoring connection abort")
+            elif e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
+            elif e.errno == errno.ECONNRESET:
+                self.log.debug("Ignoring connection reset")
+            elif e.errno == errno.ENOTCONN:
+                self.log.debug("Ignoring socket not connected")
             else:
-                if e.errno == errno.ECONNRESET:
-                    self.log.debug("Ignoring connection reset")
-                elif e.errno == errno.ENOTCONN:
-                    self.log.debug("Ignoring socket not connected")
-                else:
-                    self.log.debug("Ignoring EPIPE")
+                self.log.debug("Ignoring EPIPE")
         except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:

@@ -18,6 +18,7 @@ the rest of the code asks this module instead of probing os and signal.
     os.geteuid(), os.getegid()     0 (no user and group ids)
 """
 
+import errno
 import os
 import signal
 import sys
@@ -26,6 +27,11 @@ WINDOWS = sys.platform.startswith("win")
 
 # Whether a master process can fork workers at all.
 HAS_FORK = hasattr(os, "fork")
+
+# A connection the peer or the local stack aborted is not a server error:
+# POSIX reports a reset as ECONNRESET, which the workers already ignore, and
+# Windows reports the same event as WSAECONNABORTED.
+CLIENT_ABORT_ERRNOS = (errno.ECONNABORTED,) if WINDOWS else ()
 
 if not WINDOWS:
     import fcntl

@@ -16,11 +16,14 @@ import sys
 import threading
 import time
 import urllib.request
+from unittest import mock
 
 import pytest
 
 from gunicorn import compat
 from gunicorn.config import Config
+from gunicorn.workers.gthread import ThreadWorker
+from gunicorn.workers.sync import SyncWorker
 
 pytestmark = pytest.mark.skipif(not compat.WINDOWS, reason="Windows only")
 
@@ -169,6 +172,56 @@ def test_gthread_serves_concurrent_requests(tmp_path):
         for status, body in results:
             assert status == 200
             assert body.startswith(b"/n")
+
+
+ABORTED = ConnectionAbortedError(10053, "An established connection was aborted")
+
+
+class AbortedSocket:
+    """A client socket whose next read finds the connection aborted."""
+
+    def recv(self, size):
+        raise ABORTED
+
+    def shutdown(self, how):
+        raise OSError("already closed")
+
+    def close(self):
+        pass
+
+
+class AbortedParser:
+    def __next__(self):
+        raise ABORTED
+
+
+def test_sync_aborted_connection_is_not_an_error():
+    """Chrome cancels connections it opened; Windows reports that as
+    WSAECONNABORTED where POSIX reports ECONNRESET, which is not an error."""
+    worker = object.__new__(SyncWorker)
+    worker.cfg = Config()
+    worker.log = mock.Mock()
+
+    worker.handle(None, AbortedSocket(), ("127.0.0.1", 5000))
+
+    worker.log.exception.assert_not_called()
+    worker.log.debug.assert_called()
+
+
+def test_gthread_aborted_connection_is_not_an_error():
+    worker = object.__new__(ThreadWorker)
+    worker.cfg = Config()
+    worker.log = mock.Mock()
+    conn = mock.Mock()
+    conn.initialized = True
+    conn.data_ready = True
+    conn.is_http2 = False
+    conn.parser = AbortedParser()
+
+    worker.handle(conn)
+
+    worker.log.exception.assert_not_called()
+    worker.log.debug.assert_called()
 
 
 def test_max_requests_starts_a_new_worker(tmp_path):

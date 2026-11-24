@@ -13,6 +13,12 @@
   `unix:` and `fd://` binds) is refused at startup instead of silently
   ignored.
 
+### Bug Fixes
+
+- Windows: treat a connection aborted by the client (WSAECONNABORTED) as the
+  client leaving rather than as a server error, so a browser cancelling a
+  connection no longer prints a traceback.
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes
