@@ -32,6 +32,10 @@ class SyncWorker(base.Worker):
     def accept(self, listener):
         client, addr = listener.accept()
         client.setblocking(1)
+        if self.ppid is None and self.cfg.timeout:
+            # No master murders a worker stuck on a silent peer here, so
+            # bound every read by the same timeout instead.
+            client.settimeout(self.cfg.timeout)
         util.close_on_exec(client)
         self.handle(listener, client, addr)
 
@@ -144,6 +148,11 @@ class SyncWorker(base.Worker):
             self.handle_request(listener, req, client, addr)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
+        except TimeoutError:
+            # A read timed out: the peer went quiet for longer than the
+            # worker timeout allows, which the master would punish by
+            # murdering the worker.
+            self.log.debug("Ignoring stalled connection")
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except ssl.SSLError as e:

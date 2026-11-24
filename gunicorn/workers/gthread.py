@@ -310,6 +310,7 @@ class ThreadWorker(base.Worker):
         """Handle SIGTERM - begin graceful shutdown."""
         if self.alive:
             self.stopping = True
+            self.stopping_at = time.monotonic()
             self.alive = False
             # Wake up the poller so it can start shutdown
             self.method_queue.defer(lambda: None)
@@ -476,8 +477,12 @@ class ThreadWorker(base.Worker):
         self.poller.close()
         self.method_queue.close()
 
-        for s in self.sockets:
-            s.close()
+        # A forked worker can close its copy of the listeners; the master keeps
+        # its own. In single-process mode the worker holds the only copy and
+        # the next worker generation still needs it.
+        if self.ppid is not None:
+            for s in self.sockets:
+                s.close()
 
     def _cap_keepalive(self, deadline):
         """Close kept-alive connections by ``deadline`` at the latest.
@@ -552,6 +557,11 @@ class ThreadWorker(base.Worker):
             # (ENOTCONN from ssl_wrap_socket would crash main thread otherwise)
             conn.init()
 
+            if self.ppid is None and self.cfg.timeout:
+                # No master murders a worker stuck on a silent peer here, so
+                # bound every read by the same timeout instead.
+                conn.sock.settimeout(self.cfg.timeout)
+
             # HTTP/2 connections require special handling
             if conn.is_http2:
                 return self.handle_http2(conn)
@@ -570,6 +580,11 @@ class ThreadWorker(base.Worker):
             return self._keepalive_after(conn, self.handle_request(req, conn))
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
+        except TimeoutError:
+            # A read timed out: the peer went quiet for longer than the
+            # worker timeout allows, which the master would punish by
+            # murdering the worker.
+            self.log.debug("Ignoring stalled connection")
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except ssl.SSLError as e:

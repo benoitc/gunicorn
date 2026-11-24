@@ -23,6 +23,8 @@ There is no second process, so the worker starts again in place when
 import os
 import signal
 import sys
+import threading
+import time
 
 from gunicorn import compat, sock, util
 from gunicorn.arbiter import Arbiter
@@ -73,6 +75,7 @@ class SingleProcess(Arbiter):
     def __init__(self, app):
         super().__init__(app)
         self.master_name = "Server"
+        self.worker = None
 
     def init_signals(self):
         """Stop the process until the worker installs its own handlers."""
@@ -109,7 +112,25 @@ class SingleProcess(Arbiter):
             self.log.exception("Exception in worker process")
             exit_status = -1
 
+        self._arm_shutdown_deadline(exit_status)
         self.halt(exit_status=exit_status)
+
+    def _arm_shutdown_deadline(self, exit_status):
+        """End the process when a stop overruns graceful_timeout.
+
+        The master answers an overdue worker with SIGKILL; without one, the
+        process has to end itself or a thread stuck in the application keeps
+        it alive past the deadline.
+        """
+        if self.worker is None or self.worker.stopping_at is None:
+            return
+
+        remaining = (self.worker.stopping_at + self.cfg.graceful_timeout
+                     - time.monotonic())
+        timer = threading.Timer(max(remaining, 0.1), os._exit,
+                                args=(exit_status,))
+        timer.daemon = True
+        timer.start()
 
     def stop(self, graceful=True):
         """Close the listeners. There are no worker processes to signal."""
@@ -131,6 +152,7 @@ class SingleProcess(Arbiter):
                                    self.LISTENERS, self.app,
                                    self.timeout / 2.0, self.cfg, self.log)
         worker.pid = os.getpid()
+        self.worker = worker
         self.log.info("Booting worker with pid: %s", worker.pid)
 
         try:

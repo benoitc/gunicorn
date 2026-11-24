@@ -63,6 +63,7 @@ class Worker:
 
         self.alive = True
         self.stopping = False
+        self.stopping_at = None
         self.log = log
         self.tmp = WorkerTmp(cfg)
 
@@ -214,10 +215,12 @@ class Worker:
 
     def handle_exit(self, sig, frame):
         self.stopping = True
+        self.stopping_at = time.monotonic()
         self.alive = False
 
     def handle_quit(self, sig, frame):
         self.stopping = True
+        self.stopping_at = time.monotonic()
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
@@ -226,6 +229,7 @@ class Worker:
 
     def handle_abort(self, sig, frame):
         self.stopping = True
+        self.stopping_at = time.monotonic()
         self.alive = False
         self.cfg.worker_abort(self)
         sys.exit(1)

@@ -34,6 +34,15 @@ def application(environ, start_response):
     return [body]
 '''
 
+SLOW_APP = '''\
+import time
+
+def application(environ, start_response):
+    time.sleep(30)
+    start_response("200 OK", [("Content-Length", "4")])
+    return [b"slow"]
+'''
+
 # A new process group is what lets the test send Ctrl+Break to the server
 # without stopping itself (GenerateConsoleCtrlEvent takes a group id). Both
 # are Windows-only, hence the getattr for collection on other platforms.
@@ -67,8 +76,8 @@ def wait_until_serving(proc, port, log):
 
 
 @contextlib.contextmanager
-def running(tmp_path, *options):
-    (tmp_path / "app.py").write_text(APP)
+def running(tmp_path, *options, app=APP):
+    (tmp_path / "app.py").write_text(app)
     port = free_port()
     log = tmp_path / "server.log"
     with log.open("w") as out:
@@ -201,6 +210,7 @@ def test_sync_aborted_connection_is_not_an_error():
     worker = object.__new__(SyncWorker)
     worker.cfg = Config()
     worker.log = mock.Mock()
+    worker.ppid = 0
 
     worker.handle(None, AbortedSocket(), ("127.0.0.1", 5000))
 
@@ -212,6 +222,7 @@ def test_gthread_aborted_connection_is_not_an_error():
     worker = object.__new__(ThreadWorker)
     worker.cfg = Config()
     worker.log = mock.Mock()
+    worker.ppid = 0
     conn = mock.Mock()
     conn.initialized = True
     conn.data_ready = True
@@ -232,6 +243,70 @@ def test_max_requests_starts_a_new_worker(tmp_path):
             assert get(port, "/still-up") == (200, b"/still-up")
 
         assert proc.poll() is None
+
+
+def test_gthread_restarts_after_max_requests(tmp_path):
+    """Each worker generation must leave the listeners it shares with the
+    process alone; closing them stops the server."""
+    with running(tmp_path, "--worker-class", "gthread", "--threads", "2",
+                 "--max-requests", "2") as (proc, port):
+        for _ in range(5):
+            assert get(port, "/again") == (200, b"/again")
+
+        assert proc.poll() is None
+
+
+def test_stalled_client_does_not_block_the_worker(tmp_path):
+    """Without a master to murder a worker stuck on a silent peer, the read
+    itself has to time out so the next request is served."""
+    with running(tmp_path, "--timeout", "2") as (_, port):
+        stalled = socket.create_connection(("127.0.0.1", port), 10)
+        stalled.sendall(b"GET /stall HTTP/1.1\r\nHost: localhost\r\n")
+        time.sleep(0.3)
+
+        started = time.monotonic()
+        assert get(port, "/next") == (200, b"/next")
+        assert time.monotonic() - started < 6
+
+        stalled.close()
+
+
+def test_stalled_clients_do_not_exhaust_the_thread_pool(tmp_path):
+    """The same for gthread: a peer that stops mid-request must not hold its
+    thread for ever, or a few of them take the whole pool."""
+    with running(tmp_path, "--worker-class", "gthread", "--threads", "2",
+                 "--timeout", "2") as (_, port):
+        stalled = []
+        for _ in range(2):
+            conn = socket.create_connection(("127.0.0.1", port), 10)
+            conn.sendall(b"GET /stall HTTP/1.1\r\nHost: localhost\r\n")
+            stalled.append(conn)
+
+        time.sleep(0.3)
+        started = time.monotonic()
+        assert get(port, "/next") == (200, b"/next")
+        assert time.monotonic() - started < 8
+
+        for conn in stalled:
+            conn.close()
+
+
+def test_shutdown_is_bounded_by_graceful_timeout(tmp_path):
+    """With no master to SIGKILL the worker, the process ends itself when an
+    application call overruns the graceful timeout."""
+    with running(tmp_path, "--worker-class", "gthread", "--threads", "2",
+                 "--graceful-timeout", "1", app=SLOW_APP) as (proc, port):
+        slow = socket.create_connection(("127.0.0.1", port), 10)
+        slow.sendall(b"GET /slow HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        time.sleep(0.5)
+
+        started = time.monotonic()
+        proc.send_signal(CTRL_BREAK)
+
+        assert proc.wait(8) == 0
+        assert time.monotonic() - started < 4
+
+        slow.close()
 
 
 @pytest.mark.parametrize("options", [
