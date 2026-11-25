@@ -28,6 +28,10 @@ WINDOWS = sys.platform.startswith("win")
 # Whether a master process can fork workers at all.
 HAS_FORK = hasattr(os, "fork")
 
+# select() on Windows fills an fd_set of at most 512 sockets; leave room for
+# the listeners and the wakeup queue.
+SELECT_MAX_CONNECTIONS = 508 if WINDOWS else None
+
 # A connection the peer or the local stack aborted is not a server error:
 # POSIX reports a reset as ECONNRESET, which the workers already ignore, and
 # Windows reports the same event as WSAECONNABORTED.

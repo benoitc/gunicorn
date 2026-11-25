@@ -43,6 +43,18 @@ def application(environ, start_response):
     return [b"slow"]
 '''
 
+# A slow path for one generation to be busy with while another recycles.
+BUSY_APP = '''\
+import time
+
+def application(environ, start_response):
+    if environ["PATH_INFO"] == "/slow":
+        time.sleep(3)
+    body = environ["PATH_INFO"].encode()
+    start_response("200 OK", [("Content-Length", str(len(body)))])
+    return [body]
+'''
+
 # A new process group is what lets the test send Ctrl+Break to the server
 # without stopping itself (GenerateConsoleCtrlEvent takes a group id). Both
 # are Windows-only, hence the getattr for collection on other platforms.
@@ -337,6 +349,75 @@ def test_gthread_stop_is_recorded_while_recycling():
     worker.handle_exit(signal.SIGTERM, None)
 
     assert worker.stopping is True
+
+
+def test_pidfile_is_removed_on_shutdown(tmp_path):
+    """A pid file left behind makes the next start think a server is running."""
+    pidfile = tmp_path / "server.pid"
+
+    with running(tmp_path, "--pid", str(pidfile)) as (proc, _):
+        assert pidfile.exists()
+
+        proc.send_signal(CTRL_BREAK)
+        assert proc.wait(15) == 0
+
+    assert not pidfile.exists()
+
+
+def test_system_exit_status_is_preserved(tmp_path):
+    """An application that exits during startup must not look like a clean
+    stop: a supervisor restarts on failure, not on success."""
+    (tmp_path / "app.py").write_text("raise SystemExit(23)\n")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "gunicorn", "app:application",
+         "--bind", "127.0.0.1:0"],
+        cwd=str(tmp_path), capture_output=True, text=True,
+        timeout=30, check=False)
+
+    assert result.returncode == 23
+
+
+def test_gthread_caps_connections_for_the_windows_selector():
+    """select() on Windows waits on at most 512 sockets, so the default of
+    1000 connections would make the only serving process exit."""
+    cfg = Config()
+    cfg.set("worker_connections", 1000)
+    log = mock.Mock()
+
+    ThreadWorker.check_config(cfg, log)
+    assert "capping" in log.warning.call_args[0][0]
+
+    worker = ThreadWorker(age=0, ppid=None, sockets=[], app=mock.Mock(),
+                          timeout=1, cfg=cfg, log=log)
+    try:
+        assert worker.worker_connections == compat.SELECT_MAX_CONNECTIONS
+    finally:
+        worker.tmp.close()
+
+
+def test_recycle_does_not_stack_worker_generations(tmp_path):
+    """When a recycled generation still has a request running, the next one
+    must wait for it instead of stacking another thread pool on top."""
+    options = ("--worker-class", "gthread", "--threads", "2",
+               "--max-requests", "1", "--graceful-timeout", "1",
+               "--timeout", "5", "--worker-connections", "10")
+
+    with running(tmp_path, *options, app=BUSY_APP) as (proc, port):
+        slow = socket.create_connection(("127.0.0.1", port), 10)
+        slow.sendall(b"GET /slow HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        time.sleep(0.2)
+
+        # This one reaches max_requests, so the generation starts retiring
+        # while /slow is still running.
+        assert get(port, "/fast") == (200, b"/fast")
+
+        started = time.monotonic()
+        assert get(port, "/next") == (200, b"/next")
+        assert time.monotonic() - started > 1.5
+
+        assert proc.poll() is None
+        slow.close()
 
 
 def test_second_server_on_a_busy_port_fails(tmp_path):

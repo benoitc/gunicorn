@@ -277,7 +277,10 @@ class ThreadWorker(base.Worker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
-        self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
+        if compat.WINDOWS:
+            self.worker_connections = min(self.worker_connections,
+                                          compat.SELECT_MAX_CONNECTIONS)
+        self.max_keepalived = self.worker_connections - self.cfg.threads
 
         self.tpool = None
         self.poller = None
@@ -291,6 +294,13 @@ class ThreadWorker(base.Worker):
     @classmethod
     def check_config(cls, cfg, log):
         max_keepalived = cfg.worker_connections - cfg.threads
+
+        if compat.WINDOWS and cfg.worker_connections > compat.SELECT_MAX_CONNECTIONS:
+            log.warning(
+                "worker_connections is %s but select() waits on at most 512 "
+                "sockets on Windows; capping at %s",
+                cfg.worker_connections, compat.SELECT_MAX_CONNECTIONS)
+            max_keepalived = compat.SELECT_MAX_CONNECTIONS - cfg.threads
 
         if max_keepalived <= 0 and cfg.keepalive:
             log.warning("No keepalived connections can be handled. " +
@@ -469,6 +479,17 @@ class ThreadWorker(base.Worker):
             self.wait_for_and_dispatch_events(timeout=timeout)
             self.murder_keepalived()
             self.murder_pending()
+
+        # In single-process mode a generation that returns while requests are
+        # still running is replaced in the same process. Without a master to
+        # murder the worker, give those requests the worker timeout to finish;
+        # the caller ends the process if they do not.
+        if self.ppid is None and self.nr_conns > 0:
+            deadline = time.monotonic() + self.cfg.timeout
+            while self.nr_conns > 0 and time.monotonic() < deadline:
+                self.wait_for_and_dispatch_events(timeout=0.5)
+                self.murder_keepalived()
+                self.murder_pending()
 
         # Cleanup
         self.murder_keepalived(force=True)

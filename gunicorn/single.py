@@ -110,15 +110,22 @@ class SingleProcess(Arbiter):
 
         exit_status = 0
         try:
-            self._serve()
+            exit_status = self._serve()
         except AppImportError as e:
             self.log.debug("Exception while loading the application",
                            exc_info=True)
             print("%s" % e, file=sys.stderr)
             sys.stderr.flush()
             exit_status = self.APP_LOAD_ERROR
-        except (KeyboardInterrupt, SystemExit):
+        except KeyboardInterrupt:
             pass
+        except SystemExit as e:
+            # An application that exits during startup is not a clean stop.
+            if isinstance(e.code, int):
+                exit_status = e.code
+            elif e.code is not None:
+                print(e.code, file=sys.stderr)
+                exit_status = 1
         except Exception:
             self.log.exception("Exception in worker process")
             exit_status = -1
@@ -159,7 +166,16 @@ class SingleProcess(Arbiter):
         while True:
             worker = self._run_worker()
             if worker.stopping:
-                return
+                return 0
+            if getattr(worker, "nr_conns", 0) > 0:
+                # Requests of the retired generation outlived the worker
+                # timeout. Their threads cannot be interrupted and another
+                # pool would stack on top of them, so end the process the
+                # master would have killed.
+                self.log.error(
+                    "Worker generation did not finish within %ss",
+                    self.cfg.timeout)
+                return 1
 
     def _run_worker(self):
         self.worker_age += 1
