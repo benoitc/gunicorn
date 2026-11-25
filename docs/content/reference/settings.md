@@ -951,7 +951,7 @@ restriction on the length of a request-URI allowed for a request
 on the server. A server needs this value to be large enough to
 hold any of its resource names, including any information that
 might be passed in the query part of a GET request. Value is a number
-from 0 (unlimited) to 8190.
+from 0 (unlimited) to any positive size.
 
 This parameter can be used to prevent any DDOS attack.
 
