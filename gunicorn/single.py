@@ -22,6 +22,7 @@ There is no second process, so the worker starts again in place when
 
 import os
 import signal
+import socket
 import sys
 import threading
 import time
@@ -75,7 +76,8 @@ class SingleProcess(Arbiter):
     def __init__(self, app):
         super().__init__(app)
         self.master_name = "Server"
-        self.worker = None
+        self._wakeup_reader = None
+        self._wakeup_writer = None
 
     def init_signals(self):
         """Stop the process until the worker installs its own handlers."""
@@ -88,6 +90,14 @@ class SingleProcess(Arbiter):
             if sig is not None:
                 signal.signal(sig, self._interrupt)
 
+        # A console signal runs its Python handler only when the main thread
+        # is free, which it is not while the application blocks. The wakeup
+        # fd is written by the C handler at once, so the shutdown deadline
+        # starts regardless.
+        self._wakeup_reader, self._wakeup_writer = socket.socketpair()
+        self._wakeup_writer.setblocking(False)
+        signal.set_wakeup_fd(self._wakeup_writer.fileno())
+
     @staticmethod
     def _interrupt(sig, frame):
         raise KeyboardInterrupt
@@ -96,6 +106,7 @@ class SingleProcess(Arbiter):
         self.start()
         util._setproctitle("server [%s]" % self.proc_name)
         self._warn_ignored_settings()
+        self._start_shutdown_watchdog()
 
         exit_status = 0
         try:
@@ -112,25 +123,30 @@ class SingleProcess(Arbiter):
             self.log.exception("Exception in worker process")
             exit_status = -1
 
-        self._arm_shutdown_deadline(exit_status)
         self.halt(exit_status=exit_status)
 
-    def _arm_shutdown_deadline(self, exit_status):
+    def _start_shutdown_watchdog(self):
+        thread = threading.Thread(target=self._watch_shutdown,
+                                  name="gunicorn-shutdown", daemon=True)
+        thread.start()
+
+    def _watch_shutdown(self):
         """End the process when a stop overruns graceful_timeout.
 
-        The master answers an overdue worker with SIGKILL; without one, the
-        process has to end itself or a thread stuck in the application keeps
-        it alive past the deadline.
+        The master answers an overdue worker with SIGKILL. Without one, a
+        stop signal that arrives while the application is blocked would
+        otherwise wait for the call to return.
         """
-        if self.worker is None or self.worker.stopping_at is None:
+        try:
+            if not self._wakeup_reader.recv(64):
+                return
+        except OSError:
             return
 
-        remaining = (self.worker.stopping_at + self.cfg.graceful_timeout
-                     - time.monotonic())
-        timer = threading.Timer(max(remaining, 0.1), os._exit,
-                                args=(exit_status,))
-        timer.daemon = True
-        timer.start()
+        deadline = time.monotonic() + self.cfg.graceful_timeout
+        while time.monotonic() < deadline:
+            time.sleep(0.05)
+        os._exit(0)
 
     def stop(self, graceful=True):
         """Close the listeners. There are no worker processes to signal."""
@@ -152,7 +168,6 @@ class SingleProcess(Arbiter):
                                    self.LISTENERS, self.app,
                                    self.timeout / 2.0, self.cfg, self.log)
         worker.pid = os.getpid()
-        self.worker = worker
         self.log.info("Booting worker with pid: %s", worker.pid)
 
         try:

@@ -308,9 +308,8 @@ class ThreadWorker(base.Worker):
 
     def handle_exit(self, sig, frame):
         """Handle SIGTERM - begin graceful shutdown."""
+        self.stopping = True
         if self.alive:
-            self.stopping = True
-            self.stopping_at = time.monotonic()
             self.alive = False
             # Wake up the poller so it can start shutdown
             self.method_queue.defer(lambda: None)

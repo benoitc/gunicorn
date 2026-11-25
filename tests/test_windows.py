@@ -309,6 +309,50 @@ def test_shutdown_is_bounded_by_graceful_timeout(tmp_path):
         slow.close()
 
 
+def test_sync_shutdown_is_bounded_by_graceful_timeout(tmp_path):
+    """The sync worker cannot leave its loop while the application call is
+    running, so the deadline must be armed when the signal arrives."""
+    with running(tmp_path, "--graceful-timeout", "1", app=SLOW_APP) as (proc, port):
+        slow = socket.create_connection(("127.0.0.1", port), 10)
+        slow.sendall(b"GET /slow HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        time.sleep(0.5)
+
+        started = time.monotonic()
+        proc.send_signal(CTRL_BREAK)
+
+        assert proc.wait(8) == 0
+        assert time.monotonic() - started < 4
+
+        slow.close()
+
+
+def test_gthread_stop_is_recorded_while_recycling():
+    """max_requests stops the loop before the stop signal arrives; the stop
+    still has to be recorded or the runner starts another worker."""
+    worker = object.__new__(ThreadWorker)
+    worker.log = mock.Mock()
+    worker.alive = False
+    worker.stopping = False
+
+    worker.handle_exit(signal.SIGTERM, None)
+
+    assert worker.stopping is True
+
+
+def test_second_server_on_a_busy_port_fails(tmp_path):
+    """Windows gives SO_REUSEADDR the opposite meaning, so a second server
+    could bind an address that is already listening. POSIX refuses it."""
+    with running(tmp_path) as (_, port):
+        result = subprocess.run(
+            [sys.executable, "-m", "gunicorn", "app:application",
+             "--bind", "127.0.0.1:%d" % port],
+            cwd=str(tmp_path), capture_output=True, text=True,
+            timeout=30, check=False)
+
+    assert result.returncode != 0
+    assert "connection in use" in (result.stdout + result.stderr).lower()
+
+
 @pytest.mark.parametrize("options", [
     ("--daemon",),
     ("--worker-class", "asgi"),
