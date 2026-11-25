@@ -64,11 +64,6 @@ constraint any of them would break, say so in
 [Ideas](https://github.com/benoitc/gunicorn/discussions/categories/ideas) —
 that is what shapes the order and the shape of the work.
 
-## Not planned
-
-**Windows support.** Gunicorn is a pre-fork UNIX server. The process model is
-the product, and it does not port.
-
 ## Influencing this
 
 The ordering is not fixed. Things that move it:

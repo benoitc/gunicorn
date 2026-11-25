@@ -6,6 +6,29 @@ import errno
 import os
 import tempfile
 
+from gunicorn import compat
+
+
+def _process_runs(pid):
+    """Whether pid names a live process.
+
+    os.kill(pid, 0) is the POSIX probe; Windows would terminate the process
+    with it, so the kernel gets asked there instead.
+    """
+    if compat.WINDOWS:
+        return compat.pid_running(pid)
+
+    try:
+        os.kill(pid, 0)
+    except OSError as e:
+        if e.args[0] == errno.EPERM:
+            # The process exists but belongs to someone else.
+            return True
+        if e.args[0] == errno.ESRCH:
+            return False
+        raise
+    return True
+
 
 class Pidfile:
     """\
@@ -35,12 +58,14 @@ class Pidfile:
         fd, fname = tempfile.mkstemp(dir=fdir)
         try:
             os.write(fd, ("%s\n" % self.pid).encode('utf-8'))
-            if self.fname:
-                os.rename(fname, self.fname)
-            else:
-                self.fname = fname
         finally:
+            # Windows cannot rename a file that is still open.
             os.close(fd)
+        if self.fname:
+            # replace, not rename: the stale file may still be there
+            os.replace(fname, self.fname)
+        else:
+            self.fname = fname
 
         # set permissions to -rw-r--r--
         os.chmod(self.fname, 420)
@@ -72,15 +97,9 @@ class Pidfile:
                 except ValueError:
                     return
 
-                try:
-                    os.kill(wpid, 0)
+                if _process_runs(wpid):
                     return wpid
-                except OSError as e:
-                    if e.args[0] == errno.EPERM:
-                        return wpid
-                    if e.args[0] == errno.ESRCH:
-                        return
-                    raise
+                return
         except OSError as e:
             if e.args[0] == errno.ENOENT:
                 return

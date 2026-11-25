@@ -1,0 +1,5 @@
+# The HTTP request fixtures are decoded byte for byte: tests/treq.py strips
+# every \n and turns the literal \r\n escapes into CRLF, so a checkout that
+# rewrites line endings to CRLF leaves a stray \r at the end of each line.
+# core.autocrlf=true is the default on the GitHub Windows runners.
+tests/requests/** -text

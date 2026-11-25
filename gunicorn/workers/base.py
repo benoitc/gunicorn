@@ -12,7 +12,7 @@ from datetime import datetime
 from random import randint
 from ssl import SSLError
 
-from gunicorn import util
+from gunicorn import compat, util
 from gunicorn.http.errors import (
     ChunkMissingTerminator, ForbiddenProxyRequest,
     InvalidChunkExtension, InvalidChunkSize, InvalidHeader,
@@ -31,9 +31,8 @@ from gunicorn.workers.workertmp import WorkerTmp
 
 class Worker:
 
-    SIGNALS = [getattr(signal, "SIG%s" % x) for x in (
-        "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split()
-    )]
+    SIGNALS = compat.signals_for(
+        "ABRT HUP QUIT INT TERM USR1 USR2 WINCH CHLD".split())
 
     PIPE = []
 
@@ -63,6 +62,7 @@ class Worker:
             self.max_requests = sys.maxsize
 
         self.alive = True
+        self.stopping = False
         self.log = log
         self.tmp = WorkerTmp(cfg)
 
@@ -76,6 +76,17 @@ class Worker:
         this task, the master process will murder your workers.
         """
         self.tmp.notify()
+
+    def is_parent_alive(self):
+        # Without a master (gunicorn.single) there is no parent to outlive.
+        if self.ppid is None:
+            return True
+
+        # If our parent changed then we shut down.
+        if self.ppid != os.getppid():
+            self.log.info("Parent changed, shutting down: %s", self)
+            return False
+        return True
 
     def run(self):
         """\
@@ -103,18 +114,22 @@ class Worker:
         # Reseed the random number generator
         util.seed()
 
-        # For waking ourselves up
-        self.PIPE = os.pipe()
-        for p in self.PIPE:
-            util.set_non_blocking(p)
-            util.close_on_exec(p)
+        # For waking ourselves up. Windows select() cannot watch a pipe, and
+        # a console event interrupts nothing, so there is no pipe there.
+        if compat.WINDOWS:
+            self.PIPE = []
+            self.wait_fds = list(self.sockets)
+        else:
+            self.PIPE = os.pipe()
+            for p in self.PIPE:
+                util.set_non_blocking(p)
+                util.close_on_exec(p)
+            self.wait_fds = self.sockets + [self.PIPE[0]]
 
         # Prevent fd inheritance
         for s in self.sockets:
             util.close_on_exec(s)
         util.close_on_exec(self.tmp.fileno())
-
-        self.wait_fds = self.sockets + [self.PIPE[0]]
 
         self.log.close_on_exec()
 
@@ -125,7 +140,8 @@ class Worker:
             def changed(fname):
                 self.log.info("Worker reloading: %s modified", fname)
                 self.alive = False
-                os.write(self.PIPE[1], b"1")
+                if self.PIPE:
+                    os.write(self.PIPE[1], b"1")
                 self.cfg.worker_int(self)
                 time.sleep(0.1)
                 sys.exit(0)
@@ -165,13 +181,25 @@ class Worker:
         # reset signaling
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
-        # init new signaling
-        signal.signal(signal.SIGQUIT, self.handle_quit)
-        signal.signal(signal.SIGTERM, self.handle_exit)
-        signal.signal(signal.SIGINT, self.handle_quit)
-        signal.signal(signal.SIGWINCH, self.handle_winch)
-        signal.signal(signal.SIGUSR1, self.handle_usr1)
-        signal.signal(signal.SIGABRT, self.handle_abort)
+        # init new signaling. Windows defines only some of these signals;
+        # SIGBREAK is the console Ctrl+Break event and stops the worker the
+        # way SIGTERM does elsewhere.
+        handlers = (
+            ("SIGQUIT", self.handle_quit),
+            ("SIGTERM", self.handle_exit),
+            ("SIGINT", self.handle_quit),
+            ("SIGWINCH", self.handle_winch),
+            ("SIGUSR1", self.handle_usr1),
+            ("SIGABRT", self.handle_abort),
+            ("SIGBREAK", self.handle_exit),
+        )
+        for name, handler in handlers:
+            sig = getattr(signal, name, None)
+            if sig is not None:
+                signal.signal(sig, handler)
+
+        if compat.WINDOWS:
+            return
 
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
@@ -185,9 +213,11 @@ class Worker:
         self.log.reopen_files()
 
     def handle_exit(self, sig, frame):
+        self.stopping = True
         self.alive = False
 
     def handle_quit(self, sig, frame):
+        self.stopping = True
         self.alive = False
         # worker_int callback
         self.cfg.worker_int(self)
@@ -195,6 +225,7 @@ class Worker:
         sys.exit(0)
 
     def handle_abort(self, sig, frame):
+        self.stopping = True
         self.alive = False
         self.cfg.worker_abort(self)
         sys.exit(1)

@@ -11,7 +11,7 @@ import struct
 import sys
 import time
 
-from gunicorn import util
+from gunicorn import compat, util
 
 PLATFORM = sys.platform
 
@@ -40,7 +40,16 @@ class BaseSocket:
         return getattr(self.sock, name)
 
     def set_options(self, sock, bound=False):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if not bound:
+            # Windows gives SO_REUSEADDR the opposite meaning: another socket
+            # may bind the same address. SO_EXCLUSIVEADDRUSE keeps the bind
+            # exclusive, as SO_REUSEADDR does on POSIX.
+            if compat.WINDOWS:
+                exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
+                if exclusive is not None:
+                    sock.setsockopt(socket.SOL_SOCKET, exclusive, 1)
+            else:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if (self.conf.reuse_port
                 and hasattr(socket, 'SO_REUSEPORT')):  # pragma: no cover
             try:
@@ -135,7 +144,9 @@ class TCP6Socket(TCPSocket):
 
 class UnixSocket(BaseSocket):
 
-    FAMILY = socket.AF_UNIX
+    # Windows 10 has AF_UNIX but gunicorn does not bind unix sockets there;
+    # this keeps the class importable for socket type checks.
+    FAMILY = getattr(socket, "AF_UNIX", None)
 
     def __init__(self, addr, conf, log, fd=None):
         # Abstract namespace sockets (address starts with a null byte) have

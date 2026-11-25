@@ -9,7 +9,7 @@ import tempfile
 
 import pytest
 
-from gunicorn import config
+from gunicorn import compat, config
 from gunicorn.config import _get_default_control_socket
 from gunicorn.app.base import Application
 from gunicorn.app.wsgiapp import WSGIApplication
@@ -107,8 +107,8 @@ def test_property_access():
     assert c.address == [("127.0.0.1", 8000)]
 
     # User and group defaults
-    assert os.geteuid() == c.uid
-    assert os.getegid() == c.gid
+    assert compat.geteuid() == c.uid
+    assert compat.getegid() == c.gid
 
     # Proc name
     assert "gunicorn" == c.proc_name
@@ -448,6 +448,9 @@ def test_load_enviroment_variables_config(monkeypatch):
         app = NoConfigApp()
     assert app.cfg.workers == 4
 
+
+@pytest.mark.skipif(compat.WINDOWS,
+                    reason="shlex eats the backslashes of a Windows path")
 def test_config_file_environment_variable(monkeypatch):
     monkeypatch.setenv("GUNICORN_CMD_ARGS", "--config=" + alt_cfg_file())
     with AltArgs():
@@ -590,6 +593,8 @@ def test_str():
 
 # Tests for _get_default_control_socket
 
+
+@pytest.mark.skipif(compat.WINDOWS, reason="HOME is ignored by expanduser there")
 class TestGetDefaultControlSocket:
     """Tests for the _get_default_control_socket function."""
 

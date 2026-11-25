@@ -13,6 +13,7 @@ import sys
 from gunicorn import http
 from gunicorn.http import wsgi
 from gunicorn import sock
+from gunicorn import compat
 from gunicorn import util
 from gunicorn.workers import base
 
@@ -21,17 +22,30 @@ class StopWaiting(Exception):
     """ exception raised to stop waiting for a connection """
 
 
+# How often the sync worker looks for a console signal on Windows. select()
+# waits on sockets only there and a console event does not interrupt it.
+POLL_INTERVAL = 0.2
+
+
 class SyncWorker(base.Worker):
 
     def accept(self, listener):
         client, addr = listener.accept()
         client.setblocking(1)
+        if self.ppid is None and self.cfg.timeout:
+            # No master murders a worker stuck on a silent peer here, so
+            # bound every read by the same timeout instead.
+            client.settimeout(self.cfg.timeout)
         util.close_on_exec(client)
         self.handle(listener, client, addr)
 
     def wait(self, timeout):
         try:
             self.notify()
+            if compat.WINDOWS:
+                ready = select.select(self.sockets, [], [], min(timeout, POLL_INTERVAL))
+                return ready[0]
+
             ret = select.select(self.wait_fds, [], [], timeout)
             if ret[0]:
                 if self.PIPE[0] in ret[0]:
@@ -47,13 +61,6 @@ class SyncWorker(base.Worker):
                 else:
                     raise StopWaiting
             raise
-
-    def is_parent_alive(self):
-        # If our parent changed then we shut down.
-        if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s", self)
-            return False
-        return True
 
     def run_for_one(self, timeout):
         listener = self.sockets[0]
@@ -95,7 +102,7 @@ class SyncWorker(base.Worker):
 
             if ready is not None:
                 for listener in ready:
-                    if listener == self.PIPE[0]:
+                    if self.PIPE and listener == self.PIPE[0]:
                         continue
 
                     try:
@@ -141,6 +148,11 @@ class SyncWorker(base.Worker):
             self.handle_request(listener, req, client, addr)
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
+        except TimeoutError:
+            # A read timed out: the peer went quiet for longer than the
+            # worker timeout allows, which the master would punish by
+            # murdering the worker.
+            self.log.debug("Ignoring stalled connection")
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except ssl.SSLError as e:
@@ -151,15 +163,16 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except OSError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+            if e.errno in compat.CLIENT_ABORT_ERRNOS:
+                self.log.debug("Ignoring connection abort")
+            elif e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
+            elif e.errno == errno.ECONNRESET:
+                self.log.debug("Ignoring connection reset")
+            elif e.errno == errno.ENOTCONN:
+                self.log.debug("Ignoring socket not connected")
             else:
-                if e.errno == errno.ECONNRESET:
-                    self.log.debug("Ignoring connection reset")
-                elif e.errno == errno.ENOTCONN:
-                    self.log.debug("Ignoring socket not connected")
-                else:
-                    self.log.debug("Ignoring EPIPE")
+                self.log.debug("Ignoring EPIPE")
         except BaseException as e:
             self.handle_error(req, client, addr, e)
         finally:

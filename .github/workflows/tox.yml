@@ -17,7 +17,8 @@ jobs:
         unsupported: [false]
         os:
          - ubuntu-latest
-         # Not testing Windows: tests need Unix-only fcntl, grp, pwd, etc.
+         # Windows is a separate job below: no fork there, so only the
+         # platform-neutral tests run.
          # FreeBSD: tested in separate freebsd.yml workflow
         python-version:
          # Supporting Python 3.10 through 3.13
@@ -54,3 +55,25 @@ jobs:
         continue-on-error: ${{ matrix.unsupported }}
       - run: tox -e py
         continue-on-error: ${{ matrix.unsupported }}
+
+  # Windows has no fork: the arbiter, its signals and Unix sockets do not
+  # exist there, so the suite runs only the files that are platform-neutral.
+  windows:
+    name: windows-latest / 3.13
+    timeout-minutes: 20
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Using Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+      - run: tox -e run-module
+      - run: tox -e run-entrypoint
+      - run: tox -e windows

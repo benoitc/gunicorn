@@ -8,11 +8,9 @@
 import argparse
 import copy
 import glob
-import grp
 import inspect
 import ipaddress
 import os
-import pwd
 import re
 import shlex
 import ssl
@@ -20,9 +18,19 @@ import sys
 import textwrap
 import warnings
 
-from gunicorn import __version__, util
+from gunicorn import __version__, compat, util
 from gunicorn.errors import ConfigError
 from gunicorn.reloader import reloader_engines
+
+try:
+    import grp
+except ImportError:  # Windows has no group database
+    grp = None
+
+try:
+    import pwd
+except ImportError:  # Windows has no user database
+    pwd = None
 
 KNOWN_SETTINGS = []
 PLATFORM = sys.platform
@@ -569,12 +577,14 @@ def validate_callable(arity):
 
 def validate_user(val):
     if val is None:
-        return os.geteuid()
+        return compat.geteuid()
     if isinstance(val, int):
         return val
     elif val.isdigit():
         return int(val)
     else:
+        if pwd is None:
+            raise ConfigError("No user database on this platform")
         try:
             return pwd.getpwnam(val).pw_uid
         except KeyError:
@@ -583,13 +593,15 @@ def validate_user(val):
 
 def validate_group(val):
     if val is None:
-        return os.getegid()
+        return compat.getegid()
 
     if isinstance(val, int):
         return val
     elif val.isdigit():
         return int(val)
     else:
+        if grp is None:
+            raise ConfigError("No group database on this platform")
         try:
             return grp.getgrnam(val).gr_gid
         except KeyError:
@@ -1305,7 +1317,7 @@ class User(Setting):
     cli = ["-u", "--user"]
     meta = "USER"
     validator = validate_user
-    default = os.geteuid()
+    default = compat.geteuid()
     default_doc = "``os.geteuid()``"
     desc = """\
         Switch worker processes to run as this user.
@@ -1322,7 +1334,7 @@ class Group(Setting):
     cli = ["-g", "--group"]
     meta = "GROUP"
     validator = validate_group
-    default = os.getegid()
+    default = compat.getegid()
     default_doc = "``os.getegid()``"
     desc = """\
         Switch worker process to run as this group.

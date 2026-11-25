@@ -13,7 +13,7 @@ import socket
 
 from gunicorn.errors import HaltServer, AppImportError
 from gunicorn.pidfile import Pidfile
-from gunicorn import sock, systemd, util
+from gunicorn import compat, sock, systemd, util
 
 from gunicorn import __version__, SERVER_SOFTWARE
 
@@ -43,8 +43,10 @@ class Arbiter:
     # Sentinel value for non-signal wakeups
     WAKEUP_REQUEST = signal.NSIG
 
-    SIGNALS = [getattr(signal, "SIG%s" % x)
-               for x in "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split()]
+    # SIGCHLD has its own handler and SIGABRT stays at the default so that a
+    # fault still dumps core where the platform supports it.
+    SIGNALS = compat.signals_for(
+        "HUP QUIT INT TERM TTIN TTOU USR1 USR2 WINCH".split())
     SIG_NAMES = dict(
         (getattr(signal, name), name[3:].lower()) for name in dir(signal)
         if name[:3] == "SIG" and name[3] != "_"
@@ -232,7 +234,8 @@ class Arbiter:
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
-        signal.signal(signal.SIGCHLD, self.signal_chld)
+        if hasattr(signal, "SIGCHLD"):
+            signal.signal(signal.SIGCHLD, self.signal_chld)
 
     def signal(self, sig, frame):
         """Signal handler - NO LOGGING, just queue the signal."""
@@ -412,6 +415,9 @@ class Arbiter:
         if self.pidfile is not None:
             self.pidfile.unlink()
         self.cfg.on_exit(self)
+        self._exit(exit_status)
+
+    def _exit(self, exit_status):
         sys.exit(exit_status)
 
     def wait_for_signals(self, timeout=1.0):

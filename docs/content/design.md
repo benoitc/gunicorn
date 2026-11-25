@@ -198,3 +198,29 @@ gunicorn myapp:app -k uvicorn.workers.UvicornWorker --workers 4
     For asyncio frameworks, you can also use third-party workers. See the
     [aiohttp deployment guide](https://docs.aiohttp.org/en/stable/deployment.html#nginx-gunicorn)
     for examples.
+
+## Windows
+
+Windows has no `fork()`, so the arbiter cannot exist: there is no master to
+fork a worker and no POSIX signal to steer it with. A run there serves from
+one process instead, started and stopped by console events:
+
+```text
+POSIX                          Windows
+-----                          -------
+master                         this process
+  |-- worker 1                 worker (same pid)
+  |-- worker 2
+  '-- worker 3
+```
+
+`Ctrl+C` and `Ctrl+Break` stop that process the way `SIGINT` and `SIGTERM`
+stop a worker elsewhere.
+
+Only the `sync` and `gthread` workers run. What the master would do to a
+worker is refused at startup instead of silently ignored: `--daemon`,
+`--reload`, `--user`, `--group`, dirty workers, `unix:` and `fd://`
+binds, and any other worker class. The control socket and `gunicornc` need
+the master and do not start. `--workers` above 1 is accepted and logs that
+one process serves; `--max-requests` still recycles the worker, in the same
+process.

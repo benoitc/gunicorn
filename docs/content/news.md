@@ -1,6 +1,18 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- Windows: gunicorn serves from a single process, with the `sync` and
+  `gthread` workers. Settings that need the master are refused at startup.
+
+### Bug Fixes
+
+- Windows: log a connection the client aborted at debug level instead of
+  printing a traceback.
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes

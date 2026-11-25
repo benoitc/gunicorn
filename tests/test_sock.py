@@ -3,11 +3,21 @@
 # See the NOTICE for more information.
 
 import errno
+import socket
 from unittest import mock
+
+import pytest
 
 from gunicorn import sock
 
+# The inherited-fd and unix-address paths need AF_UNIX, and the unix tests
+# mock os.stat, which Windows' os.path.exists does not call.
+unix_only = pytest.mark.skipif(
+    not hasattr(socket, "AF_UNIX"),
+    reason="needs unix sockets")
 
+
+@unix_only
 @mock.patch('os.stat')
 def test_create_sockets_unix_bytes(stat):
     conf = mock.Mock(address=[b'127.0.0.1:8000'])
@@ -19,6 +29,7 @@ def test_create_sockets_unix_bytes(stat):
         assert isinstance(listeners[0], sock.UnixSocket)
 
 
+@unix_only
 @mock.patch('os.stat')
 def test_create_sockets_unix_strings(stat):
     conf = mock.Mock(address=['127.0.0.1:8000'])
@@ -29,6 +40,7 @@ def test_create_sockets_unix_strings(stat):
         assert isinstance(listeners[0], sock.UnixSocket)
 
 
+@unix_only
 def test_create_sockets_does_not_relisten_inherited_socket():
     conf = mock.Mock(address=[], certfile=None, keyfile=None,
                      reuse_port=False, backlog=123)
@@ -46,6 +58,7 @@ def test_create_sockets_does_not_relisten_inherited_socket():
     inherited_socket.listen.assert_not_called()
 
 
+@unix_only
 def test_create_sockets_listens_on_bind_fd():
     conf = mock.Mock(address=[3], certfile=None, keyfile=None,
                      reuse_port=False, backlog=123)
@@ -63,6 +76,7 @@ def test_create_sockets_listens_on_bind_fd():
     bound_socket.listen.assert_called_once_with(123)
 
 
+@unix_only
 def test_create_sockets_listens_when_acceptconn_unsupported():
     """If the platform cannot report SO_ACCEPTCONN, listen() as before."""
     conf = mock.Mock(address=[3], certfile=None, keyfile=None,

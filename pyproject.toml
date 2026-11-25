@@ -8,13 +8,14 @@ name = "gunicorn"
 authors = [{name = "Benoit Chesneau", email = "benoitc@gunicorn.org"}]
 license = "MIT"
 license-files = ["LICENSE"]
-description = "WSGI HTTP Server for UNIX"
+description = "WSGI HTTP Server for UNIX and Windows"
 readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Other Environment",
     "Intended Audience :: Developers",
     "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",

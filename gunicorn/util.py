@@ -4,14 +4,12 @@
 import ast
 import email.utils
 import errno
-import fcntl
 import html
 import importlib
 import inspect
 import io
 import logging
 import os
-import pwd
 import random
 import re
 import socket
@@ -26,6 +24,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     import importlib_metadata
 
+from gunicorn import compat
 from gunicorn.errors import AppImportError
 from gunicorn.workers import SUPPORTED_WORKERS
 import urllib.parse
@@ -154,11 +153,14 @@ def get_arity(f):
 
 def get_username(uid):
     """ get the username for a user id"""
+    import pwd
     return pwd.getpwuid(uid).pw_name
 
 
 def set_owner_process(uid, gid, initgroups=False):
     """ set user and group of workers processes """
+    if compat.WINDOWS:
+        return
 
     if gid:
         if uid:
@@ -177,7 +179,7 @@ def set_owner_process(uid, gid, initgroups=False):
 
 
 def chown(path, uid, gid):
-    os.chown(path, uid, gid)
+    compat.chown(path, uid, gid)
 
 
 if sys.platform.startswith("win"):
@@ -206,7 +208,9 @@ if sys.platform.startswith("win"):
             # Other Windows APIs can fail or give incorrect results when
             # dealing with files that are pending deletion.
             L = os.listdir(dirname)
-            if not L if waitall else name in L:
+            # waitall: the directory is gone when it is empty; otherwise the
+            # name is gone when it is no longer listed.
+            if not L if waitall else name not in L:
                 return
             # Increase the timeout and try again
             time.sleep(timeout)
@@ -271,14 +275,11 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    compat.close_on_exec(fd)
 
 
 def set_non_blocking(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    compat.set_non_blocking(fd)
 
 
 def close(sock):
@@ -523,6 +524,10 @@ def daemonize(enable_stdio_inheritance=False):
     Standard daemonization of a process.
     http://www.faqs.org/faqs/unix-faq/programmer/faq/ section 1.7
     """
+    if compat.WINDOWS:
+        # Daemonizing needs fork() and setsid().
+        raise RuntimeError("daemon mode is not supported on Windows")
+
     if 'GUNICORN_FD' not in os.environ:
         if os.fork():
             os._exit(0)

@@ -15,6 +15,7 @@ import errno
 import os
 import queue
 import selectors
+import socket
 import ssl
 import sys
 import time
@@ -23,6 +24,7 @@ from datetime import datetime
 from functools import partial
 
 from . import base
+from .. import compat
 from .. import http
 from .. import util
 from .. import sock
@@ -171,29 +173,37 @@ class PollableMethodQueue:
     Uses a pipe to allow worker threads to signal the main thread
     when work is ready, enabling lock-free coordination.
 
-    This approach is compatible with all POSIX systems including
-    Linux, macOS, FreeBSD, OpenBSD, and NetBSD. The pipe is set to
-    non-blocking mode to prevent worker threads from blocking if
-    the pipe buffer fills up under extreme load.
+    POSIX select() waits on a pipe; Windows select() waits on sockets only,
+    so a socketpair carries the same wake-up bytes there.
     """
 
     def __init__(self):
         self._read_fd = None
         self._write_fd = None
+        self._reader = None
+        self._writer = None
         self._queue = None
 
     def init(self):
         """Initialize the pipe and queue."""
-        self._read_fd, self._write_fd = os.pipe()
-        # Set both ends to non-blocking:
-        # - Write: prevents worker threads from blocking if buffer is full
-        # - Read: allows run_callbacks to drain without blocking
-        os.set_blocking(self._read_fd, False)
-        os.set_blocking(self._write_fd, False)
+        if compat.WINDOWS:
+            self._reader, self._writer = socket.socketpair()
+            self._reader.setblocking(False)
+            self._writer.setblocking(False)
+        else:
+            self._read_fd, self._write_fd = os.pipe()
+            # Set both ends to non-blocking:
+            # - Write: prevents worker threads from blocking if buffer is full
+            # - Read: allows run_callbacks to drain without blocking
+            os.set_blocking(self._read_fd, False)
+            os.set_blocking(self._write_fd, False)
         self._queue = queue.SimpleQueue()
 
     def close(self):
         """Close the pipe file descriptors."""
+        if self._reader is not None:
+            self._reader.close()
+            self._writer.close()
         if self._read_fd is not None:
             try:
                 os.close(self._read_fd)
@@ -207,7 +217,20 @@ class PollableMethodQueue:
 
     def fileno(self):
         """Return the readable file descriptor for selector registration."""
+        if compat.WINDOWS:
+            return self._reader.fileno()
         return self._read_fd
+
+    def _write(self, data):
+        if compat.WINDOWS:
+            self._writer.send(data)
+            return
+        os.write(self._write_fd, data)
+
+    def _read(self, size):
+        if compat.WINDOWS:
+            return self._reader.recv(size)
+        return os.read(self._read_fd, size)
 
     def defer(self, callback, *args):
         """Queue a callback to be run on the main thread.
@@ -219,7 +242,7 @@ class PollableMethodQueue:
         """
         self._queue.put(partial(callback, *args))
         try:
-            os.write(self._write_fd, b'\x00')
+            self._write(b'\x00')
         except OSError:
             # Pipe buffer full (EAGAIN/EWOULDBLOCK) - safe to ignore
             # The main thread will still process the queue
@@ -233,7 +256,7 @@ class PollableMethodQueue:
         """
         # Read all available wake-up bytes (up to limit)
         try:
-            data = os.read(self._read_fd, max_callbacks)
+            data = self._read(max_callbacks)
         except OSError:
             return
 
@@ -254,7 +277,10 @@ class ThreadWorker(base.Worker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
-        self.max_keepalived = self.cfg.worker_connections - self.cfg.threads
+        if compat.WINDOWS:
+            self.worker_connections = min(self.worker_connections,
+                                          compat.SELECT_MAX_CONNECTIONS)
+        self.max_keepalived = self.worker_connections - self.cfg.threads
 
         self.tpool = None
         self.poller = None
@@ -268,6 +294,13 @@ class ThreadWorker(base.Worker):
     @classmethod
     def check_config(cls, cfg, log):
         max_keepalived = cfg.worker_connections - cfg.threads
+
+        if compat.WINDOWS and cfg.worker_connections > compat.SELECT_MAX_CONNECTIONS:
+            log.warning(
+                "worker_connections is %s but select() waits on at most 512 "
+                "sockets on Windows; capping at %s",
+                cfg.worker_connections, compat.SELECT_MAX_CONNECTIONS)
+            max_keepalived = compat.SELECT_MAX_CONNECTIONS - cfg.threads
 
         if max_keepalived <= 0 and cfg.keepalive:
             log.warning("No keepalived connections can be handled. " +
@@ -285,6 +318,7 @@ class ThreadWorker(base.Worker):
 
     def handle_exit(self, sig, frame):
         """Handle SIGTERM - begin graceful shutdown."""
+        self.stopping = True
         if self.alive:
             self.alive = False
             # Wake up the poller so it can start shutdown
@@ -385,13 +419,6 @@ class ThreadWorker(base.Worker):
             self.nr_conns -= 1
             conn.close()
 
-    def is_parent_alive(self):
-        # If our parent changed then we shut down.
-        if self.ppid != os.getppid():
-            self.log.info("Parent changed, shutting down: %s", self)
-            return False
-        return True
-
     def wait_for_and_dispatch_events(self, timeout):
         """Wait for events and dispatch callbacks."""
         try:
@@ -453,14 +480,29 @@ class ThreadWorker(base.Worker):
             self.murder_keepalived()
             self.murder_pending()
 
+        # In single-process mode a generation that returns while requests are
+        # still running is replaced in the same process. Without a master to
+        # murder the worker, give those requests the worker timeout to finish;
+        # the caller ends the process if they do not.
+        if self.ppid is None and self.nr_conns > 0:
+            deadline = time.monotonic() + self.cfg.timeout
+            while self.nr_conns > 0 and time.monotonic() < deadline:
+                self.wait_for_and_dispatch_events(timeout=0.5)
+                self.murder_keepalived()
+                self.murder_pending()
+
         # Cleanup
         self.murder_keepalived(force=True)
         self.tpool.shutdown(wait=False)
         self.poller.close()
         self.method_queue.close()
 
-        for s in self.sockets:
-            s.close()
+        # A forked worker can close its copy of the listeners; the master keeps
+        # its own. In single-process mode the worker holds the only copy and
+        # the next worker generation still needs it.
+        if self.ppid is not None:
+            for s in self.sockets:
+                s.close()
 
     def _cap_keepalive(self, deadline):
         """Close kept-alive connections by ``deadline`` at the latest.
@@ -535,6 +577,11 @@ class ThreadWorker(base.Worker):
             # (ENOTCONN from ssl_wrap_socket would crash main thread otherwise)
             conn.init()
 
+            if self.ppid is None and self.cfg.timeout:
+                # No master murders a worker stuck on a silent peer here, so
+                # bound every read by the same timeout instead.
+                conn.sock.settimeout(self.cfg.timeout)
+
             # HTTP/2 connections require special handling
             if conn.is_http2:
                 return self.handle_http2(conn)
@@ -553,6 +600,11 @@ class ThreadWorker(base.Worker):
             return self._keepalive_after(conn, self.handle_request(req, conn))
         except http.errors.NoMoreData as e:
             self.log.debug("Ignored premature client disconnection. %s", e)
+        except TimeoutError:
+            # A read timed out: the peer went quiet for longer than the
+            # worker timeout allows, which the master would punish by
+            # murdering the worker.
+            self.log.debug("Ignoring stalled connection")
         except StopIteration as e:
             self.log.debug("Closing connection. %s", e)
         except ssl.SSLError as e:
@@ -563,15 +615,16 @@ class ThreadWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, conn.sock, conn.client, e)
         except OSError as e:
-            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+            if e.errno in compat.CLIENT_ABORT_ERRNOS:
+                self.log.debug("Ignoring connection abort")
+            elif e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
                 self.log.exception("Socket error processing request.")
+            elif e.errno == errno.ECONNRESET:
+                self.log.debug("Ignoring connection reset")
+            elif e.errno == errno.ENOTCONN:
+                self.log.debug("Ignoring socket not connected")
             else:
-                if e.errno == errno.ECONNRESET:
-                    self.log.debug("Ignoring connection reset")
-                elif e.errno == errno.ENOTCONN:
-                    self.log.debug("Ignoring socket not connected")
-                else:
-                    self.log.debug("Ignoring connection epipe")
+                self.log.debug("Ignoring connection epipe")
         except Exception as e:
             self.handle_error(req, conn.sock, conn.client, e)
 
