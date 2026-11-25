@@ -5,6 +5,8 @@
 
 ### Bug Fixes
 
+- Honour positive `limit_request_line` values above 8190 instead of silently
+  capping them to 8190 ([#3171](https://github.com/benoitc/gunicorn/issues/3171)).
 - ASGI: serve the next request on a kept-alive HTTP/1.1 connection as soon as
   the previous response is complete. It used to wait until the application
   returned, so a background task (Starlette, FastAPI) held up every request

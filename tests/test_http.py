@@ -722,6 +722,26 @@ def test_request_line_limit_after_empty_line(http_parser, lead, length, accepted
             next(parser)
 
 
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+def test_request_line_limit_above_builtin_default(http_parser):
+    """A positive limit_request_line is authoritative, including above 8190."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    cfg.set('limit_request_line', 8200)
+    length = 8195
+    target = b"/" + b"a" * (length - len(b"GET  HTTP/1.1") - 1)
+    line = b"GET " + target + b" HTTP/1.1"
+    assert len(line) == length
+    data = line + b"\r\nHost: a\r\n\r\n"
+
+    assert next(RequestParser(cfg, [data], None)).path == target.decode()
+
+
 def test_body_read_error_stops_the_connection():
     """A body that fails to read (here a repeated singleton field in the
     trailers) leaves the start of the next request unknown: the parser must
