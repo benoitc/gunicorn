@@ -43,13 +43,29 @@ def application(environ, start_response):
     return [b"slow"]
 '''
 
-# A slow path for one generation to be busy with while another recycles.
+# A slow path for one generation to be busy with while another recycles. The
+# marker file tells the test the slow request is really in flight.
 BUSY_APP = '''\
+import os
 import time
 
 def application(environ, start_response):
     if environ["PATH_INFO"] == "/slow":
+        with open("slow.started", "w"):
+            pass
         time.sleep(3)
+    body = environ["PATH_INFO"].encode()
+    start_response("200 OK", [("Content-Length", str(len(body)))])
+    return [body]
+'''
+
+# A request that never finishes, for a generation that cannot be retired.
+STUCK_APP = '''\
+import time
+
+def application(environ, start_response):
+    if environ["PATH_INFO"] == "/stuck":
+        time.sleep(30)
     body = environ["PATH_INFO"].encode()
     start_response("200 OK", [("Content-Length", str(len(body)))])
     return [body]
@@ -406,7 +422,12 @@ def test_recycle_does_not_stack_worker_generations(tmp_path):
     with running(tmp_path, *options, app=BUSY_APP) as (proc, port):
         slow = socket.create_connection(("127.0.0.1", port), 10)
         slow.sendall(b"GET /slow HTTP/1.1\r\nHost: localhost\r\n\r\n")
-        time.sleep(0.2)
+
+        marker = tmp_path / "slow.started"
+        deadline = time.monotonic() + 10
+        while not marker.exists():
+            assert time.monotonic() < deadline, "the slow request never started"
+            time.sleep(0.05)
 
         # This one reaches max_requests, so the generation starts retiring
         # while /slow is still running.
@@ -418,6 +439,28 @@ def test_recycle_does_not_stack_worker_generations(tmp_path):
 
         assert proc.poll() is None
         slow.close()
+
+
+def test_generation_that_never_finishes_ends_the_process(tmp_path):
+    """A request still running after the grace and the worker timeout leaves
+    nothing to recycle: the process must end, not keep the thread alive."""
+    options = ("--worker-class", "gthread", "--threads", "2",
+               "--max-requests", "1", "--graceful-timeout", "1",
+               "--timeout", "1", "--worker-connections", "10")
+
+    with running(tmp_path, *options, app=STUCK_APP) as (proc, port):
+        stuck = socket.create_connection(("127.0.0.1", port), 10)
+        stuck.sendall(b"GET /stuck HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        time.sleep(0.2)
+
+        # This one reaches max_requests and retires the generation with the
+        # stuck request still running.
+        assert get(port, "/fast") == (200, b"/fast")
+
+        assert proc.wait(15) is not None
+        assert proc.returncode != 0
+
+        stuck.close()
 
 
 def test_second_server_on_a_busy_port_fails(tmp_path):

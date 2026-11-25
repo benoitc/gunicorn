@@ -78,6 +78,21 @@ class SingleProcess(Arbiter):
         self.master_name = "Server"
         self._wakeup_reader = None
         self._wakeup_writer = None
+        self._stuck_generation = False
+
+    def _exit(self, exit_status):
+        """Leave without interpreter teardown when a request thread is stuck.
+
+        The executor's atexit hook joins its threads, so an orderly exit
+        would wait for the application call that could not be interrupted.
+        """
+        if not self._stuck_generation:
+            super()._exit(exit_status)
+            return
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(exit_status)
 
     def init_signals(self):
         """Stop the process until the worker installs its own handlers."""
@@ -175,6 +190,7 @@ class SingleProcess(Arbiter):
                 self.log.error(
                     "Worker generation did not finish within %ss",
                     self.cfg.timeout)
+                self._stuck_generation = True
                 return 1
 
     def _run_worker(self):

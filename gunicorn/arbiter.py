@@ -415,6 +415,9 @@ class Arbiter:
         if self.pidfile is not None:
             self.pidfile.unlink()
         self.cfg.on_exit(self)
+        self._exit(exit_status)
+
+    def _exit(self, exit_status):
         sys.exit(exit_status)
 
     def wait_for_signals(self, timeout=1.0):
