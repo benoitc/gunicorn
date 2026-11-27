@@ -4,7 +4,9 @@
 
 """WSGI response writer for HTTP/2 streams."""
 
+from gunicorn import util
 from gunicorn.http.wsgi import Response
+from gunicorn.http2.errors import HTTP2StreamError
 
 
 class HTTP2Response(Response):
@@ -36,24 +38,40 @@ class HTTP2Response(Response):
         # happens to cover HTTP/2 over TLS but not over cleartext.
         return False
 
+    def _aborted(self, what):
+        # The stream is gone (peer reset, connection lost) or stalled past
+        # cfg.timeout; the connection has already reset it. Stop the
+        # application here rather than letting it write into the void.
+        self._stream_ended = True
+        raise HTTP2StreamError(self.stream_id, f"response aborted: {what}")
+
     def send_headers(self):
         if self.headers_sent:
             return
-        self.h2_conn.send_response_headers(
-            self.stream_id, self.status_code, self.headers, end_stream=False
-        )
+        # The same server headers HTTP/1 adds
+        names = {name.lower() for name, _ in self.headers}
+        headers = list(self.headers)
+        if "server" not in names:
+            headers.append(("server", self.version))
+        if "date" not in names:
+            headers.append(("date", util.http_date()))
+        if not self.h2_conn.send_response_headers(
+                self.stream_id, self.status_code, headers, end_stream=False):
+            self._aborted("stream closed before headers were sent")
         self.headers_sent = True
 
     def _emit_body(self, data):
-        if not data:
+        if not data or self._stream_ended:
             return
-        self.h2_conn.send_data(self.stream_id, data, end_stream=False)
+        if not self.h2_conn.send_data(self.stream_id, data, end_stream=False):
+            self._aborted("stream closed or stalled while sending the body")
 
     def close(self):
-        if not self.headers_sent:
-            self.send_headers()
         if self._stream_ended:
             return
+        if not self.headers_sent:
+            self.send_headers()
         self._stream_ended = True
         trailers = getattr(self, "trailers", None)
-        self.h2_conn.end_stream(self.stream_id, trailers=trailers)
+        if not self.h2_conn.end_stream(self.stream_id, trailers=trailers):
+            self._aborted("stream closed before the response was complete")

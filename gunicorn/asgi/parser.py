@@ -9,9 +9,12 @@ Provides callback-based parsing using either the fast C parser (gunicorn_h1c)
 or the pure Python PythonProtocol fallback.
 """
 
+import re
 import socket
 import struct
 from enum import IntEnum
+
+from gunicorn.http.body import CHUNK_EXT_RE
 
 
 class ParseError(Exception):
@@ -103,6 +106,10 @@ class InvalidChunkExtension(ParseError):
     """Invalid chunk extension per RFC 9112."""
 
 
+class ChunkMissingTerminator(ParseError):
+    """Chunk data not followed by the required CRLF per RFC 9112."""
+
+
 # RFC 9110 section 5.3: fields whose grammar admits only a single member, so a
 # second occurrence cannot be merged and makes the message ambiguous. Lowercase
 # because that is how _finalize_headers() stores names. content-length belongs
@@ -111,6 +118,17 @@ RFC9110_5_3_SINGLETON_FIELDS = frozenset((
     b'host',
     b'content-type',
 ))
+
+# RFC 9112 section 3.2: the request-target uses the URI grammar of RFC 3986,
+# whose characters are printable ASCII (section 2); anything else must be
+# percent-encoded (section 2.1). Controls, DEL and bytes 0x80-0xFF are refused.
+RFC9112_TARGET_INVALID = re.compile(rb"[^\x21-\x7e]")
+
+# Bounds used while waiting for a line terminator when the matching limit is
+# 0 (unlimited): the same values the WSGI parser and the C parser fall back to.
+MAX_UNLIMITED_REQUEST_LINE = 1024 * 1024
+DEFAULT_MAX_FIELD_LINE = 8190
+DEFAULT_MAX_FIELDS = 32768
 
 
 class PythonProtocol:
@@ -138,7 +156,7 @@ class PythonProtocol:
         '_chunk_state', '_chunk_size', '_chunk_remaining',
         '_limit_request_line', '_limit_request_fields', '_limit_request_field_size',
         '_permit_unconventional_http_method', '_permit_unconventional_http_version',
-        '_header_count',
+        '_header_count', '_scan_from', '_empty_line_skipped',
         '_proxy_protocol', '_proxy_protocol_info', '_proxy_protocol_done',
     )
 
@@ -171,6 +189,8 @@ class PythonProtocol:
         self._permit_unconventional_http_method = permit_unconventional_http_method
         self._permit_unconventional_http_version = permit_unconventional_http_version
         self._header_count = 0
+        self._scan_from = 0
+        self._empty_line_skipped = False
 
         # Proxy protocol
         self._proxy_protocol = proxy_protocol
@@ -272,6 +292,8 @@ class PythonProtocol:
         self._chunk_size = 0
         self._chunk_remaining = 0
         self._header_count = 0
+        self._scan_from = 0
+        self._empty_line_skipped = False
 
     def finish(self):
         """Mark parsing complete for EOF handling.
@@ -487,9 +509,49 @@ class PythonProtocol:
         self._state = 'request_line'
         return True
 
+    def _find_line(self, limit, error):
+        """Return the index of the next CRLF in the buffer, or -1.
+
+        Only bytes not scanned on a previous call are scanned again, and a
+        buffer that can no longer hold a line of at most ``limit`` bytes
+        raises ``error`` instead of growing until a terminator arrives.
+        """
+        idx = self._buffer.find(b'\r\n', self._scan_from)
+        # RFC 9112 section 2.2: lines end with CRLF. An LF before the first
+        # CRLF (or with none yet) ends a line on its own; reject it, as
+        # gunicorn_h1c does, instead of waiting for a CRLF that may never
+        # come. Bytes before _scan_from were checked on an earlier call.
+        if self._buffer.find(b'\n', self._scan_from,
+                             idx if idx != -1 else len(self._buffer)) != -1:
+            raise ParseError(
+                "Bare LF as line terminator, CRLF required (RFC 9112 section 2.2)")
+        if idx == -1:
+            if len(self._buffer) > limit + 1:
+                raise error
+            # keep a trailing CR: it may be the start of the terminator
+            self._scan_from = max(len(self._buffer) - 1, 0)
+            return -1
+        self._scan_from = 0
+        return idx
+
+    def _line_limit(self):
+        return self._limit_request_field_size or DEFAULT_MAX_FIELD_LINE
+
     def _parse_request_line(self):
         """Parse request line, return True if complete."""
-        idx = self._buffer.find(b'\r\n')
+        # RFC 9112 section 2.2: ignore one empty line (CRLF) received before
+        # the request line, as gunicorn_h1c does. Only one, and only CRLF.
+        if not self._empty_line_skipped:
+            if self._buffer[:1] == b'\r' and len(self._buffer) < 2:
+                return False
+            if self._buffer[:2] == b'\r\n':
+                del self._buffer[:2]
+                self._scan_from = 0
+            self._empty_line_skipped = True
+
+        idx = self._find_line(
+            self._limit_request_line or MAX_UNLIMITED_REQUEST_LINE,
+            LimitRequestLine("Request line is too large"))
         if idx == -1:
             return False
 
@@ -507,6 +569,11 @@ class PythonProtocol:
 
         self.method = parts[0]
         self.path = parts[1]
+
+        # RFC 9112 3.2 / RFC 3986 2: printable ASCII only, the rest must be
+        # percent-encoded.
+        if RFC9112_TARGET_INVALID.search(self.path):
+            raise InvalidRequestLine("Invalid request line")
 
         # Validate method
         if not self._permit_unconventional_http_method:
@@ -554,7 +621,9 @@ class PythonProtocol:
     def _parse_headers(self):
         """Parse headers, return True if headers are complete."""
         while True:
-            idx = self._buffer.find(b'\r\n')
+            idx = self._find_line(
+                self._line_limit(),
+                LimitRequestHeaders("Request header field is too large"))
             if idx == -1:
                 return False
 
@@ -580,11 +649,19 @@ class PythonProtocol:
             if colon == -1:
                 raise InvalidHeader("Missing colon in header")
 
-            name = line[:colon].strip()
+            # RFC 9112 section 5.1: no whitespace is allowed between the field
+            # name and the colon, and a server must reject a message that has
+            # it. Do not strip the name: a stripped "Transfer-Encoding :" or a
+            # leading-space " Content-Length:" would be read as a framing header
+            # here while the WSGI parser (TOKEN_RE) and a well-behaved proxy
+            # reject or fold it, which desyncs the two and smuggles a request.
+            # _is_valid_token already rejects SP/HTAB, so leaving them in place
+            # makes such a name fail validation instead of being accepted.
+            name = line[:colon]
             if not self._is_valid_token(name):
                 raise InvalidHeaderName(name.decode('latin-1'))
 
-            value = line[colon + 1:].strip()
+            value = line[colon + 1:].strip(b" \t")
             if self._has_invalid_header_chars(value):
                 raise InvalidHeader("Invalid characters in header value")
 
@@ -611,6 +688,7 @@ class PythonProtocol:
         # Extract and validate content-length and transfer-encoding
         content_length = None
         chunked = False
+        transfer_encoding = False
         seen_singletons = set()
 
         for name, value in self.headers:
@@ -627,18 +705,18 @@ class PythonProtocol:
                 # Reject duplicate Content-Length headers (request smuggling vector)
                 if content_length is not None:
                     raise InvalidHeader("Duplicate Content-Length header")
-                try:
-                    cl_value = int(value)
-                except ValueError:
+                # RFC 9110 section 8.6: Content-Length = 1*DIGIT. int() on
+                # its own also takes a sign and underscores, which a proxy
+                # framing by the same header will not.
+                if not value.isdigit():
                     raise InvalidHeader("Invalid Content-Length value")
-                if cl_value < 0:
-                    raise InvalidHeader("Negative Content-Length")
-                content_length = cl_value
+                content_length = int(value)
 
             elif name == b'transfer-encoding':
+                transfer_encoding = True
                 # Properly parse comma-separated Transfer-Encoding values
                 # per RFC 9112 Section 6.1
-                vals = [v.strip() for v in value.split(b',')]
+                vals = [v.strip(b" \t") for v in value.split(b',')]
                 for val in vals:
                     val_lower = val.lower()
                     if val_lower == b'chunked':
@@ -666,6 +744,12 @@ class PythonProtocol:
                     self.should_keep_alive = False
                 elif b'keep-alive' in val:
                     self.should_keep_alive = True
+
+        # RFC 9112 section 6.3: a request whose Transfer-Encoding does not
+        # end with chunked has no length that can be determined; it MUST be
+        # answered with 400, whatever Content-Length says.
+        if transfer_encoding and not chunked:
+            raise InvalidHeader("Transfer-Encoding does not end with chunked")
 
         # Security checks for request smuggling prevention
         if chunked:
@@ -743,7 +827,9 @@ class PythonProtocol:
         while self._buffer:
             if self._chunk_state == 'size':
                 # Looking for chunk size line
-                idx = self._buffer.find(b'\r\n')
+                idx = self._find_line(
+                    self._line_limit(),
+                    InvalidChunkSize("chunk size line has no terminator"))
                 if idx == -1:
                     return False
 
@@ -752,12 +838,16 @@ class PythonProtocol:
 
                 # Handle chunk extensions (e.g., "5;ext=value")
                 semicolon = size_line.find(b';')
+                chunk_ext = None
                 if semicolon != -1:
                     # RFC 9112: chunk-ext must not contain bare CR
-                    chunk_ext = size_line[semicolon + 1:]
+                    chunk_ext = size_line[semicolon:]
                     if b'\r' in chunk_ext:
                         raise InvalidChunkExtension("bare CR not allowed")
-                    size_line = size_line[:semicolon]
+                    # RFC 9112 section 7.1.1: BWS may come before the ";"
+                    # of an extension, so only there may the size be
+                    # followed by SP or HTAB.
+                    size_line = size_line[:semicolon].rstrip(b' \t')
 
                 # Strict validation: reject leading/trailing whitespace
                 # to prevent parser desync (request smuggling vector)
@@ -775,6 +865,10 @@ class PythonProtocol:
                     self._chunk_size = int(size_line, 16)
                 except ValueError:
                     raise InvalidChunkSize("Invalid chunk size")
+
+                # After the size, so a bad size is reported as such.
+                if chunk_ext is not None and not CHUNK_EXT_RE.fullmatch(chunk_ext):
+                    raise InvalidChunkExtension("invalid chunk extension")
 
                 if self._chunk_size == 0:
                     # Final chunk - skip trailers
@@ -801,15 +895,23 @@ class PythonProtocol:
                     self._chunk_state = 'crlf'
 
             elif self._chunk_state == 'crlf':
-                # Skip CRLF after chunk data
+                # RFC 9112 7.1: chunk-data is terminated by CRLF. Accepting
+                # anything else here lets a peer frame the body one way while a
+                # strict upstream frames it another (request smuggling vector),
+                # so the two bytes must be exactly CRLF.
                 if len(self._buffer) < 2:
                     return False
+                if self._buffer[:2] != b'\r\n':
+                    raise ChunkMissingTerminator(
+                        "chunk data not terminated by CRLF")
                 del self._buffer[:2]  # Skip \r\n
                 self._chunk_state = 'size'
 
             elif self._chunk_state == 'trailer':
                 # Skip trailer headers
-                idx = self._buffer.find(b'\r\n')
+                idx = self._find_line(
+                    self._line_limit(),
+                    LimitRequestHeaders("Request trailer field is too large"))
                 if idx == -1:
                     return False
 
@@ -823,6 +925,11 @@ class PythonProtocol:
                     if self._on_message_complete:
                         self._on_message_complete()
                     return True
+
+                # Trailer lines count against the same field limit as headers.
+                self._header_count += 1
+                if self._header_count > (self._limit_request_fields or DEFAULT_MAX_FIELDS):
+                    raise LimitRequestHeaders("Too many trailer fields")
 
                 # RFC 9110 section 6.5.1: reject fields that must not appear
                 # in trailers.
@@ -867,6 +974,9 @@ class PythonProtocol:
         return False
 
 
+_UNKNOWN = object()
+
+
 class CallbackRequest:
     """Request object built from callback parser state.
 
@@ -875,9 +985,10 @@ class CallbackRequest:
 
     __slots__ = (
         'method', 'uri', 'path', 'query', 'fragment', 'version',
-        'headers', 'headers_bytes', 'scheme', 'raw_path',
+        '_headers', 'headers_bytes', 'scheme', 'raw_path',
         'content_length', 'chunked', 'must_close',
         'proxy_protocol_info', '_expect_100_continue',
+        '_connection', '_has_upgrade',
     )
 
     def __init__(self):
@@ -887,7 +998,7 @@ class CallbackRequest:
         self.query = None
         self.fragment = None
         self.version = None
-        self.headers = []
+        self._headers = []
         self.headers_bytes = []
         self.scheme = "http"
         self.raw_path = b''
@@ -896,6 +1007,30 @@ class CallbackRequest:
         self.must_close = False
         self.proxy_protocol_info = None
         self._expect_100_continue = False
+        # Set by from_parser() from its pass over the headers. They are used
+        # only while nothing has read (and so could have changed) the str
+        # headers; otherwise those are scanned as before.
+        self._connection = _UNKNOWN
+        self._has_upgrade = True
+
+    @property
+    def headers(self):
+        """The headers as (UPPER-CASE name, value) str pairs.
+
+        Built from headers_bytes the first time something reads them:
+        serving a request needs only the bytes, and building this copy
+        costs two decodes and an upper() per header.
+        """
+        headers = self._headers
+        if headers is None:
+            headers = self._headers = [
+                (name.decode('latin-1').upper(), value.decode('latin-1'))
+                for name, value in self.headers_bytes]
+        return headers
+
+    @headers.setter
+    def headers(self, value):
+        self._headers = value
 
     @classmethod
     def from_parser(cls, parser, is_ssl=False):
@@ -918,15 +1053,20 @@ class CallbackRequest:
         # - path: percent-decoded UTF-8 string
         # - raw_path: original bytes as received
         raw_url = parser.path
+        if RFC9112_TARGET_INVALID.search(raw_url):
+            raise InvalidRequestLine("Invalid request line")
         if b'?' in raw_url:
             path_part, query_part = raw_url.split(b'?', 1)
-            req.raw_path = path_part  # Store original bytes
-            req.path = unquote_to_bytes(path_part).decode('utf-8', errors='replace')
             req.query = query_part.decode('latin-1')
         else:
-            req.raw_path = raw_url  # Store original bytes
-            req.path = unquote_to_bytes(raw_url).decode('utf-8', errors='replace')
+            path_part = raw_url
             req.query = ''
+        req.raw_path = path_part  # Store original bytes
+        # Without '%' there is nothing to decode: unquote_to_bytes() would
+        # return the same bytes.
+        if b'%' in path_part:
+            path_part = unquote_to_bytes(path_part)
+        req.path = path_part.decode('utf-8', errors='replace')
 
         req.uri = raw_url.decode('latin-1')
         req.fragment = ''
@@ -935,36 +1075,60 @@ class CallbackRequest:
         # Headers - store both bytes (for ASGI scope) and strings (for compatibility)
         # Use asgi_headers (lowercase names) if available (fast parser >= 0.6.2),
         # otherwise fall back to headers (Python parser already uses lowercase)
-        req.headers_bytes = list(getattr(parser, 'asgi_headers', None) or parser.headers)
-        req.headers = [
-            (n.decode('latin-1').upper(), v.decode('latin-1'))
-            for n, v in parser.headers
-        ]
+        asgi_headers = getattr(parser, 'asgi_headers', None)
+        if asgi_headers is not None or isinstance(parser, PythonProtocol):
+            req.headers_bytes = headers_bytes = list(asgi_headers or parser.headers)
+        else:
+            # gunicorn_h1c < 0.6.2 keeps the names as received.
+            req.headers_bytes = headers_bytes = [
+                (name.lower(), value) for name, value in parser.headers]
 
+        # One pass over the lower-cased headers runs the checks that need
+        # every field and notes what serving the request needs, so the str
+        # copy (CallbackRequest.headers) is only built if something reads it.
+        #
         # RFC 9110 section 5.3, enforced here because this is where both
         # parsers converge. Both reject these on their own now (PythonProtocol
         # in _finalize_headers(), H1CProtocol since 0.6.6), so this is a
         # backstop: the pip requirement is not enforced at runtime, and an
         # older gunicorn_h1c would otherwise let duplicates through.
         seen_singletons = set()
-        for name, _value in parser.headers:
-            lowered = name.lower()
-            if lowered in RFC9110_5_3_SINGLETON_FIELDS:
-                if lowered in seen_singletons:
+        expect_continue = False
+        connection = None
+        has_upgrade = False
+        transfer_encoding = False
+        for name, value in headers_bytes:
+            if name in RFC9110_5_3_SINGLETON_FIELDS:
+                if name in seen_singletons:
                     raise InvalidHeader(
-                        "Duplicate %s header" % lowered.decode('latin-1'))
-                seen_singletons.add(lowered)
+                        "Duplicate %s header" % name.decode('latin-1'))
+                seen_singletons.add(name)
+            elif name == b'connection':
+                if connection is None:
+                    connection = value.decode('latin-1')
+            elif name == b'upgrade':
+                has_upgrade = True
+            elif name == b'transfer-encoding':
+                transfer_encoding = True
+            elif name == b'expect' and value.lower() == b'100-continue':
+                expect_continue = True
+        # RFC 9112 section 6.3: Transfer-Encoding must end with chunked.
+        # gunicorn_h1c before 0.6.14 framed such a body as empty, and the
+        # pip floor is not enforced at runtime.
+        if transfer_encoding and not parser.is_chunked:
+            raise InvalidHeader("Transfer-Encoding does not end with chunked")
+        req._headers = None
+        req._connection = connection
+        req._has_upgrade = has_upgrade
+        # RFC 9110 section 10.1.1: "A server that receives a 100-continue
+        # expectation in an HTTP/1.0 request MUST ignore that expectation."
+        req._expect_100_continue = (
+            expect_continue and req.version is not None and req.version >= (1, 1))
 
         req.scheme = 'https' if is_ssl else 'http'
         req.content_length = parser.content_length or 0
         req.chunked = parser.is_chunked
         req.must_close = not parser.should_keep_alive
-
-        # Check for Expect: 100-continue
-        for name, value in parser.headers:
-            if name == b'expect' and value.lower() == b'100-continue':
-                req._expect_100_continue = True
-                break
 
         return req
 
@@ -972,15 +1136,29 @@ class CallbackRequest:
         """Check if connection should be closed after this request."""
         if self.must_close:
             return True
-        for name, value in self.headers:
-            if name == "CONNECTION":
-                v = value.lower().strip(" \t")
-                if v == "close":
-                    return True
-                elif v == "keep-alive":
-                    return False
-                break
+        # RFC 9931 section 8: after a CONNECT the bytes on the connection are
+        # tunnel data whatever the application answered, never another
+        # HTTP/1.1 request to serve.
+        if self.method == "CONNECT":
+            return True
+        connection = self._connection
+        if connection is _UNKNOWN or self._headers is not None:
+            connection = None
+            for name, value in self.headers:
+                if name == "CONNECTION":
+                    connection = value
+                    break
+        if connection is not None:
+            v = connection.lower().strip(" \t")
+            if v == "close":
+                return True
+            elif v == "keep-alive":
+                return False
         return self.version <= (1, 0)
+
+    def may_upgrade(self):
+        """False only when the request is known to carry no Upgrade field."""
+        return self._has_upgrade or self._headers is not None
 
     def get_header(self, name):
         """Get a header value by name (case-insensitive)."""

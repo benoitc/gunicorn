@@ -13,6 +13,7 @@ import asyncio
 import errno
 import os
 import socket
+import sys
 from unittest import mock
 
 import pytest
@@ -454,8 +455,14 @@ class TestASGIIntegration:
             writer.write(request.encode())
             await writer.drain()
 
-            # Read response
-            response = await reader.read(4096)
+            # Read until the body arrives: headers and body are written
+            # separately and may come back in separate reads.
+            response = b""
+            while b"Hello, World!" not in response:
+                chunk = await asyncio.wait_for(reader.read(4096), timeout=5)
+                if not chunk:
+                    break
+                response += chunk
             response_text = response.decode()
 
             assert "HTTP/1.1 200" in response_text
@@ -547,6 +554,79 @@ class TestASGIProtocol:
         assert protocol._get_reason_phrase(404) == "Not Found"
         assert protocol._get_reason_phrase(500) == "Internal Server Error"
         assert protocol._get_reason_phrase(999) == "Unknown"
+
+    @pytest.mark.parametrize(
+        "requires_close,req_close,alive,keepalive,nr,max_requests,expected",
+        [
+            (False, False, True, 2, 0, 1000, False),          # reusable
+            (True, False, True, 2, 0, 1000, True),            # framing forbids reuse
+            (False, True, True, 2, 0, 1000, True),            # client Connection: close
+            (False, False, False, 2, 0, 1000, True),          # worker shutting down
+            (False, False, True, 0, 0, 1000, True),           # keepalive disabled
+            (False, False, True, 2, 0, 1, True),              # this response trips max_requests
+            (False, False, True, 2, 0, 5, False),             # still below max_requests
+            (False, False, True, 2, 100, sys.maxsize, False),  # max_requests disabled
+        ],
+    )
+    def test_will_close_matches_keepalive_decision(
+        self, requires_close, req_close, alive, keepalive, nr, max_requests, expected
+    ):
+        """_will_close is the inverse of the keepalive decision, case for case."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.cfg.set("keepalive", keepalive)
+        worker.alive = alive
+        worker.nr = nr
+        worker.max_requests = max_requests
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.should_close.return_value = req_close
+
+        assert protocol._will_close(request, requires_close) is expected
+
+    @pytest.mark.parametrize("close", [True, False])
+    def test_response_start_announces_connection_close(self, close):
+        """RFC 9112: a server that will close the connection must say so."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.version = (1, 1)
+
+        protocol._send_response_start(
+            200, [(b"content-type", b"text/plain")], request, close=close
+        )
+
+        assert (b"Connection: close\r\n" in protocol._response_buffer) is close
+
+    def test_response_start_keeps_app_connection_header(self):
+        """An app-supplied Connection header is not duplicated."""
+        from gunicorn.asgi.protocol import ASGIProtocol
+
+        worker = mock.Mock()
+        worker.cfg = Config()
+        worker.log = mock.Mock()
+        worker.asgi = mock.Mock()
+
+        protocol = ASGIProtocol(worker)
+        request = mock.Mock()
+        request.version = (1, 1)
+
+        protocol._send_response_start(
+            200, [(b"connection", b"close")], request, close=True
+        )
+
+        assert protocol._response_buffer.lower().count(b"connection:") == 1
 
     def test_scope_building(self):
         """Test HTTP scope building."""

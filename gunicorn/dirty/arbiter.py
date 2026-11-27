@@ -26,6 +26,7 @@ from .errors import (
     DirtyTimeoutError,
     DirtyWorkerError,
 )
+from .pidfile import write_pidfile
 from .protocol import (
     DirtyProtocol,
     make_error_response,
@@ -239,9 +240,11 @@ class DirtyArbiter:
         # Write PID to well-known location for orphan detection
         if self.pidfile:
             try:
-                with open(self.pidfile, 'w') as f:
-                    f.write(str(self.pid))
-            except IOError as e:
+                if not write_pidfile(self.pidfile, self.pid):
+                    self.log.warning(
+                        "Not writing dirty arbiter PID file %s: it exists and "
+                        "is not a regular file owned by this user", self.pidfile)
+            except OSError as e:
                 self.log.warning("Failed to write PID file: %s", e)
 
         # Set socket path env var for dirty workers (enables stash access)

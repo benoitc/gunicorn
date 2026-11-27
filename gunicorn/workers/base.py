@@ -14,14 +14,15 @@ from ssl import SSLError
 
 from gunicorn import util
 from gunicorn.http.errors import (
-    ForbiddenProxyRequest, InvalidHeader,
+    ChunkMissingTerminator, ForbiddenProxyRequest,
+    InvalidChunkExtension, InvalidChunkSize, InvalidHeader,
     InvalidHeaderName, InvalidHTTPVersion,
     InvalidProxyLine, InvalidRequestLine,
     InvalidRequestMethod, InvalidSchemeHeaders,
     LimitRequestHeaders, LimitRequestLine,
     UnsupportedTransferCoding, ExpectationFailed,
     ConfigurationProblem, ObsoleteFolding,
-    InvalidH2CPreface,
+    InvalidH2CPreface, InvalidResponseHeader, InvalidResponseHeaderName,
 )
 from gunicorn.http.wsgi import Response, default_environ
 from gunicorn.reloader import reloader_engines
@@ -193,15 +194,22 @@ class Worker:
     def handle_error(self, req, client, addr, exc):
         request_start = datetime.now()
         addr = addr or ('', -1)  # unix socket case
-        if isinstance(exc, (
-            InvalidRequestLine, InvalidRequestMethod,
-            InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
-            LimitRequestLine, LimitRequestHeaders,
-            InvalidProxyLine, ForbiddenProxyRequest,
-            InvalidSchemeHeaders, UnsupportedTransferCoding,
-            ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
-            InvalidH2CPreface, SSLError,
-        )):
+        # A header the application tried to send is the application's fault,
+        # not the client's: answer 500 like any other application error.
+        if isinstance(exc, (InvalidResponseHeader, InvalidResponseHeaderName)):
+            client_error = False
+        else:
+            client_error = isinstance(exc, (
+                InvalidRequestLine, InvalidRequestMethod,
+                InvalidHTTPVersion, InvalidHeader, InvalidHeaderName,
+                LimitRequestLine, LimitRequestHeaders,
+                InvalidProxyLine, ForbiddenProxyRequest,
+                InvalidSchemeHeaders, UnsupportedTransferCoding,
+                ConfigurationProblem, ObsoleteFolding, ExpectationFailed,
+                InvalidH2CPreface, SSLError,
+                InvalidChunkSize, ChunkMissingTerminator, InvalidChunkExtension,
+            ))
+        if client_error:
 
             status_int = 400
             reason = "Bad Request"
@@ -226,6 +234,8 @@ class Worker:
                     req = exc.req  # for access log
             elif isinstance(exc, LimitRequestLine):
                 mesg = "%s" % str(exc)
+                status_int = 414
+                reason = "URI Too Long"
             elif isinstance(exc, ExpectationFailed):
                 reason = "Expectation Failed"
                 mesg = str(exc)
@@ -241,6 +251,9 @@ class Worker:
                 mesg = "Request forbidden"
                 status_int = 403
             elif isinstance(exc, InvalidSchemeHeaders):
+                mesg = "%s" % str(exc)
+            elif isinstance(exc, (InvalidChunkSize, ChunkMissingTerminator,
+                                  InvalidChunkExtension)):
                 mesg = "%s" % str(exc)
             elif isinstance(exc, InvalidH2CPreface):
                 mesg = "%s" % str(exc)

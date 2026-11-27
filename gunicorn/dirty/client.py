@@ -358,10 +358,6 @@ class DirtyStreamIterator:
     # Default idle timeout between chunks (seconds)
     DEFAULT_IDLE_TIMEOUT = 30.0
 
-    # Threshold for applying per-read timeout (seconds)
-    # When remaining time is above this, use a larger timeout for efficiency
-    _TIMEOUT_THRESHOLD = 5.0
-
     def __init__(self, client, app_path, action, args, kwargs,
                  idle_timeout=None):
         self.client = client
@@ -428,17 +424,19 @@ class DirtyStreamIterator:
 
             remaining = self._deadline - now
 
-            # Set socket timeout based on remaining time
-            # Fast path: use larger timeout when plenty of time remains
-            if remaining > self._TIMEOUT_THRESHOLD:
-                read_timeout = self._TIMEOUT_THRESHOLD
-            else:
-                read_timeout = min(remaining, self._idle_timeout)
+            # Each read waits at most the idle timeout, and never past the
+            # total deadline. A fixed 5 s cap used to replace the idle
+            # timeout whenever more than 5 s were left.
+            read_timeout = min(remaining, self._idle_timeout)
 
             try:
                 self.client._sock.settimeout(read_timeout)
                 response = DirtyProtocol.read_message(self.client._sock)
             except socket.timeout:
+                # The rest of this stream may still arrive (a frame may even
+                # be half read): drop the socket so a later call never reads
+                # it as its own reply.
+                self.client._close_socket()
                 # Check which timeout was hit
                 now = time.monotonic()
                 if now >= self._deadline:
@@ -496,11 +494,12 @@ class DirtyAsyncStreamIterator:
     This class is returned by `DirtyClient.stream_async()` and yields chunks
     from a streaming response until the end message is received.
 
-    Uses a deadline-based timeout approach for efficiency:
+    Each read is bounded by:
     - Total stream timeout: limits entire stream duration
     - Idle timeout: limits gap between chunks (defaults to total timeout)
 
-    This avoids the overhead of asyncio.wait_for() on every chunk read.
+    On a timeout the connection is closed, so the rest of the stream is
+    never read by a later call.
     """
 
     # Default idle timeout between chunks (seconds)
@@ -557,10 +556,6 @@ class DirtyAsyncStreamIterator:
         )
         await DirtyProtocol.write_message_async(self.client._writer, request)
 
-    # Threshold for applying timeout wrapper (seconds)
-    # When remaining time is above this, skip timeout for performance
-    _TIMEOUT_THRESHOLD = 5.0
-
     async def _read_next_chunk(self):
         """Read the next message from the stream."""
         # Calculate remaining time until deadline
@@ -577,21 +572,19 @@ class DirtyAsyncStreamIterator:
         remaining = self._deadline - now
 
         try:
-            # Fast path: skip timeout wrapper when we have plenty of time
-            # This avoids asyncio.wait_for() overhead for most chunks
-            if remaining > self._TIMEOUT_THRESHOLD:
-                response = await DirtyProtocol.read_message_async(
-                    self.client._reader
-                )
-            else:
-                # Near deadline: apply timeout protection
-                read_timeout = min(remaining, self._idle_timeout)
-                response = await asyncio.wait_for(
-                    DirtyProtocol.read_message_async(self.client._reader),
-                    timeout=read_timeout
-                )
+            # Every read is bounded by the idle timeout and the total
+            # deadline: skipping the wrapper when time was left let a stalled
+            # stream wait forever.
+            read_timeout = min(remaining, self._idle_timeout)
+            response = await asyncio.wait_for(
+                DirtyProtocol.read_message_async(self.client._reader),
+                timeout=read_timeout
+            )
         except asyncio.TimeoutError:
             self._exhausted = True
+            # The rest of this stream may still arrive: drop the connection
+            # so a later call never reads it as its own reply.
+            await self.client._close_async()
             now = time.monotonic()
             if now >= self._deadline:
                 raise DirtyTimeoutError(

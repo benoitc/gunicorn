@@ -33,6 +33,7 @@ class BaseApplication:
         try:
             self.load_default_config()
             self.load_config()
+            self.cfg.validate()
         except Exception as e:
             print("\nError: %s" % str(e), file=sys.stderr)
             sys.stderr.flush()

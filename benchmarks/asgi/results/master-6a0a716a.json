@@ -1,0 +1,3970 @@
+{
+ "label": "master-6a0a716a",
+ "environment": {
+  "gunicorn_root": "<repo>",
+  "gunicorn_imported_from": "26.2.2 <repo>/gunicorn",
+  "commit": "6a0a716a84a3522c88646370f5759af24faa8214",
+  "commit_short": "6a0a716a",
+  "dirty_tree": false,
+  "date": "2026-11-08T16:02:32+00:00",
+  "python": "3.14.9",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "cpu": "Apple M4 Pro",
+  "cpu_count": 14,
+  "versions": {
+   "gunicorn": "26.2.2",
+   "gunicorn_h1c": "0.6.11",
+   "uvicorn": "0.42.0",
+   "httptools": "0.7.1",
+   "uvloop": "0.22.1",
+   "wrk": "wrk 4.2.0 [kqueue] Copyright (C) 2012 Will Glozer"
+  }
+ },
+ "config": {
+  "variants": [
+   "gunicorn-fast",
+   "gunicorn-python",
+   "uvicorn",
+   "gunicorn-uvicorn-worker"
+  ],
+  "workloads": [
+   "small_keepalive",
+   "pct_target",
+   "many_headers",
+   "post_upload",
+   "chunked_upload",
+   "large_response",
+   "stream_response"
+  ],
+  "rounds": 5,
+  "workers": 1,
+  "duration": 10,
+  "warmup": 3,
+  "threads": 4,
+  "connections": 64
+ },
+ "runs": [
+  {
+   "requests": 451294,
+   "duration_us": 10100316,
+   "bytes": 62278572,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1465,
+    "p95": 1765,
+    "p99": 2314,
+    "max": 48059,
+    "mean": 1518.5
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 44681.17631171144,
+   "server_cpu_pct": 99.08322610896533,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.609375
+  },
+  {
+   "requests": 438872,
+   "duration_us": 10099991,
+   "bytes": 60564336,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1490,
+    "p95": 1729,
+    "p99": 1896,
+    "max": 17357,
+    "mean": 1466.2
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 43452.71198756514,
+   "server_cpu_pct": 99.78398598573006,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 62.84375
+  },
+  {
+   "requests": 285356,
+   "duration_us": 10101746,
+   "bytes": 39379128,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2255,
+    "p95": 2345,
+    "p99": 2499,
+    "max": 25625,
+    "mean": 2261.0
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 28248.18600665667,
+   "server_cpu_pct": 99.85984533762768,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 65.921875
+  },
+  {
+   "requests": 321949,
+   "duration_us": 10100177,
+   "bytes": 41531421,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2005,
+    "p95": 2254,
+    "p99": 2394,
+    "max": 23264,
+    "mean": 1987.7
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 31875.580002211842,
+   "server_cpu_pct": 99.76626528426186,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 88.9375
+  },
+  {
+   "requests": 338845,
+   "duration_us": 10100731,
+   "bytes": 43372160,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1897,
+    "p95": 1987,
+    "p99": 2060,
+    "max": 21472,
+    "mean": 1902.4
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 33546.58192560519,
+   "server_cpu_pct": 99.83880770609557,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 91.28125
+  },
+  {
+   "requests": 75643,
+   "duration_us": 10105873,
+   "bytes": 79328653600,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8167,
+    "p95": 10799,
+    "p99": 17325,
+    "max": 253337,
+    "mean": 8995.1
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 7485.053493151951,
+   "server_cpu_pct": 99.93778613683365,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 139.4375
+  },
+  {
+   "requests": 215201,
+   "duration_us": 10100344,
+   "bytes": 14163998071,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3461,
+    "p95": 3757,
+    "p99": 3934,
+    "max": 49022,
+    "mean": 3012.3
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-fast",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55746 apps:app",
+   "rps": 21306.30402291249,
+   "server_cpu_pct": 99.93134267506126,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 140.0625
+  },
+  {
+   "requests": 389250,
+   "duration_us": 10100445,
+   "bytes": 53716500,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1651,
+    "p95": 1721,
+    "p99": 1773,
+    "max": 17608,
+    "mean": 1654.8
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 38537.90600315134,
+   "server_cpu_pct": 99.81676403366387,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 60.859375
+  },
+  {
+   "requests": 381375,
+   "duration_us": 10100822,
+   "bytes": 52629750,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1685,
+    "p95": 1758,
+    "p99": 1811,
+    "max": 18311,
+    "mean": 1689.7
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 37756.82810765302,
+   "server_cpu_pct": 99.81831250961557,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.609375
+  },
+  {
+   "requests": 158053,
+   "duration_us": 10107978,
+   "bytes": 21811314,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 4112,
+    "p95": 4216,
+    "p99": 4287,
+    "max": 58764,
+    "mean": 4079.1
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 15636.460625458427,
+   "server_cpu_pct": 99.91586230203512,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 64.109375
+  },
+  {
+   "requests": 278642,
+   "duration_us": 10101982,
+   "bytes": 35944818,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2319,
+    "p95": 2541,
+    "p99": 2681,
+    "max": 5767,
+    "mean": 2291.8
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 27582.904028140223,
+   "server_cpu_pct": 99.76881176386966,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 73.109375
+  },
+  {
+   "requests": 254085,
+   "duration_us": 10103251,
+   "bytes": 32522880,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2537,
+    "p95": 2617,
+    "p99": 2690,
+    "max": 32060,
+    "mean": 2541.7
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 25148.83575593638,
+   "server_cpu_pct": 99.88085541970604,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 73.703125
+  },
+  {
+   "requests": 74794,
+   "duration_us": 10105451,
+   "bytes": 78438290320,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8393,
+    "p95": 10111,
+    "p99": 17077,
+    "max": 250749,
+    "mean": 9095.1
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 7401.352002993236,
+   "server_cpu_pct": 99.9642219036044,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 120.703125
+  },
+  {
+   "requests": 199139,
+   "duration_us": 10100325,
+   "bytes": 13108177699,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3739,
+    "p95": 4062,
+    "p99": 4271,
+    "max": 54653,
+    "mean": 3258.3
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-python",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:56719 apps:app",
+   "rps": 19716.098244363424,
+   "server_cpu_pct": 99.92420641910039,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 120.8125
+  },
+  {
+   "requests": 737238,
+   "duration_us": 10099923,
+   "bytes": 97315416,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 986,
+    "p95": 1184,
+    "p99": 1253,
+    "max": 10672,
+    "mean": 870.2
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 72994.41787823531,
+   "server_cpu_pct": 99.8367348345131,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.09375
+  },
+  {
+   "requests": 638835,
+   "duration_us": 10099600,
+   "bytes": 84326220,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1153,
+    "p95": 1346,
+    "p99": 1434,
+    "max": 13496,
+    "mean": 1005.3
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 63253.49518792823,
+   "server_cpu_pct": 99.84509992474948,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.515625
+  },
+  {
+   "requests": 505973,
+   "duration_us": 10100175,
+   "bytes": 66788436,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1466,
+    "p95": 1641,
+    "p99": 1743,
+    "max": 4316,
+    "mean": 1271.0
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 50095.46864287005,
+   "server_cpu_pct": 99.85118649924377,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.96875
+  },
+  {
+   "requests": 409661,
+   "duration_us": 10100290,
+   "bytes": 50388303,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1545,
+    "p95": 1845,
+    "p99": 2280,
+    "max": 12616,
+    "mean": 1554.4
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 40559.33047466954,
+   "server_cpu_pct": 99.44059317108719,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 47.484375
+  },
+  {
+   "requests": 522996,
+   "duration_us": 10100065,
+   "bytes": 63805512,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1404,
+    "p95": 1614,
+    "p99": 1725,
+    "max": 16082,
+    "mean": 1230.2
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 51781.44893126925,
+   "server_cpu_pct": 99.86934729627983,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 47.90625
+  },
+  {
+   "requests": 93382,
+   "duration_us": 10100475,
+   "bytes": 97931468044,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6573,
+    "p95": 9002,
+    "p99": 13168,
+    "max": 25947,
+    "mean": 6864.5
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 9245.307770179126,
+   "server_cpu_pct": 99.91943103665916,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 47.9375
+  },
+  {
+   "requests": 377519,
+   "duration_us": 10100384,
+   "bytes": 24844525390,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1638,
+    "p95": 1923,
+    "p99": 3327,
+    "max": 45796,
+    "mean": 1727.3
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "uvicorn",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 57676",
+   "rps": 37376.697757233786,
+   "server_cpu_pct": 99.95303719145735,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 33.15625
+  },
+  {
+   "requests": 719722,
+   "duration_us": 10100364,
+   "bytes": 95003304,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1013,
+    "p95": 1215,
+    "p99": 1267,
+    "max": 10454,
+    "mean": 892.7
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 71257.03588504334,
+   "server_cpu_pct": 99.82843030211583,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.1875
+  },
+  {
+   "requests": 639066,
+   "duration_us": 10100329,
+   "bytes": 84356712,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1137,
+    "p95": 1378,
+    "p99": 1499,
+    "max": 11881,
+    "mean": 1005.6
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 63271.800354226085,
+   "server_cpu_pct": 99.83775221579415,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.65625
+  },
+  {
+   "requests": 507888,
+   "duration_us": 10100380,
+   "bytes": 67041216,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1454,
+    "p95": 1657,
+    "p99": 1743,
+    "max": 3922,
+    "mean": 1265.4
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 50284.04871895909,
+   "server_cpu_pct": 99.83985996566466,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 68.28125
+  },
+  {
+   "requests": 398514,
+   "duration_us": 10099507,
+   "bytes": 49017222,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1620,
+    "p95": 1861,
+    "p99": 2069,
+    "max": 4366,
+    "mean": 1602.9
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 39458.757739362925,
+   "server_cpu_pct": 99.47962893634319,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.265625
+  },
+  {
+   "requests": 520337,
+   "duration_us": 10100030,
+   "bytes": 63481114,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1411,
+    "p95": 1620,
+    "p99": 1711,
+    "max": 16766,
+    "mean": 1236.9
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 51518.36182664804,
+   "server_cpu_pct": 99.88790639235714,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 72.734375
+  },
+  {
+   "requests": 91899,
+   "duration_us": 10021076,
+   "bytes": 96375767886,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6505,
+    "p95": 8893,
+    "p99": 13094,
+    "max": 22500,
+    "mean": 6823.6
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 9170.572102237324,
+   "server_cpu_pct": 99.13444296800064,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 68.671875
+  },
+  {
+   "requests": 373140,
+   "duration_us": 10100215,
+   "bytes": 24556343400,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1649,
+    "p95": 1969,
+    "p99": 3349,
+    "max": 46125,
+    "mean": 1747.5
+   },
+   "client_cpu_s": null,
+   "round": 0,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:58630 apps:app",
+   "rps": 36943.768028700375,
+   "server_cpu_pct": 99.94578123336993,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 68.40625
+  },
+  {
+   "requests": 709251,
+   "duration_us": 10099598,
+   "bytes": 93621132,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1032,
+    "p95": 1239,
+    "p99": 1302,
+    "max": 9872,
+    "mean": 905.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 70225.66640771246,
+   "server_cpu_pct": 99.83497402569883,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.09375
+  },
+  {
+   "requests": 639431,
+   "duration_us": 10099680,
+   "bytes": 84404892,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1139,
+    "p95": 1375,
+    "p99": 1455,
+    "max": 12604,
+    "mean": 1005.0
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 63312.005924940204,
+   "server_cpu_pct": 99.85480411260554,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.515625
+  },
+  {
+   "requests": 519665,
+   "duration_us": 10100596,
+   "bytes": 68595780,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1432,
+    "p95": 1645,
+    "p99": 1731,
+    "max": 3911,
+    "mean": 1237.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 51448.94420091646,
+   "server_cpu_pct": 99.86098863869023,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 30.703125
+  },
+  {
+   "requests": 400669,
+   "duration_us": 10099914,
+   "bytes": 49282287,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1586,
+    "p95": 1873,
+    "p99": 2396,
+    "max": 12252,
+    "mean": 1593.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 39670.53580852273,
+   "server_cpu_pct": 99.27024301395043,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 38.78125
+  },
+  {
+   "requests": 525812,
+   "duration_us": 10100353,
+   "bytes": 64149064,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1397,
+    "p95": 1617,
+    "p99": 1701,
+    "max": 3827,
+    "mean": 1222.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 52058.77457946272,
+   "server_cpu_pct": 99.91644090062995,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 51.359375
+  },
+  {
+   "requests": 93292,
+   "duration_us": 10005882,
+   "bytes": 97836626488,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6494,
+    "p95": 8849,
+    "p99": 13106,
+    "max": 68154,
+    "mean": 6853.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 9323.715790372104,
+   "server_cpu_pct": 99.93656147454071,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 55.0625
+  },
+  {
+   "requests": 373478,
+   "duration_us": 10100380,
+   "bytes": 24578587180,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1662,
+    "p95": 1955,
+    "p99": 3360,
+    "max": 47479,
+    "mean": 1747.1
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:59587 apps:app",
+   "rps": 36976.6286020922,
+   "server_cpu_pct": 99.9491656353524,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 55.21875
+  },
+  {
+   "requests": 713896,
+   "duration_us": 10100230,
+   "bytes": 94234272,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1021,
+    "p95": 1244,
+    "p99": 1320,
+    "max": 10037,
+    "mean": 898.8
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 70681.1627061958,
+   "server_cpu_pct": 99.84054113619196,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.1875
+  },
+  {
+   "requests": 643293,
+   "duration_us": 10100199,
+   "bytes": 84914676,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1143,
+    "p95": 1356,
+    "p99": 1430,
+    "max": 12097,
+    "mean": 999.1
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 63691.12133335195,
+   "server_cpu_pct": 99.85441150218924,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.671875
+  },
+  {
+   "requests": 504812,
+   "duration_us": 10100535,
+   "bytes": 66635184,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1453,
+    "p95": 1689,
+    "p99": 1784,
+    "max": 15554,
+    "mean": 1275.5
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 49978.7387499771,
+   "server_cpu_pct": 99.85383213859465,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 40.234375
+  },
+  {
+   "requests": 395933,
+   "duration_us": 10100536,
+   "bytes": 48699759,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1615,
+    "p95": 1910,
+    "p99": 2353,
+    "max": 13924,
+    "mean": 1614.6
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 39199.2068539729,
+   "server_cpu_pct": 99.31518628318335,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.125
+  },
+  {
+   "requests": 536320,
+   "duration_us": 10100327,
+   "bytes": 65431040,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1372,
+    "p95": 1591,
+    "p99": 1676,
+    "max": 4065,
+    "mean": 1191.9
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 53099.27094439616,
+   "server_cpu_pct": 99.85988295230445,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 33.359375
+  },
+  {
+   "requests": 78888,
+   "duration_us": 10106023,
+   "bytes": 82731962616,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6748,
+    "p95": 13589,
+    "p99": 20562,
+    "max": 29791,
+    "mean": 8247.9
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 7806.038042858204,
+   "server_cpu_pct": 99.81729873363649,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 34.390625
+  },
+  {
+   "requests": 376503,
+   "duration_us": 10100299,
+   "bytes": 24777662430,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1644,
+    "p95": 1949,
+    "p99": 3330,
+    "max": 56663,
+    "mean": 1741.7
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "uvicorn",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 60538",
+   "rps": 37276.421222777666,
+   "server_cpu_pct": 99.94540272520649,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 35.421875
+  },
+  {
+   "requests": 387709,
+   "duration_us": 10099912,
+   "bytes": 53503842,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1656,
+    "p95": 1732,
+    "p99": 1799,
+    "max": 18890,
+    "mean": 1661.2
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 38387.36416713334,
+   "server_cpu_pct": 99.82684193684064,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 60.671875
+  },
+  {
+   "requests": 379735,
+   "duration_us": 10100675,
+   "bytes": 52403430,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1692,
+    "p95": 1764,
+    "p99": 1819,
+    "max": 17589,
+    "mean": 1696.6
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 37595.012214530216,
+   "server_cpu_pct": 99.82173502265935,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.453125
+  },
+  {
+   "requests": 156324,
+   "duration_us": 10013513,
+   "bytes": 21572712,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 4114,
+    "p95": 4219,
+    "p99": 4305,
+    "max": 58983,
+    "mean": 4112.8
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 15611.304444304413,
+   "server_cpu_pct": 99.89493109960509,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 63.890625
+  },
+  {
+   "requests": 275040,
+   "duration_us": 10100890,
+   "bytes": 35480160,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2343,
+    "p95": 2548,
+    "p99": 2667,
+    "max": 33132,
+    "mean": 2333.1
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 27229.28375618386,
+   "server_cpu_pct": 99.80974021101113,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 71.921875
+  },
+  {
+   "requests": 252699,
+   "duration_us": 10103996,
+   "bytes": 32345472,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2549,
+    "p95": 2642,
+    "p99": 2746,
+    "max": 33453,
+    "mean": 2558.3
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 25009.808000715755,
+   "server_cpu_pct": 99.86284430437232,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 72.5625
+  },
+  {
+   "requests": 76774,
+   "duration_us": 10105615,
+   "bytes": 80515719508,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8139,
+    "p95": 9830,
+    "p99": 16658,
+    "max": 244866,
+    "mean": 8837.0
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 7597.162567542896,
+   "server_cpu_pct": 99.95507016643732,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 118.6875
+  },
+  {
+   "requests": 202850,
+   "duration_us": 10100715,
+   "bytes": 13351433710,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3667,
+    "p95": 4001,
+    "p99": 4191,
+    "max": 52449,
+    "mean": 3197.9
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-python",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:61536 apps:app",
+   "rps": 20082.73671715319,
+   "server_cpu_pct": 99.9362937970231,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 118.78125
+  },
+  {
+   "requests": 432436,
+   "duration_us": 10000345,
+   "bytes": 59676168,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1498,
+    "p95": 1641,
+    "p99": 1784,
+    "max": 8035,
+    "mean": 1472.7
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 43242.10814726892,
+   "server_cpu_pct": 99.79955999518018,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.71875
+  },
+  {
+   "requests": 427277,
+   "duration_us": 10100425,
+   "bytes": 58964226,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1516,
+    "p95": 1652,
+    "p99": 1794,
+    "max": 17100,
+    "mean": 1506.4
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 42302.87339394134,
+   "server_cpu_pct": 99.83619172460567,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 62.984375
+  },
+  {
+   "requests": 281573,
+   "duration_us": 10102350,
+   "bytes": 38857074,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2286,
+    "p95": 2364,
+    "p99": 2458,
+    "max": 24958,
+    "mean": 2291.7
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 27872.029775250314,
+   "server_cpu_pct": 99.87057684598143,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 66.015625
+  },
+  {
+   "requests": 316508,
+   "duration_us": 10099797,
+   "bytes": 40829532,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2042,
+    "p95": 2281,
+    "p99": 2422,
+    "max": 5125,
+    "mean": 2018.9
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 31338.055606464168,
+   "server_cpu_pct": 99.74552439024274,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 88.953125
+  },
+  {
+   "requests": 336686,
+   "duration_us": 10099611,
+   "bytes": 43095808,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1909,
+    "p95": 1981,
+    "p99": 2035,
+    "max": 23225,
+    "mean": 1914.0
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 33336.53147631132,
+   "server_cpu_pct": 99.85479405097877,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 91.265625
+  },
+  {
+   "requests": 78337,
+   "duration_us": 10108536,
+   "bytes": 82153578640,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8004,
+    "p95": 9394,
+    "p99": 16391,
+    "max": 254122,
+    "mean": 8716.9
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 7749.589060176468,
+   "server_cpu_pct": 99.96803731024951,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 139.53125
+  },
+  {
+   "requests": 218028,
+   "duration_us": 10099599,
+   "bytes": 14352429099,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3388,
+    "p95": 3733,
+    "p99": 3936,
+    "max": 48230,
+    "mean": 2970.5
+   },
+   "client_cpu_s": null,
+   "round": 1,
+   "variant": "gunicorn-fast",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:62500 apps:app",
+   "rps": 21587.787792366806,
+   "server_cpu_pct": 99.92910354163551,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 140.328125
+  },
+  {
+   "requests": 442939,
+   "duration_us": 10099583,
+   "bytes": 61125582,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1485,
+    "p95": 1674,
+    "p99": 1830,
+    "max": 20498,
+    "mean": 1454.5
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 43857.15727075068,
+   "server_cpu_pct": 99.82127753195353,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.625
+  },
+  {
+   "requests": 430220,
+   "duration_us": 10099901,
+   "bytes": 59370360,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1516,
+    "p95": 1685,
+    "p99": 1813,
+    "max": 8366,
+    "mean": 1494.8
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 42596.45713358973,
+   "server_cpu_pct": 99.8403463162659,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 62.921875
+  },
+  {
+   "requests": 281637,
+   "duration_us": 10101477,
+   "bytes": 38865906,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2276,
+    "p95": 2399,
+    "p99": 2538,
+    "max": 26286,
+    "mean": 2291.1
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 27880.77426697106,
+   "server_cpu_pct": 99.88754333648437,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 65.984375
+  },
+  {
+   "requests": 313786,
+   "duration_us": 10099825,
+   "bytes": 40478394,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2059,
+    "p95": 2313,
+    "p99": 2461,
+    "max": 19509,
+    "mean": 2041.4
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 31068.45910696473,
+   "server_cpu_pct": 99.75051528120534,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 88.984375
+  },
+  {
+   "requests": 335187,
+   "duration_us": 10100237,
+   "bytes": 42903936,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1917,
+    "p95": 2009,
+    "p99": 2075,
+    "max": 20111,
+    "mean": 1923.1
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 33186.05296093547,
+   "server_cpu_pct": 99.85264935862384,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 91.34375
+  },
+  {
+   "requests": 78495,
+   "duration_us": 10026511,
+   "bytes": 82321040256,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 7922,
+    "p95": 9131,
+    "p99": 16067,
+    "max": 211406,
+    "mean": 8457.0
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 7828.74521356432,
+   "server_cpu_pct": 99.96831511978608,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 141.296875
+  },
+  {
+   "requests": 214574,
+   "duration_us": 10100115,
+   "bytes": 14124771580,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3416,
+    "p95": 3893,
+    "p99": 4269,
+    "max": 48141,
+    "mean": 3019.6
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-fast",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:63439 apps:app",
+   "rps": 21244.708599852576,
+   "server_cpu_pct": 99.93515493635464,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 141.890625
+  },
+  {
+   "requests": 388828,
+   "duration_us": 10100628,
+   "bytes": 53658264,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1651,
+    "p95": 1722,
+    "p99": 1776,
+    "max": 16712,
+    "mean": 1655.2
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 38495.42820505814,
+   "server_cpu_pct": 99.82797475562906,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 60.8125
+  },
+  {
+   "requests": 381147,
+   "duration_us": 10100403,
+   "bytes": 52598286,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1688,
+    "p95": 1767,
+    "p99": 1908,
+    "max": 17400,
+    "mean": 1689.7
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 37735.82103605173,
+   "server_cpu_pct": 99.83304485969522,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.578125
+  },
+  {
+   "requests": 164990,
+   "duration_us": 10106683,
+   "bytes": 22768620,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3896,
+    "p95": 4070,
+    "p99": 4196,
+    "max": 56259,
+    "mean": 3903.9
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 16324.84169138381,
+   "server_cpu_pct": 99.92079300399547,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 64.046875
+  },
+  {
+   "requests": 273965,
+   "duration_us": 10099515,
+   "bytes": 35341485,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2370,
+    "p95": 2570,
+    "p99": 2681,
+    "max": 6252,
+    "mean": 2336.7
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 27126.550136318427,
+   "server_cpu_pct": 99.7922213294401,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 71.953125
+  },
+  {
+   "requests": 255018,
+   "duration_us": 10106230,
+   "bytes": 32642304,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2521,
+    "p95": 2636,
+    "p99": 2742,
+    "max": 33762,
+    "mean": 2534.8
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 25233.74195916776,
+   "server_cpu_pct": 99.89352207499739,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 72.609375
+  },
+  {
+   "requests": 76452,
+   "duration_us": 10108584,
+   "bytes": 80177329392,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8077,
+    "p95": 10802,
+    "p99": 16832,
+    "max": 242434,
+    "mean": 8870.5
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 7563.077083793338,
+   "server_cpu_pct": 99.95396112848256,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 129.90625
+  },
+  {
+   "requests": 201775,
+   "duration_us": 10099642,
+   "bytes": 13282392596,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3672,
+    "p95": 3994,
+    "p99": 4192,
+    "max": 52275,
+    "mean": 3214.9
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-python",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:64396 apps:app",
+   "rps": 19978.430918640483,
+   "server_cpu_pct": 99.92514128718625,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 130.0
+  },
+  {
+   "requests": 730316,
+   "duration_us": 10100239,
+   "bytes": 96401712,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 999,
+    "p95": 1199,
+    "p99": 1255,
+    "max": 10498,
+    "mean": 878.9
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 72306.80382909751,
+   "server_cpu_pct": 99.82465151567204,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.15625
+  },
+  {
+   "requests": 652304,
+   "duration_us": 10100373,
+   "bytes": 86104128,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1123,
+    "p95": 1329,
+    "p99": 1403,
+    "max": 12163,
+    "mean": 985.8
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 64582.16939117001,
+   "server_cpu_pct": 99.85098300825129,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.5625
+  },
+  {
+   "requests": 511284,
+   "duration_us": 10100372,
+   "bytes": 67489488,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1443,
+    "p95": 1638,
+    "p99": 1714,
+    "max": 3793,
+    "mean": 1257.8
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 50620.31378646252,
+   "server_cpu_pct": 99.84200027484134,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 40.03125
+  },
+  {
+   "requests": 405385,
+   "duration_us": 10100612,
+   "bytes": 49862355,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1574,
+    "p95": 1838,
+    "p99": 2283,
+    "max": 7631,
+    "mean": 1575.9
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 40134.69678866983,
+   "server_cpu_pct": 99.35340947657429,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.15625
+  },
+  {
+   "requests": 526174,
+   "duration_us": 10100428,
+   "bytes": 64193228,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1387,
+    "p95": 1598,
+    "p99": 1683,
+    "max": 5256,
+    "mean": 1221.5
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 52094.22808617615,
+   "server_cpu_pct": 99.8394596347798,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.4375
+  },
+  {
+   "requests": 94928,
+   "duration_us": 10106477,
+   "bytes": 99552714560,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6548,
+    "p95": 8069,
+    "p99": 13099,
+    "max": 24151,
+    "mean": 6801.3
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 9392.788406880063,
+   "server_cpu_pct": 99.9313402682259,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.453125
+  },
+  {
+   "requests": 374427,
+   "duration_us": 10100817,
+   "bytes": 24641040870,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1651,
+    "p95": 1952,
+    "p99": 3354,
+    "max": 46385,
+    "mean": 1741.2
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "uvicorn",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 65363",
+   "rps": 37068.98164772216,
+   "server_cpu_pct": 99.93439730667322,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.546875
+  },
+  {
+   "requests": 721926,
+   "duration_us": 10100457,
+   "bytes": 95294232,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1015,
+    "p95": 1212,
+    "p99": 1274,
+    "max": 11923,
+    "mean": 889.6
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 71474.58773400055,
+   "server_cpu_pct": 99.8277083898283,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.203125
+  },
+  {
+   "requests": 660596,
+   "duration_us": 10100467,
+   "bytes": 87198672,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1122,
+    "p95": 1333,
+    "p99": 1404,
+    "max": 12059,
+    "mean": 972.9
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 65402.52049731958,
+   "server_cpu_pct": 99.85342226255472,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.625
+  },
+  {
+   "requests": 505782,
+   "duration_us": 10100008,
+   "bytes": 66763224,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1461,
+    "p95": 1665,
+    "p99": 1753,
+    "max": 10475,
+    "mean": 1272.4
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 50077.386077317955,
+   "server_cpu_pct": 99.86205127758318,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 68.15625
+  },
+  {
+   "requests": 404215,
+   "duration_us": 10100105,
+   "bytes": 49718445,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1572,
+    "p95": 1862,
+    "p99": 2322,
+    "max": 4194,
+    "mean": 1574.5
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 40020.87107015224,
+   "server_cpu_pct": 99.34689633424604,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.53125
+  },
+  {
+   "requests": 516406,
+   "duration_us": 10099923,
+   "bytes": 63001532,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1425,
+    "p95": 1638,
+    "p99": 1726,
+    "max": 6674,
+    "mean": 1245.0
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 51129.696731351316,
+   "server_cpu_pct": 99.88809671123234,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 77.03125
+  },
+  {
+   "requests": 94891,
+   "duration_us": 10104626,
+   "bytes": 99513650830,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6508,
+    "p95": 8468,
+    "p99": 13068,
+    "max": 25596,
+    "mean": 6768.7
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 9390.847320821176,
+   "server_cpu_pct": 99.94844808704455,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 77.046875
+  },
+  {
+   "requests": 374943,
+   "duration_us": 10101709,
+   "bytes": 24674998830,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1650,
+    "p95": 1941,
+    "p99": 3344,
+    "max": 46879,
+    "mean": 1740.0
+   },
+   "client_cpu_s": null,
+   "round": 2,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:49954 apps:app",
+   "rps": 37116.78885226252,
+   "server_cpu_pct": 99.9382125539351,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 77.15625
+  },
+  {
+   "requests": 722193,
+   "duration_us": 10099580,
+   "bytes": 95329476,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1015,
+    "p95": 1208,
+    "p99": 1274,
+    "max": 10003,
+    "mean": 888.6
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 71507.2309937641,
+   "server_cpu_pct": 99.83694034801447,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.109375
+  },
+  {
+   "requests": 622914,
+   "duration_us": 10099709,
+   "bytes": 82224648,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1159,
+    "p95": 1434,
+    "p99": 1588,
+    "max": 12830,
+    "mean": 1031.8
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 61676.430479333605,
+   "server_cpu_pct": 99.83541913930392,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.515625
+  },
+  {
+   "requests": 509370,
+   "duration_us": 10099861,
+   "bytes": 67236840,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1447,
+    "p95": 1665,
+    "p99": 1745,
+    "max": 14943,
+    "mean": 1263.5
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 50433.36735030313,
+   "server_cpu_pct": 99.86324492980643,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.859375
+  },
+  {
+   "requests": 405991,
+   "duration_us": 10100466,
+   "bytes": 49936893,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1573,
+    "p95": 1846,
+    "p99": 2162,
+    "max": 16331,
+    "mean": 1572.7
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 40195.274158637825,
+   "server_cpu_pct": 99.44073855602306,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.09375
+  },
+  {
+   "requests": 519012,
+   "duration_us": 10100154,
+   "bytes": 63319464,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1415,
+    "p95": 1633,
+    "p99": 1721,
+    "max": 7213,
+    "mean": 1238.5
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 51386.54321508365,
+   "server_cpu_pct": 99.87770875572804,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.734375
+  },
+  {
+   "requests": 94494,
+   "duration_us": 10109882,
+   "bytes": 99098356620,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6490,
+    "p95": 8306,
+    "p99": 13031,
+    "max": 20072,
+    "mean": 6744.5
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 9346.69662811099,
+   "server_cpu_pct": 99.51614394708069,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.734375
+  },
+  {
+   "requests": 374425,
+   "duration_us": 10099888,
+   "bytes": 24640909250,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1654,
+    "p95": 1969,
+    "p99": 3350,
+    "max": 51027,
+    "mean": 1743.6
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:50903 apps:app",
+   "rps": 37072.193275806625,
+   "server_cpu_pct": 99.93991157129656,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.828125
+  },
+  {
+   "requests": 719518,
+   "duration_us": 10100109,
+   "bytes": 94976376,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1018,
+    "p95": 1218,
+    "p99": 1292,
+    "max": 10453,
+    "mean": 892.1
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 71238.63712757951,
+   "server_cpu_pct": 99.8480294420585,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.046875
+  },
+  {
+   "requests": 646041,
+   "duration_us": 10100674,
+   "bytes": 85277412,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1138,
+    "p95": 1348,
+    "p99": 1423,
+    "max": 11691,
+    "mean": 994.6
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 63960.18721126927,
+   "server_cpu_pct": 99.85609245482036,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.546875
+  },
+  {
+   "requests": 511115,
+   "duration_us": 10100650,
+   "bytes": 67467180,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1438,
+    "p95": 1662,
+    "p99": 1744,
+    "max": 15159,
+    "mean": 1259.7
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 50602.18896803671,
+   "server_cpu_pct": 99.86183970338541,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.953125
+  },
+  {
+   "requests": 402635,
+   "duration_us": 10099452,
+   "bytes": 49524105,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1584,
+    "p95": 1861,
+    "p99": 2303,
+    "max": 4163,
+    "mean": 1586.0
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 39867.01456673095,
+   "server_cpu_pct": 99.34967307137062,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.6875
+  },
+  {
+   "requests": 522911,
+   "duration_us": 10100013,
+   "bytes": 63795142,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1403,
+    "p95": 1621,
+    "p99": 1713,
+    "max": 15046,
+    "mean": 1230.3
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 51773.29969773306,
+   "server_cpu_pct": 99.86063534769714,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 49.078125
+  },
+  {
+   "requests": 93177,
+   "duration_us": 10015272,
+   "bytes": 97717853562,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 6452,
+    "p95": 8828,
+    "p99": 13039,
+    "max": 19960,
+    "mean": 6787.7
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 9303.491707464362,
+   "server_cpu_pct": 99.61972379781598,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 49.109375
+  },
+  {
+   "requests": 375664,
+   "duration_us": 10101505,
+   "bytes": 24722447840,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1647,
+    "p95": 1949,
+    "p99": 3337,
+    "max": 45284,
+    "mean": 1734.8
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "uvicorn",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 51870",
+   "rps": 37188.913929162045,
+   "server_cpu_pct": 99.93411920302964,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 49.203125
+  },
+  {
+   "requests": 387577,
+   "duration_us": 10099840,
+   "bytes": 53485626,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1657,
+    "p95": 1730,
+    "p99": 1780,
+    "max": 20579,
+    "mean": 1663.0
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 38374.568309993025,
+   "server_cpu_pct": 99.81740184002913,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 60.703125
+  },
+  {
+   "requests": 380257,
+   "duration_us": 10100697,
+   "bytes": 52475466,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1690,
+    "p95": 1761,
+    "p99": 1812,
+    "max": 16991,
+    "mean": 1694.6
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 37646.60993196806,
+   "server_cpu_pct": 99.82515705599323,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.484375
+  },
+  {
+   "requests": 163674,
+   "duration_us": 10108132,
+   "bytes": 22587012,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3914,
+    "p95": 4168,
+    "p99": 4261,
+    "max": 59739,
+    "mean": 3958.9
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 16192.309320851766,
+   "server_cpu_pct": 99.9067477353877,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 63.96875
+  },
+  {
+   "requests": 272726,
+   "duration_us": 10001405,
+   "bytes": 35181654,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2347,
+    "p95": 2543,
+    "p99": 2647,
+    "max": 33430,
+    "mean": 2329.3
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 27268.76873799231,
+   "server_cpu_pct": 99.78549279826184,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 71.796875
+  },
+  {
+   "requests": 255290,
+   "duration_us": 10104897,
+   "bytes": 32677120,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2516,
+    "p95": 2625,
+    "p99": 2710,
+    "max": 33557,
+    "mean": 2524.5
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 25263.98834149423,
+   "server_cpu_pct": 99.89610178114631,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 72.359375
+  },
+  {
+   "requests": 56977,
+   "duration_us": 10103945,
+   "bytes": 59755271248,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 10918,
+    "p95": 16550,
+    "p99": 90559,
+    "max": 350982,
+    "mean": 12949.2
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 5639.084535792703,
+   "server_cpu_pct": 97.44618231789649,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 125.640625
+  },
+  {
+   "requests": 197446,
+   "duration_us": 10100661,
+   "bytes": 12995369180,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3747,
+    "p95": 4190,
+    "p99": 4442,
+    "max": 54159,
+    "mean": 3287.8
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-python",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:52837 apps:app",
+   "rps": 19547.829592538546,
+   "server_cpu_pct": 99.8236895981362,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 125.71875
+  },
+  {
+   "requests": 429582,
+   "duration_us": 10099938,
+   "bytes": 59282316,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1520,
+    "p95": 1856,
+    "p99": 2024,
+    "max": 13828,
+    "mean": 1497.0
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 42533.13238160472,
+   "server_cpu_pct": 99.72036644185341,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.640625
+  },
+  {
+   "requests": 412480,
+   "duration_us": 10101135,
+   "bytes": 56922240,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1564,
+    "p95": 1920,
+    "p99": 2095,
+    "max": 11754,
+    "mean": 1559.2
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 40835.0150750386,
+   "server_cpu_pct": 99.67769792206516,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 62.875
+  },
+  {
+   "requests": 264634,
+   "duration_us": 10103668,
+   "bytes": 36519492,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2358,
+    "p95": 3131,
+    "p99": 3813,
+    "max": 27189,
+    "mean": 2444.4
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 26191.874079789635,
+   "server_cpu_pct": 99.6743805121071,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.3125
+  },
+  {
+   "requests": 287193,
+   "duration_us": 10100490,
+   "bytes": 37047897,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2264,
+    "p95": 2604,
+    "p99": 2806,
+    "max": 27856,
+    "mean": 2232.6
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 28433.571044573084,
+   "server_cpu_pct": 99.43612505927935,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 89.765625
+  },
+  {
+   "requests": 318245,
+   "duration_us": 10100311,
+   "bytes": 40735360,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1981,
+    "p95": 2324,
+    "p99": 2584,
+    "max": 23723,
+    "mean": 2012.9
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 31508.435730345333,
+   "server_cpu_pct": 99.46951380011951,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 92.328125
+  },
+  {
+   "requests": 72029,
+   "duration_us": 10011994,
+   "bytes": 75539428784,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 8367,
+    "p95": 11292,
+    "p99": 18449,
+    "max": 259865,
+    "mean": 9427.2
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 7194.2711911333545,
+   "server_cpu_pct": 99.72766280123606,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 132.703125
+  },
+  {
+   "requests": 208444,
+   "duration_us": 10100024,
+   "bytes": 13721187878,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3524,
+    "p95": 4055,
+    "p99": 4321,
+    "max": 49719,
+    "mean": 3102.1
+   },
+   "client_cpu_s": null,
+   "round": 3,
+   "variant": "gunicorn-fast",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:53788 apps:app",
+   "rps": 20637.9707612576,
+   "server_cpu_pct": 99.7035944469044,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 133.03125
+  },
+  {
+   "requests": 418108,
+   "duration_us": 10100451,
+   "bytes": 57698904,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1549,
+    "p95": 1940,
+    "p99": 2121,
+    "max": 15547,
+    "mean": 1539.0
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 41394.98325371808,
+   "server_cpu_pct": 99.61886790995769,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.734375
+  },
+  {
+   "requests": 415946,
+   "duration_us": 10100214,
+   "bytes": 57400548,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1555,
+    "p95": 1856,
+    "p99": 2011,
+    "max": 12766,
+    "mean": 1546.1
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 41181.899710243764,
+   "server_cpu_pct": 99.69458068908241,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 62.96875
+  },
+  {
+   "requests": 274421,
+   "duration_us": 10100637,
+   "bytes": 37870098,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2330,
+    "p95": 2514,
+    "p99": 2710,
+    "max": 29096,
+    "mean": 2347.1
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 27168.682529626596,
+   "server_cpu_pct": 99.76077065238549,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 66.0625
+  },
+  {
+   "requests": 300359,
+   "duration_us": 10100020,
+   "bytes": 38746311,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2172,
+    "p95": 2420,
+    "p99": 2567,
+    "max": 5041,
+    "mean": 2130.3
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 29738.455963453536,
+   "server_cpu_pct": 99.62943974368366,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 88.875
+  },
+  {
+   "requests": 322909,
+   "duration_us": 10100112,
+   "bytes": 41332352,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1975,
+    "p95": 2168,
+    "p99": 2320,
+    "max": 20722,
+    "mean": 1995.3
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 31970.833590756225,
+   "server_cpu_pct": 99.7340410086542,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 91.328125
+  },
+  {
+   "requests": 65886,
+   "duration_us": 10023225,
+   "bytes": 69097599120,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 9306,
+    "p95": 12408,
+    "p99": 20410,
+    "max": 236172,
+    "mean": 10128.2
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 6573.333433101621,
+   "server_cpu_pct": 99.53737472719597,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 137.859375
+  },
+  {
+   "requests": 211939,
+   "duration_us": 10100217,
+   "bytes": 13949437901,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3497,
+    "p95": 3874,
+    "p99": 4094,
+    "max": 48720,
+    "mean": 3059.2
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-fast",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser fast --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:54812 apps:app",
+   "rps": 20983.60856999409,
+   "server_cpu_pct": 99.84546589444568,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 138.515625
+  },
+  {
+   "requests": 374091,
+   "duration_us": 10100663,
+   "bytes": 51624558,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1705,
+    "p95": 1861,
+    "p99": 1965,
+    "max": 19014,
+    "mean": 1721.8
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 37036.28167774729,
+   "server_cpu_pct": 99.6555709659851,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 60.765625
+  },
+  {
+   "requests": 364809,
+   "duration_us": 10100085,
+   "bytes": 50343642,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1750,
+    "p95": 1924,
+    "p99": 2041,
+    "max": 26881,
+    "mean": 1769.1
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 36119.398995156975,
+   "server_cpu_pct": 99.60193550846351,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 61.59375
+  },
+  {
+   "requests": 150493,
+   "duration_us": 10011039,
+   "bytes": 20768034,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 4242,
+    "p95": 4705,
+    "p99": 5337,
+    "max": 60673,
+    "mean": 4271.3
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 15032.705396512789,
+   "server_cpu_pct": 99.7332881432187,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 64.078125
+  },
+  {
+   "requests": 251034,
+   "duration_us": 10102752,
+   "bytes": 32383386,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2582,
+    "p95": 2917,
+    "p99": 3099,
+    "max": 37328,
+    "mean": 2562.1
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 24848.080998128033,
+   "server_cpu_pct": 99.33371932716948,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 77.765625
+  },
+  {
+   "requests": 237034,
+   "duration_us": 10004913,
+   "bytes": 30340352,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 2660,
+    "p95": 2961,
+    "p99": 3119,
+    "max": 36163,
+    "mean": 2700.3
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 23691.760238194973,
+   "server_cpu_pct": 99.6573453062509,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 78.375
+  },
+  {
+   "requests": 55534,
+   "duration_us": 10009770,
+   "bytes": 58241315008,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 11285,
+    "p95": 13790,
+    "p99": 25464,
+    "max": 334996,
+    "mean": 12392.3
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 5547.979623907443,
+   "server_cpu_pct": 99.2667682474224,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 124.34375
+  },
+  {
+   "requests": 189963,
+   "duration_us": 10099785,
+   "bytes": 12503789406,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 3922,
+    "p95": 4465,
+    "p99": 4760,
+    "max": 56552,
+    "mean": 3418.0
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-python",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k asgi --http-parser python --asgi-loop uvloop -w 1 --keep-alive 5 -b 127.0.0.1:55808 apps:app",
+   "rps": 18808.618203258782,
+   "server_cpu_pct": 99.41355028844657,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 124.453125
+  },
+  {
+   "requests": 636143,
+   "duration_us": 10100187,
+   "bytes": 83970876,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1126,
+    "p95": 1356,
+    "p99": 1482,
+    "max": 11048,
+    "mean": 1009.9
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 62983.28931929676,
+   "server_cpu_pct": 99.49190017966994,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.03125
+  },
+  {
+   "requests": 573581,
+   "duration_us": 10100493,
+   "bytes": 75712692,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1256,
+    "p95": 1506,
+    "p99": 1648,
+    "max": 13843,
+    "mean": 1120.4
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 56787.42611870529,
+   "server_cpu_pct": 99.52728287619226,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 39.390625
+  },
+  {
+   "requests": 451718,
+   "duration_us": 10101645,
+   "bytes": 59626776,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1597,
+    "p95": 1913,
+    "p99": 2161,
+    "max": 17011,
+    "mean": 1425.0
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 44717.271295912695,
+   "server_cpu_pct": 99.42333154649562,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 40.078125
+  },
+  {
+   "requests": 374676,
+   "duration_us": 10100554,
+   "bytes": 46085148,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1759,
+    "p95": 1984,
+    "p99": 2131,
+    "max": 15311,
+    "mean": 1697.7
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 37094.59896952187,
+   "server_cpu_pct": 99.42512887906936,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 47.984375
+  },
+  {
+   "requests": 475102,
+   "duration_us": 10100437,
+   "bytes": 57962444,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1526,
+    "p95": 1810,
+    "p99": 1971,
+    "max": 16523,
+    "mean": 1354.5
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 47037.7667817739,
+   "server_cpu_pct": 99.60592905039657,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.375
+  },
+  {
+   "requests": 78573,
+   "duration_us": 10103255,
+   "bytes": 82401062418,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 7428,
+    "p95": 11802,
+    "p99": 15805,
+    "max": 27265,
+    "mean": 8216.2
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 7776.998600945933,
+   "server_cpu_pct": 99.64011447795774,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.375
+  },
+  {
+   "requests": 354120,
+   "duration_us": 10100332,
+   "bytes": 23304637200,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1728,
+    "p95": 2159,
+    "p99": 3647,
+    "max": 48913,
+    "mean": 1844.6
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "uvicorn",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> uvicorn apps:app --http httptools --loop uvloop --workers 1 --timeout-keep-alive 5 --no-access-log --host 127.0.0.1 --port 56794",
+   "rps": 35060.233663606305,
+   "server_cpu_pct": 99.80253195637538,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 48.46875
+  },
+  {
+   "requests": 672463,
+   "duration_us": 10100154,
+   "bytes": 88765116,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1050,
+    "p95": 1308,
+    "p99": 1457,
+    "max": 9932,
+    "mean": 954.9
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "small_keepalive",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 66579.47987723752,
+   "server_cpu_pct": 99.40565535931432,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 66.921875
+  },
+  {
+   "requests": 599544,
+   "duration_us": 10100195,
+   "bytes": 79139808,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1198,
+    "p95": 1450,
+    "p99": 1565,
+    "max": 13226,
+    "mean": 1072.4
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "pct_target",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 59359.646026636125,
+   "server_cpu_pct": 99.62983106761801,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.359375
+  },
+  {
+   "requests": 483712,
+   "duration_us": 10099894,
+   "bytes": 63849984,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1500,
+    "p95": 1764,
+    "p99": 1894,
+    "max": 17199,
+    "mean": 1331.2
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "many_headers",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 47892.77986481838,
+   "server_cpu_pct": 99.712188226926,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 67.75
+  },
+  {
+   "requests": 379522,
+   "duration_us": 10099923,
+   "bytes": 46681206,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1740,
+    "p95": 1979,
+    "p99": 2171,
+    "max": 11827,
+    "mean": 1682.7
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "post_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 37576.72211956467,
+   "server_cpu_pct": 99.39092319812731,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 75.890625
+  },
+  {
+   "requests": 498332,
+   "duration_us": 10099862,
+   "bytes": 60796504,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1466,
+    "p95": 1723,
+    "p99": 1855,
+    "max": 15105,
+    "mean": 1290.4
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "chunked_upload",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 49340.476137198704,
+   "server_cpu_pct": 99.77122764647669,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.5
+  },
+  {
+   "requests": 76104,
+   "duration_us": 10040151,
+   "bytes": 79811460912,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 7162,
+    "p95": 16026,
+    "p99": 31482,
+    "max": 81271,
+    "mean": 8764.0
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "large_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 7579.965679799039,
+   "server_cpu_pct": 95.36029551746788,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.5
+  },
+  {
+   "requests": 349332,
+   "duration_us": 10100048,
+   "bytes": 22989538920,
+   "errors": {
+    "connect": 0,
+    "read": 0,
+    "write": 0,
+    "status": 0,
+    "timeout": 0
+   },
+   "latency_us": {
+    "p50": 1764,
+    "p95": 2163,
+    "p99": 3669,
+    "max": 53881,
+    "mean": 1872.5
+   },
+   "client_cpu_s": null,
+   "round": 4,
+   "variant": "gunicorn-uvicorn-worker",
+   "workload": "stream_response",
+   "command": "python <repo>/benchmarks/asgi/_launch.py <repo> gunicorn -k uvicorn.workers.UvicornWorker -w 1 --keep-alive 5 -b 127.0.0.1:60648 apps:app",
+   "rps": 34587.16235804028,
+   "server_cpu_pct": 99.75760336980572,
+   "client_cpu_pct": null,
+   "server_peak_rss_mb": 76.625
+  }
+ ],
+ "failures": []
+}

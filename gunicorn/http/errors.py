@@ -88,6 +88,24 @@ class InvalidHeaderName(ParseException):
         return "Invalid HTTP header name: %r" % self.hdr
 
 
+class InvalidResponseHeader(InvalidHeader):
+    """A header value the application tried to send is not valid.
+
+    The application is at fault, not the client: the response is a 500.
+    Subclass of InvalidHeader so existing ``except`` clauses still match.
+    """
+
+    def __str__(self):
+        return "Invalid response header from the application: %s" % self.hdr
+
+
+class InvalidResponseHeaderName(InvalidHeaderName):
+    """A header name the application tried to send is not valid (500)."""
+
+    def __str__(self):
+        return "Invalid response header name from the application: %s" % self.hdr
+
+
 class UnsupportedTransferCoding(ParseException):
     def __init__(self, hdr):
         self.hdr = hdr
@@ -97,27 +115,30 @@ class UnsupportedTransferCoding(ParseException):
         return "Unsupported transfer coding: %r" % self.hdr
 
 
-class InvalidChunkSize(IOError):
+class InvalidChunkSize(ParseException):
     def __init__(self, data):
         self.data = data
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk size: %r" % self.data
 
 
-class ChunkMissingTerminator(IOError):
+class ChunkMissingTerminator(ParseException):
     def __init__(self, term):
         self.term = term
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk terminator is not '\\r\\n': %r" % self.term
 
 
-class InvalidChunkExtension(IOError):
+class InvalidChunkExtension(ParseException):
     """Invalid chunk extension per RFC 9112."""
 
     def __init__(self, reason):
         self.reason = reason
+        self.code = 400
 
     def __str__(self):
         return "Invalid chunk extension: %s" % self.reason

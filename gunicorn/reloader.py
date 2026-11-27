@@ -16,6 +16,16 @@ from gunicorn import util
 COMPILED_EXT_RE = re.compile(r'py[co]$')
 
 
+def symlink_target_dir(filename):
+    """Return the directory holding the target of *filename* if it is a
+    symlink, otherwise None. Edits to the target don't generate events in
+    the directory of the link itself, so that directory has to be watched too.
+    """
+    if not os.path.islink(filename):
+        return None
+    return os.path.dirname(os.path.realpath(filename))
+
+
 class ReloaderBase(threading.Thread):
     def __init__(self, extra_files=None, interval=1, callback=None):
         super().__init__()
@@ -95,16 +105,22 @@ if has_inotify:
         def add_extra_file(self, filename):
             super().add_extra_file(filename)
 
-            dirname = os.path.dirname(filename) or '.'
-            if dirname in self._dirs:
-                return
+            for dirname in (os.path.dirname(filename) or '.',
+                            symlink_target_dir(filename)):
+                if dirname is None or dirname in self._dirs:
+                    continue
 
-            self._watcher.add_watch(dirname, mask=self.event_mask)
-            self._dirs.add(dirname)
+                self._watcher.add_watch(dirname, mask=self.event_mask)
+                self._dirs.add(dirname)
 
         def get_dirs(self):
-            dirnames = [os.path.dirname(os.path.abspath(fname)) for fname in self.get_files()]
-            return set(dirnames)
+            dirnames = set()
+            for fname in self.get_files():
+                dirnames.add(os.path.dirname(os.path.abspath(fname)))
+                target_dir = symlink_target_dir(fname)
+                if target_dir is not None:
+                    dirnames.add(target_dir)
+            return dirnames
 
         def refresh_dirs(self):
             new_dirs = self.get_dirs().difference(self._dirs)

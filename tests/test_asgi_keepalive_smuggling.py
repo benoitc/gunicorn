@@ -77,6 +77,7 @@ class _Log:
     def debug(self, *a, **k): pass
     def info(self, *a, **k): pass
     def warning(self, *a, **k): pass
+    def error(self, *a, **k): pass
     def exception(self, *a, **k): pass
 
     @property
@@ -187,3 +188,207 @@ async def test_keepalive_refused_when_first_body_is_partial(http_parser):
             await protocol._task
         except (asyncio.CancelledError, Exception):
             pass
+
+
+async def _serve_two(http_parser, chunks):
+    """Serve two pipelined GETs with an app that declares Content-Length: 5
+    and sends ``chunks`` as its body.  Returns (written bytes, closed)."""
+
+    async def app(scope, receive, send):
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", b"5")],
+        })
+        for i, chunk in enumerate(chunks):
+            await send({
+                "type": "http.response.body",
+                "body": chunk,
+                "more_body": i < len(chunks) - 1,
+            })
+
+    loop = asyncio.get_event_loop()
+    worker = _build_worker(loop, app, http_parser)
+    protocol = ASGIProtocol(worker)
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+
+    protocol.data_received(
+        b"GET /a HTTP/1.1\r\nHost: example.com\r\n\r\n"
+        b"GET /b HTTP/1.1\r\nHost: example.com\r\n\r\n"
+    )
+    for _ in range(40):
+        await asyncio.sleep(0)
+
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+    return transport.written, transport.closed
+
+
+
+async def _serve_pipelined_unfinished(http_parser, messages):
+    """Serve two pipelined GETs. For ``/a`` the app sends ``messages`` and
+    returns without a final ``more_body=False``; ``/b`` is answered normally.
+    Returns (written bytes, closed)."""
+
+    async def app(scope, receive, send):
+        if scope["path"] == "/a":
+            for message in messages:
+                await send(message)
+            return
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", b"6")],
+        })
+        await send({"type": "http.response.body", "body": b"second"})
+
+    loop = asyncio.get_event_loop()
+    worker = _build_worker(loop, app, http_parser)
+    protocol = ASGIProtocol(worker)
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+
+    protocol.data_received(
+        b"GET /a HTTP/1.1\r\nHost: example.com\r\n\r\n"
+        b"GET /b HTTP/1.1\r\nHost: example.com\r\n\r\n"
+    )
+    for _ in range(40):
+        await asyncio.sleep(0)
+
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+    return transport.written, transport.closed
+
+
+@pytest.mark.asyncio
+async def test_response_body_capped_at_content_length(http_parser):
+    """Bytes past the app's Content-Length must not reach the wire, where a
+    proxy reusing the connection would read them as the next response."""
+    forged = b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nevil"
+    written, _ = await _serve_two(http_parser, [b"hel", b"lo" + forged])
+
+    assert b"evil" not in written, written
+    responses = written.split(b"HTTP/1.1 200")
+    assert len(responses) == 3, written
+    for resp in responses[1:]:
+        assert resp.endswith(b"\r\n\r\nhello"), written
+
+
+@pytest.mark.asyncio
+async def test_short_response_body_closes_connection(http_parser):
+    """A body shorter than the declared Content-Length must close the
+    connection instead of keeping it alive."""
+    written, closed = await _serve_two(http_parser, [b"hi"])
+
+    assert written.count(b"HTTP/1.1 200") == 1, written
+    assert written.endswith(b"\r\n\r\nhi"), written
+    assert closed is True
+
+
+_START_CHUNKED = {"type": "http.response.start", "status": 200, "headers": []}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("messages", [
+    # Headers only: they are still buffered when the app returns.
+    [_START_CHUNKED],
+    # A chunked body without its terminating chunk.
+    [_START_CHUNKED,
+     {"type": "http.response.body", "body": b"hello", "more_body": True}],
+], ids=["start-only", "unterminated-chunked"])
+async def test_unfinished_response_closes_connection(http_parser, messages):
+    """An app that returns before finishing its response must not leave the
+    connection open for the next pipelined request: its response would be
+    read as the rest of (or the answer to) the unfinished one."""
+    written, closed = await _serve_pipelined_unfinished(http_parser, messages)
+
+    assert b"second" not in written, written
+    assert closed is True
+
+
+@pytest.mark.asyncio
+async def test_head_request_body_is_framed(http_parser):
+    """A HEAD request's Content-Length frames its body like any other
+    request (RFC 9112 section 6.3): the body must not be served as the next
+    request on the connection."""
+    paths = []
+
+    async def app(scope, receive, send):
+        paths.append(scope["path"])
+        body = b""
+        while True:
+            message = await receive()
+            body += message.get("body", b"")
+            if not message.get("more_body"):
+                break
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", str(len(body)).encode())],
+        })
+        await send({"type": "http.response.body", "body": body})
+
+    inner = b"GET /admin HTTP/1.1\r\nHost: example.com\r\n\r\n"
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(
+        b"HEAD / HTTP/1.1\r\nHost: example.com\r\n"
+        b"Content-Length: " + str(len(inner)).encode() + b"\r\n\r\n" + inner
+    )
+    for _ in range(40):
+        await asyncio.sleep(0)
+
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    assert paths == ["/"], paths
+    assert transport.written.count(b"HTTP/1.1 200") == 1, transport.written
+
+
+@pytest.mark.asyncio
+async def test_connect_ends_the_connection(http_parser):
+    """RFC 9931 section 8: after a CONNECT the app rejects, the pipelined
+    bytes are not served as a request and the connection closes."""
+    paths = []
+
+    async def app(scope, receive, send):
+        paths.append((scope["method"], scope["path"]))
+        await send({"type": "http.response.start", "status": 405,
+                    "headers": [(b"content-length", b"0")]})
+        await send({"type": "http.response.body", "body": b""})
+
+    loop = asyncio.get_event_loop()
+    protocol = ASGIProtocol(_build_worker(loop, app, http_parser))
+    transport = _FakeTransport()
+    protocol.connection_made(transport)
+    protocol.data_received(
+        b"CONNECT no-such.example:443 HTTP/1.1\r\nHost: no-such.example:443\r\n\r\n"
+        b"POST /upload HTTP/1.1\r\nHost: proxy.example\r\nContent-Length: 0\r\n\r\n")
+    for _ in range(40):
+        await asyncio.sleep(0)
+    if protocol._task and not protocol._task.done():
+        protocol._task.cancel()
+        try:
+            await protocol._task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    assert [m for m, _ in paths] == ["CONNECT"], paths
+    assert transport.written.count(b"HTTP/1.1 405") == 1, transport.written
+    assert b"connection: close" in transport.written.lower()
+    assert transport.closed is True

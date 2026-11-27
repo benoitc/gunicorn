@@ -105,10 +105,14 @@ class AsyncUnreader:
         return data
 
     async def _read_chunk(self):
-        """Read a chunk of data from the underlying stream."""
+        """Read a chunk of data from the underlying stream.
+
+        A lost or reset connection reads as EOF; other errors (including a
+        misconfigured reader) propagate rather than masquerade as EOF.
+        """
         try:
             return await self.reader.read(self.max_chunk)
-        except Exception:
+        except (ConnectionError, OSError):
             return b""
 
     def unread(self, data):

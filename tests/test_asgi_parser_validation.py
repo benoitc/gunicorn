@@ -13,7 +13,12 @@ import pytest
 from gunicorn.asgi.parser import (
     PythonProtocol,
     InvalidHeader,
+    InvalidHeaderName,
     InvalidChunkSize,
+    ChunkMissingTerminator,
+    InvalidRequestLine,
+    LimitRequestHeaders,
+    LimitRequestLine,
     UnsupportedTransferCoding,
     ParseError,
 )
@@ -96,11 +101,24 @@ class TestDuplicateContentLength:
         """Negative Content-Length must be rejected."""
         parser = PythonProtocol()
 
-        with pytest.raises(InvalidHeader, match="Negative Content-Length"):
+        with pytest.raises(InvalidHeader, match="Invalid Content-Length"):
             parser.feed(
                 b"POST /test HTTP/1.1\r\n"
                 b"Host: localhost\r\n"
                 b"Content-Length: -999\r\n"
+                b"\r\n"
+            )
+
+    @pytest.mark.parametrize("value", [b"+5", b"1_0"])
+    def test_non_digit_cl_rejected(self, value):
+        """Content-Length is 1*DIGIT; forms int() alone would take are rejected."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeader, match="Invalid Content-Length"):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: " + value + b"\r\n"
                 b"\r\n"
             )
 
@@ -147,6 +165,20 @@ class TestChunkedInHTTP10:
 
 class TestTransferEncodingValidation:
     """Test proper validation of Transfer-Encoding header values."""
+
+    @pytest.mark.parametrize("ws", [b"\x0b", b"\x0c", b"\x85", b"\xa0"])
+    def test_non_http_whitespace_rejected(self, ws):
+        """Only SP/HTAB are whitespace around Transfer-Encoding tokens."""
+        parser = PythonProtocol()
+
+        with pytest.raises(ParseError):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Transfer-Encoding: chunked" + ws + b"\r\n"
+                b"\r\n"
+                b"0\r\n\r\n"
+            )
 
     def test_stacked_chunked_rejected(self):
         """Stacked chunked encoding must be rejected."""
@@ -381,6 +413,50 @@ class TestChunkSizeValidation:
         assert b"".join(body_chunks) == b"hello"
 
 
+class TestChunkTerminator:
+    """Test strict validation of the CRLF that terminates chunk data."""
+
+    def test_bad_chunk_terminator_rejected(self):
+        """Non-CRLF bytes after chunk data must be rejected, not skipped."""
+        body_chunks = []
+        parser = PythonProtocol(
+            on_body=lambda chunk: body_chunks.append(chunk),
+        )
+
+        parser.feed(
+            b"POST /test HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+        )
+
+        # "hello" is 5 bytes, followed by "XX" instead of CRLF. A lax parser
+        # would treat "XX" as the terminator and keep reading "3\r\nABC..."
+        # as a second chunk, framing the body differently from a strict peer.
+        with pytest.raises(ChunkMissingTerminator):
+            parser.feed(b"5\r\nhelloXX3\r\nABC\r\n0\r\n\r\n")
+
+    def test_valid_chunk_terminator_accepted(self):
+        """A proper CRLF terminator between chunks still works."""
+        body_chunks = []
+        parser = PythonProtocol(
+            on_body=lambda chunk: body_chunks.append(chunk),
+        )
+
+        parser.feed(
+            b"POST /test HTTP/1.1\r\n"
+            b"Host: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n"
+            b"\r\n"
+            b"5\r\nhello\r\n"
+            b"3\r\nABC\r\n"
+            b"0\r\n\r\n"
+        )
+
+        assert parser.is_complete
+        assert b"".join(body_chunks) == b"helloABC"
+
+
 class TestMultipleTransferEncodingHeaders:
     """Test handling of multiple Transfer-Encoding headers."""
 
@@ -416,3 +492,166 @@ class TestMultipleTransferEncodingHeaders:
                 b"Transfer-Encoding: chunked\r\n"
                 b"\r\n"
             )
+
+
+class TestHeaderNameWhitespace:
+    """Whitespace between field name and colon must be rejected (RFC 9112 5.1)."""
+
+    def test_space_before_colon_rejected(self):
+        """A space before the colon must not be stripped into a valid name."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Transfer-Encoding : chunked\r\n"
+                b"\r\n"
+            )
+
+    def test_tab_before_colon_rejected(self):
+        """A tab before the colon must not be stripped into a valid name."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length\t: 10\r\n"
+                b"\r\n"
+            )
+
+    def test_leading_whitespace_name_rejected(self):
+        """A leading-space line must not be accepted as a framing header."""
+        parser = PythonProtocol()
+
+        with pytest.raises(InvalidHeaderName):
+            parser.feed(
+                b"POST /test HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b" Content-Length: 10\r\n"
+                b"\r\n"
+            )
+
+class TestRequestTargetControls:
+    """RFC 9112: request-target must not contain control characters."""
+
+    def test_raw_nul_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /\x00 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_embedded_nul_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /foo\x00bar HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_bel_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"GET /\x07 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+    def test_percent_encoded_nul_accepted(self):
+        parser = PythonProtocol()
+        parser.feed(b"GET /%00 HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        assert parser.is_complete
+        assert parser.path == b"/%00"
+
+
+class TestUnterminatedLineBounds:
+    """A line that never gets its CRLF must not grow the buffer past the limit
+    that applies to it."""
+
+    @staticmethod
+    def _feed_forever(parser, prefix, n=64):
+        parser.feed(prefix)
+        for _ in range(n):
+            parser.feed(b"a" * 1024)
+
+    def test_request_line(self):
+        parser = PythonProtocol(limit_request_line=4094)
+        with pytest.raises(LimitRequestLine):
+            self._feed_forever(parser, b"GET /")
+        assert len(parser._buffer) <= 4094 + 1024 + 1
+
+    def test_request_line_unlimited_is_bounded(self):
+        parser = PythonProtocol(limit_request_line=0)
+        with pytest.raises(LimitRequestLine):
+            self._feed_forever(parser, b"GET /", n=2048)
+
+    def test_header_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(LimitRequestHeaders):
+            self._feed_forever(parser, b"GET / HTTP/1.1\r\nX: ")
+
+    def test_chunk_size_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(InvalidChunkSize):
+            self._feed_forever(
+                parser,
+                b"POST / HTTP/1.1\r\nHost: a\r\n"
+                b"Transfer-Encoding: chunked\r\n\r\n1;")
+
+    def test_trailer_line(self):
+        parser = PythonProtocol(limit_request_field_size=8190)
+        with pytest.raises(LimitRequestHeaders):
+            self._feed_forever(
+                parser,
+                b"POST / HTTP/1.1\r\nHost: a\r\n"
+                b"Transfer-Encoding: chunked\r\n\r\n0\r\nX: ")
+
+    def test_trailer_count(self):
+        parser = PythonProtocol(limit_request_fields=10)
+        parser.feed(b"POST / HTTP/1.1\r\nHost: a\r\n"
+                    b"Transfer-Encoding: chunked\r\n\r\n0\r\n")
+        with pytest.raises(LimitRequestHeaders):
+            for _ in range(20):
+                parser.feed(b"X: 1\r\n")
+
+    def test_line_split_across_feeds(self):
+        """A terminator split between two reads is still found."""
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        for byte in b"GET / HTTP/1.1\r\nHost: a\r\n\r\n":
+            parser.feed(bytes([byte]))
+        assert done == [1]
+
+
+class TestLeadingEmptyLine:
+    """RFC 9112 section 2.2: one empty line before the request line."""
+
+    def test_one_crlf_split_across_feeds(self):
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"\r")
+        parser.feed(b"\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1]
+
+    def test_two_crlf_rejected(self):
+        parser = PythonProtocol()
+        with pytest.raises(InvalidRequestLine):
+            parser.feed(b"\r\n\r\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+
+    def test_one_crlf_per_message(self):
+        """The skip resets for each request on a kept-alive connection."""
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"GET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        parser.reset()
+        parser.feed(b"\r\nGET / HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1, 1]
+
+
+class TestRequestTargetNonAscii:
+    """RFC 9112 3.2 / RFC 3986 2: the request-target is printable ASCII."""
+
+    @pytest.mark.parametrize("target", [b"/caf\xc3\xa9", b"/a\xe9", b"/?q=\xff"])
+    def test_non_ascii_rejected(self, target):
+        with pytest.raises(InvalidRequestLine):
+            PythonProtocol().feed(b"GET " + target + b" HTTP/1.1\r\nHost: a\r\n\r\n")
+
+    def test_percent_encoded_accepted(self):
+        done = []
+        parser = PythonProtocol(on_message_complete=lambda: done.append(1))
+        parser.feed(b"GET /caf%C3%A9 HTTP/1.1\r\nHost: a\r\n\r\n")
+        assert done == [1]

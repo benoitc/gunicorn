@@ -6,10 +6,14 @@
 Tests for ASGI uWSGI protocol parser.
 """
 
+from unittest import mock
+
 import pytest
 
+from gunicorn.asgi.protocol import ASGIProtocol, BodyReceiver
 from gunicorn.asgi.unreader import AsyncUnreader
 from gunicorn.asgi.uwsgi import AsyncUWSGIRequest
+from gunicorn.config import Config
 from gunicorn.uwsgi.errors import (
     InvalidUWSGIHeader,
     UnsupportedModifier,
@@ -70,6 +74,67 @@ def build_uwsgi_packet(vars_dict, modifier1=0, modifier2=0):
     header += bytes([modifier2])
 
     return header + vars_data
+
+
+@pytest.mark.asyncio
+async def test_response_without_content_length_is_not_http_chunked():
+    """uWSGI sends raw body bytes and closes to delimit an unknown length."""
+    async def app(scope, receive, send):
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", b"text/plain")],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": b"Hello, world!\n",
+            "more_body": False,
+        })
+
+    cfg = Config()
+    cfg.set("protocol", "uwsgi")
+    worker = mock.Mock()
+    worker.cfg = cfg
+    worker.log = mock.Mock()
+    worker.log.access_log_enabled = False
+    worker.asgi = app
+    worker.nr = 0
+    worker.max_requests = 1000
+    worker.alive = True
+    worker.state = {}
+
+    protocol = ASGIProtocol(worker)
+    protocol.transport = mock.Mock()
+
+    request = mock.Mock()
+    request.method = "GET"
+    request.path = "/"
+    request.raw_path = b"/"
+    request.query = ""
+    request.version = (1, 1)
+    request.scheme = "http"
+    request.headers = []
+    request.headers_bytes = []
+    request.uri = "/"
+    request.should_close.return_value = False
+    request.content_length = 0
+    request.chunked = False
+
+    protocol._body_receiver = BodyReceiver(request, protocol)
+    protocol._body_receiver.set_complete()
+
+    keepalive = await protocol._handle_http_request(
+        request, ("127.0.0.1", 8000), ("127.0.0.1", 50000)
+    )
+
+    wire = b"".join(
+        call.args[0] for call in protocol.transport.write.call_args_list
+    )
+    headers, body = wire.split(b"\r\n\r\n", 1)
+
+    assert b"transfer-encoding" not in headers.lower()
+    assert body == b"Hello, world!\n"
+    assert keepalive is False
 
 
 # Basic parsing tests

@@ -163,18 +163,25 @@ class ASGIWorker(base.Worker):
         # Run lifespan startup
         lifespan_mode = getattr(self.cfg, 'asgi_lifespan', 'auto')
         if lifespan_mode != "off":
-            from gunicorn.asgi.lifespan import LifespanManager
+            from gunicorn.arbiter import Arbiter
+            from gunicorn.asgi.lifespan import (
+                LifespanManager, LifespanStartupFailed,
+            )
             self.lifespan = LifespanManager(self.asgi, self.log, self.state)
             try:
                 await self.lifespan.startup()
             except Exception as e:
-                if lifespan_mode == "on":
+                # An app that sent lifespan.startup.failed (or any failure
+                # when lifespan is forced on) cannot serve: stop gunicorn
+                # instead of serving traffic or looping worker reboots.
+                if (lifespan_mode == "on"
+                        or isinstance(e, LifespanStartupFailed)):
                     self.log.error("ASGI lifespan startup failed: %s", e)
-                    return
-                else:
-                    # auto mode - app doesn't support lifespan
-                    self.log.debug("ASGI lifespan not supported by app: %s", e)
                     self.lifespan = None
+                    raise SystemExit(Arbiter.WORKER_BOOT_ERROR)
+                # auto mode - app doesn't support lifespan
+                self.log.debug("ASGI lifespan not supported by app: %s", e)
+                self.lifespan = None
 
         # Create servers for each listener socket
         ssl_context = self._get_ssl_context()

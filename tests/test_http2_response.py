@@ -114,3 +114,59 @@ class TestTrailers:
         resp, conn = make_response()
         resp.close()
         assert conn.end_stream.call_args.kwargs["trailers"] is None
+
+
+class TestAbortedStream:
+    """A send the connection refused stops the response instead of continuing."""
+
+    def test_failed_send_data_raises_stream_error(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = True
+        conn.send_data.return_value = False
+        with pytest.raises(HTTP2StreamError):
+            resp.write(b"chunk")
+
+    def test_no_write_after_a_failed_send(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = True
+        conn.send_data.return_value = False
+        with pytest.raises(HTTP2StreamError):
+            resp.write(b"chunk")
+        resp.write(b"more")
+        resp.close()
+        assert resp.h2_conn.send_data.call_count == 1
+        conn.end_stream.assert_not_called()
+
+    def test_refused_headers_raise(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = False
+        with pytest.raises(HTTP2StreamError):
+            resp.write(b"chunk")
+
+    def test_failed_end_stream_raises(self):
+        from gunicorn.http2.errors import HTTP2StreamError
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = True
+        conn.end_stream.return_value = False
+        with pytest.raises(HTTP2StreamError):
+            resp.close()
+
+
+class TestDefaultHeaders:
+    def test_server_and_date_are_added(self):
+        resp, conn = make_response()
+        conn.send_response_headers.return_value = True
+        resp.send_headers()
+        headers = dict(conn.send_response_headers.call_args[0][2])
+        assert headers.get("server") == resp.version
+        assert "date" in headers
+
+    def test_app_supplied_values_win(self):
+        resp, conn = make_response(headers=[("Server", "mine"), ("Date", "then")])
+        conn.send_response_headers.return_value = True
+        resp.send_headers()
+        names = [name.lower() for name, _ in conn.send_response_headers.call_args[0][2]]
+        assert names.count("server") == 1 and names.count("date") == 1

@@ -11,14 +11,17 @@ Uses the hyper-h2 library for HTTP/2 protocol handling.
 
 import collections
 import selectors
+import time
 from io import BytesIO
 
 from .errors import (
     HTTP2Error, HTTP2ProtocolError, HTTP2ConnectionError,
     HTTP2NotAvailable, HTTP2ErrorCode,
 )
-from .stream import HTTP2Stream
+from .stream import HTTP2Stream, StreamState
+from .h2conn import server_connection_class
 from .request import HTTP2Request
+from gunicorn.http.errors import ParseException
 
 
 # Import h2 lazily to allow graceful fallback
@@ -44,6 +47,24 @@ def _import_h2():
         import h2.settings as _h2_settings
     except ImportError:
         raise HTTP2NotAvailable()
+
+
+# RST_STREAM frames a peer may send per window before the connection is
+# closed with ENHANCE_YOUR_CALM (CVE-2023-44487 style floods). A client
+# cancelling requests never comes close.
+RST_STREAM_RATE_LIMIT = 200
+RST_STREAM_RATE_WINDOW = 10.0
+
+# PING, SETTINGS and empty DATA frames a peer may send per window before
+# the connection is closed with ENHANCE_YOUR_CALM. Each costs work and
+# carries no request; a real client sends a handful.
+CONTROL_FRAME_RATE_LIMIT = 1000
+CONTROL_FRAME_RATE_WINDOW = 10.0
+
+# Events the sync worker may set aside for the main loop while it waits for
+# window credit. A peer that withholds WINDOW_UPDATE and keeps sending
+# frames must not grow that queue without end.
+MAX_DEFERRED_EVENTS = 10000
 
 
 class HTTP2ServerConnection:
@@ -80,9 +101,19 @@ class HTTP2ServerConnection:
         # They have left the h2 state machine already, so they are held here
         # for the main receive loop rather than discarded.
         self._deferred_events = collections.deque()
+        self._reset_times = collections.deque()
+        self._control_times = collections.deque()
 
-        # Completed requests ready for processing
-        self._pending_requests = []
+        # Requests that arrived while a request body was being pulled
+        # off the socket; handed to the worker on its next call.
+        self.pending_requests = collections.deque()
+        # Peer sent a graceful GOAWAY: finish open streams, take no new ones
+        self.draining = False
+        self.peer_last_stream_id = None
+        # Seconds a stream may make no progress on the wire; 0 means no limit
+        self.stream_timeout = cfg.timeout or None
+        # Seconds an idle connection may sit with no stream open; 0 means no limit
+        self.idle_timeout = cfg.keepalive or None
 
         # Connection settings from config
         self.initial_window_size = cfg.http2_initial_window_size
@@ -95,7 +126,7 @@ class HTTP2ServerConnection:
             client_side=False,
             header_encoding='utf-8',
         )
-        self.h2_conn = _h2.H2Connection(config=config)
+        self.h2_conn = server_connection_class()(config=config)
 
         # Read buffer for partial frames
         self._read_buffer = BytesIO()
@@ -118,7 +149,8 @@ class HTTP2ServerConnection:
             _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
             _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
             _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
-            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+            **({_h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size}
+               if self.max_header_list_size else {}),
         })
 
         self.h2_conn.initiate_connection()
@@ -143,7 +175,8 @@ class HTTP2ServerConnection:
             _h2_settings.SettingCodes.MAX_CONCURRENT_STREAMS: self.max_concurrent_streams,
             _h2_settings.SettingCodes.INITIAL_WINDOW_SIZE: self.initial_window_size,
             _h2_settings.SettingCodes.MAX_FRAME_SIZE: self.max_frame_size,
-            _h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size,
+            **({_h2_settings.SettingCodes.MAX_HEADER_LIST_SIZE: self.max_header_list_size}
+               if self.max_header_list_size else {}),
         })
         self.h2_conn.initiate_upgrade_connection(settings_header=settings_header)
         self._send_pending_data()
@@ -172,30 +205,86 @@ class HTTP2ServerConnection:
         stream.receive_headers(pseudo + regular, end_stream=not body)
         if body:
             stream.receive_data(body, end_stream=True)
+            # That body came over HTTP/1, so no window credit is owed.
+            stream.acked_size = stream.body_size
         self.streams[1] = stream
         return HTTP2Request(stream, self.cfg, self.client_addr)
 
     def receive_data(self, data=None):
-        """Process received data and return completed requests.
+        """Process received data and return new requests.
+
+        A request is returned as soon as its headers are in; its body is
+        read from the stream by the application, arriving frames being
+        pulled in through pump() as needed.
 
         Args:
             data: Optional bytes to process. If None, reads from socket.
 
         Returns:
-            list: List of HTTP2Request objects for completed requests
+            list: List of HTTP2Request objects for new requests
 
         Raises:
             HTTP2ConnectionError: On protocol or connection errors
         """
+        if data is None and self.pending_requests:
+            pending = list(self.pending_requests)
+            self.pending_requests.clear()
+            return self._live_requests(pending)
+        return self._read_and_process(data)
+
+    def _live_requests(self, requests):
+        """Drop requests whose stream the peer already reset."""
+        live = []
+        for request in requests:
+            if request.stream.state is StreamState.CLOSED:
+                self.streams.pop(request.stream.stream_id, None)
+            else:
+                live.append(request)
+        return live
+
+    def pump(self, stream_id=None):
+        """Read once from the socket while a request body is being consumed.
+
+        Frames for the stream being read land in its buffer; any request
+        that arrives meanwhile is queued for the worker's next
+        receive_data() call rather than dropped.
+
+        Args:
+            stream_id: The stream whose body is being read.
+        """
+        self.pending_requests.extend(self._read_and_process(None, stream_id))
+
+    def _read_and_process(self, data, waiting_stream_id=None):
+        if data is None and self._deferred_events:
+            # Events set aside during a send-credit wait arrived before
+            # anything still on the socket; hand them out without reading.
+            return self._process_events(())
         if data is None:
+            # A worker thread or greenlet sits in this read, so the read
+            # itself has to bound how long a peer may keep it: cfg.timeout
+            # while a request body is being pulled, cfg.keepalive between
+            # requests.
+            timeout = self.stream_timeout if waiting_stream_id is not None else self.idle_timeout
+            try:
+                self.sock.settimeout(timeout)
+            except (OSError, AttributeError):
+                pass
             try:
                 data = self.sock.recv(self.READ_BUFFER_SIZE)
+            except TimeoutError:
+                if waiting_stream_id is not None:
+                    # The body stalled; HTTP2Body finds the stream closed.
+                    self.abort_stream(waiting_stream_id, HTTP2ErrorCode.CANCEL)
+                elif not self.streams:
+                    self.close()
+                return []
             except (OSError, IOError) as e:
                 raise HTTP2ConnectionError(f"Socket read error: {e}")
 
         if not data:
             # Connection closed by peer
             self._closed = True
+            self._abort_all_streams()
             return []
 
         # Feed data to h2
@@ -224,13 +313,23 @@ class HTTP2ServerConnection:
             # Send GOAWAY with REFUSED_STREAM
             self.close(error_code=HTTP2ErrorCode.REFUSED_STREAM)
             raise HTTP2ProtocolError(str(e))
+        except UnicodeDecodeError as e:
+            # Header bytes h2 could not decode
+            self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
+            raise HTTP2ProtocolError(f"Undecodable header: {e}")
         except _h2_exceptions.ProtocolError as e:
             # Send GOAWAY with PROTOCOL_ERROR before raising
             self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
             raise HTTP2ProtocolError(str(e))
 
-        # Process events, oldest first: anything set aside during a
-        # flow-control wait arrived before this batch.
+        return self._process_events(events)
+
+    def _process_events(self, events):
+        """Run h2 events, oldest first, and return the new requests.
+
+        Anything set aside during a flow-control wait arrived before
+        this batch, so it goes first.
+        """
         completed_requests = []
         if self._deferred_events:
             events = list(self._deferred_events) + list(events)
@@ -239,6 +338,7 @@ class HTTP2ServerConnection:
             request = self._handle_event(event)
             if request is not None:
                 completed_requests.append(request)
+        completed_requests = self._live_requests(completed_requests)
 
         # Send any pending data (WINDOW_UPDATE, etc.)
         self._send_pending_data()
@@ -254,6 +354,9 @@ class HTTP2ServerConnection:
         Returns:
             HTTP2Request if a request is complete, None otherwise
         """
+        if self._is_control_frame(event):
+            self._count_control_frame()
+
         if isinstance(event, _h2_events.RequestReceived):
             return self._handle_request_received(event)
 
@@ -292,47 +395,72 @@ class HTTP2ServerConnection:
         stream_id = event.stream_id
         headers = event.headers
 
+        if self.draining and stream_id > self.peer_last_stream_id:
+            # Opened after the peer's GOAWAY: it said it would not process it.
+            self._reset_quietly(stream_id, HTTP2ErrorCode.REFUSED_STREAM)
+            return None
+
         # Create new stream
         stream = HTTP2Stream(stream_id, self)
         self.streams[stream_id] = stream
 
         # Process headers
-        # The StreamEnded event will come separately for GET/HEAD with no body
         stream.receive_headers(headers, end_stream=False)
+
+        # Dispatch on headers: the body streams in behind the request.
+        try:
+            return HTTP2Request(stream, self.cfg, self.client_addr)
+        except (ParseException, ValueError):
+            # A bad request is a stream error, not a connection error
+            # (RFC 9113 section 8.1.1).
+            self.streams.pop(stream_id, None)
+            self._reset_quietly(stream_id, HTTP2ErrorCode.PROTOCOL_ERROR)
+            return None
 
     def _handle_data_received(self, event):
         """Handle DataReceived event.
 
+        The payload is held on the stream until the application takes it;
+        window credit goes back through acknowledge_data() at that point.
+
         Args:
             event: DataReceived event with body data
-
-        Returns:
-            None (request completion handled by StreamEnded)
         """
-        stream_id = event.stream_id
-        data = event.data
-
-        stream = self.streams.get(stream_id)
+        stream = self.streams.get(event.stream_id)
         if stream is None:
             # Stream was reset or doesn't exist
             return None
 
-        stream.receive_data(data, end_stream=False)
+        stream.receive_data(event.data, end_stream=False)
 
-        # Increment flow control windows (only if data received)
-        if len(data) > 0:
-            try:
-                # Update stream-level window
-                self.h2_conn.increment_flow_control_window(len(data), stream_id=stream_id)
-                # Update connection-level window
-                self.h2_conn.increment_flow_control_window(len(data), stream_id=None)
-                # Send WINDOW_UPDATE frames immediately
-                self._send_pending_data()
-            except (ValueError, _h2_exceptions.FlowControlError):
-                # Window overflow - send FLOW_CONTROL_ERROR and close
-                self.close(error_code=HTTP2ErrorCode.FLOW_CONTROL_ERROR)
-
+        # Connection-level credit goes straight back so a stream that is
+        # waiting its turn can never starve the one being served; the
+        # stream-level window is credited only as the body is consumed.
+        # Padding is never buffered, so its credit goes back now too.
+        length = event.flow_controlled_length
+        padding = length - len(event.data)
+        try:
+            if length:
+                self.h2_conn.increment_flow_control_window(length, stream_id=None)
+            if padding:
+                self.h2_conn.increment_flow_control_window(padding, stream_id=event.stream_id)
+        except (ValueError, _h2_exceptions.ProtocolError):
+            pass
         return None
+
+    def acknowledge_data(self, stream_id, size):
+        """Credit ``size`` consumed bytes back to the peer.
+
+        Called by the stream as the application takes body data.
+        """
+        if size <= 0 or self._closed:
+            return
+        try:
+            self.h2_conn.increment_flow_control_window(size, stream_id=stream_id)
+        except (ValueError, KeyError, _h2_exceptions.ProtocolError):
+            # h2 raises KeyError for a stream it already dropped
+            return
+        self._send_pending_data()
 
     def _handle_stream_ended(self, event):
         """Handle StreamEnded event.
@@ -349,16 +477,12 @@ class HTTP2ServerConnection:
         if stream is None:
             return None
 
-        # Mark stream as request complete and body complete so the
-        # receive() closure's _body_complete guard fires, preventing
-        # the fast path from re-reading already-consumed data from BytesIO.
+        # The request went out on its headers; only mark the body complete.
         stream.request_complete = True
         stream._body_complete = True
         if stream._body_event:
             stream._body_event.set()
-
-        # Create request object
-        return HTTP2Request(stream, self.cfg, self.client_addr)
+        return None
 
     def _handle_stream_reset(self, event):
         """Handle StreamReset event (RST_STREAM frame).
@@ -366,21 +490,93 @@ class HTTP2ServerConnection:
         Args:
             event: StreamReset event
         """
+        self._count_reset()
         stream_id = event.stream_id
         stream = self.streams.get(stream_id)
 
-        if stream is not None:
-            stream.reset(event.error_code)
-            # Keep stream in dict for potential cleanup
+        if stream is None:
+            return
+        stream.reset(event.error_code)
+        # A request the worker has not seen yet is dropped here; one it
+        # is serving is cleaned up by the worker. Reset streams must not
+        # accumulate: h2 only counts open ones against the limit.
+        if any(r.stream is stream for r in self.pending_requests):
+            self.pending_requests = collections.deque(
+                r for r in self.pending_requests if r.stream is not stream)
+            self.streams.pop(stream_id, None)
 
     def _handle_connection_terminated(self, event):
         """Handle ConnectionTerminated event (GOAWAY frame).
 
+        A graceful GOAWAY (NO_ERROR) with streams in flight puts the
+        connection into draining: the established streams finish, later
+        ones are refused, and the connection closes once they are done
+        (RFC 9113 section 6.8). The h2 subclass has already kept its own
+        state open for that case. Any other GOAWAY closes at once.
+
         Args:
             event: ConnectionTerminated event
         """
+        if (event.error_code == HTTP2ErrorCode.NO_ERROR
+                and self.h2_conn.peer_goaway_last_stream_id is not None):
+            self.draining = True
+            self.peer_last_stream_id = event.last_stream_id
+            return
         self._closed = True
-        # Could log event.error_code and event.additional_data
+        self._abort_all_streams()
+
+    def _count_reset(self):
+        """Close the connection when the peer resets streams at flood rate."""
+        now = time.monotonic()
+        self._reset_times.append(now)
+        while self._reset_times and now - self._reset_times[0] > RST_STREAM_RATE_WINDOW:
+            self._reset_times.popleft()
+        if len(self._reset_times) > RST_STREAM_RATE_LIMIT:
+            self._closed = True
+            try:
+                self.h2_conn.close_connection(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                self._send_pending_data()
+            except Exception:
+                pass
+            self._abort_all_streams()
+            raise HTTP2ProtocolError("RST_STREAM rate exceeded")
+
+    @staticmethod
+    def _is_control_frame(event):
+        """PING, SETTINGS, or a DATA frame with no data that does not end
+        its stream: frames that carry no request."""
+        if isinstance(event, (_h2_events.PingReceived, _h2_events.RemoteSettingsChanged)):
+            return True
+        return (isinstance(event, _h2_events.DataReceived) and not event.data
+                and getattr(event, "stream_ended", None) is None)
+
+    def _count_control_frame(self):
+        """Close the connection when the peer sends control frames at flood rate."""
+        now = time.monotonic()
+        self._control_times.append(now)
+        while self._control_times and now - self._control_times[0] > CONTROL_FRAME_RATE_WINDOW:
+            self._control_times.popleft()
+        if len(self._control_times) > CONTROL_FRAME_RATE_LIMIT:
+            self._closed = True
+            try:
+                self.h2_conn.close_connection(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                self._send_pending_data()
+            except Exception:
+                pass
+            self._abort_all_streams()
+            raise HTTP2ProtocolError("control frame rate exceeded")
+
+    def _abort_all_streams(self):
+        """The connection is gone: wake every stream still waiting on it."""
+        for stream in list(self.streams.values()):
+            stream.signal_disconnect()
+
+    def _reset_quietly(self, stream_id, error_code):
+        """Queue RST_STREAM for a stream h2 knows about, ignoring a closed one."""
+        try:
+            self.h2_conn.reset_stream(stream_id, error_code=error_code)
+        except _h2_exceptions.ProtocolError:
+            pass
 
     def _handle_trailers_received(self, event):
         """Handle TrailersReceived event.
@@ -398,9 +594,9 @@ class HTTP2ServerConnection:
             return None
 
         stream.receive_trailers(event.headers)
-
-        # Trailers always end the request
-        return HTTP2Request(stream, self.cfg, self.client_addr)
+        if stream._body_event:
+            stream._body_event.set()
+        return None
 
     def _handle_priority_updated(self, event):
         """Handle PriorityUpdated event (PRIORITY frame).
@@ -437,6 +633,8 @@ class HTTP2ServerConnection:
         stream = self.streams.get(stream_id)
         if stream is None:
             raise HTTP2Error(f"Stream {stream_id} not found")
+        if stream.response_headers_sent:
+            raise HTTP2Error("Informational response after the final headers")
 
         # Build headers with :status pseudo-header
         response_headers = [(':status', str(status))]
@@ -457,8 +655,12 @@ class HTTP2ServerConnection:
         any number of data frames, then end_stream().
         """
         stream = self.streams.get(stream_id)
-        if stream is None:
+        if stream is None or stream.state is StreamState.CLOSED:
             # Stream was already cleaned up (reset/closed)
+            return False
+        if stream.response_headers_sent:
+            # A second HEADERS block would be encoded into the HPACK table
+            # before h2 refuses it, corrupting every later response.
             return False
 
         # Build response headers with :status pseudo-header
@@ -467,8 +669,13 @@ class HTTP2ServerConnection:
             # HTTP/2 headers must be lowercase
             response_headers.append((name.lower(), str(value)))
 
-        self.h2_conn.send_headers(stream_id, response_headers,
-                                  end_stream=end_stream)
+        try:
+            self.h2_conn.send_headers(stream_id, response_headers,
+                                      end_stream=end_stream)
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
+            stream.close()
+            self.cleanup_stream(stream_id)
+            return False
         stream.send_headers(response_headers, end_stream=end_stream)
         self._send_pending_data()
         return True
@@ -480,22 +687,7 @@ class HTTP2ServerConnection:
         if trailers:
             self.send_trailers(stream_id, trailers)
             return True
-        # Not send_data(): it chunks against the flow-control window and an
-        # empty payload skips that loop entirely, so END_STREAM would never
-        # reach the peer and the client would wait for a response that is
-        # already finished.
-        # Not send_data(): it chunks against the flow-control window and an
-        # empty payload skips that loop entirely, so END_STREAM would never
-        # reach the peer and the client would wait for a response that is
-        # already finished.
-        try:
-            self.h2_conn.send_data(stream_id, b"", end_stream=True)
-            self.streams[stream_id].send_data(b"", end_stream=True)
-            self._send_pending_data()
-        except _h2_exceptions.StreamClosedError:
-            self.cleanup_stream(stream_id)
-            return False
-        return True
+        return self.send_data(stream_id, b"", end_stream=True)
 
     def send_response(self, stream_id, status, headers, body=None):
         """Send a response on a stream.
@@ -521,7 +713,7 @@ class HTTP2ServerConnection:
             if body and len(body) > 0:
                 self.send_data(stream_id, body, end_stream=True)
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream = self.streams.get(stream_id)
             if stream is not None:
@@ -529,14 +721,18 @@ class HTTP2ServerConnection:
             self.cleanup_stream(stream_id)
             return False
 
-    def _wait_for_flow_control_window(self, stream_id):
-        """Wait for flow control window to become positive.
+    def _wait_for_flow_control_window(self, stream_id, deadline=None):  # pylint: disable=too-many-return-statements
+        """Wait for the stream's send window to become positive.
+
+        Frames read while waiting are handled in order: a reset of this
+        stream or a GOAWAY goes through the usual handlers (a graceful
+        GOAWAY keeps the wait going), everything else is set aside for
+        the main loop.
 
         Returns:
-            int: Available window size, or -1 if waiting failed
+            int: Available window size; 0 if ``deadline`` passed first;
+            -1 if the stream or the connection is gone.
         """
-
-        max_wait_attempts = 50  # ~5 seconds at 100ms per attempt
         try:
             sel = selectors.DefaultSelector()
             sel.register(self.sock, selectors.EVENT_READ)
@@ -544,55 +740,69 @@ class HTTP2ServerConnection:
             # Socket doesn't support selectors (e.g., mock socket)
             return -1
 
-        result = -1
         try:
-            for _ in range(max_wait_attempts):
-                available = self.h2_conn.local_flow_control_window(stream_id)
+            while True:
+                if self._closed:
+                    return -1
+                stream = self.streams.get(stream_id)
+                if stream is not None and stream.state is StreamState.CLOSED:
+                    return -1
+                try:
+                    available = self.h2_conn.local_flow_control_window(stream_id)
+                except _h2_exceptions.ProtocolError:
+                    return -1
                 if available > 0:
-                    result = available
-                    break
+                    return available
+                wait = 1.0
+                if deadline is not None:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return 0
+                    wait = min(remaining, wait)
 
-                ready = sel.select(timeout=0.1)
-                if ready:
-                    try:
-                        incoming = self.sock.recv(self.READ_BUFFER_SIZE)
-                    except (OSError, IOError, _h2_exceptions.ProtocolError):
-                        break
-                    if not incoming:
-                        self._closed = True
-                        break
-                    try:
-                        events = self.h2_conn.receive_data(incoming)
-                    except _h2_exceptions.ProtocolError:
-                        break
-                    for event in events:
-                        if isinstance(event, _h2_events.StreamReset):
-                            if event.stream_id == stream_id:
-                                result = -1
-                                break
-                        elif isinstance(event, _h2_events.ConnectionTerminated):
-                            self._closed = True
-                            result = -1
-                            break
-                        else:
-                            # Anything else arriving alongside the
-                            # WINDOW_UPDATE belongs to the main loop. It has
-                            # already left the h2 state machine, so dropping
-                            # it here loses a request or its body for good.
-                            self._deferred_events.append(event)
-                    else:
-                        self._send_pending_data()
+                if not sel.select(timeout=wait):
+                    continue
+                try:
+                    incoming = self.sock.recv(self.READ_BUFFER_SIZE)
+                except (OSError, IOError):
+                    incoming = b""
+                if not incoming:
+                    self._closed = True
+                    self._abort_all_streams()
+                    return -1
+                try:
+                    events = self.h2_conn.receive_data(incoming)
+                except _h2_exceptions.ProtocolError:
+                    self.close(error_code=HTTP2ErrorCode.PROTOCOL_ERROR)
+                    return -1
+                for event in events:
+                    if isinstance(event, (_h2_events.PingReceived,
+                                          _h2_events.RemoteSettingsChanged)):
+                        # h2 has already answered it and the main loop does
+                        # nothing with it: count it here instead of setting
+                        # it aside. Empty DATA frames go to the main loop,
+                        # which counts them (their padding is credited there).
+                        self._count_control_frame()
                         continue
-                    break  # Break outer loop if inner loop broke
-            else:
-                # Loop completed without break - check final window
-                result = self.h2_conn.local_flow_control_window(stream_id)
+                    if (isinstance(event, _h2_events.StreamReset)
+                            and event.stream_id == stream_id):
+                        self._handle_stream_reset(event)
+                    elif isinstance(event, _h2_events.ConnectionTerminated):
+                        self._handle_connection_terminated(event)
+                    else:
+                        # Belongs to the main loop. It has already left the
+                        # h2 state machine, so dropping it here would lose
+                        # a request or its body for good.
+                        self._deferred_events.append(event)
+                        if len(self._deferred_events) > MAX_DEFERRED_EVENTS:
+                            self.close(error_code=HTTP2ErrorCode.ENHANCE_YOUR_CALM)
+                            self._abort_all_streams()
+                            return -1
+                self._send_pending_data()
         finally:
             sel.close()
 
-        return result
-
-    def send_data(self, stream_id, data, end_stream=False):
+    def send_data(self, stream_id, data, end_stream=False):  # pylint: disable=too-many-return-statements
         """Send data on a stream.
 
         Args:
@@ -608,27 +818,46 @@ class HTTP2ServerConnection:
             return False
 
         data_to_send = data
+        deadline = None
         try:
+            if not data_to_send:
+                if not end_stream:
+                    return True
+                # An empty DATA frame carrying END_STREAM needs no window
+                # credit and is how a response with nothing left ends.
+                self.h2_conn.send_data(stream_id, b"", end_stream=True)
+                stream.send_data(b"", end_stream=True)
+                self._send_pending_data()
+                return True
             while data_to_send:
                 available = self.h2_conn.local_flow_control_window(stream_id)
-                chunk_size = min(available, self.max_frame_size, len(data_to_send))
+                chunk_size = min(available, self.h2_conn.max_outbound_frame_size, len(data_to_send))
 
                 if chunk_size <= 0:
-                    # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2
+                    # Wait for WINDOW_UPDATE per RFC 7540 Section 6.9.2,
+                    # for at most stream_timeout without progress.
                     self._send_pending_data()
-                    available = self._wait_for_flow_control_window(stream_id)
-                    if available <= 0:
+                    if deadline is None and self.stream_timeout:
+                        deadline = time.monotonic() + self.stream_timeout
+                    available = self._wait_for_flow_control_window(stream_id, deadline)
+                    if available == 0:
+                        # The peer is there but not reading.
+                        self.abort_stream(stream_id, HTTP2ErrorCode.CANCEL)
                         return False
-                    chunk_size = min(available, self.max_frame_size, len(data_to_send))
+                    if available < 0:
+                        self.cleanup_stream(stream_id)
+                        return False
+                    chunk_size = min(available, self.h2_conn.max_outbound_frame_size, len(data_to_send))
 
                 chunk = data_to_send[:chunk_size]
                 data_to_send = data_to_send[chunk_size:]
                 is_final = end_stream and len(data_to_send) == 0
 
                 self.h2_conn.send_data(stream_id, chunk, end_stream=is_final)
+                stream.send_data(chunk, end_stream=is_final)
                 self._send_pending_data()
+                deadline = None
 
-            stream.send_data(data, end_stream=end_stream)
             return True
         except (_h2_exceptions.StreamClosedError, _h2_exceptions.FlowControlError):
             # Stream was reset by client or flow control error - clean up gracefully
@@ -674,7 +903,7 @@ class HTTP2ServerConnection:
             stream.send_trailers(trailer_headers)
             self._send_pending_data()
             return True
-        except _h2_exceptions.StreamClosedError:
+        except (_h2_exceptions.StreamClosedError, _h2_exceptions.StreamIDTooLowError):
             # Stream was reset by client - clean up gracefully
             stream.close()
             self.cleanup_stream(stream_id)
@@ -688,6 +917,14 @@ class HTTP2ServerConnection:
             status_code: HTTP status code
             message: Optional error message body
         """
+        stream = self.streams.get(stream_id)
+        if stream is None or stream.response_headers_sent:
+            # Too late for a status: the peer already has one. Cut the
+            # stream off instead of corrupting the HPACK table with a
+            # second HEADERS block.
+            self.abort_stream(stream_id, HTTP2ErrorCode.INTERNAL_ERROR)
+            return
+
         body = message.encode() if message else b''
         headers = [('content-length', str(len(body)))]
         if body:
@@ -702,12 +939,24 @@ class HTTP2ServerConnection:
             stream_id: The stream ID to reset
             error_code: HTTP/2 error code (default: CANCEL)
         """
+        self.abort_stream(stream_id, error_code)
+
+    def abort_stream(self, stream_id, error_code):
+        """Reset a stream, drop it, and tell the peer.
+
+        Safe on a stream h2 already closed and on a dead socket.
+        """
         stream = self.streams.get(stream_id)
         if stream is not None:
             stream.reset(error_code)
-
-        self.h2_conn.reset_stream(stream_id, error_code=error_code)
-        self._send_pending_data()
+        self._reset_quietly(stream_id, error_code)
+        if stream is not None:
+            self.cleanup_stream(stream_id)
+        elif not self._closed:
+            try:
+                self._send_pending_data()
+            except HTTP2ConnectionError:
+                pass
 
     def close(self, error_code=0x0, last_stream_id=None):
         """Close the connection gracefully with GOAWAY.
@@ -726,10 +975,12 @@ class HTTP2ServerConnection:
             last_stream_id = max(self.streams.keys()) if self.streams else 0
 
         try:
-            self.h2_conn.close_connection(error_code=error_code)
+            self.h2_conn.close_connection(error_code=error_code,
+                                          last_stream_id=last_stream_id)
             self._send_pending_data()
         except Exception:
             pass  # Best effort
+        self._abort_all_streams()
 
     def _send_pending_data(self):
         """Send any pending data from h2 to the socket."""
@@ -749,10 +1000,37 @@ class HTTP2ServerConnection:
     def cleanup_stream(self, stream_id):
         """Remove a stream after processing is complete.
 
+        A response the application never finished is cut off with
+        RST_STREAM(INTERNAL_ERROR). A body it did not finish reading is
+        cut off with RST_STREAM(NO_ERROR): the response is complete and
+        the peer is only asked to stop sending (RFC 9113 section 8.1).
+
         Args:
             stream_id: The stream ID to clean up
         """
-        self.streams.pop(stream_id, None)
+        stream = self.streams.pop(stream_id, None)
+        if stream is None:
+            return
+        if stream.state is StreamState.CLOSED:
+            pass
+        elif not stream.response_complete:
+            # The application never finished its response: the peer must
+            # not wait for one.
+            stream.reset(HTTP2ErrorCode.INTERNAL_ERROR)
+            self._reset_quietly(stream_id, HTTP2ErrorCode.INTERNAL_ERROR)
+        elif not stream.body_complete:
+            stream.reset(HTTP2ErrorCode.NO_ERROR)
+            self._reset_quietly(stream_id, HTTP2ErrorCode.NO_ERROR)
+        if self.draining and not self.streams and not self.pending_requests:
+            # The peer's GOAWAY is honoured once the last established
+            # stream is done.
+            self.close()
+            return
+        if not self._closed:
+            try:
+                self._send_pending_data()
+            except HTTP2ConnectionError:
+                pass
 
     def __repr__(self):
         return (

@@ -26,7 +26,7 @@ class TestBasicRequests:
         """Test basic GET request to root endpoint."""
         response = requests.get(f'{nginx_url}/')
         assert response.status_code == 200
-        assert b'Hello from gunicorn uWSGI!' in response.content
+        assert response.content == b'Hello from gunicorn uWSGI!\n'
 
     def test_get_with_query_string(self, nginx_url):
         """Test GET request with query string parameters."""

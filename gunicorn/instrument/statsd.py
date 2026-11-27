@@ -8,6 +8,7 @@ import logging
 import socket
 from re import sub
 
+from gunicorn import util
 from gunicorn.glogging import Logger
 
 # Instrumentation constants
@@ -29,6 +30,8 @@ class Statsd(Logger):
 
         if isinstance(cfg.statsd_host, str):
             address_family = socket.AF_UNIX
+        elif cfg.statsd_host and util.is_ipv6(cfg.statsd_host[0]):
+            address_family = socket.AF_INET6
         else:
             address_family = socket.AF_INET
 

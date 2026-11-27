@@ -56,8 +56,20 @@ class BaseSocket:
         if hasattr(sock, "set_inheritable"):
             sock.set_inheritable(True)
 
-        sock.listen(self.conf.backlog)
+        if not self._is_listening(sock):
+            sock.listen(self.conf.backlog)
         return sock
+
+    @staticmethod
+    def _is_listening(sock):
+        """Whether ``sock`` already listens, as an inherited socket from systemd
+        does. Calling listen() again on it can be denied (SELinux)."""
+        if not hasattr(socket, 'SO_ACCEPTCONN'):
+            return False
+        try:
+            return bool(sock.getsockopt(socket.SOL_SOCKET, socket.SO_ACCEPTCONN))
+        except OSError:
+            return False
 
     def bind(self, sock):
         sock.bind(self.cfg_addr)
@@ -126,7 +138,9 @@ class UnixSocket(BaseSocket):
     FAMILY = socket.AF_UNIX
 
     def __init__(self, addr, conf, log, fd=None):
-        if fd is None:
+        # Abstract namespace sockets (address starts with a null byte) have
+        # no filesystem presence, so there's nothing to stat or remove.
+        if fd is None and not addr.startswith('\0'):
             try:
                 st = os.stat(addr)
             except OSError as e:
@@ -145,7 +159,8 @@ class UnixSocket(BaseSocket):
     def bind(self, sock):
         old_umask = os.umask(self.conf.umask)
         sock.bind(self.cfg_addr)
-        util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
+        if not self.cfg_addr.startswith('\0'):
+            util.chown(self.cfg_addr, self.conf.uid, self.conf.gid)
         os.umask(old_umask)
 
 

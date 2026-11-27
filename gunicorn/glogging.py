@@ -196,6 +196,8 @@ class Logger:
         # the cfg object is replaced on each configuration reload, so
         # follow the one we are given instead of the startup one
         self.cfg = cfg
+        # Read on every request; recomputed here, which a config reload runs.
+        self._access_log_enabled = self._compute_access_log_enabled()
         self.loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
         self.error_log.setLevel(self.loglevel)
         self.access_log.setLevel(logging.INFO)
@@ -355,8 +357,15 @@ class Logger:
     def access_log_enabled(self):
         """Check if access logging is enabled.
 
-        Used by protocol handlers to skip building log data when logging is disabled.
+        Used by protocol handlers to skip building log data when logging is
+        disabled. Computed in setup(), which a configuration reload runs.
         """
+        try:
+            return self._access_log_enabled
+        except AttributeError:
+            return self._compute_access_log_enabled()
+
+    def _compute_access_log_enabled(self):
         return bool(
             self.cfg.accesslog or self.cfg.logconfig or
             self.cfg.logconfig_dict or self.cfg.logconfig_json or

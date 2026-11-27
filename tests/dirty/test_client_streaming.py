@@ -230,3 +230,50 @@ class TestDirtyStreamIteratorEdgeCases:
 
         assert payload["args"] == ["arg1"]
         assert payload["kwargs"] == {"key": "value"}
+
+
+
+class TestDirtyStreamTimeoutBounds:
+    """Every sync read is bounded by the idle timeout, and a timeout drops
+    the socket."""
+
+    def _client(self, timeouts):
+        import socket as _socket
+        from gunicorn.dirty.client import DirtyClient
+
+        class StalledSocket:
+            closed = False
+
+            def settimeout(self, value):
+                timeouts.append(value)
+
+            def sendall(self, data):
+                pass
+
+            def recv(self, n):
+                raise _socket.timeout("timed out")
+
+            def recv_into(self, *a, **k):
+                raise _socket.timeout("timed out")
+
+            def close(self):
+                StalledSocket.closed = True
+
+        client = DirtyClient("/tmp/test.sock", timeout=60)
+        client._sock = StalledSocket()
+        return client, StalledSocket
+
+    def test_read_timeout_is_the_idle_timeout(self):
+        from gunicorn.dirty.client import DirtyStreamIterator
+        from gunicorn.dirty.errors import DirtyTimeoutError
+
+        timeouts = []
+        client, sock_cls = self._client(timeouts)
+        iterator = DirtyStreamIterator(client, "test:App", "gen", (), {},
+                                       idle_timeout=0.25)
+        with pytest.raises(DirtyTimeoutError):
+            next(iterator)
+        # The idle timeout is used, not a fixed 5 s cap.
+        assert timeouts and timeouts[-1] == pytest.approx(0.25, abs=0.01)
+        assert sock_cls.closed
+        assert client._sock is None

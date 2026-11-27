@@ -9,7 +9,8 @@ import re
 import sys
 
 from gunicorn.http.message import TOKEN_RE
-from gunicorn.http.errors import ConfigurationProblem, InvalidHeader, InvalidHeaderName
+from gunicorn.http.errors import (ConfigurationProblem, InvalidResponseHeader,
+                                  InvalidResponseHeaderName)
 from gunicorn import SERVER_SOFTWARE, SERVER
 from gunicorn import util
 
@@ -20,6 +21,9 @@ BLKSIZE = 0x3FFFFFFF
 # RFC9110 5.5: field-vchar = VCHAR / obs-text
 # RFC4234 B.1: VCHAR = 0x21-x07E = printable ASCII
 HEADER_VALUE_RE = re.compile(r'[ \t\x21-\x7e\x80-\xff]*')
+# RFC 9112 section 4: status-code is 3DIGIT, the reason phrase is
+# HTAB / SP / VCHAR / obs-text. PEP 3333: a single space separates them.
+STATUS_RE = re.compile(r'[0-9]{3}(?: [ \t\x21-\x7e\x80-\xff]*)?')
 
 log = logging.getLogger(__name__)
 
@@ -145,8 +149,8 @@ def _make_early_hints_callback(req, sock, resp):
                      Example: [('Link', '</style.css>; rel=preload; as=style')]
 
         Raises:
-            InvalidHeaderName: If a header name is not a valid HTTP token.
-            InvalidHeader: If a header value contains invalid characters.
+            InvalidResponseHeaderName: If a header name is not a valid HTTP token.
+            InvalidResponseHeader: If a header value contains invalid characters.
         """
         # Don't send after response has started - would break framing
         if resp.headers_sent:
@@ -168,13 +172,13 @@ def _make_early_hints_callback(req, sock, resp):
             # Response.process_headers — defense-in-depth against
             # HTTP response splitting via CRLF injection.
             if not TOKEN_RE.fullmatch(name):
-                raise InvalidHeaderName('%r' % name)
+                raise InvalidResponseHeaderName('%r' % name)
             if not HEADER_VALUE_RE.fullmatch(value):
                 # Pass only the name — the invalid value may contain
                 # sensitive data that shouldn't cross security boundaries
                 # via exception propagation (browsers/proxies may forward
                 # it to untrusted parties).
-                raise InvalidHeader('%r' % name)
+                raise InvalidResponseHeader('%r' % name)
 
             value = value.strip(" \t")
             response += f"{name}: {value}\r\n".encode('latin-1')
@@ -209,7 +213,9 @@ def create(req, sock, client, server, cfg, response_class=None,
         # rfc9112: Expect MUST be forwarded if the request is forwarded
         # N.B. gunicorn just sends at most one - application might send another
 
-    # add the headers to the environ
+    # add the headers to the environ. Repeated fields are joined once at the
+    # end: joining them one by one copies the growing value each time.
+    repeated = {}
     for hdr_name, hdr_value in req.headers:
         if hdr_name == 'HOST':
             host = hdr_value
@@ -226,8 +232,11 @@ def create(req, sock, client, server, cfg, response_class=None,
         # RFC9110 Section 17.10 discourages ambiguous or incomplete mappings
         key = 'HTTP_' + hdr_name.replace('-', '_')
         if key in environ:
-            hdr_value = "%s,%s" % (environ[key], hdr_value)
-        environ[key] = hdr_value
+            repeated.setdefault(key, [environ[key]]).append(hdr_value)
+        else:
+            environ[key] = hdr_value
+    for key, values in repeated.items():
+        environ[key] = ",".join(values)
 
     # set the url scheme
     environ['wsgi.url_scheme'] = req.scheme
@@ -336,6 +345,11 @@ class Response:
         elif self.status is not None:
             raise AssertionError("Response headers already set!")
 
+        if not isinstance(status, str):
+            raise TypeError('%r is not a string' % status)
+        if not STATUS_RE.fullmatch(status):
+            raise ValueError('Invalid status %r' % status)
+
         self.status = status
 
         # get the status code from the response here so we can use it to check
@@ -381,13 +395,14 @@ class Response:
                 raise TypeError('%r is not a string' % name)
 
             if not TOKEN_RE.fullmatch(name):
-                raise InvalidHeaderName('%r' % name)
+                raise InvalidResponseHeaderName('%r' % name)
 
             if not isinstance(value, str):
                 raise TypeError('%r is not a string' % value)
 
             if not HEADER_VALUE_RE.fullmatch(value):
-                raise InvalidHeader('%r' % value)
+                # Name only: the value may carry sensitive data.
+                raise InvalidResponseHeader('%r' % name)
 
             # RFC9110 5.5
             value = value.strip(" \t")
@@ -411,6 +426,12 @@ class Response:
         # Only use chunked responses when the client is
         # speaking HTTP/1.1 or newer and there was
         # no Content-Length header set.
+        #
+        # uWSGI response bodies are not HTTP message bodies: nginx treats
+        # them as opaque bytes and chooses the downstream HTTP framing.  If
+        # we add HTTP chunk markers here they leak into the application body.
+        if getattr(self.cfg, "protocol", "http") == "uwsgi":
+            return False
         if self.response_length is not None:
             return False
         elif self.req.version <= (1, 0):

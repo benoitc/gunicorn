@@ -6,6 +6,9 @@ contact_links:
   - name: Question
     url: https://github.com/benoitc/gunicorn/discussions/new?category=q-a
     about: Ask a question about configuration, deployment, or usage
+  - name: Security Issue
+    url: https://github.com/benoitc/gunicorn/blob/master/SECURITY.md
+    about: Only for problems that are not a specification deviation. Spec deviations are bugs; report them in Bug Report.
   - name: ❤️ Support Gunicorn
     url: https://gunicorn.org/sponsor/
     about: Gunicorn is volunteer-maintained. Consider sponsoring to support development.

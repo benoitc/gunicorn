@@ -3,10 +3,29 @@
 # See the NOTICE for more information.
 
 import io
+import re
 import sys
 
 from gunicorn.http.errors import (NoMoreData, ChunkMissingTerminator,
-                                  InvalidChunkSize, InvalidChunkExtension)
+                                  InvalidChunkSize, InvalidChunkExtension,
+                                  InvalidHeader, LimitRequestHeaders)
+
+# RFC 9112 section 7.1.1, everything from the first ";" of a chunk size line:
+#   chunk-ext = *( BWS ";" BWS chunk-ext-name [ BWS "=" BWS chunk-ext-val ] )
+#   chunk-ext-name = token; chunk-ext-val = token / quoted-string
+# with token and quoted-string from RFC 9110 section 5.6.2 and 5.6.4.
+_TOKEN = rb"[!#$%&'*+\-.^_`|~0-9A-Za-z]+"
+_QUOTED_STRING = rb'"(?:[\t !#-\[\]-~\x80-\xff]|\\[\t -~\x80-\xff])*"'
+CHUNK_EXT_RE = re.compile(
+    rb"(?:[ \t]*;[ \t]*" + _TOKEN
+    + rb"(?:[ \t]*=[ \t]*(?:" + _TOKEN + rb"|" + _QUOTED_STRING + rb"))?)*")
+
+#: Largest piece Body.read() asks its reader for in one call.
+MAX_READ_STEP = 1024 * 1024
+
+#: Fallbacks when the request carries no header limits of its own.
+DEFAULT_MAX_CHUNK_SIZE_LINE = 8190
+DEFAULT_MAX_TRAILER_SECTION = 8190 * 32
 
 
 class ChunkedReader:
@@ -14,6 +33,15 @@ class ChunkedReader:
         self.req = req
         self.parser = self.parse_chunked(unreader)
         self.buf = io.BytesIO()
+        # A chunk-size line is a few hex digits plus optional extensions, and
+        # a trailer section is a header block. Both are read a socket buffer
+        # at a time while looking for their terminator, so both need a bound:
+        # without one a peer can make a worker read and scan for as long as it
+        # cares to send, and the request never reaches the application.
+        self.limit_chunk_size_line = getattr(
+            req, "limit_request_field_size", 0) or DEFAULT_MAX_CHUNK_SIZE_LINE
+        self.limit_trailer_section = getattr(
+            req, "max_buffer_headers", 0) or DEFAULT_MAX_TRAILER_SECTION
 
     def read(self, size):
         if not isinstance(size, int):
@@ -38,26 +66,36 @@ class ChunkedReader:
         return ret
 
     def parse_trailers(self, unreader, data):
-        buf = io.BytesIO()
-        buf.write(data)
+        buf = bytearray(data)
 
-        idx = buf.getvalue().find(b"\r\n\r\n")
-        done = buf.getvalue()[:2] == b"\r\n"
+        idx = buf.find(b"\r\n\r\n")
+        done = buf[:2] == b"\r\n"
         while idx < 0 and not done:
+            if len(buf) > self.limit_trailer_section:
+                raise LimitRequestHeaders("limit request trailer section size")
+            # RFC 9112 section 2.2: trailer lines end with CRLF too.
+            if buf.count(b"\n") != buf.count(b"\r\n"):
+                raise InvalidHeader("bare LF as line terminator")
+            # Only the last three bytes can start a terminator that the next
+            # read completes, so the scan resumes there instead of running
+            # over the whole buffer again.
+            searched = max(0, len(buf) - 3)
             try:
-                self.get_data(unreader, buf)
+                self.read_into(unreader, buf)
             except NoMoreData:
                 # RFC 9112 7.1.2: the last chunk (0 CRLF) must be followed by
                 # a CRLF-terminated trailer section. Hitting EOF before that
                 # means the chunked body was truncated, not cleanly ended.
                 raise ChunkMissingTerminator(b"") from None
-            idx = buf.getvalue().find(b"\r\n\r\n")
-            done = buf.getvalue()[:2] == b"\r\n"
+            idx = buf.find(b"\r\n\r\n", searched)
+            done = buf[:2] == b"\r\n"
         if done:
-            unreader.unread(buf.getvalue()[2:])
+            unreader.unread(bytes(buf[2:]))
             return b""
-        self.req.trailers = self.req.parse_headers(buf.getvalue()[:idx], from_trailer=True)
-        unreader.unread(buf.getvalue()[idx + 4:])
+        # Hand back what follows the trailers before checking them, so a bad
+        # trailer does not also lose bytes read ahead from the socket.
+        unreader.unread(bytes(buf[idx + 4:]))
+        self.req.trailers = self.req.parse_headers(bytes(buf[:idx]), from_trailer=True)
 
     def parse_chunked(self, unreader):
         (size, rest) = self.parse_chunk_size(unreader)
@@ -65,7 +103,10 @@ class ChunkedReader:
             while size > len(rest):
                 size -= len(rest)
                 yield rest
-                rest = unreader.read()
+                # The chunk header said how many bytes follow: let the socket
+                # read up to that much at once instead of 8 KiB per recv().
+                # Never more, so a read does not cross the end of the chunk.
+                rest = unreader.read(None, read_ahead=size)
                 if not rest:
                     raise NoMoreData()
             yield rest[:size]
@@ -81,17 +122,21 @@ class ChunkedReader:
             (size, rest) = self.parse_chunk_size(unreader, data=rest[2:])
 
     def parse_chunk_size(self, unreader, data=None):
-        buf = io.BytesIO()
-        if data is not None:
-            buf.write(data)
+        buf = bytearray(data) if data else bytearray()
 
-        idx = buf.getvalue().find(b"\r\n")
+        idx = buf.find(b"\r\n")
         while idx < 0:
-            self.get_data(unreader, buf)
-            idx = buf.getvalue().find(b"\r\n")
+            if len(buf) > self.limit_chunk_size_line:
+                raise InvalidChunkSize(
+                    b"line over %d bytes with no terminator" % self.limit_chunk_size_line)
+            # Only the last byte can start a terminator that the next read
+            # completes, so the scan resumes there instead of running over
+            # the whole buffer again.
+            searched = max(0, len(buf) - 1)
+            self.read_into(unreader, buf)
+            idx = buf.find(b"\r\n", searched)
 
-        data = buf.getvalue()
-        line, rest_chunk = data[:idx], data[idx + 2:]
+        line, rest_chunk = bytes(buf[:idx]), bytes(buf[idx + 2:])
 
         # RFC9112 7.1.1: BWS before chunk-ext - but ONLY then
         chunk_size, *chunk_ext = line.split(b";", 1)
@@ -104,6 +149,9 @@ class ChunkedReader:
             raise InvalidChunkSize(chunk_size)
         if len(chunk_size) == 0:
             raise InvalidChunkSize(chunk_size)
+        # The size first, so a bad size is reported as such.
+        if chunk_ext and not CHUNK_EXT_RE.fullmatch(b";" + chunk_ext[0]):
+            raise InvalidChunkExtension("invalid chunk extension")
         chunk_size = int(chunk_size, 16)
 
         if chunk_size == 0:
@@ -116,6 +164,13 @@ class ChunkedReader:
         if not data:
             raise NoMoreData()
         buf.write(data)
+
+    def read_into(self, unreader, buf):
+        """Append one socket read to a bytearray, without copying it."""
+        data = unreader.read()
+        if not data:
+            raise NoMoreData()
+        buf += data
 
 
 class LengthReader:
@@ -133,17 +188,10 @@ class LengthReader:
         if size == 0:
             return b""
 
-        buf = io.BytesIO()
-        data = self.unreader.read()
-        while data:
-            buf.write(data)
-            if buf.tell() >= size:
-                break
-            data = self.unreader.read()
-
-        buf = buf.getvalue()
-        ret, rest = buf[:size], buf[size:]
-        self.unreader.unread(rest)
+        # The unreader reads until it holds `size` bytes and keeps anything
+        # beyond for later. It may read ahead up to the end of the body, so an
+        # application reading 64 KiB at a time still gets large recv() calls.
+        ret = self.unreader.read(size, read_ahead=self.length)
         self.length -= size
         return ret
 
@@ -190,6 +238,16 @@ class Body:
     def __init__(self, reader):
         self.reader = reader
         self.buf = io.BytesIO()
+        # Set when reading the body raised: where the next request starts on
+        # the connection is then unknown, so it must not be reused.
+        self.failed = False
+
+    def _read_reader(self, size):
+        try:
+            return self.reader.read(size)
+        except Exception:
+            self.failed = True
+            raise
 
     def __iter__(self):
         return self
@@ -223,8 +281,15 @@ class Body:
             self.buf.write(rest)
             return ret
 
+        # Ask the reader for what is still missing, in steps of at most
+        # MAX_READ_STEP (and at least 1 KiB, the read-ahead small reads always
+        # had). Asking for 1 KiB made LengthReader push the rest of each
+        # received chunk back with unread(), copying it again on every turn of
+        # this loop; the upper bound keeps the readers' own buffers small when
+        # the application reads a large body in one call.
         while size > self.buf.tell():
-            data = self.reader.read(1024)
+            step = min(max(1024, size - self.buf.tell()), MAX_READ_STEP)
+            data = self._read_reader(step)
             if not data:
                 break
             self.buf.write(data)
@@ -254,7 +319,7 @@ class Body:
 
             ret.append(data)
             size -= len(data)
-            data = self.reader.read(min(1024, size))
+            data = self._read_reader(min(1024, size))
             if not data:
                 break
 

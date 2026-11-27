@@ -34,6 +34,64 @@ This allows for proper triage before creating formal issues.
 After discussion and triage, maintainers will create issues for confirmed
 bugs and approved features.
 
+### Write for the person who reads it
+
+Every discussion, issue, pull request and comment is read by a person.
+Make it easy for them.
+
+- Read what you send before you send it. You are responsible for every line,
+  whether you wrote it or a tool did.
+- Use plain English and short sentences. Say what happens, what you
+  expected, and how to reproduce it. Explain any term a reader may not know.
+- Don't inflate it. No buzzwords, no severity scores, CVSS or CWE labels, no
+  "critical" for a bug, no long generated write-ups. If it takes a page to
+  explain, cut it down until it doesn't.
+- A bug report gives: the gunicorn version, the worker class, the settings
+  you changed, a minimal app and the exact command and request that show the
+  problem, what you got and what you expected.
+- A pull request says what was wrong and why it matters, the fix in a few
+  lines, and any breaking change. Link the issue. Don't walk through the diff
+  file by file; the reviewer reads the code.
+- A fix comes with a test that fails without it.
+
+AI tools are fine to use. Before you open anything, you must have read the
+change, run the tests, and be able to answer questions about it yourself.
+
+Maintainers read every issue and pull request before acting on it. We close
+without further review:
+
+- text we cannot understand after one request to clarify;
+- descriptions that don't match the code or the reproduction;
+- reports that cannot be reproduced;
+- submissions opened by an automated agent that no person has read.
+
+### Security issues and specification bugs
+
+Gunicorn implements HTTP/1.1, HTTP/2, WebSocket, WSGI, ASGI, the uWSGI and
+PROXY protocols. The list of specifications is in
+[AGENTS.md](AGENTS.md#specifications).
+
+When the fix is to make gunicorn do what one of these specifications says,
+it is a bug, not a security issue. That includes reports described as
+request smuggling, response splitting, desync or denial of service, when
+they come from:
+
+- input accepted, rejected or framed differently from the specification;
+- gunicorn's parsers disagreeing with each other on the same bytes;
+- application output written without the checks the specification requires;
+- a missing bound that the specification or a setting defines.
+
+Report these as a normal bug, in public, following the steps above. Cite the
+specification section. The fix goes in a public pull request and in the
+changelog under Bug Fixes. We don't publish advisories or request CVEs for
+them, and advisories filed for them are closed with a link to the fix.
+
+Only problems that are not a specification deviation go through
+[SECURITY.md](SECURITY.md): code execution, file access beyond what the
+configuration allows, user, group and permission handling, one client's
+data reaching another client outside any specification rule, or gunicorn
+weakening TLS.
+
 ### Check for existing discussions first!
 
 Please take a moment to check that a discussion or issue doesn't already exist

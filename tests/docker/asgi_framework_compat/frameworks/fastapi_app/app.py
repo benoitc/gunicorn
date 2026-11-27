@@ -7,11 +7,12 @@ Implements the contract endpoints for ASGI 3.0 compliance testing.
 import asyncio
 import json
 import sys
+import time
 import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse, Response, StreamingResponse, JSONResponse
 
 
@@ -188,6 +189,27 @@ async def delay(seconds: float = 1.0):
     seconds = min(seconds, 30)
     await asyncio.sleep(seconds)
     return PlainTextResponse(f"Delayed {seconds} seconds")
+
+
+background_completed = {"count": 0}
+
+
+def _background_sleep(seconds: float):
+    time.sleep(seconds)
+    background_completed["count"] += 1
+
+
+@app.get("/background")
+async def background(background_tasks: BackgroundTasks, seconds: float = 1.0):
+    """Respond, then run a sync background task in the same app call."""
+    background_tasks.add_task(_background_sleep, min(seconds, 30))
+    return PlainTextResponse("scheduled")
+
+
+@app.get("/background/completed")
+async def background_completed_endpoint():
+    """Number of background tasks that ran to completion."""
+    return background_completed
 
 
 @app.get("/lifespan/state")

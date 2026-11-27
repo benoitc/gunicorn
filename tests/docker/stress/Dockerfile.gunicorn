@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+FROM python:3.14-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc curl procps \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . /gunicorn-src
+RUN pip install --no-cache-dir "/gunicorn-src/[http2,gevent,testing]" \
+    && pip install --no-cache-dir "starlette>=0.35.0" "websockets>=12.0"
+
+WORKDIR /app
+COPY tests/docker/stress/apps /app
+COPY tests/docker/stress/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8000 8443
+ENTRYPOINT ["/entrypoint.sh"]

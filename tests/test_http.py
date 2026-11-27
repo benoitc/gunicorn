@@ -3,15 +3,17 @@
 # See the NOTICE for more information.
 
 import io
+import platform
 import t
 import pytest
 from unittest import mock
 
 from gunicorn import util
-from gunicorn.http.body import Body, LengthReader, EOFReader
+from gunicorn.http.body import Body, ChunkedReader, LengthReader, EOFReader
 from gunicorn.http.wsgi import FileWrapper, Response
 from gunicorn.http.unreader import Unreader, IterUnreader, SocketUnreader
-from gunicorn.http.errors import InvalidHeader, InvalidHeaderName, InvalidHTTPVersion
+from gunicorn.http.errors import (InvalidChunkSize, InvalidHeader, InvalidHeaderName,
+                                  InvalidHTTPVersion, InvalidRequestLine, LimitRequestHeaders)
 from gunicorn.http.message import TOKEN_RE
 
 
@@ -215,6 +217,85 @@ def test_length_reader_read():
     assert reader.read(5) == b'orsit'
     assert reader.read(5) == b'amet'
     assert reader.read(100) == b''
+
+
+class RecordingSocket(t.FakeSocket):
+    """FakeSocket that remembers the size of every recv() call."""
+
+    def __init__(self, data):
+        super().__init__(io.BytesIO(data))
+        self.recv_sizes = []
+        self.received = []
+
+    def recv(self, length=None):
+        self.recv_sizes.append(length)
+        data = super().recv(length)
+        self.received.append(len(data))
+        return data
+
+
+def test_socket_unreader_chunk_size_hint():
+    sock = RecordingSocket(b'x' * (4 * 1024 * 1024))
+    unreader = SocketUnreader(sock, max_chunk=8192)
+    unreader.chunk()
+    unreader.chunk(100)
+    unreader.chunk(64 * 1024)
+    unreader.chunk(10 * 1024 * 1024)
+    assert sock.recv_sizes == [8192, 8192, 64 * 1024, SocketUnreader.max_body_chunk]
+
+
+def test_body_read_uses_large_recv_calls():
+    # Every recv() releases the GIL; reading a body 8 KiB at a time made uploads
+    # crawl when other threads of the worker were busy (one recv per 8 KiB).
+    payload = bytes(range(256)) * (16 * 1024)       # 4 MiB
+    sock = RecordingSocket(payload)
+    body = Body(LengthReader(SocketUnreader(sock), len(payload)))
+    assert body.read() == payload
+    assert len(sock.recv_sizes) <= 8
+
+
+def test_body_read_in_pieces_reads_ahead_within_the_body():
+    # Django and Werkzeug read uploads 64 KiB at a time: the socket is still
+    # read in large steps, and a step larger than the default 8 KiB never
+    # reaches past the end of the body (bytes of a pipelined request read by
+    # the default step stay buffered, as before).
+    payload = b'a' * (3 * 1024 * 1024 + 123)
+    pipelined = b'GET /next HTTP/1.1\r\n\r\n'
+    sock = RecordingSocket(payload + pipelined)
+    unreader = SocketUnreader(sock)
+    body = Body(LengthReader(unreader, len(payload)))
+    pieces = []
+    while True:
+        piece = body.read(64 * 1024)
+        if not piece:
+            break
+        pieces.append(piece)
+    assert b''.join(pieces) == payload
+    assert len(sock.recv_sizes) <= 8
+    consumed = 0
+    for asked, got in zip(sock.recv_sizes, sock.received):
+        assert asked <= max(8192, len(payload) - consumed)
+        consumed += got
+    assert unreader.read() == pipelined
+
+
+@pytest.mark.skipif(platform.python_implementation() == "PyPy",
+                    reason="tracemalloc is not available on PyPy")
+def test_body_read_whole_body_memory_stays_close_to_body_size():
+    # read() with no size reads the whole body: the readers' own buffers must
+    # stay small, the only large allocation being the body handed back.
+    import tracemalloc
+    size = 8 * 1024 * 1024
+    sock = t.FakeSocket(io.BytesIO(b'a' * size))
+    body = Body(LengthReader(SocketUnreader(sock), size))
+    tracemalloc.start()
+    try:
+        data = body.read()
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert len(data) == size
+    assert peak < 1.5 * size
 
 
 def test_length_reader_read_invalid_size():
@@ -480,3 +561,313 @@ def test_normal_response_unaffected():
     assert resp.response_length == 5
     resp.write(b"hello")
     assert resp.sent == 5
+
+
+class _CountingUnreader(IterUnreader):
+    """An unreader that hands out fixed-size reads and counts them."""
+
+    def __init__(self, blocks):
+        super().__init__(iter(blocks))
+        self.reads = 0
+
+    def read(self, size=None, read_ahead=None):
+        self.reads += 1
+        return super().read(size, read_ahead)
+
+
+def _chunked_reader(unreader, field_size=8190, headers=8190 * 32):
+    req = mock.Mock()
+    req.limit_request_field_size = field_size
+    req.max_buffer_headers = headers
+    req.parse_headers.return_value = [("X-Sum", "1")]
+    return req, ChunkedReader(req, unreader)
+
+
+def test_chunk_size_line_is_bounded():
+    """An endless chunk-size line is refused instead of read for ever."""
+    unreader = _CountingUnreader([b"a" * 8192 for _ in range(1024)])   # 8MB, no CRLF
+    _, reader = _chunked_reader(unreader)
+    with pytest.raises(InvalidChunkSize):
+        reader.parse_chunk_size(unreader)
+    assert unreader.reads <= 3, "kept reading well past the limit"
+
+
+def test_trailer_section_is_bounded():
+    """An endless trailer section is refused instead of read for ever."""
+    unreader = _CountingUnreader([b"x" * 8192 for _ in range(1024)])
+    _, reader = _chunked_reader(unreader, headers=8190)
+    with pytest.raises(LimitRequestHeaders):
+        reader.parse_trailers(unreader, b"")
+    assert unreader.reads <= 3, "kept reading well past the limit"
+
+
+def test_chunked_message_split_across_reads():
+    """Terminators straddling two reads are found, and long lines still parse.
+
+    Delivered a byte at a time, so every chunk-size line, chunk terminator
+    and the trailer section are split at every possible offset.
+    """
+    message = (b"1;padding=" + b"x" * 200 + b"\r\n"
+               b"a\r\n"
+               b"2\r\nbc\r\n"
+               b"0\r\n"
+               b"X-Sum: 1\r\n\r\n"
+               b"leftover")
+    unreader = IterUnreader(iter([message[i:i + 1] for i in range(len(message))]))
+    req, reader = _chunked_reader(unreader)
+    assert Body(reader).read(100) == b"abc"
+    assert req.parse_headers.call_args[0][0] == b"X-Sum: 1"
+    # Whatever followed the message is left for the next request
+    assert b"".join(iter(unreader.read, b"")) == b"leftover"
+
+
+def test_request_target_rejects_raw_nul_but_allows_percent_encoded():
+    """Raw NUL in the request-target is 400; percent-encoded %00 is still a URI."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+
+    parser = RequestParser(cfg, [b"GET /\x00 HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    with pytest.raises(InvalidRequestLine):
+        next(parser)
+
+    parser = RequestParser(cfg, [b"GET /%00 HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    req = next(parser)
+    assert req.uri == "/%00"
+    assert req.path == "/%00"
+
+
+@pytest.mark.parametrize("ws", [b"\x0b", b"\x0c", b"\x85", b"\xa0"])
+def test_transfer_encoding_non_http_whitespace_rejected(ws):
+    """Only SP/HTAB are whitespace around Transfer-Encoding tokens."""
+    from gunicorn.config import Config
+    from gunicorn.http.errors import UnsupportedTransferCoding
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"POST / HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked" + ws
+            + b"\r\n\r\n0\r\n\r\n")
+    with pytest.raises((InvalidHeader, UnsupportedTransferCoding)):
+        next(RequestParser(cfg, [data], None))
+
+
+@pytest.mark.parametrize("status", [
+    "200 OK\r\nSet-Cookie: x=1",
+    "200 OK\nX: 1",
+    "200 O\x00K",
+    "20 OK",
+    "2000 OK",
+    "OK",
+    "200  OK\r",
+])
+def test_http_invalid_response_status(status):
+    """The status line is 3DIGIT then an optional reason phrase (RFC 9112 4)."""
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(ValueError):
+        response.start_response(status, [])
+
+
+@pytest.mark.parametrize("status", ["200 OK", "404 Not Found", "200", "599 \xe9t\xe9"])
+def test_http_valid_response_status(status):
+    response, _ = _make_response()
+    response.start_response(status, [])
+    assert response.status == status
+
+
+def test_http_response_status_must_be_str():
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(TypeError):
+        response.start_response(b"200 OK", [])
+
+
+def test_one_empty_line_before_request_line_is_ignored():
+    """RFC 9112 2.2, also when the CRLF is split across reads."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    chunks = [b"\r", b"\nGET /x HTTP/1.1\r\nHost: a\r\n\r\n"]
+    req = next(RequestParser(cfg, chunks, None))
+    assert req.path == "/x"
+
+
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+@pytest.mark.parametrize("lead", [b"", b"\r\n"])
+@pytest.mark.parametrize("length,accepted", [(64, True), (65, False)])
+def test_request_line_limit_after_empty_line(http_parser, lead, length, accepted):
+    """limit_request_line measures the request line itself, also after the
+    one empty line RFC 9112 2.2 allows before it, with both parsers."""
+    from gunicorn.config import Config
+    from gunicorn.http.errors import LimitRequestLine
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    cfg.set('limit_request_line', 64)
+    target = b"/" + b"a" * (length - len(b"GET  HTTP/1.1") - 1)
+    line = b"GET " + target + b" HTTP/1.1"
+    assert len(line) == length
+    data = lead + line + b"\r\nHost: a\r\n\r\n"
+    parser = RequestParser(cfg, [data], None)
+    if accepted:
+        assert next(parser).path == target.decode()
+    else:
+        with pytest.raises(LimitRequestLine):
+            next(parser)
+
+
+def test_body_read_error_stops_the_connection():
+    """A body that fails to read (here a repeated singleton field in the
+    trailers) leaves the start of the next request unknown: the parser must
+    not keep the connection alive or serve what follows."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"POST /a HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"5\r\nhello\r\n0\r\n"
+            b"Content-Type: a\r\nContent-Type: b\r\n\r\n"
+            b"GET /admin HTTP/1.1\r\nHost: x\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    with pytest.raises(InvalidHeader):
+        req.body.read()
+
+    assert parser.finish_body() is False
+    with pytest.raises(StopIteration):
+        next(parser)
+
+
+def test_repeated_headers_joined_in_order():
+    """Repeated fields become one comma-joined environ value, in order."""
+    from gunicorn.config import Config
+    from gunicorn.http import wsgi
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    data = (b"GET / HTTP/1.1\r\nHost: x\r\n"
+            b"X-A: 1\r\nCookie: c=1\r\nX-A: 2\r\nX-A: 3\r\n\r\n")
+    req = next(RequestParser(cfg, [data], ('127.0.0.1', 1)))
+    sock = mock.Mock()
+    sock.getsockname.return_value = ('127.0.0.1', 8000)
+    _, environ = wsgi.create(req, sock, ('127.0.0.1', 1), ('127.0.0.1', 8000), cfg)
+    assert environ['HTTP_X_A'] == "1,2,3"
+    assert environ['HTTP_COOKIE'] == "c=1"
+
+
+@pytest.mark.parametrize("target", [b"/caf\xc3\xa9", b"/a\xe9", b"/?q=\xff"])
+def test_request_target_rejects_non_ascii(target):
+    """RFC 9112 3.2 / RFC 3986 2: non-ASCII must be percent-encoded."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    parser = RequestParser(cfg, [b"GET " + target + b" HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    with pytest.raises(InvalidRequestLine):
+        next(parser)
+
+
+def test_request_target_accepts_percent_encoded_non_ascii():
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    parser = RequestParser(cfg, [b"GET /caf%C3%A9 HTTP/1.1\r\nHost: x\r\n\r\n"], None)
+    assert next(parser).uri == "/caf%C3%A9"
+
+
+class _RecordingSocket:
+    """recv() from a fixed byte string, recording the size asked for."""
+
+    def __init__(self, data):
+        self.data = data
+        self.asked = []
+
+    def recv(self, n):
+        self.asked.append(n)
+        out, self.data = self.data[:n], self.data[n:]
+        return out
+
+
+def _chunked_request(chunks, after=b""):
+    body = b"".join(b"%x\r\n%s\r\n" % (len(c), c) for c in chunks) + b"0\r\n\r\n"
+    return (b"POST / HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n"
+            + body + after)
+
+
+def test_chunked_body_reads_follow_chunk_size():
+    """Chunk data is read in steps as large as the chunk (#2596), never past
+    the end of the chunk."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    chunk = b"a" * (300 * 1024)
+    sock = _RecordingSocket(_chunked_request([chunk]))
+    req = next(RequestParser(cfg, sock, None))
+    sock.asked.clear()
+    assert req.body.read() == chunk
+    assert max(sock.asked) > 8192
+    assert max(sock.asked) <= len(chunk)
+
+
+@pytest.mark.parametrize("chunks", [
+    [b"x" * 7] * 500,
+    [b"y" * (1 << 20), b"z" * 3],
+], ids=["many-small", "few-large"])
+def test_chunked_body_content_and_pipelined_request(chunks):
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    cfg = Config()
+    cfg.set('http_parser', 'python')
+    after = b"GET /next HTTP/1.1\r\nHost: x\r\n\r\n"
+    sock = _RecordingSocket(_chunked_request(chunks, after))
+    parser = RequestParser(cfg, sock, None)
+    req = next(parser)
+    assert req.body.read() == b"".join(chunks)
+    assert next(parser).path == "/next"
+
+
+@pytest.mark.parametrize("http_parser", ["python", "fast"])
+def test_connect_ends_the_connection(http_parser):
+    """RFC 9931 section 8: what follows a CONNECT is tunnel data; it is never
+    served as another request, whatever the application answered."""
+    from gunicorn.config import Config
+    from gunicorn.http.parser import RequestParser
+
+    if http_parser == "fast":
+        pytest.importorskip("gunicorn_h1c")
+    cfg = Config()
+    cfg.set('http_parser', http_parser)
+    data = (b"CONNECT no-such.example:443 HTTP/1.1\r\nHost: no-such.example:443\r\n\r\n"
+            b"POST /upload HTTP/1.1\r\nHost: proxy.example\r\nContent-Length: 0\r\n\r\n")
+    parser = RequestParser(cfg, [data], None)
+    req = next(parser)
+    assert req.method == "CONNECT"
+    assert req.should_close()
+    with pytest.raises(StopIteration):
+        next(parser)
+
+
+def test_invalid_response_header_value_not_in_error():
+    """The error names the header but never carries its value, which may be
+    sensitive (a cookie, a token)."""
+    from gunicorn.http.errors import InvalidResponseHeader
+
+    response = Response(mock.MagicMock(), mock.MagicMock(), None)
+    with pytest.raises(InvalidResponseHeader) as info:
+        response.start_response("200 OK", [("X-Token", "secret\r\nSet-Cookie: x=1")])
+    assert "secret" not in str(info.value)
+    assert "X-Token" in str(info.value)

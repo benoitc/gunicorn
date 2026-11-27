@@ -676,17 +676,19 @@ class TestStateSharing:
         assert "state" in scope
         assert scope["state"] == state
 
-    def test_state_is_same_object(self):
-        """Test that state is the same object (not a copy)."""
-        state = {"counter": 0}
+    def test_state_is_shallow_copy(self):
+        """ASGI lifespan spec: each request gets a shallow copy of the state."""
+        conn = object()
+        state = {"counter": 0, "db": conn}
         protocol = self._create_protocol_with_state(state)
         request = self._create_mock_request()
 
         scope = protocol._build_http_scope(request, None, None)
 
-        # Modifying scope["state"] should modify the original
+        assert scope["state"] is not state
+        assert scope["state"]["db"] is conn
         scope["state"]["counter"] = 1
-        assert state["counter"] == 1
+        assert state["counter"] == 0
 
     def test_state_not_present_without_worker_state(self):
         """Test that state is not in scope if worker has no state."""

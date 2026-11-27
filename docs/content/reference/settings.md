@@ -393,8 +393,7 @@ HTTP protocol versions to support (comma-separated, order = preference).
 Valid protocols:
 
 * ``h1`` - HTTP/1.1 (default)
-* ``h2`` - HTTP/2 (requires TLS with ALPN)
-* ``h3`` - HTTP/3 (future, not yet implemented)
+* ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
 Examples::
 
@@ -404,7 +403,8 @@ Examples::
     # Prefer HTTP/2, fallback to HTTP/1.1
     --http-protocols=h2,h1
 
-    # HTTP/2 only (reject HTTP/1.1 clients)
+    # Offer HTTP/2 only. A client that does not select it over ALPN
+    # is still served HTTP/1.1; there is no rejection.
     --http-protocols=h2
 
 HTTP/2 requires:
@@ -557,32 +557,30 @@ Disable redirect access logs to syslog.
 
 The access log format.
 
-===========  ===========
-Identifier   Description
-===========  ===========
-h            remote address
-l            ``'-'``
-u            user name (if HTTP Basic auth used)
-t            date of the request
-r            status line (e.g. ``GET / HTTP/1.1``)
-m            request method
-U            URL path without query string
-q            query string
-H            protocol
-s            status
-B            response length
-b            response length or ``'-'`` (CLF format)
-f            referrer (note: header is ``referer``)
-a            user agent
-T            request time in seconds
-M            request time in milliseconds
-D            request time in microseconds
-L            request time in decimal seconds
-p            process ID
-{header}i    request header
-{header}o    response header
-{variable}e  environment variable
-===========  ===========
+| Identifier  | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| h           | remote client IP address (not overridden by proxy headers like X-Real-IP)   |
+| l           | `'-'` for compatibility with Common Log Format (CLF)                        |
+| u           | user name (if HTTP Basic auth used)                                         |
+| t           | date of the request at logging time in CLF format                           |
+| r           | status line (e.g. `GET / HTTP/1.1`)                                         |
+| m           | request method                                                              |
+| U           | URL path without query string                                               |
+| q           | query string without a leading '?'                                          |
+| H           | protocol                                                                    |
+| s           | status                                                                      |
+| B           | response length                                                             |
+| b           | response length or `'-'` (CLF format)                                       |
+| f           | referrer (note: header is `referer`)                                        |
+| a           | user agent                                                                  |
+| T           | request duration in seconds                                                 |
+| M           | request duration in milliseconds                                            |
+| D           | request duration in microseconds                                            |
+| L           | request duration in decimal seconds                                         |
+| p           | process ID                                                                  |
+| {header}i   | request header                                                              |
+| {header}o   | response header                                                             |
+| {variable}e | environment variable                                                        |
 
 Use lowercase for header and environment variable names, and put
 ``{...}x`` names inside ``%(...)s``. For example::
@@ -1847,7 +1845,7 @@ it is not defined, the default is ``1``.
 The type of workers to use.
 
 The default class (``sync``) should handle most "normal" types of
-workloads. You'll want to read :doc:`design` for information on when
+workloads. You'll want to read [worker-types](../design.md#worker-types) for information on when
 you might want to choose one of the other worker classes. Required
 libraries may be installed using setuptools' ``extras_require`` feature.
 
@@ -1935,6 +1933,9 @@ restarts to avoid all workers restarting at the same time.
 **Default:** `30`
 
 Workers silent for more than this many seconds are killed and restarted.
+The master checks each worker's heartbeat file; a worker that does not
+update it within this timeout is considered silent. Idle workers keep
+updating their heartbeat while waiting for requests.
 
 Value is a positive number or 0. Setting it to 0 has the effect of
 infinite timeouts by disabling timeouts for all workers entirely.
@@ -1944,6 +1945,14 @@ noticeably higher if you're sure of the repercussions for sync workers.
 For the non sync workers it just means that the worker process is still
 communicating and is not tied to the length of time required to handle a
 single request.
+
+On HTTP/2 connections it also bounds a single stream: a request body
+that makes no progress for this long, or a response the peer stops
+reading for this long, is cancelled with ``RST_STREAM``. 0 disables
+that too.
+
+!!! info "Changed in 26.3.0"
+    Also bounds a stalled HTTP/2 stream.
 
 ### `graceful_timeout`
 
@@ -1973,6 +1982,12 @@ set this to a higher value.
 !!! note
     ``sync`` worker does not support persistent connections and will
     ignore this option.
+
+On the ``gthread`` and ``gevent`` workers an HTTP/2 connection with no
+stream open is closed with ``GOAWAY`` after this many seconds.
+
+!!! info "Changed in 26.3.0"
+    Also applies to idle HTTP/2 connections.
 
 ### `asgi_loop`
 
@@ -2005,6 +2020,10 @@ Control ASGI lifespan protocol handling.
 - on: Always run lifespan protocol (fail if unsupported)
 - off: Never run lifespan protocol
 
+In ``auto`` and ``on`` mode, an app that sends
+``lifespan.startup.failed`` stops gunicorn. With ``on``, any failure
+to complete startup does.
+
 The lifespan protocol allows ASGI applications to run code at
 startup and shutdown. This is essential for frameworks like
 FastAPI that need to initialize database connections, caches,
@@ -2033,6 +2052,23 @@ need to increase this value.
 This setting only affects the ``asgi`` worker type.
 
 !!! info "Added in 25.0.0"
+
+### `websocket_max_message_size`
+
+**Command line:** `--websocket-max-message-size INT`
+
+**Default:** `16777216`
+
+Largest WebSocket message, in bytes, the ``asgi`` worker accepts.
+
+ASGI hands the application whole messages, so each message is held in
+memory until its last frame arrives. A frame or a fragmented message
+larger than this closes the connection with code 1009 (message too
+big, RFC 6455 section 7.4.1).
+
+Set to 0 for no limit.
+
+!!! info "Added in 26.3.0"
 
 ### `http_parser`
 

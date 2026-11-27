@@ -39,6 +39,7 @@ class AsyncUWSGIRequest(UWSGIRequest):
         self.method = None
         self.uri = None
         self.path = None
+        self.raw_path = None
         self.query = None
         self.fragment = ""
         self.version = (1, 1)

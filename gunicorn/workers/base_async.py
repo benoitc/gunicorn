@@ -15,6 +15,8 @@ from gunicorn import sock as gunicorn_sock
 from gunicorn.http.errors import InvalidH2CPreface
 from gunicorn.http2 import negotiation
 from gunicorn.http2.response import HTTP2Response
+from gunicorn.http2.errors import HTTP2ConnectionError, HTTP2ProtocolError, HTTP2StreamError
+from gunicorn.http2.stream import StreamState
 from gunicorn.workers import base
 
 ALREADY_HANDLED = object()
@@ -179,10 +181,11 @@ class AsyncWorker(base.Worker):
                 # it yields no requests and nothing is dropped.
                 h2_conn.receive_data(preface)
 
+            last_served = 0
             if upgraded is not None:
                 # The upgraded request is stream 1; serve it before the loop.
-                self.handle_http2_request(listener.getsockname(), upgraded,
-                                          client, addr, h2_conn)
+                self._serve_http2_stream(listener_name, upgraded, client, addr, h2_conn)
+                last_served = 1
 
             while not h2_conn.is_closed and self.alive:
                 try:
@@ -192,17 +195,21 @@ class AsyncWorker(base.Worker):
                     break
 
                 for req in requests:
-                    try:
-                        self.handle_http2_request(listener_name, req, client, addr, h2_conn)
-                    except Exception as e:
-                        self.log.exception("Error handling HTTP/2 request")
-                        try:
-                            h2_conn.send_error(req.stream.stream_id, 500, str(e))
-                        except Exception:
-                            pass
-                    finally:
-                        h2_conn.cleanup_stream(req.stream.stream_id)
+                    self._serve_http2_stream(listener_name, req, client, addr, h2_conn)
+                    last_served = req.stream.stream_id
 
+            if not self.alive and not h2_conn.is_closed:
+                # Queued requests are served, then GOAWAY names the last
+                # one so the peer can retry anything after it.
+                for req in h2_conn.receive_data(b""):
+                    self._serve_http2_stream(listener_name, req, client, addr, h2_conn)
+                    last_served = req.stream.stream_id
+                h2_conn.close(last_stream_id=last_served)
+
+        except HTTP2ConnectionError as e:
+            self.log.debug("HTTP/2 connection closed: %s", e)
+        except HTTP2ProtocolError as e:
+            self.log.debug("HTTP/2 protocol error from peer: %s", e)
         except ssl.SSLError as e:
             if e.args[0] == ssl.SSL_ERROR_EOF:
                 self.log.debug("HTTP/2 SSL connection closed")
@@ -213,6 +220,27 @@ class AsyncWorker(base.Worker):
                 self.log.exception("HTTP/2 socket error")
         except Exception as e:
             self.log.exception("HTTP/2 connection error: %s", e)
+
+    def _serve_http2_stream(self, listener_name, req, sock, addr, h2_conn):
+        """Serve one stream, answering or resetting it whatever happens."""
+        if req.stream.state is StreamState.CLOSED:
+            # Reset by the peer before it could be served
+            h2_conn.cleanup_stream(req.stream.stream_id)
+            return
+        try:
+            self.handle_http2_request(listener_name, req, sock, addr, h2_conn)
+        except (HTTP2StreamError, HTTP2ConnectionError) as e:
+            # The peer reset the stream, stalled past the timeout, or
+            # the socket is gone; nothing to answer.
+            self.log.debug("HTTP/2 stream closed: %s", e)
+        except Exception as e:
+            self.log.exception("Error handling HTTP/2 request")
+            try:
+                h2_conn.send_error(req.stream.stream_id, 500, str(e))
+            except Exception as err:
+                self.log.debug("HTTP/2 error response failed: %s", err)
+        finally:
+            h2_conn.cleanup_stream(req.stream.stream_id)
 
     def handle_http2_request(self, listener_name, req, sock, addr, h2_conn):
         """Handle a single HTTP/2 request."""
@@ -232,6 +260,18 @@ class AsyncWorker(base.Worker):
                                         response_args=(h2_conn, stream_id))
             environ["wsgi.multithread"] = True
             environ["HTTP_VERSION"] = "2"
+
+            def send_early_hints_h2(headers):
+                """Send 103 Early Hints over HTTP/2."""
+                h2_conn.send_informational(stream_id, 103, headers)
+
+            environ["wsgi.early_hints"] = send_early_hints_h2
+
+            def send_trailers_h2(trailers):
+                """Queue trailers to be sent when the stream ends."""
+                resp.trailers = list(trailers)
+
+            environ["gunicorn.http2.send_trailers"] = send_trailers_h2
 
             self.nr += 1
             if self.nr >= self.max_requests:
@@ -253,13 +293,16 @@ class AsyncWorker(base.Worker):
                 if hasattr(respiter, "close"):
                     respiter.close()
 
-            request_time = datetime.now() - request_start
-            self.log.access(resp, req, environ, request_time)
-
+        except (HTTP2StreamError, HTTP2ConnectionError):
+            # The stream or connection is gone; the caller logs it at debug.
+            raise
         except Exception:
             self.log.exception("Error handling HTTP/2 request")
             raise
         finally:
+            if resp is not None:
+                # Logged even when the stream was cut off mid-response
+                self.log.access(resp, req, environ, datetime.now() - request_start)
             try:
                 self.cfg.post_request(self, req, environ, resp)
             except Exception:
@@ -306,10 +349,10 @@ class AsyncWorker(base.Worker):
             # If the original exception was a socket.error we delegate
             # handling it to the caller (where handle() might ignore it)
             util.reraise(*sys.exc_info())
-        except Exception:
+        except (Exception, SystemExit):
             if resp and resp.headers_sent:
-                # If the requests have already been sent, we should close the
-                # connection to indicate the error.
+                # Timeout abort is SystemExit. If we already started the
+                # response, writing a 500 on the same socket corrupts it.
                 self.log.exception("Error handling request")
                 try:
                     sock.shutdown(socket.SHUT_RDWR)

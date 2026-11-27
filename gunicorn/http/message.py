@@ -134,6 +134,11 @@ VERSION_RE = re.compile(r"HTTP/(\d)\.(\d)")
 # only non-VCHAR bytes allowed in a field-value. Anything else in the
 # control range (0x00-0x1F except HTAB, plus DEL 0x7F) must be rejected.
 RFC9110_5_5_INVALID_AND_DANGEROUS = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
+# RFC 9112 section 3.2: the request-target uses the URI grammar of RFC 3986,
+# whose characters are printable ASCII (section 2); anything else must be
+# percent-encoded (section 2.1). The target is decoded as latin-1, so every
+# byte is one character: controls, DEL and 0x80-0xFF are refused.
+RFC9112_TARGET_INVALID = re.compile(r"[^\x21-\x7e]")
 
 # RFC 9110 section 6.5.1: fields forbidden in trailers because they alter
 # routing, framing, or authentication. Using the uppercased names stored
@@ -403,6 +408,7 @@ class Message(HeaderPolicy):
 
     def set_body_reader(self):
         chunked = False
+        transfer_encoding = False
         content_length = None
 
         for (name, value) in self.headers:
@@ -411,9 +417,10 @@ class Message(HeaderPolicy):
                     raise InvalidHeader("CONTENT-LENGTH", req=self)
                 content_length = value
             elif name == "TRANSFER-ENCODING":
+                transfer_encoding = True
                 # T-E can be a list
                 # https://datatracker.ietf.org/doc/html/rfc9112#name-transfer-encoding
-                vals = [v.strip() for v in value.split(',')]
+                vals = [v.strip(" \t") for v in value.split(',')]
                 for val in vals:
                     if val.lower() == "chunked":
                         # DANGER: transfer codings stack, and stacked chunking is never intended
@@ -432,6 +439,13 @@ class Message(HeaderPolicy):
                         self.force_close()
                     else:
                         raise UnsupportedTransferCoding(value)
+
+        # RFC 9112 section 6.3: a request whose Transfer-Encoding does not
+        # end with chunked has no length that can be determined; it MUST be
+        # answered with 400, whatever Content-Length says. Reading it until
+        # the connection closes is only for responses.
+        if transfer_encoding and not chunked:
+            raise InvalidHeader("TRANSFER-ENCODING", req=self)
 
         if chunked:
             # two potentially dangerous cases:
@@ -463,6 +477,11 @@ class Message(HeaderPolicy):
 
     def should_close(self):
         if self.must_close:
+            return True
+        # RFC 9931 section 8: after a CONNECT the bytes on the connection are
+        # tunnel data whatever the application answered, never another
+        # HTTP/1.1 request to serve.
+        if getattr(self, "method", None) == "CONNECT":
             return True
         for (h, v) in self.headers:
             if h == "CONNECTION":
@@ -565,9 +584,24 @@ class Request(Message):
             except _fast_parser_module.InvalidHeaderName as e:
                 raise InvalidHeaderName(str(e))
             except _fast_parser_module.InvalidHeader as e:
+                # A gunicorn_h1c that tells an unknown transfer coding apart
+                # gets the same 501 as the Python parser (RFC 9112 6.1).
+                unsupported = getattr(_fast_parser_module, "UnsupportedTransferCoding", None)
+                # pylint: disable-next=isinstance-second-argument-not-valid-type
+                if unsupported is not None and isinstance(e, unsupported):
+                    raise UnsupportedTransferCoding(str(e))
                 raise InvalidHeader(str(e))
             except _fast_parser_module.ParseError as e:
                 raise InvalidRequestLine(str(e))
+
+        # RFC 9112 section 2.2 allows one empty line before the request line.
+        # gunicorn_h1c before 0.6.12 did not measure the request line after
+        # it, so check limit_request_line here as _parse_python() does. Only
+        # requests that start with that empty line pay for this.
+        if data[:2] == b"\r\n" and self.limit_request_line > 0:
+            end = data.find(b"\r\n", 2)
+            if end - 2 > self.limit_request_line:
+                raise LimitRequestLine(end - 2, self.limit_request_line)
 
         # Extract parsed data
         self.method = bytes_to_str(result['method'])
@@ -579,6 +613,8 @@ class Request(Message):
 
         # Parse URI parts
         if len(self.uri) == 0:
+            raise InvalidRequestLine(self.uri)
+        if RFC9112_TARGET_INVALID.search(self.uri):
             raise InvalidRequestLine(self.uri)
         try:
             parts = split_request_uri(self.uri)
@@ -618,6 +654,13 @@ class Request(Message):
 
     def _parse_python(self, unreader, buf):
         """Parse request using pure Python parser."""
+        # RFC 9112 section 2.2: ignore one empty line (CRLF) received before
+        # the request line, as gunicorn_h1c does. Only one, and only CRLF.
+        while buf[:1] == b"\r" and len(buf) < 2:
+            self.read_into(unreader, buf)
+        if buf[:2] == b"\r\n":
+            del buf[:2]
+
         # Get request line
         line, buf = self.read_line(unreader, buf, self.limit_request_line)
 
@@ -632,6 +675,11 @@ class Request(Message):
             done = data[:2] == b"\r\n"
 
             if idx < 0 and not done:
+                # RFC 9112 section 2.2: every line of the head ends with
+                # CRLF. A bare LF means the head will never end the way it
+                # is read here; reject it now rather than wait for more.
+                if data.count(b"\n") != data.count(b"\r\n"):
+                    raise InvalidHeader("bare LF as line terminator")
                 self.read_into(unreader, buf)
                 data = bytes(buf)
                 if len(data) > self.max_buffer_headers:
@@ -663,6 +711,11 @@ class Request(Message):
 
         while True:
             idx = data.find(b"\r\n")
+            # RFC 9112 section 2.2: the line ends with CRLF; an LF before it
+            # (or with no CRLF yet) is a bare LF, rejected rather than
+            # waited on, as by gunicorn_h1c.
+            if data.find(b"\n", 0, idx if idx >= 0 else len(data)) >= 0:
+                raise InvalidRequestLine("bare LF as line terminator")
             if idx >= 0:
                 # check if the request line is too large
                 if idx > limit > 0:
@@ -890,6 +943,11 @@ class Request(Message):
 
         # URI
         self.uri = bits[1]
+
+        # RFC 9112 3.2 / RFC 3986 2: printable ASCII only, the rest must be
+        # percent-encoded. Checked before urllib.parse, which does not validate.
+        if RFC9112_TARGET_INVALID.search(self.uri):
+            raise InvalidRequestLine(bytes_to_str(line_bytes))
 
         # Python stdlib explicitly tells us it will not perform validation.
         # https://docs.python.org/3/library/urllib.parse.html#url-parsing-security

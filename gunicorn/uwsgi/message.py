@@ -39,6 +39,7 @@ class UWSGIRequest:
         self.method = None
         self.uri = None
         self.path = None
+        self.raw_path = None
         self.query = None
         self.fragment = ""
         self.version = (1, 1)  # uWSGI is HTTP/1.1 compatible
@@ -186,6 +187,12 @@ class UWSGIRequest:
         # URI and path
         self.path = self.uwsgi_vars.get('PATH_INFO', '/')
         self.query = self.uwsgi_vars.get('QUERY_STRING', '')
+
+        # raw_path is the undecoded path bytes; REQUEST_URI carries it when the
+        # proxy forwards it, otherwise fall back to the decoded PATH_INFO.
+        request_uri = self.uwsgi_vars.get('REQUEST_URI', '')
+        raw = request_uri.split('?', 1)[0] if request_uri else self.path
+        self.raw_path = raw.encode('latin-1', 'replace')
 
         # Build URI
         if self.query:

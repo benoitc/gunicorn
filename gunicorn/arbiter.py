@@ -147,7 +147,6 @@ class Arbiter:
         self.num_workers = self.cfg.workers
         self.timeout = self.cfg.timeout
         self.proc_name = self.cfg.proc_name
-
         self.log.debug('Current configuration:\n{0}'.format(
             '\n'.join(
                 '  {0}: {1}'.format(config, value.value)
@@ -745,7 +744,7 @@ class Arbiter:
         try:
             util._setproctitle("worker [%s]" % self.proc_name)
             self.log.info("Booting worker with pid: %s", worker.pid)
-            if self.cfg.reuse_port:
+            if self.cfg.reuse_port and hasattr(socket, "SO_REUSEPORT"):
                 worker.sockets = sock.create_sockets(self.cfg, self.log)
             self.cfg.post_fork(self, worker)
             worker.init_process()
@@ -842,14 +841,26 @@ class Arbiter:
         if self.master_pid != 0:
             return
 
+        # Imported here: gunicorn.dirty pulls in asyncio, which must not be
+        # loaded in the master before a gevent worker patches it.
+        from gunicorn.dirty.pidfile import process_owned_by_us, read_trusted_pid
+
         pidfile = self._get_dirty_pidfile_path()
-        if not os.path.exists(pidfile):
+        if not os.path.lexists(pidfile):
+            return
+
+        # The file sits in the shared temporary directory: only act on it
+        # when this user wrote it and the PID names one of our processes.
+        old_pid = read_trusted_pid(pidfile)
+        if old_pid is None:
+            self.log.warning("Ignoring dirty arbiter PID file %s: not a regular "
+                             "file owned by this user, or no valid PID in it",
+                             pidfile)
             return
 
         try:
-            with open(pidfile) as f:
-                old_pid = int(f.read().strip())
-
+            if not process_owned_by_us(old_pid):
+                raise ProcessLookupError(old_pid)
             # Check if process exists
             os.kill(old_pid, 0)
             # Process exists - kill orphan
@@ -864,7 +875,7 @@ class Arbiter:
                     break
             else:
                 os.kill(old_pid, signal.SIGKILL)
-        except (ValueError, IOError, OSError):
+        except OSError:
             pass
 
         # Remove stale PID file

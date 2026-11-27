@@ -1,0 +1,86 @@
+# Stress suite. One gunicorn image (built once, shared via the anchor) serves
+# every worker/topology combination; each service differs only by environment,
+# which entrypoint.sh turns into the gunicorn argv. k6 (load) and toxiproxy
+# (network faults) are pinned tool images behind profiles, so a plain `up`
+# starts only gunicorn + nginx.
+
+x-gunicorn: &gunicorn
+  build:
+    context: ../../..
+    dockerfile: tests/docker/stress/Dockerfile.gunicorn
+  image: gunicorn-stress:local
+  volumes:
+    - ./certs:/certs:ro
+  healthcheck:
+    test: ["CMD", "python", "-c",
+           "import socket,os; p=8443 if os.environ.get('USE_SSL')=='1' else 8000; socket.create_connection(('localhost',p),2).close()"]
+    interval: 2s
+    timeout: 5s
+    retries: 20
+    start_period: 5s
+
+services:
+  gunicorn-sync:
+    <<: *gunicorn
+    environment: { WORKER: sync, WORKERS: "2", MAX_REQUESTS: "${MAX_REQUESTS:-0}" }
+    ports: ["8460:8000"]
+
+  gunicorn-gthread:
+    <<: *gunicorn
+    environment: { WORKER: gthread, WORKERS: "2", THREADS: "4", MAX_REQUESTS: "${MAX_REQUESTS:-0}" }
+
+  gunicorn-asgi:
+    <<: *gunicorn
+    environment: { WORKER: asgi, WORKERS: "2", ASGI_LOOP: "${ASGI_LOOP:-auto}", MAX_REQUESTS: "${MAX_REQUESTS:-0}", GRACEFUL_TIMEOUT: "5" }
+    ports: ["8462:8000"]
+
+  gunicorn-h2:
+    <<: *gunicorn
+    environment: { WORKER: "${H2_WORKER:-asgi}", WORKERS: "2", USE_SSL: "1", HTTP_PROTOCOLS: "h2,h1" }
+    ports: ["8465:8443"]
+
+  gunicorn-uwsgi:
+    <<: *gunicorn
+    environment: { WORKER: sync, WORKERS: "2", PROTOCOL: uwsgi }
+
+  nginx:
+    build:
+      context: ../../..
+      dockerfile: tests/docker/stress/Dockerfile.nginx
+    image: gunicorn-stress-nginx:local
+    volumes:
+      - ./certs:/certs:ro
+    ports: ["8461:8461", "8463:8463", "8464:8464", "8466:8466"]
+    depends_on:
+      gunicorn-gthread: { condition: service_healthy }
+      gunicorn-asgi: { condition: service_healthy }
+      gunicorn-h2: { condition: service_healthy }
+      gunicorn-uwsgi: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8461/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.11.0
+    profiles: ["faults"]
+    command: ["-host", "0.0.0.0", "-config", "/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy.json:/config/toxiproxy.json:ro
+    ports: ["8474:8474", "8475:8475"]
+    depends_on:
+      gunicorn-asgi: { condition: service_healthy }
+
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["tools"]
+    volumes:
+      - ./k6:/scripts:ro
+      - ./_results:/results
+    working_dir: /scripts
+
+networks:
+  default:
+    driver: bridge

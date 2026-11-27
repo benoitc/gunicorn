@@ -83,6 +83,29 @@ class Config:
             raise AttributeError("No configuration setting for: %s" % name)
         self.settings[name].set(value)
 
+    def validate(self):
+        """Check settings against each other once everything is loaded.
+
+        Individual values are checked by their own validator as they are
+        set; this is for combinations that only make sense as a whole.
+
+        Raises:
+            gunicorn.errors.ConfigError: the configuration cannot be served
+        """
+        if "h2" in self.http_protocols:
+            from gunicorn.http2 import is_http2_available
+
+            if not is_http2_available():
+                raise ConfigError(
+                    "http_protocols includes h2 but the h2 package is not "
+                    "installed. Install gunicorn[http2], or drop h2 from "
+                    "http_protocols.")
+            if not self.is_ssl and self.http2_cleartext == "off":
+                sys.stderr.write(
+                    "Warning: http_protocols includes h2 but there is no TLS "
+                    "and http2_cleartext is off, so HTTP/2 will never be "
+                    "negotiated.\n")
+
     def get_cmd_args_from_env(self):
         if 'GUNICORN_CMD_ARGS' in self.env_orig:
             return shlex.split(self.env_orig['GUNICORN_CMD_ARGS'])
@@ -403,6 +426,21 @@ def validate_pos_int(val):
         val = int(val)
     if val < 0:
         raise ValueError("Value must be positive: %s" % val)
+    return val
+
+
+def validate_http2_window_size(val):
+    """Flow control windows are at most 2^31-1 (RFC 9113 section 6.9.1)."""
+    val = validate_pos_int(val)
+    if val > 2 ** 31 - 1:
+        raise ValueError("HTTP/2 window size must be at most 2147483647: %s" % val)
+    return val
+
+
+def validate_http2_stream_limit(val):
+    val = validate_pos_int(val)
+    if val < 1:
+        raise ValueError("HTTP/2 max concurrent streams must be at least 1: %s" % val)
     return val
 
 
@@ -746,7 +784,7 @@ class WorkerClass(Setting):
         The type of workers to use.
 
         The default class (``sync``) should handle most "normal" types of
-        workloads. You'll want to read :doc:`design` for information on when
+        workloads. You'll want to read :ref:`worker-types` for information on when
         you might want to choose one of the other worker classes. Required
         libraries may be installed using setuptools' ``extras_require`` feature.
 
@@ -859,6 +897,9 @@ class Timeout(Setting):
     default = 30
     desc = """\
         Workers silent for more than this many seconds are killed and restarted.
+        The master checks each worker's heartbeat file; a worker that does not
+        update it within this timeout is considered silent. Idle workers keep
+        updating their heartbeat while waiting for requests.
 
         Value is a positive number or 0. Setting it to 0 has the effect of
         infinite timeouts by disabling timeouts for all workers entirely.
@@ -868,6 +909,14 @@ class Timeout(Setting):
         For the non sync workers it just means that the worker process is still
         communicating and is not tied to the length of time required to handle a
         single request.
+
+        On HTTP/2 connections it also bounds a single stream: a request body
+        that makes no progress for this long, or a response the peer stops
+        reading for this long, is cancelled with ``RST_STREAM``. 0 disables
+        that too.
+
+        .. versionchanged:: 26.3.0
+           Also bounds a stalled HTTP/2 stream.
         """
 
 
@@ -907,6 +956,12 @@ class Keepalive(Setting):
         .. note::
            ``sync`` worker does not support persistent connections and will
            ignore this option.
+
+        On the ``gthread`` and ``gevent`` workers an HTTP/2 connection with no
+        stream open is closed with ``GOAWAY`` after this many seconds.
+
+        .. versionchanged:: 26.3.0
+           Also applies to idle HTTP/2 connections.
         """
 
 
@@ -1467,32 +1522,31 @@ class AccessLogFormat(Setting):
     desc = """\
         The access log format.
 
-        ===========  ===========
-        Identifier   Description
-        ===========  ===========
-        h            remote address
-        l            ``'-'``
-        u            user name (if HTTP Basic auth used)
-        t            date of the request
-        r            status line (e.g. ``GET / HTTP/1.1``)
-        m            request method
-        U            URL path without query string
-        q            query string
-        H            protocol
-        s            status
-        B            response length
-        b            response length or ``'-'`` (CLF format)
-        f            referrer (note: header is ``referer``)
-        a            user agent
-        T            request time in seconds
-        M            request time in milliseconds
-        D            request time in microseconds
-        L            request time in decimal seconds
-        p            process ID
-        {header}i    request header
-        {header}o    response header
-        {variable}e  environment variable
-        ===========  ===========
+        | Identifier  | Description                                                                 |
+        |-------------|-----------------------------------------------------------------------------|
+        | h           | remote client IP address (not overridden by proxy headers like X-Real-IP)   |
+        | l           | `'-'` for compatibility with Common Log Format (CLF)                        |
+        | u           | user name (if HTTP Basic auth used)                                         |
+        | t           | date of the request at logging time in CLF format                           |
+        | r           | status line (e.g. `GET / HTTP/1.1`)                                         |
+        | m           | request method                                                              |
+        | U           | URL path without query string                                               |
+        | q           | query string without a leading '?'                                          |
+        | H           | protocol                                                                    |
+        | s           | status                                                                      |
+        | B           | response length                                                             |
+        | b           | response length or `'-'` (CLF format)                                       |
+        | f           | referrer (note: header is `referer`)                                        |
+        | a           | user agent                                                                  |
+        | T           | request duration in seconds                                                 |
+        | M           | request duration in milliseconds                                            |
+        | D           | request duration in microseconds                                            |
+        | L           | request duration in decimal seconds                                         |
+        | p           | process ID                                                                  |
+        | {header}i   | request header                                                              |
+        | {header}o   | response header                                                             |
+        | {variable}e | environment variable                                                        |
+
 
         Use lowercase for header and environment variable names, and put
         ``{...}x`` names inside ``%(...)s``. For example::
@@ -2433,12 +2487,11 @@ class Ciphers(Setting):
 # HTTP/2 Protocol Settings
 
 # Valid protocol identifiers
-VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2", "h3"])
+VALID_HTTP_PROTOCOLS = frozenset(["h1", "h2"])
 # Map protocol identifiers to ALPN protocol names
 ALPN_PROTOCOL_MAP = {
     "h1": "http/1.1",
     "h2": "h2",
-    "h3": "h3",  # Future: HTTP/3 over QUIC
 }
 
 
@@ -2446,7 +2499,7 @@ def validate_http_protocols(val):
     """Validate http_protocols setting.
 
     Accepts comma-separated list of protocol identifiers.
-    Valid values: h1 (HTTP/1.1), h2 (HTTP/2), h3 (HTTP/3 - future)
+    Valid values: h1 (HTTP/1.1), h2 (HTTP/2)
     Order indicates preference (first = most preferred).
     """
     if val is None:
@@ -2490,8 +2543,7 @@ class HTTPProtocols(Setting):
         Valid protocols:
 
         * ``h1`` - HTTP/1.1 (default)
-        * ``h2`` - HTTP/2 (requires TLS with ALPN)
-        * ``h3`` - HTTP/3 (future, not yet implemented)
+        * ``h2`` - HTTP/2 (TLS with ALPN, or cleartext via ``http2_cleartext``)
 
         Examples::
 
@@ -2501,7 +2553,8 @@ class HTTPProtocols(Setting):
             # Prefer HTTP/2, fallback to HTTP/1.1
             --http-protocols=h2,h1
 
-            # HTTP/2 only (reject HTTP/1.1 clients)
+            # Offer HTTP/2 only. A client that does not select it over ALPN
+            # is still served HTTP/1.1; there is no rejection.
             --http-protocols=h2
 
         HTTP/2 requires:
@@ -2569,7 +2622,7 @@ class HTTP2MaxConcurrentStreams(Setting):
     section = "HTTP/2"
     cli = ["--http2-max-concurrent-streams"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_stream_limit
     type = int
     default = 100
     desc = """\
@@ -2591,7 +2644,7 @@ class HTTP2InitialWindowSize(Setting):
     section = "HTTP/2"
     cli = ["--http2-initial-window-size"]
     meta = "INT"
-    validator = validate_pos_int
+    validator = validate_http2_window_size
     type = int
     default = 65535
     desc = """\
@@ -2923,6 +2976,10 @@ class ASGILifespan(Setting):
         - on: Always run lifespan protocol (fail if unsupported)
         - off: Never run lifespan protocol
 
+        In ``auto`` and ``on`` mode, an app that sends
+        ``lifespan.startup.failed`` stops gunicorn. With ``on``, any failure
+        to complete startup does.
+
         The lifespan protocol allows ASGI applications to run code at
         startup and shutdown. This is essential for frameworks like
         FastAPI that need to initialize database connections, caches,
@@ -2956,6 +3013,28 @@ class ASGIDisconnectGracePeriod(Setting):
         This setting only affects the ``asgi`` worker type.
 
         .. versionadded:: 25.0.0
+        """
+
+
+class WebSocketMaxMessageSize(Setting):
+    name = "websocket_max_message_size"
+    section = "Worker Processes"
+    cli = ["--websocket-max-message-size"]
+    meta = "INT"
+    validator = validate_pos_int
+    type = int
+    default = 16 * 1024 * 1024
+    desc = """\
+        Largest WebSocket message, in bytes, the ``asgi`` worker accepts.
+
+        ASGI hands the application whole messages, so each message is held in
+        memory until its last frame arrives. A frame or a fragmented message
+        larger than this closes the connection with code 1009 (message too
+        big, RFC 6455 section 7.4.1).
+
+        Set to 0 for no limit.
+
+        .. versionadded:: 26.3.0
         """
 
 

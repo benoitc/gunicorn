@@ -17,6 +17,9 @@ Tell Gunicorn where the statsD server is located:
 gunicorn --statsd-host=localhost:8125 --statsd-prefix=service.app ...
 ```
 
+For an IPv6 address, enclose the host in brackets, for example
+`--statsd-host='[::1]:8125'`.
+
 The `Statsd` logger subclasses `gunicorn.glogging.Logger` and tracks:
 
 - `gunicorn.requests` &mdash; request rate per second

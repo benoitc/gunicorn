@@ -2,6 +2,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import errno
 from unittest import mock
 
 from gunicorn import sock
@@ -26,6 +27,58 @@ def test_create_sockets_unix_strings(stat):
         listeners = sock.create_sockets(conf, log)
         assert len(listeners) == 1
         assert isinstance(listeners[0], sock.UnixSocket)
+
+
+def test_create_sockets_does_not_relisten_inherited_socket():
+    conf = mock.Mock(address=[], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    inherited_socket = mock.Mock()
+    inherited_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    inherited_socket.getsockopt.return_value = 1
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[inherited_socket, inherited_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log, fds=[3])
+
+    assert len(listeners) == 1
+    inherited_socket.listen.assert_not_called()
+
+
+def test_create_sockets_listens_on_bind_fd():
+    conf = mock.Mock(address=[3], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    bound_socket = mock.Mock()
+    bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    bound_socket.getsockopt.return_value = 0
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[bound_socket, bound_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log)
+
+    assert len(listeners) == 1
+    bound_socket.listen.assert_called_once_with(123)
+
+
+def test_create_sockets_listens_when_acceptconn_unsupported():
+    """If the platform cannot report SO_ACCEPTCONN, listen() as before."""
+    conf = mock.Mock(address=[3], certfile=None, keyfile=None,
+                     reuse_port=False, backlog=123)
+    log = mock.Mock()
+    bound_socket = mock.Mock()
+    bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
+    bound_socket.getsockopt.side_effect = OSError("not supported")
+
+    with mock.patch.object(sock.socket, 'fromfd',
+                           side_effect=[bound_socket, bound_socket]), \
+            mock.patch.object(sock.os, 'close'):
+        listeners = sock.create_sockets(conf, log)
+
+    assert len(listeners) == 1
+    bound_socket.listen.assert_called_once_with(123)
 
 
 def test_socket_close():
@@ -54,3 +107,33 @@ def test_unix_socket_close_without_unlink(unlink):
     sock.close_sockets([listener], False)
     listener.close.assert_called_with()
     assert not unlink.called, 'unlink should not have been called'
+
+
+@mock.patch('os.stat')
+def test_unix_socket_abstract_namespace_skips_stat(stat):
+    conf = mock.Mock()
+    log = mock.Mock()
+    with mock.patch.object(sock.BaseSocket, '__init__', lambda *a, **kw: None):
+        sock.UnixSocket('\0my-abstract-socket', conf, log)
+    assert not stat.called, 'os.stat should be skipped for an abstract namespace address'
+
+
+@mock.patch('os.stat')
+def test_unix_socket_filesystem_path_still_checks_stat(stat):
+    stat.side_effect = OSError(errno.ENOENT, 'No such file or directory')
+    conf = mock.Mock()
+    log = mock.Mock()
+    with mock.patch.object(sock.BaseSocket, '__init__', lambda *a, **kw: None):
+        sock.UnixSocket('/var/run/test.sock', conf, log)
+    stat.assert_called_once_with('/var/run/test.sock')
+
+
+@mock.patch.object(sock.util, 'chown')
+def test_unix_socket_bind_abstract_namespace_skips_chown(chown):
+    listener = mock.Mock()
+    unix_sock = sock.UnixSocket.__new__(sock.UnixSocket)
+    unix_sock.conf = mock.Mock(umask=0)
+    unix_sock.cfg_addr = '\0my-abstract-socket'
+    unix_sock.bind(listener)
+    listener.bind.assert_called_once_with('\0my-abstract-socket')
+    assert not chown.called, 'chown should be skipped for an abstract namespace address'

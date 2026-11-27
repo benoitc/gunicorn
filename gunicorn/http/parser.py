@@ -35,7 +35,7 @@ class Parser:
     def __iter__(self):
         return self
 
-    def finish_body(self, deadline=None, max_bytes=None):
+    def finish_body(self, deadline=None, max_bytes=None):  # pylint: disable=too-many-return-statements
         """Discard any unread body of the current message.
 
         Called before returning a keepalive connection to the poller so the
@@ -57,6 +57,12 @@ class Parser:
         """
         if not self.mesg:
             return True
+
+        # Reading the body raised (a malformed chunk or trailer, for example):
+        # where the next request starts is unknown, so the connection closes.
+        body = getattr(self.mesg, "body", None)
+        if getattr(body, "failed", False) is True:
+            return False
 
         if max_bytes is None and deadline is not None:
             max_bytes = _DRAIN_MAX_BYTES
@@ -103,8 +109,10 @@ class Parser:
         if self.mesg and self.mesg.should_close():
             raise StopIteration()
 
-        # Discard any unread body of the previous message
-        self.finish_body()
+        # Discard any unread body of the previous message. If that cannot be
+        # done, the next request's start is unknown: stop.
+        if not self.finish_body():
+            raise StopIteration()
 
         # Parse the next request
         self.req_count += 1

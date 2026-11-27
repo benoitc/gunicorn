@@ -10,6 +10,7 @@ import socket
 import tempfile
 from datetime import timedelta
 from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 
@@ -188,3 +189,21 @@ def test_prefix_nested():
 
     logger.info("Blah", extra={"mtype": "gauge", "metric": "gunicorn.test", "value": 666})
     assert logger.sock.msgs[0] == b"test.asdf.gunicorn.test:666|g"
+
+
+@pytest.mark.parametrize(("address", "family", "destination"), [
+    ("[::1]:8125", socket.AF_INET6, ("::1", 8125)),
+    ("[2001:db8::1]:9125", socket.AF_INET6, ("2001:db8::1", 9125)),
+    ("127.0.0.1:8125", socket.AF_INET, ("127.0.0.1", 8125)),
+    ("localhost:8125", socket.AF_INET, ("localhost", 8125)),
+    ("unix:/tmp/statsd.sock", socket.AF_UNIX, "/tmp/statsd.sock"),
+])
+def test_statsd_socket_address_family(address, family, destination):
+    cfg = Config()
+    cfg.set("statsd_host", address)
+    with mock.patch("gunicorn.instrument.statsd.socket.socket") as socket_factory:
+        logger = Statsd(cfg)
+        socket_factory.assert_called_once_with(family, socket.SOCK_DGRAM)
+        socket_factory.return_value.connect.assert_called_once_with(destination)
+        logger.increment("requests", 1)
+        socket_factory.return_value.send.assert_called_once_with(b"requests:1|c|@1.0")
