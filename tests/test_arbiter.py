@@ -5,6 +5,8 @@
 import os
 import signal
 import logging
+import socket
+from contextlib import closing
 from unittest import mock
 
 import pytest
@@ -86,38 +88,37 @@ def test_arbiter_stop_does_not_unlink_when_using_reuse_port(close_sockets):
     close_sockets.assert_called_with([], False)
 
 
-@mock.patch('os.getpid')
-@mock.patch('os.fork')
-@mock.patch('os.execvpe')
-def test_arbiter_reexec_passing_systemd_sockets(execvpe, fork, getpid):
+@pytest.mark.parametrize('systemd', [False, True])
+@mock.patch('os.getpid', side_effect=[2, 3])
+@mock.patch('os.fork', return_value=0)
+@mock.patch('os.execvpe', side_effect=SystemExit)
+def test_arbiter_reexec_passes_listeners(execvpe, fork, getpid, systemd):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    arbiter.LISTENERS = [mock.Mock(), mock.Mock()]
-    arbiter.systemd = True
-    fork.return_value = 0
-    getpid.side_effect = [2, 3]
-    arbiter.reexec()
-    environ = execvpe.call_args[0][2]
-    assert environ['GUNICORN_PID'] == '2'
-    assert environ['LISTEN_FDS'] == '2'
-    assert environ['LISTEN_PID'] == '3'
+    arbiter.systemd = systemd
+    with socket.socket() as first, socket.socket() as second:
+        arbiter.LISTENERS = [first, second]
+        with pytest.raises(SystemExit):
+            arbiter.reexec()
+        assert first.get_inheritable()
+        assert second.get_inheritable()
+        environ = execvpe.call_args.args[2]
+        assert environ['GUNICORN_PID'] == '2'
+        if systemd:
+            assert environ['LISTEN_FDS'] == '2'
+            assert environ['LISTEN_PID'] == '3'
+        else:
+            assert environ['GUNICORN_FD'] == f'{first.fileno()},{second.fileno()}'
 
 
-@mock.patch('os.getpid')
-@mock.patch('os.fork')
-@mock.patch('os.execvpe')
-def test_arbiter_reexec_passing_gunicorn_sockets(execvpe, fork, getpid):
+@mock.patch('os.fork', return_value=123)
+def test_arbiter_reexec_keeps_parent_listener_non_inheritable(fork):
     arbiter = gunicorn.arbiter.Arbiter(DummyApplication())
-    listener1 = mock.Mock()
-    listener2 = mock.Mock()
-    listener1.fileno.return_value = 4
-    listener2.fileno.return_value = 5
-    arbiter.LISTENERS = [listener1, listener2]
-    fork.return_value = 0
-    getpid.side_effect = [2, 3]
-    arbiter.reexec()
-    environ = execvpe.call_args[0][2]
-    assert environ['GUNICORN_FD'] == '4,5'
-    assert environ['GUNICORN_PID'] == '2'
+    with closing(gunicorn.sock.TCPSocket(('127.0.0.1', 0), arbiter.cfg, arbiter.log)) as listener:
+        arbiter.LISTENERS = [listener]
+        assert not listener.get_inheritable()
+        arbiter.reexec()
+        fork.assert_called_once_with()
+        assert not listener.get_inheritable()
 
 
 @mock.patch('os.fork')

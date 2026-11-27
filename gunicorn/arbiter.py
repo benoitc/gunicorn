@@ -522,6 +522,10 @@ class Arbiter:
 
         os.chdir(self.START_CTX['cwd'])
 
+        # Preserve listener sockets across exec.
+        for listener in self.LISTENERS:
+            os.set_inheritable(listener.fileno(), True)
+
         # exec the process using the original environment
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
 

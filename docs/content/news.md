@@ -1,6 +1,12 @@
 <span id="news"></span>
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- Keep listening sockets close-on-exec except when starting a new master with `USR2` (PEP 446).
+
 ## 27.0.1 - 2026-11-12
 
 ### Bug Fixes

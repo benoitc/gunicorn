@@ -52,10 +52,6 @@ class BaseSocket:
             self.bind(sock)
         sock.setblocking(0)
 
-        # make sure that the socket can be inherited
-        if hasattr(sock, "set_inheritable"):
-            sock.set_inheritable(True)
-
         if not self._is_listening(sock):
             sock.listen(self.conf.backlog)
         return sock
