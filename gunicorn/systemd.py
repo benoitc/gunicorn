@@ -25,8 +25,7 @@ def listen_fds(unset_environment=True):
     unless the ``unset_environment`` flag is ``False``.
 
     .. note::
-        Unlike the sd_listen_fds C function, this implementation does not set
-        the FD_CLOEXEC flag because the gunicorn arbiter never needs to do this.
+        Gunicorn sets FD_CLOEXEC when it takes ownership of each listener.
 
     .. seealso::
         `<https://www.freedesktop.org/software/systemd/man/sd_listen_fds.html>`_

@@ -10,26 +10,31 @@ import stat
 import struct
 import sys
 import time
+from contextlib import ExitStack
 
 from gunicorn import util
 
 PLATFORM = sys.platform
 
 
+def _adopt_socket(fd):
+    sock = socket.socket(fileno=fd)
+    sock.set_inheritable(False)
+    return sock
+
+
 class BaseSocket:
 
-    def __init__(self, address, conf, log, fd=None):
+    def __init__(self, address, conf, log, fd=None, *, sock=None):
         self.log = log
         self.conf = conf
 
         self.cfg_addr = address
-        if fd is None:
+        if fd is not None:
+            sock = _adopt_socket(fd)
+        bound = sock is not None
+        if sock is None:
             sock = socket.socket(self.FAMILY, socket.SOCK_STREAM)
-            bound = False
-        else:
-            sock = socket.fromfd(fd, self.FAMILY, socket.SOCK_STREAM)
-            os.close(fd)
-            bound = True
 
         self.sock = self.set_options(sock, bound=bound)
 
@@ -133,10 +138,10 @@ class UnixSocket(BaseSocket):
 
     FAMILY = socket.AF_UNIX
 
-    def __init__(self, addr, conf, log, fd=None):
+    def __init__(self, addr, conf, log, fd=None, *, sock=None):
         # Abstract namespace sockets (address starts with a null byte) have
         # no filesystem presence, so there's nothing to stat or remove.
-        if fd is None and not addr.startswith('\0'):
+        if fd is None and sock is None and not addr.startswith('\0'):
             try:
                 st = os.stat(addr)
             except OSError as e:
@@ -147,7 +152,7 @@ class UnixSocket(BaseSocket):
                     os.remove(addr)
                 else:
                     raise ValueError("%r is not a socket" % addr)
-        super().__init__(addr, conf, log, fd=fd)
+        super().__init__(addr, conf, log, fd=fd, sock=sock)
 
     def __str__(self):
         return "unix:%s" % self.cfg_addr
@@ -200,12 +205,14 @@ def create_sockets(conf, log, fds=None):
 
     # sockets are already bound
     if fdaddr:
-        for fd in fdaddr:
-            sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            sock_name = sock.getsockname()
-            sock_type = _sock_type(sock_name)
-            listener = sock_type(sock_name, conf, log, fd=fd)
-            listeners.append(listener)
+        with ExitStack() as sockets:
+            for fd in dict.fromkeys(fdaddr):
+                sock = _adopt_socket(fd)
+                sockets.callback(sock.close)
+                sock_name = sock.getsockname()
+                sock_type = _sock_type(sock_name)
+                listeners.append(sock_type(sock_name, conf, log, sock=sock))
+            sockets.pop_all()
 
         return listeners
 

@@ -6,6 +6,7 @@
 ### Bug Fixes
 
 - Keep listening sockets close-on-exec except when starting a new master with `USR2` (PEP 446).
+- Preserve the original listener file descriptor numbers across a `USR2` upgrade with systemd socket activation (sd_listen_fds(3)).
 
 ## 27.0.1 - 2026-11-12
 
