@@ -34,8 +34,10 @@ def test_create_sockets_unix_strings(stat):
 
 
 @pytest.mark.parametrize('source', ['inherited', 'also_configured', 'constructor'])
-def test_listener_adopts_received_fd(tmp_path, source):
-    path = str(tmp_path / 'listener.sock')
+def test_listener_adopts_received_fd(tmp_path, monkeypatch, source):
+    # The absolute tmp_path can exceed the AF_UNIX address length limit.
+    monkeypatch.chdir(tmp_path)
+    path = 'listener.sock'
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as original:
         original.bind(path)
         original.listen()
