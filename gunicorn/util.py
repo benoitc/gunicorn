@@ -271,9 +271,9 @@ def parse_address(netloc, default_port='8000'):
 
 
 def close_on_exec(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-    flags |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+    if not isinstance(fd, int):
+        fd = fd.fileno()
+    os.set_inheritable(fd, False)
 
 
 def set_non_blocking(fd):

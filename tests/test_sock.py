@@ -3,7 +3,11 @@
 # See the NOTICE for more information.
 
 import errno
+import os
+import socket
 from unittest import mock
+
+import pytest
 
 from gunicorn import sock
 
@@ -29,6 +33,53 @@ def test_create_sockets_unix_strings(stat):
         assert isinstance(listeners[0], sock.UnixSocket)
 
 
+@pytest.mark.parametrize('source', ['inherited', 'also_configured', 'constructor'])
+def test_listener_adopts_received_fd(tmp_path, monkeypatch, source):
+    # The absolute tmp_path can exceed the AF_UNIX address length limit.
+    monkeypatch.chdir(tmp_path)
+    path = 'listener.sock'
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as original:
+        original.bind(path)
+        original.listen()
+        original.set_inheritable(True)
+        fd = original.detach()
+
+    conf = mock.Mock(address=[fd] if source == 'also_configured' else [], certfile=None,
+                     keyfile=None, reuse_port=False)
+    if source == 'constructor':
+        listeners = [sock.UnixSocket(path, conf, mock.Mock(), fd=fd)]
+    else:
+        listeners = sock.create_sockets(conf, mock.Mock(), fds=[fd])
+    try:
+        assert len(listeners) == 1
+        listener = listeners[0]
+        assert isinstance(listener, sock.UnixSocket)
+        assert listener.fileno() == fd
+        assert not listener.get_inheritable()
+        assert listener.getsockname() == path
+        assert os.path.exists(path)
+    finally:
+        sock.close_sockets(listeners, unlink=False)
+
+    with pytest.raises(OSError) as exc:
+        os.fstat(fd)
+    assert exc.value.errno == errno.EBADF
+
+
+def test_create_sockets_closes_adopted_fds_on_error():
+    with socket.socket() as first, socket.socket(type=socket.SOCK_DGRAM) as second:
+        first.bind(('127.0.0.1', 0))
+        fds = [first.detach(), second.detach()]
+    conf = mock.Mock(address=[], certfile=None, keyfile=None, reuse_port=False, backlog=1)
+    with pytest.raises(OSError) as setup_error:
+        sock.create_sockets(conf, mock.Mock(), fds=fds)
+    assert setup_error.value.errno != errno.EBADF
+    for fd in fds:
+        with pytest.raises(OSError) as exc:
+            os.fstat(fd)
+        assert exc.value.errno == errno.EBADF
+
+
 def test_create_sockets_does_not_relisten_inherited_socket():
     conf = mock.Mock(address=[], certfile=None, keyfile=None,
                      reuse_port=False, backlog=123)
@@ -37,9 +88,7 @@ def test_create_sockets_does_not_relisten_inherited_socket():
     inherited_socket.getsockname.return_value = ('127.0.0.1', 8000)
     inherited_socket.getsockopt.return_value = 1
 
-    with mock.patch.object(sock.socket, 'fromfd',
-                           side_effect=[inherited_socket, inherited_socket]), \
-            mock.patch.object(sock.os, 'close'):
+    with mock.patch.object(sock.socket, 'socket', return_value=inherited_socket):
         listeners = sock.create_sockets(conf, log, fds=[3])
 
     assert len(listeners) == 1
@@ -54,9 +103,7 @@ def test_create_sockets_listens_on_bind_fd():
     bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
     bound_socket.getsockopt.return_value = 0
 
-    with mock.patch.object(sock.socket, 'fromfd',
-                           side_effect=[bound_socket, bound_socket]), \
-            mock.patch.object(sock.os, 'close'):
+    with mock.patch.object(sock.socket, 'socket', return_value=bound_socket):
         listeners = sock.create_sockets(conf, log)
 
     assert len(listeners) == 1
@@ -72,9 +119,7 @@ def test_create_sockets_listens_when_acceptconn_unsupported():
     bound_socket.getsockname.return_value = ('127.0.0.1', 8000)
     bound_socket.getsockopt.side_effect = OSError("not supported")
 
-    with mock.patch.object(sock.socket, 'fromfd',
-                           side_effect=[bound_socket, bound_socket]), \
-            mock.patch.object(sock.os, 'close'):
+    with mock.patch.object(sock.socket, 'socket', return_value=bound_socket):
         listeners = sock.create_sockets(conf, log)
 
     assert len(listeners) == 1

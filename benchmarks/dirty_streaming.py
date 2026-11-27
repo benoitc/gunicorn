@@ -114,9 +114,6 @@ class MockLog:
     def error(self, msg, *args):
         pass
 
-    def close_on_exec(self):
-        pass
-
     def reopen_files(self):
         pass
 

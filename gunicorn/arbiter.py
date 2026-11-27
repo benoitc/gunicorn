@@ -227,8 +227,6 @@ class Arbiter:
         Initialize master signal handling. Most of the signals
         are queued. Child signals only wake up the master.
         """
-        self.log.close_on_exec()
-
         # initialize all signals
         for s in self.SIGNALS:
             signal.signal(s, self.signal)
@@ -523,6 +521,10 @@ class Arbiter:
                 str(lnr.fileno()) for lnr in self.LISTENERS)
 
         os.chdir(self.START_CTX['cwd'])
+
+        # Preserve listener sockets across exec.
+        for listener in self.LISTENERS:
+            os.set_inheritable(listener.fileno(), True)
 
         # exec the process using the original environment
         os.execvpe(self.START_CTX[0], self.START_CTX['args'], environ)
